@@ -1,4 +1,4 @@
-#include "Math.h"
+#include "math.hpp"
 #include <cmath>
 
 #ifndef M_PI
