@@ -111,6 +111,7 @@ public:
         }
 
         glfwMakeContextCurrent(m_window);
+        glfwSwapInterval(1);
 
         // ---- GLAD initialization instead of GLEW ----
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
