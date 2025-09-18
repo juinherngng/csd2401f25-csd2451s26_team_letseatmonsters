@@ -1,11 +1,13 @@
 /**
- * @file config-manager.cpp
- * @brief Implementation of ConfigManager for loading/saving game settings from text files.
+ * @file   ConfigManager.cpp
+ * @author
+ * @date   19 Sep 2025
+ * @brief  Implementation of ConfigManager for loading/saving game settings from text files.
  *
  * File format: simple key=value pairs (INI-like), `#` for comments.
  */
 
-#include "config-manager.hpp"
+#include "ConfigManager.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -18,6 +20,7 @@ namespace fs = std::filesystem;
 
 namespace ConfigManager {
 	namespace {
+		/** @brief Trims whitespace from both ends of a string. */
 		std::string Trim(std::string s) {
 			auto notSpace = [](unsigned char ch) {
 				return !std::isspace(ch);
@@ -29,6 +32,7 @@ namespace ConfigManager {
 			return s;
 		}
 
+		/** @brief Case-insensitive comparison of two strings. */
 		bool IEquals(const std::string& a, const std::string& b) {
 			if (a.size() != b.size()) {
 				return false;
@@ -43,6 +47,7 @@ namespace ConfigManager {
 			return true;
 		}
 
+		/** @brief Parses a string into bool. */
 		bool ParseBool(const std::string& s, bool& out) {
 			if (IEquals(s, "true") || s == "1") {
 				out = true; return true;
@@ -55,6 +60,7 @@ namespace ConfigManager {
 			return false;
 		}
 
+		/** @brief Parses a string into int. */
 		bool ParseInt(const std::string& s, int& out) {
 			try {
 				size_t pos = 0;
@@ -69,6 +75,7 @@ namespace ConfigManager {
 			}
 		}
 
+		/** @brief Parses a string into float. */
 		bool ParseFloat(const std::string& s, float& out) {
 			try {
 				size_t pos = 0;

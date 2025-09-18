@@ -1,6 +1,8 @@
 /**
- * @file Main.cpp
- * @brief Entry point for the OpenGL application with ImGui overlay.
+ * @file   Main.cpp
+ * @author
+ * @date   19 Sep 2025
+ * @brief  Entry point for the OpenGL application with ImGui overlay.
  *
  * This file demonstrates:
  * - Creating an OpenGL 3.3 context using GLFW
@@ -10,7 +12,7 @@
  */
 
 #include <shader.h>
-#include "config-manager.hpp"
+#include "ConfigManager.hpp"
 #include <memory>
 #include <stdexcept>
 #include <glad/glad.h>
@@ -23,6 +25,10 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
+ /**
+  * @class Cube
+  * @brief Simple drawable 2D square made of two triangles with per-vertex colors.
+  */
 class Cube {
 public:
 	Cube() : m_programId(0), m_vertexBuffer(0), m_vertexArrayId(0) {}
@@ -43,8 +49,7 @@ public:
 
             out vec3 vColor;
 
-            void main()
-            {
+            void main() {
                 gl_Position = vertexTransform * vec4(aPosition, 1.0);
                 vColor = aColor;
             }
@@ -56,8 +61,7 @@ public:
             in vec3 vColor;
             out vec4 FragColor;
 
-            void main()
-            {
+            void main() {
                 FragColor = vec4(vColor, 1.0);
             }
         )";
@@ -100,6 +104,10 @@ private:
 	std::vector<GLfloat> m_geometryBuffer;
 };
 
+/**
+ * @class GLApp
+ * @brief Manages the application lifecycle: window, rendering, input, and ImGui.
+ */
 class GLApp {
 public:
 	GLApp(int p_width, int p_height, const char* p_title, bool fullscreen = false)
@@ -272,6 +280,10 @@ private:
 	std::shared_ptr<Cube> m_cube;
 };
 
+/**
+ * @brief Program entry point.
+ * Loads configuration, creates GLApp, and runs the render loop.
+ */
 int main() {
 	try {
 		auto settings = ConfigManager::LoadFromAssetsOrDefaults();
