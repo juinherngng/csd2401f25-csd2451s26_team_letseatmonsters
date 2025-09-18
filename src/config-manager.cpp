@@ -1,6 +1,6 @@
 /**
- * @file    config-manager.cpp
- * @brief   Implementation of ConfigManager for loading/saving game settings from text files.
+ * @file config-manager.cpp
+ * @brief Implementation of ConfigManager for loading/saving game settings from text files.
  *
  * File format: simple key=value pairs (INI-like), `#` for comments.
  */
@@ -45,7 +45,7 @@ namespace ConfigManager {
 
 		bool ParseBool(const std::string& s, bool& out) {
 			if (IEquals(s, "true") || s == "1") {
-				out = true;  return true;
+				out = true; return true;
 			}
 
 			if (IEquals(s, "false") || s == "0") {
@@ -85,10 +85,11 @@ namespace ConfigManager {
 	}
 
 	void Validate(Settings& s) {
+		// Enforce minimum resolution
 		if (s.resolution.width < 320) s.resolution.width = 320;
 		if (s.resolution.height < 200) s.resolution.height = 200;
 
-		// Clamp both volumes
+		// Clamp volumes
 		if (s.bgmVolume < 0.f) s.bgmVolume = 0.f;
 		if (s.bgmVolume > 1.f) s.bgmVolume = 1.f;
 		if (s.vfxVolume < 0.f) s.vfxVolume = 0.f;
@@ -112,6 +113,7 @@ namespace ConfigManager {
 		std::string line;
 
 		while (std::getline(in, line)) {
+			// Remove comments
 			std::string::size_type pos = line.find('#');
 			if (pos != std::string::npos) {
 				line.erase(pos);
@@ -153,7 +155,7 @@ namespace ConfigManager {
 				if (ParseFloat(val, v)) { tmp.bgmVolume = v; tmp.vfxVolume = v; }
 			}
 			else {
-				// unknown keys: ignore
+				// Unknown keys ignored
 			}
 		}
 
@@ -174,17 +176,17 @@ namespace ConfigManager {
 		out << "bgm_volume=" << s.bgmVolume << "\n";
 		out << "vfx_volume=" << s.vfxVolume << "\n";
 		out.flush();
-
 		return static_cast<bool>(out);
 	}
 
-	bool LoadFromAssets(Settings& out, const char* filename /*= "config.txt"*/) {
+	bool LoadFromAssets(Settings& out, const char* filename) {
 		const char* fname = filename ? filename : "config.txt";
 
 		char exePath[MAX_PATH]{};
 		if (!GetModuleFileNameA(nullptr, exePath, MAX_PATH)) {
 			return false;
 		}
+
 		fs::path exeDir = fs::path(exePath).parent_path();
 
 		std::vector<fs::path> candidates = {

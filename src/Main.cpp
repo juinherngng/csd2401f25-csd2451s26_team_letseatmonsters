@@ -1,3 +1,14 @@
+/**
+ * @file Main.cpp
+ * @brief Entry point for the OpenGL application with ImGui overlay.
+ *
+ * This file demonstrates:
+ * - Creating an OpenGL 3.3 context using GLFW
+ * - Loading shaders and rendering a colored quad (Cube class)
+ * - Integrating ImGui for UI overlays
+ * - Reading settings from ConfigManager to configure resolution/fullscreen
+ */
+
 #include <shader.h>
 #include "config-manager.hpp"
 #include <memory>
