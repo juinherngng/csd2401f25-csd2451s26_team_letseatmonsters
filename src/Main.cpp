@@ -113,43 +113,60 @@ public:
 		int width = p_width;
 		int height = p_height;
 
+		// m_window = glfwCreateWindow(width, height, p_title, monitor, nullptr);
+
 		if (fullscreen) {
 			monitor = glfwGetPrimaryMonitor();
 			const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
-			// Use config resolution if it’s valid, otherwise fall back to monitor native
-			if (p_width > 0 && p_height > 0) {
-				width = p_width;
-				height = p_height;
-			}
-			else {
-				width = mode->width;
-				height = mode->height;
-			}
+			width = mode->width;
+			height = mode->height;
 
 			glfwWindowHint(GLFW_RED_BITS, mode->redBits);
 			glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
 			glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
 			glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+
+			m_window = glfwCreateWindow(width, height, p_title, monitor, nullptr);
+		}
+		else {
+			// Normal windowed
+			m_window = glfwCreateWindow(width, height, p_title, nullptr, nullptr);
+			if (m_window) {
+				// center on primary monitor
+				GLFWmonitor* prim = glfwGetPrimaryMonitor();
+				const GLFWvidmode* mode = glfwGetVideoMode(prim);
+				int x = (mode->width - width) / 2;
+				int y = (mode->height - height) / 2;
+				glfwSetWindowPos(m_window, x, y);
+			}
 		}
 
-		m_window = glfwCreateWindow(width, height, p_title, monitor, nullptr);
 		if (!m_window) {
 			glfwTerminate();
 			throw std::runtime_error("Window creation failed");
 		}
 
-		if (!fullscreen) {
-			// Center the window on primary monitor
-			GLFWmonitor* prim = glfwGetPrimaryMonitor();
-			const GLFWvidmode* mode = glfwGetVideoMode(prim);
-			int x = (mode->width - width) / 2;
-			int y = (mode->height - height) / 2;
-			glfwSetWindowPos(m_window, x, y);
-		}
-
 		glfwMakeContextCurrent(m_window);
 		glfwSwapInterval(1);
+
+		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+			glfwDestroyWindow(m_window);
+			glfwTerminate();
+			throw std::runtime_error("Failed to initialize GLAD");
+		}
+
+		// Now it's safe to use OpenGL functions
+		int fbw = 0, fbh = 0;
+		glfwGetFramebufferSize(m_window, &fbw, &fbh);
+		if (fbw <= 0 || fbh <= 0) { fbw = width; fbh = height; }  // fallback for minimized/0 dpi
+		glViewport(0, 0, fbw, fbh);
+
+		// Keep viewport in sync on resize/DPI changes
+		glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow*, int w, int h) {
+			if (w <= 0 || h <= 0) return;
+			glViewport(0, 0, w, h);
+			});
 
 		// ---- GLAD initialization instead of GLEW ----
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
