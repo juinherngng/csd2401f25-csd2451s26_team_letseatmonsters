@@ -1,0 +1,6 @@
+window_width=1080
+window_height=720
+fullscreen=false
+
+bgm_volume=0.50
+vfx_volume=0.80

@@ -12,6 +12,9 @@
 #include <algorithm>
 #include <cctype>
 #include <windows.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace ConfigManager {
 	namespace {
@@ -175,14 +178,26 @@ namespace ConfigManager {
 		return static_cast<bool>(out);
 	}
 
-	bool LoadFromAssets(Settings& out, const char* filename) {
-		// Build "<exe-dir>\assets\<filename>"
-		char exeDir[MAX_PATH]{};
-		if (!GetModuleFileNameA(nullptr, exeDir, MAX_PATH)) {
-			return false;
+	bool LoadFromAssets(Settings& out, const char* filename /*= "config.txt"*/) {
+		const char* fname = filename ? filename : "config.txt";
+
+		char exePath[MAX_PATH]{};
+		if (!GetModuleFileNameA(nullptr, exePath, MAX_PATH)) return false;
+		fs::path exeDir = fs::path(exePath).parent_path();
+
+		// Candidates to try, in order:
+		fs::path candidates[] = {
+			exeDir / "assets" / fname,                 // <exe>\assets\config.txt
+			exeDir.parent_path() / "assets" / fname,   // <exe>\..\assets\config.txt   (your layout)
+			exeDir / fname                              // <exe>\config.txt             (fallback)
+		};
+
+		for (const fs::path& p : candidates) {
+			std::error_code ec;
+			if (fs::exists(p, ec)) {
+				return Load(p.string(), out);
+			}
 		}
-		if (char* last = strrchr(exeDir, '\\')) *(last + 1) = '\0'; // keep trailing '\'
-		std::string path = std::string(exeDir) + "assets\\" + (filename ? filename : "config.txt");
-		return Load(path, out);
+		return false; // none found
 	}
 }
