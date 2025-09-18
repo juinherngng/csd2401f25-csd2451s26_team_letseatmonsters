@@ -182,22 +182,25 @@ namespace ConfigManager {
 		const char* fname = filename ? filename : "config.txt";
 
 		char exePath[MAX_PATH]{};
-		if (!GetModuleFileNameA(nullptr, exePath, MAX_PATH)) return false;
+		if (!GetModuleFileNameA(nullptr, exePath, MAX_PATH)) {
+			return false;
+		}
 		fs::path exeDir = fs::path(exePath).parent_path();
 
-		// Candidates to try, in order:
-		fs::path candidates[] = {
-			exeDir / "assets" / fname,                 // <exe>\assets\config.txt
-			exeDir.parent_path() / "assets" / fname,   // <exe>\..\assets\config.txt   (your layout)
-			exeDir / fname                              // <exe>\config.txt             (fallback)
+		std::vector<fs::path> candidates = {
+			exeDir / "assets" / fname,
+			exeDir.parent_path() / "assets" / fname,
+			exeDir.parent_path().parent_path() / "assets" / fname,
+			exeDir / fname
 		};
 
-		for (const fs::path& p : candidates) {
+		for (const auto& p : candidates) {
 			std::error_code ec;
 			if (fs::exists(p, ec)) {
 				return Load(p.string(), out);
 			}
 		}
-		return false; // none found
+
+		return false;
 	}
 }

@@ -110,7 +110,8 @@ public:
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 		GLFWmonitor* monitor = nullptr;
-		int width = p_width, height = p_height;
+		int width = p_width;
+		int height = p_height;
 
 		if (fullscreen) {
 			monitor = glfwGetPrimaryMonitor();
@@ -262,8 +263,8 @@ int main() {
 		app.run();
 		return 0;
 	}
+
 	catch (const std::exception& e) {
-		std::cerr << "Error: " << e.what() << std::endl;
 		return -1;
 	}
 }
