@@ -1,3 +1,14 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			Math.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+
+DESCRIPTION:		Math library providing basic vector and matrix operations.
+
+        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
 #pragma once
 
 #include <cstddef>

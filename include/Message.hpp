@@ -1,3 +1,15 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			Message.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+
+DESCRIPTION:		Message system for inter-component communication.
+
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #pragma once
 
 namespace Framework

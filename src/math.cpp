@@ -1,3 +1,15 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			Math.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+
+DESCRIPTION:		Math library definitions.
+
+        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "Math.hpp"
 #include <cmath>
 
