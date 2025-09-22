@@ -10,7 +10,7 @@ namespace Framework
 	CoreEngine::CoreEngine()
 	{
 		lastUpdated = 0;
-		gameActive = true;
+		gameActive = true;	// game is running
 		CORE = this;		// set global pointer
 	}
 
@@ -18,6 +18,7 @@ namespace Framework
 
 	void CoreEngine::Initialize()
 	{
+		// initialize all systems
 		for (unsigned i = 0; i < Systems.size(); i++)
 		{
 			Systems[i]->Initialize();
@@ -27,17 +28,27 @@ namespace Framework
 	// not functional as of now
 	void CoreEngine::GameLoop()
 	{
-		// need to fix this
-		auto currentTime = std::chrono::system_clock::now();
-
-		//lastUpdated = &currentTime;
+		// add a currentTime variable to read system time
+		using clock = std::chrono::high_resolution_clock;
+		
+		// this will store the time of the last frame
+		auto lastTime = clock::now();
 
 		while (gameActive)
 		{
-			float dt = lastUpdated / 1000.f;
+			// get the current time
+			auto currentTime = clock::now();
+			
+			// compute the time elapsed since last frame
+			std::chrono::duration<float> elapsed = currentTime - lastTime;
 
-			//lastupdated = currenttime
+			// convert to float seconds
+			float dt = elapsed.count();
 
+			// update lastUpdated to current time
+			lastTime = currentTime;
+
+			// update all systems
 			for (unsigned i = 0; i < Systems.size(); i++)
 			{
 				Systems[i]->Update(dt);
@@ -47,6 +58,9 @@ namespace Framework
 
 	void CoreEngine::BroadcastMessage(Message *message)
 	{
+		// print out message for debugging purposes
+		std::cout << "CoreEngine broadcasting message " << MsgIdToString(message->MessageId) << std::endl;
+
 		//The message that tells the game to quit
 		if (message->MessageId == MsgId::QUIT)
 			gameActive = false;
@@ -60,6 +74,7 @@ namespace Framework
 
 	void CoreEngine::AddSystem(SystemInterface* system)
 	{
+		// add a new system to the list of systems
 		Systems.push_back(system);
 	}
 

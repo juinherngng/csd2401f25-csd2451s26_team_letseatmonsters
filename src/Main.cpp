@@ -11,6 +11,8 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
+#include <Core.hpp>
+
 class Cube {
 public:
     Cube() : m_programId(0), m_vertexBuffer(0), m_vertexArrayId(0) {}
@@ -193,7 +195,43 @@ private:
     std::shared_ptr<Cube> m_cube;
 };
 
+// test system (do not add your systems here)
+// see reference in System.hpp
+class MockSystem : public Framework::SystemInterface
+{
+public:
+	void Initialize() override {
+		std::cout << "MockSystem initialized." << std::endl;
+	}
+
+    void Update(float timeSlice) override {
+        std::cout << "System updated with dt = " << timeSlice << std::endl;
+        static int count = 0;
+		// After 30 updates, send a QUIT message to stop the engine
+        if (++count > 30) {
+            // Create a quit message and broadcast it
+            auto quitMsg = new Framework::Message(Framework::MsgId::QUIT);
+            std::cout << "MockSystem sent QUIT message." << std::endl;
+            Framework::CORE->BroadcastMessage(quitMsg);
+            delete quitMsg;
+        }
+    }
+    void SendMessage(Framework::Message*) override {}
+    std::string GetName() override { return "MockSystem"; }
+};
+
 int main() {
+
+    Framework::CoreEngine engine;
+	Framework::CORE = &engine; // Set the global CORE pointer
+
+    // add test system
+	engine.AddSystem(new MockSystem());
+
+	engine.Initialize();
+	engine.GameLoop();
+	engine.DestroySystems();
+    
     try {
         GLApp app(800, 800, "Render Cube");
         app.run();

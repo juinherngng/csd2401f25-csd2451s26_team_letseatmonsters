@@ -4,6 +4,31 @@
 
 #include <iostream>
 
+/*
+	How to create a new system class:
+	1) Create a new class in your header that inherits from SystemInterface.
+	2) Implement the required methods: Update(float dt), SendMessage(Message*), GetName().
+	3) (Optional) Override Initialize() for setup logic.
+	4) Add the new system to the CoreEngine using AddSystem().
+
+	Example:
+
+	class MySystem : public Framework::SystemInterface 
+	{
+    public:
+       void Initialize() override {  setup code  }
+       void Update(float dt) override {  per-frame logic  }
+       void SendMessage(Framework::Message* msg) override {  handle messages }
+       std::string GetName() override { return "MySystem"; }
+    };
+
+	In main():
+
+		engine.AddSystem(new MySystem());
+
+	Actual example in Main.cpp as well.
+*/
+
 namespace Framework
 {
 	class SystemInterface
