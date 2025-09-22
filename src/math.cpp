@@ -20,72 +20,87 @@ DESCRIPTION:		Math library definitions.
 namespace Math
 {
     // Vector2D implementations
-    const Vector2D Vector2D::ZERO{ 0.0f, 0.0f };
-    const Vector2D Vector2D::ONE{ 1.0f, 1.0f };
+    Vector2D const Vector2D::ZERO{ 0.0f, 0.0f };
+    Vector2D const Vector2D::ONE{ 1.0f, 1.0f };
 
-    Vector2D::Vector2D(const float x, const float y) : x(x), y(y) {}
+    Vector2D::Vector2D(float const x, float const y) : x(x), y(y) {}
 
-    float Vector2D::Length() const {
+    float Vector2D::Length() const 
+    {
         return std::sqrt(x * x + y * y);
     }
 
-    Vector2D Vector2D::Normalized() const {
+    Vector2D Vector2D::Normalized() const 
+    {
         float length = Length();
         return (length > 0.0f) ? Vector2D(x / length, y / length) : Vector2D::ZERO;
     }
 
-    float Vector2D::Dot(const Vector2D& other) const {
+    float Vector2D::Dot(Vector2D const& other) const
+    {
         return x * other.x + y * other.y;
     }
 
-    Vector2D Vector2D::operator+(const Vector2D& rhs) const {
+    Vector2D Vector2D::operator+(Vector2D const& rhs) const
+    {
         return Vector2D(x + rhs.x, y + rhs.y);
     }
 
-    Vector2D Vector2D::operator-(const Vector2D& rhs) const {
+    Vector2D Vector2D::operator-(Vector2D const& rhs) const 
+    {
         return Vector2D(x - rhs.x, y - rhs.y);
     }
 
-    Vector2D Vector2D::operator*(const float scalar) const {
+    Vector2D Vector2D::operator*(float const scalar) const 
+    {
         return Vector2D(x * scalar, y * scalar);
     }
 
-    bool Vector2D::operator==(const Vector2D& rhs) const {
+    bool Vector2D::operator==(Vector2D const& rhs) const
+    {
         return x == rhs.x && y == rhs.y;
     }
 
     // Matrix3x3 implementations
-    const Matrix3x3 Matrix3x3::IDENTITY{
+    const Matrix3x3 Matrix3x3::IDENTITY
+    {
         1.0f, 0.0f, 0.0f,
         0.0f, 1.0f, 0.0f,
-        0.0f, 0.0f, 1.0f};
+        0.0f, 0.0f, 1.0f
+    };
 
     Matrix3x3::Matrix3x3(
-        const float m00, const float m01, const float m02,
-        const float m10, const float m11, const float m12,
-        const float m20, const float m21, const float m22)
+        float const m00, float const m01, float const m02,
+        float const m10, float const m11, float const m12,
+        float const m20, float const m21, float const m22)
         : m{ m00, m01, m02, m10, m11, m12, m20, m21, m22 } {}
 
-    Matrix3x3 Matrix3x3::operator*(const Matrix3x3& rhs) const {
+    Matrix3x3 Matrix3x3::operator*(Matrix3x3 const& rhs) const 
+    {
         Matrix3x3 result;
-        for (int row = 0; row < 3; ++row) {
-            for (int col = 0; col < 3; ++col) {
+        for (int row = 0; row < 3; row++) 
+        {
+            for (int col = 0; col < 3; col++) 
+            {
                 result.m[row * 3 + col] =
                     m[row * 3 + 0] * rhs.m[0 * 3 + col] +
                     m[row * 3 + 1] * rhs.m[1 * 3 + col] +
                     m[row * 3 + 2] * rhs.m[2 * 3 + col];
             }
         }
+
         return result;
     }
 
-    Vector2D Matrix3x3::TransformPoint(const Vector2D& vector) const {
+    Vector2D Matrix3x3::TransformPoint(Vector2D const& vector) const
+    {
         return Vector2D(
             m[0] * vector.x + m[1] * vector.y + m[2],
             m[3] * vector.x + m[4] * vector.y + m[5]);
     }
 
-    Matrix3x3 Matrix3x3::Translate(const Vector2D& offset) {
+    Matrix3x3 Matrix3x3::Translate(Vector2D const& offset) 
+    {
         // Translation matrix
         return Matrix3x3(
             1.0f, 0.0f, offset.x,
@@ -93,7 +108,8 @@ namespace Math
             0.0f, 0.0f, 1.0f);
     }
 
-    Matrix3x3 Matrix3x3::Scale(const Vector2D& factors) {
+    Matrix3x3 Matrix3x3::Scale(Vector2D const& factors) 
+    {
         // Scaling matrix
         return Matrix3x3(
             factors.x, 0.0f, 0.0f,
@@ -101,50 +117,63 @@ namespace Math
             0.0f, 0.0f, 1.0f);
     }
 
-    Matrix3x3 Matrix3x3::Rotate(const float degrees) {
+    Matrix3x3 Matrix3x3::Rotate(float const degrees) 
+    {
         // Rotation matrix (counter-clockwise)
         float radians = ToRadians(degrees);
         float cosTheta = std::cos(radians);
         float sinTheta = std::sin(radians);
+
         return Matrix3x3(
             cosTheta, -sinTheta, 0.0f,
             sinTheta, cosTheta, 0.0f,
             0.0f, 0.0f, 1.0f);
     }
 
-    Matrix3x3 Matrix3x3::Concatenate(const Matrix3x3& other) const {
+    Matrix3x3 Matrix3x3::Concatenate(Matrix3x3 const& other) const
+    {
         // Equivalent to multiplying this * other
         return (*this) * other;
     }
 
-    Matrix3x3 Matrix3x3::Concatenate(const Matrix3x3* matrices, std::size_t count) {
+    Matrix3x3 Matrix3x3::Concatenate(Matrix3x3 const* matrices, std::size_t count)
+    {
         Matrix3x3 result = Matrix3x3::IDENTITY;
-        for (std::size_t i = 0; i < count; ++i) {
+
+        for (std::size_t i = 0; i < count; i++) 
+        {
             result = result * matrices[i];
         }
+
         return result;
     }
 
-    bool Matrix3x3::operator==(const Matrix3x3& rhs) const {
-        for (int i = 0; i < 9; ++i)
+    bool Matrix3x3::operator==(Matrix3x3 const& rhs) const
+    {
+        for (int i = 0; i < 9; i++)
             if (m[i] != rhs.m[i]) return false;
+
         return true;
     }
 
     // Non-member functions
-    float ToRadians(const float degrees) {
+    float ToRadians(float const degrees) 
+    {
         return degrees * static_cast<float>(M_PI) / 180.0f;
     }
 
-    float ToDegrees(const float radians) {
+    float ToDegrees(float const radians) 
+    {
         return radians * 180.0f / static_cast<float>(M_PI);
     }
 
-    Vector2D Transform(const Matrix3x3& matrix, const Vector2D& vector) {
+    Vector2D Transform2D(Matrix3x3 const& matrix, Vector2D const& vector)
+    {
         return matrix.TransformPoint(vector);
     }
 
-    Matrix3x3 Matrix3x3::Inverse() const {
+    Matrix3x3 Matrix3x3::Inverse() const 
+    {
         // Compute the determinant
         float det =
             m[0] * (m[4] * m[8] - m[5] * m[7]) -
@@ -173,7 +202,8 @@ namespace Math
     }
 
     // Conversion between screen, world, and normalized coordinates
-    Vector2D WorldToScreen(const Vector2D& worldPos, const Matrix3x3& viewMatrix, const Vector2D& screenSize) {
+    Vector2D WorldToScreen(Vector2D const& worldPos, Matrix3x3 const& viewMatrix, Vector2D const& screenSize)
+    {
         // Transform world position to view space
         Vector2D viewPos = viewMatrix.TransformPoint(worldPos);
 
@@ -182,7 +212,8 @@ namespace Math
         return Vector2D(viewPos.x * screenSize.x, viewPos.y * screenSize.y);
     }
 
-    Vector2D ScreenToWorld(const Vector2D& screenPos, const Matrix3x3& invViewMatrix, const Vector2D& screenSize) {
+    Vector2D ScreenToWorld(Vector2D const& screenPos, Matrix3x3 const& invViewMatrix, Vector2D const& screenSize) 
+    {
         // Convert screen position to normalized coordinates
         Vector2D normPos(screenPos.x / screenSize.x, screenPos.y / screenSize.y);
 
@@ -190,12 +221,14 @@ namespace Math
         return invViewMatrix.TransformPoint(normPos);
     }
 
-    Vector2D ScreenToNormalized(const Vector2D& screenPos, const Vector2D& screenSize) {
+    Vector2D ScreenToNormalized(Vector2D const& screenPos, Vector2D const& screenSize) 
+    {
         // Map pixel coordinates to [0,1] range
         return Vector2D(screenPos.x / screenSize.x, screenPos.y / screenSize.y);
     }
 
-    Vector2D NormalizedToScreen(const Vector2D& normPos, const Vector2D& screenSize) {
+    Vector2D NormalizedToScreen(Vector2D const& normPos, Vector2D const& screenSize) 
+    {
         // Map [0,1] range to pixel coordinates
         return Vector2D(normPos.x * screenSize.x, normPos.y * screenSize.y);
     }
