@@ -69,6 +69,8 @@ namespace Math
         // Returns the inverse of this matrix. If not invertible, returns IDENTITY.
         Matrix3x3 Inverse() const;
 
+        Matrix3x3 Transpose(Matrix3x3 const& mat);
+
     private:
         float m[9];
     };
@@ -140,28 +142,25 @@ namespace Math
     float ToRadians(float const degrees);
     float ToDegrees(float const radians);
 
-    //Vector2D
+    // Vector2D
     Vector2D Transform2D(Matrix3x3 const& matrix, Vector2D const& vector);
     float Distance(Vector2D const& a, Vector2D const& b);
     Vector2D Lerp(Vector2D const& a, Vector2D const& b, float t);
     bool AlmostEqual(Vector2D const& a, Vector2D const& b, float epsilon = 1e-6f);
 
-    //Matrix3x3
-    Matrix3x3 Transpose(Matrix3x3 const& mat);
-
-    //Vector3D
+    // Vector3D
     Vector3D Transform3D(Matrix4x4 const& matrix, Vector3D const& vector);
     float Distance(Vector3D const& a, Vector3D const& b);
     Vector3D Lerp(Vector3D const& a, Vector3D const& b, float t);
     bool AlmostEqual(Vector3D const& a, Vector3D const& b, float epsilon = 1e-6f);
 
-    //Matrix4x4
+    // Matrix4x4
     Matrix4x4 Perspective(float fovYDegrees, float aspect, float nearZ, float farZ);
     Matrix4x4 Orthographic(float left, float right, float bottom, float top, float nearZ, float farZ);
     Matrix4x4 LookAt(Vector3D const& eye, Vector3D const& target, Vector3D const& up);
     Matrix4x4 Transpose(Matrix4x4 const& mat);
 
-    //General
+    // General
     float Clamp(float value, float min, float max);
     bool AlmostEqual(float a, float b, float epsilon = 1e-6f);
 

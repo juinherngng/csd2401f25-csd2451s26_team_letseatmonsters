@@ -12,6 +12,7 @@ DESCRIPTION:		Math library definitions.
 
 #include "Math.hpp"
 #include <cmath>
+#include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
@@ -156,23 +157,7 @@ namespace Math
         return true;
     }
 
-    // Non-member functions
-    float ToRadians(float const degrees) 
-    {
-        return degrees * static_cast<float>(M_PI) / 180.0f;
-    }
-
-    float ToDegrees(float const radians) 
-    {
-        return radians * 180.0f / static_cast<float>(M_PI);
-    }
-
-    Vector2D Transform2D(Matrix3x3 const& matrix, Vector2D const& vector)
-    {
-        return matrix.TransformPoint(vector);
-    }
-
-    Matrix3x3 Matrix3x3::Inverse() const 
+    Matrix3x3 Matrix3x3::Inverse() const
     {
         // Compute the determinant
         float det =
@@ -199,6 +184,157 @@ namespace Math
         inv.m[8] = (m[0] * m[4] - m[1] * m[3]) * invDet;
 
         return inv;
+    }
+
+    Matrix3x3 Matrix3x3::Transpose(Matrix3x3 const& mat)
+    {
+        return Matrix3x3(
+            mat.m[0], mat.m[3], mat.m[6],
+            mat.m[1], mat.m[4], mat.m[7],
+            mat.m[2], mat.m[5], mat.m[8]
+        );
+    }
+
+    // static constants for Vector3D
+    Vector3D const Vector3D::ZERO{ 0.0f, 0.0f, 0.0f };
+    Vector3D const Vector3D::ONE{ 1.0f, 1.0f, 1.0f };
+
+    // Vector3D implementation
+    Vector3D::Vector3D(float const x, float const y, float const z) : x(x), y(y), z(z) {}
+
+    float Vector3D::Length() const
+    {
+        return std::sqrt(x * x + y * y + z * z);
+    }
+
+    Vector3D Vector3D::Normalized() const
+    {
+        float len = Length();
+        return (len > 0.0f) ? Vector3D(x / len, y / len, z / len) : Vector3D::ZERO;
+    }
+
+    float Vector3D::Dot(Vector3D const& other) const
+    {
+        return x * other.x + y * other.y + z * other.z;
+    }
+
+    Vector3D Vector3D::Cross(Vector3D const& other) const
+    {
+        return Vector3D(
+            y * other.z - z * other.y,
+            z * other.x - x * other.z,
+            x * other.y - y * other.x
+        );
+    }
+
+    Vector3D Vector3D::operator+(Vector3D const& rhs) const
+    {
+        return Vector3D(x + rhs.x, y + rhs.y, z + rhs.z);
+    }
+
+    Vector3D Vector3D::operator-(Vector3D const& rhs) const
+    {
+        return Vector3D(x - rhs.x, y - rhs.y, z - rhs.z);
+    }
+
+    Vector3D Vector3D::operator*(float const scalar) const
+    {
+        return Vector3D(x * scalar, y * scalar, z * scalar);
+    }
+
+    bool Vector3D::operator==(Vector3D const& rhs) const
+    {
+        return x == rhs.x && y == rhs.y && z == rhs.z;
+    }
+
+    // static constant for Matrix4x4
+    Matrix4x4 const Matrix4x4::IDENTITY
+    {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+
+    // Matrix4x4 implementation
+    Matrix4x4::Matrix4x4(
+        float const m00, float const m01, float const m02, float const m03,
+        float const m10, float const m11, float const m12, float const m13,
+        float const m20, float const m21, float const m22, float const m23,
+        float const m30, float const m31, float const m32, float const m33)
+        : m{ m00, m01, m02, m03,
+             m10, m11, m12, m13,
+             m20, m21, m22, m23,
+             m30, m31, m32, m33 } {
+    }
+
+    // Non-member functions
+    float ToRadians(float const degrees) 
+    {
+        return degrees * static_cast<float>(M_PI) / 180.0f;
+    }
+
+    float ToDegrees(float const radians) 
+    {
+        return radians * 180.0f / static_cast<float>(M_PI);
+    }
+
+	// Vector2D utility functions
+    Vector2D Transform2D(Matrix3x3 const& matrix, Vector2D const& vector)
+    {
+        return matrix.TransformPoint(vector);
+    }
+
+    float Distance(Vector2D const& a, Vector2D const& b)
+    {
+        float dx = a.x - b.x;
+        float dy = a.y - b.y;
+        return std::sqrt(dx * dx + dy * dy);
+    }
+
+    Vector2D Lerp(Vector2D const& a, Vector2D const& b, float t)
+    {
+        return Vector2D(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
+    }
+
+    bool AlmostEqual(Vector2D const& a, Vector2D const& b, float epsilon)
+    {
+        return std::fabs(a.x - b.x) < epsilon && std::fabs(a.y - b.y) < epsilon;
+    }
+
+	// Vector3D utility functions
+    Vector3D Transform3D(Matrix4x4 const& matrix, Vector3D const& vector)
+    {
+        return matrix.TransformPoint(vector);
+    }
+
+    float Distance(Vector3D const& a, Vector3D const& b)
+    {
+        float dx = a.x - b.x;
+        float dy = a.y - b.y;
+        float dz = a.z - b.z;
+        return std::sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    Vector3D Lerp(Vector3D const& a, Vector3D const& b, float t)
+    {
+        return Vector3D(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
+    }
+
+    bool AlmostEqual(Vector3D const& a, Vector3D const& b, float epsilon)
+    {
+        return std::fabs(a.x - b.x) < epsilon && std::fabs(a.y - b.y) < epsilon && std::fabs(a.z - b.z) < epsilon;
+    }
+
+    // General utility functions
+    float Clamp(float value, float min, float max)
+    {
+        return std::max(min, std::min(value, max));
+    }
+
+    bool AlmostEqual(float a, float b, float epsilon)
+    {
+        return std::fabs(a - b) < epsilon;
     }
 
     // Conversion between screen, world, and normalized coordinates
