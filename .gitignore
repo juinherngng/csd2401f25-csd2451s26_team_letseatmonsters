@@ -39,6 +39,9 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 
+# Ignore CMake/Ninja build output
+out/build/
+
 # Visual Studio files
 *.sln
 *.vcxproj
