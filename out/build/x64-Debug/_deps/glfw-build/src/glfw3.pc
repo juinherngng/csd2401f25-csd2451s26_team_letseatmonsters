@@ -1,7 +1,7 @@
-prefix=C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/out/install/x64-Debug
+prefix=C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/out/install/x64-Debug
 exec_prefix=${prefix}
-includedir=C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/out/install/x64-Debug/include
-libdir=C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/out/install/x64-Debug/lib
+includedir=C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/out/install/x64-Debug/include
+libdir=C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/out/install/x64-Debug/lib
 
 Name: GLFW
 Description: A multi-platform library for OpenGL, window and input

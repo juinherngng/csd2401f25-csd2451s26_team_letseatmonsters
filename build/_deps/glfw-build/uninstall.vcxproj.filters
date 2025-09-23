@@ -1,17 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\CMakeFiles\2b1c60a206717597fdbae8836076a290\uninstall.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\CMakeFiles\8036503ceb130c93b0ae2f81e9263284\uninstall.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\CMakeLists.txt" />
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-build\CMakeFiles\uninstall" />
+    <None Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-build\CMakeFiles\uninstall" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="CMake Rules">
-      <UniqueIdentifier>{2430DCA4-BF9C-3AEA-BAE6-F3A101AF9850}</UniqueIdentifier>
+      <UniqueIdentifier>{D1F05E99-A8F7-3640-BCFF-235630ED4538}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

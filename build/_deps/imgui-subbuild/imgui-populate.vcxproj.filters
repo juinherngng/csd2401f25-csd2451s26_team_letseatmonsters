@@ -1,44 +1,44 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\06535afb81460281bc2df0bf640931fc\imgui-populate-mkdir.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\1a998c3924d046f12e9215c4916d9d20\imgui-populate-mkdir.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\06535afb81460281bc2df0bf640931fc\imgui-populate-download.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\1a998c3924d046f12e9215c4916d9d20\imgui-populate-download.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\06535afb81460281bc2df0bf640931fc\imgui-populate-update.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\1a998c3924d046f12e9215c4916d9d20\imgui-populate-update.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\06535afb81460281bc2df0bf640931fc\imgui-populate-patch.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\1a998c3924d046f12e9215c4916d9d20\imgui-populate-patch.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\06535afb81460281bc2df0bf640931fc\imgui-populate-configure.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\1a998c3924d046f12e9215c4916d9d20\imgui-populate-configure.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\06535afb81460281bc2df0bf640931fc\imgui-populate-build.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\1a998c3924d046f12e9215c4916d9d20\imgui-populate-build.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\06535afb81460281bc2df0bf640931fc\imgui-populate-install.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\1a998c3924d046f12e9215c4916d9d20\imgui-populate-install.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\06535afb81460281bc2df0bf640931fc\imgui-populate-test.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\1a998c3924d046f12e9215c4916d9d20\imgui-populate-test.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\439a21d94032a061ca938372eded56cc\imgui-populate-complete.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\34f372df586e8b05861d06b8415997b3\imgui-populate-complete.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\de39fae88d6e72a3a092e233422f2ca0\imgui-populate.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\eb4b7376222389c34ec9af8ee680dcef\imgui-populate.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeLists.txt" />
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\imgui-populate" />
+    <None Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\imgui-populate" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="CMake Rules">
-      <UniqueIdentifier>{EC327C5A-DAF2-364D-876E-3968EF4A7A43}</UniqueIdentifier>
+      <UniqueIdentifier>{1D3EA66F-7F7C-3D4B-9AD8-5CBFA1F5A2E7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\CMakeFiles\b81162b49c69946114b9f88a96956f43\INSTALL_force.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\CMakeFiles\5bc5fa8e0140d6a856f5f9560cc5d82f\INSTALL_force.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="CMake Rules">
-      <UniqueIdentifier>{2430DCA4-BF9C-3AEA-BAE6-F3A101AF9850}</UniqueIdentifier>
+      <UniqueIdentifier>{D1F05E99-A8F7-3640-BCFF-235630ED4538}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -1,44 +1,44 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\ad3e9ce5a2615d900c594dad3c17a355\glm-populate-mkdir.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\2f72933dc5bdbd937d24f9b168ae8d4e\glm-populate-mkdir.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\ad3e9ce5a2615d900c594dad3c17a355\glm-populate-download.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\2f72933dc5bdbd937d24f9b168ae8d4e\glm-populate-download.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\ad3e9ce5a2615d900c594dad3c17a355\glm-populate-update.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\2f72933dc5bdbd937d24f9b168ae8d4e\glm-populate-update.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\ad3e9ce5a2615d900c594dad3c17a355\glm-populate-patch.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\2f72933dc5bdbd937d24f9b168ae8d4e\glm-populate-patch.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\ad3e9ce5a2615d900c594dad3c17a355\glm-populate-configure.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\2f72933dc5bdbd937d24f9b168ae8d4e\glm-populate-configure.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\ad3e9ce5a2615d900c594dad3c17a355\glm-populate-build.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\2f72933dc5bdbd937d24f9b168ae8d4e\glm-populate-build.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\ad3e9ce5a2615d900c594dad3c17a355\glm-populate-install.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\2f72933dc5bdbd937d24f9b168ae8d4e\glm-populate-install.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\ad3e9ce5a2615d900c594dad3c17a355\glm-populate-test.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\2f72933dc5bdbd937d24f9b168ae8d4e\glm-populate-test.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\159e37e534a0da2c0f63d94e7a3a8107\glm-populate-complete.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\d39f9ca34aed39f9d6f99798a4f01517\glm-populate-complete.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\09f2d1923270c2220c13f81799e79273\glm-populate.rule">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\856bc23adab6b83d9d47d6bed2985386\glm-populate.rule">
       <Filter>CMake Rules</Filter>
     </CustomBuild>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeLists.txt" />
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\glm-populate" />
+    <None Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-subbuild\CMakeFiles\glm-populate" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="CMake Rules">
-      <UniqueIdentifier>{8893C298-38A6-3174-8586-52F0A0E06765}</UniqueIdentifier>
+      <UniqueIdentifier>{7EFB250B-80EA-3117-B91E-73047961B12A}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

@@ -1,8 +1,8 @@
-# Install script for directory: C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/out/build/x64-Debug/_deps/glm-src
+# Install script for directory: C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/out/build/x64-Debug/_deps/glm-src
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/out/install/x64-Debug")
+  set(CMAKE_INSTALL_PREFIX "C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/out/install/x64-Debug")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -34,6 +34,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/out/build/x64-Debug/_deps/glm-build/glm/cmake_install.cmake")
+  include("C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/out/build/x64-Debug/_deps/glm-build/glm/cmake_install.cmake")
 endif()
 

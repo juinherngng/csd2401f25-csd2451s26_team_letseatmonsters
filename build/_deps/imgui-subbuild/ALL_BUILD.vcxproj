@@ -13,7 +13,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{160227AD-319E-3B6C-9B6A-B9C438686792}</ProjectGuid>
+    <ProjectGuid>{3A5ACA7D-6FBA-3FEF-8A54-D61679CF0EE4}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
     <Platform>x64</Platform>
@@ -49,11 +49,11 @@
     </Midl>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeLists.txt">
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeLists.txt">
       <UseUtf8Encoding>Always</UseUtf8Encoding>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/imgui-subbuild/CMakeLists.txt</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building Custom Rule C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/imgui-subbuild/CMakeLists.txt</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
-"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/imgui-subbuild -BC:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/imgui-subbuild --check-stamp-file C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/imgui-subbuild/CMakeFiles/generate.stamp
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/imgui-subbuild -BC:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/imgui-subbuild --check-stamp-file C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/imgui-subbuild/CMakeFiles/generate.stamp
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -61,8 +61,8 @@ endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
 exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\PatchInfo.txt.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\RepositoryInfo.txt.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\UpdateInfo.txt.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\cfgcmd.txt.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\gitclone.cmake.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\gitupdate.cmake.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\mkdirs.cmake.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\WindowsPaths.cmake;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\4.1.1\CMakeSystem.cmake;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\imgui-populate-prefix\tmp\imgui-populate-mkdirs.cmake;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\generate.stamp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeDetermineSystem.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeGenericSystem.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeInitializeConfigs.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystem.cmake.in;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInformation.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\CMakeSystemSpecificInitialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\PatchInfo.txt.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\RepositoryInfo.txt.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\UpdateInfo.txt.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\cfgcmd.txt.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\gitclone.cmake.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\gitupdate.cmake.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\mkdirs.cmake.in;C:\Program Files\CMake\share\cmake-4.1\Modules\ExternalProject\shared_internal_commands.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows-Initialize.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\Windows.cmake;C:\Program Files\CMake\share\cmake-4.1\Modules\Platform\WindowsPaths.cmake;C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\4.1.1\CMakeSystem.cmake;C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\imgui-populate-prefix\tmp\imgui-populate-mkdirs.cmake;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\CMakeFiles\generate.stamp</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
     </CustomBuild>
   </ItemGroup>
@@ -70,14 +70,14 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <ProjectReference Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\ZERO_CHECK.vcxproj">
-      <Project>{CDA59AF7-AC7C-3F50-AC95-1E755C107E36}</Project>
+    <ProjectReference Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\ZERO_CHECK.vcxproj">
+      <Project>{3CCD9F39-43E4-34B9-9173-8612B980834F}</Project>
       <Name>ZERO_CHECK</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\imgui-populate.vcxproj">
-      <Project>{7AA22665-7FB4-3C2C-8390-8B32F2AC0437}</Project>
+    <ProjectReference Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-subbuild\imgui-populate.vcxproj">
+      <Project>{294303DE-A59C-3BF3-B148-F0F73ACB18E6}</Project>
       <Name>imgui-populate</Name>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>

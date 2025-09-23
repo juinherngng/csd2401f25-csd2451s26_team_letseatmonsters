@@ -1,9 +1,9 @@
 
-if (NOT EXISTS "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-build/install_manifest.txt")
-  message(FATAL_ERROR "Cannot find install manifest: \"C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-build/install_manifest.txt\"")
+if (NOT EXISTS "C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-build/install_manifest.txt")
+  message(FATAL_ERROR "Cannot find install manifest: \"C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-build/install_manifest.txt\"")
 endif()
 
-file(READ "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-build/install_manifest.txt" files)
+file(READ "C:/Users/exost/OneDrive/Desktop/SIT_Stuff/Group_Projects/LEM_GAM200/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-build/install_manifest.txt" files)
 string(REGEX REPLACE "\n" ";" files "${files}")
 
 foreach (file ${files})

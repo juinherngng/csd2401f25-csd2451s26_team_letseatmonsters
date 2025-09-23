@@ -1,93 +1,93 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\context.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\context.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\init.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\init.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\input.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\input.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\monitor.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\monitor.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\vulkan.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\vulkan.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\window.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\window.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_init.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_init.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_joystick.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_joystick.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_monitor.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_monitor.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_time.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_time.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_thread.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_thread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_window.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_window.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\wgl_context.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\wgl_context.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\egl_context.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\egl_context.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\osmesa_context.c">
+    <ClCompile Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\osmesa_context.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\internal.h">
+    <ClInclude Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\mappings.h">
+    <ClInclude Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\mappings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-build\src\glfw_config.h">
+    <ClInclude Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-build\src\glfw_config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include\GLFW\glfw3.h">
+    <ClInclude Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include\GLFW\glfw3.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include\GLFW\glfw3native.h">
+    <ClInclude Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include\GLFW\glfw3native.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_platform.h">
+    <ClInclude Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_joystick.h">
+    <ClInclude Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\win32_joystick.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\wgl_context.h">
+    <ClInclude Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\wgl_context.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\egl_context.h">
+    <ClInclude Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\egl_context.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\osmesa_context.h">
+    <ClInclude Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\osmesa_context.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\CMakeLists.txt" />
+    <CustomBuild Include="C:\Users\exost\OneDrive\Desktop\SIT_Stuff\Group_Projects\LEM_GAM200\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\src\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Header Files">
-      <UniqueIdentifier>{9FBF5B04-0156-3B67-9B61-2AE421B81681}</UniqueIdentifier>
+      <UniqueIdentifier>{17801F2E-8758-3811-B106-C4DD586C51E1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source Files">
-      <UniqueIdentifier>{813B780E-D72C-314F-967E-E33E0DB370A2}</UniqueIdentifier>
+      <UniqueIdentifier>{B6AEC206-F093-31CE-914D-6DD61F5F4CAA}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

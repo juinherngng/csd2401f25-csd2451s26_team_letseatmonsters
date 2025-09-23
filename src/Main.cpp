@@ -12,6 +12,7 @@
 #include <imgui_impl_opengl3.h>
 
 #include <Core.hpp>
+#include "ImGuiDebugger.hpp"
 
 class Cube {
 public:
@@ -232,12 +233,30 @@ int main() {
 	engine.GameLoop();
 	engine.DestroySystems();
     
-    try {
+    /*try {
         GLApp app(800, 800, "Render Cube");
         app.run();
         return 0;
     }
     catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return -1;
+    }*/
+
+    try 
+    {
+        DebuggerApp debugapp;
+        if (!debugapp.InitializeDebuggerApp(800, 600, "Debugger Ver 1.0"))
+        {
+            std::cerr << "Failed to initialize debugger window\n";
+            return -1;
+        }
+
+        debugapp.RunDebuggerApp();
+        return 0;
+    }
+    catch (const std::exception& e) 
+    {
         std::cerr << "Error: " << e.what() << std::endl;
         return -1;
     }
