@@ -114,8 +114,8 @@ namespace Math
             float const m30 = 0.0f, float const m31 = 0.0f, float const m32 = 0.0f, float const m33 = 1.0f);
 
         // Member functions
-        /*Vector3D TransformPoint(Vector3D const& vector) const;
-        static Matrix4x4 Translate(Vector3D const& offset);
+        Vector3D TransformPoint(Vector3D const& vector) const;
+        /*static Matrix4x4 Translate(Vector3D const& offset);
         static Matrix4x4 Scale(Vector3D const& factors);
         static Matrix4x4 RotateX(float const degrees);
         static Matrix4x4 RotateY(float const degrees);
