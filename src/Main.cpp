@@ -12,20 +12,15 @@
  */
 
 #include <shader.h>
-#include "ConfigManager.hpp"
 #include <memory>
 #include <stdexcept>
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
 #include <iostream>
 #include <vector>
 #include <glm/gtc/matrix_transform.hpp>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
 
-#include <Core.hpp>
+#include "Precompiled.hpp"
+#include "Core.hpp"
+#include "ConfigManager.hpp"
 
  /**
   * @class Cube
