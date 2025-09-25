@@ -114,25 +114,25 @@ namespace Math
             float const m30 = 0.0f, float const m31 = 0.0f, float const m32 = 0.0f, float const m33 = 1.0f);
 
         // Member functions
-        Vector3D TransformPoint(Vector3D const& vector) const;
+        /*Vector3D TransformPoint(Vector3D const& vector) const;
         static Matrix4x4 Translate(Vector3D const& offset);
         static Matrix4x4 Scale(Vector3D const& factors);
         static Matrix4x4 RotateX(float const degrees);
         static Matrix4x4 RotateY(float const degrees);
-        static Matrix4x4 RotateZ(float const degrees);
+        static Matrix4x4 RotateZ(float const degrees);*/
 
         // Concatenates this matrix with another and returns the result
-        Matrix4x4 Concatenate(Matrix4x4 const& other) const;
+        // Matrix4x4 Concatenate(Matrix4x4 const& other) const;
 
         // Static function to concatenate multiple matrices in order
-        static Matrix4x4 Concatenate(Matrix4x4 const* matrices, std::size_t count);
+        // static Matrix4x4 Concatenate(Matrix4x4 const* matrices, std::size_t count);
 
         // Operator overloads
-        Matrix4x4 operator*(Matrix4x4 const& rhs)  const;
-        bool      operator==(Matrix4x4 const& rhs) const;
+        // Matrix4x4 operator*(Matrix4x4 const& rhs)  const;
+        // bool      operator==(Matrix4x4 const& rhs) const;
 
         // Returns the inverse of this matrix. If not invertible, returns IDENTITY.
-        Matrix4x4 Inverse() const;
+        // Matrix4x4 Inverse() const;
 
     private:
         float m[16];
@@ -155,10 +155,10 @@ namespace Math
     bool AlmostEqual(Vector3D const& a, Vector3D const& b, float epsilon = 1e-6f);
 
     // Matrix4x4
-    Matrix4x4 Perspective(float fovYDegrees, float aspect, float nearZ, float farZ);
+    /*Matrix4x4 Perspective(float fovYDegrees, float aspect, float nearZ, float farZ);
     Matrix4x4 Orthographic(float left, float right, float bottom, float top, float nearZ, float farZ);
     Matrix4x4 LookAt(Vector3D const& eye, Vector3D const& target, Vector3D const& up);
-    Matrix4x4 Transpose(Matrix4x4 const& mat);
+    Matrix4x4 Transpose(Matrix4x4 const& mat);*/
 
     // General
     float Clamp(float value, float min, float max);
