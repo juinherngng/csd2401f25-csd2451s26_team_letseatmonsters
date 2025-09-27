@@ -279,7 +279,7 @@ private:
 
 // test system (do not add your systems here)
 // see reference in System.hpp
-class MockSystem : public Framework::SystemInterface
+class MockSystem : public CoreFramework::SystemInterface
 {
 public:
 	void Initialize() override {
@@ -288,17 +288,18 @@ public:
 
     void Update(float timeSlice) override {
         std::cout << "System updated with dt = " << timeSlice << std::endl;
+
         static int count = 0;
 		// After 30 updates, send a QUIT message to stop the engine
         if (++count > 30) {
             // Create a quit message and broadcast it
-            auto quitMsg = new Framework::Message(Framework::MsgId::QUIT);
+            auto quitMsg = new CoreFramework::Message(CoreFramework::MsgId::QUIT);
             std::cout << "MockSystem sent QUIT message." << std::endl;
-            Framework::CORE->BroadcastMessage(quitMsg);
+            CoreFramework::CORE->BroadcastMessage(quitMsg);
             delete quitMsg;
         }
     }
-    void SendMessage(Framework::Message*) override {}
+    void SendMessage(CoreFramework::Message*) override {}
     std::string GetName() override { return "MockSystem"; }
 };
 
@@ -308,8 +309,8 @@ public:
  */
 int main() {
 
-    Framework::CoreEngine engine;
-	Framework::CORE = &engine; // Set the global CORE pointer
+    CoreFramework::CoreEngine engine;
+	CoreFramework::CORE = &engine; // Set the global CORE pointer
 
     // add test system
 	engine.AddSystem(new MockSystem());
