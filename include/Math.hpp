@@ -132,7 +132,14 @@ namespace Math
         bool      operator==(Matrix4x4 const& rhs) const;
 
         // Returns the inverse of this matrix. If not invertible, returns IDENTITY.
-        Matrix4x4 Inverse() const;
+        //Matrix4x4 Inverse() const;
+
+        Matrix4x4 Transpose(Matrix4x4 const& mat);
+
+		// Utility functions for common transformations
+        Matrix4x4 Perspective(float fovYDegrees, float aspect, float nearZ, float farZ);
+        Matrix4x4 Orthographic(float left, float right, float bottom, float top, float nearZ, float farZ);
+        Matrix4x4 LookAt(Vector3D const& eye, Vector3D const& target, Vector3D const& up);
 
     private:
         float m[16];
@@ -154,15 +161,11 @@ namespace Math
     Vector3D Lerp(Vector3D const& a, Vector3D const& b, float t);
     bool AlmostEqual(Vector3D const& a, Vector3D const& b, float epsilon = 1e-6f);
 
-    // Matrix4x4
-    Matrix4x4 Perspective(float fovYDegrees, float aspect, float nearZ, float farZ);
-    Matrix4x4 Orthographic(float left, float right, float bottom, float top, float nearZ, float farZ);
-    Matrix4x4 LookAt(Vector3D const& eye, Vector3D const& target, Vector3D const& up);
-    Matrix4x4 Transpose(Matrix4x4 const& mat);
-
     // General
-    float Clamp(float value, float min, float max);
-    bool AlmostEqual(float a, float b, float epsilon = 1e-6f);
+    template <typename T>
+    T Clamp(T value, T min, T max);
+    template <typename T>
+    bool AlmostEqual(T a, T b, T epsilon = 1e-6f);
 
     // Converts world coordinates to screen coordinates
     Vector2D WorldToScreen(Vector2D const& worldPos, Matrix3x3 const& viewMatrix, Vector2D const& screenSize);
