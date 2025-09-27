@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GraphicsEngine.h"
+#include "../Core/InputManager.h"
 #include <string>
 #include <vector>
 
@@ -9,7 +10,7 @@ public:
     Scene(GraphicsEngine& engine);
 
     void LoadScene(const std::string& sceneName);
-    void Update(float deltaTime);
+    void Update(float deltaTime, GLFWwindow* window);
 
     // Scene-specific object creation
     GameObject* SpawnTriangle(const glm::vec3& position, const glm::vec3& scale, float rotation = 0.0f);
@@ -19,9 +20,20 @@ public:
     // Background management
     void SetSceneBackground(const std::string& texturePath);
 
+	// Object Lookup
+    GameObject* GetGameObjectByID(int targetID);
+
 private:
     GraphicsEngine& graphicsEngine;
-    std::vector<GameObject*> sceneObjects;
+    InputManager inputManager;
+
+    std::vector<std::unique_ptr<GameObject>> sceneObjects;
+	int nextID = 1; // ID counter for GameObjects
+    int spriteID = -1; // default invalid ID
+
+    std::unordered_map<int, glm::vec3> spriteScales;
+    std::unordered_map<int, glm::vec3> spritePositions;
+    std::unordered_map<int, float> spriteRotations;
 
     void LoadTest();
 };

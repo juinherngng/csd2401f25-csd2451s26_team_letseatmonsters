@@ -18,15 +18,17 @@ public:
     }
     GameObject(Mesh* mesh, Shader* shader);
 
+    GameObject(int objectID);
+    int GetID() const;
+    void SetID(int newID);
+
     void SetPosition(const glm::vec3& position);
     void SetScale(const glm::vec3& scale);
     void SetRotation(float angleRadians, const glm::vec3& axis);
 
     void UpdateModelMatrix();
     void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
-    void SetTexture(Texture* tex) { m_Texture = tex; }
-
-    
+    void SetTexture(Texture* tex) { m_Texture = tex; }    
 
 private:
     Mesh* m_Mesh;
@@ -38,4 +40,6 @@ private:
     glm::mat4 m_Rotation;
 
     glm::mat4 m_ModelMatrix;
+
+	int id; // Unique identifier for GameObjects
 };
