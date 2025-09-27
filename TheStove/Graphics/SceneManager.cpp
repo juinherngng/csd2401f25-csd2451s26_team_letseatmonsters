@@ -132,6 +132,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
     if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
 
         sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_back.png"));
+
         position.y -= moveSpeed;  // Move up
     }
     if (inputManager.IsKeyPressed(GLFW_KEY_S)) {
@@ -149,6 +150,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
         sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideright", "../assets/mc_sideright.png"));
         position.x += moveSpeed;  // Move right
     }
+
+    // Clamping position to stay within screen bounds
+    position.x = glm::clamp(position.x, 0.0f, 1200.0f);
+    position.y = glm::clamp(position.y, 0.0f, 800.0f);
 
     sprite->SetScale(scale);
     sprite->SetRotation(rotation, glm::vec3(0, 0, 1));
