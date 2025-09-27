@@ -10,12 +10,11 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <glad/glad.h>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
-#include <GLFW/glfw3.h>
+
 #include <iostream>
+#include <fstream>
+
+#include "Precompiled.hpp"
 
 #pragma once
 
@@ -40,8 +39,11 @@ public:
 	// Runs a full debugger frame (Update + Render)
 	void RunDebuggerApp();
 
+	void LogError(const std::string& errorMessage);
+
 private:
 	GLFWwindow* debugWindow; // The host window
 	bool openedDebugger; // Shows Whether debugger window is visible
+	std::ofstream crashlogFile; // The file stream to log errors to
 	bool isGay;
 };

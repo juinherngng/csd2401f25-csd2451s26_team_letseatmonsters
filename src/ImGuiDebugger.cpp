@@ -15,11 +15,27 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 #include "ImGuiDebugger.hpp"
 
 // Constructor
-DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, openedDebugger{ true } {}
+DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, openedDebugger{ true }, isGay{ false } 
+{
+	crashlogFile.open("Debug_Log.txt", std::ios::app); // Set to append mode
+
+	if (crashlogFile.is_open())
+	{
+		crashlogFile << "---- Debugger Started ---- \n";
+	}
+}
+
 
 // Destructor
 DebuggerApp::~DebuggerApp()
 {
+	// Close crashlog file
+	if (crashlogFile.is_open())
+	{
+		crashlogFile << " ---- Debugger closing ---- \n";
+		crashlogFile.close();
+	}
+
 	// Cleanup ImGui
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
@@ -45,6 +61,7 @@ bool DebuggerApp::InitializeDebuggerApp(int width, int height, const char* appNa
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+	//ImGui::SetNextWindowSize(ImVec2(300, 300));
 	// Create the window with size of width and height, with name appName
 	debugWindow = glfwCreateWindow(width, height, appName, nullptr, nullptr);
 	if (!debugWindow)
@@ -97,12 +114,13 @@ void DebuggerApp::RenderDebuggerApp()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	ImGui::SetNextWindowSize(ImVec2(300, 300));
 	// Create my window
 	if (ImGui::Begin("Debug Infomation", &openedDebugger))
 	{
+		float fps = ImGui::GetIO().Framerate;
+		float msperFrame = fps > 0.0f ? 1000.f / fps : 0.0f;
 		ImGui::Text("----Frame Infomation----");
-		ImGui::Text("Current FPS : %.1f", ImGui::GetIO().Framerate);
+		ImGui::Text("[Current FPS : %.1f FPS ] [ms/frame : %.1f ms]", fps, msperFrame);
 		ImGui::Text("----Render Infomation----");
 
 		if (ImGui::Button("Press to Bas"))
@@ -141,5 +159,22 @@ void DebuggerApp::RunDebuggerApp()
 		glfwPollEvents();
 		UpdateDebuggerApp(); // Checks for updates done in the window
 		RenderDebuggerApp(); // Loads the ImGui window every frame
+	}
+}
+
+void DebuggerApp::LogError(const std::string& errorMessage)
+{
+	if (crashlogFile.is_open())
+	{
+		// Setting the timestamp of when the error occurred
+		std::time_t now = std::time(nullptr);
+		char buffer[64];
+		// Turns time_t into readable C-string of time in the format
+		// weekday, month, day of month, local-time(24HR), year
+		ctime_s(buffer, sizeof(buffer), &now);
+		buffer[strcspn(buffer, "\n")] = 0; // Remove the newline
+
+		crashlogFile << "[" << buffer << "] " << errorMessage << "\n";
+		crashlogFile.flush();
 	}
 }
