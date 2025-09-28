@@ -2,36 +2,34 @@
 #include <typeindex>
 #include "GameComponent.hpp"
 
-//Inherit this class to create Component for GameObject
+//Actually creating the Game Component
+//This is use inside the factory
 class ComponentCreator
 {
 public:
-	//the key to access the Component in GOC
-	std::type_index Type;
-
 	//ctor
-	explicit ComponentCreator(std::type_index type) : Type(type) {}
+	explicit ComponentCreator(std::type_index _type) : type(_type) {}
 
-	//dtor
-	virtual ~ComponentCreator() = default;
-	
+	//the key to access the Component in GOC
+	std::type_index type;
+
 	//Creating a new Component instance
 	virtual GameComponent* Create() = 0;
+
+	//dtor
+	virtual ~ComponentCreator() {};
 };
 
 //Templated Creator
 template <typename T>
-class TCreator : ComponentCreator
+class TCreator : public ComponentCreator
 {
 public:
 	//default ctor
-	TCreator()
-	{
-		Type = std::type_index(typeid(T));
-	}
+	explicit TCreator(std::type_index id) : ComponentCreator(id) {}
 
 	//Creating a new Component instace
-	GameComponent* Create() override
+	virtual GameComponent* Create() override
 	{
 		return new T();
 	}

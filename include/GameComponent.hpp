@@ -1,28 +1,38 @@
 #pragma once
-class ISerializer;
+#include <typeindex>
+
+//class ISerializer;
 class GOC;
 
 //The GameComponent that you can attach to a GameObject
-//It could be anything like transform, renderer, etc
+//Inherit this class when creating Game Component
 class GameComponent
 {
 public:
-	virtual ~GameComponent() = default;
-
-	virtual void Serialize(ISerializer& s) = 0;
+	GameComponent() = default;
+	//Init the Game Component
 	virtual void Initialize() {};
 
-	//Who the owner of this GameComponent
+	//virtual void Serialize(ISerializer& s) = 0;	//nah Im good for now
+
+	//Return the owner of this GameComponent
 	GOC* GetOwner() const
 	{
 		return m_owner;
 	}
+
+	//key to the type
+	std::type_index typeId{ typeid(void) };
 
 	//Attach this GameComponent to a GameObject
 	void SetOwner(GOC* owner)
 	{
 		m_owner = owner;
 	}
+
+protected:
+	//dtor
+	virtual ~GameComponent() {};
 
 private:
 	//Which Gameobject this Component belong to

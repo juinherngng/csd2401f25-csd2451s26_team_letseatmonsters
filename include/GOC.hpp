@@ -3,51 +3,43 @@
 #include <typeindex>
 #include <unordered_map>
 #include <optional>
-
+#include <string>
 #include "GameComponent.hpp"
+
 
 //Game Object
 class GOC
 {
 public:
+	std::string name;
 
-	//This function attach the component to this GameObject
-	void AddComponent(std::type_index id, GameComponent* c)
-	{
-		c->SetOwner(this);
-		m_components[id] = c;
-	}
-
-	//this function look up the component and return it if this GameObject is holding it
+	//this function get the component and return it if this GameObject is holding it
 	//return null if not
+	//usage: auto enemyTransform = enemy->Get<Transform>();
 	template <typename T>
 	std::optional<T*> Get() const
 	{
-		auto it = m_components.find(std::type_index(typeid(T)));
-		//return it == m_components.end() ? nullptr : static_cast<T*>(it->second);
+		auto it = m_components.find(typeid(T));
+
 		if (it == m_components.end())
 			return std::nullopt;
 		return static_cast<T*>(it->second);
 	}
 
 	//Initializing all components in this GameObject
-	void Initialize()
-	{
-		for (auto& kv : m_components)
-		{
-			kv.second->Initialize();
-		}
-	}
+	void Initialize();
 
-	//dtor
-	~GOC()
-	{
-		for (auto& kv : m_components)
-		{
-			delete kv.second;
-		}
-	}
+	//Destroy the object
+	void Destroy();
 
+	//This function attach the component to this GameObject
+	void AddComponent(std::type_index id, GameComponent* c);
+
+	//Return GameObject unique ID
+	unsigned int GetId()
+	{
+		return ObjectId;
+	}
 	//object unique id
 	unsigned int ObjectId = 0;
 
@@ -62,7 +54,6 @@ private:
 
 	//example:
 
-	//in the factory:
 	//auto* col = new Collider(/* ctor args */);
 	//enemy->AddComponent(TypeId(typeid(Collider)), col);
 
@@ -72,4 +63,5 @@ private:
 
 	//so you can later access it like this
 	//auto col = enemy->Get<Collider>()
+
 };
