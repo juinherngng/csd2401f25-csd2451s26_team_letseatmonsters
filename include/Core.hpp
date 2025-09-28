@@ -16,8 +16,12 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 
 #include <vector>
 
-namespace Framework
+namespace CoreFramework
 {
+	// how to access global dt:
+	// float dt = CoreFramework::gDt;
+	extern float gDt;			// global delta time
+
 	class CoreEngine
 	{
 	public:
@@ -34,10 +38,12 @@ namespace Framework
 
 		void Initialize();
 
+		float GetFPS() const { return fps; }
+
 	private:
 		std::vector<SystemInterface*> Systems;
 
-		unsigned lastUpdated;	// the last time game was updated
+		float fps = 0.f;		// fps counter
 
 		bool gameActive;		// game running (true), game shutting down (false)
 	};

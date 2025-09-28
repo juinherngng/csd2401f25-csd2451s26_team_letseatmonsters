@@ -12,7 +12,7 @@ DESCRIPTION:		Message system for inter-component communication.
 
 #pragma once
 
-namespace Framework
+namespace CoreFramework
 {
 	namespace MsgId
 	{

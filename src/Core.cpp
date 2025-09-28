@@ -14,14 +14,15 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 
 #include <chrono>
 
-namespace Framework
+namespace CoreFramework
 {
+	float gDt = 0.f;			// global delta time
+
 	// global pointer to core
 	CoreEngine* CORE;
 
 	CoreEngine::CoreEngine()
 	{
-		lastUpdated = 0;
 		gameActive = true;	// game is running
 		CORE = this;		// set global pointer
 	}
@@ -54,8 +55,11 @@ namespace Framework
 			// compute the time elapsed since last frame
 			std::chrono::duration<float> elapsed = currentTime - lastTime;
 
-			// convert to float seconds
-			float dt = elapsed.count();
+			// set global dt variable
+			gDt = elapsed.count();
+
+			// update fps counter
+			fps = (gDt > 0.f) ? (1.f / gDt) : 0.f;
 
 			// update lastUpdated to current time
 			lastTime = currentTime;
@@ -63,7 +67,7 @@ namespace Framework
 			// update all systems
 			for (unsigned i = 0; i < Systems.size(); i++)
 			{
-				Systems[i]->Update(dt);
+				Systems[i]->Update(gDt);
 			}
 		}
 	}
