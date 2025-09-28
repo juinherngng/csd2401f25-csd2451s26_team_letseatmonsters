@@ -171,6 +171,7 @@ namespace Math
         float invDet = 1.0f / det;
 
         Matrix3x3 inv;
+
         inv.m[0] = (m[4] * m[8] - m[5] * m[7]) * invDet;
         inv.m[1] = -(m[1] * m[8] - m[2] * m[7]) * invDet;
         inv.m[2] = (m[1] * m[5] - m[2] * m[4]) * invDet;
@@ -191,8 +192,7 @@ namespace Math
         return Matrix3x3(
             mat.m[0], mat.m[3], mat.m[6],
             mat.m[1], mat.m[4], mat.m[7],
-            mat.m[2], mat.m[5], mat.m[8]
-        );
+            mat.m[2], mat.m[5], mat.m[8]);
     }
 
     // static constants for Vector3D
@@ -210,6 +210,7 @@ namespace Math
     Vector3D Vector3D::Normalized() const
     {
         float len = Length();
+
         return (len > 0.0f) ? Vector3D(x / len, y / len, z / len) : Vector3D::ZERO;
     }
 
@@ -223,8 +224,7 @@ namespace Math
         return Vector3D(
             y * other.z - z * other.y,
             z * other.x - x * other.z,
-            x * other.y - y * other.x
-        );
+            x * other.y - y * other.x);
     }
 
     Vector3D Vector3D::operator+(Vector3D const& rhs) const
@@ -265,7 +265,141 @@ namespace Math
         : m{ m00, m01, m02, m03,
              m10, m11, m12, m13,
              m20, m21, m22, m23,
-             m30, m31, m32, m33 } {
+             m30, m31, m32, m33 } {}
+
+    Vector3D Matrix4x4::TransformPoint(Vector3D const& v) const 
+    {
+        float x_ = m[0] * v.x + m[1] * v.y + m[2] * v.z + m[3];
+        float y_ = m[4] * v.x + m[5] * v.y + m[6] * v.z + m[7];
+        float z_ = m[8] * v.x + m[9] * v.y + m[10] * v.z + m[11];
+        float w_ = m[12] * v.x + m[13] * v.y + m[14] * v.z + m[15];
+
+        if (w_ != 0.0f)
+        {
+            x_ /= w_;
+            y_ /= w_;
+            z_ /= w_;
+        }
+
+        return Vector3D(x_, y_, z_);
+    }
+
+    Matrix4x4 Matrix4x4::Translate(Vector3D const& offset) 
+    {
+        Matrix4x4 mat = Matrix4x4::IDENTITY;
+
+        mat.m[3] = offset.x;
+        mat.m[7] = offset.y;
+        mat.m[11] = offset.z;
+
+        return mat;
+    }
+
+    Matrix4x4 Matrix4x4::Scale(Vector3D const& factors) 
+    {
+        Matrix4x4 mat = Matrix4x4::IDENTITY;
+
+        mat.m[0] = factors.x;
+        mat.m[5] = factors.y;
+        mat.m[10] = factors.z;
+
+        return mat;
+    }
+
+    Matrix4x4 Matrix4x4::RotateX(float const degrees) 
+    {
+        float rad = ToRadians(degrees);
+        float c = std::cos(rad);
+        float s = std::sin(rad);
+
+        return Matrix4x4(
+            1, 0, 0, 0,
+            0, c, -s, 0,
+            0, s, c, 0,
+            0, 0, 0, 1);
+    }
+
+    Matrix4x4 Matrix4x4::RotateY(float const degrees)
+    {
+        float rad = ToRadians(degrees);
+        float c = std::cos(rad);
+        float s = std::sin(rad);
+
+        return Matrix4x4(
+            c, 0, s, 0,
+            0, 1, 0, 0,
+            -s, 0, c, 0,
+            0, 0, 0, 1);
+    }
+
+    Matrix4x4 Matrix4x4::RotateZ(float const degrees) 
+    {
+        float rad = ToRadians(degrees);
+        float c = std::cos(rad);
+        float s = std::sin(rad);
+
+        return Matrix4x4(
+            c, -s, 0, 0,
+            s, c, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1);
+    }
+
+    Matrix4x4 Matrix4x4::Concatenate(Matrix4x4 const& other) const 
+    {
+        return (*this) * other;
+    }
+
+    Matrix4x4 Matrix4x4::Concatenate(Matrix4x4 const* matrices, std::size_t count) 
+    {
+        Matrix4x4 result = Matrix4x4::IDENTITY;
+
+        for (std::size_t i = 0; i < count; ++i) 
+        {
+            result = result * matrices[i];
+        }
+
+        return result;
+    }
+
+    Matrix4x4 Matrix4x4::operator*(Matrix4x4 const& rhs) const 
+    {
+        Matrix4x4 result;
+
+        for (int row = 0; row < 4; ++row) 
+        {
+            for (int col = 0; col < 4; ++col) 
+            {
+                result.m[row * 4 + col] =
+                    m[row * 4 + 0] * rhs.m[0 * 4 + col] +
+                    m[row * 4 + 1] * rhs.m[1 * 4 + col] +
+                    m[row * 4 + 2] * rhs.m[2 * 4 + col] +
+                    m[row * 4 + 3] * rhs.m[3 * 4 + col];
+            }
+        }
+
+        return result;
+    }
+
+    bool Matrix4x4::operator==(Matrix4x4 const& rhs) const 
+    {
+        for (int i = 0; i < 16; ++i)
+            if (m[i] != rhs.m[i]) return false;
+
+        return true;
+    }
+
+    // maybe add 4x4 inverse if needed
+
+    Matrix4x4 Matrix4x4::Transpose(Matrix4x4 const& mat)
+    {
+        Matrix4x4 result;
+
+        for (int row = 0; row < 4; ++row)
+            for (int col = 0; col < 4; ++col)
+                result.m[row * 4 + col] = mat.m[col * 4 + row];
+
+        return result;
     }
 
     // Non-member functions
@@ -289,6 +423,7 @@ namespace Math
     {
         float dx = a.x - b.x;
         float dy = a.y - b.y;
+
         return std::sqrt(dx * dx + dy * dy);
     }
 
@@ -326,13 +461,90 @@ namespace Math
         return std::fabs(a.x - b.x) < epsilon && std::fabs(a.y - b.y) < epsilon && std::fabs(a.z - b.z) < epsilon;
     }
 
+	// Matrix 4x4 utility functions
+    Matrix4x4 Matrix4x4::Perspective(float fovYDegrees, float aspect, float nearZ, float farZ) 
+    {
+        float fovYRad = ToRadians(fovYDegrees);
+        float f = 1.0f / std::tan(fovYRad / 2.0f);
+        float nf = 1.0f / (nearZ - farZ);
+
+        Matrix4x4 mat;
+        mat.m[0] = f / aspect;
+        mat.m[1] = 0.0f;
+        mat.m[2] = 0.0f;
+        mat.m[3] = 0.0f;
+
+        mat.m[4] = 0.0f;
+        mat.m[5] = f;
+        mat.m[6] = 0.0f;
+        mat.m[7] = 0.0f;
+
+        mat.m[8] = 0.0f;
+        mat.m[9] = 0.0f;
+        mat.m[10] = (farZ + nearZ) * nf;
+        mat.m[11] = (2.0f * farZ * nearZ) * nf;
+
+        mat.m[12] = 0.0f;
+        mat.m[13] = 0.0f;
+        mat.m[14] = -1.0f;
+        mat.m[15] = 0.0f;
+
+        return mat;
+    }
+
+    Matrix4x4 Matrix4x4::Orthographic(float left, float right, float bottom, float top, float nearZ, float farZ) 
+    {
+        Matrix4x4 mat = Matrix4x4::IDENTITY;
+
+        mat.m[0] = 2.0f / (right - left);
+        mat.m[5] = 2.0f / (top - bottom);
+        mat.m[10] = -2.0f / (farZ - nearZ);
+        mat.m[3] = -(right + left) / (right - left);
+        mat.m[7] = -(top + bottom) / (top - bottom);
+        mat.m[11] = -(farZ + nearZ) / (farZ - nearZ);
+
+        return mat;
+    }
+
+    Matrix4x4 Matrix4x4::LookAt(Vector3D const& eye, Vector3D const& target, Vector3D const& up) 
+    {
+        Vector3D f = (target - eye).Normalized();
+        Vector3D s = f.Cross(up).Normalized();
+        Vector3D u = s.Cross(f);
+
+        Matrix4x4 mat = Matrix4x4::IDENTITY;
+        mat.m[0] = s.x;
+        mat.m[1] = s.y;
+        mat.m[2] = s.z;
+        mat.m[3] = -s.Dot(eye);
+
+        mat.m[4] = u.x;
+        mat.m[5] = u.y;
+        mat.m[6] = u.z;
+        mat.m[7] = -u.Dot(eye);
+
+        mat.m[8] = -f.x;
+        mat.m[9] = -f.y;
+        mat.m[10] = -f.z;
+        mat.m[11] = f.Dot(eye);
+
+        mat.m[12] = 0.0f;
+        mat.m[13] = 0.0f;
+        mat.m[14] = 0.0f;
+        mat.m[15] = 1.0f;
+
+        return mat;
+    }
+
     // General utility functions
-    float Clamp(float value, float min, float max)
+    template <typename T>
+    T Clamp(T value, T min, T max)
     {
         return std::max(min, std::min(value, max));
     }
 
-    bool AlmostEqual(float a, float b, float epsilon)
+    template <typename T>
+    bool AlmostEqual(T a, T b, T epsilon)
     {
         return std::fabs(a - b) < epsilon;
     }
