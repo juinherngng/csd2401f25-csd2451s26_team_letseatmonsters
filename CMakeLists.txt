@@ -13,6 +13,7 @@ set(ALL_LIBS
    glfw
    glad
    imgui
+   fmod
 )
 
 # Gather source files for the core game library
@@ -40,6 +41,9 @@ set_property(TARGET GameEngine PROPERTY CXX_STANDARD 20)
 add_executable(LetsEatMonsters ${CMAKE_CURRENT_LIST_DIR}/src/main.cpp)
 
 target_link_libraries(LetsEatMonsters PRIVATE GameEngine)
+
+# Copy FMOD DLL to the executable's output directory
+copy_fmod_dll_to_target(LetsEatMonsters)
 
 # Add compiler warnings and flags based on compiler
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

@@ -310,7 +310,7 @@ public:
 int main() {
 
     CoreFramework::CoreEngine engine;
-	CoreFramework::CORE = &engine; // Set the global CORE pointer
+	CoreFramework::CORE = &engine;
 
     // add test system
 	engine.AddSystem(new MockSystem());
