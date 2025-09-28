@@ -41,7 +41,7 @@ DESCRIPTION:		System interface for game engine systems.
 	Actual example in Main.cpp as well.
 */
 
-namespace Framework
+namespace CoreFramework
 {
 	class SystemInterface
 	{
