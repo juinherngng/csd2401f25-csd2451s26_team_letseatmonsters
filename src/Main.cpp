@@ -318,7 +318,7 @@ int main() {
 	engine.Initialize();
 	engine.GameLoop();
 	engine.DestroySystems();
-    
+
     try {
 		auto settings = ConfigManager::LoadFromAssetsOrDefaults();
 		ConfigManager::Validate(settings);
