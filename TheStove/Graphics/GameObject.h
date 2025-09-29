@@ -30,6 +30,7 @@ public:
 	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void SetTexture(Texture* tex) { m_Texture = tex; }
 
+	// Collider handling
 	void SetColliderSize(const glm::vec2& size) { m_ColliderSize = size; }
 	void SetColliderOffset(const glm::vec2& offs) { m_ColliderOffset = offs; }
 	glm::vec2 GetColliderSize()   const { return m_ColliderSize; }
@@ -49,6 +50,6 @@ private:
 
 	int id; // Unique identifier for GameObjects
 
-	glm::vec2 m_ColliderSize = { 1.0f, 1.0f };   // default = sprite size (you’ll override for player)
+	glm::vec2 m_ColliderSize = { 1.0f, 1.0f };
 	glm::vec2 m_ColliderOffset = { 0.0f, 0.0f };
 };

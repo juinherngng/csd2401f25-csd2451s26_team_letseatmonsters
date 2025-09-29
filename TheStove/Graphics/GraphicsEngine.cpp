@@ -125,6 +125,7 @@ void GraphicsEngine::Render() {
 	for (const auto& obj : gameObjects) {
 		obj->Draw(view, projection);
 
+		// Draw the object's bounding box in red for debugging purposes
 		glDisable(GL_DEPTH_TEST);
 		obj->DrawBoundingBox(view, projection, { 1.0f, 0.0f, 0.0f });
 		glEnable(GL_DEPTH_TEST);

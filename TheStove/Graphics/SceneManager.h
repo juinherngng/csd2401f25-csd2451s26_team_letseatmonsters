@@ -35,19 +35,22 @@ private:
 	std::unordered_map<int, glm::vec3> spritePositions;
 	std::unordered_map<int, float> spriteRotations;
 
-	coll::World mCollision;
-
 	void LoadTest();
+
+	// World collision system for walls and obstacles.
+	collision::World mCollision;
+
+	// Build level colliders (walls, gates, dividers) into mCollision.
 	void BuildLevelColliders();
 
-	// --- Click-to-move state ---
-	bool hasClickTarget = false;
-	glm::vec2 clickTarget{ 0.0f, 0.0f };
+	// Click-to-move state
+	bool hasClickTarget = false;		 // True if a target location has been clicked.
+	glm::vec2 clickTarget{ 0.0f, 0.0f }; // Current click destination in world coords.
 
-	bool playerSelected = false;     // must click the player first
-	float playerSpeed = 260.0f;      // movement speed for click-to-move
+	bool playerSelected = false; // Must select/click player before issuing move.
+	float playerSpeed = 260.0f;  // Player movement speed.
 
-	// "stuck" detection when pathing into a wall
+	// Stuck detection when pathing into walls
 	int stuckFrames = 0;
-	static constexpr int kStuckFramesToCancel = 12; // ~0.2s at 60fps
+	static constexpr int kStuckFramesToCancel = 12; // Cancel movement if stuck for ~0.2s at 60fps.
 };

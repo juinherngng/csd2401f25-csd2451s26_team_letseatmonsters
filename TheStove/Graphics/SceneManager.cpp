@@ -1,36 +1,54 @@
 ﻿#include "SceneManager.h"
 #include <iostream>
 
-// ---- canvas / room ----
+// Room (overall render / collision reference size; used only for clamping at the end)
 static constexpr float kWorldW = 1200.0f;
 static constexpr float kWorldH = 800.0f;
 
-static constexpr float kWalkL = 144.0f;  // adjust left
-static constexpr float kWalkR = 1114.0f; // adjust right
+// Walkable inner rectangle, tune these four values to match your background art precisely.
+static constexpr float kWalkL = 148.0f;  // adjust left
+static constexpr float kWalkR = 1078.0f; // adjust right
 static constexpr float kWalkT = 84.0f;   // adjust top
-static constexpr float kWalkB = 716.0f;  // adjust bottom
+static constexpr float kWalkB = 733.0f;  // adjust bottom
 
 // Thickness of our blocking bars (thin = precise, easy to tune)
-static constexpr float kEdgeThick = 6.0f;
+static constexpr float kEdgeThick = 3.0f;
 
-// ---- wooden divider (vertical) ----
-// X span of the wood (covering the planks). Tune to match your sprite.
-static constexpr float kWoodX0 = 580.0f;   // left of wood
-static constexpr float kWoodX1 = 598.0f;   // right of wood
+// Wooden divider (vertical split)
+// X-span of the divider—should cover the visible planks of the sprite/art.
+static constexpr float kWoodX0 = 562.0f; // left of wood
+static constexpr float kWoodX1 = 590.0f; // right of wood
 
-// TOP solid segment
+// TOP solid segment (blocked)
 static constexpr float kWoodTopMinY = 50.0f;
 static constexpr float kWoodTopMaxY = 250.0f;
 
-// GAP (walk-through) — ~160 px tall
+// Middle GAP (pass-through)
 static constexpr float kWoodGapMinY = 250.0f;
 static constexpr float kWoodGapMaxY = 500.0f;
 
-// BOTTOM solid segment
+// BOTTOM solid segment (blocked)
 static constexpr float kWoodBotMinY = 500.0f;
 static constexpr float kWoodBotMaxY = 700.0f;
 
-// Simple point-in-AABB using center+scale (matches your sprite usage)
+// End-of-stage vertical gate (right side)
+// Place two vertical bars just inside the right walk boundary.
+static constexpr float kEndVX0 = 1100.0f; // left edge of the gate
+static constexpr float kEndVX1 = 1132.0f; // right edge of the gate
+
+// TOP solid segment (blocked)
+static constexpr float kEndVTopMinY = 50.0f;
+static constexpr float kEndVTopMaxY = 250.0f;
+
+// Middle GAP (pass-through)
+static constexpr float kEndVGapMinY = 250.0f;
+static constexpr float kEndVGapMaxY = 500.0f;
+
+// BOTTOM solid segment (blocked)
+static constexpr float kEndVBotMinY = 500.0f;
+static constexpr float kEndVBotMaxY = 700.0f;
+
+// Quick hit-test for a point against a center-anchored AABB.
 static inline bool PointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale) {
 	const float hx = scale.x * 0.5f;
 	const float hy = scale.y * 0.5f;
@@ -38,12 +56,9 @@ static inline bool PointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec
 		p.y >= center.y - hy && p.y <= center.y + hy);
 }
 
-
 Scene::Scene(GraphicsEngine& engine) : graphicsEngine(engine) {}
 
 void Scene::LoadScene(const std::string& sceneName) {
-
-	// Test scene for now
 	LoadTest();
 }
 
@@ -93,21 +108,29 @@ GameObject* Scene::GetGameObjectByID(int targetID) {
 	return nullptr; // Not found
 }
 
+// Build level colliders (rim, divider, gate) into the collision world.
 void Scene::BuildLevelColliders() {
-	coll::WalkArea walk{
-		/*L*/ kWalkL, /*R*/ kWalkR,
-		/*T*/ kWalkT, /*B*/ kWalkB,
-		/*edgeThick*/ kEdgeThick
+	collision::WalkArea walk{
+		kWalkL, kWalkR,
+		kWalkT, kWalkB,
+		kEdgeThick
 	};
 
-	coll::WoodVertical wood{
-		/*x0*/ kWoodX0, /*x1*/ kWoodX1,
-		/*topMinY*/ kWoodTopMinY, /*topMaxY*/ kWoodTopMaxY,
-		/*gapMinY*/ kWoodGapMinY, /*gapMaxY*/ kWoodGapMaxY, // no collider here
-		/*botMinY*/ kWoodBotMinY, /*botMaxY*/ kWoodBotMaxY
+	collision::WoodVertical wood{
+		kWoodX0, kWoodX1,
+		kWoodTopMinY, kWoodTopMaxY,
+		kWoodGapMinY, kWoodGapMaxY,
+		kWoodBotMinY, kWoodBotMaxY
 	};
 
-	mCollision.build(walk, wood);
+	collision::StageEndGateVertical end{
+		kEndVX0, kEndVX1,
+		kEndVTopMinY, kEndVTopMaxY,
+		kEndVGapMinY, kEndVGapMaxY,
+		kEndVBotMinY, kEndVBotMaxY
+	};
+
+	mCollision.build(walk, wood, end);
 }
 
 void Scene::LoadTest() {
@@ -186,8 +209,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		std::cout << "Left key pressed: rotation = " << rotation << std::endl;
 	}
 
+	// Keyboard movement intent (WASD) + facing texture swap
 	glm::vec2 desiredMove{ 0.0f, 0.0f };
-
 	if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_back.png"));
 		desiredMove.y -= moveSpeed; // up
@@ -205,32 +228,31 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		desiredMove.x += moveSpeed; // right
 	}
 
-	// --- CLICK HANDLING ---
-// 1) Select the player only if you click on them
-// 2) If already selected, the next left click sets the move target
+	// Click-to-Move behaviour
+	// 1) If player is NOT selected: click must hit the player's collider to select.
+	// 2) If already selected: the next left click sets the destination target.
 	if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		auto mp = inputManager.GetMousePosition();
-		glm::vec2 mouse{ (float)mp.x, (float)mp.y };
+		glm::vec2 mouse{
+			(float)mp.x, (float)mp.y
+		};
 
-
-		// Build the player's current selection box from center+scale
-		// (You can swap 'scale' for a dedicated hitbox if you prefer tighter selection.)
 		if (!playerSelected) {
+			// Use collider (size+offset) as the selection area
 			glm::vec2 csize = sprite->GetColliderSize();
 			glm::vec2 coff = sprite->GetColliderOffset();
 			glm::vec3 selCenter = position + glm::vec3(coff, 0.0f);
 			glm::vec3 selScale = glm::vec3(csize, 1.0f);
 
 			if (PointInsideCenterAABB(mouse, selCenter, selScale)) {
-				playerSelected = true;     // selected; wait for destination click
-				hasClickTarget = false;    // clear any old target
+				playerSelected = true;  // selected; wait for destination click
+				hasClickTarget = false; // clear any old target
 				stuckFrames = 0;
-				// (Optional) visual feedback: change sprite tint or cursor here
 			}
-			// else: clicked somewhere else; ignore
+			// else: clicked empty space; ignore
 		}
 		else {
-			// Player is selected → this click sets the destination
+			// Player already selected, set destination
 			clickTarget = mouse;
 			hasClickTarget = true;
 			stuckFrames = 0;
@@ -238,44 +260,47 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 	}
 
-	// --- CLICK-TO-MOVE: only if we have a target (and are selected) ---
+	// Only apply click-to-move if we have an active target and the player is selected
 	if (playerSelected && hasClickTarget) {
 		glm::vec2 pos2(position.x, position.y);
 		glm::vec2 toTarget = clickTarget - pos2;
 		float dist = glm::length(toTarget);
 
-		if (dist > 1.0f) {
-			glm::vec2 dir = toTarget / dist;
-			// use playerSpeed here so click movement is consistent regardless of frame dt scaling above
-			desiredMove += dir * (playerSpeed * deltaTime);
-		}
-		else {
-			hasClickTarget = false;    // reached target
-			stuckFrames = 0;
+		if (dist > 0.0f) {
+			float maxStep = playerSpeed * deltaTime;
+			glm::vec2 step = (dist <= maxStep)
+				? toTarget           // final step hits the point exactly
+				: (toTarget / dist) * maxStep;
+			desiredMove += step;	 // click intent adds to keyboard intent
 		}
 	}
 
-	// (Optional) Right-click anywhere to deselect
+	// Right-click anywhere to deselect/cancel
 	if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_RIGHT)) {
 		playerSelected = false;
 		hasClickTarget = false;
 		stuckFrames = 0;
 	}
 
+	// Build current AABB from collider size/offset for collision resolution
+	collision::AABB startBox = collision::World::makeAABBFromCenter(
+		position + glm::vec3(sprite->GetColliderOffset(), 0.0f),
+		glm::vec3(sprite->GetColliderSize(), 1.0f)
+	);
 
-	coll::AABB startBox = coll::World::makeAABBFromCenter(position, scale);
+	// Resolve desired movement against world walls (X then Y sweep)
 	glm::vec2 allowed = mCollision.resolve(startBox, desiredMove);
 
+	// Apply allowed motion
 	position.x += allowed.x;
 	position.y += allowed.y;
 
-	// --- Cancel pathing if we're stuck against a wall ---
+	// Stuck detection for click-to-move: stop trying if progress stalls
 	if (playerSelected && hasClickTarget) {
-		// If we intended to move but barely moved, we might be blocked.
 		const float intended = glm::length(desiredMove);
 		const float moved = glm::length(allowed);
 
-		// Also check that we didn't make progress toward the target
+		// Compare distance to target before/after this frame
 		glm::vec2 newPos2(position.x, position.y);
 		float prevDist = glm::length(clickTarget - (newPos2 - glm::vec2(allowed.x, allowed.y)));
 		float newDist = glm::length(clickTarget - newPos2);
@@ -283,16 +308,16 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		bool noProgress = (newDist >= prevDist - 0.25f); // didn’t get meaningfully closer
 		bool barelyMoved = (moved <= 0.05f && intended > 0.0f);
 
-		if (noProgress || barelyMoved) ++stuckFrames; else stuckFrames = 0;
+		if (noProgress || barelyMoved) ++stuckFrames;
+		else stuckFrames = 0;
 
 		if (stuckFrames >= kStuckFramesToCancel) {
-			hasClickTarget = false; // stop trying to walk through walls
+			hasClickTarget = false; // abort pathing into walls
 			stuckFrames = 0;
 		}
 	}
 
-
-	// Optional: clamp to overall screen (kept if you still want hard bounds)
+	// Optional overall clamp to screen bounds (kept for safety)
 	position.x = glm::clamp(position.x, 0.0f, 1200.0f);
 	position.y = glm::clamp(position.y, 0.0f, 800.0f);
 
@@ -301,6 +326,3 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	sprite->SetRotation(rotation, glm::vec3(0, 0, 1));
 	sprite->SetPosition(position);
 }
-
-
-
