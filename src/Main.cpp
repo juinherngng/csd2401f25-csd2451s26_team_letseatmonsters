@@ -21,6 +21,7 @@
 #include "Precompiled.hpp"
 #include "Core.hpp"
 #include "ConfigManager.hpp"
+#include "AudioManager.hpp"
 
  /**
   * @class Cube
@@ -282,12 +283,14 @@ private:
 class MockSystem : public CoreFramework::SystemInterface
 {
 public:
-	void Initialize() override {
+	void Initialize() override 
+	{
 		std::cout << "MockSystem initialized." << std::endl;
 	}
 
-    void Update(float timeSlice) override {
-        std::cout << "System updated with dt = " << timeSlice << std::endl;
+    void Update(float dt) override 
+	{
+        std::cout << "System updated with dt = " << dt << std::endl;
 
         static int count = 0;
 		// After 30 updates, send a QUIT message to stop the engine
@@ -314,6 +317,7 @@ int main() {
 
     // add test system
 	engine.AddSystem(new MockSystem());
+	engine.AddSystem(new AudioManager());
 
 	engine.Initialize();
 	engine.GameLoop();
