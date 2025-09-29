@@ -1,7 +1,8 @@
-#include "GameObject.h"
+﻿#include "GameObject.h"
+#include "Collision.h"
 #include <glm/gtc/matrix_transform.hpp>
-// #include <glm/gtx/string_cast.hpp>
 #include <iostream>
+#include "ResourceManager.h"
 
 GameObject::GameObject(Mesh* mesh, Shader* shader)
 	: m_Mesh(mesh), m_Shader(shader), m_Position(0.0f), m_Scale(1.0f), m_Rotation(1.0f) {
@@ -62,4 +63,46 @@ void GameObject::Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMa
 	}
 
 	m_Mesh->Draw();
+}
+
+void GameObject::DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color) const {
+
+	// center = sprite position + optional collider offset
+	glm::vec3 center = m_Position + glm::vec3(m_ColliderOffset, 0.0f);
+	// size = collider size (tight box)
+	coll::AABB box = coll::World::makeAABBFromCenter(center, glm::vec3(m_ColliderSize, 1.0f));
+
+	glm::vec3 verts[4] = {
+		{ box.min.x, box.min.y, 0.f },
+		{ box.max.x, box.min.y, 0.f },
+		{ box.max.x, box.max.y, 0.f },
+		{ box.min.x, box.max.y, 0.f }
+	};
+
+	GLuint vao, vbo;
+	glGenVertexArrays(1, &vao);
+	glGenBuffers(1, &vbo);
+
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+
+	// 🔁 Use the BASIC shader (solid/untextured), not the sprite shader
+	Shader* dbg = ResourceManager::Instance().GetShader("basic");
+	if (dbg) {
+		dbg->Use();
+		dbg->SetModelMatrix(glm::mat4(1.0f)); // verts are already in world space
+		dbg->SetViewMatrix(view);
+		dbg->SetProjectionMatrix(proj);
+		dbg->SetColorTint(glm::vec4(color, 1.0f)); // if basic shader ignores this, it’s safe
+	}
+
+	glLineWidth(2.0f);        // optional: thicker line to see better
+	glDrawArrays(GL_LINE_LOOP, 0, 4);
+
+	glDeleteBuffers(1, &vbo);
+	glDeleteVertexArrays(1, &vao);
 }

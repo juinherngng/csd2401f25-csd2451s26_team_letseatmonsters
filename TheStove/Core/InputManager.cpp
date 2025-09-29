@@ -8,6 +8,7 @@ void InputManager::Update(GLFWwindow* window) {
 
 	for (int key : keys) {
 		bool state = glfwGetKey(window, key) == GLFW_PRESS;
+		mPreviousKeyStates[key] = mCurrentKeyStates[key];
 		mCurrentKeyStates[key] = state;
 
 		//// Debug print
@@ -20,12 +21,14 @@ void InputManager::Update(GLFWwindow* window) {
 	}
 
 	// --- NEW: mouse button & cursor position ---
-	int left = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-	mMouseButtons[GLFW_MOUSE_BUTTON_LEFT] = (left == GLFW_PRESS);
+	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
+	for (int b : buttons) {
+		bool state = glfwGetMouseButton(window, b) == GLFW_PRESS;
+		mPrevMouseButtons[b] = mMouseButtons[b];
+		mMouseButtons[b] = state;
+	}
 
-	double x, y;
-	glfwGetCursorPos(window, &x, &y);
-	mMousePos = { x, y };
+	glfwGetCursorPos(window, &mMousePos.x, &mMousePos.y);
 
 	// Optional: carry current key states to previous each frame,
 	// if you want IsKeyJustPressed to work (you already store maps).
@@ -49,14 +52,19 @@ bool InputManager::IsKeyJustPressed(int key) const {
 	return curr && !prev;
 }
 
-
 bool InputManager::IsMouseButtonPressed(int button) const {
 	auto it = mMouseButtons.find(button);
 	return (it != mMouseButtons.end()) && it->second;
 }
 
+bool InputManager::IsMouseButtonJustPressed(int button) const {
+	auto itC = mMouseButtons.find(button);
+	auto itP = mPrevMouseButtons.find(button);
+	bool curr = (itC != mMouseButtons.end()) && itC->second;
+	bool prev = (itP != mPrevMouseButtons.end()) && itP->second;
+	return curr && !prev;
+}
+
 glm::dvec2 InputManager::GetMousePosition() const {
 	return mMousePos;
 }
-
-

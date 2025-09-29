@@ -9,13 +9,19 @@ public:
 	void Update(GLFWwindow* window);             // Call once per frame to poll keys
 	bool IsKeyPressed(int key) const;            // Returns true if key currently pressed
 	bool IsKeyJustPressed(int key) const;        // Returns true if key pressed this frame (edge detection)
+
 	bool IsMouseButtonPressed(int button) const;
+	bool IsMouseButtonJustPressed(int button) const;
+
 	glm::dvec2 GetMousePosition() const;
 
 private:
 	std::unordered_map<int, bool> mCurrentKeyStates;
 	std::unordered_map<int, bool> mPreviousKeyStates;
+
 	std::unordered_map<int, bool> mMouseButtons;
+	std::unordered_map<int, bool> mPrevMouseButtons;
+
 	glm::dvec2 mMousePos{ 0.0, 0.0 };
 };
 

@@ -2,6 +2,7 @@
 
 #include "GraphicsEngine.h"
 #include "../Core/InputManager.h"
+#include "Collision.h"
 #include <string>
 #include <vector>
 
@@ -14,8 +15,7 @@ public:
 
 	// Scene-specific object creation
 	GameObject* SpawnTriangle(const glm::vec3& position, const glm::vec3& scale, float rotation = 0.0f);
-	GameObject* SpawnSprite(const std::string& texturePath, const glm::vec3& position,
-		const glm::vec2& size = glm::vec2(100.0f, 100.0f));
+	GameObject* SpawnSprite(const std::string& texturePath, const glm::vec3& position, const glm::vec2& size = glm::vec2(100.0f, 100.0f));
 
 	// Background management
 	void SetSceneBackground(const std::string& texturePath);
@@ -35,25 +35,19 @@ private:
 	std::unordered_map<int, glm::vec3> spritePositions;
 	std::unordered_map<int, float> spriteRotations;
 
+	coll::World mCollision;
+
 	void LoadTest();
 	void BuildLevelColliders();
 
-	struct AABB {
-		glm::vec2 min;
-		glm::vec2 max;
-	};
-
-	std::vector<AABB> walls;
-
-	// Click-to-move state
+	// --- Click-to-move state ---
 	bool hasClickTarget = false;
 	glm::vec2 clickTarget{ 0.0f, 0.0f };
 
-	// Helpers
-	AABB MakeAABB(const glm::vec3& center, const glm::vec3& scale) const;
-	bool Overlaps(const AABB& a, const AABB& b) const;
-	glm::vec2 ResolveAgainstWalls(const AABB& startBox, glm::vec2 desiredDelta) const;
+	bool playerSelected = false;     // must click the player first
+	float playerSpeed = 260.0f;      // movement speed for click-to-move
 
+	// "stuck" detection when pathing into a wall
+	int stuckFrames = 0;
+	static constexpr int kStuckFramesToCancel = 12; // ~0.2s at 60fps
 };
-
-
