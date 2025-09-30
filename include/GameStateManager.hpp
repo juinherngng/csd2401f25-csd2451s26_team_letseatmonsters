@@ -34,7 +34,7 @@ namespace Framework {
 	typedef std::function<void(float dt)> FP;
 
 	extern FP fpInit, fpUpdate, fpExit; // Function pointers that changes depending on what state the game is in currently
-	class GameStateManager : public Framework::SystemInterface
+	class GameStateManager : public CoreFramework::SystemInterface
 	{
 	public:
 		//Setup Manager Logic
@@ -42,7 +42,7 @@ namespace Framework {
 		//Manager Update loop
 		void Update(float dt) override;
 
-		void SendMessage(Framework::Message* msg);
+		void SendMessage(CoreFramework::Message* msg);
 
 		std::string GetName() override;
 

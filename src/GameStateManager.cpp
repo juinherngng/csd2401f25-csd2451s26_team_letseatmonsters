@@ -42,7 +42,7 @@ namespace Framework {
 		}
 	}
 
-	void GameStateManager::SendMessage(Framework::Message* msg) {
+	void GameStateManager::SendMessage(CoreFramework::Message* msg) {
 
 	}
 	//Get string of manager for debugging
