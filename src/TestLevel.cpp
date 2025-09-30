@@ -13,26 +13,8 @@ DESCRIPTION:		Game State class used to call state-specific Init, Update loop and
 */
 #pragma once
 
-#include <iostream>
+#include "TestLevel.hpp"
 namespace Framework {
-	//class TestLevel : public GameState {
-
-	//	//Called Once when Game State changes to this
-	//	void StateInit() override {
-	//		std::cout << "Entered State: " << GetStateName() << std::endl;
-	//	}
-	//	//To be called once per frame by GameStateManager in Main update loop
-	//	void StateUpdate(float dt) override {
-	//		std::cout << "Update Frame at DeltaTime: " << dt << std::endl;
-	//		std::cout << "Transiting to new State" << dt << std::endl;
-	//	}
-	//	//Called Once when Game State is changed to another dervived class
-	//	void StateExit() override {
-	//		std::cout << "Exiting State: " << GetStateName() << std::endl;
-	//	}
-
-	//	std::string GetStateName() override { return "TestLevel"; }
-	//};
 
 	void Level1Init(float deltaTime) {
 		std::cout << "Entered Level 1" << std::endl;

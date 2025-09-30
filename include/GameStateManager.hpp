@@ -10,8 +10,8 @@ DESCRIPTION:		Game State Manager interface derived from System.hpp.
 ----------------------------------------------------------------------------------------------------
 */
 #include "System.hpp"
-#include "TestLevel.cpp"
-#include "TestLevel2.cpp"
+#include "TestLevel.hpp"
+#include "TestLevel2.hpp"
 #include <memory>
 #include <functional> 
 
@@ -22,71 +22,29 @@ namespace Framework {
 		GS_Quit
 	};
 	//Ints representing Game States being cycled on update
-	extern int currentGS = 0, nextGS = 0;
+	extern int currentGS, nextGS;
 
 	////Check if game state has been entered and initialised
-	extern bool init = false;
+	extern bool init;
 
 	//Smart Function Pointers for interchanging functionality for game states
 	typedef std::function<void(float dt)> FP;
 
-	extern FP fpInit = nullptr, fpUpdate = nullptr, fpExit = nullptr; // Function pointers that changes depending on what state the game is in currently
+	extern FP fpInit, fpUpdate, fpExit; // Function pointers that changes depending on what state the game is in currently
 	class GameStateManager : public Framework::SystemInterface
 	{
 	public:
 		//Setup Manager Logic
-		void Initialize() override {
-		}
+		void Initialize() override;
 		//Manager Update loop
-		void Update(float dt) override {
-			if (!init) {
-				InitializeGameState(0,dt);
-			}
-			if (currentGS == nextGS) {
-				fpUpdate(dt);
-			}
-		}
+		void Update(float dt) override;
 
-		void SendMessage(Framework::Message* msg) override {
+		void SendMessage(Framework::Message* msg);
 
-		}
+		std::string GetName() override;
 
-		std::string GetName() override {
-			return "GameStateManager";
-		}
+		void InitializeGameState(int GS, float dt);
 
-		void InitializeGameState(int GS, float dt) {
-			nextGS = currentGS = GS;
-			fpInit = Level1Init;
-			fpUpdate = Level1Update;
-			fpExit = Level1Exit;
-
-			fpInit(dt);
-			init = true;
-		}
-
-		void UpdateGameState(int newState, float dt) {
-			nextGS = newState;
-			fpExit(dt);
-			currentGS = newState;
-			switch (currentGS) {
-			case GS_Level1:
-				fpInit = Level1Init;
-				fpUpdate = Level1Update;
-				fpExit = Level1Exit;
-
-				fpInit(dt);
-				break;
-			case GS_Level2:
-				fpInit = Level2Init;
-				fpUpdate = Level2Update;
-				fpExit = Level2Exit;
-
-				fpInit(dt);
-				break;
-			case GS_Quit:
-				break;
-			}
-		}
+		void UpdateGameState(int newState, float dt);
 	};
 }
