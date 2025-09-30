@@ -22,6 +22,7 @@
 #include "Core.hpp"
 #include "ConfigManager.hpp"
 #include "AudioManager.hpp"
+#include "GameStateManager.hpp"
 
  /**
   * @class Cube
@@ -318,6 +319,7 @@ int main() {
     // add test system
 	engine.AddSystem(new MockSystem());
 	engine.AddSystem(new AudioManager());
+	engine.AddSystem(new Framework::GameStateManager());
 
 	engine.Initialize();
 	engine.GameLoop();
