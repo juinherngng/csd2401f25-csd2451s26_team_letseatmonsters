@@ -1,12 +1,11 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			GameState.hpp
+FILE NAME:			TestLevel.cpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Darren Toh, darren.toh@digipen.edu
 
-DESCRIPTION:		Game State class used to call state-specific Init, Update loop and Exit code
-					from GameStateManager in Main.cpp.
-					All Game States should be derived from this file and their functions overloaded.
+DESCRIPTION:		Source file Test state for GameStateManager. This script contains definitions for Init, Update
+					and Exit functions specific to this level. To be Updated with calls to more components.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------

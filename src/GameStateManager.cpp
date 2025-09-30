@@ -1,10 +1,13 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			GameStateManager.hpp
+FILE NAME:			GameStateManager.cpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Darren Toh, darren.toh@digipen.edu
 
-DESCRIPTION:		Game State Manager interface derived from System.hpp.
+DESCRIPTION:		Game State Manager interface derived from System.hpp. Uses 3 Function pointers
+					and redirects them to level/scene-specific init, update and exit functions.
+					These function pointers are then called in main by the game state manager.
+					This is a header file for definitions.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -14,11 +17,7 @@ DESCRIPTION:		Game State Manager interface derived from System.hpp.
 #include "TestLevel2.hpp"
 
 namespace Framework {
-	//enum GameState {
-	//	GS_Level1,
-	//	GS_Level2,
-	//	GS_Quit
-	//};
+
 	//Ints representing Game States being cycled on update
 	extern int currentGS = 0, nextGS = 0;
 
@@ -46,11 +45,11 @@ namespace Framework {
 	void GameStateManager::SendMessage(Framework::Message* msg) {
 
 	}
-
+	//Get string of manager for debugging
 	std::string GameStateManager::GetName() {
 		return "GameStateManager";
 	}
-
+	//Initialize first state to run on load
 	void GameStateManager::InitializeGameState(int GS, float dt) {
 		nextGS = currentGS = GS;
 		fpInit = Level1Init;
@@ -60,7 +59,7 @@ namespace Framework {
 		fpInit(dt);
 		init = true;
 	}
-
+	//Update Game Manager with a new State
 	void GameStateManager::UpdateGameState(int newState, float dt) {
 		nextGS = newState;
 		fpExit(dt);

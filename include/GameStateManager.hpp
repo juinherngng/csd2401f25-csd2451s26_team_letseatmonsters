@@ -4,7 +4,10 @@ FILE NAME:			GameStateManager.hpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Darren Toh, darren.toh@digipen.edu
 
-DESCRIPTION:		Game State Manager interface derived from System.hpp.
+DESCRIPTION:		Game State Manager interface derived from System.hpp. Uses 3 Function pointers
+					and redirects them to level/scene-specific init, update and exit functions.
+					These function pointers are then called in main by the game state manager.
+					This is a header file for declarations.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
