@@ -473,8 +473,38 @@ namespace Math
             float const m30 = 0.0f, float const m31 = 0.0f, float const m32 = 0.0f, float const m33 = 1.0f);
 
         // Member functions
+        /************************************************************************/
+        /*!
+        \brief
+        Transforms a 3D vector by this matrix.
+        \param vector
+        The vector to transform.
+        \return
+        The transformed vector.
+        */
+        /************************************************************************/
         Vector3D TransformPoint(Vector3D const& vector) const;
-        /*static Matrix4x4 Translate(Vector3D const& offset);
+        /************************************************************************/
+        /*!
+        \brief
+        Creates a translation matrix.
+        \param offset
+        The translation offset.
+        \return
+        The translation matrix.
+        */
+        /************************************************************************/
+        static Matrix4x4 Translate(Vector3D const& offset);
+        /************************************************************************/
+        /*!
+        \brief
+        Creates a scaling matrix.
+        \param factors
+        The scaling factors.
+        \return
+        The scaling matrix.
+        */
+        /************************************************************************/
         static Matrix4x4 Scale(Vector3D const& factors);
         /************************************************************************/
         /*!

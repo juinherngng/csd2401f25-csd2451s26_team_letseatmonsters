@@ -24,7 +24,7 @@ void AudioManager::Initialize()
 {
 	if (InitializeSystem())
 	{
-		std::cerr << "AudioManagerSystem initialized." << std::endl;
+		std::cout << "AudioManagerSystem initialized." << std::endl;
 	}
 	else
 	{
