@@ -108,7 +108,7 @@ macro(import_fmod)
         cmake_policy(SET CMP0111 NEW)
         
         # Set FMOD path - adjust this to your FMOD installation directory
-        set(FMOD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../extern/fmod" CACHE PATH "FMOD installation directory")
+        set(FMOD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extern/fmod" CACHE PATH "FMOD installation directory")
         
         # Find FMOD headers
         find_path(FMOD_INCLUDE_DIR
