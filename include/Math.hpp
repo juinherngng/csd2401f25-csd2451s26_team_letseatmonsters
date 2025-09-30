@@ -24,8 +24,8 @@ namespace Math
     /************************************************************************/
     class Vector2D {
     public:
-        const float x;
-        const float y;
+        float x;
+        float y;
 
         // Static constants
         static const Vector2D ZERO;
@@ -121,6 +121,60 @@ namespace Math
         */
         /************************************************************************/
         bool     operator==(Vector2D const& rhs) const;
+
+        /************************************************************************/
+        /*!
+        \brief
+        Assigns the values of another Vector2D to this vector.
+        \param rhs
+        The right-hand side vector to assign from.
+        \return
+        Reference to this vector after assignment.
+        */
+        /************************************************************************/
+        Vector2D& operator=(Vector2D const& rhs);
+
+        // getter
+
+        /************************************************************************/
+        /*!
+        \brief
+        Gets the x component of the vector.
+        \return
+        The x component.
+        */
+        /************************************************************************/
+        float GetX() const { return x; }
+        /************************************************************************/
+        /*!
+        \brief
+        Gets the y component of the vector.
+        \return
+        The y component.
+        */
+        /************************************************************************/
+		float GetY() const { return y; }
+
+        // setter
+
+        /************************************************************************/
+        /*!
+        \brief
+        Sets the x component of the vector.
+        \param value
+        The new x component value.
+        */
+        /************************************************************************/
+		void SetX(float value) { x = value; }
+        /************************************************************************/
+        /*!
+        \brief
+        Sets the y component of the vector.
+        \param value
+        The new y component value.
+        */
+        /************************************************************************/
+		void SetY(float value) { y = value; }
     };
 
     /************************************************************************/
