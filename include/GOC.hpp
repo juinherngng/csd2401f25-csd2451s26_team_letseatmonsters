@@ -6,12 +6,13 @@
 #include <string>
 #include "GameComponent.hpp"
 
-
 //Game Object
 class GOC
 {
 public:
 	std::string name;
+
+	~GOC();
 
 	//this function get the component and return it if this GameObject is holding it
 	//return null if not
@@ -26,6 +27,12 @@ public:
 		return static_cast<T*>(it->second);
 	}
 
+	template <typename T>
+	bool Has() const
+	{
+		return m_components.find(typeid(T)) != m_components.end();
+	}
+
 	//Initializing all components in this GameObject
 	void Initialize();
 
@@ -35,11 +42,34 @@ public:
 	//This function attach the component to this GameObject
 	void AddComponent(std::type_index id, GameComponent* c);
 
+	//Add Component to GameObject with value
+	//for eg: player->AddComponent<Transform>(0.0f, 0.0f, 0.0f);
+	template <typename T, typename ... Args>
+	T* AddComponent(Args&&... args);
+
+	//Remove Component
+	template <typename T>
+	void RemoveComponent()
+	{
+		auto it = m_components.find(typeid(T));
+		if (it != m_components.end())
+		{
+			delete it->second;
+			m_components.erase(it);
+		}
+	}
+
 	//Return GameObject unique ID
 	unsigned int GetId()
 	{
 		return ObjectId;
 	}
+
+	const std::unordered_map<std::type_index, GameComponent*> GetComponentList() const
+	{
+		return m_components;
+	}
+
 	//object unique id
 	unsigned int ObjectId = 0;
 

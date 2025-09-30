@@ -1,5 +1,6 @@
 #pragma once
 #include <typeindex>
+#include <iostream>
 
 //class ISerializer;
 class GOC;
@@ -12,6 +13,10 @@ public:
 	GameComponent() = default;
 	//Init the Game Component
 	virtual void Initialize() {};
+	//Start is only called once and this check using the flag started
+	virtual void Start() {};
+	//Update
+	virtual void Update(float dt) {};
 
 	//virtual void Serialize(ISerializer& s) = 0;	//nah Im good for now
 
@@ -30,11 +35,59 @@ public:
 		m_owner = owner;
 	}
 
-protected:
+	//called when the component is enabled
+	virtual void OnEnable() {};
+	//called when the component is disabled
+	virtual void OnDisable() {};
+
+	//Enable/disable the component
+	void SetEnabled(bool state)
+	{
+		if (enabled == state) return;
+		enabled = state;
+		if (enabled) OnEnable();
+		else OnDisable();
+	}
+
+	//Is this component enabled?
+	bool IsEnabled() const
+	{
+		return enabled;
+	}
+
+	//Is this component run through Start?
+	bool IsStarted() const
+	{
+		return started;
+	}
+
+	void SetStarted(bool state)
+	{
+		if (started == state)
+		{
+			return;
+		}
+		started = state;
+		if (started)
+		{
+			Start();
+		}
+	}
+
+	virtual std::string ToString() const {
+		return "GameComponent (base), this doesnt do anything";
+	}
+
 	//dtor
 	virtual ~GameComponent() {};
 
 private:
 	//Which Gameobject this Component belong to
 	GOC* m_owner = nullptr;
+	//is this Component enabled?
+	bool enabled = true;
+	//Start is only called once
+	bool started = false;
+	//Component name for testing
+	std::string name;
 };
