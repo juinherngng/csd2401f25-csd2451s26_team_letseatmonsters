@@ -69,6 +69,8 @@ namespace CoreFramework
 			{
 				Systems[i]->Update(gDt);
 			}
+
+			//debugApp.RunDebuggerApp();
 		}
 	}
 

@@ -13,6 +13,7 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 #pragma once
 
 #include "System.hpp"
+#include "ImGuiDebugger.hpp"
 
 #include <vector>
 

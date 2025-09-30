@@ -304,6 +304,7 @@ public:
     std::string GetName() override { return "MockSystem"; }
 };
 
+
 /**
  * @brief Program entry point.
  * Loads configuration, creates GLApp, and runs the render loop.
@@ -312,6 +313,7 @@ int main() {
 
     CoreFramework::CoreEngine engine;
 	CoreFramework::CORE = &engine; // Set the global CORE pointer
+	DBUG::DebuggerApp debugapp; // Watashi no debugger
 
     // add test system
 	engine.AddSystem(new MockSystem());
@@ -344,7 +346,6 @@ int main() {
         std::cerr << "Error: " << e.what() << std::endl;
         return -1;
     }*/
-	DebuggerApp debugapp;
     try 
     {
         if (!debugapp.InitializeDebuggerApp(800, 600, "The Stove"))
