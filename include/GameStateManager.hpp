@@ -10,48 +10,83 @@ DESCRIPTION:		Game State Manager interface derived from System.hpp.
 ----------------------------------------------------------------------------------------------------
 */
 #include "System.hpp"
-#include "GameState.hpp"
+#include "TestLevel.cpp"
+#include "TestLevel2.cpp"
 #include <memory>
+#include <functional> 
 
 namespace Framework {
-	////Ints representing Game States being cycled on update
-	//extern int currentGS, previousGS, nextGS;
+	enum GameState {
+		GS_Level1,
+		GS_Level2,
+		GS_Quit
+	};
+	//Ints representing Game States being cycled on update
+	extern int currentGS = 0, nextGS = 0;
 
-	//Check if game state has been entered and initialised
-	extern bool init;
+	////Check if game state has been entered and initialised
+	extern bool init = false;
 
 	//Smart Function Pointers for interchanging functionality for game states
-	typedef std::unique_ptr<GameState> FP;
+	typedef std::function<void(float dt)> FP;
+
+	extern FP fpInit = nullptr, fpUpdate = nullptr, fpExit = nullptr; // Function pointers that changes depending on what state the game is in currently
 	class GameStateManager : public Framework::SystemInterface
 	{
-		public:
-			//Setup Manager Logic
-			void Initialize() override;
-			//Manager Update loop
-			void Update(float dt) override;
-			//Message Sending
-			void SendMessage(Framework::Message* msg) override;
-			//Get Name of Manager
-			std::string GetName() override;
-			//Get Name of Current State
-			std::string GetGameState();
+	public:
+		//Setup Manager Logic
+		void Initialize() override {
+		}
+		//Manager Update loop
+		void Update(float dt) override {
+			if (!init) {
+				InitializeGameState(0,dt);
+			}
+			if (currentGS == nextGS) {
+				fpUpdate(dt);
+			}
+		}
 
-			//Check if there is a current state
-			bool HasState() const;
+		void SendMessage(Framework::Message* msg) override {
 
-			//Calls StateExit function of Current State
-			//Sets Current State to param
-			//Then Calls StateInit function of Current State
-			void SetGameState(FP gameState);
+		}
 
-			//Call StateUpdate Function of Current State
-			//Should be done each frame
-			void UpdateGameState();
+		std::string GetName() override {
+			return "GameStateManager";
+		}
 
-			//Should only be called to exit out of game loop
-			void QuitGame();
+		void InitializeGameState(int GS, float dt) {
+			nextGS = currentGS = GS;
+			fpInit = Level1Init;
+			fpUpdate = Level1Update;
+			fpExit = Level1Exit;
 
-		private:
-			FP currentState; //Function Pointer to hold GameState functions
+			fpInit(dt);
+			init = true;
+		}
+
+		void UpdateGameState(int newState, float dt) {
+			nextGS = newState;
+			fpExit(dt);
+			currentGS = newState;
+			switch (currentGS) {
+			case GS_Level1:
+				fpInit = Level1Init;
+				fpUpdate = Level1Update;
+				fpExit = Level1Exit;
+
+				fpInit(dt);
+				break;
+			case GS_Level2:
+				fpInit = Level2Init;
+				fpUpdate = Level2Update;
+				fpExit = Level2Exit;
+
+				fpInit(dt);
+				break;
+			case GS_Quit:
+				break;
+			}
+		}
 	};
 }
