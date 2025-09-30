@@ -23,6 +23,7 @@
 #include "ConfigManager.hpp"
 #include "AudioManager.hpp"
 #include "GameStateManager.hpp"
+#include "TileMap.hpp"
 
  /**
   * @class Cube
@@ -318,11 +319,23 @@ int main() {
 
     // add test system
 	engine.AddSystem(new MockSystem());
-	engine.AddSystem(new AudioManager());
+	//engine.AddSystem(new AudioManager());
 	engine.AddSystem(new Framework::GameStateManager());
 
 	engine.Initialize();
 	engine.GameLoop();
+	MapData testMap(6, 6);
+
+	for (int i = 0; i < testMap.getHeight(); i++) {
+		testMap.setTile(i, i, 1);
+	}
+
+	testMap.printMap();
+
+
+
+	std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
+
 	engine.DestroySystems();
 
     try {
