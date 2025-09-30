@@ -1,14 +1,17 @@
-/**
- * @file   ConfigManager.hpp
- * @author
- * @date   19 Sep 2025
- * @brief  Declaration of ConfigManager for loading/saving game settings.
- *
- * The configuration file uses a simple key=value format.
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			ConfigManager.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Declaration of ConfigManager for loading/saving game settings.
+					The configuration file uses a simple key=value format.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
  */
 
-#ifndef CONFIG_MANAGER_HPP
-#define CONFIG_MANAGER_HPP
+#pragma once
 
 #include <string>
 
@@ -82,5 +85,3 @@ namespace ConfigManager {
 		return s;
 	}
 };
-
-#endif // CONFIG_MANAGER_HPP

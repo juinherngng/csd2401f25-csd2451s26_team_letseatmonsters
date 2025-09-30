@@ -1,3 +1,15 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			AudioManager.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+
+DESCRIPTION:		Audio manager using FMOD for sound playback and management.
+
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "AudioManager.hpp"
 
 AudioManager::AudioManager() : system(nullptr), masterGroup(nullptr), bgmVolume(1.f), vfxVolume(1.f), muted(false) {}

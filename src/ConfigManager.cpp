@@ -1,11 +1,15 @@
-/**
- * @file   ConfigManager.cpp
- * @author
- * @date   19 Sep 2025
- * @brief  Implementation of ConfigManager for loading/saving game settings from text files.
- *
- * File format: simple key=value pairs (INI-like), `#` for comments.
- */
+/*
+  ----------------------------------------------------------------------------------------------------
+  FILE NAME:		ConfigManager.cpp
+  PROJECT NAME:		Project GAM200
+  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+
+  DESCRIPTION:		Implementation of ConfigManager for loading/saving game settings from text files.
+					File format: simple key=value pairs (INI-like), `#` for comments.
+
+		  All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+  ----------------------------------------------------------------------------------------------------
+  */
 
 #include "ConfigManager.hpp"
 

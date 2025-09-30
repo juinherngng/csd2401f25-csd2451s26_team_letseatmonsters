@@ -1,3 +1,15 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			AudioManager.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+
+DESCRIPTION:		Audio manager using FMOD for sound playback and management.
+
+        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #pragma once
 
 #include <iostream>
