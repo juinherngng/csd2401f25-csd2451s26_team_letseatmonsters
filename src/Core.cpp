@@ -38,7 +38,6 @@ namespace CoreFramework
 		}
 	}
 
-	// not functional as of now
 	void CoreEngine::GameLoop()
 	{
 		// add a currentTime variable to read system time

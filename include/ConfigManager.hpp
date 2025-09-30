@@ -7,6 +7,9 @@
  * The configuration file uses a simple key=value format.
  */
 
+#ifndef CONFIG_MANAGER_HPP
+#define CONFIG_MANAGER_HPP
+
 #include <string>
 
 namespace ConfigManager {
@@ -79,3 +82,5 @@ namespace ConfigManager {
 		return s;
 	}
 };
+
+#endif // CONFIG_MANAGER_HPP
