@@ -29,7 +29,7 @@ namespace CoreFramework
 		CoreEngine();
 		~CoreEngine();
 
-		void GameLoop();
+		void GameLoop(DebuggerApp& debugApp);
 
 		void DestroySystems();
 

@@ -39,7 +39,7 @@ namespace CoreFramework
 	}
 
 	// not functional as of now
-	void CoreEngine::GameLoop()
+	void CoreEngine::GameLoop(DebuggerApp& debugApp)
 	{
 		// add a currentTime variable to read system time
 		using clock = std::chrono::high_resolution_clock;
@@ -61,6 +61,10 @@ namespace CoreFramework
 			// update fps counter
 			fps = (gDt > 0.f) ? (1.f / gDt) : 0.f;
 
+			// Prevents division by 0 on the first frame where gDt = 0
+			debugApp.fps = (CoreFramework::gDt > 0.f) ? (1.f / CoreFramework::gDt) : 0.f;
+			debugApp.msperFrame = (CoreFramework::gDt * 1000.0f);
+
 			// update lastUpdated to current time
 			lastTime = currentTime;
 
@@ -70,7 +74,7 @@ namespace CoreFramework
 				Systems[i]->Update(gDt);
 			}
 
-			//debugApp.RunDebuggerApp();
+			debugApp.RunDebuggerApp();
 		}
 	}
 

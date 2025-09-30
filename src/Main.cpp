@@ -313,13 +313,53 @@ int main() {
 
     CoreFramework::CoreEngine engine;
 	CoreFramework::CORE = &engine; // Set the global CORE pointer
-	DBUG::DebuggerApp debugapp; // Watashi no debugger
+	DebuggerApp debugapp; // Watashi no debugger
 
     // add test system
-	engine.AddSystem(new MockSystem());
+	//engine.AddSystem(new MockSystem());
 
 	engine.Initialize();
-	engine.GameLoop();
+	try
+	{
+		if (!debugapp.InitializeDebuggerApp(800, 600, "The Stove"))
+		{
+			debugapp.LogError("Failed to initialize engine window\n");
+			return -1;
+		}
+
+		// ---- TEST CASES FOR PRINTING TO CRASH_LOG.TXT ----
+		// Uncomment one at a time to test
+		// throw std::runtime_error("Test crash_log");
+		// throw 42; // unknown exception
+
+		/*std::string filename = "fake_file.txt";
+		std::ifstream file(filename);
+
+		if (!file.is_open())
+		{
+			debugapp.LogError("Test Case : could not open file : " + filename);
+		}
+		throw std::runtime_error("Unknown file could not be opened.");*/
+
+
+		//debugapp.RunDebuggerApp();
+	}
+	catch (const std::exception& e)
+	{
+		//DebuggerApp tmpDebugger; // for logging crashes
+		debugapp.LogError(std::string("Unhandled exception: ") + e.what());
+		std::cerr << "Error: " << e.what() << std::endl;
+		return -1;
+	}
+	catch (...) // Catches all other exceptions not caught by the first
+	{
+		//DebuggerApp tmpDebugger; // for logging crashes
+		debugapp.LogError("Unknown crash occurred");
+		std::cerr << "Crash: Unknown exception\n";
+		return -1;
+	}
+
+	engine.GameLoop(debugapp);
 	engine.DestroySystems();
     
     /*try {
@@ -346,44 +386,4 @@ int main() {
         std::cerr << "Error: " << e.what() << std::endl;
         return -1;
     }*/
-    try 
-    {
-        if (!debugapp.InitializeDebuggerApp(800, 600, "The Stove"))
-        {
-            debugapp.LogError("Failed to initialize engine window\n");
-            return -1;
-        }
-
-		// ---- TEST CASES FOR PRINTING TO CRASH_LOG.TXT ----
-		// Uncomment one at a time to test
-		// throw std::runtime_error("Test crash_log");
-		// throw 42; // unknown exception
-
-		/*std::string filename = "fake_file.txt";
-		std::ifstream file(filename);
-
-		if (!file.is_open())
-		{
-			debugapp.LogError("Test Case : could not open file : " + filename);
-		}
-		throw std::runtime_error("Unknown file could not be opened.");*/
-		
-
-        debugapp.RunDebuggerApp();
-        return 0;
-    }
-    catch (const std::exception& e) 
-    {
-		//DebuggerApp tmpDebugger; // for logging crashes
-		debugapp.LogError(std::string("Unhandled exception: ") + e.what());
-        std::cerr << "Error: " << e.what() << std::endl;
-        return -1;
-    }
-	catch (...) // Catches all other exceptions not caught by the first
-	{
-		//DebuggerApp tmpDebugger; // for logging crashes
-		debugapp.LogError("Unknown crash occurred");
-		std::cerr << "Crash: Unknown exception\n";
-		return -1;
-	}
 }

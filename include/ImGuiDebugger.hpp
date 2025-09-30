@@ -17,7 +17,7 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 #include <vector>
 
 #include "Precompiled.hpp"
-#include "Core.hpp"
+//#include "Core.hpp"
 
 
 enum class FPSMode
@@ -33,51 +33,48 @@ struct SystemPerformance
 	float percentageOf; // The %tage of the total game loop
 };
 
-namespace DBUG
+class DebuggerApp
 {
-	class DebuggerApp
-	{
-	public:
-		// Ctor
-		DebuggerApp();
+public:
+	// Ctor
+	DebuggerApp();
 
-		// Dtor
-		~DebuggerApp();
+	// Dtor
+	~DebuggerApp();
 
-		// Initializes the debugger app
-		bool InitializeDebuggerApp(int width, int height, const char* appName);
+	// Initializes the debugger app
+	bool InitializeDebuggerApp(int width, int height, const char* appName);
 
-		// Updates debugger state (logic, hotkeys, toggles)
-		void UpdateDebuggerApp();
+	// Updates debugger state (logic, hotkeys, toggles)
+	void UpdateDebuggerApp();
 
-		// Loads the ImGui window every frame
-		void RenderDebuggerApp();
+	// Loads the ImGui window every frame
+	void RenderDebuggerApp();
 
-		// Runs a full debugger frame (Update + Render)
-		void RunDebuggerApp();
+	// Runs a full debugger frame (Update + Render)
+	void RunDebuggerApp();
 
-		// Logs an error into a txt file as a crash error
-		void LogError(const std::string& errorMessage);
+	// Logs an error into a txt file as a crash error
+	void LogError(const std::string& errorMessage);
 
-		// Called in CoreEngine per frame
-		void UpdateSystemTimes(const std::vector<CoreFramework::SystemInterface*>& systems, float loopTime);
+	// Called in CoreEngine per frame
+	//void UpdateSystemTimes(const std::vector<CoreFramework::SystemInterface*>& systems, float loopTime);
 
-		bool IsActive() const { return openedDebugger; }
+	bool IsActive() const { return openedDebugger; }
 
-	public:
-		float fps = 0;
-		float msperFrame = 0;
-		std::vector<SystemPerformance> systemP;
-	private:
-		GLFWwindow* debugWindow; // The host window
-		bool openedDebugger; // Shows Whether debugger window is visible
-		bool isInitialised; // Shows if the debugger was initialised or not
+public:
+	float fps = 0;
+	float msperFrame = 0;
+	std::vector<SystemPerformance> systemP;
+private:
+	GLFWwindow* debugWindow; // The host window
+	bool openedDebugger; // Shows Whether debugger window is visible
+	bool isInitialised; // Shows if the debugger was initialised or not
 
-		// Crash logging
-		std::ofstream crashlogFile; // The file stream to log errors to
+	// Crash logging
+	std::ofstream crashlogFile; // The file stream to log errors to
 
-		// FPS control
-		FPSMode fpsMode = FPSMode::VSYNC; // By default
-		int targetFPS = 60; // Defaulted FPS cap value
-	};
-}
+	// FPS control
+	FPSMode fpsMode = FPSMode::VSYNC; // By default
+	int targetFPS = 60; // Defaulted FPS cap value
+};
