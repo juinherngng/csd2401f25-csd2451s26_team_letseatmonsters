@@ -1,3 +1,26 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			GOC.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+
+DESCRIPTION:
+	GOC (Game Object Composition) represents a single "entity" in the engine.
+	Each GOC contains a map of components (inherited from GameComponent) keyed
+	by std::type_index.
+
+	Responsibilities:
+	- Attach and manage components at runtime.
+	- Initialize and update all attached components.
+	- Provide typed access to components (via Get<T>).
+	- Defer destruction requests to the Factory for safe cleanup.
+
+	This forms the "GameObject" part of the GameObject-Component system.
+
+All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "GOC.hpp"
 #include "Factory.hpp"
 

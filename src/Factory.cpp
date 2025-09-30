@@ -1,3 +1,25 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			Factory.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+
+DESCRIPTION:
+	Central manager for creating, tracking, and destroying GOC instances.
+
+	Responsibilities:
+	- Register ComponentCreators for data-driven composition.
+	- Build new GOCs via BuildAndSerialize (e.g., Player, Table).
+	- Assign unique IDs to each GOC and maintain an ID-to-object map.
+	- Safely schedule and process destruction of GOCs.
+	- Update all active components each frame (calling Update on enabled ones).
+
+	The Factory serves as the global composition root of the GOC system.
+
+All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "Factory.hpp"
 #include <stdexcept>
 #include <string>

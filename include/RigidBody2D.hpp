@@ -1,5 +1,25 @@
-#pragma once
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			RigidBody2D.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
 
+DESCRIPTION:
+	Physics component representing a 2D rigid body with velocity.
+	Designed to work with a Transform to simulate simple motion.
+
+	Responsibilities:
+	- Store and update linear velocity.
+	- Apply velocity to the attached Transform each frame (in Update).
+	- Provide simple physics behavior (e.g., movement, collision stubs).
+
+	Intended as a starting point for the engine’s physics system.
+
+All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
+#pragma once
 #include "GameComponent.hpp"
 #include "Math.hpp"
 #include <iostream>

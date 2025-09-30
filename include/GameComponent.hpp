@@ -1,3 +1,22 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			GameComponent.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+
+DESCRIPTION:
+	Base class for all attachable components in the GameObject-Component (GOC) 
+	architecture. Provides lifecycle methods (Initialize, Start, Update, 
+	OnEnable, OnDisable), ownership tracking via the parent GOC, and enable/
+	disable state management. 
+	
+	All user-defined components (e.g., Transform, RigidBody2D) should inherit 
+	from GameComponent and override virtual methods to define their behavior.
+
+All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #pragma once
 #include <typeindex>
 #include <iostream>

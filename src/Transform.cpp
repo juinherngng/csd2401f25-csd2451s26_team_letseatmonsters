@@ -1,3 +1,23 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			Transform.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+
+DESCRIPTION:
+	Transform component storing spatial information for a GOC.
+	Provides position, rotation, and scale in 2D space, along with getter/setter
+	methods to modify them.
+
+	Responsibilities:
+	- Store translation, rotation, and scale values.
+	- Provide utility for other components/systems to read or modify transforms.
+	- Forms the backbone for rendering and physics.
+
+All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "Transform.hpp"
 
 void Transform::Initialize() 

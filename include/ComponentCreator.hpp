@@ -1,3 +1,21 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			ComponentCreator.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+
+DESCRIPTION:
+	Factory helper classes for creating GameComponent instances.
+	- ComponentCreator: abstract base with a Create() interface.
+	- TCreator<T>: templated implementation that constructs components of type T.
+
+	Used by the Factory to register available component types and create them
+	dynamically at runtime based on string keys (e.g., "Transform", "RigidBody2D").
+
+All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #pragma once
 #include <typeindex>
 #include "GameComponent.hpp"
