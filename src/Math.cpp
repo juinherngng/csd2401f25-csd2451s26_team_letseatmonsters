@@ -62,6 +62,16 @@ namespace Math
         return x == rhs.x && y == rhs.y;
     }
 
+    Vector2D& Vector2D::operator=(Vector2D const& rhs)
+    {
+        if (this != &rhs) {
+            x = rhs.x;
+            y = rhs.y;
+        }
+
+        return *this;
+    }
+
     // Matrix3x3 implementations
     const Matrix3x3 Matrix3x3::IDENTITY
     {
