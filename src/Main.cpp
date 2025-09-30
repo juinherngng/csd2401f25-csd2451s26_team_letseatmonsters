@@ -319,7 +319,7 @@ int main() {
 
     // add test system
 	engine.AddSystem(new MockSystem());
-	//engine.AddSystem(new AudioManager());
+	engine.AddSystem(new AudioManager());
 	engine.AddSystem(new Framework::GameStateManager());
 
 	engine.Initialize();

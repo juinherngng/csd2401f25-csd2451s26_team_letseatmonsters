@@ -13,6 +13,7 @@ set(ALL_LIBS
    glfw
    glad
    imgui
+   fmod
 )
 
 # Gather source files for the core game library
