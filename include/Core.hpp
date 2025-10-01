@@ -41,6 +41,8 @@ namespace CoreFramework
 
 		float GetFPS() const { return fps; }
 
+		void UpdateSystemTimes(DebuggerApp& debugApp, float totalDt);
+
 	private:
 		std::vector<SystemInterface*> Systems;
 
