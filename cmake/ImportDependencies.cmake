@@ -85,6 +85,108 @@ macro(import_imgui)
     endif()
 endmacro()
 
+# Helper function to copy FMOD DLL to target directory
+function(copy_fmod_dll_to_target target_name)
+    if(WIN32 AND TARGET fmod)
+        get_target_property(FMOD_DLL_PATH fmod IMPORTED_LOCATION)
+        if(FMOD_DLL_PATH)
+            add_custom_command(TARGET ${target_name} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${FMOD_DLL_PATH}"
+                $<TARGET_FILE_DIR:${target_name}>
+                COMMENT "Copying FMOD DLL to ${target_name} output directory"
+            )
+            message(STATUS "FMOD DLL will be copied to ${target_name} output directory")
+        endif()
+    endif()
+endfunction()
+
+# Macro to import fmod
+macro(import_fmod)
+    if(NOT TARGET fmod)  # Guard to prevent multiple inclusion
+        # Set CMake policy to avoid warnings
+        cmake_policy(SET CMP0111 NEW)
+        
+        # Set FMOD path - adjust this to your FMOD installation directory
+        set(FMOD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/extern/fmod" CACHE PATH "FMOD installation directory")
+        
+        # Find FMOD headers
+        find_path(FMOD_INCLUDE_DIR
+            NAMES fmod.h fmod.hpp
+            PATHS ${FMOD_DIR}/api/core/inc
+                  ${FMOD_DIR}/inc
+                  ${FMOD_DIR}/include
+        )
+        
+        # Find FMOD libraries
+        if(WIN32)
+            if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+                set(FMOD_LIB_ARCH "x64")
+            else()
+                set(FMOD_LIB_ARCH "x86")
+            endif()
+            
+            # Find import library (.lib)
+            find_library(FMOD_IMPORT_LIBRARY
+                NAMES fmod_vc fmod
+                PATHS ${FMOD_DIR}/api/core/lib/${FMOD_LIB_ARCH}
+                      ${FMOD_DIR}/lib/${FMOD_LIB_ARCH}
+                      ${FMOD_DIR}/lib
+            )
+            
+            # Find DLL (.dll)
+            find_file(FMOD_DLL
+                NAMES fmod.dll
+                PATHS ${FMOD_DIR}/api/core/lib/${FMOD_LIB_ARCH}
+                      ${FMOD_DIR}/lib/${FMOD_LIB_ARCH}
+                      ${FMOD_DIR}/lib
+                      ${FMOD_DIR}/bin/${FMOD_LIB_ARCH}
+                      ${FMOD_DIR}/bin
+            )
+            
+            set(FMOD_LIBRARY ${FMOD_IMPORT_LIBRARY})
+        elseif(UNIX AND NOT APPLE)
+            find_library(FMOD_LIBRARY
+                NAMES fmod
+                PATHS ${FMOD_DIR}/api/core/lib/x86_64
+                      ${FMOD_DIR}/lib/x86_64
+                      ${FMOD_DIR}/lib
+            )
+        elseif(APPLE)
+            find_library(FMOD_LIBRARY
+                NAMES fmod
+                PATHS ${FMOD_DIR}/api/core/lib
+                      ${FMOD_DIR}/lib
+            )
+        endif()
+        
+        if(FMOD_INCLUDE_DIR AND FMOD_LIBRARY)
+            # Create imported target
+            add_library(fmod SHARED IMPORTED)
+            
+            if(WIN32 AND FMOD_DLL)
+                # On Windows, set both the import library and DLL location
+                set_target_properties(fmod PROPERTIES
+                    IMPORTED_LOCATION ${FMOD_DLL}
+                    IMPORTED_IMPLIB ${FMOD_IMPORT_LIBRARY}
+                    INTERFACE_INCLUDE_DIRECTORIES ${FMOD_INCLUDE_DIR}
+                )
+                message(STATUS "FMOD found - Import lib: ${FMOD_IMPORT_LIBRARY}")
+                message(STATUS "FMOD found - DLL: ${FMOD_DLL}")
+            else()
+                # On other platforms, just set the library location
+                set_target_properties(fmod PROPERTIES
+                    IMPORTED_LOCATION ${FMOD_LIBRARY}
+                    INTERFACE_INCLUDE_DIRECTORIES ${FMOD_INCLUDE_DIR}
+                )
+                message(STATUS "FMOD found: ${FMOD_LIBRARY}")
+            endif()
+        else()
+            message(WARNING "FMOD not found. Please install FMOD and set FMOD_DIR to the installation path.")
+        endif()
+    endif()
+endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -104,6 +206,10 @@ macro(importDependencies)
     message(STATUS "Importing ImGui...")
     import_imgui()
     message(STATUS "ImGui imported successfully.")
+
+    message(STATUS "Importing FMOD...")
+    import_fmod()
+    message(STATUS "FMOD imported successfully.")
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()

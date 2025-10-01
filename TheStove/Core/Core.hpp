@@ -16,6 +16,7 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 #include "ImGuiDebugger.hpp"
 
 #include <vector>
+#include <chrono>
 
 namespace CoreFramework
 {
@@ -41,12 +42,16 @@ namespace CoreFramework
 
 		float GetFPS() const { return fps; }
 
+		void UpdateSystemTimes(DebuggerApp& debugApp, float totalDt);
+
 	private:
 		std::vector<SystemInterface*> Systems;
 
 		float fps = 0.f;		// fps counter
 
 		bool gameActive;		// game running (true), game shutting down (false)
+
+		std::chrono::high_resolution_clock::time_point lastTime; // time of last frame
 	};
 
 	class MessageQuit : public Message

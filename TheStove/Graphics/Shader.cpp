@@ -90,7 +90,7 @@ void Shader::Use() const {
     //std::cout << "Attempting to bind program ID: " << programID << std::endl;
     
     // Check if program exists and is valid
-    GLboolean isProgram = glIsProgram(programID);
+    //GLboolean isProgram = glIsProgram(programID);
     //std::cout << "glIsProgram(" << programID << ") = " << (isProgram ? "true" : "false") << std::endl;
     
     glUseProgram(programID);

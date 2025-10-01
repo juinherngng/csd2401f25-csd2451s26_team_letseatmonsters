@@ -6,25 +6,30 @@ AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
 
 DESCRIPTION:		The core engine managing the game loop and systems.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #include "Core.hpp"
+#include "ImGuiDebugger.hpp"
+#include "GameStateManager.hpp"
+
 
 #include <chrono>
+#include <thread>
+#include <iostream>
 
 namespace CoreFramework
 {
 	float gDt = 0.f;			// global delta time
 
 	// global pointer to core
-	CoreEngine* CORE;
+	//CoreEngine* CORE;
 
 	CoreEngine::CoreEngine()
 	{
 		gameActive = true;	// game is running
-		CORE = this;		// set global pointer
+		//CORE = this;		// set global pointer
 	}
 
 	CoreEngine::~CoreEngine() {}
@@ -38,17 +43,17 @@ namespace CoreFramework
 		}
 	}
 
-	// not functional as of now
+	// game loop is being called every frame in main in update()
 	void CoreEngine::GameLoop(DebuggerApp& debugApp)
 	{
 		// add a currentTime variable to read system time
 		using clock = std::chrono::high_resolution_clock;
 		
 		// this will store the time of the last frame
-		auto lastTime = clock::now();
+		//auto lastTime = clock::now();
 
-		while (gameActive)
-		{
+		/*while (gameActive)
+		{*/
 			// get the current time
 			auto currentTime = clock::now();
 			
@@ -58,24 +63,27 @@ namespace CoreFramework
 			// set global dt variable
 			gDt = elapsed.count();
 
-			// update fps counter
-			fps = (gDt > 0.f) ? (1.f / gDt) : 0.f;
-
-			// Prevents division by 0 on the first frame where gDt = 0
-			debugApp.fps = (CoreFramework::gDt > 0.f) ? (1.f / CoreFramework::gDt) : 0.f;
-			debugApp.msperFrame = (CoreFramework::gDt * 1000.0f);
-
-			// update lastUpdated to current time
-			lastTime = currentTime;
-
 			// update all systems
 			for (unsigned i = 0; i < Systems.size(); i++)
 			{
 				Systems[i]->Update(gDt);
 			}
 
-			debugApp.RunDebuggerApp();
-		}
+			// update system performance %tages
+			UpdateSystemTimes(debugApp, gDt);
+
+			// render the debugger
+			//debugApp.RunDebuggerApp();
+
+			
+
+			// Prevents division by 0 on the first frame where gDt = 0
+			/*debugApp.fps = (smoothedDt > 0.f) ? (1.f / smoothedDt) : 0.f;
+			debugApp.msperFrame = (smoothedDt * 1000.0f);*/
+
+			// update lastUpdated to current time
+			lastTime = currentTime;
+		//}
 	}
 
 	void CoreEngine::BroadcastMessage(Message *message)
@@ -98,14 +106,36 @@ namespace CoreFramework
 	{
 		// add a new system to the list of systems
 		Systems.push_back(system);
+		std::cout << "Added system: " << system->GetName() << std::endl;
 	}
 
 	void CoreEngine::DestroySystems()
 	{
+		std::cout << "DestroySystems called, system count: " << Systems.size() << std::endl;
 		//Delete all the systems in reverse order
 		for (unsigned i = 0; i < Systems.size(); i++)
 		{
-			delete Systems[Systems.size() - i - 1];
+			size_t index = Systems.size() - i - 1;
+			std::cout << "Deleted system: " << Systems[index]->GetName() << std::endl;
+
+			/*if (Systems[index]->GetName() == "GameStateManager")
+			{
+				static_cast<Framework::GameStateManager*>(Systems[index])->~GameStateManager();
+			}*/
+			delete Systems[index];
+		}
+
+		Systems.clear();
+	}
+
+	void CoreEngine::UpdateSystemTimes(DebuggerApp& debugApp, float totalDt)
+	{
+		debugApp.sysPerformance.clear();
+
+		for (auto& sys : Systems)
+		{
+			float percent = (totalDt > 0.0f) ? (sys->lastDt / totalDt) * 100.0f : 0.0f;
+			debugApp.sysPerformance.push_back({ sys->GetName(), percent });
 		}
 	}
 

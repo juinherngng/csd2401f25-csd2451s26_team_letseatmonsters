@@ -25,12 +25,12 @@ DESCRIPTION:		System interface for game engine systems.
 
 	Example:
 
-	class MySystem : public Framework::SystemInterface 
+	class MySystem : public CoreFramework::SystemInterface 
 	{
     public:
        void Initialize() override {  setup code  }
        void Update(float dt) override {  per-frame logic  }
-       void SendMessage(Framework::Message* msg) override {  handle messages }
+       void SendMessage(CoreFramework::Message* msg) override {  handle messages }
        std::string GetName() override { return "MySystem"; }
     };
 
@@ -52,7 +52,7 @@ namespace CoreFramework
 		virtual void SendMessage(Message* message) { (message); };
 
 		///All systems are updated every game frame.
-		virtual void Update(float timeSlice) = 0;
+		virtual void Update(float dt) = 0;
 
 		///All systems provide a string name for debugging.
 		virtual std::string GetName() = 0;

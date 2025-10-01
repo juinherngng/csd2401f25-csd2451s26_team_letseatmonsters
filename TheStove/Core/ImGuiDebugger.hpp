@@ -19,18 +19,17 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 #include "Precompiled.hpp"
 //#include "Core.hpp"
 
+struct SystemPerformance
+{
+	std::string name; // Name of the system
+	float percentageOf; // The %tage of the total game loop
+};
 
 enum class FPSMode
 {
 	Unlimited,
 	VSYNC,
 	Capped
-};
-
-struct SystemPerformance
-{
-	std::string name; // Name of the system
-	float percentageOf; // The %tage of the total game loop
 };
 
 class DebuggerApp
@@ -63,9 +62,13 @@ public:
 	bool IsActive() const { return openedDebugger; }
 
 public:
-	float fps = 0;
-	float msperFrame = 0;
-	std::vector<SystemPerformance> systemP;
+	float fps = 0; // FPS 
+	float msperFrame = 0; // MS/frame
+	// Vector of SystemPerformance structs to store data for system performance
+	std::vector<SystemPerformance> sysPerformance;
+
+	// FPS control
+	FPSMode fpsMode = FPSMode::VSYNC; // By default
 private:
 	GLFWwindow* debugWindow; // The host window
 	bool openedDebugger; // Shows Whether debugger window is visible
@@ -73,8 +76,4 @@ private:
 
 	// Crash logging
 	std::ofstream crashlogFile; // The file stream to log errors to
-
-	// FPS control
-	FPSMode fpsMode = FPSMode::VSYNC; // By default
-	int targetFPS = 60; // Defaulted FPS cap value
 };

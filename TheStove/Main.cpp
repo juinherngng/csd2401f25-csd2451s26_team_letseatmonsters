@@ -1,7 +1,5 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <iostream>
-
+#include <crtdbg.h>
 
 #include "Graphics/GraphicsEngine.h"
 #include "Graphics/SceneManager.h"
@@ -9,28 +7,64 @@
 #include "Core/Precompiled.hpp"
 #include "Core/Core.hpp"
 #include "Core/ConfigManager.hpp"
+#include "Core/AudioManager.hpp"
+#include "Core/GameStateManager.hpp"
+#include "Core/TileMap.hpp"
+
+#define _CRTDBG_MAP_ALLOC
+#define new new(_NORMAL_BLOCK, __FILE__, __LINE__)
 
 static void draw();
 static void update();
-static void init(GLint width, GLint height, std::string title);
+static bool init(GLint width, GLint height, std::string title, bool fullscreen);
 static void cleanup();
 
 static GraphicsEngine engine;
-static Scene* currentScene;
-static GLFWwindow* window;
+static Scene* currentScene = nullptr;
+static GLFWwindow* window = nullptr;
 static float lastFrame = 0.0f;
+static float smoothedDt = 0.0f; // smoothed delta time for fps calc
+
+static CoreFramework::CoreEngine coreEngine;
+CoreFramework::CoreEngine* CoreFramework::CORE = &coreEngine; // Set the global CORE pointer
 
 static DebuggerApp debugapp;
 
+static void CheckMemoryLeaks()
+{
+    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
+
+    _CrtDumpMemoryLeaks();  // check for mem leaks
+}
+
 int main() {
 
-	CoreFramework::CoreEngine engine;
-	CoreFramework::CORE = &engine; // Set the global CORE pointer
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
-	// add test system
-	//engine.AddSystem(new MockSystem());
+    auto settings = ConfigManager::LoadFromAssetsOrDefaults();
+	ConfigManager::Validate(settings);
+
+    if (!init(settings.resolution.width, settings.resolution.height, "TheStove", settings.fullscreen)) {
+        cleanup();
+        CheckMemoryLeaks();
+        return -1;
+    }
     
-    init(1200, 800, "TheStove");
+    //init(settings.resolution.width, settings.resolution.height, "TheStove", settings.fullscreen);
+
+    // test tile map
+    MapData testMap(6, 6);
+
+    for (int i = 0; i < testMap.getHeight(); i++) {
+        testMap.setTile(i, i, 1);
+    }
+
+    testMap.printMap();
+
+    std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
+
+	lastFrame = static_cast<float>(glfwGetTime());
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -41,29 +75,42 @@ int main() {
 
     cleanup();
 
+	CheckMemoryLeaks();
+
     return 0;
 }
 
-static void init(GLint width, GLint height, std::string title) {
+static bool init(GLint width, GLint height, std::string title, bool fullscreen) {
     // Initialize GLFW
     if (!glfwInit()) {
         std::cerr << "Failed to init GLFW" << std::endl;
-        exit(-1);
+        return false;
     }
 
-    window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+	GLFWmonitor* monitor = nullptr;
+    if (fullscreen)
+    {
+		monitor = glfwGetPrimaryMonitor();
+    }
+
+    window = glfwCreateWindow(width, height, title.c_str(), monitor, nullptr);
     if (!window) {
         std::cerr << "Failed to create window" << std::endl;
         glfwTerminate();
-        exit(-1);
+        window = nullptr;
+        return false;
     }
     glfwMakeContextCurrent(window);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD\n";
-        exit(-1);
+        return false;
     }
 
+    coreEngine.AddSystem(new AudioManager());
+    coreEngine.AddSystem(new Framework::GameStateManager());
+
+    coreEngine.Initialize();
     engine.Initialize();
     currentScene = new Scene(engine);
     currentScene->LoadScene("LoadTest");
@@ -71,8 +118,14 @@ static void init(GLint width, GLint height, std::string title) {
     if (!debugapp.InitializeDebuggerApp(window))
     {
         std::cerr << "Failed to initialize DebuggerApp\n";
-        exit(-1);
+        return false;
     }
+    else
+    {
+		std::cout << "DebuggerApp initialized successfully\n";
+    }
+
+    return true;
 }
 
 static void update() {
@@ -87,10 +140,19 @@ static void update() {
     // Update scene with delta time and window pointer
     currentScene->Update(deltaTime, window);
 
-    // Update FPS display variables for DebuggerApp
-    debugapp.msperFrame = deltaTime * 1000.0f;
-    debugapp.fps = 1.0f / deltaTime;
 
+    // Smoothing for gDt (for the fps)
+    // Account for division by 0 on the first frame where gDt = 0
+    // This controls how fast the fps counter reacts to changes
+    // (higher value = smoother fps) else 
+    // (lower value = faster fps change response but more jittery)
+    smoothedDt = (smoothedDt == 0.0f) ? CoreFramework::gDt : (0.96f * smoothedDt) + (0.04f * CoreFramework::gDt);
+
+    // Update FPS display variables for DebuggerApp
+    debugapp.fps = (smoothedDt > 0.f) ? (1.f / smoothedDt + 0.5f) : 0.f;
+    debugapp.msperFrame = (smoothedDt * 1000.0f);
+
+    coreEngine.GameLoop(debugapp);
     debugapp.UpdateDebuggerApp();
 }
 
@@ -104,13 +166,20 @@ static void draw() {
 }
 
 void cleanup() {
-
-    debugapp.~DebuggerApp();
-
     engine.Shutdown();
-    delete currentScene;
+    coreEngine.DestroySystems();
+    if (currentScene)
+    {
+        delete currentScene;
+		currentScene = nullptr;
+    }
 
-    glfwDestroyWindow(window);
+    if (window)
+    {
+        glfwDestroyWindow(window);
+        window = nullptr;
+    }
+
     glfwTerminate();
 
 }

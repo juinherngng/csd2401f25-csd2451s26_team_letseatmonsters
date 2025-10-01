@@ -21,7 +21,7 @@ public:
     Shader* GetShader(const std::string& name);
 
     // Mesh management
-    Mesh* LoadMesh(const std::string& name, const std::vector<float>& vertices, size_t vertexCount, size_t vertexSize, Mesh::VertexLayout layout = Mesh::POSITION_COLOR);
+    Mesh* LoadMesh(const std::string& name, const std::vector<float>& vertices, GLsizei vertexCount, GLsizei vertexSize, Mesh::VertexLayout layout = Mesh::POSITION_COLOR);
     Mesh* GetMesh(const std::string& name);
 
     // Texture management
