@@ -40,6 +40,8 @@ namespace Framework {
 		if (currentGS == nextGS) {
 			fpUpdate(dt);
 		}
+
+		lastDt = dt;
 	}
 
 	void GameStateManager::SendMessage(CoreFramework::Message* msg) {

@@ -42,9 +42,6 @@ int main() {
 
     auto settings = ConfigManager::LoadFromAssetsOrDefaults();
 	ConfigManager::Validate(settings);
-
-    coreEngine.AddSystem(new AudioManager());
-    coreEngine.AddSystem(new Framework::GameStateManager());
     
     init(settings.resolution.width, settings.resolution.height, "TheStove", settings.fullscreen);
 
@@ -98,6 +95,9 @@ static void init(GLint width, GLint height, std::string title, bool fullscreen) 
         std::cerr << "Failed to initialize GLAD\n";
         exit(-1);
     }
+
+    coreEngine.AddSystem(new AudioManager());
+    coreEngine.AddSystem(new Framework::GameStateManager());
 
     coreEngine.Initialize();
     engine.Initialize();
