@@ -14,10 +14,13 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 #include "ImGuiDebugger.hpp"
 
 #include <chrono>
+#include <thread>
 
 namespace CoreFramework
 {
 	float gDt = 0.f;			// global delta time
+
+	static float smoothedDt = 0.0f; // smoothed delta time for fps calc
 
 	// global pointer to core
 	CoreEngine* CORE;
@@ -58,23 +61,31 @@ namespace CoreFramework
 			// set global dt variable
 			gDt = elapsed.count();
 
-			// update fps counter
-			fps = (gDt > 0.f) ? (1.f / gDt) : 0.f;
-
-			// Prevents division by 0 on the first frame where gDt = 0
-			debugApp.fps = (CoreFramework::gDt > 0.f) ? (1.f / CoreFramework::gDt) : 0.f;
-			debugApp.msperFrame = (CoreFramework::gDt * 1000.0f);
-
-			// update lastUpdated to current time
-			lastTime = currentTime;
-
 			// update all systems
 			for (unsigned i = 0; i < Systems.size(); i++)
 			{
 				Systems[i]->Update(gDt);
 			}
 
+			// update system performance %tages
+			UpdateSystemTimes(debugApp, gDt);
+
+			// render the debugger
 			debugApp.RunDebuggerApp();
+
+			// Smoothing for gDt (for the fps)
+			// Account for division by 0 on the first frame where gDt = 0
+			// This controls how fast the fps counter reacts to changes
+			// (higher value = smoother fps) else 
+			// (lower value = faster fps change response but more jittery)
+			smoothedDt = (smoothedDt == 0.0f) ? gDt : (0.96f * smoothedDt) + (0.04f * gDt);
+
+			// Prevents division by 0 on the first frame where gDt = 0
+			debugApp.fps = (smoothedDt > 0.f) ? (1.f / smoothedDt) : 0.f;
+			debugApp.msperFrame = (smoothedDt * 1000.0f);
+
+			// update lastUpdated to current time
+			lastTime = currentTime;
 		}
 	}
 
@@ -106,6 +117,17 @@ namespace CoreFramework
 		for (unsigned i = 0; i < Systems.size(); i++)
 		{
 			delete Systems[Systems.size() - i - 1];
+		}
+	}
+
+	void CoreEngine::UpdateSystemTimes(DebuggerApp& debugApp, float totalDt)
+	{
+		debugApp.sysPerformance.clear();
+
+		for (auto& sys : Systems)
+		{
+			float percent = (totalDt > 0.0f) ? (sys->lastDt / totalDt) * 100.0f : 0.0f;
+			debugApp.sysPerformance.push_back({ sys->GetName(), percent });
 		}
 	}
 

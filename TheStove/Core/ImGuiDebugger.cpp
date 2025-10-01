@@ -100,8 +100,8 @@ void DebuggerApp::RenderDebuggerApp()
 	// Create my window
 	if (ImGui::Begin("Debug Infomation", &openedDebugger))
 	{
-		static int selectedfpsMode = 1;
-		const char* fpsModes[] = { "Vsync", "Unlimited", "Capped" };
+		static int selectedfpsMode = 0;
+		const char* fpsModes[] = { "Vsync", "Unlimited"};
 		int fpsmodeCount = IM_ARRAYSIZE(fpsModes);
 
 		ImGui::Text("----Frame Infomation----");
@@ -118,20 +118,10 @@ void DebuggerApp::RenderDebuggerApp()
 				fpsMode = FPSMode::Unlimited;
 				glfwSwapInterval(0); // Unlimited FPS based on device
 			}
-			else if (selectedfpsMode == 2)
-			{
-				fpsMode = FPSMode::Capped;
-			}
 		}
 
-		if (fpsMode == FPSMode::Capped)
-		{
-			ImGui::SliderInt("Cap FPS to", &targetFPS, 60, 240);
-		}
-
-		//ImGui::Checkbox("Unlimited", FPSMode::Unlimited);
-		ImGui::Text("----System Usage Infomation");
-		for (auto& performance : systemP)
+		ImGui::Text("----System Usage Infomation----");
+		for (auto& performance : sysPerformance)
 		{
 			ImGui::Text("%s: %1.f%%", performance.name.c_str(), performance.percentageOf);
 		}
@@ -140,16 +130,14 @@ void DebuggerApp::RenderDebuggerApp()
 		ImGui::Text("Squares rendered: ");
 		ImGui::Text("Sprites rendered: ");
 
-		if (ImGui::Button("Press to Bas"))
+		if (ImGui::Button("Update TileMap"))
 		{
-			// Calls when button pressed
+			// Update tilemap
 		}
 
-		ImGui::SameLine();
-
-		if (ImGui::Button("Press to Coom"))
+		if (ImGui::Button("Play Sound"))
 		{
-
+			// Play sound
 		}
 	}
 
@@ -165,8 +153,6 @@ void DebuggerApp::RunDebuggerApp()
 {
 
 	UpdateDebuggerApp(); // Checks for updates done in the window
-
-
 	RenderDebuggerApp(); // Loads the ImGui window every frame
 }
 
@@ -186,15 +172,3 @@ void DebuggerApp::LogError(const std::string& errorMessage)
 		crashlogFile.flush();
 	}
 }
-
-
-//void DebuggerApp::UpdateSystemTimes(const std::vector<CoreFramework::SystemInterface*>& systems, float totalDt)
-//{
-//	systemP.clear();
-//
-//	for (auto& sys : systems)
-//	{
-//		float percent = (totalDt > 0.0f) ? (sys->lastDt / totalDt) * 100.0f : 0.0f;
-//		systemP.push_back({ sys->GetName(), percent });
-//	}
-//}
