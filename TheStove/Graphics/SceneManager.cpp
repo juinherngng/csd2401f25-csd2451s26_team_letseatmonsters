@@ -179,7 +179,7 @@ void Scene::LoadTest() {
 	// Set background image
 	SetSceneBackground("../assets/Background.png");
 
-    GameObject* player = SpawnStaticSprite("../assets/mc_front.png",
+    GameObject* player = SpawnStaticSprite("../assets/mc_sprite_front.png",
         glm::vec3(400, 400, 0), //Position
         glm::vec2(128, 128));   //Scale
 
@@ -347,14 +347,17 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Keyboard movement intent (WASD) + facing texture swap
 	glm::vec2 desiredMove{ 0.0f, 0.0f };
 	if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
+		SetAnimation(dinoID, "WALK");
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
 		desiredMove.y -= moveSpeed; // up
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_S)) {
+		SetAnimation(dinoID, "IDLE");
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_front", "../assets/mc_sprite_front.png"));
 		desiredMove.y += moveSpeed; // down
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_A)) {
+		SetAnimation(dinoID, "ATTACK");
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideleft", "../assets/mc_sprite_left.png"));
 		desiredMove.x -= moveSpeed; // left
 	}
