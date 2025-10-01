@@ -33,11 +33,16 @@ void GraphicsEngine::LoadDefaultResources() {
     resourceManager.LoadShader("texture",
         "../TheStove/Graphics/shaders/texture.vert",
         "../TheStove/Graphics/shaders/texture.frag");
+
+    // Load static sprite shader
+    resourceManager.LoadShader("staticsprite",
+        "../TheStove/Graphics/shaders/staticsprite.vert",
+        "../TheStove/Graphics/shaders/staticsprite.frag");
     
-    // Load sprite shader
-    resourceManager.LoadShader("sprite",
-        "../TheStove/Graphics/shaders/sprite.vert",
-        "../TheStove/Graphics/shaders/sprite.frag");
+    // Load animated sprite shader
+    resourceManager.LoadShader("animatedsprite",
+        "../TheStove/Graphics/shaders/animatedsprite.vert",
+        "../TheStove/Graphics/shaders/animatedsprite.frag");
 
     // Load triangle mesh
     std::vector<float> vertices;

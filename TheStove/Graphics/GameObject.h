@@ -28,7 +28,8 @@ public:
 
     void UpdateModelMatrix();
     void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
-    void SetTexture(Texture* tex) { m_Texture = tex; }    
+    void SetTexture(Texture* tex) { m_Texture = tex; }  
+    Shader* GetShader() const { return m_Shader; }
 
 private:
     Mesh* m_Mesh;
