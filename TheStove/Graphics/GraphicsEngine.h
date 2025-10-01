@@ -9,32 +9,32 @@
 
 class GraphicsEngine {
 public:
-    GraphicsEngine();
+	GraphicsEngine();
 
-    void Initialize();
-    void BeginFrame();
-    void Render();
-    void Shutdown();
+	void Initialize();
+	void BeginFrame();
+	void Render();
+	void Shutdown();
 
-    // GameObject management
-    GameObject* CreateGameObject(const std::string& meshName, const std::string& shaderName);
-    void RemoveGameObject(GameObject* obj);
+	// GameObject management
+	GameObject* CreateGameObject(const std::string& meshName, const std::string& shaderName);
+	void RemoveGameObject(GameObject* obj);
 
-    // Background management
-    void SetBackground(const std::string& texturePath);
-    void ClearBackground();
+	// Background management
+	void SetBackground(const std::string& texturePath);
+	void ClearBackground();
 
 private:
-    Renderer renderer;
-    ResourceManager& resourceManager;
+	Renderer renderer;
+	ResourceManager& resourceManager;
 
 	// Game Object rendering
-    std::vector<std::unique_ptr<GameObject>> gameObjects;
-    // Background rendering
-    std::unique_ptr<GameObject> backgroundObject;
+	std::vector<std::unique_ptr<GameObject>> gameObjects;
+	// Background rendering
+	std::unique_ptr<GameObject> backgroundObject;
 
-    glm::mat4 projection;
-    glm::mat4 view;
+	glm::mat4 projection;
+	glm::mat4 view;
 
-    void LoadDefaultResources();
+	void LoadDefaultResources();
 };

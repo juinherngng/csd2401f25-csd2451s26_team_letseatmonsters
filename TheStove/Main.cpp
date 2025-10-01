@@ -38,6 +38,16 @@ void CheckMemoryLeaks()
     _CrtDumpMemoryLeaks();  // check for mem leaks
 }
 
+static void draw();
+static void update();
+static void init(GLint width, GLint height, std::string title);
+static void cleanup();
+
+static GraphicsEngine engine;
+static Scene* currentScene;
+static GLFWwindow* window;
+static float lastFrame = 0.0f;
+
 int main() {
 
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -169,6 +179,7 @@ void cleanup() {
 
     //debugapp.~DebuggerApp();
 
+void cleanup() {
     engine.Shutdown();
     coreEngine.DestroySystems();
     if (currentScene)
