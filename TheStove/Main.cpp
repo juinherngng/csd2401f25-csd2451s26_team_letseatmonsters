@@ -1,7 +1,5 @@
-//#include <glad/glad.h>
-//#include <GLFW/glfw3.h>
 #include <iostream>
-
+#include <crtdbg.h>
 
 #include "Graphics/GraphicsEngine.h"
 #include "Graphics/SceneManager.h"
@@ -12,6 +10,8 @@
 #include "Core/AudioManager.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/TileMap.hpp"
+
+#define _CRTDBG_MAP_ALLOC
 
 static void draw();
 static void update();
@@ -28,26 +28,33 @@ static CoreFramework::CoreEngine* CoreFramework::CORE = &coreEngine; // Set the 
 
 static DebuggerApp debugapp;
 
+void CheckMemoryLeaks()
+{
+    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
+
+    _CrtDumpMemoryLeaks();  // check for mem leaks
+}
+
 int main() {
 
-	
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
     coreEngine.AddSystem(new AudioManager());
     coreEngine.AddSystem(new Framework::GameStateManager());
-
-    
-    
-	MapData testMap(6, 6);
-
-	for (int i = 0; i < testMap.getHeight(); i++) {
-		testMap.setTile(i, i, 1);
-	}
-
-	testMap.printMap();
-
-	std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
     
     init(1200, 800, "TheStove");
+
+    // test tile map
+    MapData testMap(6, 6);
+
+    for (int i = 0; i < testMap.getHeight(); i++) {
+        testMap.setTile(i, i, 1);
+    }
+
+    testMap.printMap();
+
+    std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -57,6 +64,8 @@ int main() {
     }
 
     cleanup();
+
+	CheckMemoryLeaks();
 
     return 0;
 }
