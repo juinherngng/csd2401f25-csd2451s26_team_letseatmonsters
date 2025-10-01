@@ -36,6 +36,8 @@ void AudioManager::Update(float dt)
 {
 	//std::cout << "AudioManagerSystem updating with dt: " << dt << std::endl;
 
+	(void)dt; // Suppress unused parameter warning
+
 	if (system)
 	{
 		system->update();

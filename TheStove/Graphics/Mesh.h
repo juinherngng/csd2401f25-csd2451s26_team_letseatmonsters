@@ -15,7 +15,8 @@ public:
         POSITION_TEXTURE   // position (3) + texcoord (2) = 5 floats
     };
 
-    Mesh(const float* vertices, size_t vertexCount, size_t vertexSize, VertexLayout layout = POSITION_COLOR);
+	// used GLsizei instead of size_t for vertexSize - juinherng
+    Mesh(const float* vertices, size_t vertexCount, GLsizei vertexSize, VertexLayout layout = POSITION_COLOR);
 
     void Draw() const;
     void Draw(const Texture* texture) const;
@@ -23,5 +24,8 @@ public:
 private:
     VertexArray vao;
     VertexBuffer vbo;
-    size_t vertexCount;
+    // conversion from size_t to GLsizei warning
+    //size_t vertexCount;
+    // i used this instead - juinherng
+	GLsizei vertexCount;
 };

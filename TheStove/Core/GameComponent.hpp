@@ -35,7 +35,7 @@ public:
 	//Start is only called once and this check using the flag started
 	virtual void Start() {};
 	//Update
-	virtual void Update(float dt) {};
+	virtual void Update(float dt) { (void)dt; };
 
 	//virtual void Serialize(ISerializer& s) = 0;	//nah Im good for now
 

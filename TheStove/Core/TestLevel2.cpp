@@ -16,6 +16,7 @@ DESCRIPTION:		Source file Test state for GameStateManager. This script contains 
 namespace Framework {
 
 	void Level2Init(float deltaTime) {
+		(void)deltaTime; // Suppress unused parameter warning
 		std::cout << "Entered Level 1" << std::endl;
 	}
 

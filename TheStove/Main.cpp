@@ -149,7 +149,7 @@ static void update() {
     smoothedDt = (smoothedDt == 0.0f) ? CoreFramework::gDt : (0.96f * smoothedDt) + (0.04f * CoreFramework::gDt);
 
     // Update FPS display variables for DebuggerApp
-    debugapp.fps = static_cast<int>((smoothedDt > 0.f) ? (1.f / smoothedDt + 0.5f) : 0.f);
+    debugapp.fps = (smoothedDt > 0.f) ? (1.f / smoothedDt + 0.5f) : 0.f;
     debugapp.msperFrame = (smoothedDt * 1000.0f);
 
     coreEngine.GameLoop(debugapp);

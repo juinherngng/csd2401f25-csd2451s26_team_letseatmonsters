@@ -58,6 +58,8 @@ void MapData::printMap() const {
 }
 
 int MapData::SweepFor(int dataType) {
+	(void)dataType; // Suppress unused parameter warning
+
     int retVal = 0;
     for (int y = 0; y < getHeight(); ++y) {
         for (int x = 0; x < getWidth(); ++x) {

@@ -4,7 +4,7 @@
 Scene::Scene(GraphicsEngine& engine) : graphicsEngine(engine) {}
 
 void Scene::LoadScene(const std::string& sceneName) {
-
+	(void)sceneName; // Suppress unused parameter warning
     // Test scene for now
     LoadTest();
 }

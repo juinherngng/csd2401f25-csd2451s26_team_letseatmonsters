@@ -10,6 +10,12 @@ GameObject::GameObject(Mesh* mesh, Shader* shader)
 GameObject::GameObject(int objectID)
     : id(objectID) {
     // other initializations...
+	m_Mesh = nullptr;
+	m_ModelMatrix = glm::mat4(1.0f);
+	m_Position = glm::vec3(0.0f);
+	m_Scale = glm::vec3(1.0f);
+	m_Rotation = glm::mat4(1.0f);
+	m_Shader = nullptr;
 }
 
 void GameObject::SetID(int newID) {

@@ -1,8 +1,9 @@
 #include "Mesh.h"
 #include <iostream>
 
-Mesh::Mesh(const float* vertices, size_t vertexCount, size_t vertexSize, VertexLayout layout)
-    : vao(), vbo(vertices, vertexCount* vertexSize), vertexCount(vertexCount) {
+// static casted vertexCount to GLsizei - juinherng
+Mesh::Mesh(const float* vertices, size_t vertexCount, GLsizei vertexSize, VertexLayout layout)
+    : vao(), vbo(vertices, vertexCount* vertexSize), vertexCount(static_cast<GLsizei>(vertexCount)) {
 
     switch (layout) {
     case POSITION_COLOR:

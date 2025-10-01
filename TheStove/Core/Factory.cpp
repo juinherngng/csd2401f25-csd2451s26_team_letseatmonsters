@@ -136,23 +136,23 @@ GOC* Factory::BuildAndSerialize(const std::string& filename)
 	}
 
 	//Find the component's creator
-	auto it = creatorsMap.find("Transform");
-	if (it == creatorsMap.end())
+	auto transformIt = creatorsMap.find("Transform");
+	if (transformIt == creatorsMap.end())
 	{
 		throw std::runtime_error("Could not find component creator with name Transform");
 	}
 
 	//ComponentCreator is an object that creates the component
-	ComponentCreator* creator = it->second;
+	ComponentCreator* creator = transformIt->second;
 
 	//Create the component by using the interface
-	GameComponent* component = creator->Create();
+	GameComponent* transformComponent = creator->Create();
 
 	//Add the new component to the composition
-	gameObject->AddComponent(creator->type, component);
+	gameObject->AddComponent(creator->type, transformComponent);
 
 	//for testing right now later this will be replace with serialization
-	Transform* t = static_cast<Transform*>(component);
+	Transform* t = static_cast<Transform*>(transformComponent);
 	if (filename == "Player")
 	{
 		t->SetPosition(Math::Vector2D(0.0f, 0.0f));
@@ -169,16 +169,16 @@ GOC* Factory::BuildAndSerialize(const std::string& filename)
 
 	if (filename == "Player")
 	{
-		auto it = creatorsMap.find("RigidBody2D");
-		if (it == creatorsMap.end())
+		auto rigidBodyIt = creatorsMap.find("RigidBody2D");
+		if (rigidBodyIt == creatorsMap.end())
 			throw std::runtime_error("Could not find component creator: RigidBody2D");
 
-		ComponentCreator* creator = it->second;
-		GameComponent* component = creator->Create();
-		gameObject->AddComponent(creator->type, component);
+		ComponentCreator* rigidBodyCreator = rigidBodyIt->second;
+		GameComponent* rigidBodyComponent = rigidBodyCreator->Create();
+		gameObject->AddComponent(rigidBodyCreator->type, rigidBodyComponent);
 
 		// Setup Rigidbody defaults
-		RigidBody2D* rb = static_cast<RigidBody2D*>(component);
+		RigidBody2D* rb = static_cast<RigidBody2D*>(rigidBodyComponent);
 		rb->SetVelocity(Math::Vector2D(1.0f, 0.0f)); // moving right
 	}
 
