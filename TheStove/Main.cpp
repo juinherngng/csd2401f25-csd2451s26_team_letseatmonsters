@@ -5,10 +5,10 @@
 
 #include "Graphics/GraphicsEngine.h"
 #include "Graphics/SceneManager.h"
-#include "ImGuiDebugger.hpp"
-#include "Precompiled.hpp"
-#include "Core.hpp"
-#include "ConfigManager.hpp"
+#include "Core/ImGuiDebugger.hpp"
+#include "Core/Precompiled.hpp"
+#include "Core/Core.hpp"
+#include "Core/ConfigManager.hpp"
 
 static void draw();
 static void update();
@@ -19,37 +19,15 @@ static GraphicsEngine engine;
 static Scene* currentScene;
 static GLFWwindow* window;
 static float lastFrame = 0.0f;
-static MockSystem* mockSystem = nullptr;
 
-class MockSystem : public CoreFramework::SystemInterface
-{
-public:
-    void Initialize() override {
-        std::cout << "MockSystem initialized." << std::endl;
-    }
-
-    void Update(float timeSlice) override {
-        std::cout << "System updated with dt = " << timeSlice << std::endl;
-
-        static int count = 0;
-        if (++count > 30) {
-            auto quitMsg = new CoreFramework::Message(CoreFramework::MsgId::QUIT);
-            std::cout << "MockSystem sent QUIT message." << std::endl;
-            CoreFramework::CORE->BroadcastMessage(quitMsg);
-            delete quitMsg;
-        }
-    }
-    void SendMessage(CoreFramework::Message*) override {}
-    std::string GetName() override { return "MockSystem"; }
-};
+static DebuggerApp debugapp;
 
 int main() {
 
 	CoreFramework::CoreEngine engine;
 	CoreFramework::CORE = &engine; // Set the global CORE pointer
-	DebuggerApp debugapp; // Watashi no debugger
 
-	/ add test system
+	// add test system
 	//engine.AddSystem(new MockSystem());
     
     init(1200, 800, "TheStove");
@@ -90,8 +68,11 @@ static void init(GLint width, GLint height, std::string title) {
     currentScene = new Scene(engine);
     currentScene->LoadScene("LoadTest");
 
-	mockSystem = new MockSystem();
-    mockSystem->Initialize();
+    if (!debugapp.InitializeDebuggerApp(window))
+    {
+        std::cerr << "Failed to initialize DebuggerApp\n";
+        exit(-1);
+    }
 }
 
 static void update() {
@@ -106,21 +87,29 @@ static void update() {
     // Update scene with delta time and window pointer
     currentScene->Update(deltaTime, window);
 
-	if (mockSystem) {
-        mockSystem->Update(deltaTime);
-    }
+    // Update FPS display variables for DebuggerApp
+    debugapp.msperFrame = deltaTime * 1000.0f;
+    debugapp.fps = 1.0f / deltaTime;
+
+    debugapp.UpdateDebuggerApp();
 }
 
 static void draw() {
     engine.BeginFrame();
     engine.Render();
+
+    debugapp.RenderDebuggerApp();
     glfwSwapBuffers(window);
+    
 }
 
 void cleanup() {
+
+    debugapp.~DebuggerApp();
+
     engine.Shutdown();
     delete currentScene;
-	delete mockSystem;
+
     glfwDestroyWindow(window);
     glfwTerminate();
 

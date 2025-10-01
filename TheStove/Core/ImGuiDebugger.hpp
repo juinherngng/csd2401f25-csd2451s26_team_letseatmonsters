@@ -43,7 +43,7 @@ public:
 	~DebuggerApp();
 
 	// Initializes the debugger app
-	bool InitializeDebuggerApp(int width, int height, const char* appName);
+	bool InitializeDebuggerApp(GLFWwindow* externalWindow);
 
 	// Updates debugger state (logic, hotkeys, toggles)
 	void UpdateDebuggerApp();

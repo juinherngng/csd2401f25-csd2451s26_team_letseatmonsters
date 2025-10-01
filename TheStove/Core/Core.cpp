@@ -10,7 +10,7 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <Core.hpp>
+#include "Core.hpp"
 
 #include <chrono>
 

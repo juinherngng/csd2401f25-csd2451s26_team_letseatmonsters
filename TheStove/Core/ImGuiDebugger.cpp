@@ -43,38 +43,18 @@ DebuggerApp::~DebuggerApp()
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
-
-	// Cleanup GLFW if window still open
-	if (debugWindow)
-	{
-		glfwDestroyWindow(debugWindow);
-		glfwTerminate();
-	}
 }
 
-bool DebuggerApp::InitializeDebuggerApp(int width, int height, const char* appName)
+bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow)
 {
 	if (!glfwInit())
 	{
 		return false;
 	}
 
-	// Set OpenGL version (3.3 core)
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-	//ImGui::SetNextWindowSize(ImVec2(300, 300));
-	// Create the window with size of width and height, with name appName
-	debugWindow = glfwCreateWindow(width, height, appName, nullptr, nullptr);
-	if (!debugWindow)
-	{
-		return false;
-	}
-
+	debugWindow = externalWindow;
 	glfwMakeContextCurrent(debugWindow);
 
-	// Load OpenGL functions using GLAD
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
 		std::cerr << "Failed to initialize OpenGL context\n";
@@ -177,20 +157,13 @@ void DebuggerApp::RenderDebuggerApp()
 
 	// Render in my ImGui
 	ImGui::Render();
-	glViewport(0, 0, 800, 600);
-	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-	// Swaps buffers
-	glfwSwapBuffers(debugWindow);
 }
 
 void DebuggerApp::RunDebuggerApp()
 {
 
-	// Poll events first so Update() gets latest input and Render() can draw based on updated state
-	glfwPollEvents();
 	UpdateDebuggerApp(); // Checks for updates done in the window
 
 
