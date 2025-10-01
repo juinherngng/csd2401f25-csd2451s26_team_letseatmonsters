@@ -20,7 +20,7 @@ namespace Framework {
 	}
 
 	void Level1Update(float deltaTime) {
-		std::cout << "Update Frame at DeltaTime: " << deltaTime << std::endl;
+		//std::cout << "Update Frame at DeltaTime: " << deltaTime << std::endl;
 	}
 
 	void Level1Exit(float deltaTime){

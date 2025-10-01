@@ -34,6 +34,8 @@ void AudioManager::Initialize()
 
 void AudioManager::Update(float dt)
 {
+	//std::cout << "AudioManagerSystem updating with dt: " << dt << std::endl;
+
 	if (system)
 	{
 		system->update();

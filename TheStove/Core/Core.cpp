@@ -12,15 +12,16 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 
 #include "Core.hpp"
 #include "ImGuiDebugger.hpp"
+#include "GameStateManager.hpp"
+
 
 #include <chrono>
 #include <thread>
+#include <iostream>
 
 namespace CoreFramework
 {
 	float gDt = 0.f;			// global delta time
-
-	static float smoothedDt = 0.0f; // smoothed delta time for fps calc
 
 	// global pointer to core
 	CoreEngine* CORE;
@@ -42,16 +43,17 @@ namespace CoreFramework
 		}
 	}
 
+	// game loop is being called every frame in main in update()
 	void CoreEngine::GameLoop(DebuggerApp& debugApp)
 	{
 		// add a currentTime variable to read system time
 		using clock = std::chrono::high_resolution_clock;
 		
 		// this will store the time of the last frame
-		auto lastTime = clock::now();
+		//auto lastTime = clock::now();
 
-		while (gameActive)
-		{
+		/*while (gameActive)
+		{*/
 			// get the current time
 			auto currentTime = clock::now();
 			
@@ -71,22 +73,17 @@ namespace CoreFramework
 			UpdateSystemTimes(debugApp, gDt);
 
 			// render the debugger
-			debugApp.RunDebuggerApp();
+			//debugApp.RunDebuggerApp();
 
-			// Smoothing for gDt (for the fps)
-			// Account for division by 0 on the first frame where gDt = 0
-			// This controls how fast the fps counter reacts to changes
-			// (higher value = smoother fps) else 
-			// (lower value = faster fps change response but more jittery)
-			smoothedDt = (smoothedDt == 0.0f) ? gDt : (0.96f * smoothedDt) + (0.04f * gDt);
+			
 
 			// Prevents division by 0 on the first frame where gDt = 0
-			debugApp.fps = (smoothedDt > 0.f) ? (1.f / smoothedDt) : 0.f;
-			debugApp.msperFrame = (smoothedDt * 1000.0f);
+			/*debugApp.fps = (smoothedDt > 0.f) ? (1.f / smoothedDt) : 0.f;
+			debugApp.msperFrame = (smoothedDt * 1000.0f);*/
 
 			// update lastUpdated to current time
 			lastTime = currentTime;
-		}
+		//}
 	}
 
 	void CoreEngine::BroadcastMessage(Message *message)
@@ -109,15 +106,26 @@ namespace CoreFramework
 	{
 		// add a new system to the list of systems
 		Systems.push_back(system);
+		std::cout << "Added system: " << system->GetName() << std::endl;
 	}
 
 	void CoreEngine::DestroySystems()
 	{
+		std::cout << "DestroySystems called, system count: " << Systems.size() << std::endl;
 		//Delete all the systems in reverse order
 		for (unsigned i = 0; i < Systems.size(); i++)
 		{
-			delete Systems[Systems.size() - i - 1];
+			size_t index = Systems.size() - i - 1;
+			std::cout << "Deleted system: " << Systems[index]->GetName() << std::endl;
+
+			/*if (Systems[index]->GetName() == "GameStateManager")
+			{
+				static_cast<Framework::GameStateManager*>(Systems[index])->~GameStateManager();
+			}*/
+			delete Systems[index];
 		}
+
+		Systems.clear();
 	}
 
 	void CoreEngine::UpdateSystemTimes(DebuggerApp& debugApp, float totalDt)

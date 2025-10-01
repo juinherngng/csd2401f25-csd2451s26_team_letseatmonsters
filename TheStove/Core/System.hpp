@@ -52,7 +52,7 @@ namespace CoreFramework
 		virtual void SendMessage(Message* message) { (message); };
 
 		///All systems are updated every game frame.
-		virtual void Update(float timeSlice) = 0;
+		virtual void Update(float dt) = 0;
 
 		///All systems provide a string name for debugging.
 		virtual std::string GetName() = 0;
