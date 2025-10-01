@@ -13,6 +13,7 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 #pragma once
 
 #include "System.hpp"
+#include "ImGuiDebugger.hpp"
 
 #include <vector>
 
@@ -28,7 +29,7 @@ namespace CoreFramework
 		CoreEngine();
 		~CoreEngine();
 
-		void GameLoop();
+		void GameLoop(DebuggerApp& debugApp);
 
 		void DestroySystems();
 

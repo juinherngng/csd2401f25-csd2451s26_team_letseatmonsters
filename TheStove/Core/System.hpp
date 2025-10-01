@@ -62,5 +62,8 @@ namespace CoreFramework
 
 		///All systems need a virtual destructor to have their destructor called 
 		virtual ~SystemInterface() {}
+
+		// For performance tracking
+		float lastDt = 0.0f; // Tracks the last frame delta of this system
 	};
 }

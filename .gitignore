@@ -41,6 +41,7 @@ Makefile
 
 # Ignore CMake/Ninja build output
 out/build/
+out\build\
 
 # Visual Studio files
 *.sln
