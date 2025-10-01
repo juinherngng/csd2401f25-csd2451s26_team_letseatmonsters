@@ -15,7 +15,7 @@
 
 static void draw();
 static void update();
-static void init(GLint width, GLint height, std::string title);
+static void init(GLint width, GLint height, std::string title, bool fullscreen);
 static void cleanup();
 
 static GraphicsEngine engine;
@@ -40,10 +40,13 @@ int main() {
 
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
+    auto settings = ConfigManager::LoadFromAssetsOrDefaults();
+	ConfigManager::Validate(settings);
+
     coreEngine.AddSystem(new AudioManager());
     coreEngine.AddSystem(new Framework::GameStateManager());
     
-    init(1200, 800, "TheStove");
+    init(settings.resolution.width, settings.resolution.height, "TheStove", settings.fullscreen);
 
     // test tile map
     MapData testMap(6, 6);
@@ -70,14 +73,20 @@ int main() {
     return 0;
 }
 
-static void init(GLint width, GLint height, std::string title) {
+static void init(GLint width, GLint height, std::string title, bool fullscreen) {
     // Initialize GLFW
     if (!glfwInit()) {
         std::cerr << "Failed to init GLFW" << std::endl;
         exit(-1);
     }
 
-    window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+	GLFWmonitor* monitor = nullptr;
+    if (fullscreen)
+    {
+		monitor = glfwGetPrimaryMonitor();
+    }
+
+    window = glfwCreateWindow(width, height, title.c_str(), monitor, nullptr);
     if (!window) {
         std::cerr << "Failed to create window" << std::endl;
         glfwTerminate();
