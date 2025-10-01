@@ -24,12 +24,12 @@ namespace CoreFramework
 	float gDt = 0.f;			// global delta time
 
 	// global pointer to core
-	CoreEngine* CORE;
+	//CoreEngine* CORE;
 
 	CoreEngine::CoreEngine()
 	{
 		gameActive = true;	// game is running
-		CORE = this;		// set global pointer
+		//CORE = this;		// set global pointer
 	}
 
 	CoreEngine::~CoreEngine() {}

@@ -2,7 +2,7 @@
 #include <iostream>
 
 // static casted vertexCount to GLsizei - juinherng
-Mesh::Mesh(const float* vertices, size_t vertexCount, GLsizei vertexSize, VertexLayout layout)
+Mesh::Mesh(const float* vertices, GLsizei vertexCount, GLsizei vertexSize, VertexLayout layout)
     : vao(), vbo(vertices, vertexCount* vertexSize), vertexCount(static_cast<GLsizei>(vertexCount)) {
 
     switch (layout) {

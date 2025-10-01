@@ -16,7 +16,7 @@ public:
     };
 
 	// used GLsizei instead of size_t for vertexSize - juinherng
-    Mesh(const float* vertices, size_t vertexCount, GLsizei vertexSize, VertexLayout layout = POSITION_COLOR);
+    Mesh(const float* vertices, GLsizei vertexCount, GLsizei vertexSize, VertexLayout layout = POSITION_COLOR);
 
     void Draw() const;
     void Draw(const Texture* texture) const;

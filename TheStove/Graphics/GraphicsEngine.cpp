@@ -41,7 +41,7 @@ void GraphicsEngine::LoadDefaultResources() {
 
 	// Load triangle mesh
 	std::vector<float> vertices;
-	size_t vertexCount, vertexSize;
+	GLsizei vertexCount, vertexSize;
 	MeshLoader::LoadSimpleTriangle(vertices, vertexCount, vertexSize);
 	resourceManager.LoadMesh("triangle", vertices, vertexCount, vertexSize);
 

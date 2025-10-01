@@ -134,14 +134,6 @@ void Scene::BuildLevelColliders() {
 	mCollision.build(walk, wood, end);
 }
 
-GameObject* Scene::GetGameObjectByID(int targetID) {
-    for (const auto& obj : sceneObjects) {
-        if (obj->GetID() == targetID)  
-            return obj.get();
-    }
-    return nullptr; // Not found
-}
-
 void Scene::LoadTest() {
 	// Set background image
 	SetSceneBackground("../assets/Background.png");

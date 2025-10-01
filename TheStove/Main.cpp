@@ -26,27 +26,17 @@ static float lastFrame = 0.0f;
 static float smoothedDt = 0.0f; // smoothed delta time for fps calc
 
 static CoreFramework::CoreEngine coreEngine;
-static CoreFramework::CoreEngine* CoreFramework::CORE = &coreEngine; // Set the global CORE pointer
+CoreFramework::CoreEngine* CoreFramework::CORE = &coreEngine; // Set the global CORE pointer
 
 static DebuggerApp debugapp;
 
-void CheckMemoryLeaks()
+static void CheckMemoryLeaks()
 {
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
 
     _CrtDumpMemoryLeaks();  // check for mem leaks
 }
-
-static void draw();
-static void update();
-static void init(GLint width, GLint height, std::string title);
-static void cleanup();
-
-static GraphicsEngine engine;
-static Scene* currentScene;
-static GLFWwindow* window;
-static float lastFrame = 0.0f;
 
 int main() {
 
@@ -174,10 +164,6 @@ static void draw() {
     glfwSwapBuffers(window);
     
 }
-
-void cleanup() {
-
-    //debugapp.~DebuggerApp();
 
 void cleanup() {
     engine.Shutdown();

@@ -10,19 +10,6 @@ GameObject::GameObject(Mesh* mesh, Shader* shader)
 }
 
 GameObject::GameObject(int objectID)
-	: id(objectID) {
-	// other initializations...
-}
-
-void GameObject::SetID(int newID) {
-	id = newID;
-}
-
-int GameObject::GetID() const {
-	return id;
-}
-
-GameObject::GameObject(int objectID)
     : id(objectID) {
     // other initializations...
 	m_Mesh = nullptr;

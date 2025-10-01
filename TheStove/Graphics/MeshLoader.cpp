@@ -1,6 +1,6 @@
 #include "MeshLoader.h"
 
-void MeshLoader::LoadSimpleTriangle(std::vector<float>& outVertices, size_t& outVertexCount, size_t& outVertexSize) {
+void MeshLoader::LoadSimpleTriangle(std::vector<float>& outVertices, GLsizei& outVertexCount, GLsizei& outVertexSize) {
     float vertices[] = {
         // positions       // colors
         0.0f, 0.5f, 0.0f,  1, 0, 0,
@@ -12,7 +12,7 @@ void MeshLoader::LoadSimpleTriangle(std::vector<float>& outVertices, size_t& out
     outVertices.assign(vertices, vertices + outVertexCount * 6);
 }
 
-void MeshLoader::LoadSprite(std::vector<float>& vertices, size_t& vertexCount, size_t& vertexSize) {
+void MeshLoader::LoadSprite(std::vector<float>& vertices, GLsizei& vertexCount, GLsizei& vertexSize) {
     // Sprite quad vertices (position + texture coordinates)
     vertices = {
         // Positions        // Texture Coordinates
@@ -29,7 +29,7 @@ void MeshLoader::LoadSprite(std::vector<float>& vertices, size_t& vertexCount, s
     vertexSize = 5 * sizeof(float);  // 5 floats per vertex (x,y,z,u,v)
 }
 
-void MeshLoader::LoadFullscreenQuad(std::vector<float>& vertices, size_t& vertexCount, size_t& vertexSize) {
+void MeshLoader::LoadFullscreenQuad(std::vector<float>& vertices, GLsizei& vertexCount, GLsizei& vertexSize) {
     // Unit quad with texture coordinates for background display
     vertices = {
         // Positions              // Texture Coordinates 

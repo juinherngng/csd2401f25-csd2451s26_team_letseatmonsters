@@ -26,7 +26,7 @@ Shader* ResourceManager::GetShader(const std::string& name) {
     return nullptr;
 }
 
-Mesh* ResourceManager::LoadMesh(const std::string& name, const std::vector<float>& vertices, size_t vertexCount, size_t vertexSize, Mesh::VertexLayout layout) {
+Mesh* ResourceManager::LoadMesh(const std::string& name, const std::vector<float>& vertices, GLsizei vertexCount, GLsizei vertexSize, Mesh::VertexLayout layout) {
     auto it = meshes.find(name);
     if (it != meshes.end()) {
         std::cout << "Mesh '" << name << "' already loaded, returning existing." << std::endl;

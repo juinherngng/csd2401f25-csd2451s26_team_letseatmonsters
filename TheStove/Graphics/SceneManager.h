@@ -21,9 +21,6 @@ public:
 	void SetSceneBackground(const std::string& texturePath);
 
 	// Object Lookup
-	GameObject* GetGameObjectByID(int targetID);
-
-	// Object Lookup
     GameObject* GetGameObjectByID(int targetID);
 
 private:
