@@ -1,5 +1,5 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+//#include <glad/glad.h>
+//#include <GLFW/glfw3.h>
 #include <iostream>
 
 
@@ -11,6 +11,7 @@
 #include "Core/ConfigManager.hpp"
 #include "Core/AudioManager.hpp"
 #include "Core/GameStateManager.hpp"
+#include "Core/TileMap.hpp"
 
 static void draw();
 static void update();
@@ -22,29 +23,29 @@ static Scene* currentScene;
 static GLFWwindow* window;
 static float lastFrame = 0.0f;
 
+static CoreFramework::CoreEngine coreEngine;
+static CoreFramework::CoreEngine* CoreFramework::CORE = &coreEngine; // Set the global CORE pointer
+
 static DebuggerApp debugapp;
 
 int main() {
 
-	CoreFramework::CoreEngine engine;
-	CoreFramework::CORE = &engine; // Set the global CORE pointer
+	
 
-	// engine.AddSystem(new AudioManager());
-	// engine.AddSystem(new Framework::GameStateManager());
+    coreEngine.AddSystem(new AudioManager());
+    coreEngine.AddSystem(new Framework::GameStateManager());
 
-	// engine.Initialize();
-	// engine.GameLoop();
-	// MapData testMap(6, 6);
+    
+    
+	MapData testMap(6, 6);
 
-	// for (int i = 0; i < testMap.getHeight(); i++) {
-	// 	testMap.setTile(i, i, 1);
-	// }
+	for (int i = 0; i < testMap.getHeight(); i++) {
+		testMap.setTile(i, i, 1);
+	}
 
-	// testMap.printMap();
+	testMap.printMap();
 
-
-
-	// std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
+	std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
     
     init(1200, 800, "TheStove");
 
@@ -56,8 +57,6 @@ int main() {
     }
 
     cleanup();
-
-	//engine.DestroySystems();
 
     return 0;
 }
@@ -82,6 +81,7 @@ static void init(GLint width, GLint height, std::string title) {
         exit(-1);
     }
 
+    coreEngine.Initialize();
     engine.Initialize();
     currentScene = new Scene(engine);
     currentScene->LoadScene("LoadTest");
@@ -109,6 +109,7 @@ static void update() {
     debugapp.msperFrame = deltaTime * 1000.0f;
     debugapp.fps = 1.0f / deltaTime;
 
+    // coreEngine.GameLoop(debugapp);
     debugapp.UpdateDebuggerApp();
 }
 
@@ -126,6 +127,7 @@ void cleanup() {
     debugapp.~DebuggerApp();
 
     engine.Shutdown();
+    coreEngine.DestroySystems();
     delete currentScene;
 
     glfwDestroyWindow(window);
