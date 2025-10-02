@@ -1,7 +1,7 @@
 #include <iostream>
 #include <crtdbg.h>
 #include <algorithm>
-#include "vld.h"
+//#include "vld.h"
 
 #include "Graphics/GraphicsEngine.h"
 #include "Graphics/SceneManager.h"
@@ -270,7 +270,7 @@ void cleanup() {
         delete currentScene;
 		currentScene = nullptr;
     }
-    coreEngine.DestroySystems();
+    //coreEngine.DestroySystems();
 
 	if (window)
 	{
