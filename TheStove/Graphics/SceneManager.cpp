@@ -347,23 +347,32 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Keyboard movement intent (WASD) + facing texture swap
 	glm::vec2 desiredMove{ 0.0f, 0.0f };
 	if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
-		SetAnimation(dinoID, "WALK");
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
 		desiredMove.y -= moveSpeed; // up
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_S)) {
-		SetAnimation(dinoID, "IDLE");
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_front", "../assets/mc_sprite_front.png"));
 		desiredMove.y += moveSpeed; // down
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_A)) {
-		SetAnimation(dinoID, "ATTACK");
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideleft", "../assets/mc_sprite_left.png"));
 		desiredMove.x -= moveSpeed; // left
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_D)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideright", "../assets/mc_sprite_right.png"));
 		desiredMove.x += moveSpeed; // right
+	}
+
+	if (inputManager.IsKeyPressed(GLFW_KEY_1)) {
+		SetAnimation(dinoID, "WALK"); 
+		std::cout << "Set to Walk Animation" << std::endl;
+	}
+	if (inputManager.IsKeyPressed(GLFW_KEY_2)) {
+		SetAnimation(dinoID, "ATTACK");
+		std::cout << "Set to Attack Animation" << std::endl;
+	}
+	if (inputManager.IsKeyPressed(GLFW_KEY_3)) {
+		std::cout << "Set to Idle Animation" << std::endl;
 	}
 
 	// Click-to-Move behaviour
