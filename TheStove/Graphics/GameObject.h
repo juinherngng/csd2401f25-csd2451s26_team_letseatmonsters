@@ -1,3 +1,16 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			GameObject.h
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+					Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Represents a renderable game object with mesh, shader, texture, transform, and collider.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #pragma once
 
 #include "Mesh.h"
@@ -8,6 +21,7 @@
 class GameObject {
 
 public:
+	/** @brief Construct an empty object (no mesh/shader). */
 	GameObject()
 		: m_Mesh(nullptr),
 		m_Shader(nullptr),
@@ -16,9 +30,10 @@ public:
 		m_Rotation(1.0f) {
 		UpdateModelMatrix();
 	}
-	GameObject(Mesh* mesh, Shader* shader);
 
+	GameObject(Mesh* mesh, Shader* shader);
 	GameObject(int objectID);
+
 	int GetID() const;
 	void SetID(int newID);
 
@@ -35,6 +50,8 @@ public:
 	void SetColliderOffset(const glm::vec2& offs) { m_ColliderOffset = offs; }
 	glm::vec2 GetColliderSize()   const { return m_ColliderSize; }
 	glm::vec2 GetColliderOffset() const { return m_ColliderOffset; }
+
+	/** @brief Draw collider bounding box for debugging. */
 	void DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color = { 1,0,0 }) const;
 
 private:

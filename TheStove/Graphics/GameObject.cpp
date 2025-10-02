@@ -1,4 +1,18 @@
-﻿#include "GameObject.h"
+﻿/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			GameObject.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+					Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Represents a renderable game object with mesh, shader, texture,
+					transform, and collider. Provides draw routines and debug bounding box.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
+#include "GameObject.h"
 #include "Collision.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -10,8 +24,7 @@ GameObject::GameObject(Mesh* mesh, Shader* shader)
 }
 
 GameObject::GameObject(int objectID)
-    : id(objectID) {
-    // other initializations...
+	: id(objectID) {
 	m_Mesh = nullptr;
 	m_ModelMatrix = glm::mat4(1.0f);
 	m_Position = glm::vec3(0.0f);
@@ -21,11 +34,11 @@ GameObject::GameObject(int objectID)
 }
 
 void GameObject::SetID(int newID) {
-    id = newID;
+	id = newID;
 }
 
 int GameObject::GetID() const {
-    return id;
+	return id;
 }
 
 void GameObject::SetPosition(const glm::vec3& position) {
@@ -74,7 +87,7 @@ void GameObject::Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMa
 // Debug purposes for collision
 void GameObject::DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color) const {
 
-	// Center = sprite position + optional collider offset
+	// Center = sprite position + offset
 	glm::vec3 center = m_Position + glm::vec3(m_ColliderOffset, 0.0f);
 
 	// Size = collider size (tight box)
@@ -102,13 +115,14 @@ void GameObject::DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, c
 	Shader* dbg = ResourceManager::Instance().GetShader("basic");
 	if (dbg) {
 		dbg->Use();
-		dbg->SetModelMatrix(glm::mat4(1.0f)); // verts are already in world space
+		dbg->SetModelMatrix(glm::mat4(1.0f));
 		dbg->SetViewMatrix(view);
 		dbg->SetProjectionMatrix(proj);
-		dbg->SetColorTint(glm::vec4(color, 1.0f)); // if basic shader ignores this, it’s safe
+		dbg->SetColorTint(glm::vec4(color, 1.0f));
 	}
 
-	glLineWidth(2.0f); // optional: thicker line to see better
+	// Optional: thicker line to see better
+	glLineWidth(2.0f);
 	glDrawArrays(GL_LINE_LOOP, 0, 4);
 
 	glDeleteBuffers(1, &vbo);
