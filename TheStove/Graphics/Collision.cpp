@@ -46,9 +46,9 @@ namespace collision {
 		mWalls.clear();
 
 		// LEFT edge wall
-		AABB leftWall;
-		glm::vec2 leftWallMin;
-		glm::vec2 leftWallMax;
+		AABB leftWall{};
+		glm::vec2 leftWallMin{};
+		glm::vec2 leftWallMax{};
 
 		leftWallMin.x = w.L - w.edgeThick;
 		leftWallMin.y = w.T;
@@ -62,9 +62,9 @@ namespace collision {
 		mWalls.push_back(leftWall);
 
 		// RIGHT edge wall (TOP segment)
-		AABB rightTopWall;
-		glm::vec2 rightTopMin;
-		glm::vec2 rightTopMax;
+		AABB rightTopWall{};
+		glm::vec2 rightTopMin{};
+		glm::vec2 rightTopMax{};
 
 		rightTopMin.x = w.R;
 		rightTopMin.y = w.T;
@@ -78,9 +78,9 @@ namespace collision {
 		mWalls.push_back(rightTopWall);
 
 		// RIGHT edge wall (BOTTOM segment)
-		AABB rightBottomWall;
-		glm::vec2 rightBottomMin;
-		glm::vec2 rightBottomMax;
+		AABB rightBottomWall{};
+		glm::vec2 rightBottomMin{};
+		glm::vec2 rightBottomMax{};
 
 		rightBottomMin.x = w.R;
 		rightBottomMin.y = end.gapMaxY;
@@ -94,9 +94,9 @@ namespace collision {
 		mWalls.push_back(rightBottomWall);
 
 		// TOP edge wall
-		AABB topWall;
-		glm::vec2 topMin;
-		glm::vec2 topMax;
+		AABB topWall{};
+		glm::vec2 topMin{};
+		glm::vec2 topMax{};
 
 		topMin.x = w.L;
 		topMin.y = w.T - w.edgeThick;
@@ -110,9 +110,9 @@ namespace collision {
 		mWalls.push_back(topWall);
 
 		// BOTTOM edge wall
-		AABB bottomWall;
-		glm::vec2 bottomMin;
-		glm::vec2 bottomMax;
+		AABB bottomWall{};
+		glm::vec2 bottomMin{};
+		glm::vec2 bottomMax{};
 
 		bottomMin.x = w.L;
 		bottomMin.y = w.B;
@@ -126,9 +126,9 @@ namespace collision {
 		mWalls.push_back(bottomWall);
 
 		// WOOD divider (TOP segment)
-		AABB woodTop;
-		glm::vec2 woodTopMin;
-		glm::vec2 woodTopMax;
+		AABB woodTop{};
+		glm::vec2 woodTopMin{};
+		glm::vec2 woodTopMax{};
 
 		woodTopMin.x = wood.x0;
 		woodTopMin.y = wood.topMinY;
@@ -142,9 +142,9 @@ namespace collision {
 		mWalls.push_back(woodTop);
 
 		// WOOD divider (BOTTOM segment)
-		AABB woodBottom;
-		glm::vec2 woodBottomMin;
-		glm::vec2 woodBottomMax;
+		AABB woodBottom{};
+		glm::vec2 woodBottomMin{};
+		glm::vec2 woodBottomMax{};
 
 		woodBottomMin.x = wood.x0;
 		woodBottomMin.y = wood.botMinY;
@@ -158,9 +158,9 @@ namespace collision {
 		mWalls.push_back(woodBottom);
 
 		// END gate (TOP segment)
-		AABB endTop;
-		glm::vec2 endTopMin;
-		glm::vec2 endTopMax;
+		AABB endTop{};
+		glm::vec2 endTopMin{};
+		glm::vec2 endTopMax{};
 
 		endTopMin.x = end.x0;
 		endTopMin.y = end.topMinY;
@@ -174,9 +174,9 @@ namespace collision {
 		mWalls.push_back(endTop);
 
 		// END gate (BOTTOM segment)
-		AABB endBottom;
-		glm::vec2 endBottomMin;
-		glm::vec2 endBottomMax;
+		AABB endBottom{};
+		glm::vec2 endBottomMin{};
+		glm::vec2 endBottomMax{};
 
 		endBottomMin.x = end.x0;
 		endBottomMin.y = end.botMinY;
@@ -192,13 +192,13 @@ namespace collision {
 
 	glm::vec2 World::resolve(const AABB& startBox, glm::vec2 desiredDelta) const {
 		// Output vector starts as the desired motion
-		glm::vec2 out;
+		glm::vec2 out{};
 		out.x = desiredDelta.x;
 		out.y = desiredDelta.y;
 
 		// Handle X-axis motion
 		// Copy the adjusted box
-		AABB movedX;
+		AABB movedX{};
 		movedX.min = startBox.min;
 		movedX.max = startBox.max;
 
@@ -252,7 +252,7 @@ namespace collision {
 
 		// Handle Y-axis motion
 		// Copy the adjusted box
-		AABB movedY;
+		AABB movedY{};
 		movedY.min = movedX.min;
 		movedY.max = movedX.max;
 
@@ -312,7 +312,7 @@ namespace collision {
 		float halfWidth = scale.x * 0.5f;
 		float halfHeight = scale.y * 0.5f;
 
-		glm::vec2 halfExtents;
+		glm::vec2 halfExtents{};
 		halfExtents.x = halfWidth;
 		halfExtents.y = halfHeight;
 
@@ -320,7 +320,7 @@ namespace collision {
 		float cx = center.x;
 		float cy = center.y;
 
-		glm::vec2 center2D;
+		glm::vec2 center2D{};
 		center2D.x = cx;
 		center2D.y = cy;
 
@@ -328,7 +328,7 @@ namespace collision {
 		float minX = center2D.x - halfExtents.x;
 		float minY = center2D.y - halfExtents.y;
 
-		glm::vec2 minCorner;
+		glm::vec2 minCorner{};
 		minCorner.x = minX;
 		minCorner.y = minY;
 
@@ -336,12 +336,12 @@ namespace collision {
 		float maxX = center2D.x + halfExtents.x;
 		float maxY = center2D.y + halfExtents.y;
 
-		glm::vec2 maxCorner;
+		glm::vec2 maxCorner{};
 		maxCorner.x = maxX;
 		maxCorner.y = maxY;
 
 		// Construct AABB
-		AABB box;
+		AABB box{};
 		box.min = minCorner;
 		box.max = maxCorner;
 
