@@ -98,6 +98,7 @@ namespace Debug
 		if (ImGui::IsKeyPressed(ImGuiKey_Escape))
 		{
 			openedDebugger = !openedDebugger;
+			std::cout << "CLOSING DEBUGGER" << std::endl;
 		}
 
 		// update system performance %tages
@@ -230,4 +231,17 @@ namespace Debug
 	{
 		const auto& audios = AudioManager::
 	}*/
+
+
+	void DebuggerApp::ShutDown()
+	{
+		if (isInitialised) {
+			ImGui_ImplOpenGL3_Shutdown();
+			ImGui_ImplGlfw_Shutdown();
+			ImGui::DestroyContext();
+			isInitialised = false;
+		}
+	}
 }
+
+

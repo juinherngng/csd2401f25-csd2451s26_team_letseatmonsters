@@ -206,6 +206,7 @@ static void draw() {
 
 void cleanup() {
     engine.Shutdown();
+	debugapp.ShutDown();
     coreEngine.DestroySystems();
     delete currentScene;
 

@@ -66,7 +66,8 @@ namespace Debug
 
 		bool IsActive() const { return openedDebugger; }
 
-	public:
+		void ShutDown();
+
 		float fps = 0; // FPS 
 		float msperFrame = 0; // MS/frame
 		// Vector of SystemPerformance structs to store data for system performance
