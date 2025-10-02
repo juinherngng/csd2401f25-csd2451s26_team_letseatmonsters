@@ -21,7 +21,7 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 
 namespace CoreFramework
 {
-	float gDt = 0.f;			// global delta time
+	float gDt = 0.f;	// global delta time
 
 	CoreEngine::CoreEngine()
 	{
@@ -65,7 +65,7 @@ namespace CoreFramework
 			s->lastDt = sysElapsed.count();
 		}
 
-		FlushMessages();
+		FlushMessages();	// process any queued messages
 
 		// update system performance %tages
 		UpdateSystemTimes(debugApp, gDt);
@@ -113,8 +113,10 @@ namespace CoreFramework
 
 	void CoreEngine::UpdateSystemTimes(DebuggerApp& debugApp, float totalDt)
 	{
+		// clear previous data
 		debugApp.sysPerformance.clear();
 
+		// calculate each system's percentage of total dt
 		for (auto& sys : Systems)
 		{
 			float percent = (totalDt > 0.f) ? (sys->lastDt / totalDt) * 100.f : 0.f;

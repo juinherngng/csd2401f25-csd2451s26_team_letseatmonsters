@@ -30,23 +30,102 @@ namespace CoreFramework
 	class CoreEngine
 	{
 	public:
+		/************************************************************************/
+		/*!
+		\brief
+			Constructs the CoreEngine. Sets initial runtime state.
+		*/
+		/************************************************************************/
 		CoreEngine();
+		/************************************************************************/
+		/*!
+		\brief
+			Destructs the CoreEngine. Systems should already be destroyed via
+			DestroySystems() before this runs.
+		*/
+		/************************************************************************/
 		~CoreEngine();
 
+		/************************************************************************/
+		/*!
+		\brief
+			Runs one frame of the game loop: computes dt, updates systems,
+			flushes queued messages, and records performance statistics.
+		*/
+		/************************************************************************/
 		void GameLoop(DebuggerApp& debugApp);
 
+		/************************************************************************/
+		/*!
+		\brief
+			Destroys all registered systems in reverse order of addition.
+			Frees their memory.
+		*/
+		/************************************************************************/
 		void DestroySystems();
 
+		/************************************************************************/
+		/*!
+		\brief
+			Broadcasts a message immediately to every registered system.
+		\param msg
+			Pointer to an existing message object (not owned / not deleted).
+		*/
+		/************************************************************************/
 		void BroadcastMessage(Message* msg);
 
+		/************************************************************************/
+		/*!
+		\brief
+			Adds (registers) a new system to the engine. CoreEngine takes ownership
+			and will delete it in DestroySystems().
+		\param system
+			Raw pointer to a heap-allocated system.
+		*/
+		/************************************************************************/
 		void AddSystem(SystemInterface* system);
 
+		/************************************************************************/
+		/*!
+		\brief
+			Initializes all registered systems by calling their Initialize() method.
+		*/
+		/************************************************************************/
 		void Initialize();
 
+		/************************************************************************/
+		/*!
+		\brief
+			Returns the last computed frames-per-second value.
+		\return
+			FPS as a float.
+		*/
+		/************************************************************************/
 		float GetFPS() const { return fps; }
 
+		/************************************************************************/
+		/*!
+		\brief
+			Calculates the percentage of total frame time each system consumed and
+			populates the debugger performance list.
+		\param debugApp
+			Debugger instance to populate.
+		\param totalDt
+			Delta time of the last frame.
+		*/
+		/************************************************************************/
 		void UpdateSystemTimes(DebuggerApp& debugApp, float totalDt);
 
+		/************************************************************************/
+		/*!
+		\brief
+			Fetches a pointer to the first system of type T (runtime checked).
+		\return
+			Pointer to system if found, else nullptr.
+		\tparam T
+			Concrete system type derived from SystemInterface.
+		*/
+		/************************************************************************/
 		template<typename T>
 		T* GetSystem()
 		{
@@ -56,6 +135,14 @@ namespace CoreFramework
 			return nullptr;
 		}
 
+		/************************************************************************/
+		/*!
+		\brief
+			Const-qualified overload of GetSystem().
+		\return
+			Const pointer to system if found, else nullptr.
+		*/
+		/************************************************************************/
 		template<typename T>
 		T* const GetSystem() const
 		{
@@ -65,12 +152,31 @@ namespace CoreFramework
 			return nullptr;
 		}
 
+		/************************************************************************/
+		/*!
+		\brief
+			Queues a message for delivery at the next flush point.
+		\details
+			Message is constructed in-place and owned by the queue until flushed.
+		\param args
+			Arguments forwarded to the message constructor.
+		\tparam T
+			Message type deriving from Message.
+		*/
+		/************************************************************************/
 		template<typename T, typename... Args>
 		void Post(Args&&... args)
 		{
 			messageQueue.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
 		}
 
+		/************************************************************************/
+		/*!
+		\brief
+			Delivers all queued messages (FIFO order) via BroadcastMessage(),
+			then clears the queue.
+		*/
+		/************************************************************************/
 		void FlushMessages()
 		{
 			while (!messageQueue.empty())
