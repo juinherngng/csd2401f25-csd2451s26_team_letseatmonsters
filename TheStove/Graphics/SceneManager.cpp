@@ -553,7 +553,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 			// STOP both
 			playerVelocity = { 0.0f, 0.0f };
-			otherVel = { 0.0f, 0.0f };
+			// otherVel = { 0.0f, 0.0f };
 
 			// Epsilon safety
 			glm::vec2 mtv;
