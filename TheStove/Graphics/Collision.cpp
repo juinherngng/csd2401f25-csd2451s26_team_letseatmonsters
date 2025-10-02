@@ -1,14 +1,13 @@
-/**
- * @file   Collision.cpp
- * @author Yat Chun Wee, y.chunwee
- * @date   30 Sep 2025
- * @brief  Implementation of AABB-based collision building and resolution.
- *
- * @details
- * Implements:
- *  - World::clear, World::addWall, World::build
- *  - World::resolve (axis-separable sweep: X then Y)
- *  - World::makeAABBFromCenter
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			Collision.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Implementation of AABB-based collision building and resolution.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
  */
 
 #include "Collision.h"

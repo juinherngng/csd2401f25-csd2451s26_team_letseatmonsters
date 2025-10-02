@@ -1,14 +1,13 @@
-/**
- * @file   Collision.h
- * @author Yat Chun Wee, y.chunwee
- * @date   30 Sep 2025
- * @brief  Axis-aligned bounding box (AABB) primitives and a lightweight collision world.
- *
- * @details
- * Provides:
- *  - `AABB` primitive for overlap tests
- *  - Level geometry descriptors (`WalkArea`, `WoodVertical`, `StageEndGateVertical`)
- *  - `World` to store wall colliders and resolve swept movement
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			Collision.h
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Axis-aligned bounding box (AABB) primitives and a lightweight collision world.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
  */
 
 #pragma once
