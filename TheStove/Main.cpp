@@ -34,200 +34,200 @@ static DebuggerApp debugapp;
 
 static void CheckMemoryLeaks()
 {
-    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
 
-    _CrtDumpMemoryLeaks();  // check for mem leaks
+	_CrtDumpMemoryLeaks();  // check for mem leaks
 }
 
 int main() {
 
-    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
-    auto settings = ConfigManager::LoadFromAssetsOrDefaults();
+	auto settings = ConfigManager::LoadFromAssetsOrDefaults();
 	ConfigManager::Validate(settings);
 
-    if (!init(settings.resolution.width, settings.resolution.height, "TheStove", settings.fullscreen)) {
-        cleanup();
-        CheckMemoryLeaks();
-        return -1;
-    }
-    
-    // test play audio
-    if (auto* audioMgr = coreEngine.GetSystem<AudioManager>())
-    {
-        audioMgr->ApplySettings(settings);
-        float bgm = audioMgr->GetBgmVolume();
-        float vfx = audioMgr->GetVfxVolume();
-        std::cout << "AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx << "\n";
+	if (!init(settings.resolution.width, settings.resolution.height, "TheStove", settings.fullscreen)) {
+		cleanup();
+		CheckMemoryLeaks();
+		return -1;
+	}
 
-        audioMgr->PlaySound("boiling sound", bgm, false);
-        std::cout << "Playing 'boiling sound'\n";
-    }
-    else
-    {
-        std::cerr << "AudioManager system not found in CoreEngine\n";
-    }
+	// test play audio
+	if (auto* audioMgr = coreEngine.GetSystem<AudioManager>())
+	{
+		audioMgr->ApplySettings(settings);
+		float bgm = audioMgr->GetBgmVolume();
+		float vfx = audioMgr->GetVfxVolume();
+		std::cout << "AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx << "\n";
 
-    // test tile map
-    MapData testMap(6, 6);
+		audioMgr->PlaySound("boiling sound", bgm, false);
+		std::cout << "Playing 'boiling sound'\n";
+	}
+	else
+	{
+		std::cerr << "AudioManager system not found in CoreEngine\n";
+	}
 
-    for (int i = 0; i < testMap.getHeight(); i++) {
-        testMap.setTile(i, i, 1);
-    }
+	// test tile map
+	MapData testMap(6, 6);
 
-    testMap.printMap();
+	for (int i = 0; i < testMap.getHeight(); i++) {
+		testMap.setTile(i, i, 1);
+	}
 
-    std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
+	testMap.printMap();
+
+	std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
 
 	lastFrame = static_cast<float>(glfwGetTime());
 
-    while (!glfwWindowShouldClose(window)) {
+	while (!glfwWindowShouldClose(window)) {
 
-        update();
+		update();
 
-        draw();
-    }
+		draw();
+	}
 
-    cleanup();
+	cleanup();
 
 	CheckMemoryLeaks();
 
-    return 0;
+	return 0;
 }
 
 static bool init(GLint width, GLint height, std::string title, bool fullscreen) {
-    // Initialize GLFW
-    if (!glfwInit()) {
-        std::cerr << "Failed to init GLFW" << std::endl;
-        return false;
-    }
+	// Initialize GLFW
+	if (!glfwInit()) {
+		std::cerr << "Failed to init GLFW" << std::endl;
+		return false;
+	}
 
 	GLFWmonitor* monitor = nullptr;
-    if (fullscreen)
-    {
+	if (fullscreen)
+	{
 		monitor = glfwGetPrimaryMonitor();
-    }
+	}
 
-    window = glfwCreateWindow(width, height, title.c_str(), monitor, nullptr);
-    if (!window) {
-        std::cerr << "Failed to create window" << std::endl;
-        glfwTerminate();
-        window = nullptr;
-        return false;
-    }
-    glfwMakeContextCurrent(window);
+	window = glfwCreateWindow(width, height, title.c_str(), monitor, nullptr);
+	if (!window) {
+		std::cerr << "Failed to create window" << std::endl;
+		glfwTerminate();
+		window = nullptr;
+		return false;
+	}
+	glfwMakeContextCurrent(window);
 
 	// Message callbacks to post input events to CoreEngine
-    glfwSetCharCallback(window, [](GLFWwindow* window, unsigned int c) 
-    {
-        if (CoreFramework::CORE)
-            CoreFramework::CORE->Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
-	});
+	glfwSetCharCallback(window, [](GLFWwindow* window, unsigned int c)
+		{
+			if (CoreFramework::CORE)
+				CoreFramework::CORE->Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
+		});
 
-    glfwSetMouseButtonCallback(window, [](GLFWwindow* win, int button, int action, int mods)
-    {
-        if (CoreFramework::CORE)
-        {
-            double x, y;
-            glfwGetCursorPos(window, &x, &y);
-            CoreFramework::CORE->Post<CoreFramework::MouseButtonMessage>(button, action == GLFW_PRESS, x, y);
-        }
-    });
+	glfwSetMouseButtonCallback(window, [](GLFWwindow* win, int button, int action, int mods)
+		{
+			if (CoreFramework::CORE)
+			{
+				double x, y;
+				glfwGetCursorPos(window, &x, &y);
+				CoreFramework::CORE->Post<CoreFramework::MouseButtonMessage>(button, action == GLFW_PRESS, x, y);
+			}
+		});
 
-    glfwSetCursorPosCallback(window, [](GLFWwindow* win, double xpos, double ypos)
-    {
-		static double lastX = xpos;
-		static double lastY = ypos;
-		double dx = xpos - lastX;
-		double dy = ypos - lastY;
-		lastX = xpos;
-        lastY = ypos;
+	glfwSetCursorPosCallback(window, [](GLFWwindow* win, double xpos, double ypos)
+		{
+			static double lastX = xpos;
+			static double lastY = ypos;
+			double dx = xpos - lastX;
+			double dy = ypos - lastY;
+			lastX = xpos;
+			lastY = ypos;
 
-        if (CoreFramework::CORE)
-        {
-			CoreFramework::CORE->Post<CoreFramework::MouseMoveMessage>(xpos, ypos, dx, dy);
-        }
-	});
+			if (CoreFramework::CORE)
+			{
+				CoreFramework::CORE->Post<CoreFramework::MouseMoveMessage>(xpos, ypos, dx, dy);
+			}
+		});
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cerr << "Failed to initialize GLAD\n";
-        return false;
-    }
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+		std::cerr << "Failed to initialize GLAD\n";
+		return false;
+	}
 
-    coreEngine.AddSystem(new AudioManager());
-    coreEngine.AddSystem(new Framework::GameStateManager());
+	coreEngine.AddSystem(new AudioManager());
+	coreEngine.AddSystem(new Framework::GameStateManager());
 
-    coreEngine.Initialize();
-    engine.Initialize();
-    currentScene = new Scene(engine);
-    currentScene->LoadScene("LoadTest");
+	coreEngine.Initialize();
+	engine.Initialize();
+	currentScene = new Scene(engine);
+	currentScene->LoadScene("LoadTest");
 
-    if (!debugapp.InitializeDebuggerApp(window))
-    {
-        std::cerr << "Failed to initialize DebuggerApp\n";
-        return false;
-    }
-    else
-    {
-        std::cout << "DebuggerApp initialized successfully\n";
-    }
+	if (!debugapp.InitializeDebuggerApp(window))
+	{
+		std::cerr << "Failed to initialize DebuggerApp\n";
+		return false;
+	}
+	else
+	{
+		std::cout << "DebuggerApp initialized successfully\n";
+	}
 
-    return true;
+	return true;
 }
 
 static void update() {
 
-    // Calculate delta time
-    float currentFrame = static_cast<float>(glfwGetTime());
-    float deltaTime = currentFrame - lastFrame;
-    lastFrame = currentFrame;
+	// Calculate delta time
+	float currentFrame = static_cast<float>(glfwGetTime());
+	float deltaTime = currentFrame - lastFrame;
+	lastFrame = currentFrame;
 
-    glfwPollEvents();
+	glfwPollEvents();
 
-    // Update scene with delta time and window pointer
-    currentScene->Update(deltaTime, window);
+	// Update scene with delta time and window pointer
+	currentScene->Update(deltaTime, window);
 
 
-    // Smoothing for gDt (for the fps)
-    // Account for division by 0 on the first frame where gDt = 0
-    // This controls how fast the fps counter reacts to changes
-    // (higher value = smoother fps) else 
-    // (lower value = faster fps change response but more jittery)
-    smoothedDt = (smoothedDt == 0.0f) ? CoreFramework::gDt : (0.96f * smoothedDt) + (0.04f * CoreFramework::gDt);
+	// Smoothing for gDt (for the fps)
+	// Account for division by 0 on the first frame where gDt = 0
+	// This controls how fast the fps counter reacts to changes
+	// (higher value = smoother fps) else 
+	// (lower value = faster fps change response but more jittery)
+	smoothedDt = (smoothedDt == 0.0f) ? CoreFramework::gDt : (0.96f * smoothedDt) + (0.04f * CoreFramework::gDt);
 
-    // Update FPS display variables for DebuggerApp
-    debugapp.fps = (smoothedDt > 0.f) ? (1.f / smoothedDt + 0.5f) : 0.f;
-    debugapp.msperFrame = (smoothedDt * 1000.0f);
+	// Update FPS display variables for DebuggerApp
+	debugapp.fps = (smoothedDt > 0.f) ? (1.f / smoothedDt + 0.5f) : 0.f;
+	debugapp.msperFrame = (smoothedDt * 1000.0f);
 
-    coreEngine.GameLoop(debugapp);
-    debugapp.UpdateDebuggerApp();
+	coreEngine.GameLoop(debugapp);
+	debugapp.UpdateDebuggerApp();
 }
 
 static void draw() {
-    engine.BeginFrame();
-    engine.Render();
+	engine.BeginFrame();
+	engine.Render();
 
-    debugapp.RenderDebuggerApp();
-    glfwSwapBuffers(window);
-    
+	debugapp.RenderDebuggerApp();
+	glfwSwapBuffers(window);
+
 }
 
 void cleanup() {
-    engine.Shutdown();
-    coreEngine.DestroySystems();
-    if (currentScene)
-    {
-        delete currentScene;
+	engine.Shutdown();
+	coreEngine.DestroySystems();
+	if (currentScene)
+	{
+		delete currentScene;
 		currentScene = nullptr;
-    }
+	}
 
-    if (window)
-    {
-        glfwDestroyWindow(window);
-        window = nullptr;
-    }
+	if (window)
+	{
+		glfwDestroyWindow(window);
+		window = nullptr;
+	}
 
-    glfwTerminate();
+	glfwTerminate();
 
 }
