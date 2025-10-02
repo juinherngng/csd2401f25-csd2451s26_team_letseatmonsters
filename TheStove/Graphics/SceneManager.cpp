@@ -138,22 +138,38 @@ void Scene::LoadTest() {
 	// Set background image
 	SetSceneBackground("../assets/Background.png");
 
+	// Choose visual size once as variables
+	const glm::vec2 kVisualSizePx = { 128.0f, 128.0f };
+	const glm::vec3 kSpawnPos = { 400.0f, 400.0f, 0.0f };
+
+	// Define collider ratios relative to the visual size
+	const float kColWidthRatio = 64.0f / 128.0f;
+	const float kColHeightRatio = 128.0f / 128.0f;
+
+	// Optional: offset as a fraction of visual size
+	const glm::vec2 kOffsetRatio = { 0.0f, 0.0f };
+
+	// Precompute derived collider size/offset from visual size
+	const glm::vec2 colliderSizePx = { kVisualSizePx.x * kColWidthRatio,
+										kVisualSizePx.y * kColHeightRatio };
+	const glm::vec2 colliderOffsetPx = { kVisualSizePx.x * kOffsetRatio.x,
+										 kVisualSizePx.y * kOffsetRatio.y };
+
 	GameObject* player = SpawnSprite("../assets/mc_sprite_front.png",
-		glm::vec3(400, 400, 0), //Position
-		glm::vec2(128, 128));   //Scale
+		kSpawnPos,               // Position
+		kVisualSizePx);          // Scale (width,height)
 
 	if (player) {
 		spriteID = player->GetID();
 		std::cout << "Spawned sprite with ID: " << spriteID << std::endl;
 
-		spriteScales[spriteID] = glm::vec3(128, 128, 1.0f); // initial scale to match sprite size
+		spriteScales[spriteID] = glm::vec3(kVisualSizePx.x, kVisualSizePx.y, 1.0f);
 		spriteRotations[spriteID] = 0.0f;
-		spritePositions[spriteID] = glm::vec3(400, 400, 0); // initial position
+		spritePositions[spriteID] = kSpawnPos;
 
-		player->SetScale({ 96.0f, 96.0f, 1.0f });     // visual size
-		player->SetColliderSize({ 64.0f, 128.0f });    // tight hitbox
-		player->SetColliderOffset({ 0.0f, 0.0f });    // nudge down slightly
-
+		player->SetScale({ kVisualSizePx.x, kVisualSizePx.y, 1.0f });
+		player->SetColliderSize(colliderSizePx);
+		player->SetColliderOffset(colliderOffsetPx);
 	}
 	else {
 		spriteID = -1; //invalid
