@@ -49,8 +49,14 @@ void AudioManager::Update(float dt)
 
 void AudioManager::SendMessage(CoreFramework::Message* message)
 {
-	// Handle messages if needed
-	(void)message; // Suppress unused parameter warning
+	switch (message->MessageId)
+	{
+	case CoreFramework::MsgId::TOGGLE_DEBUG_INFO:
+		// Could toggle audio debug overlay logging, etc.
+		break;
+	default:
+		break;
+	}
 }
 
 std::string AudioManager::GetName()

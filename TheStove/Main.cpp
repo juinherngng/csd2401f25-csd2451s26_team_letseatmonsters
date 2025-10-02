@@ -118,6 +118,37 @@ static bool init(GLint width, GLint height, std::string title, bool fullscreen) 
     }
     glfwMakeContextCurrent(window);
 
+    glfwSetCharCallback(window, [](GLFWwindow* window, unsigned int c) 
+    {
+        if (CoreFramework::CORE)
+            CoreFramework::CORE->Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
+	});
+
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* win, int button, int action, int mods)
+    {
+        if (CoreFramework::CORE)
+        {
+            double x, y;
+            glfwGetCursorPos(window, &x, &y);
+            CoreFramework::CORE->Post<CoreFramework::MouseButtonMessage>(button, action == GLFW_PRESS, x, y);
+        }
+    });
+
+    glfwSetCursorPosCallback(window, [](GLFWwindow* win, double xpos, double ypos)
+    {
+		static double lastX = xpos;
+		static double lastY = ypos;
+		double dx = xpos - lastX;
+		double dy = ypos - lastY;
+		lastX = xpos;
+        lastY = ypos;
+
+        if (CoreFramework::CORE)
+        {
+			CoreFramework::CORE->Post<CoreFramework::MouseMoveMessage>(xpos, ypos, dx, dy);
+        }
+	});
+
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD\n";
         return false;
