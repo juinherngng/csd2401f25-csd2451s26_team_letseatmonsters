@@ -13,9 +13,12 @@ public:
 
 	void Initialize();
 	void BeginFrame();
-	// Non-owning draw of a list of scene-owned objects.
-	void Render(const std::vector<GameObject*>& objects);
+	void Render();
 	void Shutdown();
+
+	// GameObject management
+	GameObject* CreateGameObject(const std::string& meshName, const std::string& shaderName);
+	void RemoveGameObject(GameObject* obj);
 
 	// Background management
 	void SetBackground(const std::string& texturePath);

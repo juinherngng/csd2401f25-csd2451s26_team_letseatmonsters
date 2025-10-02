@@ -19,9 +19,6 @@ public:
     void SetTexture(const std::string& name, int textureUnit) const;
     void SetColorTint(const glm::vec4& color) const;  // For tinting textures
 
-    void SetUVOffset(const glm::vec2& offset) const;
-    void SetUVScale(const glm::vec2& scale) const;
-
 private:
     GLuint programID;
 

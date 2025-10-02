@@ -6,15 +6,13 @@ AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
 
 DESCRIPTION:		The definitions of functions for the debugger window.
 
-		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
 
 #include "ImGuiDebugger.hpp"
-
-#include "AudioManager.hpp"
 
 namespace Debug
 {

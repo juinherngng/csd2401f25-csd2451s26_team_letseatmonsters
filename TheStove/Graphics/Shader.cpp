@@ -133,18 +133,3 @@ void Shader::SetColorTint(const glm::vec4& color) const {
     }
 }
 
-void Shader::SetUVOffset(const glm::vec2& offset) const {
-    GLint loc = glGetUniformLocation(programID, "u_UVOffset");
-    if (loc != -1) {
-        glUniform2fv(loc, 1, &offset[0]);
-    }
-}
-
-void Shader::SetUVScale(const glm::vec2& scale) const {
-    GLint loc = glGetUniformLocation(programID, "u_UVScale");
-    if (loc != -1) {
-        glUniform2fv(loc, 1, &scale[0]);
-    }
-}
-
-

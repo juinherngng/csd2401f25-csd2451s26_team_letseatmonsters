@@ -1,9 +1,10 @@
 #include <iostream>
 #include <crtdbg.h>
-#include "vld.h"
+#include <algorithm>
 
 #include "Graphics/GraphicsEngine.h"
 #include "Graphics/SceneManager.h"
+#include "Graphics/ResourceManager.h"
 #include "Core/ImGuiDebugger.hpp"
 #include "Core/Precompiled.hpp"
 #include "Core/Core.hpp"
@@ -20,6 +21,8 @@ static void update();
 static bool init(GLint width, GLint height, std::string title, bool fullscreen);
 static void cleanup();
 
+static AudioManager audioManager;
+static Framework::GameStateManager GSM;
 static GraphicsEngine engine;
 static Scene* currentScene = nullptr;
 static GLFWwindow* window = nullptr;
@@ -51,8 +54,14 @@ int main() {
         CheckMemoryLeaks();
         return -1;
     }
-    
-    //init(settings.resolution.width, settings.resolution.height, "TheStove", settings.fullscreen);
+
+    if (auto* audioMgr = coreEngine.GetSystem<AudioManager>())
+    {
+        audioMgr->ApplySettings(settings);
+        float bgm = audioMgr->GetBgmVolume();
+        float vfx = audioMgr->GetVfxVolume();
+        std::cout << "AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx << "\n";
+    }
 
     // test tile map
     MapData testMap(6, 6);
@@ -137,13 +146,45 @@ static bool init(GLint width, GLint height, std::string title, bool fullscreen) 
     }
     glfwMakeContextCurrent(window);
 
+	// Message callbacks to post input events to CoreEngine
+    glfwSetCharCallback(window, [](GLFWwindow* window, unsigned int c) 
+    {
+        if (CoreFramework::CORE)
+            CoreFramework::CORE->Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
+	});
+
+    glfwSetMouseButtonCallback(window, [](GLFWwindow* win, int button, int action, int mods)
+    {
+        if (CoreFramework::CORE)
+        {
+            double x, y;
+            glfwGetCursorPos(window, &x, &y);
+            CoreFramework::CORE->Post<CoreFramework::MouseButtonMessage>(button, action == GLFW_PRESS, x, y);
+        }
+    });
+
+    glfwSetCursorPosCallback(window, [](GLFWwindow* win, double xpos, double ypos)
+    {
+		static double lastX = xpos;
+		static double lastY = ypos;
+		double dx = xpos - lastX;
+		double dy = ypos - lastY;
+		lastX = xpos;
+        lastY = ypos;
+
+        if (CoreFramework::CORE)
+        {
+			CoreFramework::CORE->Post<CoreFramework::MouseMoveMessage>(xpos, ypos, dx, dy);
+        }
+	});
+
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cerr << "Failed to initialize GLAD\n";
         return false;
     }
 
-    coreEngine.AddSystem(new AudioManager());
-    coreEngine.AddSystem(new Framework::GameStateManager());
+    coreEngine.AddSystem(&audioManager);
+    coreEngine.AddSystem(&GSM);
 
     coreEngine.Initialize();
     engine.Initialize();
@@ -196,11 +237,8 @@ static void update() {
 }
 
 static void draw() {
-    static std::vector<GameObject*> drawList;
     engine.BeginFrame();
-    drawList.clear();
-    currentScene->CollectRenderablePointers(drawList);
-    engine.Render(drawList);
+    engine.Render();
 
     if (debugapp.IsActive())
     {
@@ -213,8 +251,13 @@ static void draw() {
 
 void cleanup() {
     engine.Shutdown();
+    debugapp.Shutdown();
+    if (currentScene)
+    {
+        delete currentScene;
+		currentScene = nullptr;
+    }
     coreEngine.DestroySystems();
-    delete currentScene;
 
     if (window)
     {
