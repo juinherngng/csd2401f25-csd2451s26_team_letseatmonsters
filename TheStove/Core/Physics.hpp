@@ -46,6 +46,12 @@ namespace physics {
 	 */
 	void ClampInsideWalk(const collision::WalkArea& walkArea, GameObject* gameObj, glm::vec3& pos);
 
+	void ClampInsideWalkWithGate(
+		const collision::WalkArea& walk,
+		const collision::StageEndGateVertical& gate,
+		GameObject* obj,
+		glm::vec3& pos);
+
 	/**
 	 * @brief A tiny controller to toggle between real-time deltaTime and discrete fixed steps.
 	 *

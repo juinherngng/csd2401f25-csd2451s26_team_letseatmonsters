@@ -34,6 +34,37 @@ namespace physics {
 		pos.y = std::clamp(pos.y, walkArea.T + half.y - offset.y, walkArea.B - half.y - offset.y);
 	}
 
+	void ClampInsideWalkWithGate(
+		const collision::WalkArea& walk,
+		const collision::StageEndGateVertical& gate,
+		GameObject* obj,
+		glm::vec3& pos)
+	{
+		const glm::vec2 size = obj->GetColliderSize();
+		const glm::vec2 offset = obj->GetColliderOffset();
+		const glm::vec2 half = size * 0.5f;
+
+		// Always clamp Y to the walk area
+		pos.y = std::clamp(pos.y, walk.T + half.y - offset.y, walk.B - half.y - offset.y);
+
+		// Default right clamp = walk.R (normal wall)
+		float maxX = walk.R - half.x - offset.x;
+
+		// Player AABB vertical span
+		const float aabbMinY = pos.y - half.y + offset.y;
+		const float aabbMaxY = pos.y + half.y + offset.y;
+
+		// If fully inside the gate’s vertical gap, extend clamp to the far side (gate.x1)
+		if (aabbMinY >= gate.gapMinY && aabbMaxY <= gate.gapMaxY) {
+			maxX = gate.x1 - half.x - offset.x;
+		}
+
+		// Left clamp unchanged
+		const float minX = walk.L + half.x - offset.x;
+		pos.x = std::clamp(pos.x, minX, maxX);
+	}
+
+
 	float StepController::resolveDt(::InputManager& input, float deltaTime) {
 		const bool pNow = input.IsKeyPressed(GLFW_KEY_P);
 		const bool wNow = input.IsKeyPressed(GLFW_KEY_W);

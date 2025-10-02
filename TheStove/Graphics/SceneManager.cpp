@@ -7,30 +7,30 @@ static constexpr float kWorldW = 1200.0f;
 static constexpr float kWorldH = 800.0f;
 
 // Walkable inner rectangle (match to background art)
-static constexpr float kWalkL = 148.0f;  // left
-static constexpr float kWalkR = 1078.0f; // right
-static constexpr float kWalkT = 84.0f;   // top
-static constexpr float kWalkB = 733.0f;  // bottom
+static constexpr float kWalkL = 150.0f;  // left edge
+static constexpr float kWalkR = 1100.0f; // right edge
+static constexpr float kWalkT = 80.0f;   // top edge
+static constexpr float kWalkB = 733.0f;  // bottom edge
 
 // Thickness of our blocking bars (thin = precise, easy to tune)
 static constexpr float kEdgeThick = 3.0f;
 
 // Wooden divider (vertical split)
-static constexpr float kWoodX0 = 562.0f;
-static constexpr float kWoodX1 = 590.0f;
-static constexpr float kWoodTopMinY = 50.0f;
-static constexpr float kWoodTopMaxY = 250.0f;
-static constexpr float kWoodGapMinY = 250.0f;
+static constexpr float kWoodX0 = 562.0f;	  // left edge of wood
+static constexpr float kWoodX1 = 590.0f;	  // right edge of wood
+static constexpr float kWoodTopMinY = 100.0f;
+static constexpr float kWoodTopMaxY = 300.0f;
+static constexpr float kWoodGapMinY = 300.0f;
 static constexpr float kWoodGapMaxY = 500.0f;
 static constexpr float kWoodBotMinY = 500.0f;
 static constexpr float kWoodBotMaxY = 700.0f;
 
 // End-of-stage vertical gate
 static constexpr float kEndVX0 = 1100.0f;
-static constexpr float kEndVX1 = 1132.0f;
-static constexpr float kEndVTopMinY = 50.0f;
-static constexpr float kEndVTopMaxY = 250.0f;
-static constexpr float kEndVGapMinY = 250.0f;
+static constexpr float kEndVX1 = 1200.0f;
+static constexpr float kEndVTopMinY = 100.0f;
+static constexpr float kEndVTopMaxY = 300.0f;
+static constexpr float kEndVGapMinY = 300.0f;
 static constexpr float kEndVGapMaxY = 500.0f;
 static constexpr float kEndVBotMinY = 500.0f;
 static constexpr float kEndVBotMaxY = 700.0f;
@@ -192,6 +192,13 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
 	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	const collision::StageEndGateVertical end{
+	 kEndVX0, kEndVX1,
+	 kEndVTopMinY, kEndVTopMaxY,
+	 kEndVGapMinY, kEndVGapMaxY,
+	 kEndVBotMinY, kEndVBotMaxY
+	};
+
 
 	if (spriteID < 0) return;
 	GameObject* player = GetGameObjectByID(spriteID);
@@ -387,7 +394,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	const collision::AABB startBox = physics::MakeColliderBox(player, pPos);
 	const glm::vec2 stepPlayer = mCollision.resolve(startBox, desiredMove);
 	pPos += glm::vec3(stepPlayer, 0.0f);
-	physics::ClampInsideWalk(walk, player, pPos);
+	physics::ClampInsideWalkWithGate(walk, end, player, pPos);
 	player->SetPosition(pPos);
 	playerVelocity = (physicsDt > 0.0f) ? (stepPlayer / physicsDt) : glm::vec2{ 0.0f };
 
