@@ -15,7 +15,7 @@
 #include <cmath>
 
 namespace collision {
-	// Test strict AABB overlap on X and Y
+	// AABB overlap test on both axes
 	static inline bool overlaps(const AABB& a, const AABB& b) {
 		bool aRightOfB = (a.min.x >= b.max.x);
 		bool aLeftOfB = (a.max.x <= b.min.x);
@@ -31,6 +31,55 @@ namespace collision {
 		return overlapExists;
 	}
 
+	static inline float clampf(float v, float lo, float hi) {
+		return std::max(lo, std::min(v, hi));
+	}
+
+	// AABB minimal translation vector (move A out of B)
+	bool overlapMTV(const AABB& a, const AABB& b, glm::vec2& mtvOut) {
+		// Signed gaps (A relative to B)
+		float left = b.min.x - a.max.x;
+		float right = b.max.x - a.min.x;
+		float top = b.min.y - a.max.y;
+		float bottom = b.max.y - a.min.y;
+
+		// Early exit if separated on any axis
+		if (left > 0 || right < 0 || top > 0 || bottom < 0) {
+			mtvOut = { 0.0f, 0.0f };
+			return false;
+		}
+
+		// Smallest correction wins
+		float penX = std::abs(left) < std::abs(right) ? left : right;
+		float penY = std::abs(top) < std::abs(bottom) ? top : bottom;
+
+		if (std::abs(penX) < std::abs(penY)) {
+			mtvOut = { penX, 0.0f };
+		}
+		else {
+			mtvOut = { 0.0f, penY };
+		}
+
+		return true;
+	}
+
+	// Split MTV by weightA: 0.5 = equal; 1.0 = only A moves
+	bool separateWeighted(const AABB& a, const AABB& b, float weightA, glm::vec2& moveA, glm::vec2& moveB) {
+		glm::vec2 mtv;
+		if (!overlapMTV(a, b, mtv)) {
+			moveA = { 0.0f, 0.0f };
+			moveB = { 0.0f, 0.0f };
+			return false;
+		}
+
+		// Clamp weight
+		weightA = glm::clamp(weightA, 0.0f, 1.0f);
+		moveA = weightA * mtv;
+		moveB = -(1.0f - weightA) * mtv;
+		return true;
+	}
+
+	// World: build walls and resolve swept motion
 	void World::clear() {
 		mWalls.clear();
 	}
@@ -39,164 +88,69 @@ namespace collision {
 		mWalls.push_back(aabb);
 	}
 
-	void World::build(const WalkArea& w,
-		const WoodVertical& wood,
-		const StageEndGateVertical& end) {
+	void World::build(const WalkArea& w, const WoodVertical& wood, const StageEndGateVertical& end) {
 		mWalls.clear();
 
 		// LEFT edge wall
 		AABB leftWall{};
-		glm::vec2 leftWallMin{};
-		glm::vec2 leftWallMax{};
-
-		leftWallMin.x = w.L - w.edgeThick;
-		leftWallMin.y = w.T;
-
-		leftWallMax.x = w.L;
-		leftWallMax.y = w.B;
-
-		leftWall.min = leftWallMin;
-		leftWall.max = leftWallMax;
-
+		leftWall.min = { w.L - w.edgeThick, w.T };
+		leftWall.max = { w.L, w.B };
 		mWalls.push_back(leftWall);
 
 		// RIGHT edge wall (TOP segment)
 		AABB rightTopWall{};
-		glm::vec2 rightTopMin{};
-		glm::vec2 rightTopMax{};
-
-		rightTopMin.x = w.R;
-		rightTopMin.y = w.T;
-
-		rightTopMax.x = w.R + w.edgeThick;
-		rightTopMax.y = end.gapMinY;
-
-		rightTopWall.min = rightTopMin;
-		rightTopWall.max = rightTopMax;
-
+		rightTopWall.min = { w.R, w.T };
+		rightTopWall.max = { w.R + w.edgeThick, end.gapMinY };
 		mWalls.push_back(rightTopWall);
 
 		// RIGHT edge wall (BOTTOM segment)
 		AABB rightBottomWall{};
-		glm::vec2 rightBottomMin{};
-		glm::vec2 rightBottomMax{};
-
-		rightBottomMin.x = w.R;
-		rightBottomMin.y = end.gapMaxY;
-
-		rightBottomMax.x = w.R + w.edgeThick;
-		rightBottomMax.y = w.B;
-
-		rightBottomWall.min = rightBottomMin;
-		rightBottomWall.max = rightBottomMax;
-
+		rightBottomWall.min = { w.R, end.gapMaxY };
+		rightBottomWall.max = { w.R + w.edgeThick, w.B };
 		mWalls.push_back(rightBottomWall);
 
 		// TOP edge wall
 		AABB topWall{};
-		glm::vec2 topMin{};
-		glm::vec2 topMax{};
-
-		topMin.x = w.L;
-		topMin.y = w.T - w.edgeThick;
-
-		topMax.x = w.R;
-		topMax.y = w.T;
-
-		topWall.min = topMin;
-		topWall.max = topMax;
-
+		topWall.min = { w.L, w.T - w.edgeThick };
+		topWall.max = { w.R, w.T };
 		mWalls.push_back(topWall);
 
 		// BOTTOM edge wall
 		AABB bottomWall{};
-		glm::vec2 bottomMin{};
-		glm::vec2 bottomMax{};
-
-		bottomMin.x = w.L;
-		bottomMin.y = w.B;
-
-		bottomMax.x = w.R;
-		bottomMax.y = w.B + w.edgeThick;
-
-		bottomWall.min = bottomMin;
-		bottomWall.max = bottomMax;
-
+		bottomWall.min = { w.L, w.B };
+		bottomWall.max = { w.R, w.B + w.edgeThick };
 		mWalls.push_back(bottomWall);
 
-		// WOOD divider (TOP segment)
+		// Wooden divider: TOP solid, middle GAP (skipped), BOTTOM solid
 		AABB woodTop{};
-		glm::vec2 woodTopMin{};
-		glm::vec2 woodTopMax{};
-
-		woodTopMin.x = wood.x0;
-		woodTopMin.y = wood.topMinY;
-
-		woodTopMax.x = wood.x1;
-		woodTopMax.y = wood.topMaxY;
-
-		woodTop.min = woodTopMin;
-		woodTop.max = woodTopMax;
-
+		woodTop.min = { wood.x0, wood.topMinY };
+		woodTop.max = { wood.x1, wood.topMaxY };
 		mWalls.push_back(woodTop);
 
-		// WOOD divider (BOTTOM segment)
 		AABB woodBottom{};
-		glm::vec2 woodBottomMin{};
-		glm::vec2 woodBottomMax{};
-
-		woodBottomMin.x = wood.x0;
-		woodBottomMin.y = wood.botMinY;
-
-		woodBottomMax.x = wood.x1;
-		woodBottomMax.y = wood.botMaxY;
-
-		woodBottom.min = woodBottomMin;
-		woodBottom.max = woodBottomMax;
-
+		woodBottom.min = { wood.x0, wood.botMinY };
+		woodBottom.max = { wood.x1, wood.botMaxY };
 		mWalls.push_back(woodBottom);
 
-		// END gate (TOP segment)
+		// End gate: TOP solid, middle GAP (skipped), BOTTOM solid
 		AABB endTop{};
-		glm::vec2 endTopMin{};
-		glm::vec2 endTopMax{};
-
-		endTopMin.x = end.x0;
-		endTopMin.y = end.topMinY;
-
-		endTopMax.x = end.x1;
-		endTopMax.y = end.topMaxY;
-
-		endTop.min = endTopMin;
-		endTop.max = endTopMax;
-
+		endTop.min = { end.x0, end.topMinY };
+		endTop.max = { end.x1, end.topMaxY };
 		mWalls.push_back(endTop);
 
-		// END gate (BOTTOM segment)
 		AABB endBottom{};
-		glm::vec2 endBottomMin{};
-		glm::vec2 endBottomMax{};
-
-		endBottomMin.x = end.x0;
-		endBottomMin.y = end.botMinY;
-
-		endBottomMax.x = end.x1;
-		endBottomMax.y = end.botMaxY;
-
-		endBottom.min = endBottomMin;
-		endBottom.max = endBottomMax;
-
+		endBottom.min = { end.x0, end.botMinY };
+		endBottom.max = { end.x1, end.botMaxY };
 		mWalls.push_back(endBottom);
 	}
 
 	glm::vec2 World::resolve(const AABB& startBox, glm::vec2 desiredDelta) const {
-		// Output vector starts as the desired motion
+		// Start with desired; trim by walls
 		glm::vec2 out{};
 		out.x = desiredDelta.x;
 		out.y = desiredDelta.y;
 
-		// Handle X-axis motion
-		// Copy the adjusted box
+		// X-sweep
 		AABB movedX{};
 		movedX.min = startBox.min;
 		movedX.max = startBox.max;
@@ -249,8 +203,7 @@ namespace collision {
 			}
 		}
 
-		// Handle Y-axis motion
-		// Copy the adjusted box
+		// Y-sweep
 		AABB movedY{};
 		movedY.min = movedX.min;
 		movedY.max = movedX.max;
@@ -306,6 +259,7 @@ namespace collision {
 		return out;
 	}
 
+	// Center + size
 	AABB World::makeAABBFromCenter(const glm::vec3& center, const glm::vec3& scale) {
 		// Half extents
 		float halfWidth = scale.x * 0.5f;

@@ -121,15 +121,16 @@ void GraphicsEngine::Render() {
 		backgroundObject->Draw(view, projection);
 		glEnable(GL_DEPTH_TEST);
 	}
+
+	glDisable(GL_DEPTH_TEST);
 	// Render all game objects
 	for (const auto& obj : gameObjects) {
 		obj->Draw(view, projection);
 
 		// Draw the object's bounding box in red for debugging purposes
-		glDisable(GL_DEPTH_TEST);
 		obj->DrawBoundingBox(view, projection, { 1.0f, 0.0f, 0.0f });
-		glEnable(GL_DEPTH_TEST);
 	}
+	glEnable(GL_DEPTH_TEST);
 
 	// Check for OpenGL errors
 	GLenum error;

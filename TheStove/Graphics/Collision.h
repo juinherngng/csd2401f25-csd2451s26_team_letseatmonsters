@@ -16,56 +16,45 @@
 #include <glm/glm.hpp>
 
 namespace collision {
-	/**
-	 * @struct AABB
-	 * @brief 2D axis-aligned bounding box used for collision tests.
-	 *
-	 * The box spans [min, max) on each axis in world units.
-	 */
+	// Primitives
 	struct AABB {
 		glm::vec2 min;
 		glm::vec2 max;
 	};
 
-	/**
-	 * @struct WalkArea
-	 * @brief Defines the inner walkable rectangle and the thickness of blocking edge bars.
-	 */
+	// Walkable rectangle with thin blocking edges
 	struct WalkArea {
-		float L; // Left edge of play area
-		float R; // Right edge of play area
-		float T; // Top edge of play area
-		float B; // Bottom edge of play area
+		float L;
+		float R;
+		float T;
+		float B;
 
-		float edgeThick;  // Thickness of the thin blocking bars placed just inside edges.
+		float edgeThick;
 	};
 
-	/**
-	 * @struct WoodVertical
-	 * @brief Vertical wooden divider split into TOP solid, GAP (pass-through), BOTTOM solid.
-	 */
+	// Vertical divider: TOP (solid), GAP (open), BOTTOM (solid)
 	struct WoodVertical {
-		float x0, x1;           // Left/right x of the wood.
-		float topMinY, topMaxY; // Top solid segment Y-range.
-		float gapMinY, gapMaxY; // Open gap Y-range (no collider).
-		float botMinY, botMaxY; // Bottom solid segment Y-range.
+		float x0, x1;
+		float topMinY, topMaxY;
+		float gapMinY, gapMaxY;
+		float botMinY, botMaxY;
 	};
 
-	/**
-	 * @struct StageEndGateVertical
-	 * @brief End-of-stage gate (vertical) with TOP solid, middle GAP, and BOTTOM solid.
-	 */
+	// End gate: TOP (solid), GAP (open), BOTTOM (solid).
 	struct StageEndGateVertical {
-		float x0, x1;           // Left/right x of the gate.
-		float topMinY, topMaxY; // Top solid segment Y-range.
-		float gapMinY, gapMaxY; // Open gap Y-range (no collider).
-		float botMinY, botMaxY; // Bottom solid segment Y-range.
+		float x0, x1;
+		float topMinY, topMaxY;
+		float gapMinY, gapMaxY;
+		float botMinY, botMaxY;
 	};
 
-	/**
-	 * @class World
-	 * @brief Stores wall AABBs and resolves swept movement against them.
-	 */
+	// If A and B overlap, mtvOut is the minimal vector to move A out of B.
+	bool overlapMTV(const AABB& a, const AABB& b, glm::vec2& mtvOut);
+
+	// Split MTV between A and B with weightA in [0..1] (0.5 = equal, 1.0 = only A moves).
+	bool separateWeighted(const AABB& a, const AABB& b, float weightA, glm::vec2& moveA, glm::vec2& moveB);
+
+	// Static world
 	class World {
 	public:
 		World() = default;
@@ -74,7 +63,7 @@ namespace collision {
 		void addWall(const AABB& aabb);
 		void build(const WalkArea& walk, const WoodVertical& wood, const StageEndGateVertical& end);
 
-		// Resolve a desired movement vector against walls using axis-separable sweep.
+		// Axis-separable sweep: returns allowedDelta that doesn’t penetrate walls
 		glm::vec2 resolve(const AABB& startBox, glm::vec2 desiredDelta) const;
 
 		// Create an AABB from a center and scale (X/Y used; Z ignored).
