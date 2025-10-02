@@ -155,6 +155,7 @@ void Scene::LoadTest() {
 	// Define collider = 64x128 with no offset (relative to visual)
 	const glm::vec2 colliderSizePx = { 64.0f, 128.0f };
 	const glm::vec2 colliderOffsetPx{ 0.0f, 0.0f };
+	const float kLaneX = 1000.0f;
 
 	// Player
 	if (GameObject* player = SpawnSprite("../assets/mc_sprite_front.png", kSpawnPos, kVisualSizePx)) {
@@ -174,21 +175,39 @@ void Scene::LoadTest() {
 		std::cerr << "Failed to spawn sprite" << std::endl;
 	}
 
-	// Other
-	const glm::vec3 kOtherSpawn = { 800.0f, 420.0f, 0.0f };
+	// Other1
+	const glm::vec3 kOtherSpawn1 = { kLaneX, 200.0f, 0.0f };
 
-	if (GameObject* other = SpawnSprite("../assets/goat_sprite_front.png", kOtherSpawn, kVisualSizePx)) {
-		otherID = other->GetID();
+	if (GameObject* other1 = SpawnSprite("../assets/goat_sprite_front.png", kOtherSpawn1, kVisualSizePx)) {
+		otherID = other1->GetID();
 
-		spritePositions[otherID] = kOtherSpawn;
+		spritePositions[otherID] = kOtherSpawn1;
 		spriteScales[otherID] = glm::vec3(kVisualSizePx, 1.0f);
 		spriteRotations[otherID] = 0.0f;
 
-		other->SetColliderSize(colliderSizePx);
-		other->SetColliderOffset(colliderOffsetPx);
+		other1->SetColliderSize(colliderSizePx);
+		other1->SetColliderOffset(colliderOffsetPx);
 	}
 	else {
-		spriteID = -1; //invalid
+		otherID = -1; //invalid
+		std::cerr << "Failed to spawn sprite" << std::endl;
+	}
+
+	// Other2
+	const glm::vec3 kOtherSpawn2 = { kLaneX, 800.0f, 0.0f };
+
+	if (GameObject* other2 = SpawnSprite("../assets/goat_sprite_front.png", kOtherSpawn2, kVisualSizePx)) {
+		otherID2 = other2->GetID();
+
+		spritePositions[otherID2] = kOtherSpawn2;
+		spriteScales[otherID2] = glm::vec3(kVisualSizePx, 1.0f);
+		spriteRotations[otherID2] = 0.0f;
+
+		other2->SetColliderSize(colliderSizePx);
+		other2->SetColliderOffset(colliderOffsetPx);
+	}
+	else {
+		otherID2 = -1; //invalid
 		std::cerr << "Failed to spawn sprite" << std::endl;
 	}
 
@@ -201,12 +220,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Physics step-by-step controls 
 	static bool prevToggle = false;											// P key
-	static bool prevStep = false;											// O key
 	static bool prevW = false, prevA = false, prevS = false, prevD = false; // WASD
 
 	// Read current inputs (this frame)
 	bool toggleNow = inputManager.IsKeyPressed(GLFW_KEY_P);
-	bool stepNow = inputManager.IsKeyPressed(GLFW_KEY_O);
 	bool wNow = inputManager.IsKeyPressed(GLFW_KEY_W);
 	bool aNow = inputManager.IsKeyPressed(GLFW_KEY_A);
 	bool sNow = inputManager.IsKeyPressed(GLFW_KEY_S);
@@ -216,12 +233,6 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	if (toggleNow && !prevToggle) {
 		gPhysicsStepMode = !gPhysicsStepMode;
 		std::cout << "[Physics] Step mode " << (gPhysicsStepMode ? "ON" : "OFF") << "\n";
-	}
-
-	// Queue one step on O (edge) when step mode is ON
-	if (gPhysicsStepMode && stepNow && !prevStep) {
-		++gStepsQueued;
-		std::cout << "[Physics] Queued 1 step (" << gStepsQueued << ")\n";
 	}
 
 	// Queue one step per left click when step mode is ON (edge from your input manager)
@@ -246,7 +257,6 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Update edge-state after queuing so we detect edges correctly next frame
 	prevToggle = toggleNow;
-	prevStep = stepNow;
 	prevW = wNow; prevA = aNow; prevS = sNow; prevD = dNow;
 
 	// Resolve the dt to use for physics this frame, then consume one queued step
@@ -262,21 +272,24 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	if (spriteID < 0) return;
 	GameObject* player = GetGameObjectByID(spriteID);
-	GameObject* other = GetGameObjectByID(otherID);
-	if (!player || !other) {
-		std::cerr << "Sprite with ID " << spriteID << " not found" << std::endl;
+	GameObject* other1 = GetGameObjectByID(otherID);
+	GameObject* other2 = GetGameObjectByID(otherID2);
+	if (!player || !other1 || !other2) {
+		std::cerr << "Player/Other not found\n";
 		return;
 	}
 
 	glm::vec3& pPos = spritePositions[spriteID];
-	glm::vec3& oPos = spritePositions[otherID];
+	glm::vec3& o1Pos = spritePositions[otherID];
+	glm::vec3& o2Pos = spritePositions[otherID2];
 	glm::vec3& scale = spriteScales[spriteID];
 	float& rotation = spriteRotations[spriteID];
 
 	// Per-frame state
 	static glm::vec2 desiredMove{ 0.0f, 0.0f };
-	static glm::vec2 playerVelocity = { 0.0f, 0.0f };
-	static glm::vec2 otherVelocity = { -120.0f, 0.0f };
+	static glm::vec2 playerVelocity{ 0.0f, 0.0f };
+	static glm::vec2 other1Velocity{ 0.0f,  100.0f };
+	static glm::vec2 other2Velocity{ 0.0f, -100.0f };
 
 	desiredMove = { 0.0f, 0.0f };
 
@@ -418,77 +431,147 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 	}
 
-	// Move other vs world + clamp
-	const glm::vec2 otherDesired = otherVelocity * physicsDt; // displacement
-	const collision::AABB otherStart = MakeColliderBox(other, oPos);
-	const glm::vec2 stepOther = mCollision.resolve(otherStart, otherDesired);
+	const float kLaneX = 1000.0f;
+	auto moveOtherWithBounce = [&](GameObject* obj, glm::vec3& pos, glm::vec2& vel) {
+		// Lock to vertical lane
+		pos.x = kLaneX;
 
-	oPos += glm::vec3(stepOther, 0.0f);
-	other->SetPosition(oPos);
+		const glm::vec2 desired = vel * physicsDt;
+		const collision::AABB start = MakeColliderBox(obj, pos);
+		const glm::vec2 allowed = mCollision.resolve(start, desired);
 
-	otherVelocity = (physicsDt > 0.0f) ? (stepOther / physicsDt) : glm::vec2{ 0.0f };
-	ClampInsideWalk(other, oPos);
-	other->SetPosition(oPos);
+		// Apply
+		pos += glm::vec3(allowed, 0.0f);
+		obj->SetPosition(pos);
 
-	// Dynamic vs Dynamic (STOP) - anti-push, world-safe
-	const float otherSpeed = glm::length(otherVelocity);
-	const float intentSpeed = glm::length(desiredMove) / std::max(physicsDt, 1e-6f);
-
-	constexpr float kIdle = 5.0f;
-	constexpr float kPushBiasIdle = 0.50f; // If you want stronger or weaker push, tweak this
-	constexpr float kPushBiasMoving = 0.50f;
-
-	float weightPlayer = (otherSpeed < kIdle && intentSpeed > 0.0f)
-		? kPushBiasIdle
-		: kPushBiasMoving;
-
-	const collision::AABB a = MakeColliderBox(player, pPos);
-	const collision::AABB b = MakeColliderBox(other, oPos);
-
-	glm::vec2 pushA, pushB;
-	if (collision::separateWeighted(a, b, weightPlayer, pushA, pushB)) {
-		// Other: make the other's separation (pushB) world-safe
-		const collision::AABB otherBoxForSeparation = MakeColliderBox(other, oPos);
-		const glm::vec2 otherSeparationAllowed = mCollision.resolve(otherBoxForSeparation, pushB);
-		const glm::vec2 otherSeparationBlocked = pushB - otherSeparationAllowed;
-
-		if (otherSeparationBlocked.x != 0.0f || otherSeparationBlocked.y != 0.0f) {
-			// Give the blocked portion to the player so the other never goes into walls
-			pushA += otherSeparationBlocked;
-			pushB = otherSeparationAllowed;
-
-			// Prevent immediate re-overlap in this frame
-			desiredMove = { 0.0f, 0.0f };
-			hasClickTarget = false;
+		// Bounce off walls: if a component was blocked this frame, flip that velocity component
+		if (physicsDt > 0.0f) {
+			const float eps = 1e-4f;
+			if (std::abs(allowed.x - desired.x) > eps) vel.x = -vel.x;
+			if (std::abs(allowed.y - desired.y) > eps) vel.y = -vel.y;
 		}
 
-		// Player: make the player's separation (pushA) world-safe
-		const collision::AABB playerBoxForSeparation = MakeColliderBox(player, pPos);
-		const glm::vec2 playerSeparationAllowed = mCollision.resolve(playerBoxForSeparation, pushA);
-		pushA = playerSeparationAllowed;
+		// Keep inferred velocity consistent (optional, useful for displays)
+		if (physicsDt > 0.0f) {
+			// If we bounced, allowed ≠ desired; keep magnitude from vel we just updated
+			// (No need to recompute from allowed.)
+		}
 
-		// Apply separation
-		pPos += glm::vec3(pushA, 0.0f);
-		oPos += glm::vec3(pushB, 0.0f);
-		player->SetPosition(pPos);
-		other->SetPosition(oPos);
+		// Clamp to walk area using collider
+		ClampInsideWalk(obj, pos);
+		pos.x = kLaneX;
+		obj->SetPosition(pos);
+		};
 
-		// Hard STOP
-		playerVelocity = { 0.0f, 0.0f };
-		otherVelocity = { 0.0f, 0.0f };
+	// Move both
+	moveOtherWithBounce(other1, o1Pos, other1Velocity);
+	moveOtherWithBounce(other2, o2Pos, other2Velocity);
 
-		// Epsilon safety: if still overlapping by a hair, nudge player out
+	// ---- Other1/Other2 elastic bounce (equal mass, robust normal) ----
+	{
+		collision::AABB a = MakeColliderBox(other1, o1Pos);
+		collision::AABB b = MakeColliderBox(other2, o2Pos);
 		glm::vec2 mtv;
-		if (collision::overlapMTV(MakeColliderBox(player, pPos),
-			MakeColliderBox(other, oPos), mtv)) {
-			pPos += glm::vec3(mtv * 1.001f, 0.0f);
-			player->SetPosition(pPos);
-		}
+		if (collision::overlapMTV(a, b, mtv)) {
+			// Separate them evenly by MTV (even if very small)
+			glm::vec2 half = 0.5f * mtv;
+			o1Pos += glm::vec3(+half, 0.0f);
+			o2Pos += glm::vec3(-half, 0.0f);
+			other1->SetPosition(o1Pos);
+			other2->SetPosition(o2Pos);
 
-		// Clamp other (collider-aware)
-		ClampInsideWalk(other, oPos);
-		other->SetPosition(oPos);
+			// --- Robust normal ---
+			glm::vec2 n;
+			float len = glm::length(mtv);
+			if (len > 1e-6f) {
+				n = mtv / len; // safe to normalize
+			}
+			else {
+				// Fallback: choose axis by relative centers or current motion.
+				glm::vec2 rel = glm::vec2(o1Pos.x - o2Pos.x, o1Pos.y - o2Pos.y);
+				if (std::abs(rel.y) >= std::abs(rel.x)) {
+					n = { 0.0f, (rel.y >= 0.0f ? 1.0f : -1.0f) };  // vertical
+				}
+				else {
+					n = { (rel.x >= 0.0f ? 1.0f : -1.0f), 0.0f };  // horizontal
+				}
+			}
+
+			// Swap normal components of velocity (perfectly elastic, equal mass)
+			float v1n = glm::dot(other1Velocity, n);
+			float v2n = glm::dot(other2Velocity, n);
+
+			glm::vec2 v1t = other1Velocity - v1n * n;
+			glm::vec2 v2t = other2Velocity - v2n * n;
+
+			// Exchange the normal components
+			other1Velocity = v1t + v2n * n;
+			other2Velocity = v2t + v1n * n;
+		}
 	}
+
+	auto playerVsOtherStop = [&](GameObject* otherObj, glm::vec3& otherPos, glm::vec2& otherVel) {
+		const float otherSpeed = glm::length(otherVel);
+		const float intentSpeed = (physicsDt > 0.0f)
+			? (glm::length(desiredMove) / physicsDt)
+			: 0.0f;
+
+		constexpr float kIdle = 5.0f;
+		constexpr float kPushBiasIdle = 0.50f;
+		constexpr float kPushBiasMoving = 0.50f;
+
+		float weightPlayer = (otherSpeed < kIdle && intentSpeed > 0.0f)
+			? kPushBiasIdle
+			: kPushBiasMoving;
+
+		const collision::AABB a = MakeColliderBox(player, pPos);
+		const collision::AABB b = MakeColliderBox(otherObj, otherPos);
+
+		glm::vec2 pushA, pushB;
+		if (collision::separateWeighted(a, b, weightPlayer, pushA, pushB)) {
+			// Other: world-safe correction
+			const collision::AABB otherBoxForSeparation = MakeColliderBox(otherObj, otherPos);
+			const glm::vec2 otherSeparationAllowed = mCollision.resolve(otherBoxForSeparation, pushB);
+			const glm::vec2 otherSeparationBlocked = pushB - otherSeparationAllowed;
+			if (otherSeparationBlocked.x != 0.0f || otherSeparationBlocked.y != 0.0f) {
+				pushA += otherSeparationBlocked;   // blocked portion → player
+				pushB = otherSeparationAllowed;
+				desiredMove = { 0.0f, 0.0f };
+				hasClickTarget = false;
+			}
+
+			// Player: world-safe correction
+			const collision::AABB playerBoxForSeparation = MakeColliderBox(player, pPos);
+			const glm::vec2 playerSeparationAllowed = mCollision.resolve(playerBoxForSeparation, pushA);
+			pushA = playerSeparationAllowed;
+
+			// Apply separation
+			pPos += glm::vec3(pushA, 0.0f);
+			otherPos += glm::vec3(pushB, 0.0f);
+			player->SetPosition(pPos);
+			otherObj->SetPosition(otherPos);
+
+			// STOP both
+			playerVelocity = { 0.0f, 0.0f };
+			otherVel = { 0.0f, 0.0f };
+
+			// Epsilon safety
+			glm::vec2 mtv;
+			if (collision::overlapMTV(MakeColliderBox(player, pPos),
+				MakeColliderBox(otherObj, otherPos), mtv)) {
+				pPos += glm::vec3(mtv * 1.001f, 0.0f);
+				player->SetPosition(pPos);
+			}
+
+			// Clamp other
+			ClampInsideWalk(otherObj, otherPos);
+			otherObj->SetPosition(otherPos);
+		}
+		};
+
+	// Run STOP vs both others
+	playerVsOtherStop(other1, o1Pos, other1Velocity);
+	playerVsOtherStop(other2, o2Pos, other2Velocity);
 
 	// Move player vs world + stuck guard
 	const collision::AABB startBox = MakeColliderBox(player, pPos);

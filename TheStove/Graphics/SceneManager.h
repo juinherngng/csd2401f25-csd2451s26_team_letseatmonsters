@@ -38,6 +38,7 @@ private:
 	int nextID = 1;	   // ID counter for GameObjects
 	int spriteID = -1; // Default invalid ID
 	int otherID = -1;
+	int otherID2 = -1;
 
 	// Per-object transforms
 	std::unordered_map<int, glm::vec3> spriteScales;
