@@ -11,6 +11,7 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 */
 
 #include "Core.hpp"
+#include "ImGuiDebugger.hpp"
 #include "GameStateManager.hpp"
 
 
@@ -43,7 +44,7 @@ namespace CoreFramework
 	}
 
 	// game loop is being called every frame in main in update()
-	void CoreEngine::GameLoop()
+	void CoreEngine::GameLoop(DebuggerApp& debugApp)
 	{
 		// add a currentTime variable to read system time
 		using clock = std::chrono::high_resolution_clock;
@@ -51,7 +52,6 @@ namespace CoreFramework
 		// this will store the time of the last frame
 		//auto lastTime = clock::now();
 
-		// gameloop is already updating every frame in main.cpp
 		/*while (gameActive)
 		{*/
 			// get the current time
@@ -64,17 +64,22 @@ namespace CoreFramework
 			gDt = elapsed.count();
 
 			// update all systems
-			for (auto* s : Systems)
+			for (unsigned i = 0; i < Systems.size(); i++)
 			{
-				auto sysStart = clock::now();
-				s->Update(gDt);
-
-				auto sysEnd = clock::now();
-				std::chrono::duration<float> sysElapsed = sysEnd - sysStart;
-				s->lastDt = sysElapsed.count();
+				Systems[i]->Update(gDt);
 			}
 
-			FlushMessages();
+			// update system performance %tages
+			UpdateSystemTimes(debugApp, gDt);
+
+			// render the debugger
+			//debugApp.RunDebuggerApp();
+
+			
+
+			// Prevents division by 0 on the first frame where gDt = 0
+			/*debugApp.fps = (smoothedDt > 0.f) ? (1.f / smoothedDt) : 0.f;
+			debugApp.msperFrame = (smoothedDt * 1000.0f);*/
 
 			// update lastUpdated to current time
 			lastTime = currentTime;
@@ -90,10 +95,11 @@ namespace CoreFramework
 		if (message->MessageId == MsgId::QUIT)
 			gameActive = false;
 
-		for (auto* s : Systems)
-		{
-			s->SendMessage(message);
-		}
+		//Send the message to every system--each
+		//system can figure out whether it cares
+		//about a given message or not
+		for (unsigned i = 0; i < Systems.size(); ++i)
+			Systems[i]->SendMessage(message);
 	}
 
 	void CoreEngine::AddSystem(SystemInterface* system)
@@ -107,15 +113,30 @@ namespace CoreFramework
 	{
 		std::cout << "DestroySystems called, system count: " << Systems.size() << std::endl;
 		//Delete all the systems in reverse order
-		for (size_t i = 0; i < Systems.size(); i++)
+		for (unsigned i = 0; i < Systems.size(); i++)
 		{
 			size_t index = Systems.size() - i - 1;
 			std::cout << "Deleted system: " << Systems[index]->GetName() << std::endl;
 
+			/*if (Systems[index]->GetName() == "GameStateManager")
+			{
+				static_cast<Framework::GameStateManager*>(Systems[index])->~GameStateManager();
+			}*/
 			delete Systems[index];
 		}
 
 		Systems.clear();
+	}
+
+	void CoreEngine::UpdateSystemTimes(DebuggerApp& debugApp, float totalDt)
+	{
+		debugApp.sysPerformance.clear();
+
+		for (auto& sys : Systems)
+		{
+			float percent = (totalDt > 0.0f) ? (sys->lastDt / totalDt) * 100.0f : 0.0f;
+			debugApp.sysPerformance.push_back({ sys->GetName(), percent });
+		}
 	}
 
 }

@@ -17,8 +17,7 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 #include <vector>
 
 #include "Precompiled.hpp"
-#include "Core.hpp"
-#include "AudioManager.hpp"
+//#include "Core.hpp"
 
 struct SystemPerformance
 {
@@ -33,57 +32,48 @@ enum class FPSMode
 	Capped
 };
 
-namespace Debug
+class DebuggerApp
 {
-	class DebuggerApp
-	{
-	public:
-		// Ctor
-		DebuggerApp();
+public:
+	// Ctor
+	DebuggerApp();
 
-		// Dtor
-		~DebuggerApp();
+	// Dtor
+	~DebuggerApp();
 
-		// Initializes the debugger app
-		bool InitializeDebuggerApp(GLFWwindow* externalWindow);
+	// Initializes the debugger app
+	bool InitializeDebuggerApp(GLFWwindow* externalWindow);
 
-		// Updates debugger state (logic, hotkeys, toggles)
-		void UpdateDebuggerApp();
+	// Updates debugger state (logic, hotkeys, toggles)
+	void UpdateDebuggerApp();
 
-		// Loads the ImGui window every frame
-		void RenderDebuggerApp();
+	// Loads the ImGui window every frame
+	void RenderDebuggerApp();
 
-		// Runs a full debugger frame (Update + Render)
-		void RunDebuggerApp();
+	// Runs a full debugger frame (Update + Render)
+	void RunDebuggerApp();
 
-		// Logs an error into a txt file as a crash error
-		void LogError(const std::string& errorMessage);
+	// Logs an error into a txt file as a crash error
+	void LogError(const std::string& errorMessage);
 
-		// Updates each systems %tage usage of the current engine
-		void UpdateSystemTimes(float loopTime);
+	// Called in CoreEngine per frame
+	//void UpdateSystemTimes(const std::vector<CoreFramework::SystemInterface*>& systems, float loopTime);
 
-		// Updates the list of playable audios
-		//void UpdateAudioList();
+	bool IsActive() const { return openedDebugger; }
 
-		bool IsActive() const { return openedDebugger; }
+public:
+	float fps = 0; // FPS 
+	float msperFrame = 0; // MS/frame
+	// Vector of SystemPerformance structs to store data for system performance
+	std::vector<SystemPerformance> sysPerformance;
 
-	public:
-		float fps = 0; // FPS 
-		float msperFrame = 0; // MS/frame
-		// Vector of SystemPerformance structs to store data for system performance
-		std::vector<SystemPerformance> sysPerformance;
+	// FPS control
+	FPSMode fpsMode = FPSMode::VSYNC; // By default
+private:
+	GLFWwindow* debugWindow; // The host window
+	bool openedDebugger; // Shows Whether debugger window is visible
+	bool isInitialised; // Shows if the debugger was initialised or not
 
-		// FPS control
-		FPSMode fpsMode = FPSMode::VSYNC; // By default
-	private:
-		GLFWwindow* debugWindow; // The host window
-		bool openedDebugger; // Shows Whether debugger window is visible
-		bool isInitialised; // Shows if the debugger was initialised or not
-
-		// Crash logging
-		std::ofstream crashlogFile; // The file stream to log errors to
-
-		// Audio Values
-		float bgm = 0.0f, vfx = 0.0f;
-	};
-}
+	// Crash logging
+	std::ofstream crashlogFile; // The file stream to log errors to
+};

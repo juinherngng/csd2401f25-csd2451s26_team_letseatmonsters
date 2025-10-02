@@ -41,8 +41,8 @@ namespace Framework {
 		void Initialize() override;
 		//Manager Update loop
 		void Update(float dt) override;
-		// Message handler
-		void SendMessage(CoreFramework::Message* msg) override;
+
+		void SendMessage(CoreFramework::Message* msg);
 
 		std::string GetName() override;
 

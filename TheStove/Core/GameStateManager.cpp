@@ -45,15 +45,7 @@ namespace Framework {
 	}
 
 	void GameStateManager::SendMessage(CoreFramework::Message* msg) {
-		// print out message for debugging purposes
-		switch (msg->MessageId)
-		{
-			case CoreFramework::MsgId::QUIT:
-				nextGS = GS_Quit;
-				break;
-			default:
-				break;
-		}
+		(void)msg; // Suppress unused parameter warning
 	}
 	//Get string of manager for debugging
 	std::string GameStateManager::GetName() {

@@ -102,24 +102,22 @@ public:
     /************************************************************************/
     /*!
     \brief
-	Loads a sound file from ResourceManager into the audio system.
+    Loads a sound file into the audio system.
     \param name
     The name to reference the sound.
     \param filepath
     The file path to the sound file.
     \param loop
     Whether the sound should loop.
-	\param stream
-	Whether to stream the sound from disk (true) or load it fully into memory (false).
     \return
     True if the sound was loaded successfully, false otherwise.
     */
     /************************************************************************/
-    bool LoadSound(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
+    bool LoadSound(std::string const& name, std::string const& filepath, bool loop = false);
     /************************************************************************/
     /*!
     \brief
-	Calls ResourceManager::Instance().UnloadAudio(name) to unload a sound.
+    Unloads a sound from the audio system.
     \param name
     The name of the sound to unload.
     */
@@ -131,7 +129,7 @@ public:
     /************************************************************************/
     /*!
     \brief
-	Plays a loaded sound from ResourceManager.
+    Plays a loaded sound.
     \param name
     The name of the sound to play.
     \param volume
@@ -227,27 +225,8 @@ public:
     /************************************************************************/
     void ApplySettings(ConfigManager::Settings const& settings);
 
-    /************************************************************************/
-    /*!
-    \brief
-	Gets the underlying FMOD system instance.
-    \return
-	Pointer to the FMOD::System instance.
-    */
-    /************************************************************************/
-	FMOD::System* GetSystem() const { return system; }
-
 private:
-    /************************************************************************/
-    /*!
-    \brief
-	Error handling for FMOD operations.
-	\param result
-	The FMOD_RESULT to check.
-	\param context
-	Contextual information for the error.
-    */
-    /************************************************************************/
+    // Error handling
     void CheckError(FMOD_RESULT result, std::string const& context);
 
     // FMOD System and resources

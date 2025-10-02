@@ -14,243 +14,161 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 
 #include "ImGuiDebugger.hpp"
 
-namespace Debug
+// Constructor
+DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, openedDebugger{ true }, isInitialised{ true }
 {
-	// Constructor
-	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, openedDebugger{ true }, isInitialised{ true }
-	{
-		crashlogFile.open("Debug_Log.txt", std::ios::app); // Set to append mode
+	crashlogFile.open("Debug_Log.txt", std::ios::app); // Set to append mode
 
-		if (crashlogFile.is_open())
-		{
-			crashlogFile << "---- Debugger Started ---- \n";
-		}
-		else
-		{
-			std::cerr << "Crash Log File was not opened!" << std::endl;
-		}
+	if (crashlogFile.is_open())
+	{
+		crashlogFile << "---- Debugger Started ---- \n";
+	}
+}
+
+
+// Destructor
+DebuggerApp::~DebuggerApp()
+{
+	// Close crashlog file
+	if (crashlogFile.is_open())
+	{
+		crashlogFile << " ---- Debugger closing ---- \n";
+		crashlogFile.close();
 	}
 
-
-	// Destructor
-	DebuggerApp::~DebuggerApp()
+	// Cleanup ImGui
+	if (isInitialised)
 	{
-		// Close crashlog file
-		if (crashlogFile.is_open())
-		{
-			crashlogFile << " ---- Debugger closing ---- \n";
-			crashlogFile.close();
-		}
-		else
-		{
-			std::cerr << "Crash Log File was not opened at start!" << std::endl;
-		}
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+	}
+}
 
-		// Cleanup ImGui
-		if (isInitialised)
-		{
-			ImGui_ImplOpenGL3_Shutdown();
-			ImGui_ImplGlfw_Shutdown();
-			ImGui::DestroyContext();
-		}
-		else
-		{
-			std::cerr << "Debugger was not initalised at start!" << std::endl;
-		}
+bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow)
+{
+	if (!glfwInit())
+	{
+		return false;
 	}
 
-	bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow)
+	debugWindow = externalWindow;
+	glfwMakeContextCurrent(debugWindow);
+
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
-		if (!glfwInit())
-		{
-			return false;
-		}
-
-		debugWindow = externalWindow;
-		glfwMakeContextCurrent(debugWindow);
-
-		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-		{
-			std::cerr << "Failed to initialize OpenGL context\n";
-			return false;
-		}
-
-		// Setup ImGui
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
-		ImGui::StyleColorsDark();
-
-		ImGui_ImplGlfw_InitForOpenGL(debugWindow, true);
-		ImGui_ImplOpenGL3_Init("#version 330");
-
-		isInitialised = true;
-		return true;
+		std::cerr << "Failed to initialize OpenGL context\n";
+		return false;
 	}
 
-	void DebuggerApp::UpdateDebuggerApp()
-	{
-		// Close the debugger if esc was pressed
-		if (ImGui::IsKeyPressed(ImGuiKey_Escape))
-		{
-			openedDebugger = !openedDebugger;
-		}
+	// Setup ImGui
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-		// update system performance %tages
-		UpdateSystemTimes(CoreFramework::gDt);
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplGlfw_InitForOpenGL(debugWindow, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
+
+	isInitialised = true;
+	return true;
+}
+
+void DebuggerApp::UpdateDebuggerApp()
+{
+	// Close the debugger if esc was pressed
+	if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+	{
+		openedDebugger = !openedDebugger;
+	}
+}
+
+void DebuggerApp::RenderDebuggerApp()
+{
+	if (!openedDebugger)
+	{
+		return;
 	}
 
-	void DebuggerApp::RenderDebuggerApp()
+	// Start ImGui frame
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	// Create my window
+	if (ImGui::Begin("Debug Infomation", &openedDebugger))
 	{
-		if (!openedDebugger)
+		static int selectedfpsMode = 0;
+		const char* fpsModes[] = { "Vsync", "Unlimited"};
+		int fpsmodeCount = IM_ARRAYSIZE(fpsModes);
+
+		ImGui::Text("----Frame Infomation----");
+		ImGui::Text("[Current FPS : %.1f FPS ] [ms/frame : %.1f ms]", fps, msperFrame);
+		if (ImGui::Combo("FPS Modes", &selectedfpsMode, fpsModes, fpsmodeCount))
 		{
-			return;
-		}
-
-		// Start ImGui frame
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-
-		// Create docking environment
-		//ImGuiWindowFlags windowFlags = ImGuiWIndowFlags_NoDocking;
-		
-		// Create my window
-		if (ImGui::Begin("Debug Infomation", &openedDebugger))
-		{
-			static int selectedfpsMode = 0;
-			const char* fpsModes[] = { "Vsync", "Unlimited" };
-			int fpsmodeCount = IM_ARRAYSIZE(fpsModes);
-
-			ImGui::Text("----Frame Infomation----");
-			ImGui::Text("[Current FPS : %.1f FPS ] [ms/frame : %.1f ms]", fps, msperFrame);
-			if (ImGui::Combo("FPS Modes", &selectedfpsMode, fpsModes, fpsmodeCount))
+			if (selectedfpsMode == 0)
 			{
-				if (selectedfpsMode == 0)
-				{
-					fpsMode = FPSMode::VSYNC;
-					glfwSwapInterval(1); // Enables VSYNC
-				}
-				else if (selectedfpsMode == 1)
-				{
-					fpsMode = FPSMode::Unlimited;
-					glfwSwapInterval(0); // Unlimited FPS based on device
-				}
+				fpsMode = FPSMode::VSYNC;
+				glfwSwapInterval(1); // Enables VSYNC
 			}
-
-			ImGui::Text("----System Usage Infomation----");
-			for (auto& performance : sysPerformance)
+			else if (selectedfpsMode == 1)
 			{
-				ImGui::Text("%s: %1.f%%", performance.name.c_str(), performance.percentageOf);
-			}
-
-			ImGui::Text("----Render Infomation----");
-			ImGui::Text("Squares rendered: ");
-			ImGui::Text("Sprites rendered: ");
-
-			ImGui::Text("---- Audio ----");
-			if (ImGui::Button("Play: boiling sound"))
-			{
-				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
-				{
-					// test play audio
-					bgm = audioMgr->GetBgmVolume();
-					audioMgr->PlaySound("boiling sound", bgm, false);
-					std::cout << "Playing 'boiling sound'\n";
-				}
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Play: background music"))
-			{
-				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
-				{
-					// test play audio
-					bgm = audioMgr->GetBgmVolume();
-					audioMgr->PlaySound("background music", bgm, false);
-					std::cout << "Playing 'background music'\n";
-				}
-			}
-
-			if (ImGui::Button("Stop boiling sound"))
-			{
-				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
-				{
-					// test stopping audio
-					audioMgr->StopSound("boiling sound");
-				}
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Stop background music"))
-			{
-				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
-				{
-					// test stopping audio
-					audioMgr->StopSound("background music");
-				}
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Stop all audio"))
-			{
-				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
-				{
-					// test stopping audio
-					audioMgr->StopAllSounds();
-				}
+				fpsMode = FPSMode::Unlimited;
+				glfwSwapInterval(0); // Unlimited FPS based on device
 			}
 		}
 
-		ImGui::End();
-
-		// Render in my ImGui
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-	}
-
-	// Currently not in use
-	void DebuggerApp::RunDebuggerApp()
-	{
-
-		UpdateDebuggerApp(); // Checks for updates done in the window
-		RenderDebuggerApp(); // Loads the ImGui window every frame
-	}
-
-	void DebuggerApp::LogError(const std::string& errorMessage)
-	{
-		if (crashlogFile.is_open())
+		ImGui::Text("----System Usage Infomation----");
+		for (auto& performance : sysPerformance)
 		{
-			// Setting the timestamp of when the error occurred
-			std::time_t now = std::time(nullptr);
-			char buffer[64];
-			// Turns time_t into readable C-string of time in the format
-			// weekday, month, day of month, local-time(24HR), year
-			ctime_s(buffer, sizeof(buffer), &now);
-			buffer[strcspn(buffer, "\n")] = 0; // Remove the newline
+			ImGui::Text("%s: %1.f%%", performance.name.c_str(), performance.percentageOf);
+		}
 
-			crashlogFile << "[" << buffer << "] " << errorMessage << "\n";
-			crashlogFile.flush();
+		ImGui::Text("----Render Infomation----");
+		ImGui::Text("Squares rendered: ");
+		ImGui::Text("Sprites rendered: ");
+
+		if (ImGui::Button("Update TileMap"))
+		{
+			// Update tilemap
+		}
+
+		if (ImGui::Button("Play Sound"))
+		{
+			// Play sound
 		}
 	}
 
-	void DebuggerApp::UpdateSystemTimes(float totalDt)
+	ImGui::End();
+
+	// Render in my ImGui
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+}
+
+void DebuggerApp::RunDebuggerApp()
+{
+
+	UpdateDebuggerApp(); // Checks for updates done in the window
+	RenderDebuggerApp(); // Loads the ImGui window every frame
+}
+
+void DebuggerApp::LogError(const std::string& errorMessage)
+{
+	if (crashlogFile.is_open())
 	{
-		sysPerformance.clear();
+		// Setting the timestamp of when the error occurred
+		std::time_t now = std::time(nullptr);
+		char buffer[64];
+		// Turns time_t into readable C-string of time in the format
+		// weekday, month, day of month, local-time(24HR), year
+		ctime_s(buffer, sizeof(buffer), &now);
+		buffer[strcspn(buffer, "\n")] = 0; // Remove the newline
 
-		// Access the actual systems vector from the global engine in main
-		const auto& systems = CoreFramework::CORE->GetSystems();
-
-		// For each system found in systems, record down their name and %tage usage of the current engine
-		for (auto& sys : systems)
-		{
-			float percent = (totalDt > 0.0f) ? (sys->lastDt / totalDt) * 100.0f : 0.0f;
-			sysPerformance.push_back({ sys->GetName(), percent });
-		}
+		crashlogFile << "[" << buffer << "] " << errorMessage << "\n";
+		crashlogFile.flush();
 	}
-
-	/*void DebuggerApp::UpdateAudioList()
-	{
-		const auto& audios = AudioManager::
-	}*/
 }
