@@ -11,7 +11,6 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 */
 
 #include "Core.hpp"
-#include "ImGuiDebugger.hpp"
 #include "GameStateManager.hpp"
 
 
@@ -40,7 +39,7 @@ namespace CoreFramework
 	}
 
 	// game loop is being called every frame in main in update()
-	void CoreEngine::GameLoop(DebuggerApp& debugApp)
+	void CoreEngine::GameLoop()
 	{
 		// add a currentTime variable to read system time
 		using clock = std::chrono::high_resolution_clock;
@@ -67,17 +66,15 @@ namespace CoreFramework
 
 		FlushMessages();	// process any queued messages
 
-		// update system performance %tages
-		UpdateSystemTimes(debugApp, gDt);
-
 		// update lastUpdated to current time
 		lastTime = currentTime;
+		//}
 	}
 
 	void CoreEngine::BroadcastMessage(Message *message)
 	{
 		// print out message for debugging purposes
-		std::cout << "CoreEngine broadcasting message " << MsgIdToString(message->MessageId) << std::endl;
+		//std::cout << "CoreEngine broadcasting message " << MsgIdToString(message->MessageId) << std::endl;
 
 		//The message that tells the game to quit
 		if (message->MessageId == MsgId::QUIT)
@@ -109,19 +106,6 @@ namespace CoreFramework
 		}
 
 		Systems.clear();
-	}
-
-	void CoreEngine::UpdateSystemTimes(DebuggerApp& debugApp, float totalDt)
-	{
-		// clear previous data
-		debugApp.sysPerformance.clear();
-
-		// calculate each system's percentage of total dt
-		for (auto& sys : Systems)
-		{
-			float percent = (totalDt > 0.f) ? (sys->lastDt / totalDt) * 100.f : 0.f;
-			debugApp.sysPerformance.push_back({ sys->GetName(), percent });
-		}
 	}
 
 }

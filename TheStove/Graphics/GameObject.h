@@ -7,7 +7,7 @@
 
  DESCRIPTION:		Represents a renderable game object with mesh, shader, texture, transform, and collider.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -51,7 +51,7 @@ public:
 	 */
 	GameObject(int objectID);
 
-	/** @brief Get the GameObject’s unique ID. */
+	/** @brief Get the GameObjectï¿½s unique ID. */
 	int GetID() const;
 
 	/**
@@ -81,22 +81,14 @@ public:
 
 	/** @brief Recompute the model matrix based on position/rotation/scale. */
 	void UpdateModelMatrix();
-
-	/**
-	 * @brief Render the object with its current mesh, shader, and texture.
-	 * @param viewMatrix       Camera view matrix.
-	 * @param projectionMatrix Camera projection matrix.
-	 */
-	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
-
-	/** @brief Assign a texture to this object. */
+	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const;
 	void SetTexture(Texture* tex) { m_Texture = tex; }
 
 	// Collider handling
-	/** @brief Set the collider’s full size (width/height). */
+	/** @brief Set the colliderï¿½s full size (width/height). */
 	void SetColliderSize(const glm::vec2& size) { m_ColliderSize = size; }
 
-	/** @brief Set the collider’s positional offset relative to object center. */
+	/** @brief Set the colliderï¿½s positional offset relative to object center. */
 	void SetColliderOffset(const glm::vec2& offs) { m_ColliderOffset = offs; }
 
 	/** @brief Get the collider size. */
@@ -106,7 +98,7 @@ public:
 	glm::vec2 GetColliderOffset() const { return m_ColliderOffset; }
 
 	/**
-	 * @brief Draw the collider’s bounding box for debugging.
+	 * @brief Draw the colliderï¿½s bounding box for debugging.
 	 * @param view  Camera view matrix.
 	 * @param proj  Camera projection matrix.
 	 * @param color Debug line color (default = red).

@@ -6,14 +6,13 @@ AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
 
 DESCRIPTION:		The core engine managing the game loop and systems.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
 
 #include "System.hpp"
-#include "ImGuiDebugger.hpp"
 
 #include <vector>
 #include <chrono>
@@ -53,7 +52,7 @@ namespace CoreFramework
 			flushes queued messages, and records performance statistics.
 		*/
 		/************************************************************************/
-		void GameLoop(DebuggerApp& debugApp);
+		void GameLoop();
 
 		/************************************************************************/
 		/*!
@@ -103,18 +102,8 @@ namespace CoreFramework
 		/************************************************************************/
 		float GetFPS() const { return fps; }
 
-		/************************************************************************/
-		/*!
-		\brief
-			Calculates the percentage of total frame time each system consumed and
-			populates the debugger performance list.
-		\param debugApp
-			Debugger instance to populate.
-		\param totalDt
-			Delta time of the last frame.
-		*/
-		/************************************************************************/
-		void UpdateSystemTimes(DebuggerApp& debugApp, float totalDt);
+		// Accessor to Read-Only values of Systems
+		const std::vector<SystemInterface*>& GetSystems() const { return Systems; }
 
 		/************************************************************************/
 		/*!

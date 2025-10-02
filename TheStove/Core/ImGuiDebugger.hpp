@@ -15,9 +15,13 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <streambuf>
+#include <ostream>
+#include <string>
 
 #include "Precompiled.hpp"
-//#include "Core.hpp"
+#include "Core.hpp"
+#include "AudioManager.hpp"
 
 struct SystemPerformance
 {
@@ -32,48 +36,66 @@ enum class FPSMode
 	Capped
 };
 
-class DebuggerApp
+namespace Debug
 {
-public:
-	// Ctor
-	DebuggerApp();
+	class DebuggerApp
+	{
+	public:
+		// Ctor
+		DebuggerApp();
 
-	// Dtor
-	~DebuggerApp();
+		// Dtor
+		~DebuggerApp();
 
-	// Initializes the debugger app
-	bool InitializeDebuggerApp(GLFWwindow* externalWindow);
+		//Shutdown
+		void Shutdown();
 
-	// Updates debugger state (logic, hotkeys, toggles)
-	void UpdateDebuggerApp();
+		// Initializes the debugger app
+		bool InitializeDebuggerApp(GLFWwindow* externalWindow);
 
-	// Loads the ImGui window every frame
-	void RenderDebuggerApp();
+		// Updates debugger state (logic, hotkeys, toggles)
+		void UpdateDebuggerApp();
 
-	// Runs a full debugger frame (Update + Render)
-	void RunDebuggerApp();
+		// Loads the ImGui window every frame
+		void RenderDebuggerApp();
 
-	// Logs an error into a txt file as a crash error
-	void LogError(const std::string& errorMessage);
+		// Runs a full debugger frame (Update + Render)
+		void RunDebuggerApp();
 
-	// Called in CoreEngine per frame
-	//void UpdateSystemTimes(const std::vector<CoreFramework::SystemInterface*>& systems, float loopTime);
+		// Logs an error into a txt file as a crash error
+		void LogError(const std::string& errorMessage);
 
-	bool IsActive() const { return openedDebugger; }
+		// Updates each systems %tage usage of the current engine
+		void UpdateSystemTimes(float loopTime);
 
-public:
-	float fps = 0; // FPS 
-	float msperFrame = 0; // MS/frame
-	// Vector of SystemPerformance structs to store data for system performance
-	std::vector<SystemPerformance> sysPerformance;
+		bool IsActive() const { return openedDebugger; }
 
-	// FPS control
-	FPSMode fpsMode = FPSMode::VSYNC; // By default
-private:
-	GLFWwindow* debugWindow; // The host window
-	bool openedDebugger; // Shows Whether debugger window is visible
-	bool isInitialised; // Shows if the debugger was initialised or not
+		void AddDebugLine(const std::string& txt);
 
-	// Crash logging
-	std::ofstream crashlogFile; // The file stream to log errors to
-};
+		void ClearDebugLog();
+
+		void ShowDebugLog();
+
+	public:
+		float fps = 0; // FPS 
+		float msperFrame = 0; // MS/frame
+		// Vector of SystemPerformance structs to store data for system performance
+		std::vector<SystemPerformance> sysPerformance;
+
+		// FPS control
+		FPSMode fpsMode = FPSMode::VSYNC; // By default
+
+		bool openedDebugger; // Shows Whether debugger window is visible
+
+		std::vector<std::string> debuglines;
+	private:
+		GLFWwindow* debugWindow; // The host window
+		bool isInitialised; // Shows if the debugger was initialised or not
+
+		// Crash logging
+		std::ofstream crashlogFile; // The file stream to log errors to
+
+		// Audio Values
+		float bgm = 0.0f, vfx = 0.0f;
+	};
+}
