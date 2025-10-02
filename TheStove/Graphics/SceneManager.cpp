@@ -43,63 +43,40 @@ void Scene::LoadScene(const std::string& sceneName) {
 	LoadTest();
 }
 
-GameObject* Scene::SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation) {
-	// Load resources
-	Mesh* mesh = ResourceManager::Instance().GetMesh("triangle");
-	Shader* shader = ResourceManager::Instance().GetShader("basic");
-	if (!mesh || !shader) { std::cerr << "Missing resources for triangle\n"; return nullptr; }
-	auto obj = std::make_unique<GameObject>(mesh, shader);
-	obj->SetID(nextID++);
-	obj->SetPosition(position);
-	obj->SetScale(scale);
-	obj->SetRotation(glm::radians(rotation), glm::vec3(0, 0, 1));
-	GameObject* raw = obj.get();
-	sceneObjects.push_back(std::move(obj));
-	return raw;
+// Spawners/background/lookup
+GameObject* Scene::SpawnTriangle(const glm::vec3& position, const glm::vec3& scale, float rotation) {
+	GameObject* obj = graphicsEngine.CreateGameObject("triangle", "basic");
+	if (obj) {
+		obj->SetPosition(position);
+		obj->SetScale(scale);
+		obj->SetRotation(glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+		sceneObjects.push_back(std::unique_ptr<GameObject>(obj));
+	}
+	return obj;
 }
 
-GameObject* Scene::SpawnStaticSprite(const std::string& texturePath, const glm::vec3 position, const glm::vec2 size) {
-	// Load resources
-	std::string textureName = "sprite_" + texturePath;
-	Texture* spriteTex = ResourceManager::Instance().LoadTexture(textureName, texturePath);
-	Mesh* mesh = ResourceManager::Instance().GetMesh("sprite");
-	Shader* shader = ResourceManager::Instance().GetShader("staticsprite");
-	if (!spriteTex || !mesh || !shader) { std::cerr << "Missing resources for static sprite\n"; return nullptr; }
+GameObject* Scene::SpawnSprite(const std::string& texturePath, const glm::vec3& position, const glm::vec2& size) {
+	// Load sprite texture if not already loaded
+	std::string textureName = "sprite_" + texturePath; // Simple naming scheme
+	Texture* spriteTexture = ResourceManager::Instance().LoadTexture(textureName, texturePath);
 
-	auto obj = std::make_unique<GameObject>(mesh, shader);
-	obj->SetID(nextID++);
-	obj->SetPosition(position);
-	obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
-	obj->SetTexture(spriteTex);
-	GameObject* raw = obj.get();
-	sceneObjects.push_back(std::move(obj));
-	return raw;
+	if (!spriteTexture) {
+		std::cerr << "Failed to load sprite texture: " << texturePath << std::endl;
+		return nullptr;
+	}
+
+	// Create sprite game object with unique ID
+	GameObject* obj = graphicsEngine.CreateGameObject("sprite", "sprite");
+	if (obj) {
+		obj->SetID(nextID++);
+		obj->SetPosition(position);
+		obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
+		obj->SetTexture(spriteTexture);
+		sceneObjects.push_back(std::unique_ptr<GameObject>(obj));
+	}
+
+	return obj;
 }
-
-GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath, const glm::vec3 position, const glm::vec2 size,
-	const std::vector<glm::vec4> frames, float frameDuration, bool loop) {
-	// Load resources
-	std::string textureName = "sprite_" + texturePath;
-	Texture* spriteTex = ResourceManager::Instance().LoadTexture(textureName, texturePath);
-	Mesh* mesh = ResourceManager::Instance().GetMesh("sprite");
-	Shader* shader = ResourceManager::Instance().GetShader("animatedsprite");
-	if (!spriteTex || !mesh || !shader) { std::cerr << "Missing resources for animated sprite\n"; return nullptr; }
-
-	auto obj = std::make_unique<GameObject>(mesh, shader);
-	obj->SetID(nextID++);
-	obj->SetPosition(position);
-	obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
-	obj->SetTexture(spriteTex);
-	GameObject* raw = obj.get();
-	sceneObjects.push_back(std::move(obj));
-
-	Animator2D animator;
-	animator.SetFrames(frames, frameDuration, loop);
-	animator.Play();
-	animators[raw->GetID()] = animator;
-	return raw;
-}
-
 
 void Scene::SetSceneBackground(const std::string& texturePath) {
 	graphicsEngine.SetBackground(texturePath);
@@ -113,30 +90,7 @@ GameObject* Scene::GetGameObjectByID(int targetID) {
 	return nullptr; // Not found
 }
 
-void Scene::DespawnByID(int targetID) {
-	// Remove anim state first
-	animators.erase(targetID);
-	objectAnimations.erase(targetID);
-	currentAnimation.erase(targetID);
-
-	sceneObjects.erase(
-		std::remove_if(sceneObjects.begin(), sceneObjects.end(),
-			[targetID](const std::unique_ptr<GameObject>& up) {
-				return up && up->GetID() == targetID;
-			}),
-		sceneObjects.end()
-	);
-}
-
-void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) const {
-	out.clear();
-	out.reserve(sceneObjects.size());
-	for (const auto& up : sceneObjects) {
-		if (up) out.push_back(up.get());
-	}
-}
-
-// Build level colliders (rim, divider, gate) into the collision world.
+// World build
 void Scene::BuildLevelColliders() {
 	collision::WalkArea walk{
 		kWalkL, kWalkR,
@@ -457,17 +411,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 	}
 
-	// Optional overall clamp to screen bounds (kept for safety)
-	position.x = glm::clamp(position.x, 0.0f, 1200.0f);
-	position.y = glm::clamp(position.y, 0.0f, 800.0f);
-
-	// Push transforms back to the GameObject for rendering
-	sprite->SetScale(scale);
-	sprite->SetRotation(rotation, glm::vec3(0, 0, 1));
-	sprite->SetPosition(position);
-
-	graphicsEngine.BeginFrame();
-	std::vector<GameObject*> drawList;
-	CollectRenderablePointers(drawList);
-	graphicsEngine.Render(drawList);
+	// Final clamps + transforms
+	pPos.x = std::clamp(pPos.x, 0.0f, kWorldW);
+	pPos.y = std::clamp(pPos.y, 0.0f, kWorldH);
+	player->SetScale(scale);
+	player->SetRotation(rotation, glm::vec3(0, 0, 1));
+	player->SetPosition(pPos);
 }

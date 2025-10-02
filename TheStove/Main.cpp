@@ -1,7 +1,6 @@
 #include <iostream>
 #include <crtdbg.h>
 #include <algorithm>
-#include "vld.h"
 
 #include "Graphics/GraphicsEngine.h"
 #include "Graphics/SceneManager.h"
@@ -238,11 +237,8 @@ static void update() {
 }
 
 static void draw() {
-    static std::vector<GameObject*> drawList;
     engine.BeginFrame();
-    drawList.clear();
-    currentScene->CollectRenderablePointers(drawList);
-    engine.Render(drawList);
+    engine.Render();
 
     if (debugapp.IsActive())
     {
@@ -256,7 +252,6 @@ static void draw() {
 void cleanup() {
     engine.Shutdown();
     debugapp.Shutdown();
-    
     if (currentScene)
     {
         delete currentScene;

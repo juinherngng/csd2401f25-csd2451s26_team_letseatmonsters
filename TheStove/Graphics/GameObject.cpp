@@ -49,7 +49,7 @@ void GameObject::UpdateModelMatrix() {
 		* glm::scale(glm::mat4(1.0f), m_Scale);
 }
 
-void GameObject::Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const {
+void GameObject::Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
 	if (!m_Shader || !m_Mesh) {
 		std::cerr << "GameObject: Missing shader or mesh!" << std::endl;
 		return;

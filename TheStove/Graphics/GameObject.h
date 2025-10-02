@@ -27,7 +27,7 @@ public:
 	void SetRotation(float angleRadians, const glm::vec3& axis);
 
 	void UpdateModelMatrix();
-	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const;
+	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void SetTexture(Texture* tex) { m_Texture = tex; }
 
 	// Collider handling
