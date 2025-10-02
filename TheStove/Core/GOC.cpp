@@ -80,3 +80,21 @@ T* GOC::AddComponent(Args&&... args)
 	m_components[typeid(T)] = component;
 	return component;
 }
+
+GOC* GOC::Clone() const
+{
+	GOC* clone = new GOC();
+	for (auto& c : m_components)
+	{
+		GameComponent* copy = c.second->Clone();
+		copy->SetOwner(clone);
+		clone->m_components[c.first] = copy;
+	}
+	if (FACTORY)
+	{
+		FACTORY->IdGameObject(clone);
+		FACTORY->AddDestroy(clone);
+	}
+	clone->name = this->name + " clone";
+	return clone;
+}

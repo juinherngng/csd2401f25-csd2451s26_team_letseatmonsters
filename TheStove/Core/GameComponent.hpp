@@ -100,9 +100,12 @@ public:
 	//dtor
 	virtual ~GameComponent() {};
 
-private:
+	//Cloning GameObject component
+	virtual GameComponent* Clone() const = 0;
+
 	//Which Gameobject this Component belong to
 	GOC* m_owner = nullptr;
+private:
 	//is this Component enabled?
 	bool enabled = true;
 	//Start is only called once

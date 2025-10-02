@@ -70,6 +70,8 @@ public:
 	template <typename T, typename ... Args>
 	T* AddComponent(Args&&... args);
 
+	GOC* Clone() const;
+
 	//Remove Component
 	template <typename T>
 	void RemoveComponent()

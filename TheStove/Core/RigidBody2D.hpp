@@ -34,9 +34,12 @@ public:
 
 	Math::Vector2D const GetVelocity() const;
 	Math::Vector2D const GetAcceleration() const;
+	bool const GetUseGravity() const;
 
 	void AddForce(const Math::Vector2D&);
 	void SetVelocity(const Math::Vector2D&);
+	void SetAcceleration(const Math::Vector2D&);
+	void SetUseGravity(const bool);
 	void Stop();
 
 	std::string ToString() const override;
@@ -45,6 +48,8 @@ public:
 	{
 		std::cout << "Deleting RigidBody2D's component " << "\n";
 	}
+
+	GameComponent* Clone() const override;
 
 private:
 	Math::Vector2D velocity;

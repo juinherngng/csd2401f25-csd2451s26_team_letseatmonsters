@@ -103,5 +103,8 @@ void Transform::OnDisable()
 	}
 }
 
-
+GameComponent* Transform::Clone() const
+{
+	return new Transform(*this);
+}
 

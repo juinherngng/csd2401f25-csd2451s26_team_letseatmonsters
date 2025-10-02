@@ -78,6 +78,9 @@ public:
 		std::cout << "Deleting Transform's component " << "\n";
 	}
 
+	GameComponent* Clone() const override;
+
+
 private:
 	Math::Vector2D position;
 	float rotation;
