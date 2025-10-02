@@ -35,6 +35,11 @@ static constexpr float kEndVGapMaxY = 500.0f;
 static constexpr float kEndVBotMinY = 500.0f;
 static constexpr float kEndVBotMaxY = 700.0f;
 
+// Physics step-by-step debug
+static bool gPhysicsStepMode = false; // toggle ON/OFF
+static int gStepsQueued = 0;          // how many single steps to run
+static float gStepDt = 1.0f / 60.0f;  // fixed dt for each step
+
 // Small helpers (internal)
 static inline bool PointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale) {
 	const float hx = scale.x * 0.5f;
@@ -194,6 +199,67 @@ void Scene::LoadTest() {
 void Scene::Update(float deltaTime, GLFWwindow* window) {
 	inputManager.Update(window);
 
+	// Physics step-by-step controls 
+	static bool prevToggle = false;											// P key
+	static bool prevStep = false;											// O key
+	static bool prevW = false, prevA = false, prevS = false, prevD = false; // WASD
+
+	// Read current inputs (this frame)
+	bool toggleNow = inputManager.IsKeyPressed(GLFW_KEY_P);
+	bool stepNow = inputManager.IsKeyPressed(GLFW_KEY_O);
+	bool wNow = inputManager.IsKeyPressed(GLFW_KEY_W);
+	bool aNow = inputManager.IsKeyPressed(GLFW_KEY_A);
+	bool sNow = inputManager.IsKeyPressed(GLFW_KEY_S);
+	bool dNow = inputManager.IsKeyPressed(GLFW_KEY_D);
+
+	// Toggle step mode on P
+	if (toggleNow && !prevToggle) {
+		gPhysicsStepMode = !gPhysicsStepMode;
+		std::cout << "[Physics] Step mode " << (gPhysicsStepMode ? "ON" : "OFF") << "\n";
+	}
+
+	// Queue one step on O (edge) when step mode is ON
+	if (gPhysicsStepMode && stepNow && !prevStep) {
+		++gStepsQueued;
+		std::cout << "[Physics] Queued 1 step (" << gStepsQueued << ")\n";
+	}
+
+	// Queue one step per left click when step mode is ON (edge from your input manager)
+	if (gPhysicsStepMode && inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+		++gStepsQueued;
+		std::cout << "[Physics] Step from mouse click\n";
+	}
+
+	// Queue one step on WASD key-down edge (any of them) when step mode is ON
+	if (gPhysicsStepMode) {
+		bool anyDownEdge =
+			(wNow && !prevW) ||
+			(aNow && !prevA) ||
+			(sNow && !prevS) ||
+			(dNow && !prevD);
+
+		if (anyDownEdge) {
+			++gStepsQueued;
+			std::cout << "[Physics] Step from WASD press\n";
+		}
+	}
+
+	// Update edge-state after queuing so we detect edges correctly next frame
+	prevToggle = toggleNow;
+	prevStep = stepNow;
+	prevW = wNow; prevA = aNow; prevS = sNow; prevD = dNow;
+
+	// Resolve the dt to use for physics this frame, then consume one queued step
+	const float physicsDt =
+		gPhysicsStepMode
+		? (gStepsQueued > 0 ? gStepDt : 0.0f)
+		: deltaTime;
+
+	// Run exactly one physics slice this frame
+	if (gPhysicsStepMode && physicsDt > 0.0f) {
+		--gStepsQueued;
+	}
+
 	if (spriteID < 0) return;
 	GameObject* player = GetGameObjectByID(spriteID);
 	GameObject* other = GetGameObjectByID(otherID);
@@ -245,7 +311,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Keyboard movement + facing textures
-	const float movePerFrame = 200.0f * deltaTime; // displacement this frame
+	const float movePerFrame = 200.0f * physicsDt; // displacement this frame
 	if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
 		player->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
 		desiredMove.y -= movePerFrame; // up
@@ -346,27 +412,27 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 
 		if (dist > 0.0f) {
-			const float maxStep = playerSpeed * deltaTime;
+			const float maxStep = playerSpeed * physicsDt;
 			const glm::vec2 step = (dist <= maxStep) ? toTarget : (toTarget / dist) * maxStep;
 			desiredMove += step;
 		}
 	}
 
 	// Move other vs world + clamp
-	const glm::vec2 otherDesired = otherVelocity * deltaTime; // displacement
+	const glm::vec2 otherDesired = otherVelocity * physicsDt; // displacement
 	const collision::AABB otherStart = MakeColliderBox(other, oPos);
 	const glm::vec2 stepOther = mCollision.resolve(otherStart, otherDesired);
 
 	oPos += glm::vec3(stepOther, 0.0f);
 	other->SetPosition(oPos);
 
-	otherVelocity = (deltaTime > 0.0f) ? (stepOther / deltaTime) : glm::vec2{ 0.0f };
+	otherVelocity = (physicsDt > 0.0f) ? (stepOther / physicsDt) : glm::vec2{ 0.0f };
 	ClampInsideWalk(other, oPos);
 	other->SetPosition(oPos);
 
 	// Dynamic vs Dynamic (STOP) - anti-push, world-safe
 	const float otherSpeed = glm::length(otherVelocity);
-	const float intentSpeed = glm::length(desiredMove) / std::max(deltaTime, 1e-6f);
+	const float intentSpeed = glm::length(desiredMove) / std::max(physicsDt, 1e-6f);
 
 	constexpr float kIdle = 5.0f;
 	constexpr float kPushBiasIdle = 0.50f; // If you want stronger or weaker push, tweak this
@@ -432,7 +498,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	pPos.x += stepPlayer.x; pPos.y += stepPlayer.y;
 	player->SetPosition(pPos);
 
-	playerVelocity = (deltaTime > 0.0f) ? (stepPlayer / deltaTime) : glm::vec2{ 0.0f };
+	playerVelocity = (physicsDt > 0.0f) ? (stepPlayer / physicsDt) : glm::vec2{ 0.0f };
 
 	if (playerSelected && hasClickTarget) {
 		const float intended = glm::length(desiredMove);
