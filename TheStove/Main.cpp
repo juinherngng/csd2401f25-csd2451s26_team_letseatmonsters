@@ -21,6 +21,8 @@ static void update();
 static bool init(GLint width, GLint height, std::string title, bool fullscreen);
 static void cleanup();
 
+static AudioManager audioManager;
+static Framework::GameStateManager GSM;
 static GraphicsEngine engine;
 static Scene* currentScene = nullptr;
 static GLFWwindow* window = nullptr;
@@ -181,8 +183,8 @@ static bool init(GLint width, GLint height, std::string title, bool fullscreen) 
         return false;
     }
 
-    coreEngine.AddSystem(new AudioManager());
-    coreEngine.AddSystem(new Framework::GameStateManager());
+    coreEngine.AddSystem(&audioManager);
+    coreEngine.AddSystem(&GSM);
 
     coreEngine.Initialize();
     engine.Initialize();

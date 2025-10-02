@@ -151,7 +151,7 @@ namespace Debug
 			ImGui::Text("Sprites rendered: ");
 
 			ImGui::Text("---- Audio ----");
-			if (ImGui::Button("Play 'boiling sound'"))
+			if (ImGui::Button("Play: boiling sound"))
 			{
 				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
 				{
@@ -162,10 +162,42 @@ namespace Debug
 				}
 			}
 			ImGui::SameLine();
-
-			if (ImGui::Button("Stop Sound"))
+			if (ImGui::Button("Play: background music"))
 			{
-				// Play sound
+				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
+				{
+					// test play audio
+					bgm = audioMgr->GetBgmVolume();
+					audioMgr->PlaySound("background music", bgm, false);
+					std::cout << "Playing 'background music'\n";
+				}
+			}
+
+			if (ImGui::Button("Stop boiling sound"))
+			{
+				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
+				{
+					// test stopping audio
+					audioMgr->StopSound("boiling sound");
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Stop background music"))
+			{
+				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
+				{
+					// test stopping audio
+					audioMgr->StopSound("background music");
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Stop all audio"))
+			{
+				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
+				{
+					// test stopping audio
+					audioMgr->StopAllSounds();
+				}
 			}
 		}
 

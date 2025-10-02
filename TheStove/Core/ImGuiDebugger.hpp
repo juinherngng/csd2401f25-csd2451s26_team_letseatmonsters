@@ -85,7 +85,5 @@ namespace Debug
 
 		// Audio Values
 		float bgm = 0.0f, vfx = 0.0f;
-
-
 	};
 }

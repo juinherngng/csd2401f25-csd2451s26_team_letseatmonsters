@@ -49,6 +49,26 @@ void AudioManager::Initialize()
 				std::cerr << "Failed to get audio info for 'boiling sound'\n";
 			}
 		}
+
+		auto* snd1 = rm.LoadAudio("background music", "../assets/Audio/bgm.wav", true, true);
+		if (!snd1)
+		{
+			std::cerr << "Failed to load audio 'background music'\n";
+		}
+		else
+		{
+			unsigned int lenMs = 0;
+			int ch = 0, bits = 0;
+			float freq = 0;
+			if (rm.GetAudioInfo("background music", lenMs, ch, bits, freq))
+			{
+				std::cout << "Audio 'background music' info - Length: " << lenMs << " ms, Channels: " << ch << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
+			}
+			else
+			{
+				std::cerr << "Failed to get audio info for 'background music'\n";
+			}
+		}
 	}
 	else
 	{
