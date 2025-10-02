@@ -84,7 +84,7 @@ namespace CoreFramework
 	void CoreEngine::BroadcastMessage(Message *message)
 	{
 		// print out message for debugging purposes
-		std::cout << "CoreEngine broadcasting message " << MsgIdToString(message->MessageId) << std::endl;
+		//std::cout << "CoreEngine broadcasting message " << MsgIdToString(message->MessageId) << std::endl;
 
 		//The message that tells the game to quit
 		if (message->MessageId == MsgId::QUIT)

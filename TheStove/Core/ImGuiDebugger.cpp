@@ -59,6 +59,17 @@ namespace Debug
 		}
 	}
 
+	void DebuggerApp::Shutdown()
+	{
+		if (isInitialised)
+		{
+			ImGui_ImplOpenGL3_Shutdown();
+			ImGui_ImplGlfw_Shutdown();
+			ImGui::DestroyContext();
+			isInitialised = false;
+		}
+	}
+
 	bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow)
 	{
 		if (!glfwInit())
@@ -96,8 +107,9 @@ namespace Debug
 		if (ImGui::IsKeyPressed(ImGuiKey_Escape))
 		{
 			openedDebugger = !openedDebugger;
+			std::cout << "CLOSING DEBUGGER" << std::endl;
 		}
-
+		
 		// update system performance %tages
 		UpdateSystemTimes(CoreFramework::gDt);
 	}
@@ -158,7 +170,7 @@ namespace Debug
 					// test play audio
 					bgm = audioMgr->GetBgmVolume();
 					audioMgr->PlaySound("boiling sound", bgm, false);
-					std::cout << "Playing 'boiling sound'\n";
+					DebuggerApp::AddDebugLine("Playing: boiling sound\n");
 				}
 			}
 			ImGui::SameLine();
@@ -169,7 +181,7 @@ namespace Debug
 					// test play audio
 					bgm = audioMgr->GetBgmVolume();
 					audioMgr->PlaySound("background music", bgm, false);
-					std::cout << "Playing 'background music'\n";
+					DebuggerApp::AddDebugLine("Playing: background music\n");
 				}
 			}
 
@@ -179,6 +191,7 @@ namespace Debug
 				{
 					// test stopping audio
 					audioMgr->StopSound("boiling sound");
+					DebuggerApp::AddDebugLine("Stopping: boiling sound\n");
 				}
 			}
 			ImGui::SameLine();
@@ -188,6 +201,7 @@ namespace Debug
 				{
 					// test stopping audio
 					audioMgr->StopSound("background music");
+					DebuggerApp::AddDebugLine("Stopping: background music\n");
 				}
 			}
 			ImGui::SameLine();
@@ -197,9 +211,12 @@ namespace Debug
 				{
 					// test stopping audio
 					audioMgr->StopAllSounds();
+					DebuggerApp::AddDebugLine("Stopping: all audio\n");
 				}
 			}
 		}
+
+		ShowDebugLog();
 
 		ImGui::End();
 
@@ -249,8 +266,32 @@ namespace Debug
 		}
 	}
 
-	/*void DebuggerApp::UpdateAudioList()
+	void DebuggerApp::AddDebugLine(const std::string& txt)
 	{
-		const auto& audios = AudioManager::
-	}*/
+		debuglines.push_back(txt);
+	}
+
+	void DebuggerApp::ClearDebugLog()
+	{
+		debuglines.clear();
+	}
+
+	void DebuggerApp::ShowDebugLog()
+	{
+		ImGui::Begin("Debug Log from std::cout");
+
+		// Clear logs if the button was pressed
+		if (ImGui::Button("Clear Logs"))
+		{
+			ClearDebugLog();
+		}
+
+		// For everyline stored, print it out
+		for (const auto& line : debuglines)
+		{
+			ImGui::TextUnformatted(line.c_str());
+		}
+
+		ImGui::End();
+	}
 }

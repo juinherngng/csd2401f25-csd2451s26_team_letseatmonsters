@@ -15,6 +15,9 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <streambuf>
+#include <ostream>
+#include <string>
 
 #include "Precompiled.hpp"
 #include "Core.hpp"
@@ -44,6 +47,9 @@ namespace Debug
 		// Dtor
 		~DebuggerApp();
 
+		//Shutdown
+		void Shutdown();
+
 		// Initializes the debugger app
 		bool InitializeDebuggerApp(GLFWwindow* externalWindow);
 
@@ -62,10 +68,13 @@ namespace Debug
 		// Updates each systems %tage usage of the current engine
 		void UpdateSystemTimes(float loopTime);
 
-		// Updates the list of playable audios
-		//void UpdateAudioList();
-
 		bool IsActive() const { return openedDebugger; }
+
+		void AddDebugLine(const std::string& txt);
+
+		void ClearDebugLog();
+
+		void ShowDebugLog();
 
 	public:
 		float fps = 0; // FPS 
@@ -75,9 +84,12 @@ namespace Debug
 
 		// FPS control
 		FPSMode fpsMode = FPSMode::VSYNC; // By default
+
+		bool openedDebugger; // Shows Whether debugger window is visible
+
+		std::vector<std::string> debuglines;
 	private:
 		GLFWwindow* debugWindow; // The host window
-		bool openedDebugger; // Shows Whether debugger window is visible
 		bool isInitialised; // Shows if the debugger was initialised or not
 
 		// Crash logging

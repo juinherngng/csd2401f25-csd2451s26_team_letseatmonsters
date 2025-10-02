@@ -198,7 +198,7 @@ static bool init(GLint width, GLint height, std::string title, bool fullscreen) 
     }
     else
     {
-        std::cout << "DebuggerApp initialized successfully\n";
+        debugapp.AddDebugLine("DebuggerApp initialized successfully\n");
     }
 
     return true;
@@ -230,26 +230,34 @@ static void update() {
 
     coreEngine.GameLoop();
 
-    debugapp.UpdateDebuggerApp();
+    if (debugapp.IsActive())
+    {
+        debugapp.UpdateDebuggerApp();
+    }
 }
 
 static void draw() {
     engine.BeginFrame();
     engine.Render();
 
-    debugapp.RenderDebuggerApp();
+    if (debugapp.IsActive())
+    {
+        debugapp.RenderDebuggerApp();
+    }
+
     glfwSwapBuffers(window);
     
 }
 
 void cleanup() {
     engine.Shutdown();
-    coreEngine.DestroySystems();
+    debugapp.Shutdown();
     if (currentScene)
     {
         delete currentScene;
 		currentScene = nullptr;
     }
+    coreEngine.DestroySystems();
 
     if (window)
     {
