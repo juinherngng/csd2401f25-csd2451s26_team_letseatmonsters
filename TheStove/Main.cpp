@@ -118,6 +118,7 @@ static bool init(GLint width, GLint height, std::string title, bool fullscreen) 
     }
     glfwMakeContextCurrent(window);
 
+	// Message callbacks to post input events to CoreEngine
     glfwSetCharCallback(window, [](GLFWwindow* window, unsigned int c) 
     {
         if (CoreFramework::CORE)
@@ -169,30 +170,7 @@ static bool init(GLint width, GLint height, std::string title, bool fullscreen) 
     }
     else
     {
-		std::cout << "DebuggerApp initialized successfully\n";
-    }
-
-	// Test loading an audio file
-
-	auto& rm = ResourceManager::Instance();
-	auto* snd = rm.LoadAudio("boiling sound", "../assets/Audio/Boiling7.wav", true, true);
-    if (!snd)
-    {
-		std::cerr << "Failed to load audio 'boiling sound'\n";
-    }
-    else
-    {
-		unsigned int lenMs = 0;
-        int ch = 0, bits = 0;
-        float freq = 0;
-        if (rm.GetAudioInfo("boiling sound", lenMs, ch, bits, freq))
-        {
-            std::cout << "Audio 'boiling sound' info - Length: " << lenMs << " ms, Channels: " << ch << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
-        }
-        else
-        {
-            std::cerr << "Failed to get audio info for 'boiling sound'\n";
-        }
+        std::cout << "DebuggerApp initialized successfully\n";
     }
 
     return true;

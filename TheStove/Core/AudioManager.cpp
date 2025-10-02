@@ -25,8 +25,30 @@ void AudioManager::Initialize()
 {
 	if (InitializeSystem())
 	{
-		ResourceManager::Instance().SetAudioSystem(system);
+		auto& rm = ResourceManager::Instance();
+
+		rm.SetAudioSystem(system);
 		std::cout << "AudioManagerSystem initialized." << std::endl;
+
+		auto* snd = rm.LoadAudio("boiling sound", "../assets/Audio/Boiling7.wav", true, true);
+		if (!snd)
+		{
+			std::cerr << "Failed to load audio 'boiling sound'\n";
+		}
+		else
+		{
+			unsigned int lenMs = 0;
+			int ch = 0, bits = 0;
+			float freq = 0;
+			if (rm.GetAudioInfo("boiling sound", lenMs, ch, bits, freq))
+			{
+				std::cout << "Audio 'boiling sound' info - Length: " << lenMs << " ms, Channels: " << ch << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
+			}
+			else
+			{
+				std::cerr << "Failed to get audio info for 'boiling sound'\n";
+			}
+		}
 	}
 	else
 	{
