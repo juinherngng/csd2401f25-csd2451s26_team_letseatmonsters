@@ -54,6 +54,8 @@ namespace collision {
 	// Split MTV between A and B with weightA in [0..1] (0.5 = equal, 1.0 = only A moves).
 	bool separateWeighted(const AABB& a, const AABB& b, float weightA, glm::vec2& moveA, glm::vec2& moveB);
 
+	bool pointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale);
+
 	// Static world
 	class World {
 	public:

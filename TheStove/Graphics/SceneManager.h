@@ -3,6 +3,8 @@
 #include "GraphicsEngine.h"
 #include "../Core/InputManager.h"
 #include "Collision.h"
+#include "../Core/Physics.hpp"
+
 #include <string>
 #include <vector>
 
@@ -32,6 +34,9 @@ private:
 	// World/collision
 	void BuildLevelColliders();
 	collision::World mCollision;
+
+	// Step-by-step controller
+	physics::StepController physicsStep_;
 
 	// Scene objects
 	std::vector<std::unique_ptr<GameObject>> sceneObjects;

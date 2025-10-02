@@ -79,6 +79,14 @@ namespace collision {
 		return true;
 	}
 
+	bool pointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale) {
+		const float hx = scale.x * 0.5f;
+		const float hy = scale.y * 0.5f;
+		return (p.x >= center.x - hx && p.x <= center.x + hx &&
+			p.y >= center.y - hy && p.y <= center.y + hy);
+	}
+
+
 	// World: build walls and resolve swept motion
 	void World::clear() {
 		mWalls.clear();
