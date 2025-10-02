@@ -372,6 +372,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		std::cout << "Set to Attack Animation" << std::endl;
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_3)) {
+		SetAnimation(dinoID, "IDLE");
 		std::cout << "Set to Idle Animation" << std::endl;
 	}
 
