@@ -3,6 +3,8 @@
 #include "GraphicsEngine.h"
 #include "../Core/InputManager.h"
 #include "Collision.h"
+#include "../Core/Physics.hpp"
+
 #include <string>
 #include <vector>
 
@@ -10,6 +12,7 @@ class Scene {
 public:
 	Scene(GraphicsEngine& engine);
 
+	// Lifecycle
 	void LoadScene(const std::string& sceneName);
 	void Update(float deltaTime, GLFWwindow* window);
 
@@ -21,36 +24,42 @@ public:
 	void SetSceneBackground(const std::string& texturePath);
 
 	// Object Lookup
-    GameObject* GetGameObjectByID(int targetID);
+	GameObject* GetGameObjectByID(int targetID);
 
 private:
+	// Engine/input
 	GraphicsEngine& graphicsEngine;
 	InputManager inputManager;
 
-	std::vector<std::unique_ptr<GameObject>> sceneObjects;
-	int nextID = 1; // ID counter for GameObjects
-	int spriteID = -1; // default invalid ID
+	// World/collision
+	void BuildLevelColliders();
+	collision::World mCollision;
 
+	// Step-by-step controller
+	physics::StepController physicsStep_;
+
+	// Scene objects
+	std::vector<std::unique_ptr<GameObject>> sceneObjects;
+	int nextID = 1;	   // ID counter for GameObjects
+	int spriteID = -1; // Default invalid ID
+	int otherID = -1;
+	int otherID2 = -1;
+
+	// Per-object transforms
 	std::unordered_map<int, glm::vec3> spriteScales;
 	std::unordered_map<int, glm::vec3> spritePositions;
 	std::unordered_map<int, float> spriteRotations;
 
+	// Scene content
 	void LoadTest();
 
-	// World collision system for walls and obstacles.
-	collision::World mCollision;
+	// Click-to-move
+	bool hasClickTarget = false;
+	glm::vec2 clickTarget{ 0.0f, 0.0f };
+	bool playerSelected = false;
+	float playerSpeed = 260.0f;
 
-	// Build level colliders (walls, gates, dividers) into mCollision.
-	void BuildLevelColliders();
-
-	// Click-to-move state
-	bool hasClickTarget = false;		 // True if a target location has been clicked.
-	glm::vec2 clickTarget{ 0.0f, 0.0f }; // Current click destination in world coords.
-
-	bool playerSelected = false; // Must select/click player before issuing move.
-	float playerSpeed = 260.0f;  // Player movement speed.
-
-	// Stuck detection when pathing into walls
+	// Stuck detection (cancel click move if not progressing)
 	int stuckFrames = 0;
-	static constexpr int kStuckFramesToCancel = 12; // Cancel movement if stuck for ~0.2s at 60fps.
+	static constexpr int kStuckFramesToCancel = 12;
 };

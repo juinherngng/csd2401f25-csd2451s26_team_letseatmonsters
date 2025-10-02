@@ -51,6 +51,7 @@ namespace CoreFramework
 		// this will store the time of the last frame
 		//auto lastTime = clock::now();
 
+		// gameloop is already updating every frame in main.cpp
 		/*while (gameActive)
 		{*/
 			// get the current time
@@ -63,10 +64,17 @@ namespace CoreFramework
 			gDt = elapsed.count();
 
 			// update all systems
-			for (unsigned i = 0; i < Systems.size(); i++)
+			for (auto* s : Systems)
 			{
-				Systems[i]->Update(gDt);
+				auto sysStart = clock::now();
+				s->Update(gDt);
+
+				auto sysEnd = clock::now();
+				std::chrono::duration<float> sysElapsed = sysEnd - sysStart;
+				s->lastDt = sysElapsed.count();
 			}
+
+			FlushMessages();
 
 			// update lastUpdated to current time
 			lastTime = currentTime;
@@ -82,11 +90,10 @@ namespace CoreFramework
 		if (message->MessageId == MsgId::QUIT)
 			gameActive = false;
 
-		//Send the message to every system--each
-		//system can figure out whether it cares
-		//about a given message or not
-		for (unsigned i = 0; i < Systems.size(); ++i)
-			Systems[i]->SendMessage(message);
+		for (auto* s : Systems)
+		{
+			s->SendMessage(message);
+		}
 	}
 
 	void CoreEngine::AddSystem(SystemInterface* system)
@@ -100,15 +107,11 @@ namespace CoreFramework
 	{
 		std::cout << "DestroySystems called, system count: " << Systems.size() << std::endl;
 		//Delete all the systems in reverse order
-		for (unsigned i = 0; i < Systems.size(); i++)
+		for (size_t i = 0; i < Systems.size(); i++)
 		{
 			size_t index = Systems.size() - i - 1;
 			std::cout << "Deleted system: " << Systems[index]->GetName() << std::endl;
 
-			/*if (Systems[index]->GetName() == "GameStateManager")
-			{
-				static_cast<Framework::GameStateManager*>(Systems[index])->~GameStateManager();
-			}*/
 			delete Systems[index];
 		}
 
