@@ -264,7 +264,7 @@ void cleanup() {
 
     if (window)
     {
-        delete currentScene;
+        //delete currentScene;
 		currentScene = nullptr;
     }
 

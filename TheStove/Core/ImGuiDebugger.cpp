@@ -294,6 +294,16 @@ namespace Debug
 
 		ImGui::End();
 	}
+
+	void DebuggerApp::ShutDown()
+	{
+		if (isInitialised) {
+			ImGui_ImplOpenGL3_Shutdown();
+			ImGui_ImplGlfw_Shutdown();
+			ImGui::DestroyContext();
+			isInitialised = false;
+		}
+	}
 }
 
 
