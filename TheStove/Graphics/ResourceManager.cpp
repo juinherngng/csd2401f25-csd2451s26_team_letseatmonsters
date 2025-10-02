@@ -1,5 +1,6 @@
 #include "ResourceManager.h"
 #include <iostream>
+#include <fmod_errors.h>
 
 Shader* ResourceManager::LoadShader(const std::string& name, const std::string& vertexPath, const std::string& fragmentPath) {
     auto it = shaders.find(name);
@@ -80,9 +81,89 @@ Texture* ResourceManager::GetTexture(const std::string& name) {
     return nullptr;
 }
 
+FMOD::Sound* ResourceManager::LoadAudio(std::string const  name, std::string const& filePath, bool loop, bool stream)
+{
+    if (!audioSystem) 
+    {
+        std::cerr << "Audio system not set!" << std::endl;
+        return nullptr;
+	}
+    else
+    {
+		std::cout << "Audio system is set." << std::endl;
+    }
+
+    if (auto it = sounds.find(name); it != sounds.end())
+    {
+        std::cout << "Audio '" << name << "' already loaded, returning existing." << std::endl;
+        return it->second;
+	}
+
+	FMOD_MODE mode = FMOD_DEFAULT | (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) | 
+                                    (stream ? FMOD_CREATESTREAM : FMOD_CREATESAMPLE);
+
+	FMOD::Sound* sound = nullptr;
+	FMOD_RESULT result = audioSystem->createSound(filePath.c_str(), mode, nullptr, &sound);
+
+    if (result != FMOD_OK)
+    {
+        std::cerr << "Failed to load audio '" << name << "': " << FMOD_ErrorString(result) << std::endl;
+        return nullptr;
+    }
+
+    sounds.emplace(name, sound);
+
+	std::cout << "Loaded audio: " << name << std::endl;
+    return sound;
+}
+
+FMOD::Sound* ResourceManager::GetAudio(std::string const& name) const
+{
+    if (auto it = sounds.find(name); it != sounds.end()) return it->second;
+
+	std::cerr << "Audio '" << name << "' not found!" << std::endl;
+	return nullptr;
+}
+
+void ResourceManager::UnloadAudio(std::string const& name)
+{
+    if (auto it = sounds.find(name); it != sounds.end())
+    {
+        sounds.erase(it);
+		std::cout << "Unloaded audio: " << name << std::endl;
+    }
+}
+
+bool ResourceManager::HasAudio(std::string const& name) const
+{
+	return sounds.find(name) != sounds.end();
+}
+bool ResourceManager::GetAudioInfo(std::string const& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const
+{
+	auto it = sounds.find(name);
+    if (it == sounds.end() || !it->second) 
+    {
+        std::cerr << "Audio '" << name << "' not found!" << std::endl;
+        return false;
+	}
+
+	FMOD::Sound* snd = it->second;
+
+    if (snd->getLength(&lengthMs, FMOD_TIMEUNIT_MS) != FMOD_OK) return false;
+
+    FMOD_SOUND_TYPE type;
+    FMOD_SOUND_FORMAT format;
+	if (snd->getFormat(&type, &format, &channels, &bits) != FMOD_OK) return false;
+
+	if (snd->getDefaults(&freq, nullptr) != FMOD_OK) freq = 0;
+
+    return true;
+}
+
 void ResourceManager::Clear() {
     std::cout << "Clearing ResourceManager..." << std::endl;
     shaders.clear();
     meshes.clear();
 	textures.clear();
+    sounds.clear();
 }

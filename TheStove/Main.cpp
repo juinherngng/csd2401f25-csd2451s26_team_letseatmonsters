@@ -1,8 +1,10 @@
 #include <iostream>
 #include <crtdbg.h>
+#include <algorithm>
 
 #include "Graphics/GraphicsEngine.h"
 #include "Graphics/SceneManager.h"
+#include "Graphics/ResourceManager.h"
 #include "Core/ImGuiDebugger.hpp"
 #include "Core/Precompiled.hpp"
 #include "Core/Core.hpp"
@@ -51,7 +53,20 @@ int main() {
         return -1;
     }
     
-    //init(settings.resolution.width, settings.resolution.height, "TheStove", settings.fullscreen);
+    if (auto* audioMgr = coreEngine.GetSystem<AudioManager>())
+    {
+        audioMgr->ApplySettings(settings);
+        float bgm = audioMgr->GetBgmVolume();
+        float vfx = audioMgr->GetVfxVolume();
+        std::cout << "AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx << "\n";
+
+        audioMgr->PlaySound("boiling sound", bgm, false);
+        std::cout << "Playing 'boiling sound'\n";
+    }
+    else
+    {
+        std::cerr << "AudioManager system not found in CoreEngine\n";
+    }
 
     // test tile map
     MapData testMap(6, 6);
@@ -123,6 +138,29 @@ static bool init(GLint width, GLint height, std::string title, bool fullscreen) 
     else
     {
 		std::cout << "DebuggerApp initialized successfully\n";
+    }
+
+	// Test loading an audio file
+
+	auto& rm = ResourceManager::Instance();
+	auto* snd = rm.LoadAudio("boiling sound", "../assets/Audio/Boiling7.wav", true, true);
+    if (!snd)
+    {
+		std::cerr << "Failed to load audio 'boiling sound'\n";
+    }
+    else
+    {
+		unsigned int lenMs = 0;
+        int ch = 0, bits = 0;
+        float freq = 0;
+        if (rm.GetAudioInfo("boiling sound", lenMs, ch, bits, freq))
+        {
+            std::cout << "Audio 'boiling sound' info - Length: " << lenMs << " ms, Channels: " << ch << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
+        }
+        else
+        {
+            std::cerr << "Failed to get audio info for 'boiling sound'\n";
+        }
     }
 
     return true;

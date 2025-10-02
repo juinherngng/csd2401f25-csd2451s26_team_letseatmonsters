@@ -11,6 +11,7 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 */
 
 #include "AudioManager.hpp"
+#include "../Graphics/ResourceManager.h"
 
 AudioManager::AudioManager() : system(nullptr), masterGroup(nullptr), bgmVolume(1.f), vfxVolume(1.f), muted(false) {}
 
@@ -24,6 +25,7 @@ void AudioManager::Initialize()
 {
 	if (InitializeSystem())
 	{
+		ResourceManager::Instance().SetAudioSystem(system);
 		std::cout << "AudioManagerSystem initialized." << std::endl;
 	}
 	else
@@ -84,17 +86,11 @@ bool AudioManager::InitializeSystem()
 void AudioManager::Shutdown()
 {
 	StopAllSounds();
-
-	for (auto& pair : sounds) {
-		if (pair.second) {
-			pair.second->release();
-		}
-	}
-
-	sounds.clear();
 	channels.clear();
 
-	if (system) {
+	// sounds released in ResourceManager, not here
+	if (system)
+	{
 		system->release();
 		system = nullptr;
 	}
@@ -102,52 +98,27 @@ void AudioManager::Shutdown()
 	masterGroup = nullptr;
 }
 
-bool AudioManager::LoadSound(std::string const& name, std::string const& filepath, bool loop)
+bool AudioManager::LoadSound(std::string const& name, std::string const& filepath, bool loop, bool stream)
 {
-	if (!system) return false;
-
-	if (sounds.count(name)) return true; // Already loaded
-
-	FMOD_MODE mode = FMOD_DEFAULT;
-
-	if (loop)
-		mode |= FMOD_LOOP_NORMAL;
-	else
-		mode |= FMOD_LOOP_OFF;
-
-	FMOD::Sound* sound = nullptr;
-	FMOD_RESULT result = system->createSound(filepath.c_str(), mode, nullptr, &sound);
-	CheckError(result, "createSound: " + filepath);
-
-	if (result != FMOD_OK) return false;
-
-	sounds[name] = sound;
-
-	return true;
+	return ResourceManager::Instance().LoadAudio(name, filepath, loop, stream) != nullptr;
 }
 
 void AudioManager::UnloadSound(std::string const& name)
 {
-	auto it = sounds.find(name);
-
-	if (it != sounds.end()) {
-		if (it->second) it->second->release();
-		sounds.erase(it);
-	}
-
-	channels.erase(name);
+	StopSound(name);
+	ResourceManager::Instance().UnloadAudio(name);
 }
 
 void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 {
 	if (!system) return;
 
-	auto it = sounds.find(name);
+	FMOD::Sound* sound = ResourceManager::Instance().GetAudio(name);
 
-	if (it == sounds.end()) return;
+	if (!sound) return;
 
 	FMOD::Channel* channel = nullptr;
-	FMOD_RESULT result = system->playSound(it->second, nullptr, paused, &channel);
+	FMOD_RESULT result = system->playSound(sound, nullptr, paused, &channel);
 	CheckError(result, "playSound: " + name);
 
 	if (result == FMOD_OK && channel) 
@@ -237,4 +208,5 @@ void AudioManager::ApplySettings(ConfigManager::Settings const& settings)
 {
 	SetBgmVolume(settings.bgmVolume);
 	SetVfxVolume(settings.vfxVolume);
+	std::cout << "Audio settings applied: BGM Volume = " << settings.bgmVolume << ", VFX Volume = " << settings.vfxVolume << std::endl;
 }

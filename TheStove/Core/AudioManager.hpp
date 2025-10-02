@@ -113,7 +113,7 @@ public:
     True if the sound was loaded successfully, false otherwise.
     */
     /************************************************************************/
-    bool LoadSound(std::string const& name, std::string const& filepath, bool loop = false);
+    bool LoadSound(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
     /************************************************************************/
     /*!
     \brief
@@ -224,6 +224,8 @@ public:
     */
     /************************************************************************/
     void ApplySettings(ConfigManager::Settings const& settings);
+
+	FMOD::System* GetSystem() const { return system; }
 
 private:
     // Error handling

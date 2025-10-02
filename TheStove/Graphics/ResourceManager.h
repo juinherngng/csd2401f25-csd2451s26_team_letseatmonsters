@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <fmod.hpp>
 
 
 class ResourceManager {
@@ -28,6 +29,13 @@ public:
     Texture* LoadTexture(const std::string& name, const std::string& filePath);
     Texture* GetTexture(const std::string& name);
 
+    // Audio management
+    void SetAudioSystem(FMOD::System* sys) { audioSystem = sys; }   // inject after AudioManager initializes
+	FMOD::Sound* LoadAudio(std::string const  name, std::string const& filePath, bool loop = false, bool stream = false);
+	FMOD::Sound* GetAudio(std::string const& name) const;
+	void UnloadAudio(std::string const& name);
+    bool HasAudio(std::string const& name) const;
+	bool GetAudioInfo(std::string const& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const;  
     // Cleanup
     void Clear();
 
@@ -42,4 +50,17 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Shader>> shaders;
     std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes;
     std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
+
+    // Audio
+	// wrapping FMOD::Sound* in unique_ptr with custom deleter to ensure proper release
+    struct FmodSoundDeleter
+    {
+        void operator()(FMOD::Sound* s) const noexcept
+        {
+			if (s) s->release();
+        }
+    };
+    using SoundPtr = std::unique_ptr<FMOD::Sound, FmodSoundDeleter>;
+	FMOD::System* audioSystem = nullptr;
+	std::unordered_map<std::string, FMOD::Sound*> sounds;
 };

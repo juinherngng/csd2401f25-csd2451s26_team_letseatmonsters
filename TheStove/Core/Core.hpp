@@ -44,6 +44,24 @@ namespace CoreFramework
 
 		void UpdateSystemTimes(DebuggerApp& debugApp, float totalDt);
 
+		template<typename T>
+		T* GetSystem()
+		{
+			for (auto* s : Systems)
+				if (auto* casted = dynamic_cast<T*>(s))
+					return casted;
+			return nullptr;
+		}
+
+		template<typename T>
+		T* const GetSystem() const
+		{
+			for (auto* s : Systems)
+				if (auto* casted = dynamic_cast<T*>(s))
+					return casted;
+			return nullptr;
+		}
+
 	private:
 		std::vector<SystemInterface*> Systems;
 
