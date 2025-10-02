@@ -14,8 +14,6 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 
 #include "ImGuiDebugger.hpp"
 
-#include "AudioManager.hpp"
-
 namespace Debug
 {
 	// Constructor
@@ -155,24 +153,17 @@ namespace Debug
 			ImGui::Text("---- Audio ----");
 			if (ImGui::Button("Play 'boiling sound'"))
 			{
-				// test play audio
-				/*if (auto* audioMgr = CoreFramework::CoreEngine->GetSystem<AudioManager>())
+				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
 				{
-					audioMgr->ApplySettings(settings);
-					float bgm = audioMgr->GetBgmVolume();
-					float vfx = audioMgr->GetVfxVolume();
-					std::cout << "AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx << "\n";
-
+					// test play audio
+					bgm = audioMgr->GetBgmVolume();
 					audioMgr->PlaySound("boiling sound", bgm, false);
 					std::cout << "Playing 'boiling sound'\n";
 				}
-				else
-				{
-					std::cerr << "AudioManager system not found in CoreEngine\n";
-				}*/
 			}
+			ImGui::SameLine();
 
-			if (ImGui::Button("Play Sound"))
+			if (ImGui::Button("Stop Sound"))
 			{
 				// Play sound
 			}

@@ -18,6 +18,7 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 
 #include "Precompiled.hpp"
 #include "Core.hpp"
+#include "AudioManager.hpp"
 
 struct SystemPerformance
 {
@@ -62,7 +63,7 @@ namespace Debug
 		void UpdateSystemTimes(float loopTime);
 
 		// Updates the list of playable audios
-		void UpdateAudioList();
+		//void UpdateAudioList();
 
 		bool IsActive() const { return openedDebugger; }
 
@@ -71,9 +72,6 @@ namespace Debug
 		float msperFrame = 0; // MS/frame
 		// Vector of SystemPerformance structs to store data for system performance
 		std::vector<SystemPerformance> sysPerformance;
-
-		// Vector of Audio Clips that can be played
-		std::vector<float> audioList;
 
 		// FPS control
 		FPSMode fpsMode = FPSMode::VSYNC; // By default
@@ -84,5 +82,10 @@ namespace Debug
 
 		// Crash logging
 		std::ofstream crashlogFile; // The file stream to log errors to
+
+		// Audio Values
+		float bgm = 0.0f, vfx = 0.0f;
+
+
 	};
 }

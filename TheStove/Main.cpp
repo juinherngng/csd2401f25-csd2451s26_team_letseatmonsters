@@ -53,6 +53,14 @@ int main() {
         return -1;
     }
 
+    if (auto* audioMgr = coreEngine.GetSystem<AudioManager>())
+    {
+        audioMgr->ApplySettings(settings);
+        float bgm = audioMgr->GetBgmVolume();
+        float vfx = audioMgr->GetVfxVolume();
+        std::cout << "AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx << "\n";
+    }
+
     // test tile map
     MapData testMap(6, 6);
 
