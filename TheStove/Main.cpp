@@ -259,8 +259,10 @@ static void draw() {
 
 void cleanup() {
     engine.Shutdown();
-    debugapp.Shutdown();
-    if (currentScene)
+	debugapp.ShutDown();
+    delete currentScene;
+
+    if (window)
     {
         delete currentScene;
 		currentScene = nullptr;
