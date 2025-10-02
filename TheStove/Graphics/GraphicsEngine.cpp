@@ -54,30 +54,7 @@ void GraphicsEngine::LoadDefaultResources() {
 	resourceManager.LoadMesh("fullscreen_quad", vertices, vertexCount, vertexSize);
 }
 
-GameObject* GraphicsEngine::CreateGameObject(const std::string& meshName, const std::string& shaderName) {
-	Mesh* mesh = resourceManager.GetMesh(meshName);
-	Shader* shader = resourceManager.GetShader(shaderName);
 
-	if (!mesh || !shader) {
-		std::cerr << "Failed to create GameObject: missing resources" << std::endl;
-		return nullptr;
-	}
-
-	auto obj = std::make_unique<GameObject>(mesh, shader);
-	GameObject* objPtr = obj.get();
-	gameObjects.push_back(std::move(obj));
-
-	return objPtr;
-}
-
-void GraphicsEngine::RemoveGameObject(GameObject* obj) {
-	gameObjects.erase(
-		std::remove_if(gameObjects.begin(), gameObjects.end(),
-			[obj](const std::unique_ptr<GameObject>& ptr) {
-				return ptr.get() == obj;
-			}),
-		gameObjects.end());
-}
 
 void GraphicsEngine::SetBackground(const std::string& texturePath) {
 	// Load background texture
@@ -113,7 +90,7 @@ void GraphicsEngine::BeginFrame() {
 	renderer.Clear();
 }
 
-void GraphicsEngine::Render() {
+void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 
 	// Render background first (if exists)
 	if (backgroundObject) {
@@ -121,13 +98,11 @@ void GraphicsEngine::Render() {
 		backgroundObject->Draw(view, projection);
 		glEnable(GL_DEPTH_TEST);
 	}
-
-	glDisable(GL_DEPTH_TEST);
-	// Render all game objects
-	for (const auto& obj : gameObjects) {
+	// Draw all scene-provided objects (non-owning)
+	for (const auto* obj : objects) {
+		if (!obj) continue;
 		obj->Draw(view, projection);
-
-		// Draw the object's bounding box in red for debugging purposes
+		glDisable(GL_DEPTH_TEST);
 		obj->DrawBoundingBox(view, projection, { 1.0f, 0.0f, 0.0f });
 	}
 	glEnable(GL_DEPTH_TEST);
@@ -140,6 +115,6 @@ void GraphicsEngine::Render() {
 }
 
 void GraphicsEngine::Shutdown() {
-	gameObjects.clear();
+	backgroundObject.reset();
 	resourceManager.Clear();
 }
