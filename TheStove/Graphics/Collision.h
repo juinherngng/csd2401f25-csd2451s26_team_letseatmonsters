@@ -33,7 +33,11 @@ namespace collision {
 	 * @brief Defines the inner walkable rectangle and the thickness of blocking edge bars.
 	 */
 	struct WalkArea {
-		float L, R, T, B; // Left, Right, Top, Bottom of the light-gray play area.
+		float L; // Left edge of play area
+		float R; // Right edge of play area
+		float T; // Top edge of play area
+		float B; // Bottom edge of play area
+
 		float edgeThick;  // Thickness of the thin blocking bars placed just inside edges.
 	};
 

@@ -18,8 +18,18 @@
 namespace collision {
 	// Test strict AABB overlap on X and Y
 	static inline bool overlaps(const AABB& a, const AABB& b) {
-		return !(a.max.x <= b.min.x || a.min.x >= b.max.x ||
-			a.max.y <= b.min.y || a.min.y >= b.max.y);
+		bool aRightOfB = (a.min.x >= b.max.x);
+		bool aLeftOfB = (a.max.x <= b.min.x);
+		bool noOverlapX = aRightOfB || aLeftOfB;
+
+		bool aAboveB = (a.min.y >= b.max.y);
+		bool aBelowB = (a.max.y <= b.min.y);
+		bool noOverlapY = aAboveB || aBelowB;
+
+		bool anyNoOverlap = noOverlapX || noOverlapY;
+		bool overlapExists = !anyNoOverlap;
+
+		return overlapExists;
 	}
 
 	void World::clear() {
@@ -35,61 +45,261 @@ namespace collision {
 		const StageEndGateVertical& end) {
 		mWalls.clear();
 
-		// 4 inside-edge bars (split RIGHT edge around the gate gap)
-		mWalls.push_back({ { w.L - w.edgeThick, w.T }, { w.L, w.B } }); // left
+		// LEFT edge wall
+		AABB leftWall;
+		glm::vec2 leftWallMin;
+		glm::vec2 leftWallMax;
 
-		// RIGHT edge: top and bottom segments leave a middle gap [end.gapMinY, end.gapMaxY]
-		mWalls.push_back({ { w.R, w.T },         { w.R + w.edgeThick, end.gapMinY } }); // right-top
-		mWalls.push_back({ { w.R, end.gapMaxY }, { w.R + w.edgeThick, w.B } });         // right-bottom
+		leftWallMin.x = w.L - w.edgeThick;
+		leftWallMin.y = w.T;
 
-		mWalls.push_back({ { w.L, w.T - w.edgeThick }, { w.R, w.T } });               // top
-		mWalls.push_back({ { w.L, w.B },               { w.R, w.B + w.edgeThick } }); // bottom
+		leftWallMax.x = w.L;
+		leftWallMax.y = w.B;
 
-		// Center vertical wood: TOP + BOTTOM (middle gap pass-through)
-		mWalls.push_back({ { wood.x0, wood.topMinY }, { wood.x1, wood.topMaxY } });
-		mWalls.push_back({ { wood.x0, wood.botMinY }, { wood.x1, wood.botMaxY } });
+		leftWall.min = leftWallMin;
+		leftWall.max = leftWallMax;
 
-		// End gate vertical bars: TOP + BOTTOM (middle gap pass-through)
-		mWalls.push_back({ { end.x0, end.topMinY }, { end.x1, end.topMaxY } });
-		mWalls.push_back({ { end.x0, end.botMinY }, { end.x1, end.botMaxY } });
+		mWalls.push_back(leftWall);
+
+		// RIGHT edge wall (TOP segment)
+		AABB rightTopWall;
+		glm::vec2 rightTopMin;
+		glm::vec2 rightTopMax;
+
+		rightTopMin.x = w.R;
+		rightTopMin.y = w.T;
+
+		rightTopMax.x = w.R + w.edgeThick;
+		rightTopMax.y = end.gapMinY;
+
+		rightTopWall.min = rightTopMin;
+		rightTopWall.max = rightTopMax;
+
+		mWalls.push_back(rightTopWall);
+
+		// RIGHT edge wall (BOTTOM segment)
+		AABB rightBottomWall;
+		glm::vec2 rightBottomMin;
+		glm::vec2 rightBottomMax;
+
+		rightBottomMin.x = w.R;
+		rightBottomMin.y = end.gapMaxY;
+
+		rightBottomMax.x = w.R + w.edgeThick;
+		rightBottomMax.y = w.B;
+
+		rightBottomWall.min = rightBottomMin;
+		rightBottomWall.max = rightBottomMax;
+
+		mWalls.push_back(rightBottomWall);
+
+		// TOP edge wall
+		AABB topWall;
+		glm::vec2 topMin;
+		glm::vec2 topMax;
+
+		topMin.x = w.L;
+		topMin.y = w.T - w.edgeThick;
+
+		topMax.x = w.R;
+		topMax.y = w.T;
+
+		topWall.min = topMin;
+		topWall.max = topMax;
+
+		mWalls.push_back(topWall);
+
+		// BOTTOM edge wall
+		AABB bottomWall;
+		glm::vec2 bottomMin;
+		glm::vec2 bottomMax;
+
+		bottomMin.x = w.L;
+		bottomMin.y = w.B;
+
+		bottomMax.x = w.R;
+		bottomMax.y = w.B + w.edgeThick;
+
+		bottomWall.min = bottomMin;
+		bottomWall.max = bottomMax;
+
+		mWalls.push_back(bottomWall);
+
+		// WOOD divider (TOP segment)
+		AABB woodTop;
+		glm::vec2 woodTopMin;
+		glm::vec2 woodTopMax;
+
+		woodTopMin.x = wood.x0;
+		woodTopMin.y = wood.topMinY;
+
+		woodTopMax.x = wood.x1;
+		woodTopMax.y = wood.topMaxY;
+
+		woodTop.min = woodTopMin;
+		woodTop.max = woodTopMax;
+
+		mWalls.push_back(woodTop);
+
+		// WOOD divider (BOTTOM segment)
+		AABB woodBottom;
+		glm::vec2 woodBottomMin;
+		glm::vec2 woodBottomMax;
+
+		woodBottomMin.x = wood.x0;
+		woodBottomMin.y = wood.botMinY;
+
+		woodBottomMax.x = wood.x1;
+		woodBottomMax.y = wood.botMaxY;
+
+		woodBottom.min = woodBottomMin;
+		woodBottom.max = woodBottomMax;
+
+		mWalls.push_back(woodBottom);
+
+		// END gate (TOP segment)
+		AABB endTop;
+		glm::vec2 endTopMin;
+		glm::vec2 endTopMax;
+
+		endTopMin.x = end.x0;
+		endTopMin.y = end.topMinY;
+
+		endTopMax.x = end.x1;
+		endTopMax.y = end.topMaxY;
+
+		endTop.min = endTopMin;
+		endTop.max = endTopMax;
+
+		mWalls.push_back(endTop);
+
+		// END gate (BOTTOM segment)
+		AABB endBottom;
+		glm::vec2 endBottomMin;
+		glm::vec2 endBottomMax;
+
+		endBottomMin.x = end.x0;
+		endBottomMin.y = end.botMinY;
+
+		endBottomMax.x = end.x1;
+		endBottomMax.y = end.botMaxY;
+
+		endBottom.min = endBottomMin;
+		endBottom.max = endBottomMax;
+
+		mWalls.push_back(endBottom);
 	}
 
 	glm::vec2 World::resolve(const AABB& startBox, glm::vec2 desiredDelta) const {
-		// Move along X then Y, resolving penetration at each step
-		glm::vec2 out = desiredDelta;
+		// Output vector starts as the desired motion
+		glm::vec2 out;
+		out.x = desiredDelta.x;
+		out.y = desiredDelta.y;
 
-		// X
-		AABB movedX = startBox;
-		movedX.min.x += out.x; movedX.max.x += out.x;
+		// Handle X-axis motion
+		// Copy the adjusted box
+		AABB movedX;
+		movedX.min = startBox.min;
+		movedX.max = startBox.max;
+
+		// Compute the intended shift along X
+		float shiftX = out.x;
+
+		// Apply the X shift separately for min and max
+		float newMinX = movedX.min.x + shiftX;
+		float newMaxX = movedX.max.x + shiftX;
+
+		movedX.min.x = newMinX;
+		movedX.max.x = newMaxX;
+
+		// Check against each wall
 		for (const auto& w : mWalls) {
-			if (overlaps(movedX, w)) {
-				if (out.x > 0.0f) { // moving right; push left
-					float pen = movedX.max.x - w.min.x;
-					out.x -= pen;
-					movedX.min.x -= pen; movedX.max.x -= pen;
+			bool overlapNow = overlaps(movedX, w);
+
+			if (overlapNow) {
+				if (out.x > 0.0f) {
+					// Moving right; need to push left
+					float penetrationX = movedX.max.x - w.min.x;
+
+					// Correct the output vector
+					float correctedOutX = out.x - penetrationX;
+					out.x = correctedOutX;
+
+					// Adjust moved box
+					float correctedMinX = movedX.min.x - penetrationX;
+					float correctedMaxX = movedX.max.x - penetrationX;
+
+					movedX.min.x = correctedMinX;
+					movedX.max.x = correctedMaxX;
 				}
-				else if (out.x < 0.0f) { // moving left; push right
-					float pen = w.max.x - movedX.min.x;
-					out.x += pen;
-					movedX.min.x += pen; movedX.max.x += pen;
+				else if (out.x < 0.0f) {
+					// Moving left; need to push right
+					float penetrationX = w.max.x - movedX.min.x;
+
+					// Correct the output vector
+					float correctedOutX = out.x + penetrationX;
+					out.x = correctedOutX;
+
+					// Adjust moved box
+					float correctedMinX = movedX.min.x + penetrationX;
+					float correctedMaxX = movedX.max.x + penetrationX;
+
+					movedX.min.x = correctedMinX;
+					movedX.max.x = correctedMaxX;
 				}
 			}
 		}
 
-		// Y
-		AABB movedY = movedX;
-		movedY.min.y += out.y; movedY.max.y += out.y;
+		// Handle Y-axis motion
+		// Copy the adjusted box
+		AABB movedY;
+		movedY.min = movedX.min;
+		movedY.max = movedX.max;
+
+		// Compute the intended shift along Y
+		float shiftY = out.y;
+
+		// Apply the Y shift separately
+		float newMinY = movedY.min.y + shiftY;
+		float newMaxY = movedY.max.y + shiftY;
+
+		movedY.min.y = newMinY;
+		movedY.max.y = newMaxY;
+
+		// Check against each wall
 		for (const auto& w : mWalls) {
-			if (overlaps(movedY, w)) {
-				if (out.y > 0.0f) { // moving down; push up
-					float pen = movedY.max.y - w.min.y;
-					out.y -= pen;
-					movedY.min.y -= pen; movedY.max.y -= pen;
+			bool overlapNow = overlaps(movedY, w);
+
+			if (overlapNow) {
+				if (out.y > 0.0f) {
+					// Moving down; need to push up
+					float penetrationY = movedY.max.y - w.min.y;
+
+					// Correct output vector
+					float correctedOutY = out.y - penetrationY;
+					out.y = correctedOutY;
+
+					// Adjust moved box
+					float correctedMinY = movedY.min.y - penetrationY;
+					float correctedMaxY = movedY.max.y - penetrationY;
+
+					movedY.min.y = correctedMinY;
+					movedY.max.y = correctedMaxY;
 				}
-				else if (out.y < 0.0f) { // moving up; push down
-					float pen = w.max.y - movedY.min.y;
-					out.y += pen;
-					movedY.min.y += pen; movedY.max.y += pen;
+				else if (out.y < 0.0f) {
+					// Moving up; need to push down
+					float penetrationY = w.max.y - movedY.min.y;
+
+					// Correct output vector
+					float correctedOutY = out.y + penetrationY;
+					out.y = correctedOutY;
+
+					// Adjust moved box
+					float correctedMinY = movedY.min.y + penetrationY;
+					float correctedMaxY = movedY.max.y + penetrationY;
+
+					movedY.min.y = correctedMinY;
+					movedY.max.y = correctedMaxY;
 				}
 			}
 		}
@@ -98,8 +308,43 @@ namespace collision {
 	}
 
 	AABB World::makeAABBFromCenter(const glm::vec3& center, const glm::vec3& scale) {
-		glm::vec2 he = { scale.x * 0.5f, scale.y * 0.5f };
-		glm::vec2 c = { center.x, center.y };
-		return { c - he, c + he };
+		// Half extents
+		float halfWidth = scale.x * 0.5f;
+		float halfHeight = scale.y * 0.5f;
+
+		glm::vec2 halfExtents;
+		halfExtents.x = halfWidth;
+		halfExtents.y = halfHeight;
+
+		// Extract 2D center
+		float cx = center.x;
+		float cy = center.y;
+
+		glm::vec2 center2D;
+		center2D.x = cx;
+		center2D.y = cy;
+
+		// Compute min corner
+		float minX = center2D.x - halfExtents.x;
+		float minY = center2D.y - halfExtents.y;
+
+		glm::vec2 minCorner;
+		minCorner.x = minX;
+		minCorner.y = minY;
+
+		// Compute max corner
+		float maxX = center2D.x + halfExtents.x;
+		float maxY = center2D.y + halfExtents.y;
+
+		glm::vec2 maxCorner;
+		maxCorner.x = maxX;
+		maxCorner.y = maxY;
+
+		// Construct AABB
+		AABB box;
+		box.min = minCorner;
+		box.max = maxCorner;
+
+		return box;
 	}
 }
