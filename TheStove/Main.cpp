@@ -1,5 +1,6 @@
 #include <iostream>
 #include <crtdbg.h>
+#include "vld.h"
 
 #include "Graphics/GraphicsEngine.h"
 #include "Graphics/SceneManager.h"
@@ -157,8 +158,11 @@ static void update() {
 }
 
 static void draw() {
+    static std::vector<GameObject*> drawList;
     engine.BeginFrame();
-    engine.Render();
+    drawList.clear();
+    currentScene->CollectRenderablePointers(drawList);
+    engine.Render(drawList);
 
     debugapp.RenderDebuggerApp();
     glfwSwapBuffers(window);
@@ -168,11 +172,7 @@ static void draw() {
 void cleanup() {
     engine.Shutdown();
     coreEngine.DestroySystems();
-    if (currentScene)
-    {
-        delete currentScene;
-		currentScene = nullptr;
-    }
+    delete currentScene;
 
     if (window)
     {
