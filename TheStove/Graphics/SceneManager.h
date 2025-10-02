@@ -26,6 +26,14 @@ public:
 	// Object Lookup
 	GameObject* GetGameObjectByID(int targetID);
 
+	// Optional: despawn API
+	void DespawnByID(int targetID);
+
+    void SetAnimation(int objID, const std::string& newAnim);
+
+	// Collect raw pointers for rendering
+	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;

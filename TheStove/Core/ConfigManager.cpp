@@ -4,7 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Declaration of ConfigManager for loading/saving game settings.
+ DESCRIPTION:		Definition of ConfigManager for loading/saving game settings.
 					The configuration file uses a simple key=value format.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
@@ -25,56 +25,51 @@ namespace fs = std::filesystem;
 namespace ConfigManager {
 	namespace {
 		/** @brief Trims whitespace from both ends of a string. */
-		std::string Trim(std::string s) {
-			auto notSpace = [](unsigned char ch) {
-				return !std::isspace(ch);
-				};
+		std::string Trim(std::string str) {
+			auto isNotSpace = [](unsigned char ch) { return !std::isspace(ch); };
 
-			auto beginIt = std::find_if(s.begin(), s.end(), notSpace);
-			s.erase(s.begin(), beginIt);
+			auto beginIt = std::find_if(str.begin(), str.end(), isNotSpace);
+			str.erase(str.begin(), beginIt);
 
-			auto rbeginIt = std::find_if(s.rbegin(), s.rend(), notSpace);
+			auto rbeginIt = std::find_if(str.rbegin(), str.rend(), isNotSpace);
 			auto rendBase = rbeginIt.base();
-			s.erase(rendBase, s.end());
+			str.erase(rendBase, str.end());
 
-			return s;
+			return str;
 		}
 
 		/** @brief Case-insensitive comparison of two strings. */
-		bool IEquals(const std::string& a, const std::string& b) {
-			if (a.size() != b.size()) {
-				return false;
-			}
-
-			for (size_t i = 0; i < a.size(); ++i) {
-				if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i]))) {
+		bool IEquals(const std::string& lhs, const std::string& rhs) {
+			if (lhs.size() != rhs.size()) return false;
+			for (size_t i = 0; i < lhs.size(); ++i) {
+				if (std::tolower(static_cast<unsigned char>(lhs[i])) !=
+					std::tolower(static_cast<unsigned char>(rhs[i]))) {
 					return false;
 				}
 			}
-
 			return true;
 		}
 
 		/** @brief Parses a string into bool. */
-		bool ParseBool(const std::string& s, bool& out) {
-			if (IEquals(s, "true") || s == "1") {
-				out = true; return true;
+		bool ParseBool(const std::string& str, bool& valueOut) {
+			if (IEquals(str, "true") || str == "1") {
+				valueOut = true; return true;
 			}
 
-			if (IEquals(s, "false") || s == "0") {
-				out = false; return true;
+			if (IEquals(str, "false") || str == "0") {
+				valueOut = false; return true;
 			}
 
 			return false;
 		}
 
 		/** @brief Parses a string into int. */
-		bool ParseInt(const std::string& s, int& out) {
+		bool ParseInt(const std::string& str, int& valueOut) {
 			try {
 				size_t pos = 0;
-				long v = std::stol(s, &pos, 10);
-				if (pos != s.size()) return false;
-				out = static_cast<int>(v);
+				long v = std::stol(str, &pos, 10);
+				if (pos != str.size()) return false;
+				valueOut = static_cast<int>(v);
 				return true;
 			}
 
@@ -84,12 +79,12 @@ namespace ConfigManager {
 		}
 
 		/** @brief Parses a string into float. */
-		bool ParseFloat(const std::string& s, float& out) {
+		bool ParseFloat(const std::string& str, float& valueOut) {
 			try {
 				size_t pos = 0;
-				float v = std::stof(s, &pos);
-				if (pos != s.size()) return false;
-				out = v;
+				float v = std::stof(str, &pos);
+				if (pos != str.size()) return false;
+				valueOut = v;
 				return true;
 			}
 
@@ -126,127 +121,95 @@ namespace ConfigManager {
 		return s;
 	}
 
-	bool Load(const std::string& path, Settings& out) {
-		std::ifstream in(path);
-		if (!in.is_open()) {
+	bool Load(const std::string& filePath, Settings& out) {
+		std::ifstream ifs(filePath);
+		if (!ifs.is_open()) {
 			return false;
 		}
 
-		Settings tmp = out;
-		std::string line;
+		Settings cfg = out; // start from existing (keeps defaults if keys missing)
+		std::string lineBuf;
 
-		while (std::getline(in, line)) {
-			// Remove comments
-			std::string::size_type pos = line.find('#');
-			if (pos != std::string::npos) {
-				line.erase(pos);
+		while (std::getline(ifs, lineBuf)) {
+			// Strip comments
+			std::string::size_type commentPos = lineBuf.find('#');
+			if (commentPos != std::string::npos) {
+				lineBuf.erase(commentPos);
 			}
 
-			line = Trim(line);
-			if (line.empty()) {
-				continue;
-			}
+			lineBuf = Trim(lineBuf);
+			if (lineBuf.empty()) continue;
 
-			std::string::size_type eq = line.find('=');
-			if (eq == std::string::npos) {
-				continue;
-			}
+			// Split key=value
+			std::string::size_type eqPos = lineBuf.find('=');
+			if (eqPos == std::string::npos) continue;
 
-			std::string key = Trim(line.substr(0, eq));
-			std::string val = Trim(line.substr(eq + 1));
+			std::string key = Trim(lineBuf.substr(0, eqPos));
+			std::string val = Trim(lineBuf.substr(eqPos + 1));
 
 			if (key == "window_width") {
-				int parsedWidth = 0;
-				bool success = ParseInt(val, parsedWidth);
-
-				if (success) {
-					tmp.resolution.width = parsedWidth;
-				}
-				else {
-					// Parsing failed; keep previous value
+				int parsed = 0;
+				if (ParseInt(val, parsed)) {
+					cfg.resolution.width = parsed;
 				}
 			}
 			else if (key == "window_height") {
-				int parsedHeight = 0;
-				bool success = ParseInt(val, parsedHeight);
-
-				if (success) {
-					tmp.resolution.height = parsedHeight;
-				}
-				else {
-					// Parsing failed; keep previous value
+				int parsed = 0;
+				if (ParseInt(val, parsed)) {
+					cfg.resolution.height = parsed;
 				}
 			}
 			else if (key == "fullscreen") {
-				bool parsedFullscreen = false;
-				bool success = ParseBool(val, parsedFullscreen);
-
-				if (success) {
-					tmp.fullscreen = parsedFullscreen;
-				}
-				else {
-					// Parsing failed; keep previous value
+				bool parsed = false;
+				if (ParseBool(val, parsed)) {
+					cfg.fullscreen = parsed;
 				}
 			}
 			else if (key == "bgm_volume") {
-				float parsedBgm = 0.0f;
-				bool success = ParseFloat(val, parsedBgm);
-
-				if (success) {
-					tmp.bgmVolume = parsedBgm;
-				}
-				else {
-					// Parsing failed; keep previous value
+				float parsed = 0.0f;
+				if (ParseFloat(val, parsed)) {
+					cfg.bgmVolume = parsed;
 				}
 			}
 			else if (key == "vfx_volume") {
-				float parsedVfx = 0.0f;
-				bool success = ParseFloat(val, parsedVfx);
-
-				if (success) {
-					tmp.vfxVolume = parsedVfx;
-				}
-				else {
-					// Parsing failed; keep previous value
+				float parsed = 0.0f;
+				if (ParseFloat(val, parsed)) {
+					cfg.vfxVolume = parsed;
 				}
 			}
 			else if (key == "audio_volume") {
-				float parsedAudio = 0.0f;
-				bool success = ParseFloat(val, parsedAudio);
-
-				if (success) {
-					// Apply to both BGM and VFX
-					tmp.bgmVolume = parsedAudio;
-					tmp.vfxVolume = parsedAudio;
-				}
-				else {
-					// Parsing failed; keep previous value
+				// Optional convenience: applies to both BGM and VFX if present.
+				float parsed = 0.0f;
+				if (ParseFloat(val, parsed)) {
+					cfg.bgmVolume = parsed;
+					cfg.vfxVolume = parsed;
 				}
 			}
 			else {
-				// Unknown keys ignored
+				// Unknown keys are ignored (forward compatible).
 			}
 		}
 
-		Validate(tmp);
-		out = tmp;
+		Validate(cfg);
+		out = cfg;
 
 		return true;
 	}
 
-	bool Save(const std::string& path, const Settings& s) {
-		std::ofstream out(path, std::ios::trunc);
-		if (!out.is_open()) {
+	bool Save(const std::string& filePath, const Settings& s) {
+		std::ofstream ofs(filePath, std::ios::trunc);
+		if (!ofs.is_open()) {
 			return false;
 		}
 
-		out << "window_width=" << s.resolution.width << "\n";
-		out << "window_height=" << s.resolution.height << "\n";
-		out << "fullscreen=" << (s.fullscreen ? "true" : "false") << "\n";
-		out << "bgm_volume=" << s.bgmVolume << "\n";
-		out << "vfx_volume=" << s.vfxVolume << "\n";
-		out.flush();
-		return static_cast<bool>(out);
+		ofs << "window_width=" << s.resolution.width << "\n";
+		ofs << "window_height=" << s.resolution.height << "\n";
+		ofs << "fullscreen=" << (s.fullscreen ? "true" : "false") << "\n";
+		ofs << "bgm_volume=" << s.bgmVolume << "\n";
+		ofs << "vfx_volume=" << s.vfxVolume << "\n";
+		ofs.flush();
+
+		return static_cast<bool>(ofs);
 	}
 
 	bool LoadFromAssets(Settings& out, const char* filename) {
@@ -259,24 +222,17 @@ namespace ConfigManager {
 
 		fs::path exeDir = fs::path(exePath).parent_path();
 
+		// Candidate search order (nearest first)
 		std::vector<fs::path> candidates;
+		candidates.emplace_back(exeDir / "assets" / fname);
+		candidates.emplace_back(exeDir.parent_path() / "assets" / fname);
+		candidates.emplace_back(exeDir.parent_path().parent_path() / "assets" / fname);
+		candidates.emplace_back(exeDir / fname);
 
-		fs::path candidate1 = exeDir / "assets" / fname;
-		candidates.push_back(candidate1);
-
-		fs::path candidate2 = exeDir.parent_path() / "assets" / fname;
-		candidates.push_back(candidate2);
-
-		fs::path candidate3 = exeDir.parent_path().parent_path() / "assets" / fname;
-		candidates.push_back(candidate3);
-
-		fs::path candidate4 = exeDir / fname;
-		candidates.push_back(candidate4);
-
-		for (const auto& p : candidates) {
+		for (const auto& candidate : candidates) {
 			std::error_code ec;
-			if (fs::exists(p, ec)) {
-				return Load(p.string(), out);
+			if (fs::exists(candidate, ec)) {
+				return Load(candidate.string(), out);
 			}
 		}
 

@@ -17,6 +17,8 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 #include <fmod_errors.h>
 #include <string>
 #include <map>
+#include <unordered_map>
+#include <vector>
 
 #include "System.hpp"
 #include "ConfigManager.hpp"
@@ -237,6 +239,42 @@ public:
     /************************************************************************/
 	FMOD::System* GetSystem() const { return system; }
 
+	/************************************************************************/
+	/*!
+	\brief
+	Queues a request to play a sound next update rather than immediately.
+	\details
+	Useful when play requests arrive from multiple places (e.g., messages) and
+	centralizing FMOD interaction on the audio thread/update. The request list
+	is flushed at the start of Update().
+	\param name
+	Logical name of the sound (as loaded in ResourceManager).
+	\param volume
+	Initial playback volume (0.f to 1.f).
+	\param paused
+	If true, starts the channel paused allowing further configuration before unpausing.
+	*/
+	/************************************************************************/
+	void EnqueuePlay(std::string const& name, float volume = 1.f, bool paused = false);
+
+	/************************************************************************/
+	/*!
+	\brief
+	Schedules a volume fade on a currently playing channel.
+	\details
+	Interpolates from the channel's current volume to a target volume over the
+	given duration. If duration <= 0, the volume is set instantly. Fades are
+	processed each frame in Update(). If the channel stops, its fade is removed.
+	\param name
+	Logical name of the sound channel to fade.
+	\param toVolume
+	Target volume (0.f to 1.f).
+	\param duration
+	Fade time in seconds.
+	*/
+	/************************************************************************/
+	void FadeChannel(std::string const& name, float toVolume, float duration);
+
 private:
     /************************************************************************/
     /*!
@@ -257,5 +295,23 @@ private:
     std::map<std::string, FMOD::Channel*> channels;
     float                                 bgmVolume, vfxVolume;
     bool                                  muted;
+
+    struct PendingPlay
+    {
+        std::string name;
+        float volume;
+		bool paused;
+    };
+
+    struct VolumeFade
+    {
+        float fromVolume;
+        float toVolume;
+        float duration;
+        float elapsed;
+    };
+
+	std::vector<PendingPlay> pendingPlays;                      // queued play requests
+	std::unordered_map<std::string, VolumeFade> activeFades;    // per-sound active fades
 
 };

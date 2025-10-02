@@ -72,7 +72,7 @@ namespace CoreFramework
 	{
 		CharacterKeyMessage(char character, bool isPressed)
 			: Message(MsgId::CHARACTER_KEY), keyCharacter(character), keyIsPressed(isPressed) {}
-		char keyCharacter;
+		unsigned int keyCharacter;
 		bool keyIsPressed;
 	};
 

@@ -30,15 +30,20 @@ DESCRIPTION:		System interface for game engine systems.
     public:
        void Initialize() override {  setup code  }
        void Update(float dt) override {  per-frame logic  }
-       void SendMessage(CoreFramework::Message* msg) override {  handle messages }
+       void SendMessage(CoreFramework::Message* msg) override { handle messages }
        std::string GetName() override { return "MySystem"; }
     };
 
-	In main():
+	In Main.cpp:
+		// create a static instance of your system at the top of the file
+		static MySystem mySystem;
+		...
+		int main(){
+		...
+			coreEngine.AddSystem(&mySystem);
+		...
+		}
 
-		engine.AddSystem(new MySystem());
-
-	Actual example in Main.cpp as well.
 */
 
 namespace CoreFramework
