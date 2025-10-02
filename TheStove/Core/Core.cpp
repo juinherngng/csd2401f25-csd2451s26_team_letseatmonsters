@@ -23,13 +23,9 @@ namespace CoreFramework
 {
 	float gDt = 0.f;			// global delta time
 
-	// global pointer to core
-	//CoreEngine* CORE;
-
 	CoreEngine::CoreEngine()
 	{
 		gameActive = true;	// game is running
-		//CORE = this;		// set global pointer
 	}
 
 	CoreEngine::~CoreEngine() {}
@@ -37,9 +33,9 @@ namespace CoreFramework
 	void CoreEngine::Initialize()
 	{
 		// initialize all systems
-		for (unsigned i = 0; i < Systems.size(); i++)
+		for (auto* s : Systems)
 		{
-			Systems[i]->Initialize();
+			s->Initialize();
 		}
 	}
 
@@ -48,41 +44,34 @@ namespace CoreFramework
 	{
 		// add a currentTime variable to read system time
 		using clock = std::chrono::high_resolution_clock;
-		
-		// this will store the time of the last frame
-		//auto lastTime = clock::now();
 
-		// gameloop is already updating every frame in main.cpp
-		/*while (gameActive)
-		{*/
-			// get the current time
-			auto currentTime = clock::now();
+		// get the current time
+		auto currentTime = clock::now();
 			
-			// compute the time elapsed since last frame
-			std::chrono::duration<float> elapsed = currentTime - lastTime;
+		// compute the time elapsed since last frame
+		std::chrono::duration<float> elapsed = currentTime - lastTime;
 
-			// set global dt variable
-			gDt = elapsed.count();
+		// set global dt variable
+		gDt = elapsed.count();
 
-			// update all systems
-			for (auto* s : Systems)
-			{
-				auto sysStart = clock::now();
-				s->Update(gDt);
+		// update all systems
+		for (auto* s : Systems)
+		{
+			auto sysStart = clock::now();
+			s->Update(gDt);
 
-				auto sysEnd = clock::now();
-				std::chrono::duration<float> sysElapsed = sysEnd - sysStart;
-				s->lastDt = sysElapsed.count();
-			}
+			auto sysEnd = clock::now();
+			std::chrono::duration<float> sysElapsed = sysEnd - sysStart;
+			s->lastDt = sysElapsed.count();
+		}
 
-			FlushMessages();
+		FlushMessages();
 
-			// update system performance %tages
-			UpdateSystemTimes(debugApp, gDt);
+		// update system performance %tages
+		UpdateSystemTimes(debugApp, gDt);
 
-			// update lastUpdated to current time
-			lastTime = currentTime;
-		//}
+		// update lastUpdated to current time
+		lastTime = currentTime;
 	}
 
 	void CoreEngine::BroadcastMessage(Message *message)

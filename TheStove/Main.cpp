@@ -70,6 +70,7 @@ int main() {
     }
 
     // test tile map
+	std::cout << "Testing TileMap class" << std::endl;
     MapData testMap(6, 6);
 
     for (int i = 0; i < testMap.getHeight(); i++) {
@@ -119,14 +120,16 @@ static bool init(GLint width, GLint height, std::string title, bool fullscreen) 
     glfwMakeContextCurrent(window);
 
 	// Message callbacks to post input events to CoreEngine
-    glfwSetCharCallback(window, [](GLFWwindow* window, unsigned int c) 
+    glfwSetCharCallback(window, [](GLFWwindow* win, unsigned int c) 
     {
+		(void)window, (void)win;   // suppress unused parameter warning
         if (CoreFramework::CORE)
             CoreFramework::CORE->Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
 	});
 
     glfwSetMouseButtonCallback(window, [](GLFWwindow* win, int button, int action, int mods)
     {
+		(void)mods, (void)win;    // suppress unused parameter warning
         if (CoreFramework::CORE)
         {
             double x, y;
@@ -137,6 +140,7 @@ static bool init(GLint width, GLint height, std::string title, bool fullscreen) 
 
     glfwSetCursorPosCallback(window, [](GLFWwindow* win, double xpos, double ypos)
     {
+		(void)win; // suppress unused parameter warning
 		static double lastX = xpos;
 		static double lastY = ypos;
 		double dx = xpos - lastX;
