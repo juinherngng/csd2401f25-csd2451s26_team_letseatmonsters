@@ -4,7 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Implementation of AABB-based collision building and resolution.
+ DESCRIPTION:		Implementation of AABB-based collision primitives and world resolution.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -15,7 +15,12 @@
 #include <cmath>
 
 namespace collision {
-	// AABB overlap test on both axes
+	/**
+	 * @brief Check overlap between two AABBs.
+	 * @param a First AABB.
+	 * @param b Second AABB.
+	 * @return true if overlap exists, false otherwise.
+	 */
 	static inline bool overlaps(const AABB& a, const AABB& b) {
 		bool aRightOfB = (a.min.x >= b.max.x);
 		bool aLeftOfB = (a.max.x <= b.min.x);
@@ -31,11 +36,20 @@ namespace collision {
 		return overlapExists;
 	}
 
+	/**
+	 * @brief Clamp float between two values.
+	 * @param v Value to clamp.
+	 * @param lo Minimum bound.
+	 * @param hi Maximum bound.
+	 * @return Clamped value.
+	 */
 	static inline float clampf(float v, float lo, float hi) {
 		return std::max(lo, std::min(v, hi));
 	}
 
-	// AABB minimal translation vector (move A out of B)
+	// --- Primitives ---
+
+	// Computes signed penetration depths and selects smallest axis.
 	bool overlapMTV(const AABB& a, const AABB& b, glm::vec2& mtvOut) {
 		// Signed gaps (A relative to B)
 		float left = b.min.x - a.max.x;
@@ -63,7 +77,7 @@ namespace collision {
 		return true;
 	}
 
-	// Split MTV by weightA: 0.5 = equal; 1.0 = only A moves
+	// Splits MTV based on given weight between A and B.
 	bool separateWeighted(const AABB& a, const AABB& b, float weightA, glm::vec2& moveA, glm::vec2& moveB) {
 		glm::vec2 mtv;
 		if (!overlapMTV(a, b, mtv)) {
@@ -79,6 +93,7 @@ namespace collision {
 		return true;
 	}
 
+	// Half-extents based point inclusion test.
 	bool pointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale) {
 		const float hx = scale.x * 0.5f;
 		const float hy = scale.y * 0.5f;
@@ -86,16 +101,19 @@ namespace collision {
 			p.y >= center.y - hy && p.y <= center.y + hy);
 	}
 
+	// --- World methods ---
 
-	// World: build walls and resolve swept motion
+	// Reset world by removing all walls.
 	void World::clear() {
 		mWalls.clear();
 	}
 
+	// Push custom AABB wall into world.
 	void World::addWall(const AABB& aabb) {
 		mWalls.push_back(aabb);
 	}
 
+	// Builds world boundary and obstacles from primitives.
 	void World::build(const WalkArea& w, const WoodVertical& wood, const StageEndGateVertical& end) {
 		mWalls.clear();
 
@@ -152,160 +170,85 @@ namespace collision {
 		mWalls.push_back(endBottom);
 	}
 
+	// Axis-separable sweep test: move along X then Y, correcting overlaps.
 	glm::vec2 World::resolve(const AABB& startBox, glm::vec2 desiredDelta) const {
-		// Start with desired; trim by walls
-		glm::vec2 out{};
-		out.x = desiredDelta.x;
-		out.y = desiredDelta.y;
+		// Begin with desired; trim by walls.
+		glm::vec2 allowedDelta = desiredDelta;
 
-		// X-sweep
-		AABB movedX{};
-		movedX.min = startBox.min;
-		movedX.max = startBox.max;
+		// X sweep
+		AABB movedX = startBox;
 
-		// Compute the intended shift along X
-		float shiftX = out.x;
-
-		// Apply the X shift separately for min and max
-		float newMinX = movedX.min.x + shiftX;
-		float newMaxX = movedX.max.x + shiftX;
-
-		movedX.min.x = newMinX;
-		movedX.max.x = newMaxX;
+		// Apply X shift
+		movedX.min.x += allowedDelta.x;
+		movedX.max.x += allowedDelta.x;
 
 		// Check against each wall
-		for (const auto& w : mWalls) {
-			bool overlapNow = overlaps(movedX, w);
+		for (const auto& wall : mWalls) {
+			const bool hit = overlaps(movedX, wall);
+			if (!hit) continue;
 
-			if (overlapNow) {
-				if (out.x > 0.0f) {
-					// Moving right; need to push left
-					float penetrationX = movedX.max.x - w.min.x;
+			if (allowedDelta.x > 0.0f) {
+				// Moving right; push left
+				const float penX = movedX.max.x - wall.min.x;
 
-					// Correct the output vector
-					float correctedOutX = out.x - penetrationX;
-					out.x = correctedOutX;
+				allowedDelta.x -= penX; // trim
+				movedX.min.x -= penX;   // shift box back
+				movedX.max.x -= penX;
 
-					// Adjust moved box
-					float correctedMinX = movedX.min.x - penetrationX;
-					float correctedMaxX = movedX.max.x - penetrationX;
+			}
+			else if (allowedDelta.x < 0.0f) {
+				// Moving left; push right
+				const float penX = wall.max.x - movedX.min.x;
 
-					movedX.min.x = correctedMinX;
-					movedX.max.x = correctedMaxX;
-				}
-				else if (out.x < 0.0f) {
-					// Moving left; need to push right
-					float penetrationX = w.max.x - movedX.min.x;
-
-					// Correct the output vector
-					float correctedOutX = out.x + penetrationX;
-					out.x = correctedOutX;
-
-					// Adjust moved box
-					float correctedMinX = movedX.min.x + penetrationX;
-					float correctedMaxX = movedX.max.x + penetrationX;
-
-					movedX.min.x = correctedMinX;
-					movedX.max.x = correctedMaxX;
-				}
+				allowedDelta.x += penX; // trim
+				movedX.min.x += penX;   // shift box forward
+				movedX.max.x += penX;
 			}
 		}
 
-		// Y-sweep
-		AABB movedY{};
-		movedY.min = movedX.min;
-		movedY.max = movedX.max;
+		// Y sweep
+		AABB movedY = movedX;
 
-		// Compute the intended shift along Y
-		float shiftY = out.y;
+		// Apply Y shift
+		movedY.min.y += allowedDelta.y;
+		movedY.max.y += allowedDelta.y;
 
-		// Apply the Y shift separately
-		float newMinY = movedY.min.y + shiftY;
-		float newMaxY = movedY.max.y + shiftY;
+		for (const auto& wall : mWalls) {
+			const bool hit = overlaps(movedY, wall);
+			if (!hit) continue;
 
-		movedY.min.y = newMinY;
-		movedY.max.y = newMaxY;
+			if (allowedDelta.y > 0.0f) {
+				// Moving down; push up
+				const float penY = movedY.max.y - wall.min.y;
 
-		// Check against each wall
-		for (const auto& w : mWalls) {
-			bool overlapNow = overlaps(movedY, w);
+				allowedDelta.y -= penY;
+				movedY.min.y -= penY;
+				movedY.max.y -= penY;
 
-			if (overlapNow) {
-				if (out.y > 0.0f) {
-					// Moving down; need to push up
-					float penetrationY = movedY.max.y - w.min.y;
+			}
+			else if (allowedDelta.y < 0.0f) {
+				// Moving up; push down
+				const float penY = wall.max.y - movedY.min.y;
 
-					// Correct output vector
-					float correctedOutY = out.y - penetrationY;
-					out.y = correctedOutY;
-
-					// Adjust moved box
-					float correctedMinY = movedY.min.y - penetrationY;
-					float correctedMaxY = movedY.max.y - penetrationY;
-
-					movedY.min.y = correctedMinY;
-					movedY.max.y = correctedMaxY;
-				}
-				else if (out.y < 0.0f) {
-					// Moving up; need to push down
-					float penetrationY = w.max.y - movedY.min.y;
-
-					// Correct output vector
-					float correctedOutY = out.y + penetrationY;
-					out.y = correctedOutY;
-
-					// Adjust moved box
-					float correctedMinY = movedY.min.y + penetrationY;
-					float correctedMaxY = movedY.max.y + penetrationY;
-
-					movedY.min.y = correctedMinY;
-					movedY.max.y = correctedMaxY;
-				}
+				allowedDelta.y += penY;
+				movedY.min.y += penY;
+				movedY.max.y += penY;
 			}
 		}
 
-		return out;
+		return allowedDelta;
 	}
 
-	// Center + size
+	// Construct AABB from 2D center and full size.
 	AABB World::makeAABBFromCenter(const glm::vec3& center, const glm::vec3& scale) {
-		// Half extents
-		float halfWidth = scale.x * 0.5f;
-		float halfHeight = scale.y * 0.5f;
+		const float halfW = scale.x * 0.5f;
+		const float halfH = scale.y * 0.5f;
 
-		glm::vec2 halfExtents{};
-		halfExtents.x = halfWidth;
-		halfExtents.y = halfHeight;
+		const glm::vec2 c2{ center.x, center.y };
 
-		// Extract 2D center
-		float cx = center.x;
-		float cy = center.y;
-
-		glm::vec2 center2D{};
-		center2D.x = cx;
-		center2D.y = cy;
-
-		// Compute min corner
-		float minX = center2D.x - halfExtents.x;
-		float minY = center2D.y - halfExtents.y;
-
-		glm::vec2 minCorner{};
-		minCorner.x = minX;
-		minCorner.y = minY;
-
-		// Compute max corner
-		float maxX = center2D.x + halfExtents.x;
-		float maxY = center2D.y + halfExtents.y;
-
-		glm::vec2 maxCorner{};
-		maxCorner.x = maxX;
-		maxCorner.y = maxY;
-
-		// Construct AABB
 		AABB box{};
-		box.min = minCorner;
-		box.max = maxCorner;
-
+		box.min = { c2.x - halfW, c2.y - halfH };
+		box.max = { c2.x + halfW, c2.y + halfH };
 		return box;
 	}
 }

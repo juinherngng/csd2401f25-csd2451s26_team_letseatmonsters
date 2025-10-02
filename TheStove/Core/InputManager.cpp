@@ -5,7 +5,7 @@ void InputManager::Update(GLFWwindow* window) {
 	// Keys to poll (expand as needed)
 	int keys[] = {
 		GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN,
-		GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_P, GLFW_KEY_O
+		GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_P
 	};
 
 	for (int key : keys) {

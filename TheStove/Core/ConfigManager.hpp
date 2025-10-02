@@ -4,8 +4,9 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Declaration of ConfigManager for loading/saving game settings.
-					The configuration file uses a simple key=value format.
+ DESCRIPTION:		This module defines a minimal configuration schema (window resolution, fullscreen,
+					BGM/VFX volumes) and exposes helpers to load from a file or common asset locations,
+					save back to disk, and validate/clamp values to safe ranges.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -57,7 +58,7 @@ namespace ConfigManager {
 	 * @param[out] out Settings structure to populate.
 	 * @return True if loaded successfully, false otherwise.
 	 */
-	bool Load(const std::string& path, Settings& out);
+	bool Load(const std::string& filePath, Settings& out);
 
 	/**
 	 * @brief Saves settings to a given file path.
@@ -65,7 +66,7 @@ namespace ConfigManager {
 	 * @param s Settings to write.
 	 * @return True if successfully written.
 	 */
-	bool Save(const std::string& path, const Settings& s);
+	bool Save(const std::string& patfilePathh, const Settings& s);
 
 	/**
 	 * @brief Tries to load settings from `assets/config.txt` relative to executable.
