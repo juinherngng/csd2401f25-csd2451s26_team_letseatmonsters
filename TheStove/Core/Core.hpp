@@ -13,7 +13,6 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 #pragma once
 
 #include "System.hpp"
-#include "ImGuiDebugger.hpp"
 
 #include <vector>
 #include <chrono>
@@ -30,7 +29,7 @@ namespace CoreFramework
 		CoreEngine();
 		~CoreEngine();
 
-		void GameLoop(DebuggerApp& debugApp);
+		void GameLoop();
 
 		void DestroySystems();
 
@@ -42,7 +41,8 @@ namespace CoreFramework
 
 		float GetFPS() const { return fps; }
 
-		void UpdateSystemTimes(DebuggerApp& debugApp, float totalDt);
+		// Accessor to Read-Only values of Systems
+		const std::vector<SystemInterface*>& GetSystems() const { return Systems; }
 
 		template<typename T>
 		T* GetSystem()
