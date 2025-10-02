@@ -6,7 +6,7 @@ AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
 
 DESCRIPTION:		The declarations of functions for the debugger window.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -21,7 +21,6 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 
 #include "Precompiled.hpp"
 #include "Core.hpp"
-#include "AudioManager.hpp"
 
 struct SystemPerformance
 {
@@ -82,6 +81,9 @@ namespace Debug
 		// Vector of SystemPerformance structs to store data for system performance
 		std::vector<SystemPerformance> sysPerformance;
 
+		// Vector of Audio Clips that can be played
+		std::vector<float> audioList;
+
 		// FPS control
 		FPSMode fpsMode = FPSMode::VSYNC; // By default
 
@@ -94,8 +96,5 @@ namespace Debug
 
 		// Crash logging
 		std::ofstream crashlogFile; // The file stream to log errors to
-
-		// Audio Values
-		float bgm = 0.0f, vfx = 0.0f;
 	};
 }
