@@ -53,6 +53,7 @@ int main() {
         return -1;
     }
     
+    // test play audio
     if (auto* audioMgr = coreEngine.GetSystem<AudioManager>())
     {
         audioMgr->ApplySettings(settings);

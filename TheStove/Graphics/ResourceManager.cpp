@@ -83,6 +83,7 @@ Texture* ResourceManager::GetTexture(const std::string& name) {
 
 FMOD::Sound* ResourceManager::LoadAudio(std::string const  name, std::string const& filePath, bool loop, bool stream)
 {
+	// Ensure audio system is set
     if (!audioSystem) 
     {
         std::cerr << "Audio system not set!" << std::endl;
@@ -93,24 +94,29 @@ FMOD::Sound* ResourceManager::LoadAudio(std::string const  name, std::string con
 		std::cout << "Audio system is set." << std::endl;
     }
 
+	// Check if already loaded
     if (auto it = sounds.find(name); it != sounds.end())
     {
         std::cout << "Audio '" << name << "' already loaded, returning existing." << std::endl;
         return it->second;
 	}
 
+	// Set FMOD mode flags
 	FMOD_MODE mode = FMOD_DEFAULT | (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) | 
                                     (stream ? FMOD_CREATESTREAM : FMOD_CREATESAMPLE);
 
+	// Load sound
 	FMOD::Sound* sound = nullptr;
 	FMOD_RESULT result = audioSystem->createSound(filePath.c_str(), mode, nullptr, &sound);
 
+	// Check for errors
     if (result != FMOD_OK)
     {
         std::cerr << "Failed to load audio '" << name << "': " << FMOD_ErrorString(result) << std::endl;
         return nullptr;
     }
 
+	// Store sound
     sounds.emplace(name, sound);
 
 	std::cout << "Loaded audio: " << name << std::endl;
@@ -119,6 +125,7 @@ FMOD::Sound* ResourceManager::LoadAudio(std::string const  name, std::string con
 
 FMOD::Sound* ResourceManager::GetAudio(std::string const& name) const
 {
+	// Check if audio exists
     if (auto it = sounds.find(name); it != sounds.end()) return it->second;
 
 	std::cerr << "Audio '" << name << "' not found!" << std::endl;
@@ -127,8 +134,10 @@ FMOD::Sound* ResourceManager::GetAudio(std::string const& name) const
 
 void ResourceManager::UnloadAudio(std::string const& name)
 {
+	// Check if audio exists and erase
     if (auto it = sounds.find(name); it != sounds.end())
     {
+		// Release sound
         sounds.erase(it);
 		std::cout << "Unloaded audio: " << name << std::endl;
     }
@@ -136,6 +145,7 @@ void ResourceManager::UnloadAudio(std::string const& name)
 
 bool ResourceManager::HasAudio(std::string const& name) const
 {
+	// Check if audio exists
 	return sounds.find(name) != sounds.end();
 }
 bool ResourceManager::GetAudioInfo(std::string const& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const
@@ -147,14 +157,19 @@ bool ResourceManager::GetAudioInfo(std::string const& name, unsigned int& length
         return false;
 	}
 
+	// Retrieve sound info
 	FMOD::Sound* snd = it->second;
 
+	// Get length in milliseconds
     if (snd->getLength(&lengthMs, FMOD_TIMEUNIT_MS) != FMOD_OK) return false;
 
+	// Get format info
     FMOD_SOUND_TYPE type;
     FMOD_SOUND_FORMAT format;
+	// bits and channels are output parameters
 	if (snd->getFormat(&type, &format, &channels, &bits) != FMOD_OK) return false;
 
+	// Get default frequency
 	if (snd->getDefaults(&freq, nullptr) != FMOD_OK) freq = 0;
 
     return true;
