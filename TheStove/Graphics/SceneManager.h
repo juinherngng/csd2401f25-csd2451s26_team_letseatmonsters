@@ -4,6 +4,8 @@
 #include "../Core/InputManager.h"
 #include "Animator.h"
 #include "Collision.h"
+#include "../Core/Physics.hpp"
+
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -12,6 +14,7 @@ class Scene {
 public:
 	Scene(GraphicsEngine& engine);
 
+	// Lifecycle
 	void LoadScene(const std::string& sceneName);
 	void Update(float deltaTime, GLFWwindow* window);
 
@@ -26,7 +29,7 @@ public:
 	void SetSceneBackground(const std::string& texturePath);
 
 	// Object Lookup
-    GameObject* GetGameObjectByID(int targetID);
+	GameObject* GetGameObjectByID(int targetID);
 
 	// Optional: despawn API
 	void DespawnByID(int targetID);
@@ -37,6 +40,7 @@ public:
 	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
 
 private:
+	// Engine/input
 	GraphicsEngine& graphicsEngine;
 	InputManager inputManager;
 
@@ -58,22 +62,16 @@ private:
     // Current animation name for each object
     std::unordered_map<int, std::string> currentAnimation;
 
+	// Scene content
 	void LoadTest();
 
-	// World collision system for walls and obstacles.
-	collision::World mCollision;
+	// Click-to-move
+	bool hasClickTarget = false;
+	glm::vec2 clickTarget{ 0.0f, 0.0f };
+	bool playerSelected = false;
+	float playerSpeed = 260.0f;
 
-	// Build level colliders (walls, gates, dividers) into mCollision.
-	void BuildLevelColliders();
-
-	// Click-to-move state
-	bool hasClickTarget = false;		 // True if a target location has been clicked.
-	glm::vec2 clickTarget{ 0.0f, 0.0f }; // Current click destination in world coords.
-
-	bool playerSelected = false; // Must select/click player before issuing move.
-	float playerSpeed = 260.0f;  // Player movement speed.
-
-	// Stuck detection when pathing into walls
+	// Stuck detection (cancel click move if not progressing)
 	int stuckFrames = 0;
-	static constexpr int kStuckFramesToCancel = 12; // Cancel movement if stuck for ~0.2s at 60fps.
+	static constexpr int kStuckFramesToCancel = 12;
 };

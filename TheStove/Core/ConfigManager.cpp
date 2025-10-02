@@ -1,15 +1,15 @@
 /*
-  ----------------------------------------------------------------------------------------------------
-  FILE NAME:		ConfigManager.cpp
-  PROJECT NAME:		Project GAM200
-  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			ConfigManager.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
-  DESCRIPTION:		Implementation of ConfigManager for loading/saving game settings from text files.
-					File format: simple key=value pairs (INI-like), `#` for comments.
+ DESCRIPTION:		Declaration of ConfigManager for loading/saving game settings.
+					The configuration file uses a simple key=value format.
 
-		  All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
-  ----------------------------------------------------------------------------------------------------
-  */
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
 
 #include "ConfigManager.hpp"
 
@@ -30,8 +30,12 @@ namespace ConfigManager {
 				return !std::isspace(ch);
 				};
 
-			s.erase(s.begin(), std::find_if(s.begin(), s.end(), notSpace));
-			s.erase(std::find_if(s.rbegin(), s.rend(), notSpace).base(), s.end());
+			auto beginIt = std::find_if(s.begin(), s.end(), notSpace);
+			s.erase(s.begin(), beginIt);
+
+			auto rbeginIt = std::find_if(s.rbegin(), s.rend(), notSpace);
+			auto rendBase = rbeginIt.base();
+			s.erase(rendBase, s.end());
 
 			return s;
 		}
@@ -101,10 +105,18 @@ namespace ConfigManager {
 		if (s.resolution.height < 200) s.resolution.height = 200;
 
 		// Clamp volumes
-		if (s.bgmVolume < 0.f) s.bgmVolume = 0.f;
-		if (s.bgmVolume > 1.f) s.bgmVolume = 1.f;
-		if (s.vfxVolume < 0.f) s.vfxVolume = 0.f;
-		if (s.vfxVolume > 1.f) s.vfxVolume = 1.f;
+		if (s.bgmVolume < 0.0f) {
+			s.bgmVolume = 0.0f;
+		}
+		if (s.bgmVolume > 1.0f) {
+			s.bgmVolume = 1.0f;
+		}
+		if (s.vfxVolume < 0.0f) {
+			s.vfxVolume = 0.0f;
+		}
+		if (s.vfxVolume > 1.0f) {
+			s.vfxVolume = 1.0f;
+		}
 	}
 
 	Settings WithResolution(Settings s, int width, int height) {
@@ -144,26 +156,72 @@ namespace ConfigManager {
 			std::string val = Trim(line.substr(eq + 1));
 
 			if (key == "window_width") {
-				int w;
-				if (ParseInt(val, w)) tmp.resolution.width = w;
+				int parsedWidth = 0;
+				bool success = ParseInt(val, parsedWidth);
+
+				if (success) {
+					tmp.resolution.width = parsedWidth;
+				}
+				else {
+					// Parsing failed; keep previous value
+				}
 			}
 			else if (key == "window_height") {
-				int h;
-				if (ParseInt(val, h)) tmp.resolution.height = h;
+				int parsedHeight = 0;
+				bool success = ParseInt(val, parsedHeight);
+
+				if (success) {
+					tmp.resolution.height = parsedHeight;
+				}
+				else {
+					// Parsing failed; keep previous value
+				}
 			}
 			else if (key == "fullscreen") {
-				bool b;
-				if (ParseBool(val, b)) tmp.fullscreen = b;
+				bool parsedFullscreen = false;
+				bool success = ParseBool(val, parsedFullscreen);
+
+				if (success) {
+					tmp.fullscreen = parsedFullscreen;
+				}
+				else {
+					// Parsing failed; keep previous value
+				}
 			}
 			else if (key == "bgm_volume") {
-				float v; if (ParseFloat(val, v)) tmp.bgmVolume = v;
+				float parsedBgm = 0.0f;
+				bool success = ParseFloat(val, parsedBgm);
+
+				if (success) {
+					tmp.bgmVolume = parsedBgm;
+				}
+				else {
+					// Parsing failed; keep previous value
+				}
 			}
 			else if (key == "vfx_volume") {
-				float v; if (ParseFloat(val, v)) tmp.vfxVolume = v;
+				float parsedVfx = 0.0f;
+				bool success = ParseFloat(val, parsedVfx);
+
+				if (success) {
+					tmp.vfxVolume = parsedVfx;
+				}
+				else {
+					// Parsing failed; keep previous value
+				}
 			}
 			else if (key == "audio_volume") {
-				float v;
-				if (ParseFloat(val, v)) { tmp.bgmVolume = v; tmp.vfxVolume = v; }
+				float parsedAudio = 0.0f;
+				bool success = ParseFloat(val, parsedAudio);
+
+				if (success) {
+					// Apply to both BGM and VFX
+					tmp.bgmVolume = parsedAudio;
+					tmp.vfxVolume = parsedAudio;
+				}
+				else {
+					// Parsing failed; keep previous value
+				}
 			}
 			else {
 				// Unknown keys ignored
@@ -172,6 +230,7 @@ namespace ConfigManager {
 
 		Validate(tmp);
 		out = tmp;
+
 		return true;
 	}
 
@@ -200,12 +259,19 @@ namespace ConfigManager {
 
 		fs::path exeDir = fs::path(exePath).parent_path();
 
-		std::vector<fs::path> candidates = {
-			exeDir / "assets" / fname,
-			exeDir.parent_path() / "assets" / fname,
-			exeDir.parent_path().parent_path() / "assets" / fname,
-			exeDir / fname
-		};
+		std::vector<fs::path> candidates;
+
+		fs::path candidate1 = exeDir / "assets" / fname;
+		candidates.push_back(candidate1);
+
+		fs::path candidate2 = exeDir.parent_path() / "assets" / fname;
+		candidates.push_back(candidate2);
+
+		fs::path candidate3 = exeDir.parent_path().parent_path() / "assets" / fname;
+		candidates.push_back(candidate3);
+
+		fs::path candidate4 = exeDir / fname;
+		candidates.push_back(candidate4);
 
 		for (const auto& p : candidates) {
 			std::error_code ec;

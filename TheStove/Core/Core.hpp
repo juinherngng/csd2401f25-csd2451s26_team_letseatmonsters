@@ -13,10 +13,12 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 #pragma once
 
 #include "System.hpp"
-#include "ImGuiDebugger.hpp"
 
 #include <vector>
 #include <chrono>
+#include <deque>
+#include <memory>
+#include <utility>
 
 namespace CoreFramework
 {
@@ -30,7 +32,7 @@ namespace CoreFramework
 		CoreEngine();
 		~CoreEngine();
 
-		void GameLoop(DebuggerApp& debugApp);
+		void GameLoop();
 
 		void DestroySystems();
 
@@ -42,28 +44,51 @@ namespace CoreFramework
 
 		float GetFPS() const { return fps; }
 
-		void UpdateSystemTimes(DebuggerApp& debugApp, float totalDt);
+		// Accessor to Read-Only values of Systems
+		const std::vector<SystemInterface*>& GetSystems() const { return Systems; }
+
+		template<typename T>
+		T* GetSystem()
+		{
+			for (auto* s : Systems)
+				if (auto* casted = dynamic_cast<T*>(s))
+					return casted;
+			return nullptr;
+		}
+
+		template<typename T>
+		T* const GetSystem() const
+		{
+			for (auto* s : Systems)
+				if (auto* casted = dynamic_cast<T*>(s))
+					return casted;
+			return nullptr;
+		}
+
+		template<typename T, typename... Args>
+		void Post(Args&&... args)
+		{
+			messageQueue.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
+		}
+
+		void FlushMessages()
+		{
+			while (!messageQueue.empty())
+			{
+				BroadcastMessage(messageQueue.front().get());
+				messageQueue.pop_front();
+			}
+		}
 
 	private:
+		using MessagePtr = std::unique_ptr<Message>;
+
 		std::vector<SystemInterface*> Systems;
+		std::deque<MessagePtr>		  messageQueue; // messages to be processed at the start of the next frame
 
 		float fps = 0.f;		// fps counter
-
 		bool gameActive;		// game running (true), game shutting down (false)
-
 		std::chrono::high_resolution_clock::time_point lastTime; // time of last frame
-	};
-
-	class MessageQuit : public Message
-	{
-		MessageQuit() : Message(MsgId::QUIT) {}
-	};
-
-	class ToggleDebug : public Message
-	{
-		bool debugActive;
-
-		ToggleDebug(bool debug) : Message(MsgId::TOGGLE_DEBUG_INFO) , debugActive(debug) {} 
 	};
 
 	extern CoreEngine* CORE;

@@ -109,8 +109,8 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 		obj->Draw(view, projection);
 		glDisable(GL_DEPTH_TEST);
 		obj->DrawBoundingBox(view, projection, { 1.0f, 0.0f, 0.0f });
-		glEnable(GL_DEPTH_TEST);
 	}
+	glEnable(GL_DEPTH_TEST);
 
 	// Check for OpenGL errors
 	GLenum error;
