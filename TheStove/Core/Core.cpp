@@ -11,7 +11,6 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 */
 
 #include "Core.hpp"
-#include "ImGuiDebugger.hpp"
 #include "GameStateManager.hpp"
 
 
@@ -44,7 +43,7 @@ namespace CoreFramework
 	}
 
 	// game loop is being called every frame in main in update()
-	void CoreEngine::GameLoop(DebuggerApp& debugApp)
+	void CoreEngine::GameLoop()
 	{
 		// add a currentTime variable to read system time
 		using clock = std::chrono::high_resolution_clock;
@@ -68,18 +67,6 @@ namespace CoreFramework
 			{
 				Systems[i]->Update(gDt);
 			}
-
-			// update system performance %tages
-			UpdateSystemTimes(debugApp, gDt);
-
-			// render the debugger
-			//debugApp.RunDebuggerApp();
-
-			
-
-			// Prevents division by 0 on the first frame where gDt = 0
-			/*debugApp.fps = (smoothedDt > 0.f) ? (1.f / smoothedDt) : 0.f;
-			debugApp.msperFrame = (smoothedDt * 1000.0f);*/
 
 			// update lastUpdated to current time
 			lastTime = currentTime;
@@ -126,17 +113,6 @@ namespace CoreFramework
 		}
 
 		Systems.clear();
-	}
-
-	void CoreEngine::UpdateSystemTimes(DebuggerApp& debugApp, float totalDt)
-	{
-		debugApp.sysPerformance.clear();
-
-		for (auto& sys : Systems)
-		{
-			float percent = (totalDt > 0.0f) ? (sys->lastDt / totalDt) * 100.0f : 0.0f;
-			debugApp.sysPerformance.push_back({ sys->GetName(), percent });
-		}
 	}
 
 }

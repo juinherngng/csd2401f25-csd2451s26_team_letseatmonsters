@@ -1,5 +1,7 @@
 #pragma once
 
+//#define IMGUI_ENABLE_DOCKING
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
