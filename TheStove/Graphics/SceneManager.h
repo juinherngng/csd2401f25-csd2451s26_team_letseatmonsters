@@ -27,7 +27,7 @@ public:
 	void SetSceneBackground(const std::string& texturePath);
 
 	// Object Lookup
-    GameObject* GetGameObjectByID(int targetID);
+	GameObject* GetGameObjectByID(int targetID);
 
 	// Optional: despawn API
 	void DespawnByID(int targetID);
@@ -42,27 +42,8 @@ private:
 	GraphicsEngine& graphicsEngine;
 	InputManager inputManager;
 
-	//Scene-owned objects
-	std::vector<std::unique_ptr<GameObject>> sceneObjects;
-	int nextID = 1; // ID counter for SceneObjects
-
-    int spriteID = -1; // default invalid ID
-	int dinoID = -1; // for testing
-
-    std::unordered_map<int, glm::vec3> spriteScales;
-    std::unordered_map<int, glm::vec3> spritePositions;
-    std::unordered_map<int, float> spriteRotations;
-    std::unordered_map<int, Animator2D> animators; // map GameObject ID to Animator2D
-
-	// Map of object ID to their animations (name to Animator2D)
-    std::unordered_map<int, std::unordered_map<std::string, Animator2D>> objectAnimations;
-
-    // Current animation name for each object
-    std::unordered_map<int, std::string> currentAnimation;
-
-	void LoadTest();
-
-	// World collision system for walls and obstacles.
+	// World/collision
+	void BuildLevelColliders();
 	collision::World mCollision;
 
 	// Step-by-step controller
