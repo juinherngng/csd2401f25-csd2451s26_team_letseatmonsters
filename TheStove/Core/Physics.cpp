@@ -64,7 +64,6 @@ namespace physics {
 		pos.x = std::clamp(pos.x, minX, maxX);
 	}
 
-
 	float StepController::resolveDt(::InputManager& input, float deltaTime) {
 		const bool pNow = input.IsKeyPressed(GLFW_KEY_P);
 		const bool wNow = input.IsKeyPressed(GLFW_KEY_W);

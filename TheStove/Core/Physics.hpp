@@ -46,6 +46,18 @@ namespace physics {
 	 */
 	void ClampInsideWalk(const collision::WalkArea& walkArea, GameObject* gameObj, glm::vec3& pos);
 
+	/**
+	 * @brief Clamp an object's position inside the walkable area, with special handling for an end gate.
+	 *
+	 * Ensures the object’s collider (size + offset) stays within the WalkArea bounds, while allowing
+	 * horizontal extension past the walk area's right edge if the object is fully within the vertical
+	 * gap of the StageEndGateVertical.
+	 *
+	 * @param walk Walkable area definition (L/R/T/B plus edge thickness).
+	 * @param gate End-of-stage vertical gate definition (solid top/bottom, central gap).
+	 * @param obj  Game object providing collider size/offset.
+	 * @param pos  [in,out] World position to be clamped and possibly extended at the gate.
+	 */
 	void ClampInsideWalkWithGate(
 		const collision::WalkArea& walk,
 		const collision::StageEndGateVertical& gate,
