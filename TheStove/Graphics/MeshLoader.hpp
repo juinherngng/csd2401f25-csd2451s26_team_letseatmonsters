@@ -1,3 +1,16 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			MeshLoader.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+
+DESCRIPTION:		Static mesh builders that fill CPU-side vertex arrays for common shapes.
+
+		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
+
 #pragma once
 
 #include <vector>

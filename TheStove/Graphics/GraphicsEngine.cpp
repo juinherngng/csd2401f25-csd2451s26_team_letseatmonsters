@@ -1,9 +1,23 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			GraphicsEngine.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+
+DESCRIPTION:		Implements initialization, default resource loading, background handling,
+   					and batched rendering of GameObjects with error checks.
+
+		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
 
+// Constructor: Initializes references and identity matrices for view/projection.
 GraphicsEngine::GraphicsEngine()
 	: resourceManager(ResourceManager::Instance()),
 	projection(1.0f),
@@ -11,6 +25,7 @@ GraphicsEngine::GraphicsEngine()
 {
 }
 
+// Initialize renderer state and default camera/projection.
 void GraphicsEngine::Initialize() {
 	renderer.Initialize();
 	renderer.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -24,6 +39,7 @@ void GraphicsEngine::Initialize() {
 	LoadDefaultResources();
 }
 
+// Internal helper to preload common shaders and meshes.
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
@@ -66,6 +82,7 @@ void GraphicsEngine::LoadDefaultResources() {
 	resourceManager.LoadMesh("fullscreen_quad", vertices, vertexCount, vertexSize);
 }
 
+//Sets and update a fullscreen background texture and ensure a background quad exists.
 void GraphicsEngine::SetBackground(const std::string& texturePath) {
 	// Load background texture
 	Texture* bgTexture = resourceManager.LoadTexture("background", texturePath);
@@ -92,14 +109,17 @@ void GraphicsEngine::SetBackground(const std::string& texturePath) {
 	}
 }
 
+// Remove the background object (if present).
 void GraphicsEngine::ClearBackground() {
 	backgroundObject.reset();
 }
 
+// Clear frame using Renderer to begin a new frame
 void GraphicsEngine::BeginFrame() {
 	renderer.Clear();
 }
 
+// Render the  background and then all provided GameObjects
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 
 	// Render background first (if exists)
@@ -114,7 +134,7 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 
 	}
 
-	// Draw all scene-provided objects (non-owning)
+	// Draw all scene-provided objects 
 
 	for (const auto* obj : objects) {
 
@@ -143,6 +163,7 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 	}
 }
 
+// Destroy background and clear ResourceManager caches
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
 	resourceManager.Clear();

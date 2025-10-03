@@ -1,3 +1,14 @@
+/*----------------------------------------------------------------------------------------------------
+FILE NAME:			VertexArray.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+
+DESCRIPTION:		Implements VAO creation/destruction, binding, unbinding, and attribute setup.
+
+		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "VertexArray.hpp"
 #include <iostream>
 

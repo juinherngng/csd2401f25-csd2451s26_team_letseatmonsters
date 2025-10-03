@@ -1,7 +1,19 @@
-#include "Mesh.hpp"
-#include <iostream>
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			Mesh.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
 
-// static casted vertexCount to GLsizei - juinherng
+DESCRIPTION:		Binds vertex attributes for supported layouts and issues glDrawArrays calls.
+
+		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
+#include <iostream>
+#include "Mesh.hpp"
+
+// Constructs a mesh by uploading vertex data and configuring a VAO
 Mesh::Mesh(const float* vertices, GLsizei vertexCount, GLsizei vertexSize, VertexLayout layout)
     : vao(), vbo(vertices, vertexCount* vertexSize), vertexCount(static_cast<GLsizei>(vertexCount)) {
 
@@ -20,6 +32,7 @@ Mesh::Mesh(const float* vertices, GLsizei vertexCount, GLsizei vertexSize, Verte
     }
 }
 
+// Drawsthe mesh as GL_TRIANGLES using the configured VAO
 void Mesh::Draw() const {
     vao.Bind();
     // Check for errors before drawing
@@ -38,6 +51,7 @@ void Mesh::Draw() const {
     vao.Unbind();
 }
 
+// Draw the mesh with an optional bound texture on texture unit 0.
 void Mesh::Draw(const Texture* texture) const {
     vao.Bind();
 

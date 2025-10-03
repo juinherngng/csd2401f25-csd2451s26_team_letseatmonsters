@@ -1,3 +1,15 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			Renderer.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+
+ DESCRIPTION:		Wrapper for clear color, buffer clear, and platform init
+
+		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #pragma once
 
 class Renderer {

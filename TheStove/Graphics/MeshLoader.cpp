@@ -1,3 +1,15 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			MeshLoader.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+
+DESCRIPTION:		Interleaved vertex data, plus vertexCount and vertexSize for Mesh creation.
+
+		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "MeshLoader.hpp"
 
 void MeshLoader::LoadSimpleTriangle(std::vector<float>& outVertices, GLsizei& outVertexCount, GLsizei& outVertexSize) {

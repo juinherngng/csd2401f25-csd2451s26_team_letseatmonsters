@@ -1,3 +1,15 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			Mesh.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+
+DESCRIPTION:		Lightweight wrapper for a VAO + VBO with fixed vertex layouts and draw helpers.
+
+		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #pragma once
 
 #include "VertexArray.hpp"
@@ -24,8 +36,5 @@ public:
 private:
     VertexArray vao;
     VertexBuffer vbo;
-    // conversion from size_t to GLsizei warning
-    //size_t vertexCount;
-    // i used this instead - juinherng
 	GLsizei vertexCount;
 };

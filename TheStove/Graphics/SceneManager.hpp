@@ -1,3 +1,16 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			SceneManager.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Scene graph/service that creates, owns, updates, and exposes GameObjects to render.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #pragma once
 
 #include "GraphicsEngine.hpp"

@@ -1,3 +1,16 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			GraphicsEngine.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+
+DESCRIPTION:		Initializes rendering, loads default GPU resources, manages a fullscreen background,
+					and renders scene GameObjects with view/projection.
+
+		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #pragma once
 
 #include "Renderer.hpp"

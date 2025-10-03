@@ -1,3 +1,15 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			Shader.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+
+ DESCRIPTION:		Implements shader file loading, compilation, linking, use(), and uniform helpers.
+
+		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include "Shader.hpp"
 #include <fstream>
 #include <sstream>

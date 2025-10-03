@@ -1,4 +1,15 @@
-#pragma once
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			Animation.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+
+DESCRIPTION:		Time-based sprite animation controller for selecting UV frames in a sprite sheet.
+
+		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #pragma once
 #include <vector>
 #include <glm/glm.hpp>

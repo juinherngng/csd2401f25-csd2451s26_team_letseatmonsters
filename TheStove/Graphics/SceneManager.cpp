@@ -1,4 +1,17 @@
-﻿#include "SceneManager.hpp"
+﻿/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			SceneManager.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Implements object lifetime management, update traversal, and scene queries.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
+#include "SceneManager.hpp"
 #include <iostream>
 #include <algorithm>
 #include <glm/ext/matrix_clip_space.hpp>
