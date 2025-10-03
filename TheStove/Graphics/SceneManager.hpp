@@ -99,7 +99,7 @@ public:
 	 */
 	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
 
-	void ClearAllObjects();
+	// void ClearAllObjects();
 
 private:
 	// Engine/input
