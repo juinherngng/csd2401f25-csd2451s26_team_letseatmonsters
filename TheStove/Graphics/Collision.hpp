@@ -1,6 +1,6 @@
 /*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:			Collision.h
+ FILE NAME:			Collision.hpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 

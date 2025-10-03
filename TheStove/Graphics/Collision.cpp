@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Implementation of AABB-based collision primitives and world resolution.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

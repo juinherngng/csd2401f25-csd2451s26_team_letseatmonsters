@@ -1,8 +1,20 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			InputManager.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Implements the InputManager class for handling keyboard and mouse input.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include "InputManager.hpp"
 #include <iostream>
 
 void InputManager::Update(GLFWwindow* window) {
-	// Keys to poll (expand as needed)
+	// Poll commonly used keys
 	int keys[] = {
 		GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN,
 		GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_P, GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3
@@ -12,17 +24,9 @@ void InputManager::Update(GLFWwindow* window) {
 		bool state = glfwGetKey(window, key) == GLFW_PRESS;
 		mPreviousKeyStates[key] = mCurrentKeyStates[key]; // carry previous
 		mCurrentKeyStates[key] = state;					  // update current
-
-		//// Debug print
-		//if (state) {
-		//    std::cout << "Key " << key << " pressed with window " << window << std::endl;
-		//}
-		//else {
-		//    std::cout << "Key " << key << " released with window " << window << std::endl;
-		//}
 	}
 
-	// Mouse buttons (extendable)
+	// Poll mouse buttons
 	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
 	for (int b : buttons) {
 		bool state = glfwGetMouseButton(window, b) == GLFW_PRESS;
@@ -30,11 +34,10 @@ void InputManager::Update(GLFWwindow* window) {
 		mMouseButtons[b] = state;                // update current
 	}
 
-	// Cursor position
+	// Get mouse cursor position
 	glfwGetCursorPos(window, &mMousePos.x, &mMousePos.y);
 
-	// Optional: Sync entire key maps (safeguard)
-	// Already covered in loop above, but keeps consistency
+	// Ensure maps remain synchronized
 	mPreviousKeyStates = mCurrentKeyStates;
 }
 

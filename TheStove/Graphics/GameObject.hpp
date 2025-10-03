@@ -1,13 +1,13 @@
 /*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:			GameObject.h
+ FILE NAME:			GameObject.hpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
 					Yat Chun Wee, y.chunwee@digipen.edu
 
  DESCRIPTION:		Represents a renderable game object with mesh, shader, texture, transform, and collider.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
