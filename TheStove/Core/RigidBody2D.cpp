@@ -60,6 +60,11 @@ Math::Vector2D const RigidBody2D::GetAcceleration() const
     return acceleration;
 }
 
+bool const RigidBody2D::GetUseGravity() const
+{
+    return useGravity;
+}
+
 void RigidBody2D::AddForce(const Math::Vector2D& force)
 {
     // F = ma -> a = F/m 
@@ -72,6 +77,16 @@ void RigidBody2D::SetVelocity(const Math::Vector2D& vel)
     velocity = vel;
 }
 
+void RigidBody2D::SetAcceleration(const Math::Vector2D& accel)
+{
+    acceleration = accel;
+}
+
+void RigidBody2D::SetUseGravity(const bool b)
+{
+    useGravity = b;
+}
+
 void RigidBody2D::Stop()
 {
     velocity = Math::Vector2D::ZERO;
@@ -80,4 +95,9 @@ void RigidBody2D::Stop()
 std::string RigidBody2D::ToString() const
 {
     return "Rigidbody2D (vel: " + std::to_string(velocity.x) + "," + std::to_string(velocity.y) + ")";
+}
+
+GameComponent* RigidBody2D::Clone() const
+{
+    return new RigidBody2D(*this);
 }

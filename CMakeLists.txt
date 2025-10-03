@@ -42,6 +42,9 @@ add_executable(LetsEatMonsters ${CMAKE_CURRENT_LIST_DIR}/TheStove/main.cpp)
 
 target_link_libraries(LetsEatMonsters PRIVATE TheStove)
 
+# Set C++ standard for the build
+set_property(TARGET LetsEatMonsters PROPERTY CXX_STANDARD 20)
+
 # Copy FMOD DLL to the executable's output directory
 copy_fmod_dll_to_target(LetsEatMonsters)
 

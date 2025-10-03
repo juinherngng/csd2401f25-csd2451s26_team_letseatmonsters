@@ -25,6 +25,7 @@ All content © 2025 DigiPen Institute of Technology Singapore. All rights reserve
 #include <string>
 #include "Transform.hpp"
 #include "RigidBody2D.hpp"
+#include "ISerializer.hpp"
 
 Factory* FACTORY = NULL;
 
@@ -119,67 +120,54 @@ GOC* Factory::CreateEmptyComposition()
 GOC* Factory::BuildAndSerialize(const std::string& filename)
 {
 	GOC* gameObject = new GOC();
+	gameObject->name = filename;
 
-	if (filename.empty())
+	ISerializer serializer;
+
+	if (!serializer.Load("../assets/data/" + filename))
 	{
-		throw std::runtime_error("building an empty game object");
+		throw std::runtime_error("Failed to load file: " + filename);
 	}
 
-	if (filename == "Player")
+	for (const auto& compData : serializer.GetComponents())
 	{
-		gameObject->name = "Player";
-	}
+		auto it = creatorsMap.find(compData.type);
+		if (it == creatorsMap.end())
+		{
+			throw std::runtime_error("No ComponentCreator registered for " + compData.type);
+		}
 
-	if (filename == "Table")
-	{
-		gameObject->name = "Table";
-	}
+		ComponentCreator* creator = it->second;
+		GameComponent* component = creator->Create();
+		gameObject->AddComponent(creator->type, component);
 
-	//Find the component's creator
-	auto transformIt = creatorsMap.find("Transform");
-	if (transformIt == creatorsMap.end())
-	{
-		throw std::runtime_error("Could not find component creator with name Transform");
-	}
+		// Deserialize Transform
+		if (compData.type == "Transform")
+		{
+			Transform* t = static_cast<Transform*>(component);
+			float posX = std::stof(compData.properties.at("posX"));
+			float posY = std::stof(compData.properties.at("posY"));
+			float rot = std::stof(compData.properties.at("rot"));
+			float scaleX = std::stof(compData.properties.at("scaleX"));
+			float scaleY = std::stof(compData.properties.at("scaleY"));
+			t->SetPosition({ posX, posY });
+			t->SetRotation(rot);
+			t->SetScale({ scaleX, scaleY });
+		}
 
-	//ComponentCreator is an object that creates the component
-	ComponentCreator* creator = transformIt->second;
-
-	//Create the component by using the interface
-	GameComponent* transformComponent = creator->Create();
-
-	//Add the new component to the composition
-	gameObject->AddComponent(creator->type, transformComponent);
-
-	//for testing right now later this will be replace with serialization
-	Transform* t = static_cast<Transform*>(transformComponent);
-	if (filename == "Player")
-	{
-		t->SetPosition(Math::Vector2D(0.0f, 0.0f));
-		t->SetRotation(0.0f);
-		t->SetScale(Math::Vector2D(1.0f, 1.0f));
-	}
-	else if (filename == "Table")
-	{
-		t->SetPosition(Math::Vector2D(5.0f, 3.0f));
-		t->SetRotation(0.0f);
-		t->SetScale(Math::Vector2D(1.0f, 1.0f));
-	}
-
-
-	if (filename == "Player")
-	{
-		auto rigidBodyIt = creatorsMap.find("RigidBody2D");
-		if (rigidBodyIt == creatorsMap.end())
-			throw std::runtime_error("Could not find component creator: RigidBody2D");
-
-		ComponentCreator* rigidBodyCreator = rigidBodyIt->second;
-		GameComponent* rigidBodyComponent = rigidBodyCreator->Create();
-		gameObject->AddComponent(rigidBodyCreator->type, rigidBodyComponent);
-
-		// Setup Rigidbody defaults
-		RigidBody2D* rb = static_cast<RigidBody2D*>(rigidBodyComponent);
-		rb->SetVelocity(Math::Vector2D(1.0f, 0.0f)); // moving right
+		// Deserialize RigidBody2D
+		if (compData.type == "RigidBody2D")
+		{
+			RigidBody2D* rb = static_cast<RigidBody2D*>(component);
+			float velX = std::stof(compData.properties.at("velX"));
+			float velY = std::stof(compData.properties.at("velY"));
+			float accX = std::stof(compData.properties.at("accX"));
+			float accY = std::stof(compData.properties.at("accY"));
+			bool grav = std::stoi(compData.properties.at("useGravity")) != 0;
+			rb->SetVelocity({ velX, velY });
+			rb->SetAcceleration({ accX, accY });
+			rb->SetUseGravity(grav);
+		}
 	}
 
 	//Id and initialize the game object composition
