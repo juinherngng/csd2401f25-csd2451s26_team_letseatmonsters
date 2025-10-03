@@ -14,6 +14,7 @@ set(ALL_LIBS
    glad
    imgui
    fmod
+   stb_image
 )
 
 # Gather source files for the core game library
@@ -47,6 +48,22 @@ set_property(TARGET LetsEatMonsters PROPERTY CXX_STANDARD 20)
 
 # Copy FMOD DLL to the executable's output directory
 copy_fmod_dll_to_target(LetsEatMonsters)
+
+# Copy assets folder to the executable's output directory for run.bat
+add_custom_command(TARGET LetsEatMonsters POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/assets"
+    "${CMAKE_BINARY_DIR}/assets"
+    COMMENT "Copying assets to build directory"
+)
+
+# Copy shader files to the build directory for run.bat
+add_custom_command(TARGET LetsEatMonsters POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/TheStove/Graphics/shaders"
+    "${CMAKE_BINARY_DIR}/shaders"
+    COMMENT "Copying shader files to build directory"
+)
 
 # Add compiler warnings and flags based on compiler
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

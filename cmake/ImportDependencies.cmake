@@ -187,6 +187,16 @@ macro(import_fmod)
     endif()
 endmacro()
 
+# Macro to import stb_image
+macro(import_stb_image)
+    if(NOT TARGET stb_image)  # Guard to prevent multiple inclusion
+        # stb_image is header-only, so we create an interface library
+        add_library(stb_image INTERFACE)
+        target_include_directories(stb_image INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/extern/stb_image")
+        message(STATUS "STB_IMAGE found: ${CMAKE_CURRENT_SOURCE_DIR}/extern/stb_image")
+    endif()
+endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -210,6 +220,10 @@ macro(importDependencies)
     message(STATUS "Importing FMOD...")
     import_fmod()
     message(STATUS "FMOD imported successfully.")
+
+    message(STATUS "Importing STB_IMAGE...")
+    import_stb_image()
+    message(STATUS "STB_IMAGE imported successfully.")
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()

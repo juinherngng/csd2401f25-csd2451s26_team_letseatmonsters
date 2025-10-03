@@ -24,6 +24,10 @@ Shader* ResourceManager::LoadShader(const std::string& name, const std::string& 
         return it->second.get();
     }
 
+    std::cout << "Loading shader '" << name << "' from:" << std::endl;
+    std::cout << "  Vertex: " << vertexPath << std::endl;
+    std::cout << "  Fragment: " << fragmentPath << std::endl;
+
     auto shader = std::make_unique<Shader>(vertexPath, fragmentPath);
     Shader* shaderPtr = shader.get();
     shaders[name] = std::move(shader);

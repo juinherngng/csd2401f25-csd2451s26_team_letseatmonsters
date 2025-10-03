@@ -43,28 +43,28 @@ void GraphicsEngine::Initialize() {
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
-		"../TheStove/Graphics/shaders/shader.vert",
-		"../TheStove/Graphics/shaders/shader.frag");
+		"../shaders/shader.vert",
+		"../shaders/shader.frag");
 
 	// Load texture shader
 	resourceManager.LoadShader("texture",
-		"../TheStove/Graphics/shaders/texture.vert",
-		"../TheStove/Graphics/shaders/texture.frag");
+		"../shaders/texture.vert",
+		"../shaders/texture.frag");
 
 	// Load sprite shader
 	resourceManager.LoadShader("sprite",
-		"../TheStove/Graphics/shaders/sprite.vert",
-		"../TheStove/Graphics/shaders/sprite.frag");
+		"../shaders/sprite.vert",
+		"../shaders/sprite.frag");
 
 	// Load static sprite shader
 	resourceManager.LoadShader("staticsprite",
-		"../TheStove/Graphics/shaders/staticsprite.vert",
-		"../TheStove/Graphics/shaders/staticsprite.frag");
+		"../shaders/staticsprite.vert",
+		"../shaders/staticsprite.frag");
 
 	// Load animated sprite shader
 	resourceManager.LoadShader("animatedsprite",
-		"../TheStove/Graphics/shaders/animatedsprite.vert",
-		"../TheStove/Graphics/shaders/animatedsprite.frag");
+		"../shaders/animatedsprite.vert",
+		"../shaders/animatedsprite.frag");
 
 	// Load triangle mesh
 	std::vector<float> vertices;
