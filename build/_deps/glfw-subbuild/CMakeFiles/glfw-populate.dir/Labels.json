@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/glfw-populate"
+		},
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/05221a14fd8a1ba6cef1aa91b212e49c/glfw-populate.rule"
+		},
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/7e263722fc76cfd22948cf2d7eced4a8/glfw-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/c05d89ab0c57ec0c786203a116c1d4f9/glfw-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/c05d89ab0c57ec0c786203a116c1d4f9/glfw-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/c05d89ab0c57ec0c786203a116c1d4f9/glfw-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/c05d89ab0c57ec0c786203a116c1d4f9/glfw-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/c05d89ab0c57ec0c786203a116c1d4f9/glfw-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/c05d89ab0c57ec0c786203a116c1d4f9/glfw-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/c05d89ab0c57ec0c786203a116c1d4f9/glfw-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/_deps/glfw-subbuild/CMakeFiles/c05d89ab0c57ec0c786203a116c1d4f9/glfw-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"glfw-populate"
+		],
+		"name" : "glfw-populate"
+	}
+}
