@@ -44,7 +44,10 @@ static void CheckMemoryLeaks()
 
 int main() {
 
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    // Enable leak detection at real process end (after global dtors)
+    int flags = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
+    flags |= _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF;
+    _CrtSetDbgFlag(flags);
 
 	auto settings = ConfigManager::LoadFromAssetsOrDefaults();
 	ConfigManager::Validate(settings);
@@ -124,7 +127,7 @@ int main() {
 
 	cleanup();
 
-	CheckMemoryLeaks();
+	//CheckMemoryLeaks();
 
 	return 0;
 }
@@ -262,20 +265,26 @@ static void draw() {
 }
 
 void cleanup() {
-    engine.Shutdown();
-	debugapp.ShutDown();
-    delete currentScene;
-
-    if (window)
+    if (currentScene)
     {
-        //delete currentScene;
+        delete currentScene;
 		currentScene = nullptr;
     }
 
-	if (window)
-	{
-		glfwDestroyWindow(window);
-		window = nullptr;
+    if (auto* audioMgr = coreEngine.GetSystem<AudioManager>())
+    {
+		audioMgr->StopAllSounds();
+        audioMgr->Shutdown();
+	}
+
+    engine.Shutdown();
+	ResourceManager::Instance().Clear();
+	debugapp.ShutDown();
+
+    if (window)
+    {
+        glfwDestroyWindow(window);
+        window = nullptr;
 	}
 
 	glfwTerminate();

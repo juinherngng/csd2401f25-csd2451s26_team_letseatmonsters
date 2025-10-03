@@ -195,6 +195,8 @@ void Scene::BuildLevelColliders() {
 
 // Utility function to generate UV frames for a sprite sheet
 std::vector<glm::vec4> GenerateFrames(int startFrame, int frameCount, int totalCols, float frameWidth, float frameHeight) {
+	(void)totalCols; // Suppress unused parameter warning
+
 	std::vector<glm::vec4> frames;
 	for (int i = 0; i < frameCount; ++i) {
 		int col = startFrame + i;
@@ -280,7 +282,7 @@ void Scene::LoadTest() {
 			currentAnimation[dinoID] = "IDLE";
 		}
 
-		GameObject* dinoBblue = SpawnAnimatedSprite("../assets/dino_blue.png",
+		GameObject* dinoBlue = SpawnAnimatedSprite("../assets/dino_blue.png",
 			glm::vec3(700, 500, 0),
 			glm::vec2(128, 128),
 			frames, 0.25f, true);
@@ -294,6 +296,11 @@ void Scene::LoadTest() {
 			glm::vec3(700, 200, 0),
 			glm::vec2(128, 128),
 			frames, 0.25f, true);
+
+		// Suppress unused variable warning
+		(void)dinoBlue;
+		(void)dinoGreen;
+		(void)dinoYellow;
 	}
 	else {
 		spriteID = -1; //invalid
@@ -437,7 +444,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Keyboard movement + facing textures
-	const float movePerFrame = 200.0f * physicsDt; // displacement this frame
+	//const float movePerFrame = 200.0f * physicsDt; // displacement this frame
 	if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
 		desiredMove.y -= moveSpeed; // up
