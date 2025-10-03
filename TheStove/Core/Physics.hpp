@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include "../Graphics/Collision.h"
-#include "../Graphics/GameObject.h"
+#include "../Graphics/Collision.hpp"
+#include "../Graphics/GameObject.hpp"
 #include <glm/glm.hpp>
 
  // Forward declarations to avoid heavy includes in headers.

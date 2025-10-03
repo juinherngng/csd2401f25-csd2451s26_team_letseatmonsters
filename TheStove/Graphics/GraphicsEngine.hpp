@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Renderer.h"
-#include "ResourceManager.h"
-#include "GameObject.h"
+#include "Renderer.hpp"
+#include "ResourceManager.hpp"
+#include "GameObject.hpp"
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>

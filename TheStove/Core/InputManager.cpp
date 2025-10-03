@@ -1,4 +1,4 @@
-#include "InputManager.h"
+#include "InputManager.hpp"
 #include <iostream>
 
 void InputManager::Update(GLFWwindow* window) {

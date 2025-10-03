@@ -10,7 +10,7 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "Collision.h"
+#include "Collision.hpp"
 #include <algorithm>
 #include <cmath>
 

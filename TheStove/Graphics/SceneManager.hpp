@@ -1,9 +1,9 @@
 #pragma once
 
-#include "GraphicsEngine.h"
-#include "../Core/InputManager.h"
-#include "Animator.h"
-#include "Collision.h"
+#include "GraphicsEngine.hpp"
+#include "../Core/InputManager.hpp"
+#include "Animator.hpp"
+#include "Collision.hpp"
 #include "../Core/Physics.hpp"
 
 #include <string>

@@ -1,4 +1,4 @@
-﻿#include "SceneManager.h"
+﻿#include "SceneManager.hpp"
 #include <iostream>
 #include <algorithm>
 #include <glm/ext/matrix_clip_space.hpp>

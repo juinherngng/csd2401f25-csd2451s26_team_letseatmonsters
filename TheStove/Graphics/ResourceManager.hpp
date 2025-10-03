@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Shader.h"
-#include "Mesh.h"
-#include "Texture.h"
+#include "Shader.hpp"
+#include "Mesh.hpp"
+#include "Texture.hpp"
 #include <unordered_map>
 #include <string>
 #include <memory>

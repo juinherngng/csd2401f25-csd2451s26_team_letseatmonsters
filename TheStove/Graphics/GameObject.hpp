@@ -13,9 +13,9 @@
 
 #pragma once
 
-#include "Mesh.h"
-#include "Texture.h"
-#include "Shader.h"
+#include "Mesh.hpp"
+#include "Texture.hpp"
+#include "Shader.hpp"
 #include <glm/glm.hpp>
 
  /**

@@ -1,4 +1,4 @@
-#include "MeshLoader.h"
+#include "MeshLoader.hpp"
 
 void MeshLoader::LoadSimpleTriangle(std::vector<float>& outVertices, GLsizei& outVertexCount, GLsizei& outVertexSize) {
     float vertices[] = {

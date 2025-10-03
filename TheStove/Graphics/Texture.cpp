@@ -1,4 +1,4 @@
-#include "Texture.h"
+#include "Texture.hpp"
 #include <iostream>
 
 #define STB_IMAGE_IMPLEMENTATION

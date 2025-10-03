@@ -12,7 +12,7 @@
  */
 
 #include "Physics.hpp"
-#include "../Core/InputManager.h"
+#include "../Core/InputManager.hpp"
 
 #include <algorithm>
 #include <cmath>

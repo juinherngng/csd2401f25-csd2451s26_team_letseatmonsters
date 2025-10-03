@@ -1,4 +1,4 @@
-#include "ResourceManager.h"
+#include "ResourceManager.hpp"
 #include <iostream>
 #include <fmod_errors.h>
 

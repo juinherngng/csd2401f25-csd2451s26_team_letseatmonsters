@@ -1,5 +1,5 @@
 // Renderer.cpp
-#include "Renderer.h"
+#include "Renderer.hpp"
 #include <glad/glad.h>
 
 void Renderer::Initialize() {

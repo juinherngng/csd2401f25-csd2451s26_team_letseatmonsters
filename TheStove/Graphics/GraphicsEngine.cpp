@@ -1,7 +1,8 @@
-#include "GraphicsEngine.h"
-#include "MeshLoader.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+
+#include "GraphicsEngine.hpp"
+#include "MeshLoader.hpp"
 
 GraphicsEngine::GraphicsEngine()
 	: resourceManager(ResourceManager::Instance()),

@@ -12,9 +12,9 @@
 #include <iostream>
 #include <algorithm>
 
-#include "Graphics/GraphicsEngine.h"
-#include "Graphics/SceneManager.h"
-#include "Graphics/ResourceManager.h"
+#include "Graphics/GraphicsEngine.hpp"
+#include "Graphics/SceneManager.hpp"
+#include "Graphics/ResourceManager.hpp"
 #include "Core/Core.hpp"
 #include "Core/ConfigManager.hpp"
 #include "Core/AudioManager.hpp"
@@ -272,7 +272,7 @@ void cleanup() {
 
     engine.Shutdown();
 	ResourceManager::Instance().Clear();
-	debugapp.ShutDown();
+	debugapp.Shutdown();
 
     if (window)
     {

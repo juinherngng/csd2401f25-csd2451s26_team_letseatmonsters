@@ -13,7 +13,7 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 #include <algorithm>
 
 #include "AudioManager.hpp"
-#include "../Graphics/ResourceManager.h"
+#include "../Graphics/ResourceManager.hpp"
 
 AudioManager::AudioManager() : system(nullptr), masterGroup(nullptr), bgmVolume(1.f), vfxVolume(1.f), muted(false) {}
 

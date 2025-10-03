@@ -1,6 +1,6 @@
 #pragma once
 #include <glad/glad.h>
-#include "VertexBuffer.h"
+#include "VertexBuffer.hpp"
 
 class VertexArray {
     GLuint ID;

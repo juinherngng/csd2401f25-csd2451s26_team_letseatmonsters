@@ -1,8 +1,8 @@
 #pragma once
 
-#include "VertexArray.h"
-#include "VertexBuffer.h"
-#include "Texture.h"
+#include "VertexArray.hpp"
+#include "VertexBuffer.hpp"
+#include "Texture.hpp"
 
 class Texture;
 

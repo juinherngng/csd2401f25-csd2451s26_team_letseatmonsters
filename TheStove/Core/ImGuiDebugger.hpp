@@ -76,8 +76,6 @@ namespace Debug
 
 		void ShowDebugLog();
 
-		void ShutDown();
-
 	public:
 		float fps = 0; // FPS 
 		float msperFrame = 0; // MS/frame

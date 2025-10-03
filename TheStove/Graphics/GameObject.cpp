@@ -12,11 +12,12 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "GameObject.h"
-#include "Collision.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
-#include "ResourceManager.h"
+
+#include "GameObject.hpp"
+#include "Collision.hpp"
+#include "ResourceManager.hpp"
 
 GameObject::GameObject(Mesh* mesh, Shader* shader)
 	: m_Mesh(mesh), m_Shader(shader), m_Position(0.0f), m_Scale(1.0f), m_Rotation(1.0f) {
