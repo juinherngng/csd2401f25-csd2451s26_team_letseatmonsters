@@ -371,7 +371,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	const float rotationSpeed = 1.0f * deltaTime; // degrees per second
-	float moveSpeed = 200.0f * deltaTime;
+	float moveSpeed = 200.0f * physicsDt;
 
 	if (spriteID < 0) return;
 	GameObject* sprite = GetGameObjectByID(spriteID);
