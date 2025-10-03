@@ -55,7 +55,7 @@ namespace Debug
 		}
 		else
 		{
-			std::cerr << "Debugger was not initalised at start!" << std::endl;
+			std::cerr << "Debugger was not initialised at start!" << std::endl;
 		}
 	}
 
