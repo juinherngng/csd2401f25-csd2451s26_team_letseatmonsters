@@ -1,3 +1,14 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			ISerializer.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung
+
+DESCRIPTION:
+	Very simple serializer for reading key=value pairs from a text file.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "Core/ISerializer.hpp"
 #include <fstream>
 #include <sstream>
