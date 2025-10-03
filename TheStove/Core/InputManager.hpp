@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			InputManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+					Yat Chun Wee, y.chunwee@digipen.edu
 
  DESCRIPTION:		Declares the InputManager class responsible for handling keyboard
 					and mouse input using GLFW.
