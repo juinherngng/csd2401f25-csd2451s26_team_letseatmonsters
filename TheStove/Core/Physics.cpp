@@ -34,35 +34,26 @@ namespace physics {
 		pos.y = std::clamp(pos.y, walkArea.T + half.y - offset.y, walkArea.B - half.y - offset.y);
 	}
 
-	void ClampInsideWalkWithGate(
-		const collision::WalkArea& walk,
+	void ClampInsideWalkWithGate(const collision::WalkArea& walk,
 		const collision::StageEndGateVertical& gate,
-		GameObject* obj,
-		glm::vec3& pos)
+		GameObject* obj, glm::vec3& pos)
 	{
-		const glm::vec2 size = obj->GetColliderSize();
-		const glm::vec2 offset = obj->GetColliderOffset();
-		const glm::vec2 half = size * 0.5f;
+		const glm::vec2 half = obj->GetColliderSize() * 0.5f;
+		const glm::vec2 off = obj->GetColliderOffset();
 
-		// Always clamp Y to the walk area
-		pos.y = std::clamp(pos.y, walk.T + half.y - offset.y, walk.B - half.y - offset.y);
+		pos.y = std::clamp(pos.y, walk.T + half.y - off.y, walk.B - half.y - off.y);
 
-		// Default right clamp = walk.R (normal wall)
-		float maxX = walk.R - half.x - offset.x;
-
-		// Player AABB vertical span
-		const float aabbMinY = pos.y - half.y + offset.y;
-		const float aabbMaxY = pos.y + half.y + offset.y;
-
-		// If fully inside the gate’s vertical gap, extend clamp to the far side (gate.x1)
-		if (aabbMinY >= gate.gapMinY && aabbMaxY <= gate.gapMaxY) {
-			maxX = gate.x1 - half.x - offset.x;
+		float maxX = walk.R - half.x - off.x;               // default: inner wall
+		const float centerY = pos.y + off.y;
+		const float eps = 1.0f;                              // small tolerance
+		if (centerY >= gate.gapMinY - eps && centerY <= gate.gapMaxY + eps) {
+			maxX = gate.x1 - half.x - off.x;                // allow through gap
 		}
 
-		// Left clamp unchanged
-		const float minX = walk.L + half.x - offset.x;
+		const float minX = walk.L - off.x + half.x;
 		pos.x = std::clamp(pos.x, minX, maxX);
 	}
+
 
 	float StepController::resolveDt(::InputManager& input, float deltaTime) {
 		const bool pNow = input.IsKeyPressed(GLFW_KEY_P);

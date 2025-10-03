@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Implementation of AABB-based collision primitives and world resolution.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -160,12 +160,12 @@ namespace collision {
 
 		// End gate: TOP solid, middle GAP (skipped), BOTTOM solid
 		AABB endTop{};
-		endTop.min = { end.x0 + kSkin, end.topMinY };
+		endTop.min = { end.x0, end.topMinY };
 		endTop.max = { end.x1, end.topMaxY };
 		mWalls.push_back(endTop);
 
 		AABB endBottom{};
-		endBottom.min = { end.x0 + kSkin, end.botMinY };
+		endBottom.min = { end.x0, end.botMinY };
 		endBottom.max = { end.x1, end.botMaxY };
 		mWalls.push_back(endBottom);
 	}

@@ -1,11 +1,12 @@
 ﻿/*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:			SceneManager.cpp
+ FILE NAME:			SceneManager.hpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Implements object lifetime management, update traversal, and scene queries.
+ DESCRIPTION:		Implements the Scene class, handling object spawning,
+					animation, collisions, and per-frame updates.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -16,14 +17,14 @@
 #include <algorithm>
 #include <glm/ext/matrix_clip_space.hpp>
 
-// Level constants
+ // Level constants
 static constexpr float kWorldW = 1200.0f;
 static constexpr float kWorldH = 800.0f;
 
 // Walkable inner rectangle (match to background art)
-static constexpr float kWalkL = 148.0f;  // left
-static constexpr float kWalkR = 1078.0f; // right
-static constexpr float kWalkT = 84.0f;   // top
+static constexpr float kWalkL = 150.0f;  // left
+static constexpr float kWalkR = 1100.0f; // right
+static constexpr float kWalkT = 80.0f;   // top
 static constexpr float kWalkB = 733.0f;  // bottom
 
 // Thickness of our blocking bars (thin = precise, easy to tune)
@@ -32,19 +33,19 @@ static constexpr float kEdgeThick = 3.0f;
 // Wooden divider (vertical split)
 static constexpr float kWoodX0 = 562.0f;
 static constexpr float kWoodX1 = 590.0f;
-static constexpr float kWoodTopMinY = 50.0f;
-static constexpr float kWoodTopMaxY = 250.0f;
-static constexpr float kWoodGapMinY = 250.0f;
+static constexpr float kWoodTopMinY = 100.0f;
+static constexpr float kWoodTopMaxY = 300.0f;
+static constexpr float kWoodGapMinY = 300.0f;
 static constexpr float kWoodGapMaxY = 500.0f;
 static constexpr float kWoodBotMinY = 500.0f;
 static constexpr float kWoodBotMaxY = 700.0f;
 
 // End-of-stage vertical gate
 static constexpr float kEndVX0 = 1100.0f;
-static constexpr float kEndVX1 = 1132.0f;
-static constexpr float kEndVTopMinY = 50.0f;
-static constexpr float kEndVTopMaxY = 250.0f;
-static constexpr float kEndVGapMinY = 250.0f;
+static constexpr float kEndVX1 = 1200.0f;
+static constexpr float kEndVTopMinY = 100.0f;
+static constexpr float kEndVTopMaxY = 300.0f;
+static constexpr float kEndVGapMinY = 300.0f;
 static constexpr float kEndVGapMaxY = 500.0f;
 static constexpr float kEndVBotMinY = 500.0f;
 static constexpr float kEndVBotMaxY = 700.0f;
@@ -80,29 +81,6 @@ GameObject* Scene::SpawnTriangle(const glm::vec3 position, const glm::vec3 scale
 	sceneObjects.push_back(std::move(obj));
 	return raw;
 }
-
-//GameObject* Scene::SpawnSprite(const std::string& texturePath, const glm::vec3& position, const glm::vec2& size) {
-//	// Load sprite texture if not already loaded
-//	std::string textureName = "sprite_" + texturePath; // Simple naming scheme
-//	Texture* spriteTexture = ResourceManager::Instance().LoadTexture(textureName, texturePath);
-//
-//	if (!spriteTexture) {
-//		std::cerr << "Failed to load sprite texture: " << texturePath << std::endl;
-//		return nullptr;
-//	}
-//
-//	// Create sprite game object with unique ID
-//	GameObject* obj = graphicsEngine.CreateGameObject("sprite", "sprite");
-//	if (obj) {
-//		obj->SetID(nextID++);
-//		obj->SetPosition(position);
-//		obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
-//		obj->SetTexture(spriteTexture);
-//		sceneObjects.push_back(std::unique_ptr<GameObject>(obj));
-//	}
-//
-//	return obj;
-//}
 
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath, const glm::vec3 position, const glm::vec2 size) {
 	// Load resources
@@ -196,14 +174,14 @@ void Scene::BuildLevelColliders() {
 		kWoodBotMinY, kWoodBotMaxY
 	};
 
-	collision::StageEndGateVertical end{
+	collision::StageEndGateVertical gate{
 		kEndVX0, kEndVX1,
 		kEndVTopMinY, kEndVTopMaxY,
 		kEndVGapMinY, kEndVGapMaxY,
 		kEndVBotMinY, kEndVBotMaxY
 	};
 
-	mCollision.build(walk, wood, end);
+	mCollision.build(walk, wood, gate);
 }
 
 // Utility function to generate UV frames for a sprite sheet
@@ -393,7 +371,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	const float rotationSpeed = 1.0f * deltaTime; // degrees per second
-	float moveSpeed = 200.0f * deltaTime;
+	float moveSpeed = 200.0f * physicsDt;
 
 	if (spriteID < 0) return;
 	GameObject* sprite = GetGameObjectByID(spriteID);
@@ -433,14 +411,14 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		std::cout << "Up key pressed: scale = " << scale.x << "," << scale.y << "," << scale.z << std::endl;
 		scale *= 1.01f;
 
-		//Clamp max scale
+		// Clamp max scale
 		scale = glm::min(scale, glm::vec3(500.0f));
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_DOWN)) {
 		std::cout << "Down key pressed: scale = " << scale.x << "," << scale.y << "," << scale.z << std::endl;
 		scale *= 0.99f;
 
-		//Clamp min scale
+		// Clamp min scale
 		scale = glm::max(scale, glm::vec3(50.0f));
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_RIGHT)) {
@@ -457,7 +435,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Keyboard movement + facing textures
-	//const float movePerFrame = 200.0f * physicsDt; // displacement this frame
+	const float movePerFrame = 200.0f * physicsDt; // displacement this frame
 	if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
 		desiredMove.y -= moveSpeed; // up
@@ -489,8 +467,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Click-to-Move behaviour
-	// 1) If player is NOT selected: click must hit the player's collider to select.
-	// 2) If already selected: the next left click sets the destination target.
+	// If player is NOT selected: click must hit the player's collider to select.
+	// If already selected: the next left click sets the destination target.
 	if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		auto mp = inputManager.GetMousePosition();
 		glm::vec2 mouse{ (float)mp.x, (float)mp.y };
@@ -629,10 +607,17 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 	}
 
+	const collision::StageEndGateVertical gate{
+	kEndVX0, kEndVX1,
+	kEndVTopMinY, kEndVTopMaxY,
+	kEndVGapMinY, kEndVGapMaxY,
+	kEndVBotMinY, kEndVBotMaxY
+	};
+
 	// Apply allowed move
 	position += glm::vec3(allowed, 0.0f);
 	playerVelocity = (physicsDt > 0.0f) ? (allowed / physicsDt) : glm::vec2{ 0.0f };
-	physics::ClampInsideWalk(walk, sprite, position);
+	physics::ClampInsideWalkWithGate(walk, gate, sprite, position);
 	sprite->SetPosition(position);
 
 	if (playerSelected && hasClickTarget) {

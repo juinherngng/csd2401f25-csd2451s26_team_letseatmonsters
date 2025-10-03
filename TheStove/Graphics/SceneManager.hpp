@@ -5,9 +5,10 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Scene graph/service that creates, owns, updates, and exposes GameObjects to render.
+ DESCRIPTION:		Declares the Scene class responsible for managing game objects,
+					animations, and scene updates.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -23,41 +24,79 @@
 #include <vector>
 #include <unordered_map>
 
-
+ /**
+  * @class Scene
+  * @brief Manages the lifecycle of a game scene, including objects, animations, and input.
+  */
 class Scene {
 public:
+	/**
+	 * @brief Construct a new Scene object.
+	 * @param engine Reference to the graphics engine used for rendering.
+	 */
 	Scene(GraphicsEngine& engine);
 
-	// Lifecycle
+	/**
+	 * @brief Load a scene by name (dispatches to test scene for now).
+	 * @param sceneName Name of the scene.
+	 */
 	void LoadScene(const std::string& sceneName);
+
+	/**
+	 * @brief Per-frame update function to update input, animations, physics, and rendering.
+	 * @param deltaTime Time step for this frame.
+	 * @param window Active GLFW window for input.
+	 */
 	void Update(float deltaTime, GLFWwindow* window);
 
-	// Scene-specific object creation
+	/**
+	 * @brief Spawns a triangle mesh object.
+	 * @param position Position in world space.
+	 * @param scale Scaling vector.
+	 * @param rotation Rotation in degrees.
+	 * @return Pointer to spawned GameObject, or nullptr if failed.
+	 */
 	GameObject* SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation = 0.0f);
+
+	/**
+	 * @brief Spawns a static sprite with a given texture and size.
+	 */
 	GameObject* SpawnStaticSprite(const std::string& texturePath, const glm::vec3 position,
 		const glm::vec2 size = glm::vec2(100.0f, 100.0f));
 
-	//GameObject* SpawnSprite(const std::string& texturePath, const glm::vec3& position, const glm::vec2& size = glm::vec2(100.0f, 100.0f));
-
+	/**
+	 * @brief Spawns an animated sprite with frames and timing.
+	 */
 	GameObject* SpawnAnimatedSprite(
-		const std::string& texturePath, 
+		const std::string& texturePath,
 		const glm::vec3 position,
-		const glm::vec2 size, 
+		const glm::vec2 size,
 		const std::vector<glm::vec4> frames,
 		float frameDuration, bool loop);
 
-	// Background management
+	/**
+	 * @brief Set the background texture for the scene.
+	 */
 	void SetSceneBackground(const std::string& texturePath);
 
-	// Object Lookup
+	/**
+	 * @brief Retrieve a game object by its ID.
+	 */
 	GameObject* GetGameObjectByID(int targetID);
 
-	// Optional: despawn API
+	/**
+	 * @brief Remove a game object by its ID, including its animations.
+	 */
 	void DespawnByID(int targetID);
 
+	/**
+	 * @brief Change the active animation of an object by ID.
+	 */
 	void SetAnimation(int objID, const std::string& newAnim);
 
-	// Collect raw pointers for rendering
+	/**
+	 * @brief Collect raw pointers to all renderable game objects.
+	 */
 	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
 
 	void ClearAllObjects();
@@ -78,7 +117,7 @@ private:
 	std::vector<std::unique_ptr<GameObject>> sceneObjects;
 	int nextID = 1;	   // ID counter for sceneObjects
 	int spriteID = -1; // default invalid ID
-	int dinoID = -1; // for testing
+	int dinoID = -1;   // for testing
 	int otherID = -1;
 	int otherID2 = -1;
 
