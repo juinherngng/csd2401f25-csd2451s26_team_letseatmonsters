@@ -174,14 +174,14 @@ void Scene::BuildLevelColliders() {
 		kWoodBotMinY, kWoodBotMaxY
 	};
 
-	collision::StageEndGateVertical end{
+	collision::StageEndGateVertical gate{
 		kEndVX0, kEndVX1,
 		kEndVTopMinY, kEndVTopMaxY,
 		kEndVGapMinY, kEndVGapMaxY,
 		kEndVBotMinY, kEndVBotMaxY
 	};
 
-	mCollision.build(walk, wood, end);
+	mCollision.build(walk, wood, gate);
 }
 
 // Utility function to generate UV frames for a sprite sheet
@@ -607,10 +607,17 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 	}
 
+	const collision::StageEndGateVertical gate{
+	kEndVX0, kEndVX1,
+	kEndVTopMinY, kEndVTopMaxY,
+	kEndVGapMinY, kEndVGapMaxY,
+	kEndVBotMinY, kEndVBotMaxY
+	};
+
 	// Apply allowed move
 	position += glm::vec3(allowed, 0.0f);
 	playerVelocity = (physicsDt > 0.0f) ? (allowed / physicsDt) : glm::vec2{ 0.0f };
-	physics::ClampInsideWalk(walk, sprite, position);
+	physics::ClampInsideWalkWithGate(walk, gate, sprite, position);
 	sprite->SetPosition(position);
 
 	if (playerSelected && hasClickTarget) {
