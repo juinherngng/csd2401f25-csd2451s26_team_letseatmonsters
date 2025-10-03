@@ -59,6 +59,8 @@ namespace Debug
 		}
 	}
 
+
+	// Implicit dtor for the debugger
 	void DebuggerApp::Shutdown()
 	{
 		if (isInitialised)
@@ -67,6 +69,7 @@ namespace Debug
 			ImGui_ImplGlfw_Shutdown();
 			ImGui::DestroyContext();
 			isInitialised = false;
+			std::cout << "Debugger Destructed with Shutdown" << std::endl;
 		}
 	}
 
@@ -178,7 +181,7 @@ namespace Debug
 			{
 				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
 				{
-					// test play audio
+					// test play bgm
 					bgm = audioMgr->GetBgmVolume();
 					audioMgr->PlaySound("background music", bgm, false);
 					DebuggerApp::AddDebugLine("Playing: background music\n");
@@ -199,7 +202,7 @@ namespace Debug
 			{
 				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
 				{
-					// test stopping audio
+					// test stopping bgm
 					audioMgr->StopSound("background music");
 					DebuggerApp::AddDebugLine("Stopping: background music\n");
 				}
@@ -209,13 +212,14 @@ namespace Debug
 			{
 				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
 				{
-					// test stopping audio
+					// test stopping all audio
 					audioMgr->StopAllSounds();
 					DebuggerApp::AddDebugLine("Stopping: all audio\n");
 				}
 			}
 		}
 
+		// Show the debug log infomation window
 		ShowDebugLog();
 
 		ImGui::End();
@@ -234,6 +238,8 @@ namespace Debug
 		RenderDebuggerApp(); // Loads the ImGui window every frame
 	}
 
+
+	// Logs an error that is later outputted to the crash log txt file
 	void DebuggerApp::LogError(const std::string& errorMessage)
 	{
 		if (crashlogFile.is_open())
@@ -251,6 +257,8 @@ namespace Debug
 		}
 	}
 
+
+	// Updates all system times in the systems manager
 	void DebuggerApp::UpdateSystemTimes(float totalDt)
 	{
 		sysPerformance.clear();
@@ -266,16 +274,19 @@ namespace Debug
 		}
 	}
 
+	// Adds line passed in to the debug log ImGui window
 	void DebuggerApp::AddDebugLine(const std::string& txt)
 	{
 		debuglines.push_back(txt);
 	}
 
+	// Clears the Debug log infomation window
 	void DebuggerApp::ClearDebugLog()
 	{
 		debuglines.clear();
 	}
 
+	// Opens up an ImGui window for debug log infomation to be outputted here
 	void DebuggerApp::ShowDebugLog()
 	{
 		ImGui::Begin("Debug Log from std::cout");
@@ -293,16 +304,6 @@ namespace Debug
 		}
 
 		ImGui::End();
-	}
-
-	void DebuggerApp::ShutDown()
-	{
-		if (isInitialised) {
-			ImGui_ImplOpenGL3_Shutdown();
-			ImGui_ImplGlfw_Shutdown();
-			ImGui::DestroyContext();
-			isInitialised = false;
-		}
 	}
 }
 
