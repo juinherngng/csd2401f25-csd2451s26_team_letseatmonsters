@@ -47,7 +47,7 @@ public:
     void Clear();
 
 private:
-    ResourceManager() = default;
+    ResourceManager() : isCleared(false) {}
     ~ResourceManager() { Clear(); }
 
     // Non-copyable singleton

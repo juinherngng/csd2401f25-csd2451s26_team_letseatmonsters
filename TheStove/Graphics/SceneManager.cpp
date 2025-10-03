@@ -593,27 +593,33 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	physics::SeparatePlayerVsOther_StopPlayerOnly(
 		mCollision, sprite, other2, position, o2position, desiredMove, hasClickTarget, pickWeight(other2Speed));
 
-
-	// Move player vs world + stuck guard
-	//collision::AABB startBox = physics::MakeColliderBox(sprite, position);
-	glm::vec2 stepPlayer = mCollision.resolve(startBox, desiredMove);
-	position += glm::vec3(stepPlayer, 0.0f);
-	physics::ClampInsideWalk(walk, sprite, position);
-	sprite->SetPosition(position);
-	playerVelocity = (physicsDt > 0.0f) ? (stepPlayer / physicsDt) : glm::vec2{ 0.0f };
-
 	// Resolve desired movement against world walls (X then Y sweep)
 	glm::vec2 allowed = mCollision.resolve(startBox, desiredMove);
 
-	// Apply allowed motion
-	position.x += allowed.x;
-	position.y += allowed.y;
+	// If that fails, try Y then X sweep (corner case for thin walls)
+	if (allowed == glm::vec2(0.0f) && desiredMove != glm::vec2(0.0f)) {
+		glm::vec2 textX = mCollision.resolve(startBox, glm::vec2(desiredMove.x, 0.0f));
+		glm::vec2 textY = mCollision.resolve(startBox, glm::vec2(0.0f, desiredMove.y));
+		// Pick the longer of the two axis-only moves
+		if (std::abs(textX.x) > std::abs(textY.y)) {
+			allowed = textX;
+		}
+		else {
+			allowed = textY;
+		}
+	}
+
+	// Apply allowed move
+	position += glm::vec3(allowed, 0.0f);
+	playerVelocity = (physicsDt > 0.0f) ? (allowed / physicsDt) : glm::vec2{ 0.0f };
+	physics::ClampInsideWalk(walk, sprite, position);
+	sprite->SetPosition(position);
 
 	if (playerSelected && hasClickTarget) {
 		const float intended = glm::length(desiredMove);
-		const float moved = glm::length(stepPlayer);
+		const float moved = glm::length(allowed);
 
-		glm::vec2 prevPos2 = glm::vec2(position.x, position.y) - stepPlayer;
+		glm::vec2 prevPos2 = glm::vec2(position.x, position.y) - allowed;
 		float prevDist = glm::length(clickTarget - prevPos2);
 		float newDist = glm::length(clickTarget - glm::vec2(position.x, position.y));
 
