@@ -1,0 +1,37 @@
+#pragma once
+
+#include "Renderer.h"
+#include "ResourceManager.h"
+#include "GameObject.h"
+#include <glm/glm.hpp>
+#include <vector>
+#include <memory>
+
+class GraphicsEngine {
+public:
+	GraphicsEngine();
+
+	void Initialize();
+	void BeginFrame();
+	// Non-owning draw of a list of scene-owned objects.
+	void Render(const std::vector<GameObject*>& objects);
+	void Shutdown();
+
+	// Background management
+	void SetBackground(const std::string& texturePath);
+	void ClearBackground();
+
+private:
+	Renderer renderer;
+	ResourceManager& resourceManager;
+
+	// Game Object rendering
+	std::vector<std::unique_ptr<GameObject>> gameObjects;
+	// Background rendering
+	std::unique_ptr<GameObject> backgroundObject;
+
+	glm::mat4 projection;
+	glm::mat4 view;
+
+	void LoadDefaultResources();
+};
