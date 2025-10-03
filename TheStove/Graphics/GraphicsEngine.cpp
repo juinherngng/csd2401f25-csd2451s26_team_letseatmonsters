@@ -49,6 +49,16 @@ void GraphicsEngine::LoadDefaultResources() {
 	MeshLoader::LoadSprite(vertices, vertexCount, vertexSize);
 	resourceManager.LoadMesh("sprite", vertices, vertexCount, vertexSize);
 
+	// Load static sprite shader
+	resourceManager.LoadShader("staticsprite",
+		"../TheStove/Graphics/shaders/staticsprite.vert",
+		"../TheStove/Graphics/shaders/staticsprite.frag");
+
+	// Load animated sprite shader
+	resourceManager.LoadShader("animatedsprite",
+		"../TheStove/Graphics/shaders/animatedsprite.vert",
+		"../TheStove/Graphics/shaders/animatedsprite.frag");
+
 	// Load fullscreen quad mesh
 	MeshLoader::LoadFullscreenQuad(vertices, vertexCount, vertexSize);
 	resourceManager.LoadMesh("fullscreen_quad", vertices, vertexCount, vertexSize);
