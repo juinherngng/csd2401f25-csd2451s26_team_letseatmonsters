@@ -1,6 +1,10 @@
 C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/CMakeFiles/glad.dir
 C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/CMakeFiles/imgui.dir
+<<<<<<< Updated upstream
 C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/CMakeFiles/TheStove.dir
+=======
+C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/CMakeFiles/GameEngine.dir
+>>>>>>> Stashed changes
 C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/CMakeFiles/LetsEatMonsters.dir
 C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/CMakeFiles/INSTALL.dir
 C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/build/CMakeFiles/ALL_BUILD.dir

@@ -15,7 +15,11 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CDA59AF7-AC7C-3F50-AC95-1E755C107E36}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
+<<<<<<< Updated upstream
     <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+=======
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
+>>>>>>> Stashed changes
     <Platform>x64</Platform>
     <ProjectName>ZERO_CHECK</ProjectName>
     <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>

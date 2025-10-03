@@ -27,7 +27,11 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1A100FA8-A52F-35E8-974C-C574FBECC9A6}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
+<<<<<<< Updated upstream
     <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+=======
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
+>>>>>>> Stashed changes
     <Platform>x64</Platform>
     <ProjectName>ALL_BUILD</ProjectName>
     <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
@@ -174,14 +178,24 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
+<<<<<<< Updated upstream
+=======
+    <ProjectReference Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\GameEngine.vcxproj">
+      <Project>{D8B31B3F-4FC8-3F48-8A89-222A44E3C856}</Project>
+      <Name>GameEngine</Name>
+    </ProjectReference>
+>>>>>>> Stashed changes
     <ProjectReference Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\LetsEatMonsters.vcxproj">
       <Project>{3AE0CF71-C8AC-3229-91C0-FC6D27A02AB0}</Project>
       <Name>LetsEatMonsters</Name>
     </ProjectReference>
+<<<<<<< Updated upstream
     <ProjectReference Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\TheStove.vcxproj">
       <Project>{FD762963-BE34-38A3-83DA-5ABF80C3A795}</Project>
       <Name>TheStove</Name>
     </ProjectReference>
+=======
+>>>>>>> Stashed changes
     <ProjectReference Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\glad.vcxproj">
       <Project>{F558875B-6B32-3AC4-AD56-D3E4A20768F5}</Project>
       <Name>glad</Name>

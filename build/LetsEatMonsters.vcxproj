@@ -24,7 +24,11 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3AE0CF71-C8AC-3229-91C0-FC6D27A02AB0}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
+<<<<<<< Updated upstream
     <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+=======
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
+>>>>>>> Stashed changes
     <Platform>x64</Platform>
     <ProjectName>LetsEatMonsters</ProjectName>
     <VCProjectUpgraderObjectName>NoUpgrade</VCProjectUpgraderObjectName>
@@ -86,7 +90,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+<<<<<<< Updated upstream
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> Stashed changes
       <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/extern/fmod/api/core/inc"</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -95,7 +103,10 @@
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
       <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
       <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+<<<<<<< Updated upstream
       <LanguageStandard>stdcpp20</LanguageStandard>
+=======
+>>>>>>> Stashed changes
       <MinimalRebuild></MinimalRebuild>
       <Optimization>Disabled</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -113,10 +124,17 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_DEBUG;_WINDOWS;CMAKE_INTDIR=\"Debug\"</PreprocessorDefinitions>
+<<<<<<< Updated upstream
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> Stashed changes
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -136,7 +154,11 @@ exit /b %1
 if %errorlevel% neq 0 goto :VCEnd</Command>
     </PostBuildEvent>
     <Link>
+<<<<<<< Updated upstream
       <AdditionalDependencies>Debug\TheStove.lib;Debug\imgui.lib;_deps\glfw-build\src\Debug\glfw3.lib;Debug\glad.lib;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\lib\x64\fmod_vc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+=======
+      <AdditionalDependencies>Debug\GameEngine.lib;Debug\imgui.lib;_deps\glfw-build\src\Debug\glfw3.lib;Debug\glad.lib;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\lib\x64\fmod_vc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+>>>>>>> Stashed changes
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <DataExecutionPrevention></DataExecutionPrevention>
@@ -155,7 +177,11 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+<<<<<<< Updated upstream
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> Stashed changes
       <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/extern/fmod/api/core/inc"</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -163,7 +189,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
       <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+<<<<<<< Updated upstream
       <LanguageStandard>stdcpp20</LanguageStandard>
+=======
+>>>>>>> Stashed changes
       <MinimalRebuild></MinimalRebuild>
       <Optimization>MaxSpeed</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -183,10 +212,17 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"Release\"</PreprocessorDefinitions>
+<<<<<<< Updated upstream
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> Stashed changes
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -206,7 +242,11 @@ exit /b %1
 if %errorlevel% neq 0 goto :VCEnd</Command>
     </PostBuildEvent>
     <Link>
+<<<<<<< Updated upstream
       <AdditionalDependencies>Release\TheStove.lib;Release\imgui.lib;_deps\glfw-build\src\Release\glfw3.lib;Release\glad.lib;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\lib\x64\fmod_vc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+=======
+      <AdditionalDependencies>Release\GameEngine.lib;Release\imgui.lib;_deps\glfw-build\src\Release\glfw3.lib;Release\glad.lib;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\lib\x64\fmod_vc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+>>>>>>> Stashed changes
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <DataExecutionPrevention></DataExecutionPrevention>
@@ -225,7 +265,11 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MinSizeRel|x64'">
     <ClCompile>
+<<<<<<< Updated upstream
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> Stashed changes
       <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/extern/fmod/api/core/inc"</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -233,7 +277,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
       <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+<<<<<<< Updated upstream
       <LanguageStandard>stdcpp20</LanguageStandard>
+=======
+>>>>>>> Stashed changes
       <MinimalRebuild></MinimalRebuild>
       <Optimization>MinSpace</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -253,10 +300,17 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"MinSizeRel\"</PreprocessorDefinitions>
+<<<<<<< Updated upstream
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> Stashed changes
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -276,7 +330,11 @@ exit /b %1
 if %errorlevel% neq 0 goto :VCEnd</Command>
     </PostBuildEvent>
     <Link>
+<<<<<<< Updated upstream
       <AdditionalDependencies>MinSizeRel\TheStove.lib;MinSizeRel\imgui.lib;_deps\glfw-build\src\MinSizeRel\glfw3.lib;MinSizeRel\glad.lib;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\lib\x64\fmod_vc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+=======
+      <AdditionalDependencies>MinSizeRel\GameEngine.lib;MinSizeRel\imgui.lib;_deps\glfw-build\src\MinSizeRel\glfw3.lib;MinSizeRel\glad.lib;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\lib\x64\fmod_vc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+>>>>>>> Stashed changes
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <DataExecutionPrevention></DataExecutionPrevention>
@@ -295,7 +353,11 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RelWithDebInfo|x64'">
     <ClCompile>
+<<<<<<< Updated upstream
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> Stashed changes
       <AdditionalOptions>%(AdditionalOptions) /external:I "C:/Users/juinh/Desktop/repos/csd2401f25-csd2451s26_team_letseatmonsters/extern/fmod/api/core/inc"</AdditionalOptions>
       <AssemblerListingLocation>$(IntDir)</AssemblerListingLocation>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -304,7 +366,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
       <ForceConformanceInForLoopScope></ForceConformanceInForLoopScope>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+<<<<<<< Updated upstream
       <LanguageStandard>stdcpp20</LanguageStandard>
+=======
+>>>>>>> Stashed changes
       <MinimalRebuild></MinimalRebuild>
       <Optimization>MaxSpeed</Optimization>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -322,10 +387,17 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);WIN32;_WINDOWS;NDEBUG;CMAKE_INTDIR=\"RelWithDebInfo\"</PreprocessorDefinitions>
+<<<<<<< Updated upstream
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Midl>
       <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+=======
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Midl>
+      <AdditionalIncludeDirectories>C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glfw-src\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\glm-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\glad\include;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\_deps\imgui-src\backends;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+>>>>>>> Stashed changes
       <OutputDirectory>$(ProjectDir)/$(IntDir)</OutputDirectory>
       <HeaderFileName>%(Filename).h</HeaderFileName>
       <TypeLibraryName>%(Filename).tlb</TypeLibraryName>
@@ -345,7 +417,11 @@ exit /b %1
 if %errorlevel% neq 0 goto :VCEnd</Command>
     </PostBuildEvent>
     <Link>
+<<<<<<< Updated upstream
       <AdditionalDependencies>RelWithDebInfo\TheStove.lib;RelWithDebInfo\imgui.lib;_deps\glfw-build\src\RelWithDebInfo\glfw3.lib;RelWithDebInfo\glad.lib;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\lib\x64\fmod_vc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+=======
+      <AdditionalDependencies>RelWithDebInfo\GameEngine.lib;RelWithDebInfo\imgui.lib;_deps\glfw-build\src\RelWithDebInfo\glfw3.lib;RelWithDebInfo\glad.lib;C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\extern\fmod\api\core\lib\x64\fmod_vc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+>>>>>>> Stashed changes
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>%(AdditionalOptions) /machine:x64</AdditionalOptions>
       <DataExecutionPrevention></DataExecutionPrevention>
@@ -420,7 +496,11 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+<<<<<<< Updated upstream
     <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\TheStove\Main.cpp" />
+=======
+    <ClCompile Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\src\Main.cpp" />
+>>>>>>> Stashed changes
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
@@ -430,9 +510,15 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
+<<<<<<< Updated upstream
     <ProjectReference Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\TheStove.vcxproj">
       <Project>{FD762963-BE34-38A3-83DA-5ABF80C3A795}</Project>
       <Name>TheStove</Name>
+=======
+    <ProjectReference Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\GameEngine.vcxproj">
+      <Project>{D8B31B3F-4FC8-3F48-8A89-222A44E3C856}</Project>
+      <Name>GameEngine</Name>
+>>>>>>> Stashed changes
     </ProjectReference>
     <ProjectReference Include="C:\Users\juinh\Desktop\repos\csd2401f25-csd2451s26_team_letseatmonsters\build\glad.vcxproj">
       <Project>{F558875B-6B32-3AC4-AD56-D3E4A20768F5}</Project>
