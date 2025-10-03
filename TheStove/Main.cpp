@@ -1,20 +1,25 @@
-#include <iostream>
+#include "Core/ImGuiDebugger.hpp"
+#include "Core/Precompiled.hpp"
+
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC
+#include <cstdlib>
 #include <crtdbg.h>
+#define DBG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#define new DBG_NEW
+#endif
+
+#include <iostream>
 #include <algorithm>
 
 #include "Graphics/GraphicsEngine.h"
 #include "Graphics/SceneManager.h"
 #include "Graphics/ResourceManager.h"
-#include "Core/ImGuiDebugger.hpp"
-#include "Core/Precompiled.hpp"
 #include "Core/Core.hpp"
 #include "Core/ConfigManager.hpp"
 #include "Core/AudioManager.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/TileMap.hpp"
-
-#define _CRTDBG_MAP_ALLOC
-#define new new(_NORMAL_BLOCK, __FILE__, __LINE__)
 
 static void draw();
 static void update();
@@ -34,27 +39,17 @@ CoreFramework::CoreEngine* CoreFramework::CORE = &coreEngine; // Set the global 
 
 static Debug::DebuggerApp debugapp;
 
-static void CheckMemoryLeaks()
-{
-	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
-	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
-
-	_CrtDumpMemoryLeaks();  // check for mem leaks
-}
-
 int main() {
 
-    // Enable leak detection at real process end (after global dtors)
-    int flags = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
-    flags |= _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF;
-    _CrtSetDbgFlag(flags);
+#ifdef _DEBUG
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
 
 	auto settings = ConfigManager::LoadFromAssetsOrDefaults();
 	ConfigManager::Validate(settings);
 
     if (!init(settings.resolution.width, settings.resolution.height, "TheStove", settings.fullscreen)) {
         cleanup();
-        CheckMemoryLeaks();
         return -1;
     }
 
@@ -126,8 +121,6 @@ int main() {
 	}
 
 	cleanup();
-
-	//CheckMemoryLeaks();
 
 	return 0;
 }
