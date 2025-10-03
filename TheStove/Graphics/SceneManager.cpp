@@ -53,88 +53,84 @@ void Scene::LoadScene(const std::string& sceneName) {
 }
 
 // Spawners/background/lookup
-GameObject* Scene::SpawnTriangle(const glm::vec3& position, const glm::vec3& scale, float rotation) {
-	GameObject* obj = graphicsEngine.CreateGameObject("triangle", "basic");
-	if (obj) {
-		obj->SetPosition(position);
-		obj->SetScale(scale);
-		obj->SetRotation(glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
-		sceneObjects.push_back(std::unique_ptr<GameObject>(obj));
-	}
-	return obj;
+GameObject* Scene::SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation) {
+	// Load resources
+	Mesh* mesh = ResourceManager::Instance().GetMesh("triangle");
+	Shader* shader = ResourceManager::Instance().GetShader("basic");
+	if (!mesh || !shader) { std::cerr << "Missing resources for triangle\n"; return nullptr; }
+	auto obj = std::make_unique<GameObject>(mesh, shader);
+	obj->SetID(nextID++);
+	obj->SetPosition(position);
+	obj->SetScale(scale);
+	obj->SetRotation(glm::radians(rotation), glm::vec3(0, 0, 1));
+	GameObject* raw = obj.get();
+	sceneObjects.push_back(std::move(obj));
+	return raw;
 }
 
-GameObject* Scene::SpawnSprite(const std::string& texturePath, const glm::vec3& position, const glm::vec2& size) {
-	// Load sprite texture if not already loaded
-	std::string textureName = "sprite_" + texturePath; // Simple naming scheme
-	Texture* spriteTexture = ResourceManager::Instance().LoadTexture(textureName, texturePath);
+//GameObject* Scene::SpawnSprite(const std::string& texturePath, const glm::vec3& position, const glm::vec2& size) {
+//	// Load sprite texture if not already loaded
+//	std::string textureName = "sprite_" + texturePath; // Simple naming scheme
+//	Texture* spriteTexture = ResourceManager::Instance().LoadTexture(textureName, texturePath);
+//
+//	if (!spriteTexture) {
+//		std::cerr << "Failed to load sprite texture: " << texturePath << std::endl;
+//		return nullptr;
+//	}
+//
+//	// Create sprite game object with unique ID
+//	GameObject* obj = graphicsEngine.CreateGameObject("sprite", "sprite");
+//	if (obj) {
+//		obj->SetID(nextID++);
+//		obj->SetPosition(position);
+//		obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
+//		obj->SetTexture(spriteTexture);
+//		sceneObjects.push_back(std::unique_ptr<GameObject>(obj));
+//	}
+//
+//	return obj;
+//}
 
-	if (!spriteTexture) {
-		std::cerr << "Failed to load sprite texture: " << texturePath << std::endl;
-		return nullptr;
-	}
-
-	// Create sprite game object with unique ID
-	GameObject* obj = graphicsEngine.CreateGameObject("sprite", "sprite");
-	if (obj) {
-		obj->SetID(nextID++);
-		obj->SetPosition(position);
-		obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
-		obj->SetTexture(spriteTexture);
-		sceneObjects.push_back(std::unique_ptr<GameObject>(obj));
-	}
-
-	return obj;
-}
-
-GameObject* Scene::SpawnStaticSprite(const std::string& texturePath, const glm::vec3& position, const glm::vec2& size) {
-	// Load sprite texture if not already loaded
-	std::string textureName = "sprite_" + texturePath; // Simple naming scheme
-	Texture* spriteTexture = ResourceManager::Instance().LoadTexture(textureName, texturePath);
-
-	if (!spriteTexture) {
-		std::cerr << "Failed to load sprite texture: " << texturePath << std::endl;
-		return nullptr;
-	}
-
-	// Create sprite game object with unique ID
-	GameObject* obj = graphicsEngine.CreateGameObject("sprite", "staticsprite");
-	if (obj) {
-		obj->SetID(nextID++);
-		obj->SetPosition(position);
-		obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
-		obj->SetTexture(spriteTexture);
-		sceneObjects.push_back(std::unique_ptr<GameObject>(obj));
-	}
-
-	return obj;
-}
-
-GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath, const glm::vec3& position, const glm::vec2& size, const std::vector<glm::vec4>& frames, float frameDuration, bool loop)
-{
+GameObject* Scene::SpawnStaticSprite(const std::string& texturePath, const glm::vec3 position, const glm::vec2 size) {
+	// Load resources
 	std::string textureName = "sprite_" + texturePath;
-	Texture* spriteTexture = ResourceManager::Instance().LoadTexture(textureName, texturePath);
+	Texture* spriteTex = ResourceManager::Instance().LoadTexture(textureName, texturePath);
+	Mesh* mesh = ResourceManager::Instance().GetMesh("sprite");
+	Shader* shader = ResourceManager::Instance().GetShader("staticsprite");
+	if (!spriteTex || !mesh || !shader) { std::cerr << "Missing resources for static sprite\n"; return nullptr; }
 
-	if (!spriteTexture) {
-		std::cerr << "Failed to load animated sprite texture: " << texturePath << std::endl;
-		return nullptr;
-	}
+	auto obj = std::make_unique<GameObject>(mesh, shader);
+	obj->SetID(nextID++);
+	obj->SetPosition(position);
+	obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
+	obj->SetTexture(spriteTex);
+	GameObject* raw = obj.get();
+	sceneObjects.push_back(std::move(obj));
+	return raw;
+}
 
-	GameObject* obj = graphicsEngine.CreateGameObject("sprite", "animatedsprite");
-	if (obj) {
-		obj->SetID(nextID++);
-		obj->SetPosition(position);
-		obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
-		obj->SetTexture(spriteTexture);
-		sceneObjects.push_back(std::unique_ptr<GameObject>(obj));
+GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath, const glm::vec3 position, const glm::vec2 size,
+	const std::vector<glm::vec4> frames, float frameDuration, bool loop) {
+	// Load resources
+	std::string textureName = "sprite_" + texturePath;
+	Texture* spriteTex = ResourceManager::Instance().LoadTexture(textureName, texturePath);
+	Mesh* mesh = ResourceManager::Instance().GetMesh("sprite");
+	Shader* shader = ResourceManager::Instance().GetShader("animatedsprite");
+	if (!spriteTex || !mesh || !shader) { std::cerr << "Missing resources for animated sprite\n"; return nullptr; }
 
-		Animator2D animator;
-		animator.SetFrames(frames, frameDuration, loop);
-		animator.Play();
-		animators[obj->GetID()] = animator;  // Add animator for this animated sprite
-	}
+	auto obj = std::make_unique<GameObject>(mesh, shader);
+	obj->SetID(nextID++);
+	obj->SetPosition(position);
+	obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
+	obj->SetTexture(spriteTex);
+	GameObject* raw = obj.get();
+	sceneObjects.push_back(std::move(obj));
 
-	return obj;
+	Animator2D animator;
+	animator.SetFrames(frames, frameDuration, loop);
+	animator.Play();
+	animators[raw->GetID()] = animator;
+	return raw;
 }
 
 void Scene::SetSceneBackground(const std::string& texturePath) {
@@ -147,6 +143,29 @@ GameObject* Scene::GetGameObjectByID(int targetID) {
 			return obj.get();
 	}
 	return nullptr; // Not found
+}
+
+void Scene::DespawnByID(int targetID) {
+	// Remove anim state first
+	animators.erase(targetID);
+	objectAnimations.erase(targetID);
+	currentAnimation.erase(targetID);
+
+	sceneObjects.erase(
+		std::remove_if(sceneObjects.begin(), sceneObjects.end(),
+			[targetID](const std::unique_ptr<GameObject>& up) {
+				return up && up->GetID() == targetID;
+			}),
+		sceneObjects.end()
+	);
+}
+
+void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) const {
+	out.clear();
+	out.reserve(sceneObjects.size());
+	for (const auto& up : sceneObjects) {
+		if (up) out.push_back(up.get());
+	}
 }
 
 // World build
@@ -203,7 +222,7 @@ void Scene::LoadTest() {
 	// Player
 	if (GameObject* player = SpawnStaticSprite("../assets/mc_sprite_front.png", kSpawnPos, kVisualSizePx)) {
 		spriteID = player->GetID();
-		std::cout << "Spawned sprite with ID: " << spriteID << std::endl;
+		std::cout << "Spawned player sprite with ID: " << spriteID << std::endl;
 
 		spriteScales[spriteID] = glm::vec3(kVisualSizePx, 1.0f);
 		spriteRotations[spriteID] = 0.0f;
@@ -421,19 +440,19 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	const float movePerFrame = 200.0f * physicsDt; // displacement this frame
 	if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
-		desiredMove.y -= movePerFrame; // up
+		desiredMove.y -= moveSpeed; // up
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_S)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_front", "../assets/mc_sprite_front.png"));
-		desiredMove.y += movePerFrame; // down
+		desiredMove.y += moveSpeed; // down
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_A)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideleft", "../assets/mc_sprite_left.png"));
-		desiredMove.x -= movePerFrame; // left
+		desiredMove.x -= moveSpeed; // left
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_D)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideright", "../assets/mc_sprite_right.png"));
-		desiredMove.x += movePerFrame; // right
+		desiredMove.x += moveSpeed; // right
 	}
 
 	if (inputManager.IsKeyPressed(GLFW_KEY_1)) {
@@ -449,16 +468,18 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		std::cout << "Set to Idle Animation" << std::endl;
 	}
 
-	// Click to move selection & target
+	// Click-to-Move behaviour
+	// 1) If player is NOT selected: click must hit the player's collider to select.
+	// 2) If already selected: the next left click sets the destination target.
 	if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-		const auto mp = inputManager.GetMousePosition();
-		const glm::vec2 mouse{ (float)mp.x, (float)mp.y };
+		auto mp = inputManager.GetMousePosition();
+		glm::vec2 mouse{ (float)mp.x, (float)mp.y };
 
 		if (!playerSelected) {
-			const glm::vec2 csize = sprite->GetColliderSize();
-			const glm::vec2 coff = sprite->GetColliderOffset();
-			const glm::vec3 selCenter = position + glm::vec3(coff, 0.0f);
-			const glm::vec3 selScale = glm::vec3(csize, 1.0f);
+			glm::vec2 csize = sprite->GetColliderSize();
+			glm::vec2 coff = sprite->GetColliderOffset();
+			glm::vec3 selCenter = position + glm::vec3(coff, 0.0f);
+			glm::vec3 selScale = glm::vec3(csize, 1.0f);
 
 			if (collision::pointInsideCenterAABB(mouse, selCenter, selScale)) {
 				playerSelected = true;
@@ -502,6 +523,12 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		hasClickTarget = false;
 		stuckFrames = 0;
 	}
+
+	// Build current AABB from collider size/offset for collision resolution
+	collision::AABB startBox = collision::World::makeAABBFromCenter(
+		position + glm::vec3(sprite->GetColliderOffset(), 0.0f),
+		glm::vec3(sprite->GetColliderSize(), 1.0f)
+	);
 
 	// Only apply click-to-move if we have an active target and the player is selected
 	if (playerSelected && hasClickTarget) {
@@ -568,23 +595,30 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 
 	// Move player vs world + stuck guard
-	const collision::AABB startBox = physics::MakeColliderBox(sprite, position);
-	const glm::vec2 stepPlayer = mCollision.resolve(startBox, desiredMove);
+	//collision::AABB startBox = physics::MakeColliderBox(sprite, position);
+	glm::vec2 stepPlayer = mCollision.resolve(startBox, desiredMove);
 	position += glm::vec3(stepPlayer, 0.0f);
 	physics::ClampInsideWalk(walk, sprite, position);
 	sprite->SetPosition(position);
 	playerVelocity = (physicsDt > 0.0f) ? (stepPlayer / physicsDt) : glm::vec2{ 0.0f };
 
+	// Resolve desired movement against world walls (X then Y sweep)
+	glm::vec2 allowed = mCollision.resolve(startBox, desiredMove);
+
+	// Apply allowed motion
+	position.x += allowed.x;
+	position.y += allowed.y;
+
 	if (playerSelected && hasClickTarget) {
 		const float intended = glm::length(desiredMove);
 		const float moved = glm::length(stepPlayer);
 
-		const glm::vec2 prevPos2 = glm::vec2(position.x, position.y) - stepPlayer;
-		const float prevDist = glm::length(clickTarget - prevPos2);
-		const float newDist = glm::length(clickTarget - glm::vec2(position.x, position.y));
+		glm::vec2 prevPos2 = glm::vec2(position.x, position.y) - stepPlayer;
+		float prevDist = glm::length(clickTarget - prevPos2);
+		float newDist = glm::length(clickTarget - glm::vec2(position.x, position.y));
 
-		const bool noProgress = (newDist >= prevDist - 0.25f);
-		const bool barelyMoved = (moved <= 0.05f && intended > 0.0f);
+		bool noProgress = (newDist >= prevDist - 0.25f);
+		bool barelyMoved = (moved <= 0.05f && intended > 0.0f);
 
 		if (noProgress || barelyMoved) ++stuckFrames;
 		else stuckFrames = 0;

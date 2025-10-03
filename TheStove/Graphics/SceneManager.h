@@ -20,19 +20,18 @@ public:
 	void Update(float deltaTime, GLFWwindow* window);
 
 	// Scene-specific object creation
-	GameObject* SpawnTriangle(const glm::vec3& position, const glm::vec3& scale, float rotation = 0.0f);
-	GameObject* SpawnStaticSprite(const std::string& texturePath, const glm::vec3& position,
-		const glm::vec2& size = glm::vec2(100.0f, 100.0f));
+	GameObject* SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation = 0.0f);
+	GameObject* SpawnStaticSprite(const std::string& texturePath, const glm::vec3 position,
+		const glm::vec2 size = glm::vec2(100.0f, 100.0f));
 
-	GameObject* SpawnSprite(const std::string& texturePath, const glm::vec3& position, const glm::vec2& size = glm::vec2(100.0f, 100.0f));
+	//GameObject* SpawnSprite(const std::string& texturePath, const glm::vec3& position, const glm::vec2& size = glm::vec2(100.0f, 100.0f));
 
 	GameObject* SpawnAnimatedSprite(
-		const std::string& texturePath,
-		const glm::vec3& position,
-		const glm::vec2& size,
-		const std::vector<glm::vec4>& frames,
-		float frameDuration,
-		bool loop);
+		const std::string& texturePath, 
+		const glm::vec3 position,
+		const glm::vec2 size, 
+		const std::vector<glm::vec4> frames,
+		float frameDuration, bool loop);
 
 	// Background management
 	void SetSceneBackground(const std::string& texturePath);
@@ -48,6 +47,8 @@ public:
 	// Collect raw pointers for rendering
 	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
 
+	void ClearAllObjects();
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -62,8 +63,8 @@ private:
 
 	// Scene objects
 	std::vector<std::unique_ptr<GameObject>> sceneObjects;
-	int nextID = 1;	   // ID counter for GameObjects
-	int spriteID = -1; // Default invalid ID
+	int nextID = 1;	   // ID counter for sceneObjects
+	int spriteID = -1; // default invalid ID
 	int dinoID = -1; // for testing
 	int otherID = -1;
 	int otherID2 = -1;

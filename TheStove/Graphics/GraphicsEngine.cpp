@@ -39,16 +39,6 @@ void GraphicsEngine::LoadDefaultResources() {
 		"../TheStove/Graphics/shaders/sprite.vert",
 		"../TheStove/Graphics/shaders/sprite.frag");
 
-	// Load triangle mesh
-	std::vector<float> vertices;
-	GLsizei vertexCount, vertexSize;
-	MeshLoader::LoadSimpleTriangle(vertices, vertexCount, vertexSize);
-	resourceManager.LoadMesh("triangle", vertices, vertexCount, vertexSize);
-
-	// Load sprite mesh
-	MeshLoader::LoadSprite(vertices, vertexCount, vertexSize);
-	resourceManager.LoadMesh("sprite", vertices, vertexCount, vertexSize);
-
 	// Load static sprite shader
 	resourceManager.LoadShader("staticsprite",
 		"../TheStove/Graphics/shaders/staticsprite.vert",
@@ -59,34 +49,20 @@ void GraphicsEngine::LoadDefaultResources() {
 		"../TheStove/Graphics/shaders/animatedsprite.vert",
 		"../TheStove/Graphics/shaders/animatedsprite.frag");
 
+	// Load triangle mesh
+	std::vector<float> vertices;
+	GLsizei vertexCount, vertexSize;
+	MeshLoader::LoadSimpleTriangle(vertices, vertexCount, vertexSize);
+	resourceManager.LoadMesh("triangle", vertices, vertexCount, vertexSize);
+
+	// Load sprite mesh
+	MeshLoader::LoadSprite(vertices, vertexCount, vertexSize);
+	resourceManager.LoadMesh("sprite", vertices, vertexCount, vertexSize);
+
+
 	// Load fullscreen quad mesh
 	MeshLoader::LoadFullscreenQuad(vertices, vertexCount, vertexSize);
 	resourceManager.LoadMesh("fullscreen_quad", vertices, vertexCount, vertexSize);
-}
-
-GameObject* GraphicsEngine::CreateGameObject(const std::string& meshName, const std::string& shaderName) {
-	Mesh* mesh = resourceManager.GetMesh(meshName);
-	Shader* shader = resourceManager.GetShader(shaderName);
-
-	if (!mesh || !shader) {
-		std::cerr << "Failed to create GameObject: missing resources" << std::endl;
-		return nullptr;
-	}
-
-	auto obj = std::make_unique<GameObject>(mesh, shader);
-	GameObject* objPtr = obj.get();
-	gameObjects.push_back(std::move(obj));
-
-	return objPtr;
-}
-
-void GraphicsEngine::RemoveGameObject(GameObject* obj) {
-	gameObjects.erase(
-		std::remove_if(gameObjects.begin(), gameObjects.end(),
-			[obj](const std::unique_ptr<GameObject>& ptr) {
-				return ptr.get() == obj;
-			}),
-		gameObjects.end());
 }
 
 void GraphicsEngine::SetBackground(const std::string& texturePath) {
@@ -123,33 +99,50 @@ void GraphicsEngine::BeginFrame() {
 	renderer.Clear();
 }
 
-void GraphicsEngine::Render() {
+void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 
 	// Render background first (if exists)
+
 	if (backgroundObject) {
+
 		glDisable(GL_DEPTH_TEST); // Ensure background is always behind
+
 		backgroundObject->Draw(view, projection);
+
 		glEnable(GL_DEPTH_TEST);
+
 	}
 
-	glDisable(GL_DEPTH_TEST);
-	// Render all game objects
-	for (const auto& obj : gameObjects) {
+	// Draw all scene-provided objects (non-owning)
+
+	for (const auto* obj : objects) {
+
+		if (!obj) continue;
+
 		obj->Draw(view, projection);
 
-		// Draw the object's bounding box in red for debugging purposes
+		glDisable(GL_DEPTH_TEST);
+
 		obj->DrawBoundingBox(view, projection, { 1.0f, 0.0f, 0.0f });
+
 		glEnable(GL_DEPTH_TEST);
+
 	}
 
+
+
 	// Check for OpenGL errors
+
 	GLenum error;
+
 	while ((error = glGetError()) != GL_NO_ERROR) {
+
 		std::cerr << "OpenGL error after draw call: " << error << std::endl;
+
 	}
 }
 
 void GraphicsEngine::Shutdown() {
-	gameObjects.clear();
+	backgroundObject.reset();
 	resourceManager.Clear();
 }

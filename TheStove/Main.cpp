@@ -245,8 +245,12 @@ static void update() {
 }
 
 static void draw() {
+	std::vector<GameObject*> drawList;
+
     engine.BeginFrame();
-    engine.Render();
+	drawList.clear();
+	currentScene->CollectRenderablePointers(drawList);
+    engine.Render(drawList);
 
     if (debugapp.IsActive())
     {

@@ -176,9 +176,12 @@ bool ResourceManager::GetAudioInfo(std::string const& name, unsigned int& length
 }
 
 void ResourceManager::Clear() {
-    std::cout << "Clearing ResourceManager..." << std::endl;
-    shaders.clear();
-    meshes.clear();
-	textures.clear();
-    sounds.clear();
+    if (!isCleared) {
+        std::cout << "Clearing ResourceManager..." << std::endl;
+        shaders.clear();
+        meshes.clear();
+        textures.clear();
+        sounds.clear();
+        isCleared = true;
+    }
 }

@@ -58,6 +58,8 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes;
     std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
 
+    bool isCleared;
+
     // Audio - juinherng
 	// wrapping FMOD::Sound* in unique_ptr with custom deleter to ensure proper release
     struct FmodSoundDeleter
