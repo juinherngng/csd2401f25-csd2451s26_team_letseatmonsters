@@ -43,11 +43,11 @@ namespace Framework {
 		void Update(float dt) override;
 		// Message handler
 		void SendMessage(CoreFramework::Message* msg) override;
-
+		//Get System Name
 		std::string GetName() override;
-
+		//Set Default Game State before use in Update
 		void InitializeGameState(int GS, float dt);
-
+		//Call function pointer to state update
 		void UpdateGameState(int newState, float dt);
 	};
 }
