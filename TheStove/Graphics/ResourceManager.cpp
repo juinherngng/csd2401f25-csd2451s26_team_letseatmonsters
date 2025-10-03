@@ -6,6 +6,8 @@ AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
 CO-AUTHORS:         Ng Juin Herng, juinherng.ng@digipen.edu
 
 DESCRIPTION:		Implements lazy-loading, storage maps, and cleanup for shared GPU resources.
+					Implements audio loading and management using FMOD, ensures proper resource 
+                    release.
 
 		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
