@@ -135,38 +135,11 @@ void GameObject::DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, c
 
 	const collision::AABB box = collision::World::makeAABBFromCenter(centerM, scaleM);
 
-	glm::vec3 verts[4] = {
-		{ box.min.x, box.min.y, 0.f },
-		{ box.max.x, box.min.y, 0.f },
-		{ box.max.x, box.max.y, 0.f },
-		{ box.min.x, box.max.y, 0.f }
-	};
+	if (scaleM.x <= 0.0f || scaleM.y <= 0.0f) return;
 
-	GLuint vao, vbo;
-	glGenVertexArrays(1, &vao);
-	glGenBuffers(1, &vbo);
-
-	glBindVertexArray(vao);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-
-	// Use the BASIC shader (solid/untextured), not the sprite shader
-	Shader* dbg = ResourceManager::Instance().GetShader("basic");
-	if (dbg) {
-		dbg->Use();
-		dbg->SetModelMatrix(glm::mat4(1.0f));
-		dbg->SetViewMatrix(view);
-		dbg->SetProjectionMatrix(proj);
-		dbg->SetColorTint(glm::vec4(color, 1.0f));
-	}
-
-	// Optional: thicker line to see better
-	glLineWidth(2.0f);
-	glDrawArrays(GL_LINE_LOOP, 0, 4);
-
-	glDeleteBuffers(1, &vbo);
-	glDeleteVertexArrays(1, &vao);
+	DebugRenderer::DrawRect(
+		{ box.min.x, box.min.y, 0.0f },
+		{ box.max.x, box.max.y, 0.0f },
+		color
+	);
 }

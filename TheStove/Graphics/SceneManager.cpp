@@ -472,6 +472,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		SetAnimation(dinoID, "IDLE");
 		std::cout << "Set to Idle Animation" << std::endl;
 	}
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_R)) {
+		DebugRenderer::SetEnabled(!DebugRenderer::IsEnabled());
+		std::cout << "[DebugRenderer] Collider box visibility: "
+			<< (DebugRenderer::IsEnabled() ? "ON" : "OFF") << std::endl;
+	}
 
 	// Click-to-Move behaviour
 	// If player is NOT selected: click must hit the player's collider to select.

@@ -13,6 +13,7 @@ DESCRIPTION:		Initializes rendering, loads default GPU resources, manages a full
 
 #pragma once
 
+#include "DebugRenderer.hpp"
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
 #include "GameObject.hpp"

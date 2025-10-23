@@ -16,6 +16,7 @@
 #include "Mesh.hpp"
 #include "Texture.hpp"
 #include "Shader.hpp"
+#include "DebugRenderer.hpp"
 #include "../Core/Math.hpp"
 #include <glm/glm.hpp>
 

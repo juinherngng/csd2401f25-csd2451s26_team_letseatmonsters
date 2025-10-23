@@ -5,7 +5,7 @@ PROJECT NAME:		Project GAM200
 AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
 
 DESCRIPTION:		Implements initialization, default resource loading, background handling,
-   					and batched rendering of GameObjects with error checks.
+					and batched rendering of GameObjects with error checks.
 
 		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -37,6 +37,8 @@ void GraphicsEngine::Initialize() {
 
 	// Load default resources
 	LoadDefaultResources();
+
+	DebugRenderer::Init();
 }
 
 // Internal helper to preload common shaders and meshes.
@@ -150,7 +152,11 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 
 	}
 
+	// DebugRenderer::DrawRect({ 100.f, 100.f, 0.f }, { 300.f, 250.f, 0.f }, { 1,0,0 });
 
+	glDisable(GL_DEPTH_TEST);
+	DebugRenderer::Flush(view, projection);
+	glEnable(GL_DEPTH_TEST);
 
 	// Check for OpenGL errors
 
@@ -166,5 +172,6 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 // Destroy background and clear ResourceManager caches
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
+	DebugRenderer::Shutdown();
 	resourceManager.Clear();
 }
