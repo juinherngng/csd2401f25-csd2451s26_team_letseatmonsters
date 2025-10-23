@@ -47,6 +47,18 @@ void GameObject::SetPosition(const glm::vec3& position) {
 	UpdateModelMatrix();
 }
 
+glm::vec3 GameObject::GetPositionGLM() const {
+	return m_Position;
+}
+
+void GameObject::SetPosition(const Math::Vector3D& position) {
+	SetPosition(glm::vec3(position.x, position.y, position.z));
+}
+
+Math::Vector3D GameObject::GetPosition() const {
+	return Math::Vector3D(m_Position.x, m_Position.y, m_Position.z);
+}
+
 void GameObject::SetScale(const glm::vec3& scale) {
 	m_Scale = scale;
 	UpdateModelMatrix();
@@ -55,6 +67,30 @@ void GameObject::SetScale(const glm::vec3& scale) {
 void GameObject::SetRotation(float angleRadians, const glm::vec3& axis) {
 	m_Rotation = glm::rotate(glm::mat4(1.0f), angleRadians, axis);
 	UpdateModelMatrix();
+}
+
+void GameObject::SetVelocity(const Math::Vector2D& velocity) {
+	m_Velocity = velocity;
+}
+
+Math::Vector2D GameObject::GetVelocity() const {
+	return m_Velocity;
+}
+
+void GameObject::SetColliderSize(const Math::Vector2D& size) {
+	m_ColliderSize = size;
+}
+
+Math::Vector2D GameObject::GetColliderSize() const {
+	return m_ColliderSize;
+}
+
+void GameObject::SetColliderOffset(const Math::Vector2D& offset) {
+	m_ColliderOffset = offset;
+}
+
+Math::Vector2D GameObject::GetColliderOffset() const {
+	return m_ColliderOffset;
 }
 
 void GameObject::UpdateModelMatrix() {
@@ -87,12 +123,17 @@ void GameObject::Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMa
 
 // Debug purposes for collision
 void GameObject::DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color) const {
-
 	// Center = sprite position + offset
-	glm::vec3 center = m_Position + glm::vec3(m_ColliderOffset, 0.0f);
+	const Math::Vector3D centerM(
+		m_Position.x + m_ColliderOffset.x,
+		m_Position.y + m_ColliderOffset.y,
+		m_Position.z
+	);
 
-	// Size = collider size (tight box)
-	collision::AABB box = collision::World::makeAABBFromCenter(center, glm::vec3(m_ColliderSize, 1.0f));
+	// Scale = collider size (tight box)
+	const Math::Vector3D scaleM(m_ColliderSize.x, m_ColliderSize.y, 1.0f);
+
+	const collision::AABB box = collision::World::makeAABBFromCenter(centerM, scaleM);
 
 	glm::vec3 verts[4] = {
 		{ box.min.x, box.min.y, 0.f },

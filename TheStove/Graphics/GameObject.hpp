@@ -16,6 +16,7 @@
 #include "Mesh.hpp"
 #include "Texture.hpp"
 #include "Shader.hpp"
+#include "../Core/Math.hpp"
 #include <glm/glm.hpp>
 
  /**
@@ -65,6 +66,10 @@ public:
 	 * @param position New position (XYZ).
 	 */
 	void SetPosition(const glm::vec3& position);
+	glm::vec3 GetPositionGLM() const;
+
+	void SetPosition(const Math::Vector3D& position);
+	Math::Vector3D GetPosition() const;
 
 	/**
 	 * @brief Set the object scale.
@@ -79,6 +84,9 @@ public:
 	 */
 	void SetRotation(float angleRadians, const glm::vec3& axis);
 
+	void SetVelocity(const Math::Vector2D& velocity);
+	Math::Vector2D GetVelocity() const;
+
 	/** @brief Recompute the model matrix based on position/rotation/scale. */
 	void UpdateModelMatrix();
 	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const;
@@ -86,25 +94,25 @@ public:
 	Shader* GetShader() const { return m_Shader; }
 
 	// Collider handling
-	/** @brief Set the collider�s full size (width/height). */
-	void SetColliderSize(const glm::vec2& size) { m_ColliderSize = size; }
+	/** @brief Set the colliders full size (width/height). */
+	void SetColliderSize(const Math::Vector2D& size);
 
-	/** @brief Set the collider�s positional offset relative to object center. */
-	void SetColliderOffset(const glm::vec2& offs) { m_ColliderOffset = offs; }
+	/** @brief Set the colliders positional offset relative to object center. */
+	void SetColliderOffset(const Math::Vector2D& offset);
 
 	/** @brief Get the collider size. */
-	glm::vec2 GetColliderSize() const { return m_ColliderSize; }
+	Math::Vector2D GetColliderSize() const;
 
 	/** @brief Get the collider offset. */
-	glm::vec2 GetColliderOffset() const { return m_ColliderOffset; }
+	Math::Vector2D GetColliderOffset() const;
 
 	/**
-	 * @brief Draw the collider�s bounding box for debugging.
+	 * @brief Draw the colliders bounding box for debugging.
 	 * @param view  Camera view matrix.
 	 * @param proj  Camera projection matrix.
 	 * @param color Debug line color (default = red).
 	 */
-	void DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color = { 1,0,0 }) const;
+	void DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color) const;
 
 private:
 	Mesh* m_Mesh;
@@ -119,6 +127,8 @@ private:
 
 	int id; // Unique identifier for GameObjects
 
-	glm::vec2 m_ColliderSize = { 1.0f, 1.0f };
-	glm::vec2 m_ColliderOffset = { 0.0f, 0.0f };
+	// Physics-friendly state
+	Math::Vector2D m_Velocity{ 0.f, 0.f };
+	Math::Vector2D m_ColliderSize{ 1.f, 1.f };
+	Math::Vector2D m_ColliderOffset{ 0.f, 0.f };
 };

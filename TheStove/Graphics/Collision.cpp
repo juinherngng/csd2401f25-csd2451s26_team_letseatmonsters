@@ -50,7 +50,7 @@ namespace collision {
 	// --- Primitives ---
 
 	// Computes signed penetration depths and selects smallest axis.
-	bool overlapMTV(const AABB& a, const AABB& b, glm::vec2& mtvOut) {
+	bool overlapMTV(const AABB& a, const AABB& b, Math::Vector2D& mtvOut) {
 		// Signed gaps (A relative to B)
 		float left = b.min.x - a.max.x;
 		float right = b.max.x - a.min.x;
@@ -59,7 +59,7 @@ namespace collision {
 
 		// Early exit if separated on any axis
 		if (left > 0 || right < 0 || top > 0 || bottom < 0) {
-			mtvOut = { 0.0f, 0.0f };
+			mtvOut = Math::Vector2D(0.f, 0.f);
 			return false;
 		}
 
@@ -68,37 +68,37 @@ namespace collision {
 		float penY = std::abs(top) < std::abs(bottom) ? top : bottom;
 
 		if (std::abs(penX) < std::abs(penY)) {
-			mtvOut = { penX, 0.0f };
+			mtvOut = Math::Vector2D(penX, 0.f);
 		}
 		else {
-			mtvOut = { 0.0f, penY };
+			mtvOut = Math::Vector2D(0.f, penY);
 		}
 
 		return true;
 	}
 
 	// Splits MTV based on given weight between A and B.
-	bool separateWeighted(const AABB& a, const AABB& b, float weightA, glm::vec2& moveA, glm::vec2& moveB) {
-		glm::vec2 mtv;
+	bool separateWeighted(const AABB& a, const AABB& b, float weightA, Math::Vector2D& moveA, Math::Vector2D& moveB) {
+		Math::Vector2D mtv;
 		if (!overlapMTV(a, b, mtv)) {
-			moveA = { 0.0f, 0.0f };
-			moveB = { 0.0f, 0.0f };
+			moveA = Math::Vector2D(0.f, 0.f);
+			moveB = Math::Vector2D(0.f, 0.f);
 			return false;
 		}
 
 		// Clamp weight
-		weightA = glm::clamp(weightA, 0.0f, 1.0f);
-		moveA = weightA * mtv;
-		moveB = -(1.0f - weightA) * mtv;
+		weightA = clampf(weightA, 0.f, 1.f);
+		moveA = Math::Vector2D(mtv.x * weightA, mtv.y * weightA);
+		moveB = Math::Vector2D(-mtv.x * (1.f - weightA), -mtv.y * (1.f - weightA));
 		return true;
 	}
 
 	// Half-extents based point inclusion test.
-	bool pointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale) {
+	bool pointInsideCenterAABB(const Math::Vector2D& point, const Math::Vector3D& center, const Math::Vector3D& scale) {
 		const float hx = scale.x * 0.5f;
 		const float hy = scale.y * 0.5f;
-		return (p.x >= center.x - hx && p.x <= center.x + hx &&
-			p.y >= center.y - hy && p.y <= center.y + hy);
+		return (point.x >= center.x - hx && point.x <= center.x + hx &&
+			point.y >= center.y - hy && point.y <= center.y + hy);
 	}
 
 	// --- World methods ---
@@ -119,61 +119,61 @@ namespace collision {
 
 		// LEFT edge wall
 		AABB leftWall{};
-		leftWall.min = { w.L - w.edgeThick, w.T };
-		leftWall.max = { w.L, w.B };
+		leftWall.min = Math::Vector2D(w.L - w.edgeThick, w.T);
+		leftWall.max = Math::Vector2D(w.L, w.B);
 		mWalls.push_back(leftWall);
 
 		// RIGHT edge wall (TOP segment)
 		AABB rightTopWall{};
-		rightTopWall.min = { w.R, w.T };
-		rightTopWall.max = { w.R + w.edgeThick, end.gapMinY };
+		rightTopWall.min = Math::Vector2D(w.R, w.T);
+		rightTopWall.max = Math::Vector2D(w.R + w.edgeThick, end.gapMinY);
 		mWalls.push_back(rightTopWall);
 
 		// RIGHT edge wall (BOTTOM segment)
 		AABB rightBottomWall{};
-		rightBottomWall.min = { w.R, end.gapMaxY };
-		rightBottomWall.max = { w.R + w.edgeThick, w.B };
+		rightBottomWall.min = Math::Vector2D(w.R, end.gapMaxY);
+		rightBottomWall.max = Math::Vector2D(w.R + w.edgeThick, w.B);
 		mWalls.push_back(rightBottomWall);
 
 		// TOP edge wall
 		AABB topWall{};
-		topWall.min = { w.L, w.T - w.edgeThick };
-		topWall.max = { w.R, w.T };
+		topWall.min = Math::Vector2D(w.L, w.T - w.edgeThick);
+		topWall.max = Math::Vector2D(w.R, w.T);
 		mWalls.push_back(topWall);
 
 		// BOTTOM edge wall
 		AABB bottomWall{};
-		bottomWall.min = { w.L, w.B };
-		bottomWall.max = { w.R, w.B + w.edgeThick };
+		bottomWall.min = Math::Vector2D(w.L, w.B);
+		bottomWall.max = Math::Vector2D(w.R, w.B + w.edgeThick);
 		mWalls.push_back(bottomWall);
 
 		// Wooden divider: TOP solid, middle GAP (skipped), BOTTOM solid
 		AABB woodTop{};
-		woodTop.min = { wood.x0, wood.topMinY };
-		woodTop.max = { wood.x1, wood.topMaxY };
+		woodTop.min = Math::Vector2D(wood.x0, wood.topMinY);
+		woodTop.max = Math::Vector2D(wood.x1, wood.topMaxY);
 		mWalls.push_back(woodTop);
 
 		AABB woodBottom{};
-		woodBottom.min = { wood.x0, wood.botMinY };
-		woodBottom.max = { wood.x1, wood.botMaxY };
+		woodBottom.min = Math::Vector2D(wood.x0, wood.botMinY);
+		woodBottom.max = Math::Vector2D(wood.x1, wood.botMaxY);
 		mWalls.push_back(woodBottom);
 
 		// End gate: TOP solid, middle GAP (skipped), BOTTOM solid
 		AABB endTop{};
-		endTop.min = { end.x0, end.topMinY };
-		endTop.max = { end.x1, end.topMaxY };
+		endTop.min = Math::Vector2D(end.x0, end.topMinY);
+		endTop.max = Math::Vector2D(end.x1, end.topMaxY);
 		mWalls.push_back(endTop);
 
 		AABB endBottom{};
-		endBottom.min = { end.x0, end.botMinY };
-		endBottom.max = { end.x1, end.botMaxY };
+		endBottom.min = Math::Vector2D(end.x0, end.botMinY);
+		endBottom.max = Math::Vector2D(end.x1, end.botMaxY);
 		mWalls.push_back(endBottom);
 	}
 
 	// Axis-separable sweep test: move along X then Y, correcting overlaps.
-	glm::vec2 World::resolve(const AABB& startBox, glm::vec2 desiredDelta) const {
+	Math::Vector2D World::resolve(const AABB& startBox, Math::Vector2D desiredDelta) const {
 		// Begin with desired; trim by walls.
-		glm::vec2 allowedDelta = desiredDelta;
+		Math::Vector2D allowedDelta = desiredDelta;
 
 		// X sweep
 		AABB movedX = startBox;
@@ -240,15 +240,13 @@ namespace collision {
 	}
 
 	// Construct AABB from 2D center and full size.
-	AABB World::makeAABBFromCenter(const glm::vec3& center, const glm::vec3& scale) {
+	AABB World::makeAABBFromCenter(const Math::Vector3D& center, const Math::Vector3D& scale) {
 		const float halfW = scale.x * 0.5f;
 		const float halfH = scale.y * 0.5f;
 
-		const glm::vec2 c2{ center.x, center.y };
-
 		AABB box{};
-		box.min = { c2.x - halfW, c2.y - halfH };
-		box.max = { c2.x + halfW, c2.y + halfH };
+		box.min = Math::Vector2D(center.x - halfW, center.y - halfH);
+		box.max = Math::Vector2D(center.x + halfW, center.y + halfH);
 		return box;
 	}
 }

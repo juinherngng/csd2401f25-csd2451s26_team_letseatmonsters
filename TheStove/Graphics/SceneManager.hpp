@@ -19,6 +19,7 @@
 #include "Animator.hpp"
 #include "Collision.hpp"
 #include "../Core/Physics.hpp"
+#include "../Core/Math.hpp"
 
 #include <string>
 #include <vector>

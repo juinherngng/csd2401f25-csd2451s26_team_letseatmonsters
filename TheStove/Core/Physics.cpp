@@ -18,17 +18,29 @@
 #include <cmath>
 #include <iostream>
 
-namespace physics {
-	collision::AABB MakeColliderBox(GameObject* gameObj, const glm::vec3& pos) {
-		return collision::World::makeAABBFromCenter(
-			pos + glm::vec3(gameObj->GetColliderOffset(), 0.0f),
-			glm::vec3(gameObj->GetColliderSize(), 1.0f));
+namespace {
+	// Safe normalize (returns 0,0 if tiny)
+	inline Math::Vector2D SafeNormalize(const Math::Vector2D& v) {
+		const float len = v.Length();
+		if (len > 1e-6f) return Math::Vector2D(v.x / len, v.y / len);
+		return Math::Vector2D(0.f, 0.f);
 	}
 
-	void ClampInsideWalk(const collision::WalkArea& walkArea, GameObject* gameObj, glm::vec3& pos) {
-		const glm::vec2 size = gameObj->GetColliderSize();
-		const glm::vec2 offset = gameObj->GetColliderOffset();
-		const glm::vec2 half = size * 0.5f;
+}
+
+namespace physics {
+	collision::AABB MakeColliderBox(GameObject* gameObj, const Math::Vector3D& pos) {
+		const Math::Vector2D offset = gameObj->GetColliderOffset();
+		const Math::Vector2D size = gameObj->GetColliderSize();
+		const Math::Vector3D center(pos.x + offset.x, pos.y + offset.y, pos.z);
+		const Math::Vector3D scale(size.x, size.y, 1.0f);
+		return collision::World::makeAABBFromCenter(center, scale);
+	}
+
+	void ClampInsideWalk(const collision::WalkArea& walkArea, GameObject* gameObj, Math::Vector3D& pos) {
+		const Math::Vector2D size = gameObj->GetColliderSize();
+		const Math::Vector2D offset = gameObj->GetColliderOffset();
+		const Math::Vector2D half = size * 0.5f;
 
 		pos.x = std::clamp(pos.x, walkArea.L + half.x - offset.x, walkArea.R - half.x - offset.x);
 		pos.y = std::clamp(pos.y, walkArea.T + half.y - offset.y, walkArea.B - half.y - offset.y);
@@ -36,16 +48,16 @@ namespace physics {
 
 	void ClampInsideWalkWithGate(const collision::WalkArea& walk,
 		const collision::StageEndGateVertical& gate,
-		GameObject* obj, glm::vec3& pos)
+		GameObject* obj, Math::Vector3D& pos)
 	{
-		const glm::vec2 half = obj->GetColliderSize() * 0.5f;
-		const glm::vec2 off = obj->GetColliderOffset();
+		const Math::Vector2D half = obj->GetColliderSize() * 0.5f;
+		const Math::Vector2D off = obj->GetColliderOffset();
 
 		pos.y = std::clamp(pos.y, walk.T + half.y - off.y, walk.B - half.y - off.y);
 
 		float maxX = walk.R - half.x - off.x;               // default: inner wall
 		const float centerY = pos.y + off.y;
-		const float eps = 1.0f;                              // small tolerance
+		const float eps = 1.0f;                             // small tolerance
 		if (centerY >= gate.gapMinY - eps && centerY <= gate.gapMaxY + eps) {
 			maxX = gate.x1 - half.x - off.x;                // allow through gap
 		}
@@ -53,7 +65,6 @@ namespace physics {
 		const float minX = walk.L - off.x + half.x;
 		pos.x = std::clamp(pos.x, minX, maxX);
 	}
-
 
 	float StepController::resolveDt(::InputManager& input, float deltaTime) {
 		const bool pNow = input.IsKeyPressed(GLFW_KEY_P);
@@ -100,26 +111,27 @@ namespace physics {
 	void SeparatePlayerVsOther_StopPlayerOnly(
 		collision::World& world,
 		GameObject* player, GameObject* other,
-		glm::vec3& playerPos, glm::vec3& otherPos,
-		glm::vec2& desiredMove, bool& hasClickTarget,
+		Math::Vector3D& playerPos, Math::Vector3D& otherPos,
+		Math::Vector2D& desiredMove, bool& hasClickTarget,
 		float splitPlayer)
 	{
 		const collision::AABB pBox = MakeColliderBox(player, playerPos);
 		const collision::AABB oBox = MakeColliderBox(other, otherPos);
 
-		glm::vec2 playerCorr{}, otherCorr{};
+		Math::Vector2D playerCorr{}, otherCorr{};
 		if (!collision::separateWeighted(pBox, oBox, splitPlayer, playerCorr, otherCorr)) return;
 
 		// Make other correction world-safe; blocked part transfers to player.
 		{
 			const collision::AABB start = MakeColliderBox(other, otherPos);
-			const glm::vec2 allowedDelta = world.resolve(start, otherCorr);
-			const glm::vec2 blockedDelta = otherCorr - allowedDelta;
+			const Math::Vector2D allowedDelta = world.resolve(start, otherCorr);
+			const Math::Vector2D blockedDelta = otherCorr - allowedDelta;
 
 			if (blockedDelta.x != 0.0f || blockedDelta.y != 0.0f) {
-				playerCorr += blockedDelta;   // player absorbs the blocked portion
-				otherCorr = allowedDelta;	  // only apply what's allowed to "other"
-				desiredMove = { 0.0f, 0.0f }; // cancel player move target
+				// player absorbs the blocked portion
+				playerCorr = Math::Vector2D(playerCorr.x + blockedDelta.x, playerCorr.y + blockedDelta.y);
+				otherCorr = allowedDelta;				// only apply what's allowed to "other"
+				desiredMove = Math::Vector2D(0.f, 0.f); // cancel player move target
 				hasClickTarget = false;
 			}
 		}
@@ -127,36 +139,42 @@ namespace physics {
 		// Make player correction world-safe as well.
 		{
 			const collision::AABB start = MakeColliderBox(player, playerPos);
-			playerCorr = world.resolve(start, playerCorr);
+			const Math::Vector2D safeDelta = world.resolve(start, playerCorr);
+			playerCorr = safeDelta;
 		}
 
 		// Apply corrections.
-		playerPos += glm::vec3(playerCorr, 0.0f);
-		otherPos += glm::vec3(otherCorr, 0.0f);
+		playerPos.x += playerCorr.x;
+		playerPos.y += playerCorr.y;
+
+		otherPos.x += otherCorr.x;
+		otherPos.y += otherCorr.y;
+
 		player->SetPosition(playerPos);
 		other->SetPosition(otherPos);
 
 		// Tiny nudge if still overlapping (robustness for coincident edges).
-		glm::vec2 mtv{};
+		Math::Vector2D mtv{};
 		if (collision::overlapMTV(MakeColliderBox(player, playerPos),
 			MakeColliderBox(other, otherPos), mtv)) {
-			playerPos += glm::vec3(mtv * 1.001f, 0.0f);
+			playerPos.x += mtv.x * 1.001f;
+			playerPos.y += mtv.y * 1.001f;
 			player->SetPosition(playerPos);
 		}
 	}
 
 	void MoveYLaneWithBounce(
 		collision::World& world,
-		GameObject* gameObj, glm::vec3& pos, glm::vec2& vel,
+		GameObject* gameObj, Math::Vector3D& pos, Math::Vector2D& vel,
 		float laneX, float physicsDt)
 	{
 		// Constrain to lane (fixed X).
 		pos.x = laneX;
 
 		// Move along Y and resolve against static world.
-		const glm::vec2 desiredDelta = vel * physicsDt;
+		const Math::Vector2D desiredDelta = vel * physicsDt;
 		const collision::AABB start = MakeColliderBox(gameObj, pos);
-		const glm::vec2 allowedDelta = world.resolve(start, desiredDelta);
+		const Math::Vector2D allowedDelta = world.resolve(start, desiredDelta);
 
 		pos.y += allowedDelta.y;
 		gameObj->SetPosition(pos);
@@ -170,46 +188,53 @@ namespace physics {
 
 	void ElasticBounceEqualMass(
 		GameObject* firstObj, GameObject* secondObj,
-		glm::vec3& firstPos, glm::vec3& secondPos,
-		glm::vec2& firstVel, glm::vec2& secondVel)
+		Math::Vector3D& firstPos, Math::Vector3D& secondPos,
+		Math::Vector2D& firstVel, Math::Vector2D& secondVel)
 	{
 		collision::AABB firstBox = MakeColliderBox(firstObj, firstPos);
 		collision::AABB secondBox = MakeColliderBox(secondObj, secondPos);
 
-		glm::vec2 mtv{};
+		Math::Vector2D mtv{};
 		if (!collision::overlapMTV(firstBox, secondBox, mtv)) return;
 
 		// Separate equally along MTV.
-		const glm::vec2 halfCorr = 0.5f * mtv;
-		firstPos += glm::vec3(+halfCorr, 0.0f);
-		secondPos += glm::vec3(-halfCorr, 0.0f);
+		const Math::Vector2D halfCorr(mtv.x * 0.5f, mtv.y * 0.5f);
+		firstPos.x += halfCorr.x;
+		firstPos.y += halfCorr.y;
+
+		secondPos.x -= halfCorr.x;
+		secondPos.y -= halfCorr.y;
+
 		firstObj->SetPosition(firstPos);
 		secondObj->SetPosition(secondPos);
 
 		// Collision normal.
-		glm::vec2 colNormal;
-		float mtvLen = glm::length(mtv);
-		if (mtvLen > 1e-6f) {
-			colNormal = mtv / mtvLen;
-		}
-		else {
-			glm::vec2 rel = { firstPos.x - secondPos.x, firstPos.y - secondPos.y };
-			if (std::abs(rel.y) >= std::abs(rel.x)) {
-				colNormal = { 0.0f, (rel.y >= 0 ? 1.0f : -1.0f) };
-			}
-			else {
-				colNormal = { (rel.x >= 0 ? 1.0f : -1.0f), 0.0f };
-			}
+		Math::Vector2D colNormal = SafeNormalize(mtv);
+		if (colNormal.Length() < 1e-6f) {
+			Math::Vector2D rel(firstPos.x - secondPos.x,
+				firstPos.y - secondPos.y);
+			colNormal = SafeNormalize(rel);
+			if (colNormal.Length() < 1e-6f) colNormal = Math::Vector2D(1.f, 0.f);
 		}
 
 		// Swap normal components; keep tangential (equal masses).
-		const float firstN = glm::dot(firstVel, colNormal);
-		const float secondN = glm::dot(secondVel, colNormal);
-		const glm::vec2 firstT = firstVel - firstN * colNormal;
-		const glm::vec2 secondT = secondVel - secondN * colNormal;
+		const Math::Vector2D v1 = firstVel;
+		const Math::Vector2D v2 = secondVel;
 
-		firstVel = firstT + secondN * colNormal;
-		secondVel = secondT + firstN * colNormal;
+		const float v1n = v1.Dot(colNormal);
+		const float v2n = v2.Dot(colNormal);
+
+		const Math::Vector2D v1t(v1.x - v1n * colNormal.x, v1.y - v1n * colNormal.y);
+		const Math::Vector2D v2t(v2.x - v2n * colNormal.x, v2.y - v2n * colNormal.y);
+
+		const Math::Vector2D v1_out(v1t.x + v2n * colNormal.x, v1t.y + v2n * colNormal.y);
+		const Math::Vector2D v2_out(v2t.x + v1n * colNormal.x, v2t.y + v1n * colNormal.y);
+
+		firstVel = v1_out;
+		secondVel = v2_out;
+
+		firstObj->SetVelocity(firstVel);
+		secondObj->SetVelocity(secondVel);
 
 		// Safety.
 		if (!std::isfinite(firstVel.x) || !std::isfinite(firstVel.y))  firstVel = { 0.f, 0.f };
