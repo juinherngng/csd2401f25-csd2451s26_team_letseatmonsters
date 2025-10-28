@@ -1,14 +1,27 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			SpatialGrid.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #pragma once
 
 #include <unordered_map>
 #include <vector>
 #include <cstdint>
 #include <functional>
+
 #include "Math.hpp"
 #include "Collision.hpp"
 #include "../Graphics/GameObject.hpp"
 
-// Broad-phase uniform grid for 2D AABBs.
+ // Broad-phase uniform grid for 2D AABBs.
 class SpatialGrid {
 public:
 	explicit SpatialGrid(float cellSize = 128.0f);

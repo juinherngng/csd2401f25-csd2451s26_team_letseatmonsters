@@ -31,7 +31,6 @@ namespace Debug
 		}
 	}
 
-
 	// Destructor
 	DebuggerApp::~DebuggerApp()
 	{
@@ -45,18 +44,6 @@ namespace Debug
 		{
 			std::cerr << "Crash Log File was not opened at start!" << std::endl;
 		}
-
-		// Cleanup ImGui
-		/*if (isInitialised)
-		{
-			ImGui_ImplOpenGL3_Shutdown();
-			ImGui_ImplGlfw_Shutdown();
-			ImGui::DestroyContext();
-		}
-		else
-		{
-			std::cerr << "Debugger was not initialised at start!" << std::endl;
-		}*/
 	}
 
 
@@ -68,28 +55,7 @@ namespace Debug
 
 	bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow)
 	{
-		/*if (!glfwInit())
-		{
-			return false;
-		}*/
-
 		debugWindow = externalWindow;
-		//glfwMakeContextCurrent(debugWindow);
-
-		/*if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-		{
-			std::cerr << "Failed to initialize OpenGL context\n";
-			return false;
-		}*/
-
-		// Setup ImGui
-		/*IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-		ImGui::StyleColorsDark();
-		ImGui_ImplGlfw_InitForOpenGL(debugWindow, true);
-		ImGui_ImplOpenGL3_Init("#version 330");*/
 
 		isInitialised = true;
 		return true;
@@ -118,14 +84,6 @@ namespace Debug
 		if (ImGui::GetCurrentContext() == nullptr) {
 			return;
 		}
-
-		// Start ImGui frame
-		/*ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();*/
-
-		// Create docking environment
-		//ImGuiWindowFlags windowFlags = ImGuiWIndowFlags_NoDocking;
 
 		// Create my window
 		if (ImGui::Begin("Debug Infomation", &openedDebugger))
@@ -218,11 +176,6 @@ namespace Debug
 		ShowDebugLog();
 
 		ImGui::End();
-
-		// Render in my ImGui
-		//ImGui::Render();
-		//ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 	}
 
 	// Currently not in use
@@ -301,5 +254,3 @@ namespace Debug
 		ImGui::End();
 	}
 }
-
-

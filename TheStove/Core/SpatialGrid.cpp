@@ -1,6 +1,19 @@
-#include "SpatialGrid.hpp"
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			SpatialGrid.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include <cmath>
 #include <algorithm>
+
+#include "SpatialGrid.hpp"
 
 SpatialGrid::SpatialGrid(float cellSize)
 	: m_cellSize(cellSize) {

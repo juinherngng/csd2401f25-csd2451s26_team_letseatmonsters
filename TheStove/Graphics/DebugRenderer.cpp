@@ -1,5 +1,18 @@
-#include "DebugRenderer.hpp"
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			DebugRenderer.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include <glad/glad.h>
+
+#include "DebugRenderer.hpp"
 
 namespace {
 	struct LineBatch {
