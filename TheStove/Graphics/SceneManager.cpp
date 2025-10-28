@@ -677,19 +677,25 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 	sprite->SetPosition(position);
 
+	// Click to move "stuck" test (evaluate only on physics steps)
 	if (playerSelected && hasClickTarget) {
-		const float intended = Math::Vector2D(desiredMoveM.x, desiredMoveM.y).Length();
-		const float moved = Math::Vector2D(allowedM.x, allowedM.y).Length();
+		// Only judge progress on frames where a fixed physics slice actually ran
+		if (physicsDt > 0.0f) {
+			const float intended = Math::Vector2D(desiredMoveM.x, desiredMoveM.y).Length();
+			if (intended > 0.0f) { // only penalize if we tried to move this step
+				const float moved = Math::Vector2D(allowedM.x, allowedM.y).Length();
 
-		const glm::vec2 prevPos2 = glm::vec2(position.x, position.y) - glm::vec2(allowedM.x, allowedM.y);
-		const float prevDist = glm::length(clickTarget - prevPos2);
-		const float newDist = glm::length(clickTarget - glm::vec2(position.x, position.y));
+				const glm::vec2 prevPos2 = glm::vec2(position.x, position.y) - glm::vec2(allowedM.x, allowedM.y);
+				const float prevDist = glm::length(clickTarget - prevPos2);
+				const float newDist = glm::length(clickTarget - glm::vec2(position.x, position.y));
 
-		const bool noProgress = (newDist >= prevDist - 0.25f);
-		const bool barelyMoved = (moved <= 0.05f && intended > 0.0f);
+				const bool noProgress = (newDist >= prevDist - 0.25f);
+				const bool barelyMoved = (moved <= 0.05f);
 
-		if (noProgress || barelyMoved) ++stuckFrames;
-		else stuckFrames = 0;
+				if (noProgress || barelyMoved) ++stuckFrames;
+				else stuckFrames = 0;
+			}
+		}
 
 		if (stuckFrames >= kStuckFramesToCancel) {
 			hasClickTarget = false;

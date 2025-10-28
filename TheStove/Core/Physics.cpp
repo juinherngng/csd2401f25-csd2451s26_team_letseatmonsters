@@ -99,13 +99,26 @@ namespace physics {
 		// Determine physics dt:
 		// - Step mode: run fixed step only when a step is queued; else 0.
 		// - Real-time: pass-through.
-		const float physicsDt = enabled ? (stepsQueued > 0 ? fixedDt : 0.0f) : deltaTime;
-
-		if (enabled && physicsDt > 0.0f) {
-			--stepsQueued;
+		if (enabled) {
+			// Step mode: fixed slice only when a step is queued
+			if (stepsQueued > 0) {
+				--stepsQueued;
+				return fixedDt;
+			}
+			return 0.0f;
 		}
+		else {
+			// Real-time mode: accumulate render dt and release fixed-size steps at 60 Hz
+			// Clamp absurdly large pauses to avoid huge catch-ups
+			deltaTime = std::min(deltaTime, static_cast<float>(maxCarry));
+			runtimeAccum += deltaTime;
 
-		return physicsDt;
+			if (runtimeAccum >= fixedDt) {
+				runtimeAccum -= fixedDt;
+				return fixedDt; // one fixed step this frame
+			}
+			return 0.0f; // no step this frame
+		}
 	}
 
 	void SeparatePlayerVsOther_StopPlayerOnly(

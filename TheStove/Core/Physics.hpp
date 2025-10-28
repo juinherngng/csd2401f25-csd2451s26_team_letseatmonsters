@@ -77,6 +77,9 @@ namespace physics {
 		bool enabled = false;
 		float fixedDt = 1.0f / 60.0f;
 
+		double runtimeAccum = 0.0;
+		double maxCarry = (1.0 / 60.0) * 4.0;
+
 		// Internal key-edge tracking
 		int stepsQueued = 0;
 		bool prevToggle = false;
