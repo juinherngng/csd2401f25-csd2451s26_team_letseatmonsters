@@ -20,6 +20,7 @@
 #include "../Core/Collision.hpp"
 #include "../Core/Physics.hpp"
 #include "../Core/Math.hpp"
+#include "../Core/SpatialGrid.hpp"
 
 #include <string>
 #include <vector>
@@ -149,4 +150,6 @@ private:
 	static constexpr int kStuckFramesToCancel = 12;
 
 	bool showAuxDebug_ = true;
+
+	SpatialGrid mSpatialGrid{ 128.0f };
 };

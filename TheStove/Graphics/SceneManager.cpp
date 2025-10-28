@@ -55,14 +55,40 @@ namespace {
 	inline Math::Vector3D toM(const glm::vec3& v) { return Math::Vector3D(v.x, v.y, v.z); }
 	inline glm::vec2 toG(const Math::Vector2D& v) { return glm::vec2(v.x, v.y); }
 	inline glm::vec3 toG(const Math::Vector3D& v) { return glm::vec3(v.x, v.y, v.z); }
+
+	// Debug helpers for drawing grid cells
+	static void DebugDrawCellRect(float cellSize, int cx, int cy) {
+		const float x0 = cx * cellSize;
+		const float y0 = cy * cellSize;
+		const float x1 = x0 + cellSize;
+		const float y1 = y0 + cellSize;
+
+		// outline rectangle using four lines
+		DebugRenderer::DrawLine({ x0, y0, 0 }, { x1, y0, 0 }, { 0, 1, 0 }); // bottom
+		DebugRenderer::DrawLine({ x1, y0, 0 }, { x1, y1, 0 }, { 0, 1, 0 }); // right
+		DebugRenderer::DrawLine({ x1, y1, 0 }, { x0, y1, 0 }, { 0, 1, 0 }); // top
+		DebugRenderer::DrawLine({ x0, y1, 0 }, { x0, y0, 0 }, { 0, 1, 0 }); // left
+	}
+
+	static void DebugDrawNeighborhood(const collision::AABB& box, float cellSize) {
+		const int minCx = static_cast<int>(std::floor(box.min.x / cellSize)) - 1;
+		const int maxCx = static_cast<int>(std::floor(box.max.x / cellSize)) + 1;
+		const int minCy = static_cast<int>(std::floor(box.min.y / cellSize)) - 1;
+		const int maxCy = static_cast<int>(std::floor(box.max.y / cellSize)) + 1;
+
+		for (int cy = minCy; cy <= maxCy; ++cy) {
+			for (int cx = minCx; cx <= maxCx; ++cx) {
+				DebugDrawCellRect(cellSize, cx, cy);
+			}
+		}
+	}
 }
 
 // Quick hit-test for a point against a center-anchored AABB.
 static inline bool PointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale) {
 	const float hx = scale.x * 0.5f;
 	const float hy = scale.y * 0.5f;
-	return (p.x >= center.x - hx && p.x <= center.x + hx &&
-		p.y >= center.y - hy && p.y <= center.y + hy);
+	return (p.x >= center.x - hx && p.x <= center.x + hx && p.y >= center.y - hy && p.y <= center.y + hy);
 }
 
 // Scene lifecycle
@@ -406,6 +432,17 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	glm::vec3& o1position = spritePositions[otherID];
 	glm::vec3& o2position = spritePositions[otherID2];
 
+	mSpatialGrid.Clear();
+
+	std::vector<GameObject*> allObjects;
+	CollectRenderablePointers(allObjects);
+
+	for (GameObject* obj : allObjects) {
+		const Math::Vector3D posM(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
+		const collision::AABB box = physics::MakeColliderBox(obj, posM);
+		mSpatialGrid.Insert(obj, box);
+	}
+
 	// Per-frame state
 	static Math::Vector2D desiredMoveM{ 0.f, 0.f };
 	static Math::Vector2D playerVelM{ 0.f, 0.f };
@@ -620,7 +657,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		return (otherSpeed < kIdle && intentSpeed > 0.0f) ? kPushBiasIdle : kPushBiasMoving;
 		};
 
-	{
+	/*{
 		Math::Vector3D playerPosM = toM(position);
 		Math::Vector3D o1PosM = toM(o1position);
 		physics::SeparatePlayerVsOther_StopPlayerOnly(
@@ -630,7 +667,6 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		sprite->SetPosition(position);
 		other1->SetPosition(o1position);
 	}
-
 	{
 		Math::Vector3D playerPosM = toM(position);
 		Math::Vector3D o2PosM = toM(o2position);
@@ -640,6 +676,78 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		o2position = toG(o2PosM);
 		sprite->SetPosition(position);
 		other2->SetPosition(o2position);
+	}*/
+
+	// Use grid broad-phase for player vs nearby objects
+	{
+		// Build player's current AABB once
+		const collision::AABB pBox = physics::MakeColliderBox(sprite, Math::Vector3D(position.x, position.y, position.z));
+
+		// Ask the grid for only nearby candidates
+		std::vector<GameObject*> candidates;
+		mSpatialGrid.Query(pBox, candidates);
+
+		// Your existing “split weight” heuristic (brace-safe)
+		auto pickWeight = [&](float otherSpeed) {
+			constexpr float kIdle = 5.0f;
+			constexpr float kPushBiasIdle = 0.50f;
+			constexpr float kPushBiasMoving = 0.50f;
+
+			const float intentSpeed = (physicsDt > 0.0f)
+				? (Math::Vector2D(
+					desiredMoveM.x / physicsDt,
+					desiredMoveM.y / physicsDt).Length())
+				: 0.0f;
+
+			if (otherSpeed < kIdle && intentSpeed > 0.0f) {
+				return kPushBiasIdle;
+			}
+			else {
+				return kPushBiasMoving;
+			}
+			};
+
+		for (GameObject* other : candidates) {
+			if (!other) {
+				continue;
+			}
+
+			if (other == sprite) {
+				continue;
+			}
+
+			const Math::Vector2D gSize = other->GetColliderSize();
+			if (gSize.x <= 0.0f || gSize.y <= 0.0f) {
+				continue;
+			}
+
+			Math::Vector3D playerPosM(position.x, position.y, position.z);
+			Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
+
+			// Pick speed for weight (use your lane velocities where applicable)
+			float otherSpeed = 0.0f;
+			if (other->GetID() == otherID) {
+				otherSpeed = other1VelM.Length();
+			}
+			if (other->GetID() == otherID2) {
+				otherSpeed = other2VelM.Length();
+			}
+
+			physics::SeparatePlayerVsOther_StopPlayerOnly(
+				mCollision,
+				sprite,
+				other,
+				playerPosM,
+				otherPosM,
+				desiredMoveM,
+				hasClickTarget,
+				pickWeight(otherSpeed));
+
+			// write back positions
+			position = toG(playerPosM);
+			other->SetPosition(toG(otherPosM));
+			sprite->SetPosition(position);
+		}
 	}
 
 	// Resolve desired movement against world walls (X then Y sweep)
@@ -714,7 +822,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		// Line: player to click target (only when a target exists)
 		if (playerSelected && hasClickTarget) {
 			DebugRenderer::DrawLine(
-				{ position.x,   position.y,   0.0f },
+				{ position.x, position.y, 0.0f },
 				{ clickTarget.x, clickTarget.y, 0.0f },
 				{ 0.0f, 1.0f, 0.0f }
 			);
@@ -734,6 +842,54 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			DebugRenderer::DrawPoint({ mx.x, mx.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f); // TR
 			DebugRenderer::DrawPoint({ mn.x, mx.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f); // TL
 			DebugRenderer::DrawPoint(c, { 1.0f, 0.2f, 0.2f }, 7.0f); // center
+		}
+
+		// Draw the neighborhood cells around the player's AABB
+		{
+			// Build player's AABB in Math types
+			const Math::Vector2D pSize = sprite->GetColliderSize();
+			const Math::Vector2D pOff = sprite->GetColliderOffset();
+
+			const Math::Vector3D pCenterM(position.x + pOff.x, position.y + pOff.y, 0.0f);
+			const Math::Vector3D pScaleM(pSize.x, pSize.y, 1.0f);
+			const collision::AABB pBox = collision::World::makeAABBFromCenter(pCenterM, pScaleM);
+
+			// Outline the queried neighborhood cells
+			DebugDrawNeighborhood(pBox, mSpatialGrid.CellSize());
+
+			// Highlight candidate objects returned by the grid
+			std::vector<GameObject*> candidates;
+			mSpatialGrid.Query(pBox, candidates);
+
+			for (GameObject* g : candidates) {
+				if (!g || g == sprite) {
+					continue;
+				}
+
+				const Math::Vector2D gSize = g->GetColliderSize();
+				const Math::Vector2D gOff = g->GetColliderOffset();
+				if (gSize.x <= 0.0f || gSize.y <= 0.0f) {
+					continue;
+				}
+
+				// Work in GLM for renderer drawing positions
+				const glm::vec3 gp = toG(g->GetPosition());
+
+				const float hx = gSize.x * 0.5f;
+				const float hy = gSize.y * 0.5f;
+
+				const glm::vec3 mn(gp.x + gOff.x - hx, gp.y + gOff.y - hy, 0.0f);
+				const glm::vec3 mx(gp.x + gOff.x + hx, gp.y + gOff.y + hy, 0.0f);
+
+				// cyan rectangle
+				DebugRenderer::DrawLine({ mn.x, mn.y, 0 }, { mx.x, mn.y, 0 }, { 0.0f, 1.0f, 1.0f });
+				DebugRenderer::DrawLine({ mx.x, mn.y, 0 }, { mx.x, mx.y, 0 }, { 0.0f, 1.0f, 1.0f });
+				DebugRenderer::DrawLine({ mx.x, mx.y, 0 }, { mn.x, mx.y, 0 }, { 0.0f, 1.0f, 1.0f });
+				DebugRenderer::DrawLine({ mn.x, mx.y, 0 }, { mn.x, mn.y, 0 }, { 0.0f, 1.0f, 1.0f });
+
+				// center dot
+				DebugRenderer::DrawPoint({ gp.x + gOff.x, gp.y + gOff.y, 0.0f }, { 0.0f, 1.0f, 1.0f }, 5.0f);
+			}
 		}
 	}
 }
