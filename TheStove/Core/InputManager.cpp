@@ -15,6 +15,9 @@
 #include <iostream>
 
 void InputManager::Update(GLFWwindow* window) {
+	mPreviousKeyStates = mCurrentKeyStates;
+	mPrevMouseButtons = mMouseButtons;
+
 	// Poll commonly used keys
 	int keys[] = {
 		GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN,
@@ -23,24 +26,17 @@ void InputManager::Update(GLFWwindow* window) {
 	};
 
 	for (int key : keys) {
-		bool state = glfwGetKey(window, key) == GLFW_PRESS;
-		mPreviousKeyStates[key] = mCurrentKeyStates[key]; // carry previous
-		mCurrentKeyStates[key] = state;					  // update current
+		mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
 	}
 
 	// Poll mouse buttons
 	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
 	for (int b : buttons) {
-		bool state = glfwGetMouseButton(window, b) == GLFW_PRESS;
-		mPrevMouseButtons[b] = mMouseButtons[b]; // carry previous
-		mMouseButtons[b] = state;                // update current
+		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
 	}
 
 	// Get mouse cursor position
 	glfwGetCursorPos(window, &mMousePos.x, &mMousePos.y);
-
-	// Ensure maps remain synchronized
-	mPreviousKeyStates = mCurrentKeyStates;
 }
 
 // Returns whether a key is currently pressed.
