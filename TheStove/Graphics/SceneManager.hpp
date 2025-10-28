@@ -21,6 +21,7 @@
 #include "../Core/Physics.hpp"
 #include "../Core/Math.hpp"
 #include "../Core/SpatialGrid.hpp"
+#include "../Core/LevelEditor.hpp"
 
 #include <string>
 #include <vector>
@@ -101,7 +102,10 @@ public:
 	 */
 	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
 
-	// void ClearAllObjects();
+	std::vector<GameObject*> GetAllObjectsRaw();
+	const std::string& GetObjectTexturePath(int id) const;
+	void SetObjectTexturePath(int id, const std::string& path);
+	void DrawUI();
 
 private:
 	// Engine/input
@@ -152,4 +156,7 @@ private:
 	bool showAuxDebug_ = true;
 
 	SpatialGrid mSpatialGrid{ 128.0f };
+
+	LevelEditor mLevelEditor; // PC editor
+	std::unordered_map<int, std::string> mTexturePathByID;
 };

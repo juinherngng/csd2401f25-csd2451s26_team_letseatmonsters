@@ -143,3 +143,14 @@ void GameObject::DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, c
 		color
 	);
 }
+
+glm::vec3 GameObject::GetScaleGLM() const {
+	return m_Scale;
+}
+
+float GameObject::GetRotationAngleZ() const {
+	// Extract 2D rotation angle (around Z axis) from rotation matrix
+	// Assuming rotation matrix represents rotation in XY plane
+	float angle = std::atan2(m_Rotation[1][0], m_Rotation[0][0]);
+	return angle;
+}

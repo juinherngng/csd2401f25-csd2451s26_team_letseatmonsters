@@ -84,6 +84,16 @@ namespace {
 	}
 }
 
+std::vector<GameObject*> Scene::GetAllObjectsRaw() {
+	std::vector<GameObject*> out; CollectRenderablePointers(out); return out;
+}
+const std::string& Scene::GetObjectTexturePath(int id) const {
+	static const std::string kEmpty{};
+	auto it = mTexturePathByID.find(id);
+	return it == mTexturePathByID.end() ? kEmpty : it->second;
+}
+void Scene::SetObjectTexturePath(int id, const std::string& path) { mTexturePathByID[id] = path; }
+
 // Quick hit-test for a point against a center-anchored AABB.
 static inline bool PointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale) {
 	const float hx = scale.x * 0.5f;
@@ -128,6 +138,7 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath, const glm::
 	obj->SetPosition(position);
 	obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
 	obj->SetTexture(spriteTex);
+	mTexturePathByID[obj->GetID()] = texturePath;
 	GameObject* raw = obj.get();
 	sceneObjects.push_back(std::move(obj));
 	return raw;
@@ -169,19 +180,14 @@ GameObject* Scene::GetGameObjectByID(int targetID) {
 	return nullptr; // Not found
 }
 
-void Scene::DespawnByID(int targetID) {
-	// Remove anim state first
-	animators.erase(targetID);
-	objectAnimations.erase(targetID);
-	currentAnimation.erase(targetID);
-
-	sceneObjects.erase(
-		std::remove_if(sceneObjects.begin(), sceneObjects.end(),
-			[targetID](const std::unique_ptr<GameObject>& up) {
-				return up && up->GetID() == targetID;
-			}),
-		sceneObjects.end()
-	);
+void Scene::DespawnByID(int id)
+{
+	auto it = std::remove_if(sceneObjects.begin(), sceneObjects.end(),
+		[id](const std::unique_ptr<GameObject>& g) {
+			return g && g->GetID() == id;
+		});
+	sceneObjects.erase(it, sceneObjects.end());
+	mTexturePathByID.erase(id);
 }
 
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) const {
@@ -380,8 +386,18 @@ void Scene::SetAnimation(int objID, const std::string& newAnim) {
 	}
 }
 
+void Scene::DrawUI() {
+	if (mLevelEditor.IsEnabled()) {
+		mLevelEditor.DrawUI(*this);
+	}
+}
+
 // Per-frame update
 void Scene::Update(float deltaTime, GLFWwindow* window) {
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
+		mLevelEditor.Toggle();
+	}
+
 	inputManager.Update(window);
 
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);

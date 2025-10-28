@@ -17,7 +17,7 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 namespace Debug
 {
 	// Constructor
-	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, openedDebugger{ true }, isInitialised{ true }
+	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, openedDebugger{ true }, isInitialised{ false }
 	{
 		crashlogFile.open("Debug_Log.txt", std::ios::app); // Set to append mode
 
@@ -47,7 +47,7 @@ namespace Debug
 		}
 
 		// Cleanup ImGui
-		if (isInitialised)
+		/*if (isInitialised)
 		{
 			ImGui_ImplOpenGL3_Shutdown();
 			ImGui_ImplGlfw_Shutdown();
@@ -56,49 +56,40 @@ namespace Debug
 		else
 		{
 			std::cerr << "Debugger was not initialised at start!" << std::endl;
-		}
+		}*/
 	}
 
 
 	// Implicit dtor for the debugger
-	void DebuggerApp::Shutdown()
-	{
-		if (isInitialised)
-		{
-			ImGui_ImplOpenGL3_Shutdown();
-			ImGui_ImplGlfw_Shutdown();
-			ImGui::DestroyContext();
-			isInitialised = false;
-			std::cout << "Debugger Destructed with Shutdown" << std::endl;
-		}
+	void DebuggerApp::Shutdown() {
+		isInitialised = false; // only mark state, do not shutdown ImGui here
+		std::cout << "Debugger Destructed with Shutdown\n";
 	}
 
 	bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow)
 	{
-		if (!glfwInit())
+		/*if (!glfwInit())
 		{
 			return false;
-		}
+		}*/
 
 		debugWindow = externalWindow;
-		glfwMakeContextCurrent(debugWindow);
+		//glfwMakeContextCurrent(debugWindow);
 
-		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+		/*if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 		{
 			std::cerr << "Failed to initialize OpenGL context\n";
 			return false;
-		}
+		}*/
 
 		// Setup ImGui
-		IMGUI_CHECKVERSION();
+		/*IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
 		ImGui::StyleColorsDark();
-
 		ImGui_ImplGlfw_InitForOpenGL(debugWindow, true);
-		ImGui_ImplOpenGL3_Init("#version 330");
+		ImGui_ImplOpenGL3_Init("#version 330");*/
 
 		isInitialised = true;
 		return true;
@@ -112,7 +103,7 @@ namespace Debug
 			openedDebugger = !openedDebugger;
 			std::cout << "CLOSING DEBUGGER" << std::endl;
 		}
-		
+
 		// update system performance %tages
 		UpdateSystemTimes(CoreFramework::gDt);
 	}
@@ -124,14 +115,18 @@ namespace Debug
 			return;
 		}
 
+		if (ImGui::GetCurrentContext() == nullptr) {
+			return;
+		}
+
 		// Start ImGui frame
-		ImGui_ImplOpenGL3_NewFrame();
+		/*ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
+		ImGui::NewFrame();*/
 
 		// Create docking environment
 		//ImGuiWindowFlags windowFlags = ImGuiWIndowFlags_NoDocking;
-		
+
 		// Create my window
 		if (ImGui::Begin("Debug Infomation", &openedDebugger))
 		{
@@ -225,8 +220,8 @@ namespace Debug
 		ImGui::End();
 
 		// Render in my ImGui
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		//ImGui::Render();
+		//ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 	}
 

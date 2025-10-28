@@ -11,11 +11,16 @@ DESCRIPTION:		Implements initialization, default resource loading, background ha
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <glm/gtc/matrix_transform.hpp>
+
 #include <iostream>
+#include <glad/glad.h> 
+#include <GLFW/glfw3.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
+
+static bool s_imguiInitialized = false;
 
 // Constructor: Initializes references and identity matrices for view/projection.
 GraphicsEngine::GraphicsEngine()
@@ -40,6 +45,15 @@ void GraphicsEngine::Initialize() {
 
 	DebugRenderer::Init();
 	DebugRenderer::SetEnabled(false);
+
+	if (!s_imguiInitialized) {
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGui::StyleColorsDark();
+		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
+		ImGui_ImplOpenGL3_Init("#version 330 core");
+		s_imguiInitialized = true;
+	}
 }
 
 // Internal helper to preload common shaders and meshes.
@@ -117,56 +131,59 @@ void GraphicsEngine::ClearBackground() {
 	backgroundObject.reset();
 }
 
-// Clear frame using Renderer to begin a new frame
-void GraphicsEngine::BeginFrame() {
-	renderer.Clear();
+void GraphicsEngine::BeginImGuiFrame() {
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
 }
 
-// Render the  background and then all provided GameObjects
+void GraphicsEngine::EndImGuiFrame() {
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void GraphicsEngine::BeginFrame() {
+	renderer.Clear();
+	BeginImGuiFrame();
+}
+
+// Render the background and then all provided GameObjects
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
-
-	// Render background first (if exists)
-
+	// Background first
 	if (backgroundObject) {
-
-		glDisable(GL_DEPTH_TEST); // Ensure background is always behind
-
+		glDisable(GL_DEPTH_TEST);
 		backgroundObject->Draw(view, projection);
-
 		glEnable(GL_DEPTH_TEST);
-
 	}
 
-	// Draw all scene-provided objects 
-
+	// Scene objects
 	for (const auto* obj : objects) {
-
-		if (!obj) continue;
+		if (!obj) { continue; }
 
 		obj->Draw(view, projection);
 
-		glDisable(GL_DEPTH_TEST);
-
-		obj->DrawBoundingBox(view, projection, { 1.0f, 0.0f, 0.0f });
-
-		glEnable(GL_DEPTH_TEST);
-
+		// Draw bounding boxes only when debug is enabled (R)
+		if (DebugRenderer::IsEnabled()) {
+			glDisable(GL_DEPTH_TEST);
+			obj->DrawBoundingBox(view, projection, { 1.0f, 0.0f, 0.0f });
+			glEnable(GL_DEPTH_TEST);
+		}
 	}
 
+	// Debug lines/points flush (R/T)
 	if (DebugRenderer::IsEnabled()) {
 		glDisable(GL_DEPTH_TEST);
 		DebugRenderer::Flush(view, projection);
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	// Check for OpenGL errors
+	// ImGui on top
+	EndImGuiFrame();
 
+	// GL error check
 	GLenum error;
-
 	while ((error = glGetError()) != GL_NO_ERROR) {
-
 		std::cerr << "OpenGL error after draw call: " << error << std::endl;
-
 	}
 }
 
@@ -175,4 +192,12 @@ void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
 	DebugRenderer::Shutdown();
 	resourceManager.Clear();
+
+	// ImGui cleanup
+	if (s_imguiInitialized) {
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+		s_imguiInitialized = false;
+	}
 }

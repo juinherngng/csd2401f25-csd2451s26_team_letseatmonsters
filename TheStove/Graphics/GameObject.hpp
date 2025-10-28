@@ -90,7 +90,7 @@ public:
 
 	/** @brief Recompute the model matrix based on position/rotation/scale. */
 	void UpdateModelMatrix();
-	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const;
+
 	void SetTexture(Texture* tex) { m_Texture = tex; }
 	Shader* GetShader() const { return m_Shader; }
 
@@ -106,6 +106,11 @@ public:
 
 	/** @brief Get the collider offset. */
 	Math::Vector2D GetColliderOffset() const;
+
+	glm::vec3 GetScaleGLM() const;
+	float GetRotationAngleZ() const;
+
+	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const;
 
 	/**
 	 * @brief Draw the colliders bounding box for debugging.

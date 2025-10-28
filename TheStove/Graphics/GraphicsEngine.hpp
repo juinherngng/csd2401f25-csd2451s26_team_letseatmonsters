@@ -21,6 +21,10 @@ DESCRIPTION:		Initializes rendering, loads default GPU resources, manages a full
 #include <vector>
 #include <memory>
 
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 class GraphicsEngine {
 public:
 	GraphicsEngine();
@@ -34,6 +38,9 @@ public:
 	// Background management
 	void SetBackground(const std::string& texturePath);
 	void ClearBackground();
+
+	void BeginImGuiFrame(); // call at start of each frame
+	void EndImGuiFrame(); // call at end of each frame
 
 private:
 	Renderer renderer;
