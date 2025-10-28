@@ -1,6 +1,6 @@
-#include "LevelEditor.hpp"
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
+#include "LevelEditor.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -89,7 +89,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 
 }
 
-// -------- helpers: sync scene <-> LevelData ---------------------------------
+// helpers: sync scene to LevelData
 static void SyncLevelToScene(const LevelData& lvl, Scene& scene) {
 	// clear is optional — if you want to keep existing, remove this
 	// (You already have DespawnByID; add Scene::ClearAll() if needed.)

@@ -11,8 +11,9 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "InputManager.hpp"
 #include <iostream>
+
+#include "InputManager.hpp"
 
 void InputManager::Update(GLFWwindow* window) {
 	mPreviousKeyStates = mCurrentKeyStates;

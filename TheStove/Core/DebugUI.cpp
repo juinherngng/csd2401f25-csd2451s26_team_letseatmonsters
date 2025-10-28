@@ -12,7 +12,7 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 
 #pragma once
 
-#include "ImGuiDebugger.hpp"
+#include "DebugUI.hpp"
 
 namespace Debug
 {

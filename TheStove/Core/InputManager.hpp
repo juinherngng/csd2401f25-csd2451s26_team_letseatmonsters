@@ -18,7 +18,6 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
-
  /**
   * @class InputManager
   * @brief Manages input polling for keyboard and mouse using GLFW.

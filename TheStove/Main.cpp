@@ -1,4 +1,4 @@
-#include "Core/ImGuiDebugger.hpp"
+#include "Core/DebugUI.hpp"
 #include "Core/Precompiled.hpp"
 
 #ifdef _DEBUG

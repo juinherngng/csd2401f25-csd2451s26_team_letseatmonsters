@@ -17,13 +17,13 @@ DESCRIPTION:		Initializes rendering, loads default GPU resources, manages a full
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
 #include "GameObject.hpp"
-#include <glm/glm.hpp>
-#include <vector>
-#include <memory>
-
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+
+#include <glm/glm.hpp>
+#include <vector>
+#include <memory>
 
 class GraphicsEngine {
 public:

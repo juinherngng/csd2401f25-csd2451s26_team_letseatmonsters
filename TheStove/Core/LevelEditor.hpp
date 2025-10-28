@@ -1,9 +1,10 @@
 #pragma once
 
 #include <string>
+
 #include "LevelSerializer.hpp"
 
-class Scene; // fwd
+class Scene;
 
 class LevelEditor {
 public:
@@ -14,7 +15,7 @@ public:
 	// Call each frame when enabled
 	void DrawUI(Scene& scene);
 
-	// Android: call this once at startup (no UI)
+	// Call this once at startup
 	bool LoadIntoScene(Scene& scene);
 
 private:

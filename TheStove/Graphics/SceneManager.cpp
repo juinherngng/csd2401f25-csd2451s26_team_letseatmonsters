@@ -12,10 +12,11 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "SceneManager.hpp"
 #include <iostream>
 #include <algorithm>
 #include <glm/ext/matrix_clip_space.hpp>
+
+#include "SceneManager.hpp"
 
  // Level constants
 static constexpr float kWorldW = 1200.0f;
@@ -180,14 +181,32 @@ GameObject* Scene::GetGameObjectByID(int targetID) {
 	return nullptr; // Not found
 }
 
-void Scene::DespawnByID(int id)
-{
+void Scene::DespawnByID(int id) {
+	// Remove from container
 	auto it = std::remove_if(sceneObjects.begin(), sceneObjects.end(),
 		[id](const std::unique_ptr<GameObject>& g) {
 			return g && g->GetID() == id;
 		});
 	sceneObjects.erase(it, sceneObjects.end());
+
+	// Remove texture bookkeeping
 	mTexturePathByID.erase(id);
+	spritePositions.erase(id);
+	spriteScales.erase(id);
+	spriteRotations.erase(id);
+
+	// Remove all per-object state
+	animators.erase(id);
+	objectAnimations.erase(id);
+	currentAnimation.erase(id);
+
+	// If any “named” handles point to this object, invalidate them
+	if (spriteID == id) spriteID = -1;
+	if (otherID == id) otherID = -1;
+	if (otherID2 == id) otherID2 = -1;
+	if (dinoID == id) dinoID = -1;
+
+	std::cout << "Despawned object with ID " << id << std::endl;
 }
 
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) const {
@@ -426,27 +445,33 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	GameObject* sprite = GetGameObjectByID(spriteID);
 	if (!sprite) {
 		std::cerr << "Sprite with ID " << spriteID << " not found" << std::endl;
+		spriteID = -1;
 		return;
 	}
 
 	GameObject* other1 = GetGameObjectByID(otherID);
-	if (!other1) {
+	if (!other1 && otherID != -1) {
 		std::cerr << "Sprite with ID " << otherID << " not found" << std::endl;
-		return;
+		otherID = -1;
 	}
 	GameObject* other2 = GetGameObjectByID(otherID2);
-	if (!other2)
-	{
+	if (!other2 && otherID2 != -1) {
 		std::cerr << "Sprite with ID " << otherID2 << " not found" << std::endl;
-		return;
+		otherID2 = -1;
+	}
+	GameObject* dino = GetGameObjectByID(dinoID);
+	if (!dino && dinoID != -1) {
+		dinoID = -1;
 	}
 
 	glm::vec3& position = spritePositions[spriteID];
 	glm::vec3& scale = spriteScales[spriteID];
 	float& rotation = spriteRotations[spriteID];
 
-	glm::vec3& o1position = spritePositions[otherID];
-	glm::vec3& o2position = spritePositions[otherID2];
+	glm::vec3* o1position = nullptr;
+	glm::vec3* o2position = nullptr;
+	if (other1) o1position = &spritePositions[otherID];
+	if (other2) o2position = &spritePositions[otherID2];
 
 	mSpatialGrid.Clear();
 
@@ -633,30 +658,33 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	const float kLaneX = 1000.0f;
-	{
-		Math::Vector3D posM = toM(o1position);
+	// NPC 1 lane update
+	if (other1 && o1position) {
+		Math::Vector3D posM = toM(*o1position);
 		physics::MoveYLaneWithBounce(mCollision, other1, posM, other1VelM, kLaneX, physicsDt);
 		physics::ClampInsideWalk(walk, other1, posM);
-		o1position = toG(posM);
-		other1->SetPosition(o1position);
+		*o1position = toG(posM);
+		other1->SetPosition(*o1position);
 	}
 
-	{
-		Math::Vector3D posM = toM(o2position);
+	// NPC 2 lane update
+	if (other2 && o2position) {
+		Math::Vector3D posM = toM(*o2position);
 		physics::MoveYLaneWithBounce(mCollision, other2, posM, other2VelM, kLaneX, physicsDt);
 		physics::ClampInsideWalk(walk, other2, posM);
-		o2position = toG(posM);
-		other2->SetPosition(o2position);
+		*o2position = toG(posM);
+		other2->SetPosition(*o2position);
 	}
 
-	{
-		Math::Vector3D p1M = toM(o1position);
-		Math::Vector3D p2M = toM(o2position);
+	// NPC–NPC elastic bounce (only if both exist)
+	if (other1 && other2 && o1position && o2position) {
+		Math::Vector3D p1M = toM(*o1position);
+		Math::Vector3D p2M = toM(*o2position);
 		physics::ElasticBounceEqualMass(other1, other2, p1M, p2M, other1VelM, other2VelM);
-		o1position = toG(p1M);
-		o2position = toG(p2M);
-		other1->SetPosition(o1position);
-		other2->SetPosition(o2position);
+		*o1position = toG(p1M);
+		*o2position = toG(p2M);
+		other1->SetPosition(*o1position);
+		other2->SetPosition(*o2position);
 	}
 
 	// Split weight logic (your old heuristic)
@@ -672,27 +700,6 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		constexpr float kPushBiasMoving = 0.50f;
 		return (otherSpeed < kIdle && intentSpeed > 0.0f) ? kPushBiasIdle : kPushBiasMoving;
 		};
-
-	/*{
-		Math::Vector3D playerPosM = toM(position);
-		Math::Vector3D o1PosM = toM(o1position);
-		physics::SeparatePlayerVsOther_StopPlayerOnly(
-			mCollision, sprite, other1, playerPosM, o1PosM, desiredMoveM, hasClickTarget, pickWeight(other1VelM.Length()));
-		position = toG(playerPosM);
-		o1position = toG(o1PosM);
-		sprite->SetPosition(position);
-		other1->SetPosition(o1position);
-	}
-	{
-		Math::Vector3D playerPosM = toM(position);
-		Math::Vector3D o2PosM = toM(o2position);
-		physics::SeparatePlayerVsOther_StopPlayerOnly(
-			mCollision, sprite, other2, playerPosM, o2PosM, desiredMoveM, hasClickTarget, pickWeight(other2VelM.Length()));
-		position = toG(playerPosM);
-		o2position = toG(o2PosM);
-		sprite->SetPosition(position);
-		other2->SetPosition(o2position);
-	}*/
 
 	// Use grid broad-phase for player vs nearby objects
 	{

@@ -15,8 +15,9 @@
 #pragma once
 
 #include "GraphicsEngine.hpp"
-#include "../Core/InputManager.hpp"
 #include "Animator.hpp"
+
+#include "../Core/InputManager.hpp"
 #include "../Core/Collision.hpp"
 #include "../Core/Physics.hpp"
 #include "../Core/Math.hpp"

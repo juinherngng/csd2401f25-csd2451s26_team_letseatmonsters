@@ -1,6 +1,7 @@
+#include <fstream>
+
 #include "LevelSerializer.hpp"
 #include "JSON.hpp"
-#include <fstream>
 using nlohmann::json;
 
 bool LevelSerializer::Load(const std::string& path, LevelData& out) {
