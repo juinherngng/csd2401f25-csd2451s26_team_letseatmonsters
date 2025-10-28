@@ -16,7 +16,7 @@
 #include <iostream>
 
 #include "GameObject.hpp"
-#include "Collision.hpp"
+#include "../Core/Collision.hpp"
 #include "ResourceManager.hpp"
 
 GameObject::GameObject(Mesh* mesh, Shader* shader)

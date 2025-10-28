@@ -1,9 +1,9 @@
-#version 450 core
-
-in vec3 ourColor;
+#version 330 core
 out vec4 FragColor;
+
+uniform vec4 u_ColorTint;
 
 void main()
 {
-    FragColor = vec4(ourColor, 1.0);
+    FragColor = u_ColorTint;   // no textures, no mixing — just the tint you pass in
 }

@@ -477,6 +477,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		std::cout << "[DebugRenderer] Collider box visibility: "
 			<< (DebugRenderer::IsEnabled() ? "ON" : "OFF") << std::endl;
 	}
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_T)) {
+		showAuxDebug_ = !showAuxDebug_;
+		std::cout << "[Debug] Points/Lines: " << (showAuxDebug_ ? "ON" : "OFF") << std::endl;
+	}
 
 	// Click-to-Move behaviour
 	// If player is NOT selected: click must hit the player's collider to select.
@@ -699,4 +703,31 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	sprite->SetScale(scale);
 	sprite->SetRotation(rotation, glm::vec3(0, 0, 1));
 	sprite->SetPosition(position);
+
+	if (DebugRenderer::IsEnabled() && showAuxDebug_) {
+		// Line: player to click target (only when a target exists)
+		if (playerSelected && hasClickTarget) {
+			DebugRenderer::DrawLine(
+				{ position.x,   position.y,   0.0f },
+				{ clickTarget.x, clickTarget.y, 0.0f },
+				{ 0.0f, 1.0f, 0.0f }
+			);
+		}
+
+		// Points: collider corners (like your AABB, but as GL_POINTS)
+		const Math::Vector2D cs = sprite->GetColliderSize();
+		const Math::Vector2D co = sprite->GetColliderOffset();
+
+		if (cs.x > 0.0f && cs.y > 0.0f) {
+			const glm::vec3 c = { position.x + co.x, position.y + co.y, 0.0f };
+			const glm::vec3 mn = { c.x - cs.x * 0.5f, c.y - cs.y * 0.5f, 0.0f };
+			const glm::vec3 mx = { c.x + cs.x * 0.5f, c.y + cs.y * 0.5f, 0.0f };
+
+			DebugRenderer::DrawPoint({ mn.x, mn.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f); // BT
+			DebugRenderer::DrawPoint({ mx.x, mn.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f); // BR
+			DebugRenderer::DrawPoint({ mx.x, mx.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f); // TR
+			DebugRenderer::DrawPoint({ mn.x, mx.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f); // TL
+			DebugRenderer::DrawPoint(c, { 1.0f, 0.2f, 0.2f }, 7.0f); // center
+		}
+	}
 }

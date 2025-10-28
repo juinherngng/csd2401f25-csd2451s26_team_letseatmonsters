@@ -17,7 +17,7 @@
 #include "GraphicsEngine.hpp"
 #include "../Core/InputManager.hpp"
 #include "Animator.hpp"
-#include "Collision.hpp"
+#include "../Core/Collision.hpp"
 #include "../Core/Physics.hpp"
 #include "../Core/Math.hpp"
 
@@ -147,4 +147,6 @@ private:
 	// Stuck detection (cancel click move if not progressing)
 	int stuckFrames = 0;
 	static constexpr int kStuckFramesToCancel = 12;
+
+	bool showAuxDebug_ = true;
 };

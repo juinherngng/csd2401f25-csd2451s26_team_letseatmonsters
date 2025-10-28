@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "../Graphics/Collision.hpp"
+#include "../Core/Collision.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Core/Math.hpp"
 
