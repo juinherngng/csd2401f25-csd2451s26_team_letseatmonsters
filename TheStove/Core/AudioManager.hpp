@@ -104,36 +104,77 @@ public:
     /************************************************************************/
     /*!
     \brief
-	Loads a sound file from ResourceManager into the audio system.
+    Loads a sound file into the audio system.
     \param name
     The name to reference the sound.
     \param filepath
     The file path to the sound file.
     \param loop
     Whether the sound should loop.
-	\param stream
-	Whether to stream the sound from disk (true) or load it fully into memory (false).
+    \param stream
+    Whether to stream the sound from disk (true) or load it fully into memory (false).
     \return
-    True if the sound was loaded successfully, false otherwise.
+    Pointer to the loaded FMOD::Sound, or nullptr if loading failed.
     */
     /************************************************************************/
-    bool LoadSound(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
+    FMOD::Sound* LoadSound(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
     /************************************************************************/
     /*!
     \brief
-	Calls ResourceManager::Instance().UnloadAudio(name) to unload a sound.
+    Gets a previously loaded sound by name.
+    \param name
+    The name of the sound to retrieve.
+    \return
+    Pointer to the FMOD::Sound, or nullptr if not found.
+    */
+    /************************************************************************/
+    FMOD::Sound* GetSound(std::string const& name) const;
+    /************************************************************************/
+    /*!
+    \brief
+    Unloads a sound and releases its resources.
     \param name
     The name of the sound to unload.
     */
     /************************************************************************/
     void UnloadSound(std::string const& name);
+    /************************************************************************/
+    /*!
+    \brief
+    Checks if a sound has been loaded.
+    \param name
+    The name of the sound to check.
+    \return
+    True if the sound exists, false otherwise.
+    */
+    /************************************************************************/
+    bool HasSound(std::string const& name) const;
+    /************************************************************************/
+    /*!
+    \brief
+    Retrieves information about a loaded sound.
+    \param name
+    The name of the sound.
+    \param lengthMs
+    Output: length of the sound in milliseconds.
+    \param channels
+    Output: number of audio channels.
+    \param bits
+    Output: bits per sample.
+    \param freq
+    Output: default frequency in Hz.
+    \return
+    True if info was retrieved successfully, false otherwise.
+    */
+    /************************************************************************/
+    bool GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const;
 
     // Playback Control
 
     /************************************************************************/
     /*!
     \brief
-	Plays a loaded sound from ResourceManager.
+    Plays a loaded sound.
     \param name
     The name of the sound to play.
     \param volume
@@ -248,7 +289,7 @@ public:
 	centralizing FMOD interaction on the audio thread/update. The request list
 	is flushed at the start of Update().
 	\param name
-	Logical name of the sound (as loaded in ResourceManager).
+	Logical name of the sound (as loaded in AudioManager).
 	\param volume
 	Initial playback volume (0.f to 1.f).
 	\param paused

@@ -13,7 +13,6 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 #include <algorithm>
 
 #include "AudioManager.hpp"
-#include "../Graphics/ResourceManager.hpp"
 
 AudioManager::AudioManager() : system(nullptr), masterGroup(nullptr), bgmVolume(1.f), vfxVolume(1.f), muted(false) {}
 
@@ -27,14 +26,10 @@ void AudioManager::Initialize()
 {
 	if (InitializeSystem())
 	{
-		auto& rm = ResourceManager::Instance();
-
-		// inject FMOD system instance into ResourceManager
-		rm.SetAudioSystem(system);
 		std::cout << "AudioManagerSystem initialized." << std::endl;
 
 		// Load initial sounds here or later as needed
-		auto* snd = rm.LoadAudio("boiling sound", "../assets/Audio/Boiling7.wav", true, true);
+		auto* snd = LoadSound("boiling sound", "../assets/Audio/Boiling7.wav", true, true);
 		if (!snd)
 		{
 			std::cerr << "Failed to load audio 'boiling sound'\n";
@@ -44,7 +39,7 @@ void AudioManager::Initialize()
 			unsigned int lenMs = 0;
 			int ch = 0, bits = 0;
 			float freq = 0;
-			if (rm.GetAudioInfo("boiling sound", lenMs, ch, bits, freq))
+			if (GetSoundInfo("boiling sound", lenMs, ch, bits, freq))
 			{
 				std::cout << "Audio 'boiling sound' info - Length: " << lenMs << " ms, Channels: " << ch << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
 			}
@@ -54,7 +49,7 @@ void AudioManager::Initialize()
 			}
 		}
 
-		auto* snd1 = rm.LoadAudio("background music", "../assets/Audio/bgm.wav", true, true);
+		auto* snd1 = LoadSound("background music", "../assets/Audio/bgm.wav", true, true);
 		if (!snd1)
 		{
 			std::cerr << "Failed to load audio 'background music'\n";
@@ -64,7 +59,7 @@ void AudioManager::Initialize()
 			unsigned int lenMs = 0;
 			int ch = 0, bits = 0;
 			float freq = 0;
-			if (rm.GetAudioInfo("background music", lenMs, ch, bits, freq))
+			if (GetSoundInfo("background music", lenMs, ch, bits, freq))
 			{
 				std::cout << "Audio 'background music' info - Length: " << lenMs << " ms, Channels: " << ch << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
 			}
@@ -194,7 +189,17 @@ void AudioManager::Shutdown()
 	StopAllSounds();
 	channels.clear();
 
-	// sounds released in ResourceManager, not here
+	// Release all loaded sounds
+	for (auto& [name, sound] : sounds)
+	{
+		if (sound)
+		{
+			sound->release();
+			std::cout << "Released sound: " << name << std::endl;
+		}
+	}
+	sounds.clear();
+
 	if (system)
 	{
 		// close and release FMOD system
@@ -205,25 +210,109 @@ void AudioManager::Shutdown()
 	masterGroup = nullptr;
 }
 
-bool AudioManager::LoadSound(std::string const& name, std::string const& filepath, bool loop, bool stream)
+FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const& filePath, bool loop, bool stream)
 {
-	// Load sound via ResourceManager
-	return ResourceManager::Instance().LoadAudio(name, filepath, loop, stream) != nullptr;
+	// Ensure audio system is set
+	if (!system) 
+	{
+		std::cerr << "Audio system not initialized!" << std::endl;
+		return nullptr;
+	}
+
+	// Check if already loaded
+	if (auto it = sounds.find(name); it != sounds.end())
+	{
+		std::cout << "Audio '" << name << "' already loaded, returning existing." << std::endl;
+		return it->second;
+	}
+
+	// Set FMOD mode flags
+	FMOD_MODE mode = FMOD_DEFAULT | (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) | 
+									(stream ? FMOD_CREATESTREAM : FMOD_CREATESAMPLE);
+
+	// Load sound
+	FMOD::Sound* sound = nullptr;
+	FMOD_RESULT result = system->createSound(filePath.c_str(), mode, nullptr, &sound);
+
+	// Check for errors
+	if (result != FMOD_OK)
+	{
+		std::cerr << "Failed to load audio '" << name << "': " << FMOD_ErrorString(result) << std::endl;
+		return nullptr;
+	}
+
+	// Store sound
+	sounds.emplace(name, sound);
+
+	std::cout << "Loaded audio: " << name << std::endl;
+	return sound;
+}
+
+FMOD::Sound* AudioManager::GetSound(std::string const& name) const
+{
+	// Check if audio exists
+	if (auto it = sounds.find(name); it != sounds.end()) return it->second;
+
+	std::cerr << "Audio '" << name << "' not found!" << std::endl;
+	return nullptr;
 }
 
 void AudioManager::UnloadSound(std::string const& name)
 {
 	// Stop if playing
 	StopSound(name);
-	ResourceManager::Instance().UnloadAudio(name);
+
+	// Check if audio exists and release
+	if (auto it = sounds.find(name); it != sounds.end())
+	{
+		if (it->second)
+		{
+			it->second->release();
+		}
+		sounds.erase(it);
+		std::cout << "Unloaded audio: " << name << std::endl;
+	}
+}
+
+bool AudioManager::HasSound(std::string const& name) const
+{
+	// Check if audio exists
+	return sounds.find(name) != sounds.end();
+}
+
+bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const
+{
+	auto it = sounds.find(name);
+	if (it == sounds.end() || !it->second) 
+	{
+		std::cerr << "Audio '" << name << "' not found!" << std::endl;
+		return false;
+	}
+
+	// Retrieve sound info
+	FMOD::Sound* snd = it->second;
+
+	// Get length in milliseconds
+	if (snd->getLength(&lengthMs, FMOD_TIMEUNIT_MS) != FMOD_OK) return false;
+
+	// Get format info
+	FMOD_SOUND_TYPE type;
+	FMOD_SOUND_FORMAT format;
+	// bits and channels are output parameters
+	if (snd->getFormat(&type, &format, &channels, &bits) != FMOD_OK) return false;
+
+	// Get default frequency
+	if (snd->getDefaults(&freq, nullptr) != FMOD_OK) freq = 0;
+
+	return true;
 }
 
 void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 {
 	if (!system) return;
 
-	// Check if already playing, stop first
-	FMOD::Sound* sound = ResourceManager::Instance().GetAudio(name);
+	// Get the sound
+	FMOD::Sound* sound = GetSound(name);
 
 	if (!sound) return;
 
