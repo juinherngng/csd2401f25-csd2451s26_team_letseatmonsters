@@ -6,18 +6,19 @@ AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
 
 DESCRIPTION:		The definitions of functions for the debugger window.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
 
 #include "ImGuiDebugger.hpp"
+#include "Core.hpp"
 
 namespace Debug
 {
 	// Constructor
-	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, openedDebugger{ true }, isInitialised{ true }
+	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, coreEngine{ nullptr }, openedDebugger{ true }, isInitialised{ true }
 	{
 		crashlogFile.open("Debug_Log.txt", std::ios::app); // Set to append mode
 
@@ -65,15 +66,32 @@ namespace Debug
 	{
 		if (isInitialised)
 		{
+			std::cout << "Shutting down ImGui backends..." << std::endl;
+			
+			// Clear all debug data structures
+			debuglines.clear();
+			sysPerformance.clear();
+			
+			// Shutdown ImGui backends in proper order
 			ImGui_ImplOpenGL3_Shutdown();
 			ImGui_ImplGlfw_Shutdown();
+			
+			// Get IO to clear any cached data
+			ImGuiIO& io = ImGui::GetIO();
+			io.Fonts->Clear(); // Clear font atlas
+			
+			// Destroy ImGui context
 			ImGui::DestroyContext();
+			
 			isInitialised = false;
-			std::cout << "Debugger Destructed with Shutdown" << std::endl;
+			debugWindow = nullptr;
+			coreEngine = nullptr;
+			
+			std::cout << "Debugger shutdown complete" << std::endl;
 		}
 	}
 
-	bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow)
+	bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow, CoreFramework::CoreEngine* coreEnginePtr)
 	{
 		if (!glfwInit())
 		{
@@ -81,6 +99,7 @@ namespace Debug
 		}
 
 		debugWindow = externalWindow;
+		coreEngine = coreEnginePtr; // Store the CoreEngine pointer
 		glfwMakeContextCurrent(debugWindow);
 
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -114,7 +133,10 @@ namespace Debug
 		}
 		
 		// update system performance %tages
-		UpdateSystemTimes(CoreFramework::gDt);
+		if (coreEngine)
+		{
+			UpdateSystemTimes(coreEngine->GetDeltaTime());
+		}
 	}
 
 	void DebuggerApp::RenderDebuggerApp()
@@ -168,53 +190,68 @@ namespace Debug
 			ImGui::Text("---- Audio ----");
 			if (ImGui::Button("Play: boiling sound"))
 			{
-				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
+				if (coreEngine)
 				{
-					// test play audio
-					bgm = audioMgr->GetBgmVolume();
-					audioMgr->PlaySound("boiling sound", bgm, false);
-					DebuggerApp::AddDebugLine("Playing: boiling sound\n");
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						// test play audio
+						bgm = audioMgr->GetBgmVolume();
+						audioMgr->PlaySound("boiling sound", bgm, false);
+						DebuggerApp::AddDebugLine("Playing: boiling sound\n");
+					}
 				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Play: background music"))
 			{
-				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
+				if (coreEngine)
 				{
-					// test play bgm
-					bgm = audioMgr->GetBgmVolume();
-					audioMgr->PlaySound("background music", bgm, false);
-					DebuggerApp::AddDebugLine("Playing: background music\n");
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						// test play bgm
+						bgm = audioMgr->GetBgmVolume();
+						audioMgr->PlaySound("background music", bgm, false);
+						DebuggerApp::AddDebugLine("Playing: background music\n");
+					}
 				}
 			}
 
 			if (ImGui::Button("Stop boiling sound"))
 			{
-				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
+				if (coreEngine)
 				{
-					// test stopping audio
-					audioMgr->StopSound("boiling sound");
-					DebuggerApp::AddDebugLine("Stopping: boiling sound\n");
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						// test stopping audio
+						audioMgr->StopSound("boiling sound");
+						DebuggerApp::AddDebugLine("Stopping: boiling sound\n");
+					}
 				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Stop background music"))
 			{
-				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
+				if (coreEngine)
 				{
-					// test stopping bgm
-					audioMgr->StopSound("background music");
-					DebuggerApp::AddDebugLine("Stopping: background music\n");
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						// test stopping bgm
+						audioMgr->StopSound("background music");
+						DebuggerApp::AddDebugLine("Stopping: background music\n");
+					}
 				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("Stop all audio"))
 			{
-				if (auto* audioMgr = CoreFramework::CORE->GetSystem<AudioManager>())
+				if (coreEngine)
 				{
-					// test stopping all audio
-					audioMgr->StopAllSounds();
-					DebuggerApp::AddDebugLine("Stopping: all audio\n");
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						// test stopping all audio
+						audioMgr->StopAllSounds();
+						DebuggerApp::AddDebugLine("Stopping: all audio\n");
+					}
 				}
 			}
 		}
@@ -263,11 +300,13 @@ namespace Debug
 	{
 		sysPerformance.clear();
 
-		// Access the actual systems vector from the global engine in main
-		const auto& systems = CoreFramework::CORE->GetSystems();
+		// Access systems from the stored CoreEngine pointer
+		if (!coreEngine) return;
+		
+		const auto& systems = coreEngine->GetSystems();
 
 		// For each system found in systems, record down their name and %tage usage of the current engine
-		for (auto& sys : systems)
+		for (const auto& sys : systems)
 		{
 			float percent = (totalDt > 0.0f) ? (sys->lastDt / totalDt) * 100.0f : 0.0f;
 			sysPerformance.push_back({ sys->GetName(), percent });
@@ -306,5 +345,6 @@ namespace Debug
 		ImGui::End();
 	}
 }
+
 
 

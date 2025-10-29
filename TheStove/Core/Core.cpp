@@ -6,13 +6,12 @@ AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
 
 DESCRIPTION:		The core engine managing the game loop and systems.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #include "Core.hpp"
 #include "GameStateManager.hpp"
-
 
 #include <chrono>
 #include <thread>
@@ -20,19 +19,23 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 
 namespace CoreFramework
 {
-	float gDt = 0.f;	// global delta time
-
 	CoreEngine::CoreEngine()
 	{
 		gameActive = true;	// game is running
 	}
 
-	CoreEngine::~CoreEngine() {}
+	CoreEngine::~CoreEngine() 
+	{
+		// Ensure proper cleanup order
+		messageQueue.clear();  // Clear any remaining messages
+		DestroySystems();      // Destroy all systems
+		Systems.clear();       // Explicitly clear the vector
+	}
 
 	void CoreEngine::Initialize()
 	{
 		// initialize all systems
-		for (auto* s : Systems)
+		for (auto& s : Systems)
 		{
 			s->Initialize();
 		}
@@ -50,14 +53,14 @@ namespace CoreFramework
 		// compute the time elapsed since last frame
 		std::chrono::duration<float> elapsed = currentTime - lastTime;
 
-		// set global dt variable
-		gDt = elapsed.count();
+		// set delta time
+		deltaTime = elapsed.count();
 
 		// update all systems
-		for (auto* s : Systems)
+		for (auto& s : Systems)
 		{
 			auto sysStart = clock::now();
-			s->Update(gDt);
+			s->Update(deltaTime);
 
 			auto sysEnd = clock::now();
 			std::chrono::duration<float> sysElapsed = sysEnd - sysStart;
@@ -68,7 +71,6 @@ namespace CoreFramework
 
 		// update lastUpdated to current time
 		lastTime = currentTime;
-		//}
 	}
 
 	void CoreEngine::BroadcastMessage(Message *message)
@@ -80,32 +82,31 @@ namespace CoreFramework
 		if (message->MessageId == MsgId::QUIT)
 			gameActive = false;
 
-		for (auto* s : Systems)
+		for (auto& s : Systems)
 		{
 			s->SendMessage(message);
 		}
 	}
 
-	void CoreEngine::AddSystem(SystemInterface* system)
+	void CoreEngine::AddSystem(std::unique_ptr<SystemInterface> system)
 	{
 		// add a new system to the list of systems
-		Systems.push_back(system);
 		std::cout << "Added system: " << system->GetName() << std::endl;
+		Systems.push_back(std::move(system));
 	}
 
 	void CoreEngine::DestroySystems()
 	{
 		std::cout << "DestroySystems called, system count: " << Systems.size() << std::endl;
-		//Delete all the systems in reverse order
+		
+		// Delete all the systems in reverse order
+		// unique_ptr handles automatic deletion
 		for (size_t i = 0; i < Systems.size(); i++)
 		{
 			size_t index = Systems.size() - i - 1;
-			std::cout << "Deleted system: " << Systems[index]->GetName() << std::endl;
-
-			delete Systems[index];
+			std::cout << "Destroying system: " << Systems[index]->GetName() << std::endl;
 		}
 
-		Systems.clear();
+		Systems.clear(); // unique_ptrs will automatically clean up
 	}
-
 }

@@ -20,8 +20,10 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 #include <string>
 
 #include "Precompiled.hpp"
-#include "Core.hpp"
 #include "AudioManager.hpp"
+
+// Forward declaration to avoid circular dependency
+namespace CoreFramework { class CoreEngine; }
 
 struct SystemPerformance
 {
@@ -50,8 +52,8 @@ namespace Debug
 		//Shutdown
 		void Shutdown();
 
-		// Initializes the debugger app
-		bool InitializeDebuggerApp(GLFWwindow* externalWindow);
+		// Initializes the debugger app - now takes CoreEngine pointer
+		bool InitializeDebuggerApp(GLFWwindow* externalWindow, CoreFramework::CoreEngine* coreEnginePtr);
 
 		// Updates debugger state (logic, hotkeys, toggles)
 		void UpdateDebuggerApp();
@@ -90,6 +92,7 @@ namespace Debug
 		std::vector<std::string> debuglines;
 	private:
 		GLFWwindow* debugWindow; // The host window
+		CoreFramework::CoreEngine* coreEngine; // Pointer to CoreEngine (not owned)
 		bool isInitialised; // Shows if the debugger was initialised or not
 
 		// Crash logging

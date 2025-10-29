@@ -22,10 +22,6 @@ DESCRIPTION:		The core engine managing the game loop and systems.
 
 namespace CoreFramework
 {
-	// how to access global dt:
-	// float dt = CoreFramework::gDt;
-	extern float gDt;			// global delta time
-
 	class CoreEngine
 	{
 	public:
@@ -39,8 +35,7 @@ namespace CoreFramework
 		/************************************************************************/
 		/*!
 		\brief
-			Destructs the CoreEngine. Systems should already be destroyed via
-			DestroySystems() before this runs.
+			Destructs the CoreEngine. Systems are automatically destroyed.
 		*/
 		/************************************************************************/
 		~CoreEngine();
@@ -77,12 +72,12 @@ namespace CoreFramework
 		/*!
 		\brief
 			Adds (registers) a new system to the engine. CoreEngine takes ownership
-			and will delete it in DestroySystems().
+			and will manage its lifetime via unique_ptr.
 		\param system
-			Raw pointer to a heap-allocated system.
+			Unique pointer to a system.
 		*/
 		/************************************************************************/
-		void AddSystem(SystemInterface* system);
+		void AddSystem(std::unique_ptr<SystemInterface> system);
 
 		/************************************************************************/
 		/*!
@@ -102,8 +97,25 @@ namespace CoreFramework
 		/************************************************************************/
 		float GetFPS() const { return fps; }
 
-		// Accessor to Read-Only values of Systems
-		const std::vector<SystemInterface*>& GetSystems() const { return Systems; }
+		/************************************************************************/
+		/*!
+		\brief
+			Returns the last computed delta time value.
+		\return
+			Delta time in seconds as a float.
+		*/
+		/************************************************************************/
+		float GetDeltaTime() const { return deltaTime; }
+
+		/************************************************************************/
+		/*!
+		\brief
+			Returns a read-only view of all systems (for debugging/inspection).
+		\return
+			Const reference to the systems vector.
+		*/
+		/************************************************************************/
+		const std::vector<std::unique_ptr<SystemInterface>>& GetSystems() const { return Systems; }
 
 		/************************************************************************/
 		/*!
@@ -118,8 +130,8 @@ namespace CoreFramework
 		template<typename T>
 		T* GetSystem()
 		{
-			for (auto* s : Systems)
-				if (auto* casted = dynamic_cast<T*>(s))
+			for (auto& s : Systems)
+				if (auto* casted = dynamic_cast<T*>(s.get()))
 					return casted;
 			return nullptr;
 		}
@@ -133,10 +145,10 @@ namespace CoreFramework
 		*/
 		/************************************************************************/
 		template<typename T>
-		T* const GetSystem() const
+		T const* GetSystem() const
 		{
-			for (auto* s : Systems)
-				if (auto* casted = dynamic_cast<T*>(s))
+			for (auto const& s : Systems)
+				if (auto const* casted = dynamic_cast<T const*>(s.get()))
 					return casted;
 			return nullptr;
 		}
@@ -175,16 +187,38 @@ namespace CoreFramework
 			}
 		}
 
+		/************************************************************************/
+		/*!
+		\brief
+			Explicitly clears the message queue without broadcasting.
+			Useful for cleanup to ensure no orphaned messages remain.
+		*/
+		/************************************************************************/
+		void ClearMessageQueue()
+		{
+			messageQueue.clear();
+		}
+
+		/************************************************************************/
+		/*!
+		\brief
+			Returns whether the game is currently active/running.
+		\return
+			True if running, false if shutting down.
+		*/
+		/************************************************************************/
+		bool IsGameActive() const { return gameActive; }
+
 	private:
 		using MessagePtr = std::unique_ptr<Message>;
+		using SystemPtr = std::unique_ptr<SystemInterface>;
 
-		std::vector<SystemInterface*> Systems;
+		std::vector<SystemPtr>		  Systems;
 		std::deque<MessagePtr>		  messageQueue; // messages to be processed at the start of the next frame
 
+		float deltaTime = 0.f;	// delta time (per frame)
 		float fps = 0.f;		// fps counter
 		bool gameActive;		// game running (true), game shutting down (false)
 		std::chrono::high_resolution_clock::time_point lastTime; // time of last frame
 	};
-
-	extern CoreEngine* CORE;
 }
