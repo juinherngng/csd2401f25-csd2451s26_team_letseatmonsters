@@ -23,6 +23,8 @@
 #include "../Core/Math.hpp"
 #include "../Core/SpatialGrid.hpp"
 #include "../Core/LevelEditor.hpp"
+#include "../Core/Forces.hpp"
+#include "../Core/RigidBody2D.hpp"
 
 #include <string>
 #include <vector>
@@ -211,4 +213,8 @@ private:
 	std::unordered_map<int, glm::vec2> npcVelocities_;
 
 	std::unordered_map<int, Defaults> defaults_;
+
+	ForceRegistry mForceRegistry{};
+	RigidBody2D* playerRB_ = nullptr;
+	Math::Vector2D seekTargetM{ 0.f, 0.f };
 };

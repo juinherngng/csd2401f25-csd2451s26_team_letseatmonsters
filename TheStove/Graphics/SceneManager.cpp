@@ -372,6 +372,27 @@ void Scene::LoadTest() {
 		player->SetColliderSize(Math::Vector2D(colliderSizePx.x, colliderSizePx.y));
 		player->SetColliderOffset(Math::Vector2D(colliderOffsetPx.x, colliderOffsetPx.y));
 
+		// --- Attach Force Registry & Forces to player ---
+		RigidBody2D* rb = new RigidBody2D();
+		rb->Initialize();
+		rb->SetForceRegistry(&mForceRegistry);
+		rb->SetMass(1.0f);
+		rb->SetLinearDamping(0.98f);
+		rb->SetUseGravity(false);
+
+		// Store pointer so we can update it later if you want
+		playerRB_ = rb;
+
+		// Create force generators
+		static DragForce drag(0.8f, 0.02f);
+		static SeekForce seek(&seekTargetM, 800.0f);
+
+		// Register forces
+		mForceRegistry.Add(rb, &drag);
+		mForceRegistry.Add(rb, &seek);
+
+		seekTargetM = Math::Vector2D(kSpawnPos.x, kSpawnPos.y);
+
 		// Compute UV frames for a 4x4 grid sprite sheet
 		std::vector<glm::vec4> frames;
 		const int cols = 24;
@@ -541,6 +562,28 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		return;
 	}
 
+	if (!playerRB_) {
+		playerRB_ = new RigidBody2D();
+		playerRB_->Initialize();
+		playerRB_->SetForceRegistry(&mForceRegistry);
+		playerRB_->SetMass(1.0f);
+		playerRB_->SetLinearDamping(0.98f);
+		playerRB_->SetUseGravity(false);
+
+		// start seek target at current sprite position
+		const Math::Vector3D p0 = sprite->GetPosition();
+		seekTargetM = Math::Vector2D(p0.x, p0.y);
+
+		// register your generators (static so addresses stay valid)
+		static DragForce drag(0.8f, 0.02f);
+		static SeekForce seek(&seekTargetM, 800.0f);
+		mForceRegistry.Add(playerRB_, &drag);
+		mForceRegistry.Add(playerRB_, &seek);
+
+		std::cout << "[Force] Player force rig attached (lazy)\n";
+	}
+
+
 	GameObject* other1 = GetGameObjectByID(otherID);
 	if (!other1 && otherID != -1) {
 		std::cerr << "Sprite with ID " << otherID << " not found" << std::endl;
@@ -677,6 +720,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			clickTarget = mouse;
 			hasClickTarget = true;
 			stuckFrames = 0;
+
+			seekTargetM = Math::Vector2D(clickTarget.x, clickTarget.y);
 
 			// Face toward the new target (dominant axis)
 			glm::vec2 toTarget = clickTarget - glm::vec2(position.x, position.y);
@@ -868,6 +913,17 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			other->SetPosition(toG(otherPosM));
 			sprite->SetPosition(position);
 		}
+	}
+
+	// Apply forces to player movement
+	if (playerRB_) {
+		// Let physics integration run (forces → velocity → position)
+		playerRB_->Update(physicsDt);
+
+		// Combine force-driven velocity into our desired move for collision
+		Math::Vector2D v = playerRB_->GetVelocity();
+		desiredMoveM.x += v.x * physicsDt;
+		desiredMoveM.y += v.y * physicsDt;
 	}
 
 	// Resolve desired movement against world walls (X then Y sweep)
