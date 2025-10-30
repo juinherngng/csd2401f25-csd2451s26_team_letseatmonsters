@@ -17,11 +17,11 @@
 namespace {
 	struct LineBatch {
 		std::vector<glm::vec3> verts; // pairs (a,b)
-		glm::vec4 color;
+		glm::vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 	};
 	struct PointBatch {
 		std::vector<glm::vec3> pts;
-		glm::vec4 color;
+		glm::vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 		float size = 5.0f;
 	};
 
