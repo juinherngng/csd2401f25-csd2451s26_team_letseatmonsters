@@ -76,6 +76,8 @@ void LevelEditor::DrawUI(Scene& scene) {
 					o.rotation
 				);
 
+				scene.ClampToWalkArea(g);
+
 				// assign special IDs by tag
 				if (o.tag == "player") scene.SetPlayerID(g->GetID());
 				if (o.tag == "npc1") {

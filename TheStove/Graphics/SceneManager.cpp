@@ -85,6 +85,17 @@ namespace {
 	}
 }
 
+void Scene::ClampToWalkArea(GameObject* obj) {
+	if (!obj) return;
+	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	Math::Vector3D p = Math::Vector3D(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
+	physics::ClampInsideWalk(walk, obj, p);
+	const glm::vec3 pg = glm::vec3(p.x, p.y, p.z);
+	obj->SetPosition(pg);
+	// keep maps in sync so Update() reads the corrected value
+	spritePositions[obj->GetID()] = pg;
+}
+
 std::vector<GameObject*> Scene::GetAllObjectsRaw() {
 	std::vector<GameObject*> out; CollectRenderablePointers(out); return out;
 }

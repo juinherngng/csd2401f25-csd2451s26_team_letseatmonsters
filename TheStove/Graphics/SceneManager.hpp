@@ -131,6 +131,8 @@ public:
 		return (it != npcVelocities_.end()) ? it->second : glm::vec2(0.0f);
 	}
 
+	void ClampToWalkArea(GameObject* obj);
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
