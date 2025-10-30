@@ -13,9 +13,9 @@
 
 #pragma once
 
-#include "../Graphics/Collision.hpp"
+#include "../Core/Collision.hpp"
 #include "../Graphics/GameObject.hpp"
-#include <glm/glm.hpp>
+#include "../Core/Math.hpp"
 
  // Forward declarations to avoid heavy includes in headers.
 class InputManager;
@@ -32,7 +32,7 @@ namespace physics {
 	 * @param pos World position used as the object center before offset.
 	 * @return collision::AABB The constructed axis-aligned bounding box.
 	 */
-	collision::AABB MakeColliderBox(GameObject* gameObj, const glm::vec3& pos);
+	collision::AABB MakeColliderBox(GameObject* gameObj, const Math::Vector3D& pos);
 
 	/**
 	 * @brief Clamp an object's position so its collider stays inside a walkable area.
@@ -44,7 +44,7 @@ namespace physics {
 	 * @param obj Game object providing collider size/offset.
 	 * @param pos [in,out] World position to be clamped.
 	 */
-	void ClampInsideWalk(const collision::WalkArea& walkArea, GameObject* gameObj, glm::vec3& pos);
+	void ClampInsideWalk(const collision::WalkArea& walkArea, GameObject* gameObj, Math::Vector3D& pos);
 
 	/**
 	 * @brief Clamp an object's position inside the walkable area, with special handling for an end gate.
@@ -62,7 +62,7 @@ namespace physics {
 		const collision::WalkArea& walk,
 		const collision::StageEndGateVertical& gate,
 		GameObject* obj,
-		glm::vec3& pos);
+		Math::Vector3D& pos);
 
 	/**
 	 * @brief A tiny controller to toggle between real-time deltaTime and discrete fixed steps.
@@ -76,9 +76,12 @@ namespace physics {
 	struct StepController {
 		bool enabled = false;
 		float fixedDt = 1.0f / 60.0f;
-		int stepsQueued = 0;
+
+		double runtimeAccum = 0.0;
+		double maxCarry = (1.0 / 60.0) * 4.0;
 
 		// Internal key-edge tracking
+		int stepsQueued = 0;
 		bool prevToggle = false;
 		bool prevW = false, prevA = false, prevS = false, prevD = false;
 
@@ -116,8 +119,8 @@ namespace physics {
 	void SeparatePlayerVsOther_StopPlayerOnly(
 		collision::World& world,
 		GameObject* player, GameObject* other,
-		glm::vec3& playerPos, glm::vec3& otherPos,
-		glm::vec2& desiredMove, bool& hasClickTarget,
+		Math::Vector3D& playerPos, Math::Vector3D& otherPos,
+		Math::Vector2D& desiredMove, bool& hasClickTarget,
 		float splitPlayer);
 
 	/**
@@ -135,7 +138,7 @@ namespace physics {
 	 */
 	void MoveYLaneWithBounce(
 		collision::World& world,
-		GameObject* gameObj, glm::vec3& pos, glm::vec2& vel,
+		GameObject* gameObj, Math::Vector3D& pos, Math::Vector2D& vel,
 		float laneX, float physicsDt);
 
 	/**
@@ -154,6 +157,6 @@ namespace physics {
 	 */
 	void ElasticBounceEqualMass(
 		GameObject* firstObj, GameObject* secondObj,
-		glm::vec3& firstPos, glm::vec3& secondPos,
-		glm::vec2& firstVel, glm::vec2& secondVel);
+		Math::Vector3D& firstPos, Math::Vector3D& secondPos,
+		Math::Vector2D& firstVel, Math::Vector2D& secondVel);
 }

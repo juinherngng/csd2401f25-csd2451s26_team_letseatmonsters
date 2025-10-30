@@ -15,10 +15,14 @@
 #pragma once
 
 #include "GraphicsEngine.hpp"
-#include "../Core/InputManager.hpp"
 #include "Animator.hpp"
-#include "Collision.hpp"
+
+#include "../Core/InputManager.hpp"
+#include "../Core/Collision.hpp"
 #include "../Core/Physics.hpp"
+#include "../Core/Math.hpp"
+#include "../Core/SpatialGrid.hpp"
+#include "../Core/LevelEditor.hpp"
 
 #include <string>
 #include <vector>
@@ -99,7 +103,33 @@ public:
 	 */
 	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
 
-	// void ClearAllObjects();
+	std::vector<GameObject*> GetAllObjectsRaw();
+	const std::string& GetObjectTexturePath(int id) const;
+	void SetObjectTexturePath(int id, const std::string& path);
+	void DrawUI();
+
+	void SetPlayerID(int id) { spriteID = id; }
+	void SetNPC1ID(int id) { otherID = id; }
+	void SetNPC2ID(int id) { otherID2 = id; }
+	void SetDinoID(int id) { dinoID = id; }
+
+	int  GetPlayerID() const { return spriteID; }
+	int  GetNPC1ID()   const { return otherID; }
+	int  GetNPC2ID()   const { return otherID2; }
+	int  GetDinoID()   const { return dinoID; }
+
+	void AttachDinoAnimations(int objID);
+
+	void ClearAll();
+
+	// Set initial transform into the scene maps and the GameObject
+	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
+
+	void SetNPCVelocity(int id, float vx, float vy) { npcVelocities_[id] = { vx, vy }; }
+	glm::vec2 GetNPCVelocity(int id) const {
+		auto it = npcVelocities_.find(id);
+		return (it != npcVelocities_.end()) ? it->second : glm::vec2(0.0f);
+	}
 
 private:
 	// Engine/input
@@ -146,4 +176,13 @@ private:
 	// Stuck detection (cancel click move if not progressing)
 	int stuckFrames = 0;
 	static constexpr int kStuckFramesToCancel = 12;
+
+	bool showAuxDebug_ = true;
+
+	SpatialGrid mSpatialGrid{ 128.0f };
+
+	LevelEditor mLevelEditor; // PC editor
+	std::unordered_map<int, std::string> mTexturePathByID;
+
+	std::unordered_map<int, glm::vec2> npcVelocities_;
 };

@@ -12,10 +12,11 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "SceneManager.hpp"
 #include <iostream>
 #include <algorithm>
 #include <glm/ext/matrix_clip_space.hpp>
+
+#include "SceneManager.hpp"
 
  // Level constants
 static constexpr float kWorldW = 1200.0f;
@@ -50,21 +51,101 @@ static constexpr float kEndVGapMaxY = 500.0f;
 static constexpr float kEndVBotMinY = 500.0f;
 static constexpr float kEndVBotMaxY = 700.0f;
 
+namespace {
+	inline Math::Vector2D toM(const glm::vec2& v) { return Math::Vector2D(v.x, v.y); }
+	inline Math::Vector3D toM(const glm::vec3& v) { return Math::Vector3D(v.x, v.y, v.z); }
+	inline glm::vec2 toG(const Math::Vector2D& v) { return glm::vec2(v.x, v.y); }
+	inline glm::vec3 toG(const Math::Vector3D& v) { return glm::vec3(v.x, v.y, v.z); }
+
+	// Debug helpers for drawing grid cells
+	static void DebugDrawCellRect(float cellSize, int cx, int cy) {
+		const float x0 = cx * cellSize;
+		const float y0 = cy * cellSize;
+		const float x1 = x0 + cellSize;
+		const float y1 = y0 + cellSize;
+
+		// outline rectangle using four lines
+		DebugRenderer::DrawLine({ x0, y0, 0 }, { x1, y0, 0 }, { 0, 1, 0 }); // bottom
+		DebugRenderer::DrawLine({ x1, y0, 0 }, { x1, y1, 0 }, { 0, 1, 0 }); // right
+		DebugRenderer::DrawLine({ x1, y1, 0 }, { x0, y1, 0 }, { 0, 1, 0 }); // top
+		DebugRenderer::DrawLine({ x0, y1, 0 }, { x0, y0, 0 }, { 0, 1, 0 }); // left
+	}
+
+	static void DebugDrawNeighborhood(const collision::AABB& box, float cellSize) {
+		const int minCx = static_cast<int>(std::floor(box.min.x / cellSize)) - 1;
+		const int maxCx = static_cast<int>(std::floor(box.max.x / cellSize)) + 1;
+		const int minCy = static_cast<int>(std::floor(box.min.y / cellSize)) - 1;
+		const int maxCy = static_cast<int>(std::floor(box.max.y / cellSize)) + 1;
+
+		for (int cy = minCy; cy <= maxCy; ++cy) {
+			for (int cx = minCx; cx <= maxCx; ++cx) {
+				DebugDrawCellRect(cellSize, cx, cy);
+			}
+		}
+	}
+}
+
+std::vector<GameObject*> Scene::GetAllObjectsRaw() {
+	std::vector<GameObject*> out; CollectRenderablePointers(out); return out;
+}
+const std::string& Scene::GetObjectTexturePath(int id) const {
+	static const std::string kEmpty{};
+	auto it = mTexturePathByID.find(id);
+	return it == mTexturePathByID.end() ? kEmpty : it->second;
+}
+void Scene::SetObjectTexturePath(int id, const std::string& path) { mTexturePathByID[id] = path; }
+
+void Scene::ClearAll() {
+	sceneObjects.clear();
+	mTexturePathByID.clear();
+	animators.clear();
+	objectAnimations.clear();
+	currentAnimation.clear();
+	spritePositions.clear();
+	spriteScales.clear();
+	spriteRotations.clear();
+	spriteID = otherID = otherID2 = dinoID = -1;
+}
+
+void Scene::SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation)
+{
+	// populate the maps so Update() reads correct values on first frame
+	spritePositions[id] = pos;
+	spriteScales[id] = scale;
+	spriteRotations[id] = rotation;
+
+	// also sync the GameObject right now (so it renders correctly before first Update)
+	if (auto* g = GetGameObjectByID(id)) {
+		g->SetPosition(pos);
+		g->SetScale(scale);
+		g->SetRotation(rotation, { 0,0,1 });
+	}
+}
+
 // Quick hit-test for a point against a center-anchored AABB.
 static inline bool PointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale) {
 	const float hx = scale.x * 0.5f;
 	const float hy = scale.y * 0.5f;
-	return (p.x >= center.x - hx && p.x <= center.x + hx &&
-		p.y >= center.y - hy && p.y <= center.y + hy);
+	return (p.x >= center.x - hx && p.x <= center.x + hx && p.y >= center.y - hy && p.y <= center.y + hy);
 }
 
 // Scene lifecycle
 Scene::Scene(GraphicsEngine& engine) : graphicsEngine(engine) {}
 
 void Scene::LoadScene(const std::string& sceneName) {
-	(void)sceneName; // Suppress unused parameter warning
-	LoadTest();
+	(void)sceneName;
+
+	// Optional: just pre-fill the path field for convenience
+	mLevelEditor.SetPath("../levels/kitchen01.json");
+
+	// Ensure we start EMPTY per rubric (no auto-spawned objects)
+	ClearAll();                         // add function below
+
+	// You can keep a background even with an empty level (or move this into JSON later)
+	SetSceneBackground("../assets/Background.png");
+	BuildLevelColliders();
 }
+
 
 // Spawners/background/lookup
 GameObject* Scene::SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation) {
@@ -95,6 +176,7 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath, const glm::
 	obj->SetPosition(position);
 	obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
 	obj->SetTexture(spriteTex);
+	mTexturePathByID[obj->GetID()] = texturePath;
 	GameObject* raw = obj.get();
 	sceneObjects.push_back(std::move(obj));
 	return raw;
@@ -136,19 +218,32 @@ GameObject* Scene::GetGameObjectByID(int targetID) {
 	return nullptr; // Not found
 }
 
-void Scene::DespawnByID(int targetID) {
-	// Remove anim state first
-	animators.erase(targetID);
-	objectAnimations.erase(targetID);
-	currentAnimation.erase(targetID);
+void Scene::DespawnByID(int id) {
+	// Remove from container
+	auto it = std::remove_if(sceneObjects.begin(), sceneObjects.end(),
+		[id](const std::unique_ptr<GameObject>& g) {
+			return g && g->GetID() == id;
+		});
+	sceneObjects.erase(it, sceneObjects.end());
 
-	sceneObjects.erase(
-		std::remove_if(sceneObjects.begin(), sceneObjects.end(),
-			[targetID](const std::unique_ptr<GameObject>& up) {
-				return up && up->GetID() == targetID;
-			}),
-		sceneObjects.end()
-	);
+	// Remove texture bookkeeping
+	mTexturePathByID.erase(id);
+	spritePositions.erase(id);
+	spriteScales.erase(id);
+	spriteRotations.erase(id);
+
+	// Remove all per-object state
+	animators.erase(id);
+	objectAnimations.erase(id);
+	currentAnimation.erase(id);
+
+	// If any “named” handles point to this object, invalidate them
+	if (spriteID == id) spriteID = -1;
+	if (otherID == id) otherID = -1;
+	if (otherID2 == id) otherID2 = -1;
+	if (dinoID == id) dinoID = -1;
+
+	std::cout << "Despawned object with ID " << id << std::endl;
 }
 
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) const {
@@ -198,6 +293,27 @@ std::vector<glm::vec4> GenerateFrames(int startFrame, int frameCount, int totalC
 	return frames;
 }
 
+void Scene::AttachDinoAnimations(int objID) {
+	// same frame setup as your old LoadTest
+	const int cols = 24;
+	const int rows = 1;
+	const float frameWidth = 1.0f / float(cols);
+	const float frameHeight = 1.0f / float(rows);
+
+	std::vector<glm::vec4> idleFrames = GenerateFrames(0, 4, cols, frameWidth, frameHeight);
+	std::vector<glm::vec4> walkFrames = GenerateFrames(4, 6, cols, frameWidth, frameHeight);
+	std::vector<glm::vec4> attackFrames = GenerateFrames(6, 7, cols, frameWidth, frameHeight);
+
+	Animator2D idle;   idle.SetFrames(idleFrames, 0.25f, true); idle.Play();
+	Animator2D walk;   walk.SetFrames(walkFrames, 0.15f, true); walk.Play();
+	Animator2D attack; attack.SetFrames(attackFrames, 0.15f, true); attack.Play();
+
+	objectAnimations[objID]["IDLE"] = idle;
+	objectAnimations[objID]["WALK"] = walk;
+	objectAnimations[objID]["ATTACK"] = attack;
+	currentAnimation[objID] = "IDLE";
+}
+
 // Test scene setup
 void Scene::LoadTest() {
 	// Set background image
@@ -222,8 +338,8 @@ void Scene::LoadTest() {
 		spritePositions[spriteID] = kSpawnPos;
 
 		player->SetScale(glm::vec3(kVisualSizePx, 1.0f));
-		player->SetColliderSize(colliderSizePx);
-		player->SetColliderOffset(colliderOffsetPx);
+		player->SetColliderSize(Math::Vector2D(colliderSizePx.x, colliderSizePx.y));
+		player->SetColliderOffset(Math::Vector2D(colliderOffsetPx.x, colliderOffsetPx.y));
 
 		// Compute UV frames for a 4x4 grid sprite sheet
 		std::vector<glm::vec4> frames;
@@ -308,8 +424,8 @@ void Scene::LoadTest() {
 		spriteScales[otherID] = glm::vec3(kVisualSizePx, 1.0f);
 		spriteRotations[otherID] = 0.0f;
 
-		other1->SetColliderSize(colliderSizePx);
-		other1->SetColliderOffset(colliderOffsetPx);
+		other1->SetColliderSize(Math::Vector2D(colliderSizePx.x, colliderSizePx.y));
+		other1->SetColliderOffset(Math::Vector2D(colliderOffsetPx.x, colliderOffsetPx.y));
 	}
 	else {
 		otherID = -1; //invalid
@@ -326,8 +442,8 @@ void Scene::LoadTest() {
 		spriteScales[otherID2] = glm::vec3(kVisualSizePx, 1.0f);
 		spriteRotations[otherID2] = 0.0f;
 
-		other2->SetColliderSize(colliderSizePx);
-		other2->SetColliderOffset(colliderOffsetPx);
+		other2->SetColliderSize(Math::Vector2D(colliderSizePx.x, colliderSizePx.y));
+		other2->SetColliderOffset(Math::Vector2D(colliderOffsetPx.x, colliderOffsetPx.y));
 	}
 	else {
 		otherID2 = -1; //invalid
@@ -347,8 +463,18 @@ void Scene::SetAnimation(int objID, const std::string& newAnim) {
 	}
 }
 
+void Scene::DrawUI() {
+	if (mLevelEditor.IsEnabled()) {
+		mLevelEditor.DrawUI(*this);
+	}
+}
+
 // Per-frame update
 void Scene::Update(float deltaTime, GLFWwindow* window) {
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
+		mLevelEditor.Toggle();
+	}
+
 	inputManager.Update(window);
 
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
@@ -377,35 +503,52 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	GameObject* sprite = GetGameObjectByID(spriteID);
 	if (!sprite) {
 		std::cerr << "Sprite with ID " << spriteID << " not found" << std::endl;
+		spriteID = -1;
 		return;
 	}
 
 	GameObject* other1 = GetGameObjectByID(otherID);
-	if (!other1) {
+	if (!other1 && otherID != -1) {
 		std::cerr << "Sprite with ID " << otherID << " not found" << std::endl;
-		return;
+		otherID = -1;
 	}
 	GameObject* other2 = GetGameObjectByID(otherID2);
-	if (!other2)
-	{
+	if (!other2 && otherID2 != -1) {
 		std::cerr << "Sprite with ID " << otherID2 << " not found" << std::endl;
-		return;
+		otherID2 = -1;
+	}
+	GameObject* dino = GetGameObjectByID(dinoID);
+	if (!dino && dinoID != -1) {
+		dinoID = -1;
 	}
 
 	glm::vec3& position = spritePositions[spriteID];
 	glm::vec3& scale = spriteScales[spriteID];
 	float& rotation = spriteRotations[spriteID];
 
-	glm::vec3& o1position = spritePositions[otherID];
-	glm::vec3& o2position = spritePositions[otherID2];
+	glm::vec3* o1position = nullptr;
+	glm::vec3* o2position = nullptr;
+	if (other1) o1position = &spritePositions[otherID];
+	if (other2) o2position = &spritePositions[otherID2];
+
+	mSpatialGrid.Clear();
+
+	std::vector<GameObject*> allObjects;
+	CollectRenderablePointers(allObjects);
+
+	for (GameObject* obj : allObjects) {
+		const Math::Vector3D posM(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
+		const collision::AABB box = physics::MakeColliderBox(obj, posM);
+		mSpatialGrid.Insert(obj, box);
+	}
 
 	// Per-frame state
-	static glm::vec2 desiredMove{ 0.0f, 0.0f };
-	static glm::vec2 playerVelocity{ 0.0f, 0.0f };
-	static glm::vec2 other1Velocity{ 0.0f,  100.0f };
-	static glm::vec2 other2Velocity{ 0.0f, -100.0f };
+	static Math::Vector2D desiredMoveM{ 0.f, 0.f };
+	static Math::Vector2D playerVelM{ 0.f, 0.f };
+	Math::Vector2D other1VelM = toM(GetNPCVelocity(otherID));
+	Math::Vector2D other2VelM = toM(GetNPCVelocity(otherID2));
 
-	desiredMove = { 0.0f, 0.0f };
+	desiredMoveM = Math::Vector2D(0.f, 0.f);
 
 	if (inputManager.IsKeyPressed(GLFW_KEY_UP)) {
 		std::cout << "Up key pressed: scale = " << scale.x << "," << scale.y << "," << scale.z << std::endl;
@@ -438,19 +581,19 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	const float movePerFrame = 200.0f * physicsDt; // displacement this frame
 	if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
-		desiredMove.y -= moveSpeed; // up
+		desiredMoveM.y -= moveSpeed; // up
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_S)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_front", "../assets/mc_sprite_front.png"));
-		desiredMove.y += moveSpeed; // down
+		desiredMoveM.y += moveSpeed; // down
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_A)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideleft", "../assets/mc_sprite_left.png"));
-		desiredMove.x -= moveSpeed; // left
+		desiredMoveM.x -= moveSpeed; // left
 	}
 	if (inputManager.IsKeyPressed(GLFW_KEY_D)) {
 		sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideright", "../assets/mc_sprite_right.png"));
-		desiredMove.x += moveSpeed; // right
+		desiredMoveM.x += moveSpeed; // right
 	}
 
 	if (inputManager.IsKeyPressed(GLFW_KEY_1)) {
@@ -465,6 +608,15 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		SetAnimation(dinoID, "IDLE");
 		std::cout << "Set to Idle Animation" << std::endl;
 	}
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_R)) {
+		DebugRenderer::SetEnabled(!DebugRenderer::IsEnabled());
+		std::cout << "[DebugRenderer] Collider box visibility: "
+			<< (DebugRenderer::IsEnabled() ? "ON" : "OFF") << std::endl;
+	}
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_T)) {
+		showAuxDebug_ = !showAuxDebug_;
+		std::cout << "[Debug] Points/Lines: " << (showAuxDebug_ ? "ON" : "OFF") << std::endl;
+	}
 
 	// Click-to-Move behaviour
 	// If player is NOT selected: click must hit the player's collider to select.
@@ -474,12 +626,13 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		glm::vec2 mouse{ (float)mp.x, (float)mp.y };
 
 		if (!playerSelected) {
-			glm::vec2 csize = sprite->GetColliderSize();
-			glm::vec2 coff = sprite->GetColliderOffset();
-			glm::vec3 selCenter = position + glm::vec3(coff, 0.0f);
-			glm::vec3 selScale = glm::vec3(csize, 1.0f);
+			const Math::Vector2D csize = sprite->GetColliderSize();
+			const Math::Vector2D coff = sprite->GetColliderOffset();
 
-			if (collision::pointInsideCenterAABB(mouse, selCenter, selScale)) {
+			const Math::Vector3D selCenterM(position.x + coff.x, position.y + coff.y, position.z);
+			const Math::Vector3D selScaleM(csize.x, csize.y, 1.0f);
+
+			if (collision::pointInsideCenterAABB(toM(mouse), selCenterM, selScaleM)) {
 				playerSelected = true;
 				hasClickTarget = false;
 				stuckFrames = 0;
@@ -523,10 +676,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Build current AABB from collider size/offset for collision resolution
-	collision::AABB startBox = collision::World::makeAABBFromCenter(
-		position + glm::vec3(sprite->GetColliderOffset(), 0.0f),
-		glm::vec3(sprite->GetColliderSize(), 1.0f)
-	);
+	const Math::Vector3D centerM(position.x + sprite->GetColliderOffset().x, position.y + sprite->GetColliderOffset().y, position.z);
+	const Math::Vector3D scaleM(sprite->GetColliderSize().x, sprite->GetColliderSize().y, 1.0f);
+	collision::AABB startBox = collision::World::makeAABBFromCenter(centerM, scaleM);
 
 	// Only apply click-to-move if we have an active target and the player is selected
 	if (playerSelected && hasClickTarget) {
@@ -559,25 +711,50 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		if (dist > 0.0f) {
 			const float maxStep = playerSpeed * physicsDt;
 			const glm::vec2 step = (dist <= maxStep) ? toTarget : (toTarget / dist) * maxStep;
-			desiredMove += step;
+			desiredMoveM = Math::Vector2D(step.x + desiredMoveM.x, step.y + desiredMoveM.y);
 		}
 	}
 
 	const float kLaneX = 1000.0f;
-	physics::MoveYLaneWithBounce(mCollision, other1, o1position, other1Velocity, kLaneX, physicsDt);
-	physics::ClampInsideWalk(walk, other1, o1position);
-	other1->SetPosition(o1position);
+	// NPC 1 lane update
+	if (other1 && o1position) {
+		Math::Vector3D posM = toM(*o1position);
+		physics::MoveYLaneWithBounce(mCollision, other1, posM, other1VelM, kLaneX, physicsDt);
+		physics::ClampInsideWalk(walk, other1, posM);
+		*o1position = toG(posM);
+		other1->SetPosition(*o1position);
+	}
 
-	physics::MoveYLaneWithBounce(mCollision, other2, o2position, other2Velocity, kLaneX, physicsDt);
-	physics::ClampInsideWalk(walk, other2, o2position);
-	other2->SetPosition(o2position);
+	// NPC 2 lane update
+	if (other2 && o2position) {
+		Math::Vector3D posM = toM(*o2position);
+		physics::MoveYLaneWithBounce(mCollision, other2, posM, other2VelM, kLaneX, physicsDt);
+		physics::ClampInsideWalk(walk, other2, posM);
+		*o2position = toG(posM);
+		other2->SetPosition(*o2position);
+	}
 
-	physics::ElasticBounceEqualMass(other1, other2, o1position, o2position, other1Velocity, other2Velocity);
+	// NPC–NPC elastic bounce (only if both exist)
+	if (other1 && other2 && o1position && o2position) {
+		Math::Vector3D p1M = toM(*o1position);
+		Math::Vector3D p2M = toM(*o2position);
+		physics::ElasticBounceEqualMass(other1, other2, p1M, p2M, other1VelM, other2VelM);
+		// write updated bounce velocities back to the map
+		npcVelocities_[otherID] = toG(other1VelM);
+		npcVelocities_[otherID2] = toG(other2VelM);
+
+		*o1position = toG(p1M);
+		*o2position = toG(p2M);
+		other1->SetPosition(*o1position);
+		other2->SetPosition(*o2position);
+	}
 
 	// Split weight logic (your old heuristic)
-	const float intentSpeed = (physicsDt > 0.0f) ? (glm::length(desiredMove) / physicsDt) : 0.0f;
-	const float other1Speed = glm::length(other1Velocity);
-	const float other2Speed = glm::length(other2Velocity);
+	const float intentSpeed = (physicsDt > 0.0f)
+		? (Math::Vector2D(desiredMoveM.x / physicsDt, desiredMoveM.y / physicsDt).Length())
+		: 0.0f;
+	const float other1Speed = other1VelM.Length();
+	const float other2Speed = other2VelM.Length();
 
 	auto pickWeight = [&](float otherSpeed) {
 		constexpr float kIdle = 5.0f;
@@ -586,26 +763,98 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		return (otherSpeed < kIdle && intentSpeed > 0.0f) ? kPushBiasIdle : kPushBiasMoving;
 		};
 
-	physics::SeparatePlayerVsOther_StopPlayerOnly(
-		mCollision, sprite, other1, position, o1position, desiredMove, hasClickTarget, pickWeight(other1Speed));
-	physics::SeparatePlayerVsOther_StopPlayerOnly(
-		mCollision, sprite, other2, position, o2position, desiredMove, hasClickTarget, pickWeight(other2Speed));
+	// Use grid broad-phase for player vs nearby objects
+	{
+		// Build player's current AABB once
+		const collision::AABB pBox = physics::MakeColliderBox(sprite, Math::Vector3D(position.x, position.y, position.z));
 
-	// Resolve desired movement against world walls (X then Y sweep)
-	glm::vec2 allowed = mCollision.resolve(startBox, desiredMove);
+		// Ask the grid for only nearby candidates
+		std::vector<GameObject*> candidates;
+		mSpatialGrid.Query(pBox, candidates);
 
-	// If that fails, try Y then X sweep (corner case for thin walls)
-	if (allowed == glm::vec2(0.0f) && desiredMove != glm::vec2(0.0f)) {
-		glm::vec2 textX = mCollision.resolve(startBox, glm::vec2(desiredMove.x, 0.0f));
-		glm::vec2 textY = mCollision.resolve(startBox, glm::vec2(0.0f, desiredMove.y));
-		// Pick the longer of the two axis-only moves
-		if (std::abs(textX.x) > std::abs(textY.y)) {
-			allowed = textX;
-		}
-		else {
-			allowed = textY;
+		// Your existing “split weight” heuristic (brace-safe)
+		auto pickWeight = [&](float otherSpeed) {
+			constexpr float kIdle = 5.0f;
+			constexpr float kPushBiasIdle = 0.50f;
+			constexpr float kPushBiasMoving = 0.50f;
+
+			const float intentSpeed = (physicsDt > 0.0f)
+				? (Math::Vector2D(
+					desiredMoveM.x / physicsDt,
+					desiredMoveM.y / physicsDt).Length())
+				: 0.0f;
+
+			if (otherSpeed < kIdle && intentSpeed > 0.0f) {
+				return kPushBiasIdle;
+			}
+			else {
+				return kPushBiasMoving;
+			}
+			};
+
+		for (GameObject* other : candidates) {
+			if (!other) {
+				continue;
+			}
+
+			if (other == sprite) {
+				continue;
+			}
+
+			const Math::Vector2D gSize = other->GetColliderSize();
+			if (gSize.x <= 0.0f || gSize.y <= 0.0f) {
+				continue;
+			}
+
+			Math::Vector3D playerPosM(position.x, position.y, position.z);
+			Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
+
+			// Pick speed for weight (use your lane velocities where applicable)
+			float otherSpeed = 0.0f;
+			if (other->GetID() == otherID) {
+				otherSpeed = other1VelM.Length();
+			}
+			if (other->GetID() == otherID2) {
+				otherSpeed = other2VelM.Length();
+			}
+
+			physics::SeparatePlayerVsOther_StopPlayerOnly(
+				mCollision,
+				sprite,
+				other,
+				playerPosM,
+				otherPosM,
+				desiredMoveM,
+				hasClickTarget,
+				pickWeight(otherSpeed));
+
+			// write back positions
+			position = toG(playerPosM);
+			other->SetPosition(toG(otherPosM));
+			sprite->SetPosition(position);
 		}
 	}
+
+	// Resolve desired movement against world walls (X then Y sweep)
+	Math::Vector2D allowedM = mCollision.resolve(startBox, desiredMoveM);
+
+	// If that fails, try Y then X sweep (corner case for thin walls)
+	if (allowedM.x == 0.f && allowedM.y == 0.f && (desiredMoveM.x != 0.f || desiredMoveM.y != 0.f)) {
+		const Math::Vector2D tryX = mCollision.resolve(startBox, Math::Vector2D(desiredMoveM.x, 0.f));
+		const Math::Vector2D tryY = mCollision.resolve(startBox, Math::Vector2D(0.f, desiredMoveM.y));
+
+		// Pick the longer of the axis-only moves (same heuristic as before)
+		if (std::abs(tryX.x) > std::abs(tryY.y)) {
+			allowedM = tryX;
+		}
+		else {
+			allowedM = tryY;
+		}
+	}
+
+	// Apply allowed move
+	position.x += allowedM.x;
+	position.y += allowedM.y;
 
 	const collision::StageEndGateVertical gate{
 	kEndVX0, kEndVX1,
@@ -614,25 +863,32 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	kEndVBotMinY, kEndVBotMaxY
 	};
 
-	// Apply allowed move
-	position += glm::vec3(allowed, 0.0f);
-	playerVelocity = (physicsDt > 0.0f) ? (allowed / physicsDt) : glm::vec2{ 0.0f };
-	physics::ClampInsideWalkWithGate(walk, gate, sprite, position);
+	{
+		Math::Vector3D posM = toM(position);
+		physics::ClampInsideWalkWithGate(walk, gate, sprite, posM);
+		position = toG(posM);
+	}
 	sprite->SetPosition(position);
 
+	// Click to move "stuck" test (evaluate only on physics steps)
 	if (playerSelected && hasClickTarget) {
-		const float intended = glm::length(desiredMove);
-		const float moved = glm::length(allowed);
+		// Only judge progress on frames where a fixed physics slice actually ran
+		if (physicsDt > 0.0f) {
+			const float intended = Math::Vector2D(desiredMoveM.x, desiredMoveM.y).Length();
+			if (intended > 0.0f) { // only penalize if we tried to move this step
+				const float moved = Math::Vector2D(allowedM.x, allowedM.y).Length();
 
-		glm::vec2 prevPos2 = glm::vec2(position.x, position.y) - allowed;
-		float prevDist = glm::length(clickTarget - prevPos2);
-		float newDist = glm::length(clickTarget - glm::vec2(position.x, position.y));
+				const glm::vec2 prevPos2 = glm::vec2(position.x, position.y) - glm::vec2(allowedM.x, allowedM.y);
+				const float prevDist = glm::length(clickTarget - prevPos2);
+				const float newDist = glm::length(clickTarget - glm::vec2(position.x, position.y));
 
-		bool noProgress = (newDist >= prevDist - 0.25f);
-		bool barelyMoved = (moved <= 0.05f && intended > 0.0f);
+				const bool noProgress = (newDist >= prevDist - 0.25f);
+				const bool barelyMoved = (moved <= 0.05f);
 
-		if (noProgress || barelyMoved) ++stuckFrames;
-		else stuckFrames = 0;
+				if (noProgress || barelyMoved) ++stuckFrames;
+				else stuckFrames = 0;
+			}
+		}
 
 		if (stuckFrames >= kStuckFramesToCancel) {
 			hasClickTarget = false;
@@ -646,4 +902,79 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	sprite->SetScale(scale);
 	sprite->SetRotation(rotation, glm::vec3(0, 0, 1));
 	sprite->SetPosition(position);
+
+	if (DebugRenderer::IsEnabled() && showAuxDebug_) {
+		// Line: player to click target (only when a target exists)
+		if (playerSelected && hasClickTarget) {
+			DebugRenderer::DrawLine(
+				{ position.x, position.y, 0.0f },
+				{ clickTarget.x, clickTarget.y, 0.0f },
+				{ 0.0f, 1.0f, 0.0f }
+			);
+		}
+
+		// Points: collider corners (like your AABB, but as GL_POINTS)
+		const Math::Vector2D cs = sprite->GetColliderSize();
+		const Math::Vector2D co = sprite->GetColliderOffset();
+
+		if (cs.x > 0.0f && cs.y > 0.0f) {
+			const glm::vec3 c = { position.x + co.x, position.y + co.y, 0.0f };
+			const glm::vec3 mn = { c.x - cs.x * 0.5f, c.y - cs.y * 0.5f, 0.0f };
+			const glm::vec3 mx = { c.x + cs.x * 0.5f, c.y + cs.y * 0.5f, 0.0f };
+
+			DebugRenderer::DrawPoint({ mn.x, mn.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f); // BT
+			DebugRenderer::DrawPoint({ mx.x, mn.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f); // BR
+			DebugRenderer::DrawPoint({ mx.x, mx.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f); // TR
+			DebugRenderer::DrawPoint({ mn.x, mx.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f); // TL
+			DebugRenderer::DrawPoint(c, { 1.0f, 0.2f, 0.2f }, 7.0f); // center
+		}
+
+		// Draw the neighborhood cells around the player's AABB
+		{
+			// Build player's AABB in Math types
+			const Math::Vector2D pSize = sprite->GetColliderSize();
+			const Math::Vector2D pOff = sprite->GetColliderOffset();
+
+			const Math::Vector3D pCenterM(position.x + pOff.x, position.y + pOff.y, 0.0f);
+			const Math::Vector3D pScaleM(pSize.x, pSize.y, 1.0f);
+			const collision::AABB pBox = collision::World::makeAABBFromCenter(pCenterM, pScaleM);
+
+			// Outline the queried neighborhood cells
+			DebugDrawNeighborhood(pBox, mSpatialGrid.CellSize());
+
+			// Highlight candidate objects returned by the grid
+			std::vector<GameObject*> candidates;
+			mSpatialGrid.Query(pBox, candidates);
+
+			for (GameObject* g : candidates) {
+				if (!g || g == sprite) {
+					continue;
+				}
+
+				const Math::Vector2D gSize = g->GetColliderSize();
+				const Math::Vector2D gOff = g->GetColliderOffset();
+				if (gSize.x <= 0.0f || gSize.y <= 0.0f) {
+					continue;
+				}
+
+				// Work in GLM for renderer drawing positions
+				const glm::vec3 gp = toG(g->GetPosition());
+
+				const float hx = gSize.x * 0.5f;
+				const float hy = gSize.y * 0.5f;
+
+				const glm::vec3 mn(gp.x + gOff.x - hx, gp.y + gOff.y - hy, 0.0f);
+				const glm::vec3 mx(gp.x + gOff.x + hx, gp.y + gOff.y + hy, 0.0f);
+
+				// cyan rectangle
+				DebugRenderer::DrawLine({ mn.x, mn.y, 0 }, { mx.x, mn.y, 0 }, { 0.0f, 1.0f, 1.0f });
+				DebugRenderer::DrawLine({ mx.x, mn.y, 0 }, { mx.x, mx.y, 0 }, { 0.0f, 1.0f, 1.0f });
+				DebugRenderer::DrawLine({ mx.x, mx.y, 0 }, { mn.x, mx.y, 0 }, { 0.0f, 1.0f, 1.0f });
+				DebugRenderer::DrawLine({ mn.x, mx.y, 0 }, { mn.x, mn.y, 0 }, { 0.0f, 1.0f, 1.0f });
+
+				// center dot
+				DebugRenderer::DrawPoint({ gp.x + gOff.x, gp.y + gOff.y, 0.0f }, { 0.0f, 1.0f, 1.0f }, 5.0f);
+			}
+		}
+	}
 }

@@ -12,7 +12,7 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 
 #pragma once
 
-#include "ImGuiDebugger.hpp"
+#include "DebugUI.hpp"
 #include "Core.hpp"
 
 namespace Debug
@@ -32,7 +32,6 @@ namespace Debug
 		}
 	}
 
-
 	// Destructor
 	DebuggerApp::~DebuggerApp()
 	{
@@ -46,58 +45,43 @@ namespace Debug
 		{
 			std::cerr << "Crash Log File was not opened at start!" << std::endl;
 		}
-
-		// Cleanup ImGui
-		if (isInitialised)
-		{
-			ImGui_ImplOpenGL3_Shutdown();
-			ImGui_ImplGlfw_Shutdown();
-			ImGui::DestroyContext();
-		}
-		else
-		{
-			std::cerr << "Debugger was not initialised at start!" << std::endl;
-		}
 	}
 
 
 	// Implicit dtor for the debugger
 	void DebuggerApp::Shutdown()
 	{
-		if (isInitialised)
-		{
-			std::cout << "Shutting down ImGui backends..." << std::endl;
+		// if (isInitialised)
+		// {
+			// std::cout << "Shutting down ImGui backends..." << std::endl;
 			
-			// Clear all debug data structures
-			debuglines.clear();
-			sysPerformance.clear();
+			// // Clear all debug data structures
+			// debuglines.clear();
+			// sysPerformance.clear();
 			
-			// Shutdown ImGui backends in proper order
-			ImGui_ImplOpenGL3_Shutdown();
-			ImGui_ImplGlfw_Shutdown();
+			// // Shutdown ImGui backends in proper order
+			// ImGui_ImplOpenGL3_Shutdown();
+			// ImGui_ImplGlfw_Shutdown();
 			
-			// Get IO to clear any cached data
-			ImGuiIO& io = ImGui::GetIO();
-			io.Fonts->Clear(); // Clear font atlas
+			// // Get IO to clear any cached data
+			// ImGuiIO& io = ImGui::GetIO();
+			// io.Fonts->Clear(); // Clear font atlas
 			
-			// Destroy ImGui context
-			ImGui::DestroyContext();
+			// // Destroy ImGui context
+			// ImGui::DestroyContext();
 			
-			isInitialised = false;
-			debugWindow = nullptr;
-			coreEngine = nullptr;
+			// isInitialised = false;
+			// debugWindow = nullptr;
+			// coreEngine = nullptr;
+
+			isInitialised = false; // only mark state, do not shutdown ImGui here
 			
 			std::cout << "Debugger shutdown complete" << std::endl;
-		}
+		//}
 	}
 
 	bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow, CoreFramework::CoreEngine* coreEnginePtr)
 	{
-		if (!glfwInit())
-		{
-			return false;
-		}
-
 		debugWindow = externalWindow;
 		coreEngine = coreEnginePtr; // Store the CoreEngine pointer
 		glfwMakeContextCurrent(debugWindow);
@@ -131,7 +115,7 @@ namespace Debug
 			openedDebugger = !openedDebugger;
 			std::cout << "CLOSING DEBUGGER" << std::endl;
 		}
-		
+
 		// update system performance %tages
 		if (coreEngine)
 		{
@@ -146,14 +130,10 @@ namespace Debug
 			return;
 		}
 
-		// Start ImGui frame
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
+		if (ImGui::GetCurrentContext() == nullptr) {
+			return;
+		}
 
-		// Create docking environment
-		//ImGuiWindowFlags windowFlags = ImGuiWIndowFlags_NoDocking;
-		
 		// Create my window
 		if (ImGui::Begin("Debug Infomation", &openedDebugger))
 		{
@@ -260,11 +240,6 @@ namespace Debug
 		ShowDebugLog();
 
 		ImGui::End();
-
-		// Render in my ImGui
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 	}
 
 	// Currently not in use
@@ -345,6 +320,4 @@ namespace Debug
 		ImGui::End();
 	}
 }
-
-
 

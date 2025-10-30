@@ -13,9 +13,14 @@ DESCRIPTION:		Initializes rendering, loads default GPU resources, manages a full
 
 #pragma once
 
+#include "DebugRenderer.hpp"
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
 #include "GameObject.hpp"
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
@@ -33,6 +38,9 @@ public:
 	// Background management
 	void SetBackground(const std::string& texturePath);
 	void ClearBackground();
+
+	void BeginImGuiFrame(); // call at start of each frame
+	void EndImGuiFrame(); // call at end of each frame
 
 private:
 	Renderer renderer;

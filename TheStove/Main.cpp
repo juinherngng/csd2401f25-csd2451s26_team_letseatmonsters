@@ -1,4 +1,4 @@
-#include "Core/ImGuiDebugger.hpp"
+#include "Core/DebugUI.hpp"
 #include "Core/Precompiled.hpp"
 
 #include <iostream>
@@ -219,15 +219,15 @@ int main() {
 
 	while (!glfwWindowShouldClose(app.window) && !app.shouldExit) {
 
-        try
-        {
-            // ---- TEST CASES FOR PRINTING TO CRASH_LOG.TXT ----
-            // Uncomment one at a time to test
-            // throw std::runtime_error("Test crash_log");
-            // throw 42; // unknown exception
+		try
+		{
+			// ---- TEST CASES FOR PRINTING TO CRASH_LOG.TXT ----
+			// Uncomment one at a time to test
+			// throw std::runtime_error("Test crash_log");
+			// throw 42; // unknown exception
 
-            /*std::string filename = "fake_file.txt";
-            std::ifstream file(filename);
+			/*std::string filename = "fake_file.txt";
+			std::ifstream file(filename);
 
             if (!file.is_open())
             {
@@ -406,11 +406,17 @@ static void update(ApplicationState& app) {
 
 	glfwPollEvents();
 
+	// engine.BeginImGuiFrame();
+
 	// Update scene with delta time and window pointer
 	app.currentScene->Update(deltaTime, app.window);
 
-    // Smoothing for deltatime (for the fps)
-    app.smoothedDt = (app.smoothedDt == 0.0f) ? deltaTime : (0.96f * app.smoothedDt) + (0.04f * deltaTime);
+	// Smoothing for deltatime (for the fps)
+	// Account for division by 0 on the first frame where gDt = 0
+	// This controls how fast the fps counter reacts to changes
+	// (higher value = smoother fps) else 
+	// (lower value = faster fps change response but more jittery)
+	app.smoothedDt = (app.smoothedDt == 0.0f) ? deltaTime : (0.96f * app.smoothedDt) + (0.04f * deltaTime);
 
 	// Update FPS display variables for DebuggerApp
 	app.debugApp->fps = (app.smoothedDt > 0.f) ? (1.f / app.smoothedDt + 0.5f) : 0.f;
@@ -418,16 +424,17 @@ static void update(ApplicationState& app) {
 
     app.coreEngine->GameLoop();
 
-    if (app.debugApp->IsActive())
-    {
-        app.debugApp->UpdateDebuggerApp();
-    }
+    // if (app.debugApp->IsActive())
+    // {
+    //     app.debugApp->UpdateDebuggerApp();
+    // }
 }
 
 static void draw(ApplicationState& app) {
 	std::vector<GameObject*> drawList;
 
     app.graphicsEngine->BeginFrame();
+    app.currentScene->DrawUI();
 	drawList.clear();
 	app.currentScene->CollectRenderablePointers(drawList);
     app.graphicsEngine->Render(drawList);

@@ -14,7 +14,8 @@
 #pragma once
 
 #include <vector>
-#include <glm/glm.hpp>
+#include <cfloat>
+#include "../Core/Math.hpp"
 
 namespace collision {
 	/**
@@ -24,8 +25,8 @@ namespace collision {
 	 * Represents a rectangular area aligned with the axes.
 	 */
 	struct AABB {
-		glm::vec2 min;
-		glm::vec2 max;
+		Math::Vector2D min;
+		Math::Vector2D max;
 	};
 
 	/**
@@ -74,7 +75,7 @@ namespace collision {
 	 * @param mtvOut Output minimal translation vector for A.
 	 * @return true if AABBs overlap, false otherwise.
 	 */
-	bool overlapMTV(const AABB& a, const AABB& b, glm::vec2& mtvOut);
+	bool overlapMTV(const AABB& a, const AABB& b, Math::Vector2D& mtvOut);
 
 	/**
 	 * @brief Split the MTV between two AABBs based on weighting.
@@ -86,7 +87,7 @@ namespace collision {
 	 * @param moveB Output movement for B.
 	 * @return true if overlap occurred, false otherwise.
 	 */
-	bool separateWeighted(const AABB& a, const AABB& b, float weightA, glm::vec2& moveA, glm::vec2& moveB);
+	bool separateWeighted(const AABB& a, const AABB& b, float weightA, Math::Vector2D& moveA, Math::Vector2D& moveB);
 
 	/**
 	 * @brief Check if a 2D point lies inside a center-based AABB.
@@ -96,7 +97,7 @@ namespace collision {
 	 * @param scale Full width/height of the AABB.
 	 * @return true if inside, false otherwise.
 	 */
-	bool pointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale);
+	bool pointInsideCenterAABB(const Math::Vector2D& point, const Math::Vector3D& center, const Math::Vector3D& scale);
 
 	/**
 	 * @class World
@@ -132,7 +133,7 @@ namespace collision {
 		 * @param desiredDelta Desired translation.
 		 * @return Adjusted translation that avoids penetration.
 		 */
-		glm::vec2 resolve(const AABB& startBox, glm::vec2 desiredDelta) const;
+		Math::Vector2D resolve(const AABB& startBox, Math::Vector2D desiredDelta) const;
 
 		/**
 		 * @brief Construct an AABB from a center and size.
@@ -140,7 +141,7 @@ namespace collision {
 		 * @param scale Full size (X/Y used).
 		 * @return Constructed AABB.
 		 */
-		static AABB makeAABBFromCenter(const glm::vec3& center, const glm::vec3& scale);
+		static AABB makeAABBFromCenter(const Math::Vector3D& center, const Math::Vector3D& scale);
 
 		/**
 		 * @brief Get read-only access to walls for debugging.
