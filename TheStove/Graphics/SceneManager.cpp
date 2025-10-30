@@ -85,6 +85,26 @@ namespace {
 	}
 }
 
+bool Scene::HasAnimations(int id) const {
+	auto it = objectAnimations.find(id);
+	return (it != objectAnimations.end()) && !it->second.empty();
+}
+
+std::vector<std::string> Scene::GetAnimationList(int id) const {
+	std::vector<std::string> names;
+	auto it = objectAnimations.find(id);
+	if (it != objectAnimations.end()) {
+		names.reserve(it->second.size());
+		for (auto const& kv : it->second) names.push_back(kv.first);
+	}
+	return names;
+}
+
+std::string Scene::GetCurrentAnimationName(int id) const {
+	auto it = currentAnimation.find(id);
+	return (it != currentAnimation.end()) ? it->second : std::string{};
+}
+
 void Scene::ClampToWalkArea(GameObject* obj) {
 	if (!obj) return;
 	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
@@ -501,10 +521,13 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		Shader* shader = obj->GetShader();
 		if (!shader) continue;
 
-		glm::vec4 uvFrame = animator.GetCurrentFrameUV();
+		/*glm::vec4 uvFrame = animator.GetCurrentFrameUV();
 		shader->Use();
 		shader->SetUVOffset(glm::vec2(uvFrame.x, uvFrame.y));
-		shader->SetUVScale(glm::vec2(uvFrame.z, uvFrame.w));
+		shader->SetUVScale(glm::vec2(uvFrame.z, uvFrame.w));*/
+
+		const glm::vec4 uv = animator.GetCurrentFrameUV();
+		obj->SetUVRect(uv);
 	}
 
 	const float rotationSpeed = 1.0f * deltaTime; // degrees per second
@@ -607,7 +630,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		desiredMoveM.x += moveSpeed; // right
 	}
 
-	if (inputManager.IsKeyPressed(GLFW_KEY_1)) {
+	/*if (inputManager.IsKeyPressed(GLFW_KEY_1)) {
 		SetAnimation(dinoID, "WALK");
 		std::cout << "Set to Walk Animation" << std::endl;
 	}
@@ -618,7 +641,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	if (inputManager.IsKeyPressed(GLFW_KEY_3)) {
 		SetAnimation(dinoID, "IDLE");
 		std::cout << "Set to Idle Animation" << std::endl;
-	}
+	}*/
+
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_R)) {
 		DebugRenderer::SetEnabled(!DebugRenderer::IsEnabled());
 		std::cout << "[DebugRenderer] Collider box visibility: "

@@ -93,6 +93,11 @@ public:
 	 */
 	void DespawnByID(int targetID);
 
+	// Animation query & control (per object)
+	bool HasAnimations(int id) const;
+	std::vector<std::string> GetAnimationList(int id) const;
+	std::string GetCurrentAnimationName(int id) const;
+
 	/**
 	 * @brief Change the active animation of an object by ID.
 	 */
@@ -132,6 +137,23 @@ public:
 	}
 
 	void ClampToWalkArea(GameObject* obj);
+
+	struct Defaults {
+		glm::vec3 pos{ 0,0,0 };
+		glm::vec2 size{ 128,128 };
+		float     rot{ 0.f };
+		glm::vec2 colSize{ 64,128 };
+		glm::vec2 colOff{ 0,0 };
+		glm::vec2 vel{ 0,0 };
+		std::string texture;
+		std::string tag;
+	};
+
+	void SetDefaults(int id, const Defaults& d) { defaults_[id] = d; }
+	Defaults GetDefaults(int id) const {
+		auto it = defaults_.find(id);
+		return (it != defaults_.end()) ? it->second : Defaults{};
+	}
 
 private:
 	// Engine/input
@@ -187,4 +209,6 @@ private:
 	std::unordered_map<int, std::string> mTexturePathByID;
 
 	std::unordered_map<int, glm::vec2> npcVelocities_;
+
+	std::unordered_map<int, Defaults> defaults_;
 };

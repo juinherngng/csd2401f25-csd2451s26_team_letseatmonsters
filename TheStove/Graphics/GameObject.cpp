@@ -107,6 +107,10 @@ void GameObject::Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMa
 
 	m_Shader->Use();
 
+	const glm::vec4 uv = GetUVRect();
+	m_Shader->SetUVOffset(glm::vec2(uv.x, uv.y));
+	m_Shader->SetUVScale(glm::vec2(uv.z, uv.w));
+
 	// Set matrices efficiently
 	m_Shader->SetModelMatrix(m_ModelMatrix);
 	m_Shader->SetViewMatrix(viewMatrix);

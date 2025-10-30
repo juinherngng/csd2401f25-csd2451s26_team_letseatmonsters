@@ -120,6 +120,9 @@ public:
 	 */
 	void DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color) const;
 
+	void SetUVRect(const glm::vec4& r) { m_uvRect = r; }
+	glm::vec4 GetUVRect() const { return m_uvRect; }
+
 private:
 	Mesh* m_Mesh;
 	Shader* m_Shader;
@@ -130,6 +133,8 @@ private:
 	glm::mat4 m_Rotation;
 
 	glm::mat4 m_ModelMatrix;
+
+	glm::vec4 m_uvRect{ 0.f, 0.f, 1.f, 1.f };
 
 	int id; // Unique identifier for GameObjects
 

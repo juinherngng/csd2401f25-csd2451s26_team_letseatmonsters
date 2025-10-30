@@ -69,6 +69,17 @@ void LevelEditor::DrawUI(Scene& scene) {
 				g->SetColliderOffset({ o.col_offx, o.col_offy });
 				scene.SetObjectTexturePath(g->GetID(), o.texture);
 
+				Scene::Defaults d;
+				d.pos = { o.x, o.y, o.z };
+				d.size = { o.w, o.h };
+				d.rot = o.rotation;
+				d.colSize = { o.col_w, o.col_h };
+				d.colOff = { o.col_offx, o.col_offy };
+				d.vel = { 0.f, o.speed_y };
+				d.texture = o.texture;
+				d.tag = o.tag;
+				scene.SetDefaults(g->GetID(), d);
+
 				scene.SetTransformFromLevel(
 					g->GetID(),
 					{ o.x, o.y, o.z },
@@ -88,10 +99,8 @@ void LevelEditor::DrawUI(Scene& scene) {
 					scene.SetNPC2ID(g->GetID());
 					scene.SetNPCVelocity(g->GetID(), 0.f, o.speed_y);
 				}
-
-				if (o.tag == "dino") {
-					scene.SetDinoID(g->GetID());
-					scene.AttachDinoAnimations(g->GetID());   // <-- only for dinos
+				if (o.animated) {
+					scene.AttachDinoAnimations(g->GetID());   // give this object its own IDLE/WALK/ATTACK set
 				}
 			}
 		}
@@ -146,6 +155,165 @@ void LevelEditor::DrawUI(Scene& scene) {
 		ImGui::EndListBox();
 	}
 
+	// --- Property Editor --------------------------------------------------------
+	if (sel >= 0 && sel < static_cast<int>(objs.size()) && objs[sel]) {
+		GameObject* g = objs[sel];
+		const int id = g->GetID();
+
+		ImGui::Separator();
+		ImGui::Text("Properties (ID %d)", id);
+
+		// ---------- Read current values ----------
+		char texBuf[256];
+		{
+			std::string tex = scene.GetObjectTexturePath(id);
+			if (tex.empty()) tex = "../assets/goat_sprite_front.png";
+			std::snprintf(texBuf, sizeof(texBuf), "%s", tex.c_str());
+		}
+
+		// infer current tag from special IDs (editable)
+		char tagBuf[64] = "";
+		if (id == scene.GetPlayerID()) std::snprintf(tagBuf, sizeof(tagBuf), "player");
+		else if (id == scene.GetNPC1ID())   std::snprintf(tagBuf, sizeof(tagBuf), "npc1");
+		else if (id == scene.GetNPC2ID())   std::snprintf(tagBuf, sizeof(tagBuf), "npc2");
+		else if (id == scene.GetDinoID())   std::snprintf(tagBuf, sizeof(tagBuf), "dino");
+
+		glm::vec3 pos = g->GetPositionGLM();
+		glm::vec3 scl = g->GetScaleGLM();          // z ignored for sprites
+		float     rotation = g->GetRotationAngleZ();
+
+		auto cs = g->GetColliderSize();
+		auto co = g->GetColliderOffset();
+
+		glm::vec2 vel = scene.GetNPCVelocity(id);
+
+		// ---------- Defaults for right-click reset ----------
+		const auto def = scene.GetDefaults(id);
+
+		// Helpers: drag with context "Reset"
+		auto Drag2Reset = [&](const char* label, float* v, ImVec2 d, float speed, auto apply) {
+			bool changed = ImGui::DragFloat2(label, v, speed);
+			if (ImGui::BeginPopupContextItem((std::string(label) + "_ctx").c_str())) {
+				if (ImGui::MenuItem("Reset to default")) {
+					v[0] = d.x; v[1] = d.y;
+					apply(true);
+				}
+				ImGui::EndPopup();
+			}
+			if (changed) apply(false);
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Right-click to reset");
+			};
+		auto Drag1Reset = [&](const char* label, float* v, float d, float speed, auto apply) {
+			bool changed = ImGui::DragFloat(label, v, speed);
+			if (ImGui::BeginPopupContextItem((std::string(label) + "_ctx").c_str())) {
+				if (ImGui::MenuItem("Reset to default")) {
+					*v = d;
+					apply(true);
+				}
+				ImGui::EndPopup();
+			}
+			if (changed) apply(false);
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Right-click to reset");
+			};
+		auto ApplyTransform = [&]() {
+			scene.SetTransformFromLevel(id, pos, { scl.x, scl.y, 1.0f }, rotation);
+			scene.ClampToWalkArea(g);
+			};
+
+		// ---------- Texture (with reset) ----------
+		if (ImGui::InputText("Texture", texBuf, IM_ARRAYSIZE(texBuf))) {
+			scene.SetObjectTexturePath(id, texBuf);
+			if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(texBuf)), texBuf))
+				g->SetTexture(tex);
+		}
+		if (ImGui::BeginPopupContextItem("tex_ctx")) {
+			if (ImGui::MenuItem("Reset texture")) {
+				std::snprintf(texBuf, sizeof(texBuf), "%s", def.texture.c_str());
+				scene.SetObjectTexturePath(id, texBuf);
+				if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(texBuf)), texBuf))
+					g->SetTexture(tex);
+			}
+			ImGui::EndPopup();
+		}
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Right-click to reset");
+
+		// ---------- Tag (with reset) ----------
+		ImGui::InputText("Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
+		if (ImGui::BeginPopupContextItem("tag_ctx")) {
+			if (ImGui::MenuItem("Reset tag")) {
+				std::snprintf(tagBuf, sizeof(tagBuf), "%s", def.tag.c_str());
+			}
+			ImGui::EndPopup();
+		}
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Right-click to reset");
+
+		// ---------- Position / Size / Rotation ----------
+		Drag2Reset("Position", &pos.x, ImVec2(def.pos.x, def.pos.y), 1.0f, [&](bool) { ApplyTransform(); });
+		Drag2Reset("Size (w,h)", &scl.x, ImVec2(def.size.x, def.size.y), 1.0f, [&](bool) { ApplyTransform(); });
+		Drag1Reset("Rotation (deg)", &rotation, def.rot, 0.25f, [&](bool) { ApplyTransform(); });
+
+		// ---------- Collider ----------
+		Drag2Reset("Collider (w,h)", &cs.x, ImVec2(def.colSize.x, def.colSize.y), 1.0f, [&](bool) {
+			g->SetColliderSize({ cs.x, cs.y });
+			});
+		Drag2Reset("Collider offset", &co.x, ImVec2(def.colOff.x, def.colOff.y), 1.0f, [&](bool) {
+			g->SetColliderOffset({ co.x, co.y });
+			});
+
+		// ---------- Velocity ----------
+		Drag2Reset("Velocity (x,y)", &vel.x, ImVec2(def.vel.x, def.vel.y), 1.0f, [&](bool) {
+			scene.SetNPCVelocity(id, vel.x, vel.y);
+			});
+
+		// Dinos: choose animation (optional reset to IDLE if you want)
+		if (scene.HasAnimations(id)) {
+			// read the list and current name for THIS object
+			std::vector<std::string> names = scene.GetAnimationList(id);
+			std::string cur = scene.GetCurrentAnimationName(id);
+
+			// compute the currently selected index
+			int sel = 0;
+			for (int i = 0; i < (int)names.size(); ++i) {
+				if (names[i] == cur) { sel = i; break; }
+			}
+
+			// ImGui combo: each object gets its own selection
+			if (ImGui::BeginCombo("Start animation", cur.empty() ? "(none)" : cur.c_str())) {
+				for (int i = 0; i < (int)names.size(); ++i) {
+					bool selected = (i == sel);
+					if (ImGui::Selectable(names[i].c_str(), selected)) {
+						scene.SetAnimation(id, names[i]);   // switch THIS object's animation
+					}
+					if (selected) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			// Optional: right-click reset to "IDLE"
+			if (ImGui::BeginPopupContextItem("anim_ctx")) {
+				if (ImGui::MenuItem("Reset animation")) {
+					scene.SetAnimation(id, "IDLE");
+				}
+				ImGui::EndPopup();
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Right-click to reset");
+		}
+
+
+		// ---------- Final apply (keep maps in sync) ----------
+		scene.SetTransformFromLevel(id, pos, { scl.x, scl.y, 1.0f }, rotation);
+		g->SetColliderSize({ cs.x, cs.y });
+		g->SetColliderOffset({ co.x, co.y });
+		scene.SetNPCVelocity(id, vel.x, vel.y);
+
+		// Update special IDs if tag changed
+		std::string newTag = tagBuf;
+		if (newTag == "player") scene.SetPlayerID(id);
+		if (newTag == "npc1")   scene.SetNPC1ID(id);
+		if (newTag == "npc2")   scene.SetNPC2ID(id);
+		if (newTag == "dino")   scene.SetDinoID(id);
+	}
+
 	// Add / Remove
 	if (ImGui::Button("Add Object")) {
 		LevelObject o{};                  // value-init defaults
@@ -161,6 +329,17 @@ void LevelEditor::DrawUI(Scene& scene) {
 			g->SetColliderOffset({ o.col_offx, o.col_offy });
 			scene.SetObjectTexturePath(g->GetID(), o.texture);
 		}
+
+		Scene::Defaults d;
+		d.pos = { o.x, o.y, o.z };
+		d.size = { o.w, o.h };
+		d.rot = o.rotation;
+		d.colSize = { o.col_w, o.col_h };
+		d.colOff = { o.col_offx, o.col_offy };
+		d.vel = { 0.f, o.speed_y };
+		d.texture = o.texture;
+		d.tag = o.tag;
+		scene.SetDefaults(g->GetID(), d);
 	}
 
 	ImGui::SameLine();
