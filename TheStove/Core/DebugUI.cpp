@@ -6,7 +6,7 @@ AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
 
 DESCRIPTION:		The definitions of functions for the debugger window.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -18,7 +18,7 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 namespace Debug
 {
 	// Constructor
-	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, coreEngine{ nullptr }, openedDebugger{ true }, isInitialised{ true }
+	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, coreEngine{ nullptr }, openedDebugger { true }, isInitialised{ false }
 	{
 		crashlogFile.open("Debug_Log.txt", std::ios::app); // Set to append mode
 
@@ -49,41 +49,20 @@ namespace Debug
 
 
 	// Implicit dtor for the debugger
-	void DebuggerApp::Shutdown()
-	{
-		// if (isInitialised)
-		// {
-			// std::cout << "Shutting down ImGui backends..." << std::endl;
-			
-			// // Clear all debug data structures
-			// debuglines.clear();
-			// sysPerformance.clear();
-			
-			// // Shutdown ImGui backends in proper order
-			// ImGui_ImplOpenGL3_Shutdown();
-			// ImGui_ImplGlfw_Shutdown();
-			
-			// // Get IO to clear any cached data
-			// ImGuiIO& io = ImGui::GetIO();
-			// io.Fonts->Clear(); // Clear font atlas
-			
-			// // Destroy ImGui context
-			// ImGui::DestroyContext();
-			
-			// isInitialised = false;
-			// debugWindow = nullptr;
-			// coreEngine = nullptr;
-
-			isInitialised = false; // only mark state, do not shutdown ImGui here
-			
-			std::cout << "Debugger shutdown complete" << std::endl;
-		//}
+	void DebuggerApp::Shutdown() {
+		isInitialised = false; // only mark state, do not shutdown ImGui here
+		std::cout << "Debugger Destructed with Shutdown\n";
 	}
 
 	bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow, CoreFramework::CoreEngine* coreEnginePtr)
 	{
+		if (!glfwInit())
+		{
+			return false;
+		}
+
 		debugWindow = externalWindow;
-		coreEngine = coreEnginePtr; // Store the CoreEngine pointer
+		coreEngine = coreEnginePtr;
 		glfwMakeContextCurrent(debugWindow);
 
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -91,17 +70,6 @@ namespace Debug
 			std::cerr << "Failed to initialize OpenGL context\n";
 			return false;
 		}
-
-		// Setup ImGui
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-
-		ImGui::StyleColorsDark();
-
-		ImGui_ImplGlfw_InitForOpenGL(debugWindow, true);
-		ImGui_ImplOpenGL3_Init("#version 330");
 
 		isInitialised = true;
 		return true;
@@ -117,10 +85,7 @@ namespace Debug
 		}
 
 		// update system performance %tages
-		if (coreEngine)
-		{
-			UpdateSystemTimes(coreEngine->GetDeltaTime());
-		}
+		UpdateSystemTimes(coreEngine->GetDeltaTime());
 	}
 
 	void DebuggerApp::RenderDebuggerApp()
@@ -132,6 +97,18 @@ namespace Debug
 
 		if (ImGui::GetCurrentContext() == nullptr) {
 			return;
+		}
+
+		try {
+			ImGuiIO& io = ImGui::GetIO();
+			(void)io; // Suppress unused variable warning
+
+			if (ImGui::GetWindowDrawList() == nullptr) {
+				return; // Not in a valid frame scope
+			}
+		}
+		catch (...) {
+			return; // If any exception occurs, don't render
 		}
 
 		// Create my window
@@ -236,10 +213,16 @@ namespace Debug
 			}
 		}
 
-		// Show the debug log infomation window
-		ShowDebugLog();
-
 		ImGui::End();
+
+		// Show the debug log infomation window
+		// Only show debug log if we can safely call ImGui
+		try {
+			ShowDebugLog();
+		}
+		catch (...) {
+			// Ignore any ImGui errors in debug log
+		}
 	}
 
 	// Currently not in use
@@ -277,11 +260,11 @@ namespace Debug
 
 		// Access systems from the stored CoreEngine pointer
 		if (!coreEngine) return;
-		
+
 		const auto& systems = coreEngine->GetSystems();
 
 		// For each system found in systems, record down their name and %tage usage of the current engine
-		for (const auto& sys : systems)
+		for (auto const& sys : systems)
 		{
 			float percent = (totalDt > 0.0f) ? (sys->lastDt / totalDt) * 100.0f : 0.0f;
 			sysPerformance.push_back({ sys->GetName(), percent });
@@ -303,6 +286,10 @@ namespace Debug
 	// Opens up an ImGui window for debug log infomation to be outputted here
 	void DebuggerApp::ShowDebugLog()
 	{
+		if (ImGui::GetCurrentContext() == nullptr) {
+			return;
+		}
+
 		ImGui::Begin("Debug Log from std::cout");
 
 		// Clear logs if the button was pressed
@@ -320,4 +307,3 @@ namespace Debug
 		ImGui::End();
 	}
 }
-

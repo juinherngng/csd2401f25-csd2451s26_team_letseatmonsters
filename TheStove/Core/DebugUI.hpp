@@ -1,12 +1,12 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			ImGuiDebugger.hpp
+FILE NAME:			DebugUI.hpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
 
 DESCRIPTION:		The declarations of functions for the debugger window.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -22,7 +22,6 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 #include "Precompiled.hpp"
 #include "AudioManager.hpp"
 
-// Forward declaration to avoid circular dependency
 namespace CoreFramework { class CoreEngine; }
 
 struct SystemPerformance

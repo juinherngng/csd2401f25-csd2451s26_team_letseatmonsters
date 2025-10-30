@@ -437,12 +437,13 @@ static void draw(ApplicationState& app) {
     app.currentScene->DrawUI();
 	drawList.clear();
 	app.currentScene->CollectRenderablePointers(drawList);
-    app.graphicsEngine->Render(drawList);
 
     if (app.debugApp->IsActive())
     {
         app.debugApp->RenderDebuggerApp();
     }
+
+    app.graphicsEngine->Render(drawList);
 
     glfwSwapBuffers(app.window);
 }
