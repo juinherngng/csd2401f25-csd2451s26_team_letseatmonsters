@@ -95,6 +95,33 @@ const std::string& Scene::GetObjectTexturePath(int id) const {
 }
 void Scene::SetObjectTexturePath(int id, const std::string& path) { mTexturePathByID[id] = path; }
 
+void Scene::ClearAll() {
+	sceneObjects.clear();
+	mTexturePathByID.clear();
+	animators.clear();
+	objectAnimations.clear();
+	currentAnimation.clear();
+	spritePositions.clear();
+	spriteScales.clear();
+	spriteRotations.clear();
+	spriteID = otherID = otherID2 = dinoID = -1;
+}
+
+void Scene::SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation)
+{
+	// populate the maps so Update() reads correct values on first frame
+	spritePositions[id] = pos;
+	spriteScales[id] = scale;
+	spriteRotations[id] = rotation;
+
+	// also sync the GameObject right now (so it renders correctly before first Update)
+	if (auto* g = GetGameObjectByID(id)) {
+		g->SetPosition(pos);
+		g->SetScale(scale);
+		g->SetRotation(rotation, { 0,0,1 });
+	}
+}
+
 // Quick hit-test for a point against a center-anchored AABB.
 static inline bool PointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale) {
 	const float hx = scale.x * 0.5f;
@@ -106,9 +133,19 @@ static inline bool PointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec
 Scene::Scene(GraphicsEngine& engine) : graphicsEngine(engine) {}
 
 void Scene::LoadScene(const std::string& sceneName) {
-	(void)sceneName; // Suppress unused parameter warning
-	LoadTest();
+	(void)sceneName;
+
+	// Optional: just pre-fill the path field for convenience
+	mLevelEditor.SetPath("../levels/kitchen01.json");
+
+	// Ensure we start EMPTY per rubric (no auto-spawned objects)
+	ClearAll();                         // add function below
+
+	// You can keep a background even with an empty level (or move this into JSON later)
+	SetSceneBackground("../assets/Background.png");
+	BuildLevelColliders();
 }
+
 
 // Spawners/background/lookup
 GameObject* Scene::SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation) {
@@ -254,6 +291,27 @@ std::vector<glm::vec4> GenerateFrames(int startFrame, int frameCount, int totalC
 		frames.emplace_back(offsetX, offsetY, frameWidth, frameHeight);
 	}
 	return frames;
+}
+
+void Scene::AttachDinoAnimations(int objID) {
+	// same frame setup as your old LoadTest
+	const int cols = 24;
+	const int rows = 1;
+	const float frameWidth = 1.0f / float(cols);
+	const float frameHeight = 1.0f / float(rows);
+
+	std::vector<glm::vec4> idleFrames = GenerateFrames(0, 4, cols, frameWidth, frameHeight);
+	std::vector<glm::vec4> walkFrames = GenerateFrames(4, 6, cols, frameWidth, frameHeight);
+	std::vector<glm::vec4> attackFrames = GenerateFrames(6, 7, cols, frameWidth, frameHeight);
+
+	Animator2D idle;   idle.SetFrames(idleFrames, 0.25f, true); idle.Play();
+	Animator2D walk;   walk.SetFrames(walkFrames, 0.15f, true); walk.Play();
+	Animator2D attack; attack.SetFrames(attackFrames, 0.15f, true); attack.Play();
+
+	objectAnimations[objID]["IDLE"] = idle;
+	objectAnimations[objID]["WALK"] = walk;
+	objectAnimations[objID]["ATTACK"] = attack;
+	currentAnimation[objID] = "IDLE";
 }
 
 // Test scene setup
@@ -487,8 +545,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Per-frame state
 	static Math::Vector2D desiredMoveM{ 0.f, 0.f };
 	static Math::Vector2D playerVelM{ 0.f, 0.f };
-	static Math::Vector2D other1VelM{ 0.f, 100.f };
-	static Math::Vector2D other2VelM{ 0.f, -100.f };
+	Math::Vector2D other1VelM = toM(GetNPCVelocity(otherID));
+	Math::Vector2D other2VelM = toM(GetNPCVelocity(otherID2));
 
 	desiredMoveM = Math::Vector2D(0.f, 0.f);
 
@@ -681,6 +739,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		Math::Vector3D p1M = toM(*o1position);
 		Math::Vector3D p2M = toM(*o2position);
 		physics::ElasticBounceEqualMass(other1, other2, p1M, p2M, other1VelM, other2VelM);
+		// write updated bounce velocities back to the map
+		npcVelocities_[otherID] = toG(other1VelM);
+		npcVelocities_[otherID2] = toG(other2VelM);
+
 		*o1position = toG(p1M);
 		*o2position = toG(p2M);
 		other1->SetPosition(*o1position);

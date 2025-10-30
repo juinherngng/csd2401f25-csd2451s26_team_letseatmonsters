@@ -17,7 +17,20 @@
 
 struct LevelObject {
 	std::string texture;
-	float x{}, y{}, w{ 128 }, h{ 128 }, rotation{ 0 };
+	std::string tag;        // e.g., "player", "npc1", "npc2", "dino"
+
+	float x = 0.f, y = 0.f, z = 0.f;   // z optional
+	float w = 128.f, h = 128.f;
+	float rotation = 0.f;
+
+	// collider
+	float col_w = 64.f, col_h = 128.f;
+	float col_offx = 0.f, col_offy = 0.f;
+
+	// optional motion (for simple NPC lane movers, etc.)
+	float speed_x = 0.f, speed_y = 0.f;
+
+	bool animated = false;  // if true, we’ll use animated spawn
 };
 
 struct LevelData {

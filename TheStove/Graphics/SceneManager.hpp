@@ -108,6 +108,29 @@ public:
 	void SetObjectTexturePath(int id, const std::string& path);
 	void DrawUI();
 
+	void SetPlayerID(int id) { spriteID = id; }
+	void SetNPC1ID(int id) { otherID = id; }
+	void SetNPC2ID(int id) { otherID2 = id; }
+	void SetDinoID(int id) { dinoID = id; }
+
+	int  GetPlayerID() const { return spriteID; }
+	int  GetNPC1ID()   const { return otherID; }
+	int  GetNPC2ID()   const { return otherID2; }
+	int  GetDinoID()   const { return dinoID; }
+
+	void AttachDinoAnimations(int objID);
+
+	void ClearAll();
+
+	// Set initial transform into the scene maps and the GameObject
+	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
+
+	void SetNPCVelocity(int id, float vx, float vy) { npcVelocities_[id] = { vx, vy }; }
+	glm::vec2 GetNPCVelocity(int id) const {
+		auto it = npcVelocities_.find(id);
+		return (it != npcVelocities_.end()) ? it->second : glm::vec2(0.0f);
+	}
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -160,4 +183,6 @@ private:
 
 	LevelEditor mLevelEditor; // PC editor
 	std::unordered_map<int, std::string> mTexturePathByID;
+
+	std::unordered_map<int, glm::vec2> npcVelocities_;
 };

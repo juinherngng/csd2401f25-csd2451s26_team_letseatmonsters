@@ -42,30 +42,89 @@ void LevelEditor::DrawUI(Scene& scene) {
 	if (!open) enabled_ = false;
 
 	ImGui::Begin("Level Editor");
-	levelPath_ = "../levels/kitchen01.json";
+
+	// editable level path once
+	static char pathBuf[256] = "../levels/kitchen01.json";
+	if (levelPath_.empty()) levelPath_ = pathBuf; // init once
+	ImGui::InputText("Level path", pathBuf, IM_ARRAYSIZE(pathBuf));
+	levelPath_ = pathBuf;
 
 	if (ImGui::Button("Load Level")) {
 		if (LevelSerializer::Load(levelPath_, level_)) {
-			// clear opt., then spawn
+			// start clean so the scene only reflects the file
+			scene.ClearAll();
+
 			for (auto& o : level_.objects) {
-				auto* g = scene.SpawnStaticSprite(o.texture, { o.x,o.y,0 }, { o.w,o.h });
-				if (g) scene.SetObjectTexturePath(g->GetID(), o.texture);
+				GameObject* g = nullptr;
+				if (o.animated) {
+					g = scene.SpawnAnimatedSprite(o.texture, { o.x, o.y, o.z }, { o.w, o.h }, /*frames*/{}, 0.2f, true);
+				}
+				else {
+					g = scene.SpawnStaticSprite(o.texture, { o.x, o.y, o.z }, { o.w, o.h });
+				}
+				if (!g) continue;
+
+				g->SetRotation(o.rotation, { 0,0,1 });
+				g->SetColliderSize({ o.col_w, o.col_h });
+				g->SetColliderOffset({ o.col_offx, o.col_offy });
+				scene.SetObjectTexturePath(g->GetID(), o.texture);
+
+				scene.SetTransformFromLevel(
+					g->GetID(),
+					{ o.x, o.y, o.z },
+					{ o.w, o.h, 1.0f },
+					o.rotation
+				);
+
+				// assign special IDs by tag
+				if (o.tag == "player") scene.SetPlayerID(g->GetID());
+				if (o.tag == "npc1") {
+					scene.SetNPC1ID(g->GetID());
+					scene.SetNPCVelocity(g->GetID(), 0.f, o.speed_y); // JSON drives Y speed
+				}
+				if (o.tag == "npc2") {
+					scene.SetNPC2ID(g->GetID());
+					scene.SetNPCVelocity(g->GetID(), 0.f, o.speed_y);
+				}
+
+				if (o.tag == "dino") {
+					scene.SetDinoID(g->GetID());
+					scene.AttachDinoAnimations(g->GetID());   // <-- only for dinos
+				}
 			}
 		}
 	}
+
 	ImGui::SameLine();
 	if (ImGui::Button("Save Level")) {
-		// snapshot scene -> level_
 		level_.objects.clear();
 		std::vector<GameObject*> objs; scene.CollectRenderablePointers(objs);
 		for (auto* g : objs) {
 			if (!g) continue;
+
 			LevelObject o;
-			auto p = g->GetPositionGLM();
-			auto s = g->GetScaleGLM();
-			o.x = p.x; o.y = p.y; o.w = s.x; o.h = s.y;
-			o.rotation = g->GetRotationAngleZ();
 			o.texture = scene.GetObjectTexturePath(g->GetID());
+			const auto p = g->GetPositionGLM();
+			const auto s = g->GetScaleGLM();
+			o.x = p.x; o.y = p.y; o.z = p.z;
+			o.w = s.x; o.h = s.y;
+			o.rotation = g->GetRotationAngleZ();
+
+			const auto cs = g->GetColliderSize();
+			const auto co = g->GetColliderOffset();
+			o.col_w = cs.x; o.col_h = cs.y;
+			o.col_offx = co.x; o.col_offy = co.y;
+
+			// infer tag for special IDs
+			if (g->GetID() == scene.GetPlayerID()) o.tag = "player";
+			if (g->GetID() == scene.GetNPC1ID())   o.tag = "npc1";
+			if (g->GetID() == scene.GetNPC2ID())   o.tag = "npc2";
+			if (g->GetID() == scene.GetDinoID())   o.tag = "dino";
+
+			// (Optional) if you add velocity storage:
+			// auto v = scene.GetVelocityFor(g->GetID());
+			// o.speed_x = v.x; o.speed_y = v.y;
+
 			level_.objects.push_back(o);
 		}
 		LevelSerializer::Save(levelPath_, level_);
@@ -87,18 +146,28 @@ void LevelEditor::DrawUI(Scene& scene) {
 
 	// Add / Remove
 	if (ImGui::Button("Add Object")) {
-		LevelObject o{ "../assets/goat_sprite_front.png", 300,300,128,128,0 };
-		auto* g = scene.SpawnStaticSprite(o.texture, { o.x,o.y,0 }, { o.w,o.h });
-		if (g) scene.SetObjectTexturePath(g->GetID(), o.texture);
+		LevelObject o{};                  // value-init defaults
+		o.texture = "../assets/goat_sprite_front.png";
+		o.tag = "npc";               // or "" if none
+		o.x = 300.f;  o.y = 300.f;  o.z = 0.f;
+		o.w = 128.f;  o.h = 128.f;  o.rotation = 0.f;
+		// o.col_w, o.col_h, offsets keep defaults unless you want to set them
+
+		auto* g = scene.SpawnStaticSprite(o.texture, { o.x, o.y, o.z }, { o.w, o.h });
+		if (g) {
+			g->SetColliderSize({ o.col_w, o.col_h });
+			g->SetColliderOffset({ o.col_offx, o.col_offy });
+			scene.SetObjectTexturePath(g->GetID(), o.texture);
+		}
 	}
+
 	ImGui::SameLine();
-	if (ImGui::Button("Remove Selected") && sel >= 0 && sel < (int)objs.size() && objs[sel]) {
+	if (ImGui::Button("Remove Selected") && sel >= 0 && sel < static_cast<int>(objs.size())) {
 		scene.DespawnByID(objs[sel]->GetID());
 		sel = -1;
 	}
 
 	ImGui::End();
-
 }
 
 // helpers: sync scene to LevelData
