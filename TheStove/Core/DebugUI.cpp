@@ -1,12 +1,12 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			ImGuiDebugger.cpp
+FILE NAME:			DebugUI.cpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
 
 DESCRIPTION:		The definitions of functions for the debugger window.
 
-		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -18,7 +18,7 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 namespace Debug
 {
 	// Constructor
-	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, coreEngine{ nullptr }, openedDebugger { true }, isInitialised{ false }
+	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, coreEngine{ nullptr }, openedDebugger{ true }, isInitialised{ false }
 	{
 		crashlogFile.open("Debug_Log.txt", std::ios::app); // Set to append mode
 
