@@ -11,7 +11,6 @@ DESCRIPTION:		Implements initialization, default resource loading, background ha
 ----------------------------------------------------------------------------------------------------
 */
 
-
 #include <iostream>
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
@@ -51,6 +50,8 @@ void GraphicsEngine::Initialize() {
 	if (!s_imguiInitialized) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		ImGui::StyleColorsDark();
 		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
@@ -165,7 +166,32 @@ void GraphicsEngine::BeginImGuiFrame() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
+
+	// DockSpace host (lets all editor windows dock/undock)
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->WorkPos);
+	ImGui::SetNextWindowSize(viewport->WorkSize);
+	ImGui::SetNextWindowViewport(viewport->ID);
+
+	ImGuiWindowFlags hostFlags =
+		ImGuiWindowFlags_NoDocking |
+		ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
+		ImGuiWindowFlags_NoBackground;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+	if (ImGui::Begin("###DockSpaceHost", nullptr, hostFlags)) {
+		ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
+		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+	}
+
+	ImGui::End();
+	ImGui::PopStyleVar(2);
 }
+
 
 void GraphicsEngine::EndImGuiFrame() {
 	ImGui::Render();
