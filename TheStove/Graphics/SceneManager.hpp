@@ -36,6 +36,8 @@
   */
 class Scene {
 public:
+	// Core Lifecycle
+
 	/**
 	 * @brief Construct a new Scene object.
 	 * @param engine Reference to the graphics engine used for rendering.
@@ -54,6 +56,11 @@ public:
 	 * @param window Active GLFW window for input.
 	 */
 	void Update(float deltaTime, GLFWwindow* window);
+
+	void DrawUI();
+	void ClearAll();
+
+	// Spawning / Object Management
 
 	/**
 	 * @brief Spawns a triangle mesh object.
@@ -81,21 +88,35 @@ public:
 		float frameDuration, bool loop);
 
 	/**
-	 * @brief Set the background texture for the scene.
-	 */
-	void SetSceneBackground(const std::string& texturePath);
-
-	/**
 	 * @brief Retrieve a game object by its ID.
 	 */
 	GameObject* GetGameObjectByID(int targetID);
+	std::vector<GameObject*> GetAllObjectsRaw();
 
 	/**
 	 * @brief Remove a game object by its ID, including its animations.
 	 */
 	void DespawnByID(int targetID);
 
-	// Animation query & control (per object)
+	/**
+	 * @brief Collect raw pointers to all renderable game objects.
+	 */
+	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
+
+	// Scene / Transform Utilities
+
+	/**
+	 * @brief Set the background texture for the scene.
+	 */
+	void SetSceneBackground(const std::string& texturePath);
+
+	// Set initial transform into the scene maps and the GameObject
+	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
+	void ClampToWalkArea(GameObject* obj);
+	const std::string& GetObjectTexturePath(int id) const;
+	void SetObjectTexturePath(int id, const std::string& path);
+
+	// Animation
 	bool HasAnimations(int id) const;
 	std::vector<std::string> GetAnimationList(int id) const;
 	std::string GetCurrentAnimationName(int id) const;
@@ -104,46 +125,31 @@ public:
 	 * @brief Change the active animation of an object by ID.
 	 */
 	void SetAnimation(int objID, const std::string& newAnim);
+	void AttachDinoAnimations(int objID);
 
-	/**
-	 * @brief Collect raw pointers to all renderable game objects.
-	 */
-	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
-
-	std::vector<GameObject*> GetAllObjectsRaw();
-	const std::string& GetObjectTexturePath(int id) const;
-	void SetObjectTexturePath(int id, const std::string& path);
-	void DrawUI();
-
+	// ID Accessors
 	void SetPlayerID(int id) { spriteID = id; }
 	void SetNPC1ID(int id) { otherID = id; }
 	void SetNPC2ID(int id) { otherID2 = id; }
 	void SetDinoID(int id) { dinoID = id; }
 
-	int  GetPlayerID() const { return spriteID; }
-	int  GetNPC1ID()   const { return otherID; }
-	int  GetNPC2ID()   const { return otherID2; }
-	int  GetDinoID()   const { return dinoID; }
+	int GetPlayerID() const { return spriteID; }
+	int GetNPC1ID() const { return otherID; }
+	int GetNPC2ID() const { return otherID2; }
+	int GetDinoID() const { return dinoID; }
 
-	void AttachDinoAnimations(int objID);
-
-	void ClearAll();
-
-	// Set initial transform into the scene maps and the GameObject
-	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
-
+	// NPC Velocity
 	void SetNPCVelocity(int id, float vx, float vy) { npcVelocities_[id] = { vx, vy }; }
 	glm::vec2 GetNPCVelocity(int id) const {
 		auto it = npcVelocities_.find(id);
 		return (it != npcVelocities_.end()) ? it->second : glm::vec2(0.0f);
 	}
 
-	void ClampToWalkArea(GameObject* obj);
-
+	// Defaults Struct
 	struct Defaults {
 		glm::vec3 pos{ 0,0,0 };
 		glm::vec2 size{ 128,128 };
-		float     rot{ 0.f };
+		float rot{ 0.f };
 		glm::vec2 colSize{ 64,128 };
 		glm::vec2 colOff{ 0,0 };
 		glm::vec2 vel{ 0,0 };
@@ -203,21 +209,20 @@ private:
 	int stuckFrames = 0;
 	static constexpr int kStuckFramesToCancel = 12;
 
+	// Debug / Editor
 	bool showAuxDebug_ = true;
-
+	LevelEditor mLevelEditor;
+	std::unordered_map<int, std::string> mTexturePathByID;
 	SpatialGrid mSpatialGrid{ 128.0f };
 
-	LevelEditor mLevelEditor; // PC editor
-	std::unordered_map<int, std::string> mTexturePathByID;
-
+	// NPC / Defaults Data
 	std::unordered_map<int, glm::vec2> npcVelocities_;
-
 	std::unordered_map<int, Defaults> defaults_;
 
+	// Physics / Forces
 	ForceRegistry mForceRegistry{};
 	RigidBody2D* playerRB_ = nullptr;
 	Math::Vector2D seekTargetM{ 0.f, 0.f };
-	Math::Vector2D  playerPosM2D_{ 0.f, 0.f };
-
+	Math::Vector2D playerPosM2D_{ 0.f, 0.f };
 	bool useForceForClickMove_ = false;
 };
