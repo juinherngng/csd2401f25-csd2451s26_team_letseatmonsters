@@ -22,6 +22,11 @@ DESCRIPTION:		Implements initialization, default resource loading, background ha
 
 static bool s_imguiInitialized = false;
 
+GraphicsEngine& GraphicsEngine::Instance() {
+	static GraphicsEngine instance;
+	return instance;
+}
+
 // Constructor: Initializes references and identity matrices for view/projection.
 GraphicsEngine::GraphicsEngine()
 	: resourceManager(ResourceManager::Instance()),
@@ -34,10 +39,7 @@ GraphicsEngine::GraphicsEngine()
 void GraphicsEngine::Initialize() {
 	renderer.Initialize();
 	renderer.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-	glViewport(0, 0, 1200, 800);
-
-	// Setup matrices
-	projection = glm::ortho(0.0f, 1200.0f, 800.0f, 0.0f);
+	Resize(1200, 800);
 	view = glm::mat4(1.0f);
 
 	// Load default resources
@@ -53,6 +55,34 @@ void GraphicsEngine::Initialize() {
 		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
 		s_imguiInitialized = true;
+	}
+}
+
+const glm::mat4& GraphicsEngine::GetProjection() const {
+	return projection;
+}
+
+const glm::mat4& GraphicsEngine::GetView() const {
+	return view;
+}
+
+void GraphicsEngine::Resize(int width, int height) {
+	if (width <= 0 || height <= 0) {
+		return;
+	}
+
+	screenWidth = width;
+	screenHeight = height;
+
+	glViewport(0, 0, width, height);
+
+	// Pixel-space ortho with origin at bottom-left
+	projection = glm::ortho(0.0f, static_cast<float>(width), static_cast<float>(height), 0.0f);
+
+	// Keep the background covering the screen
+	if (backgroundObject) {
+		backgroundObject->SetPosition(glm::vec3(screenWidth * 0.5f, screenHeight * 0.5f, 0.0f));
+		backgroundObject->SetScale(glm::vec3(static_cast<float>(screenWidth), static_cast<float>(screenHeight), 1.0f));
 	}
 }
 
@@ -116,8 +146,8 @@ void GraphicsEngine::SetBackground(const std::string& texturePath) {
 		if (quadMesh && textureShader) {
 			backgroundObject = std::make_unique<GameObject>(quadMesh, textureShader);
 			// Position background to fill screen
-			backgroundObject->SetPosition(glm::vec3(600.0f, 400.0f, 0.0f)); // Center of 1200x800 screen
-			backgroundObject->SetScale(glm::vec3(1200.0f, 800.0f, 1.0f));   // Full screen size
+			backgroundObject->SetPosition(glm::vec3(screenWidth * 0.5f, screenHeight * 0.5f, 0.0f));
+			backgroundObject->SetScale(glm::vec3(static_cast<float>(screenWidth), static_cast<float>(screenHeight), 1.0f));
 		}
 	}
 

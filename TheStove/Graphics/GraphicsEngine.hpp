@@ -42,17 +42,29 @@ public:
 	void BeginImGuiFrame(); // call at start of each frame
 	void EndImGuiFrame(); // call at end of each frame
 
+	void Resize(int width, int height);
+	int GetWidth() const { return screenWidth; }
+	int GetHeight() const { return screenHeight; }
+
+	const glm::mat4& GetProjection() const;
+	const glm::mat4& GetView() const;
+
+	static GraphicsEngine& Instance();
+
 private:
 	Renderer renderer;
 	ResourceManager& resourceManager;
+
+	int screenWidth = 1200;
+	int screenHeight = 800;
 
 	// Game Object rendering
 	std::vector<std::unique_ptr<GameObject>> gameObjects;
 	// Background rendering
 	std::unique_ptr<GameObject> backgroundObject;
 
-	glm::mat4 projection;
-	glm::mat4 view;
+	glm::mat4 view{ 1.0f };
+	glm::mat4 projection{ 1.0f };
 
 	void LoadDefaultResources();
 };

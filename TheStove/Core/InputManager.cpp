@@ -83,3 +83,25 @@ bool InputManager::IsMouseButtonJustPressed(int button) const {
 glm::dvec2 InputManager::GetMousePosition() const {
 	return mMousePos;
 }
+
+glm::vec3 InputManager::ScreenToWorld(float mouseX, float mouseY) const {
+	const int w = GraphicsEngine::Instance().GetWidth();
+	const int h = GraphicsEngine::Instance().GetHeight();
+
+	// Normalize to -1..1 in NDC (OpenGL origin bottom-left)
+	float x = (2.0f * mouseX) / static_cast<float>(w) - 1.0f;
+	float y = 1.0f - (2.0f * mouseY) / static_cast<float>(h);
+	glm::vec4 clipCoords(x, y, -1.0f, 1.0f);
+
+	const glm::mat4 vpInv =
+		glm::inverse(GraphicsEngine::Instance().GetProjection() *
+			GraphicsEngine::Instance().GetView());
+
+	glm::vec4 world = vpInv * clipCoords;
+
+	if (world.w != 0.0f) {
+		world /= world.w;
+	}
+
+	return glm::vec3(world.x, world.y, world.z);
+}

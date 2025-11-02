@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include "../Graphics/GraphicsEngine.hpp"
+
 #include <unordered_map>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -66,6 +68,8 @@ public:
 	 * @return glm::dvec2 representing (x,y) position.
 	 */
 	glm::dvec2 GetMousePosition() const;
+
+	glm::vec3 ScreenToWorld(float mouseX, float mouseY) const;
 
 private:
 	// Keyboard state tracking

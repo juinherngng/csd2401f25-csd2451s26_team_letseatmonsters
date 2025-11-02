@@ -346,7 +346,12 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		// Click-to-Move: selection and target setting
 		if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 			const auto mp = inputManager.GetMousePosition();
-			const glm::vec2 mouse{ static_cast<float>(mp.x), static_cast<float>(mp.y) };
+			const glm::vec3 world = inputManager.ScreenToWorld(
+				static_cast<float>(mp.x),
+				static_cast<float>(mp.y)
+			);
+
+			const glm::vec2 mouse{ world.x, world.y };
 
 			if (!playerSelected) {
 				const Math::Vector2D csize = sprite->GetColliderSize();
@@ -680,8 +685,12 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Final clamps + transforms
 	if (hasPlayer) {
-		position.x = glm::clamp(position.x, 0.0f, kWorldW);
-		position.y = glm::clamp(position.y, 0.0f, kWorldH);
+		const float worldW = static_cast<float>(graphicsEngine.GetWidth());
+		const float worldH = static_cast<float>(graphicsEngine.GetHeight());
+
+		position.x = glm::clamp(position.x, 0.0f, worldW);
+		position.y = glm::clamp(position.y, 0.0f, worldH);
+
 		sprite->SetScale(scale);
 		sprite->SetRotation(rotation, glm::vec3(0, 0, 1));
 		sprite->SetPosition(position);
