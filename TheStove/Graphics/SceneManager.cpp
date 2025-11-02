@@ -18,12 +18,9 @@
 
 #include "SceneManager.hpp"
 
+ // Level constants
 static constexpr float kRefW = 1200.0f;
 static constexpr float kRefH = 800.0f;
-
-// Level constants
-static constexpr float kWorldW = 1200.0f;
-static constexpr float kWorldH = 800.0f;
 
 // Walkable inner rectangle (match to background art)
 static constexpr float kWalkL = 150.0f;  // left
@@ -87,13 +84,6 @@ namespace {
 		}
 	}
 
-	// Quick hit-test for a point against a center-anchored AABB.
-	static inline bool PointInsideCenterAABB(glm::vec2 p, glm::vec3 center, glm::vec3 scale) {
-		const float hx = scale.x * 0.5f;
-		const float hy = scale.y * 0.5f;
-		return (p.x >= center.x - hx && p.x <= center.x + hx && p.y >= center.y - hy && p.y <= center.y + hy);
-	}
-
 	// Utility function to generate UV frames for a sprite sheet
 	std::vector<glm::vec4> GenerateFrames(int startFrame, int frameCount, int totalCols, float frameWidth, float frameHeight) {
 		(void)totalCols; // Suppress unused parameter warning
@@ -126,6 +116,18 @@ const std::string& Scene::GetObjectTexturePath(int id) const {
 }
 void Scene::SetObjectTexturePath(int id, const std::string& path) { mTexturePathByID[id] = path; }
 
+// Converts reference (kRefW/kRefH) X coordinate to current framebuffer X
+float Scene::ScaleXToCurrent(float referenceX) const {
+	const float worldWidth = static_cast<float>(graphicsEngine.GetWidth());
+	return referenceX * worldWidth / kRefW;
+}
+
+// Converts reference (kRefW/kRefH) Y coordinate to current framebuffer Y
+float Scene::ScaleYToCurrent(float referenceY) const {
+	const float worldHeight = static_cast<float>(graphicsEngine.GetHeight());
+	return referenceY * worldHeight / kRefH;
+}
+
 // Core Lifecycle
 Scene::Scene(GraphicsEngine& engine) : graphicsEngine(engine) {}
 
@@ -154,28 +156,75 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
 
 	{
-		static int lastW = 0, lastH = 0;
-		const int curW = graphicsEngine.GetWidth();
-		const int curH = graphicsEngine.GetHeight();
-		if (curW != lastW || curH != lastH)
-		{
-			BuildLevelColliders();   // rebuild with the new size
-			lastW = curW;
-			lastH = curH;
+		// Track the last framebuffer size to compute scale ratios on change
+		static int prevWidth = 0;
+		static int prevHeight = 0;
+
+		const int currentWidth = graphicsEngine.GetWidth();
+		const int currentHeight = graphicsEngine.GetHeight();
+
+		if (currentWidth != prevWidth || currentHeight != prevHeight) {
+			// Scale from old to new (first run uses reference size to avoid drift)
+			const float baseWidth = (prevWidth > 0) ? static_cast<float>(prevWidth) : kRefW;
+			const float baseHeight = (prevHeight > 0) ? static_cast<float>(prevHeight) : kRefH;
+
+			const float xScale = static_cast<float>(currentWidth) / baseWidth;
+			const float yScale = static_cast<float>(currentHeight) / baseHeight;
+
+			// Rescale every object’s position, visual scale, and collider
+			for (auto& objectUniquePtr : sceneObjects) {
+				if (!objectUniquePtr) {
+					continue;
+				}
+
+				GameObject* obj = objectUniquePtr.get();
+
+				// Position
+				glm::vec3 position = obj->GetPositionGLM();
+				position.x *= xScale;
+				position.y *= yScale;
+				obj->SetPosition(position);
+
+				// Visual scale
+				glm::vec3 scale = obj->GetScaleGLM();
+				scale.x *= xScale;
+				scale.y *= yScale;
+				obj->SetScale(scale);
+
+				// Collider (size + offset)
+				Math::Vector2D colliderSize = obj->GetColliderSize();
+				Math::Vector2D colliderOffset = obj->GetColliderOffset();
+				obj->SetColliderSize({ colliderSize.x * xScale, colliderSize.y * yScale });
+				obj->SetColliderOffset({ colliderOffset.x * xScale, colliderOffset.y * yScale });
+
+				// Keep the cached maps in sync
+				const int objectId = obj->GetID();
+				spritePositions[objectId] = obj->GetPositionGLM();
+				spriteScales[objectId] = obj->GetScaleGLM();
+			}
+
+			// Rescale click/seek targets so pathing still points to the same visual spot
+			clickTarget.x *= xScale;
+			clickTarget.y *= yScale;
+			seekTargetM.x *= xScale;
+			seekTargetM.y *= yScale;
+			playerPosM2D_.x *= xScale;
+			playerPosM2D_.y *= yScale;
+
+			// Rebuild static colliders for the new size
+			BuildLevelColliders();
+
+			// Update the previous size markers
+			prevWidth = currentWidth;
+			prevHeight = currentHeight;
 		}
 	}
 
 	// Walk area for clamps (scaled to current framebuffer size)
-	const float worldW = static_cast<float>(graphicsEngine.GetWidth());
-	const float worldH = static_cast<float>(graphicsEngine.GetHeight());
-
-	const auto sx = [&](float x) { return x * worldW / kRefW; };
-	const auto sy = [&](float y) { return y * worldH / kRefH; };
-
 	const collision::WalkArea walk{
-		sx(kWalkL), sx(kWalkR),
-		sy(kWalkT), sy(kWalkB),
-		std::max(sx(kEdgeThick), sy(kEdgeThick))
+	ScaleXToCurrent(kWalkL), ScaleXToCurrent(kWalkR),
+	ScaleYToCurrent(kWalkT), ScaleYToCurrent(kWalkB),
+	std::max(ScaleXToCurrent(kEdgeThick), ScaleYToCurrent(kEdgeThick))
 	};
 
 	// Advance animations (per-object)
@@ -194,7 +243,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Basic transforms
-	const float rotationSpeed = 1.0f * deltaTime; // degrees per second
+	const float rotationSpeed = deltaTime; // degrees per second
 	float moveSpeed = 200.0f * physicsDt;
 
 	GameObject* sprite = nullptr;
@@ -328,7 +377,6 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 
 		// Keyboard WASD movement + facing textures
-		const float movePerFrame = 200.0f * physicsDt; // displacement this frame
 		if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
 			desiredMoveM.y -= moveSpeed; // up
@@ -509,7 +557,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// NPC lane updates
-	const float kLaneX = 1000.0f;
+	const float kLaneX = ScaleXToCurrent(1000.0f);
 	if (other1 != nullptr && o1position != nullptr) {
 		Math::Vector3D posM = toM(*o1position);
 		physics::MoveYLaneWithBounce(mCollision, other1, posM, other1VelM, kLaneX, physicsDt);
@@ -540,20 +588,6 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		other1->SetPosition(*o1position);
 		other2->SetPosition(*o2position);
 	}
-
-	// Split weight logic (your old heuristic)
-	const float intentSpeed = (physicsDt > 0.0f)
-		? (Math::Vector2D(desiredMoveM.x / physicsDt, desiredMoveM.y / physicsDt).Length())
-		: 0.0f;
-	const float other1Speed = other1VelM.Length();
-	const float other2Speed = other2VelM.Length();
-
-	auto pickWeight = [&](float otherSpeed) {
-		constexpr float kIdle = 5.0f;
-		constexpr float kPushBiasIdle = 0.50f;
-		constexpr float kPushBiasMoving = 0.50f;
-		return (otherSpeed < kIdle && intentSpeed > 0.0f) ? kPushBiasIdle : kPushBiasMoving;
-		};
 
 	// Use spatial grid to collide player vs nearby objects (split-weight stop)
 	if (hasPlayer) {
@@ -665,10 +699,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Gate clamp (stage end)
 	const collision::StageEndGateVertical gate{
-	sx(kEndVX0), sx(kEndVX1),
-	sy(kEndVTopMinY), sy(kEndVTopMaxY),
-	sy(kEndVGapMinY), sy(kEndVGapMaxY),
-	sy(kEndVBotMinY), sy(kEndVBotMaxY)
+	ScaleXToCurrent(kEndVX0), ScaleXToCurrent(kEndVX1),
+	ScaleYToCurrent(kEndVTopMinY), ScaleYToCurrent(kEndVTopMaxY),
+	ScaleYToCurrent(kEndVGapMinY), ScaleYToCurrent(kEndVGapMaxY),
+	ScaleYToCurrent(kEndVBotMinY), ScaleYToCurrent(kEndVBotMaxY)
 	};
 
 	if (hasPlayer && sprite) {
@@ -1059,30 +1093,24 @@ void Scene::AttachDinoAnimations(int objID) {
 
 // World / Collision
 void Scene::BuildLevelColliders() {
-	const float worldW = static_cast<float>(graphicsEngine.GetWidth());
-	const float worldH = static_cast<float>(graphicsEngine.GetHeight());
-
-	const auto sx = [&](float x) { return x * worldW / kRefW; };
-	const auto sy = [&](float y) { return y * worldH / kRefH; };
-
 	collision::WalkArea walk{
-		sx(kWalkL), sx(kWalkR),
-		sy(kWalkT), sy(kWalkB),
-		std::max(sx(kEdgeThick), sy(kEdgeThick))
+	ScaleXToCurrent(kWalkL), ScaleXToCurrent(kWalkR),
+	ScaleYToCurrent(kWalkT), ScaleYToCurrent(kWalkB),
+	std::max(ScaleXToCurrent(kEdgeThick), ScaleYToCurrent(kEdgeThick))
 	};
 
 	collision::WoodVertical wood{
-		sx(kWoodX0), sx(kWoodX1),
-		sy(kWoodTopMinY), sy(kWoodTopMaxY),
-		sy(kWoodGapMinY), sy(kWoodGapMaxY),
-		sy(kWoodBotMinY), sy(kWoodBotMaxY)
+		ScaleXToCurrent(kWoodX0), ScaleXToCurrent(kWoodX1),
+		ScaleYToCurrent(kWoodTopMinY), ScaleYToCurrent(kWoodTopMaxY),
+		ScaleYToCurrent(kWoodGapMinY), ScaleYToCurrent(kWoodGapMaxY),
+		ScaleYToCurrent(kWoodBotMinY), ScaleYToCurrent(kWoodBotMaxY)
 	};
 
 	collision::StageEndGateVertical gate{
-		sx(kEndVX0), sx(kEndVX1),
-		sy(kEndVTopMinY), sy(kEndVTopMaxY),
-		sy(kEndVGapMinY), sy(kEndVGapMaxY),
-		sy(kEndVBotMinY), sy(kEndVBotMaxY)
+		ScaleXToCurrent(kEndVX0), ScaleXToCurrent(kEndVX1),
+		ScaleYToCurrent(kEndVTopMinY), ScaleYToCurrent(kEndVTopMaxY),
+		ScaleYToCurrent(kEndVGapMinY), ScaleYToCurrent(kEndVGapMaxY),
+		ScaleYToCurrent(kEndVBotMinY), ScaleYToCurrent(kEndVBotMaxY)
 	};
 
 	mCollision.build(walk, wood, gate);

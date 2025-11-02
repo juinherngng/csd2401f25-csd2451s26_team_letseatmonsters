@@ -172,6 +172,9 @@ private:
 	void BuildLevelColliders();
 	collision::World mCollision;
 
+	float ScaleXToCurrent(float referenceX) const;
+	float ScaleYToCurrent(float referenceY) const;
+
 	// Step-by-step controller
 	physics::StepController physicsStep_;
 
