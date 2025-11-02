@@ -217,4 +217,7 @@ private:
 	ForceRegistry mForceRegistry{};
 	RigidBody2D* playerRB_ = nullptr;
 	Math::Vector2D seekTargetM{ 0.f, 0.f };
+	Math::Vector2D  playerPosM2D_{ 0.f, 0.f };
+
+	bool useForceForClickMove_ = false;
 };

@@ -380,18 +380,20 @@ void Scene::LoadTest() {
 		rb->SetLinearDamping(0.98f);
 		rb->SetUseGravity(false);
 
-		// Store pointer so we can update it later if you want
 		playerRB_ = rb;
+		playerRB_->Stop();
 
-		// Create force generators
+		// neutralize Seek: target == current pos
+		seekTargetM = Math::Vector2D(kSpawnPos.x, kSpawnPos.y);
+		playerPosM2D_ = Math::Vector2D(kSpawnPos.x, kSpawnPos.y);
+
+		// Create force generators (static lifetime = safe)
 		static DragForce drag(0.8f, 0.02f);
-		static SeekForce seek(&seekTargetM, 800.0f);
+		static SeekForce seek(&seekTargetM, &playerPosM2D_, 800.0f);  // NOTE: pass &playerPosM2D_
 
 		// Register forces
 		mForceRegistry.Add(rb, &drag);
 		mForceRegistry.Add(rb, &seek);
-
-		seekTargetM = Math::Vector2D(kSpawnPos.x, kSpawnPos.y);
 
 		// Compute UV frames for a 4x4 grid sprite sheet
 		std::vector<glm::vec4> frames;
@@ -569,14 +571,16 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		playerRB_->SetMass(1.0f);
 		playerRB_->SetLinearDamping(0.98f);
 		playerRB_->SetUseGravity(false);
+		playerRB_->Stop();
 
 		// start seek target at current sprite position
 		const Math::Vector3D p0 = sprite->GetPosition();
 		seekTargetM = Math::Vector2D(p0.x, p0.y);
+		playerPosM2D_ = Math::Vector2D(p0.x, p0.y);
 
 		// register your generators (static so addresses stay valid)
 		static DragForce drag(0.8f, 0.02f);
-		static SeekForce seek(&seekTargetM, 800.0f);
+		static SeekForce seek(&seekTargetM, &playerPosM2D_, 800.0f);  // NOTE: pass &playerPosM2D_
 		mForceRegistry.Add(playerRB_, &drag);
 		mForceRegistry.Add(playerRB_, &seek);
 
@@ -602,6 +606,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	glm::vec3& position = spritePositions[spriteID];
 	glm::vec3& scale = spriteScales[spriteID];
 	float& rotation = spriteRotations[spriteID];
+
+	const Math::Vector2D spritePos2D(position.x, position.y);
 
 	glm::vec3* o1position = nullptr;
 	glm::vec3* o2position = nullptr;
@@ -673,6 +679,16 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		desiredMoveM.x += moveSpeed; // right
 	}
 
+	const bool hasKeyboardInput =
+		(desiredMoveM.x != 0.0f) || (desiredMoveM.y != 0.0f);
+
+	if (hasKeyboardInput) {
+		hasClickTarget = false;                                   // stop click-to-move
+		seekTargetM = Math::Vector2D(position.x, position.y);     // neutralize seek
+		if (playerRB_) playerRB_->Stop();                          // zero physics velocity
+	}
+
+
 	/*if (inputManager.IsKeyPressed(GLFW_KEY_1)) {
 		SetAnimation(dinoID, "WALK");
 		std::cout << "Set to Walk Animation" << std::endl;
@@ -695,6 +711,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		showAuxDebug_ = !showAuxDebug_;
 		std::cout << "[Debug] Points/Lines: " << (showAuxDebug_ ? "ON" : "OFF") << std::endl;
 	}
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_F)) {
+		useForceForClickMove_ = !useForceForClickMove_;
+		std::cout << "[Force] useForceForClickMove_ = "
+			<< (useForceForClickMove_ ? "ON" : "OFF") << "\n";
+	}
 
 	// Click-to-Move behaviour
 	// If player is NOT selected: click must hit the player's collider to select.
@@ -714,6 +735,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 				playerSelected = true;
 				hasClickTarget = false;
 				stuckFrames = 0;
+
+				// neutralize seek + stop right away on selection
+				seekTargetM = Math::Vector2D(position.x, position.y);
+				if (playerRB_) playerRB_->Stop();
 			}
 		}
 		else {
@@ -753,6 +778,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		playerSelected = false;
 		hasClickTarget = false;
 		stuckFrames = 0;
+
+		seekTargetM = Math::Vector2D(position.x, position.y);
+		if (playerRB_) playerRB_->Stop();
 	}
 
 	// Build current AABB from collider size/offset for collision resolution
@@ -765,6 +793,16 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		const glm::vec2 pos2(position.x, position.y);
 		glm::vec2 toTarget = clickTarget - pos2;
 		const float dist = glm::length(toTarget);
+
+		// --- Arrive and stop: if we are close enough, fully stop kinematic & force motion
+		constexpr float kArriveEps = 6.0f; // keep same as SeekForce::arriveRadius
+		if (dist <= kArriveEps) {
+			hasClickTarget = false;                                    // stop kinematic pathing
+			seekTargetM = Math::Vector2D(position.x, position.y);   // neutralize seek target
+			if (playerRB_) playerRB_->Stop();                          // zero velocity
+			desiredMoveM = Math::Vector2D(0.f, 0.f);                   // no displacement this slice
+			// (Optionally) return;   // if nothing else needs to happen in this branch
+		}
 
 		// Update facing each frame while pathing (dominant axis)
 		if (dist > 0.001f) {
@@ -789,9 +827,16 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 
 		if (dist > 0.0f) {
-			const float maxStep = playerSpeed * physicsDt;
-			const glm::vec2 step = (dist <= maxStep) ? toTarget : (toTarget / dist) * maxStep;
-			desiredMoveM = Math::Vector2D(step.x + desiredMoveM.x, step.y + desiredMoveM.y);
+			if (!useForceForClickMove_) {
+				// Kinematic click-to-move (old behavior)
+				const float maxStep = playerSpeed * physicsDt;
+				const glm::vec2 step = (dist <= maxStep) ? toTarget : (toTarget / dist) * maxStep;
+				desiredMoveM = Math::Vector2D(step.x + desiredMoveM.x, step.y + desiredMoveM.y);
+			}
+			else {
+				// Physics will handle movement this frame — don't add kinematic displacement
+				// (prevents "double move" which made the player too fast)
+			}
 		}
 	}
 
@@ -917,13 +962,19 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Apply forces to player movement
 	if (playerRB_) {
-		// Let physics integration run (forces → velocity → position)
-		playerRB_->Update(physicsDt);
+		if (useForceForClickMove_ && hasClickTarget) {
+			// Feed SeekForce the real position and integrate one physics slice
+			playerPosM2D_ = Math::Vector2D(position.x, position.y);
+			playerRB_->Update(physicsDt);
 
-		// Combine force-driven velocity into our desired move for collision
-		Math::Vector2D v = playerRB_->GetVelocity();
-		desiredMoveM.x += v.x * physicsDt;
-		desiredMoveM.y += v.y * physicsDt;
+			Math::Vector2D v = playerRB_->GetVelocity();
+			desiredMoveM.x += v.x * physicsDt;
+			desiredMoveM.y += v.y * physicsDt;
+		}
+		else {
+			// Not using forces this frame: ensure no residual drift
+			playerRB_->Stop();
+		}
 	}
 
 	// Resolve desired movement against world walls (X then Y sweep)
