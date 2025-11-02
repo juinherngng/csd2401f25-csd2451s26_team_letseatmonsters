@@ -18,7 +18,10 @@
 
 #include "SceneManager.hpp"
 
- // Level constants
+static constexpr float kRefW = 1200.0f;
+static constexpr float kRefH = 800.0f;
+
+// Level constants
 static constexpr float kWorldW = 1200.0f;
 static constexpr float kWorldH = 800.0f;
 
@@ -150,8 +153,30 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	inputManager.Update(window);
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
 
-	// Walk area for clamps
-	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	{
+		static int lastW = 0, lastH = 0;
+		const int curW = graphicsEngine.GetWidth();
+		const int curH = graphicsEngine.GetHeight();
+		if (curW != lastW || curH != lastH)
+		{
+			BuildLevelColliders();   // rebuild with the new size
+			lastW = curW;
+			lastH = curH;
+		}
+	}
+
+	// Walk area for clamps (scaled to current framebuffer size)
+	const float worldW = static_cast<float>(graphicsEngine.GetWidth());
+	const float worldH = static_cast<float>(graphicsEngine.GetHeight());
+
+	const auto sx = [&](float x) { return x * worldW / kRefW; };
+	const auto sy = [&](float y) { return y * worldH / kRefH; };
+
+	const collision::WalkArea walk{
+		sx(kWalkL), sx(kWalkR),
+		sy(kWalkT), sy(kWalkB),
+		std::max(sx(kEdgeThick), sy(kEdgeThick))
+	};
 
 	// Advance animations (per-object)
 	for (auto& [id, animMap] : objectAnimations) {
@@ -640,10 +665,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Gate clamp (stage end)
 	const collision::StageEndGateVertical gate{
-	kEndVX0, kEndVX1,
-	kEndVTopMinY, kEndVTopMaxY,
-	kEndVGapMinY, kEndVGapMaxY,
-	kEndVBotMinY, kEndVBotMaxY
+	sx(kEndVX0), sx(kEndVX1),
+	sy(kEndVTopMinY), sy(kEndVTopMaxY),
+	sy(kEndVGapMinY), sy(kEndVGapMaxY),
+	sy(kEndVBotMinY), sy(kEndVBotMaxY)
 	};
 
 	if (hasPlayer && sprite) {
@@ -1034,24 +1059,30 @@ void Scene::AttachDinoAnimations(int objID) {
 
 // World / Collision
 void Scene::BuildLevelColliders() {
+	const float worldW = static_cast<float>(graphicsEngine.GetWidth());
+	const float worldH = static_cast<float>(graphicsEngine.GetHeight());
+
+	const auto sx = [&](float x) { return x * worldW / kRefW; };
+	const auto sy = [&](float y) { return y * worldH / kRefH; };
+
 	collision::WalkArea walk{
-		kWalkL, kWalkR,
-		kWalkT, kWalkB,
-		kEdgeThick
+		sx(kWalkL), sx(kWalkR),
+		sy(kWalkT), sy(kWalkB),
+		std::max(sx(kEdgeThick), sy(kEdgeThick))
 	};
 
 	collision::WoodVertical wood{
-		kWoodX0, kWoodX1,
-		kWoodTopMinY, kWoodTopMaxY,
-		kWoodGapMinY, kWoodGapMaxY,
-		kWoodBotMinY, kWoodBotMaxY
+		sx(kWoodX0), sx(kWoodX1),
+		sy(kWoodTopMinY), sy(kWoodTopMaxY),
+		sy(kWoodGapMinY), sy(kWoodGapMaxY),
+		sy(kWoodBotMinY), sy(kWoodBotMaxY)
 	};
 
 	collision::StageEndGateVertical gate{
-		kEndVX0, kEndVX1,
-		kEndVTopMinY, kEndVTopMaxY,
-		kEndVGapMinY, kEndVGapMaxY,
-		kEndVBotMinY, kEndVBotMaxY
+		sx(kEndVX0), sx(kEndVX1),
+		sy(kEndVTopMinY), sy(kEndVTopMaxY),
+		sy(kEndVGapMinY), sy(kEndVGapMaxY),
+		sy(kEndVBotMinY), sy(kEndVBotMaxY)
 	};
 
 	mCollision.build(walk, wood, gate);
