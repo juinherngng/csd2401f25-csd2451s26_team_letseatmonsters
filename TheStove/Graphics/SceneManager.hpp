@@ -177,11 +177,15 @@ private:
 
 	// Scene objects
 	std::vector<std::unique_ptr<GameObject>> sceneObjects;
-	int nextID = 1;	   // ID counter for sceneObjects
+	int nextID = 0;	   // ID counter for sceneObjects
 	int spriteID = -1; // default invalid ID
 	int dinoID = -1;   // for testing
 	int otherID = -1;
 	int otherID2 = -1;
+
+	// Reuse IDs of despawned objects
+	std::vector<int> mFreeIDs;
+	int AcquireID();
 
 	// Per-object transforms
 	std::unordered_map<int, glm::vec3> spriteScales;

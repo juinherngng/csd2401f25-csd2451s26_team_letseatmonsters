@@ -106,6 +106,16 @@ namespace {
 	}
 }
 
+int Scene::AcquireID() {
+	if (!mFreeIDs.empty()) {
+		int id = mFreeIDs.back();
+		mFreeIDs.pop_back();
+		return id;
+	}
+
+	return nextID++;
+}
+
 const std::string& Scene::GetObjectTexturePath(int id) const {
 	static const std::string kEmpty{};
 	auto it = mTexturePathByID.find(id);
@@ -738,6 +748,9 @@ void Scene::ClearAll() {
 	spriteScales.clear();
 	spriteRotations.clear();
 	spriteID = otherID = otherID2 = dinoID = -1;
+
+	mFreeIDs.clear();
+	nextID = 0;
 }
 
 // Spawning / Object Management
@@ -747,7 +760,7 @@ GameObject* Scene::SpawnTriangle(const glm::vec3 position, const glm::vec3 scale
 	Shader* shader = ResourceManager::Instance().GetShader("basic");
 	if (!mesh || !shader) { std::cerr << "Missing resources for triangle\n"; return nullptr; }
 	auto obj = std::make_unique<GameObject>(mesh, shader);
-	obj->SetID(nextID++);
+	obj->SetID(AcquireID());
 	obj->SetPosition(position);
 	obj->SetScale(scale);
 	obj->SetRotation(glm::radians(rotation), glm::vec3(0, 0, 1));
@@ -765,7 +778,7 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath, const glm::
 	if (!spriteTex || !mesh || !shader) { std::cerr << "Missing resources for static sprite\n"; return nullptr; }
 
 	auto obj = std::make_unique<GameObject>(mesh, shader);
-	obj->SetID(nextID++);
+	obj->SetID(AcquireID());
 	obj->SetPosition(position);
 	obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
 	obj->SetTexture(spriteTex);
@@ -785,7 +798,7 @@ GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath, const glm
 	if (!spriteTex || !mesh || !shader) { std::cerr << "Missing resources for animated sprite\n"; return nullptr; }
 
 	auto obj = std::make_unique<GameObject>(mesh, shader);
-	obj->SetID(nextID++);
+	obj->SetID(AcquireID());
 	obj->SetPosition(position);
 	obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
 	obj->SetTexture(spriteTex);
@@ -827,6 +840,8 @@ void Scene::DespawnByID(int id) {
 	objectAnimations.erase(id);
 	currentAnimation.erase(id);
 
+	mFreeIDs.push_back(id);
+
 	// Invalidate named handles
 	if (spriteID == id) { spriteID = -1; }
 	if (otherID == id) { otherID = -1; }
@@ -867,7 +882,7 @@ void Scene::SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3&
 	if (auto* g = GetGameObjectByID(id)) {
 		g->SetPosition(pos);
 		g->SetScale(scale);
-		g->SetRotation(rotation, { 0,0,1 });
+		g->SetRotation(glm::radians(rotation), { 0,0,1 });
 	}
 }
 

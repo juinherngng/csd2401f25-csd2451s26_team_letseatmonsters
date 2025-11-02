@@ -20,19 +20,23 @@ class Scene;
 
 class LevelEditor {
 public:
-	void Toggle() { enabled_ = !enabled_; }
-	bool IsEnabled() const { return enabled_; }
-	void SetPath(std::string p) { levelPath_ = std::move(p); }
-
-	// Call each frame when enabled
-	void DrawUI(Scene& scene);
-
-	// Call this once at startup
+	// Load level from 'levelPath' into the given scene (spawns objects, sets defaults).
 	bool LoadIntoScene(Scene& scene);
 
+	// Draw the editor ImGui window and apply edits to the scene.
+	void DrawUI(Scene& scene);
+
+	// Toggle editor visibility.
+	void Toggle() { isEnabled = !isEnabled; }
+
+	// Check if the editor UI is enabled (visible).
+	bool IsEnabled() const { return isEnabled; }
+
+	// Set path used by Load/Save.
+	void SetPath(const std::string& path) { levelPath = path; }
+
 private:
-	bool enabled_ = true;
-	int selectedIndex_ = -1;
-	std::string levelPath_ = "../levels/kitchen01.json";
-	LevelData level_;
+	bool isEnabled{ true };
+	std::string levelPath{};
+	LevelData level{};
 };

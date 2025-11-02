@@ -13,371 +13,493 @@
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "LevelEditor.hpp"
+
 #include "imgui.h"
 #include "imgui_internal.h"
 
-static void SyncSceneToLevel(Scene& scene, LevelData& lvl);
-static void SyncLevelToScene(const LevelData& lvl, Scene& scene);
+static void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
+static void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
 
-bool LevelEditor::LoadIntoScene(Scene& scene) {
-	if (!LevelSerializer::Load(levelPath_, level_)) return false;
-	SyncLevelToScene(level_, scene);
+// LevelEditor methods
+bool LevelEditor::LoadIntoScene(Scene& scene)
+{
+	if (!LevelSerializer::Load(levelPath, level)) {
+		return false;
+	}
+
+	SyncLevelToScene(level, scene);
 	return true;
 }
 
 void LevelEditor::DrawUI(Scene& scene) {
-	if (!enabled_) return;
-
-	ImGuiContext* ctx = ImGui::GetCurrentContext();
-	if (!ctx || !ctx->WithinFrameScope) {
-		return; // ImGui frame hasn’t started yet; skip safely
+	if (!isEnabled) {
+		return;
 	}
 
-	bool open = true;
-	if (ImGui::Begin("Level Editor", &open)) {
-		// ... your UI ...
+	ImGuiContext* imguiContext = ImGui::GetCurrentContext();
+	if (imguiContext == nullptr || !imguiContext->WithinFrameScope) {
+		// ImGui frame hasn’t started yet; skip safely.
+		return;
+	}
+
+	bool windowOpen = true;
+	if (ImGui::Begin("Level Editor", &windowOpen)) {
+		// Header space (kept intentionally minimal).
 	}
 	ImGui::End();
 
-	if (!open) enabled_ = false;
+	if (!windowOpen) {
+		isEnabled = false;
+	}
 
 	ImGui::Begin("Level Editor");
 
-	// editable level path once
-	static char pathBuf[256] = "../levels/kitchen01.json";
-	if (levelPath_.empty()) levelPath_ = pathBuf; // init once
-	ImGui::InputText("Level path", pathBuf, IM_ARRAYSIZE(pathBuf));
-	levelPath_ = pathBuf;
+	// File Path Row
+	static char _pathBuf[256] = "../levels/kitchen01.json";
+	if (levelPath.empty()) {
+		levelPath = _pathBuf; // one-time init
+	}
 
+	ImGui::InputText("Level path", _pathBuf, IM_ARRAYSIZE(_pathBuf));
+	levelPath = _pathBuf;
+
+	//  Load 
 	if (ImGui::Button("Load Level")) {
-		if (LevelSerializer::Load(levelPath_, level_)) {
-			// start clean so the scene only reflects the file
+		if (LevelSerializer::Load(levelPath, level)) {
+			// Start clean so the scene only reflects the file.
 			scene.ClearAll();
 
-			for (auto& o : level_.objects) {
-				GameObject* g = nullptr;
-				if (o.animated) {
-					g = scene.SpawnAnimatedSprite(o.texture, { o.x, o.y, o.z }, { o.w, o.h }, /*frames*/{}, 0.2f, true);
+			for (auto& levelObj : level.objects) {
+				GameObject* obj = nullptr;
+				if (levelObj.animated) {
+					obj = scene.SpawnAnimatedSprite(
+						levelObj.texture,
+						{ levelObj.x, levelObj.y, levelObj.z },
+						{ levelObj.w, levelObj.h },
+						/*frames*/{}, 0.2f, true
+					);
 				}
 				else {
-					g = scene.SpawnStaticSprite(o.texture, { o.x, o.y, o.z }, { o.w, o.h });
+					obj = scene.SpawnStaticSprite(
+						levelObj.texture,
+						{ levelObj.x, levelObj.y, levelObj.z },
+						{ levelObj.w, levelObj.h }
+					);
 				}
-				if (!g) continue;
 
-				g->SetRotation(o.rotation, { 0,0,1 });
-				g->SetColliderSize({ o.col_w, o.col_h });
-				g->SetColliderOffset({ o.col_offx, o.col_offy });
-				scene.SetObjectTexturePath(g->GetID(), o.texture);
+				if (!obj) {
+					continue;
+				}
 
-				Scene::Defaults d;
-				d.pos = { o.x, o.y, o.z };
-				d.size = { o.w, o.h };
-				d.rot = o.rotation;
-				d.colSize = { o.col_w, o.col_h };
-				d.colOff = { o.col_offx, o.col_offy };
-				d.vel = { 0.f, o.speed_y };
-				d.texture = o.texture;
-				d.tag = o.tag;
-				scene.SetDefaults(g->GetID(), d);
+				// NOTE: Rotation in levelObj.rotation is DEGREES at the editor/JSON layer.
+				// Convert to radians at GameObject boundary if your SetRotation expects radians.
+				obj->SetRotation(glm::radians(levelObj.rotation), { 0, 0, 1 });
 
+				obj->SetColliderSize({ levelObj.colWidth, levelObj.colHeight });
+				obj->SetColliderOffset({ levelObj.colOffsetX, levelObj.colOffsetY });
+				scene.SetObjectTexturePath(obj->GetID(), levelObj.texture);
+
+				// Store defaults for right click reset in the inspector.
+				Scene::Defaults defaults{};
+				defaults.pos = { levelObj.x, levelObj.y, levelObj.z };
+				defaults.size = { levelObj.w, levelObj.h };
+				defaults.rot = levelObj.rotation; // degrees
+				defaults.colSize = { levelObj.colWidth, levelObj.colHeight };
+				defaults.colOff = { levelObj.colOffsetX, levelObj.colOffsetY };
+				defaults.vel = { levelObj.speedX, levelObj.speedY };
+				defaults.texture = levelObj.texture;
+				defaults.tag = levelObj.tag;
+				scene.SetDefaults(obj->GetID(), defaults);
+
+				// Keep editor/scene state in sync (rotation in DEGREES).
 				scene.SetTransformFromLevel(
-					g->GetID(),
-					{ o.x, o.y, o.z },
-					{ o.w, o.h, 1.0f },
-					o.rotation
+					obj->GetID(),
+					{ levelObj.x, levelObj.y, levelObj.z },
+					{ levelObj.w, levelObj.h, 1.0f },
+					levelObj.rotation
 				);
 
-				scene.ClampToWalkArea(g);
+				scene.ClampToWalkArea(obj);
 
-				// assign special IDs by tag
-				if (o.tag == "player") scene.SetPlayerID(g->GetID());
-				if (o.tag == "npc1") {
-					scene.SetNPC1ID(g->GetID());
-					scene.SetNPCVelocity(g->GetID(), 0.f, o.speed_y); // JSON drives Y speed
+				// Named handles by tag.
+				if (levelObj.tag == "player") {
+					scene.SetPlayerID(obj->GetID());
 				}
-				if (o.tag == "npc2") {
-					scene.SetNPC2ID(g->GetID());
-					scene.SetNPCVelocity(g->GetID(), 0.f, o.speed_y);
+				if (levelObj.tag == "npc1") {
+					scene.SetNPC1ID(obj->GetID());
+					scene.SetNPCVelocity(obj->GetID(), levelObj.speedX, levelObj.speedY);
 				}
-				if (o.animated) {
-					scene.AttachDinoAnimations(g->GetID());   // give this object its own IDLE/WALK/ATTACK set
+				if (levelObj.tag == "npc2") {
+					scene.SetNPC2ID(obj->GetID());
+					scene.SetNPCVelocity(obj->GetID(), levelObj.speedX, levelObj.speedY);
+				}
+
+				if (levelObj.animated) {
+					// Give this object its own IDLE/WALK/ATTACK set.
+					scene.AttachDinoAnimations(obj->GetID());
 				}
 			}
 		}
 	}
 
 	ImGui::SameLine();
+
+	// Save 
 	if (ImGui::Button("Save Level")) {
-		level_.objects.clear();
-		std::vector<GameObject*> objs; scene.CollectRenderablePointers(objs);
-		for (auto* g : objs) {
-			if (!g) continue;
+		level.objects.clear();
 
-			LevelObject o;
-			o.texture = scene.GetObjectTexturePath(g->GetID());
-			const auto p = g->GetPositionGLM();
-			const auto s = g->GetScaleGLM();
-			o.x = p.x; o.y = p.y; o.z = p.z;
-			o.w = s.x; o.h = s.y;
-			o.rotation = g->GetRotationAngleZ();
+		std::vector<GameObject*> objectList;
+		scene.CollectRenderablePointers(objectList);
 
-			const auto cs = g->GetColliderSize();
-			const auto co = g->GetColliderOffset();
-			o.col_w = cs.x; o.col_h = cs.y;
-			o.col_offx = co.x; o.col_offy = co.y;
+		for (GameObject* obj : objectList) {
+			if (!obj) {
+				continue;
+			}
 
-			// infer tag for special IDs
-			if (g->GetID() == scene.GetPlayerID()) o.tag = "player";
-			if (g->GetID() == scene.GetNPC1ID())   o.tag = "npc1";
-			if (g->GetID() == scene.GetNPC2ID())   o.tag = "npc2";
-			if (g->GetID() == scene.GetDinoID())   o.tag = "dino";
+			LevelObject out{};
+			out.texture = scene.GetObjectTexturePath(obj->GetID());
 
-			// (Optional) if you add velocity storage:
-			// auto v = scene.GetVelocityFor(g->GetID());
-			// o.speed_x = v.x; o.speed_y = v.y;
+			const glm::vec3 position = obj->GetPositionGLM();
+			const glm::vec3 size = obj->GetScaleGLM();
 
-			level_.objects.push_back(o);
+			out.x = position.x;
+			out.y = position.y;
+			out.z = position.z;
+			out.w = size.x;
+			out.h = size.y;
+
+			// Save DEGREES to JSON.
+			out.rotation = glm::degrees(obj->GetRotationAngleZ());
+
+			const auto colliderSize = obj->GetColliderSize();
+			const auto colliderOffset = obj->GetColliderOffset();
+			out.colWidth = colliderSize.x;
+			out.colHeight = colliderSize.y;
+			out.colOffsetX = colliderOffset.x;
+			out.colOffsetY = colliderOffset.y;
+
+			// Infer tag from special IDs.
+			if (obj->GetID() == scene.GetPlayerID()) { out.tag = "player"; }
+			if (obj->GetID() == scene.GetNPC1ID()) { out.tag = "npc1"; }
+			if (obj->GetID() == scene.GetNPC2ID()) { out.tag = "npc2"; }
+			if (obj->GetID() == scene.GetDinoID()) { out.tag = "dino"; }
+
+			// Optional: persist velocity (already available in Scene).
+			const glm::vec2 v = scene.GetNPCVelocity(obj->GetID());
+			out.speedX = v.x; out.speedY = v.y;
+
+			level.objects.push_back(out);
 		}
-		LevelSerializer::Save(levelPath_, level_);
+
+		LevelSerializer::Save(levelPath, level);
 	}
 
 	ImGui::Separator();
 
 	// Hierarchy
-	std::vector<GameObject*> objs; scene.CollectRenderablePointers(objs);
-	static int sel = -1;
-	if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200))) {
-		for (int i = 0;i < (int)objs.size();++i) {
-			if (!objs[i]) continue;
-			std::string label = "ID " + std::to_string(objs[i]->GetID());
-			if (ImGui::Selectable(label.c_str(), sel == i)) sel = i;
+	std::vector<GameObject*> objectList;
+	scene.CollectRenderablePointers(objectList);
+
+	static int selectedIndex = -1;
+	if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200.0f))) {
+		for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
+			if (!objectList[i]) {
+				continue;
+			}
+
+			std::string label = "ID " + std::to_string(objectList[i]->GetID());
+			if (ImGui::Selectable(label.c_str(), selectedIndex == i)) {
+				selectedIndex = i;
+			}
 		}
+
 		ImGui::EndListBox();
 	}
 
-	// --- Property Editor --------------------------------------------------------
-	if (sel >= 0 && sel < static_cast<int>(objs.size()) && objs[sel]) {
-		GameObject* g = objs[sel];
-		const int id = g->GetID();
+	// Property Inspector
+	if (selectedIndex >= 0 &&
+		selectedIndex < static_cast<int>(objectList.size()) &&
+		objectList[selectedIndex])
+	{
+		GameObject* obj = objectList[selectedIndex];
+		const int id = obj->GetID();
 
 		ImGui::Separator();
 		ImGui::Text("Properties (ID %d)", id);
 
-		// ---------- Read current values ----------
-		char texBuf[256];
+		// Read current values
+		char textureBuf[256];
 		{
-			std::string tex = scene.GetObjectTexturePath(id);
-			if (tex.empty()) tex = "../assets/goat_sprite_front.png";
-			std::snprintf(texBuf, sizeof(texBuf), "%s", tex.c_str());
+			std::string texPath = scene.GetObjectTexturePath(id);
+			if (texPath.empty()) {
+				texPath = "../assets/goat_sprite_front.png";
+			}
+
+			std::snprintf(textureBuf, sizeof(textureBuf), "%s", texPath.c_str());
 		}
 
-		// infer current tag from special IDs (editable)
+		// Infer current tag from special IDs (editable).
 		char tagBuf[64] = "";
-		if (id == scene.GetPlayerID()) std::snprintf(tagBuf, sizeof(tagBuf), "player");
-		else if (id == scene.GetNPC1ID())   std::snprintf(tagBuf, sizeof(tagBuf), "npc1");
-		else if (id == scene.GetNPC2ID())   std::snprintf(tagBuf, sizeof(tagBuf), "npc2");
-		else if (id == scene.GetDinoID())   std::snprintf(tagBuf, sizeof(tagBuf), "dino");
+		if (id == scene.GetPlayerID()) {
+			std::snprintf(tagBuf, sizeof(tagBuf), "player");
+		}
+		else if (id == scene.GetNPC1ID()) {
+			std::snprintf(tagBuf, sizeof(tagBuf), "npc1");
+		}
+		else if (id == scene.GetNPC2ID()) {
+			std::snprintf(tagBuf, sizeof(tagBuf), "npc2");
+		}
+		else if (id == scene.GetDinoID()) {
+			std::snprintf(tagBuf, sizeof(tagBuf), "dino");
+		}
 
-		glm::vec3 pos = g->GetPositionGLM();
-		glm::vec3 scl = g->GetScaleGLM();          // z ignored for sprites
-		float     rotation = g->GetRotationAngleZ();
+		glm::vec3 position = obj->GetPositionGLM();
+		glm::vec3 size = obj->GetScaleGLM();// z ignored for sprites
+		float rotationDeg = glm::degrees(obj->GetRotationAngleZ());
 
-		auto cs = g->GetColliderSize();
-		auto co = g->GetColliderOffset();
+		auto colliderSize = obj->GetColliderSize();
+		auto colliderOffset = obj->GetColliderOffset();
+		glm::vec2 velocity = scene.GetNPCVelocity(id);
 
-		glm::vec2 vel = scene.GetNPCVelocity(id);
+		// Defaults for right-click reset.
+		const auto defaults = scene.GetDefaults(id);
 
-		// ---------- Defaults for right-click reset ----------
-		const auto def = scene.GetDefaults(id);
-
-		// Helpers: drag with context "Reset"
-		auto Drag2Reset = [&](const char* label, float* v, ImVec2 d, float speed, auto apply) {
+		// Helpers: drag with context "Reset" -----------------------------------
+		auto DragVec2WithReset = [&](const char* label, float* v, ImVec2 d, float speed, auto apply) {
 			bool changed = ImGui::DragFloat2(label, v, speed);
 			if (ImGui::BeginPopupContextItem((std::string(label) + "_ctx").c_str())) {
 				if (ImGui::MenuItem("Reset to default")) {
 					v[0] = d.x; v[1] = d.y;
 					apply(true);
 				}
+
 				ImGui::EndPopup();
 			}
-			if (changed) apply(false);
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Right-click to reset");
+
+			if (changed) {
+				apply(false);
+			}
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Right-click to reset");
+			}
 			};
-		auto Drag1Reset = [&](const char* label, float* v, float d, float speed, auto apply) {
+
+		auto DragFloatWithReset = [&](const char* label, float* v, float d, float speed, auto apply) {
 			bool changed = ImGui::DragFloat(label, v, speed);
 			if (ImGui::BeginPopupContextItem((std::string(label) + "_ctx").c_str())) {
 				if (ImGui::MenuItem("Reset to default")) {
 					*v = d;
 					apply(true);
 				}
+
 				ImGui::EndPopup();
 			}
-			if (changed) apply(false);
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Right-click to reset");
-			};
-		auto ApplyTransform = [&]() {
-			scene.SetTransformFromLevel(id, pos, { scl.x, scl.y, 1.0f }, rotation);
-			scene.ClampToWalkArea(g);
+
+			if (changed) {
+				apply(false);
+			}
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Right-click to reset");
+			}
 			};
 
-		// ---------- Texture (with reset) ----------
-		if (ImGui::InputText("Texture", texBuf, IM_ARRAYSIZE(texBuf))) {
-			scene.SetObjectTexturePath(id, texBuf);
-			if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(texBuf)), texBuf))
-				g->SetTexture(tex);
+		auto ApplyTransform = [&]() {
+			// GameObject expects RADIANS.
+			obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
+
+			// Scene/editor store DEGREES.
+			scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
+			scene.ClampToWalkArea(obj);
+			};
+
+		// Texture (with reset)
+		if (ImGui::InputText("Texture", textureBuf, IM_ARRAYSIZE(textureBuf))) {
+			scene.SetObjectTexturePath(id, textureBuf);
+			if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(textureBuf)), textureBuf)) {
+				obj->SetTexture(tex);
+			}
 		}
+
 		if (ImGui::BeginPopupContextItem("tex_ctx")) {
 			if (ImGui::MenuItem("Reset texture")) {
-				std::snprintf(texBuf, sizeof(texBuf), "%s", def.texture.c_str());
-				scene.SetObjectTexturePath(id, texBuf);
-				if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(texBuf)), texBuf))
-					g->SetTexture(tex);
+				std::snprintf(textureBuf, sizeof(textureBuf), "%s", defaults.texture.c_str());
+				scene.SetObjectTexturePath(id, textureBuf);
+				if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(textureBuf)), textureBuf)) {
+					obj->SetTexture(tex);
+				}
 			}
+
 			ImGui::EndPopup();
 		}
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Right-click to reset");
 
-		// ---------- Tag (with reset) ----------
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("Right-click to reset");
+		}
+
+		// Tag (with reset)
 		ImGui::InputText("Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
 		if (ImGui::BeginPopupContextItem("tag_ctx")) {
 			if (ImGui::MenuItem("Reset tag")) {
-				std::snprintf(tagBuf, sizeof(tagBuf), "%s", def.tag.c_str());
+				std::snprintf(tagBuf, sizeof(tagBuf), "%s", defaults.tag.c_str());
 			}
+
 			ImGui::EndPopup();
 		}
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Right-click to reset");
 
-		// ---------- Position / Size / Rotation ----------
-		Drag2Reset("Position", &pos.x, ImVec2(def.pos.x, def.pos.y), 1.0f, [&](bool) { ApplyTransform(); });
-		Drag2Reset("Size (w,h)", &scl.x, ImVec2(def.size.x, def.size.y), 1.0f, [&](bool) { ApplyTransform(); });
-		Drag1Reset("Rotation (deg)", &rotation, def.rot, 0.25f, [&](bool) { ApplyTransform(); });
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("Right-click to reset");
+		}
 
-		// ---------- Collider ----------
-		Drag2Reset("Collider (w,h)", &cs.x, ImVec2(def.colSize.x, def.colSize.y), 1.0f, [&](bool) {
-			g->SetColliderSize({ cs.x, cs.y });
-			});
-		Drag2Reset("Collider offset", &co.x, ImVec2(def.colOff.x, def.colOff.y), 1.0f, [&](bool) {
-			g->SetColliderOffset({ co.x, co.y });
-			});
+		// Position / Size / Rotation
+		DragVec2WithReset("Position", &position.x, ImVec2(defaults.pos.x, defaults.pos.y), 1.0f, [&](bool) { ApplyTransform(); });
+		DragVec2WithReset("Size (w,h)", &size.x, ImVec2(defaults.size.x, defaults.size.y), 1.0f, [&](bool) { ApplyTransform(); });
+		DragFloatWithReset("Rotation (deg)", &rotationDeg, defaults.rot, 0.25f, [&](bool) { ApplyTransform(); });
 
-		// ---------- Velocity ----------
-		Drag2Reset("Velocity (x,y)", &vel.x, ImVec2(def.vel.x, def.vel.y), 1.0f, [&](bool) {
-			scene.SetNPCVelocity(id, vel.x, vel.y);
-			});
+		// Collider
+		DragVec2WithReset("Collider (w,h)", &colliderSize.x, ImVec2(defaults.colSize.x, defaults.colSize.y), 1.0f,
+			[&](bool) { obj->SetColliderSize({ colliderSize.x, colliderSize.y }); });
+		DragVec2WithReset("Collider offset", &colliderOffset.x, ImVec2(defaults.colOff.x, defaults.colOff.y), 1.0f,
+			[&](bool) { obj->SetColliderOffset({ colliderOffset.x, colliderOffset.y }); });
 
-		// Dinos: choose animation (optional reset to IDLE if you want)
+		// Velocity
+		DragVec2WithReset("Velocity (x,y)", &velocity.x, ImVec2(defaults.vel.x, defaults.vel.y), 1.0f,
+			[&](bool) { scene.SetNPCVelocity(id, velocity.x, velocity.y); });
+
+		// Animations
 		if (scene.HasAnimations(id)) {
-			// read the list and current name for THIS object
-			std::vector<std::string> names = scene.GetAnimationList(id);
-			std::string cur = scene.GetCurrentAnimationName(id);
+			std::vector<std::string> animationNames = scene.GetAnimationList(id);
+			std::string currentAnim = scene.GetCurrentAnimationName(id);
 
-			// compute the currently selected index
-			int sel = 0;
-			for (int i = 0; i < (int)names.size(); ++i) {
-				if (names[i] == cur) { sel = i; break; }
+			int currentIndex = 0;
+			for (int i = 0; i < static_cast<int>(animationNames.size()); ++i) {
+				if (animationNames[i] == currentAnim) {
+					currentIndex = i;
+					break;
+				}
 			}
 
-			// ImGui combo: each object gets its own selection
-			if (ImGui::BeginCombo("Start animation", cur.empty() ? "(none)" : cur.c_str())) {
-				for (int i = 0; i < (int)names.size(); ++i) {
-					bool selected = (i == sel);
-					if (ImGui::Selectable(names[i].c_str(), selected)) {
-						scene.SetAnimation(id, names[i]);   // switch THIS object's animation
+			if (ImGui::BeginCombo("Start animation", currentAnim.empty() ? "(none)" : currentAnim.c_str())) {
+				for (int i = 0; i < static_cast<int>(animationNames.size()); ++i) {
+					bool selected = (i == currentIndex);
+					if (ImGui::Selectable(animationNames[i].c_str(), selected)) {
+						scene.SetAnimation(id, animationNames[i]); // switch THIS object's animation
 					}
-					if (selected) ImGui::SetItemDefaultFocus();
+
+					if (selected) {
+						ImGui::SetItemDefaultFocus();
+					}
 				}
+
 				ImGui::EndCombo();
 			}
 
-			// Optional: right-click reset to "IDLE"
 			if (ImGui::BeginPopupContextItem("anim_ctx")) {
 				if (ImGui::MenuItem("Reset animation")) {
 					scene.SetAnimation(id, "IDLE");
 				}
+
 				ImGui::EndPopup();
 			}
-			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Right-click to reset");
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Right-click to reset");
+			}
 		}
 
+		// Final apply (keep maps in sync)
+		scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
+		obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+		obj->SetColliderOffset({ colliderOffset.x, colliderOffset.y });
+		scene.SetNPCVelocity(id, velocity.x, velocity.y);
 
-		// ---------- Final apply (keep maps in sync) ----------
-		scene.SetTransformFromLevel(id, pos, { scl.x, scl.y, 1.0f }, rotation);
-		g->SetColliderSize({ cs.x, cs.y });
-		g->SetColliderOffset({ co.x, co.y });
-		scene.SetNPCVelocity(id, vel.x, vel.y);
-
-		// Update special IDs if tag changed
+		// Update special IDs if tag changed.
 		std::string newTag = tagBuf;
-		if (newTag == "player") scene.SetPlayerID(id);
-		if (newTag == "npc1")   scene.SetNPC1ID(id);
-		if (newTag == "npc2")   scene.SetNPC2ID(id);
-		if (newTag == "dino")   scene.SetDinoID(id);
+		if (newTag == "player") { scene.SetPlayerID(id); }
+		if (newTag == "npc1") { scene.SetNPC1ID(id); }
+		if (newTag == "npc2") { scene.SetNPC2ID(id); }
+		if (newTag == "dino") { scene.SetDinoID(id); }
 	}
 
 	// Add / Remove
 	if (ImGui::Button("Add Object")) {
-		LevelObject o{};                  // value-init defaults
-		o.texture = "../assets/goat_sprite_front.png";
-		o.tag = "npc";               // or "" if none
-		o.x = 300.f;  o.y = 300.f;  o.z = 0.f;
-		o.w = 128.f;  o.h = 128.f;  o.rotation = 0.f;
-		// o.col_w, o.col_h, offsets keep defaults unless you want to set them
+		LevelObject proto{};
+		proto.texture = "../assets/goat_sprite_front.png";
+		proto.tag = "npc"; // or "" if none
+		proto.x = 300.0f; proto.y = 300.0f; proto.z = 0.0f;
+		proto.w = 128.0f; proto.h = 128.0f; proto.rotation = 0.0f;
 
-		auto* g = scene.SpawnStaticSprite(o.texture, { o.x, o.y, o.z }, { o.w, o.h });
-		if (g) {
-			g->SetColliderSize({ o.col_w, o.col_h });
-			g->SetColliderOffset({ o.col_offx, o.col_offy });
-			scene.SetObjectTexturePath(g->GetID(), o.texture);
+		GameObject* obj = scene.SpawnStaticSprite(proto.texture, { proto.x, proto.y, proto.z }, { proto.w, proto.h });
+		if (obj) {
+			obj->SetColliderSize({ proto.colWidth, proto.colHeight });
+			obj->SetColliderOffset({ proto.colOffsetX, proto.colOffsetY });
+			scene.SetObjectTexturePath(obj->GetID(), proto.texture);
+
+			Scene::Defaults defs{};
+			defs.pos = { proto.x, proto.y, proto.z };
+			defs.size = { proto.w, proto.h };
+			defs.rot = proto.rotation;
+			defs.colSize = { proto.colWidth, proto.colHeight };
+			defs.colOff = { proto.colOffsetX, proto.colOffsetY };
+			defs.vel = { proto.speedX, proto.speedY };
+			defs.texture = proto.texture;
+			defs.tag = proto.tag;
+			scene.SetDefaults(obj->GetID(), defs);
 		}
-
-		Scene::Defaults d;
-		d.pos = { o.x, o.y, o.z };
-		d.size = { o.w, o.h };
-		d.rot = o.rotation;
-		d.colSize = { o.col_w, o.col_h };
-		d.colOff = { o.col_offx, o.col_offy };
-		d.vel = { 0.f, o.speed_y };
-		d.texture = o.texture;
-		d.tag = o.tag;
-		scene.SetDefaults(g->GetID(), d);
 	}
 
 	ImGui::SameLine();
-	if (ImGui::Button("Remove Selected") && sel >= 0 && sel < static_cast<int>(objs.size())) {
-		scene.DespawnByID(objs[sel]->GetID());
-		sel = -1;
+	if (ImGui::Button("Remove Selected") &&
+		selectedIndex >= 0 &&
+		selectedIndex < static_cast<int>(objectList.size()))
+	{
+		scene.DespawnByID(objectList[selectedIndex]->GetID());
+		selectedIndex = -1;
 	}
 
 	ImGui::End();
 }
 
-// helpers: sync scene to LevelData
-static void SyncLevelToScene(const LevelData& lvl, Scene& scene) {
-	// clear is optional — if you want to keep existing, remove this
-	// (You already have DespawnByID; add Scene::ClearAll() if needed.)
-	for (auto* g : scene.GetAllObjectsRaw()) { (void)g; } // Keep or clear depending on design
+// Optional sync helpers (kept for parity)
+static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
+	// If you prefer: scene.ClearAll();
+	for (auto* g : scene.GetAllObjectsRaw()) {
+		(void)g; // Keep or clear depending on design
+	}
 
-	for (auto& o : lvl.objects) {
-		GameObject* g = scene.SpawnStaticSprite(o.texture, { o.x,o.y,0 }, { o.w,o.h });
-		if (g) {
-			g->SetRotation(o.rotation, { 0,0,1 });
-			scene.SetObjectTexturePath(g->GetID(), o.texture);
+	for (const auto& levelObj : levelIn.objects) {
+		GameObject* obj = scene.SpawnStaticSprite(levelObj.texture, { levelObj.x, levelObj.y, 0.0f }, { levelObj.w, levelObj.h });
+		if (obj) {
+			obj->SetRotation(glm::radians(levelObj.rotation), { 0, 0, 1 }); // JSON/editor is degrees
+			scene.SetObjectTexturePath(obj->GetID(), levelObj.texture);
 		}
 	}
 }
 
-static void SyncSceneToLevel(Scene& scene, LevelData& lvl) {
-	lvl.objects.clear();
-	std::vector<GameObject*> objs;
-	scene.CollectRenderablePointers(objs);
-	for (auto* g : objs) {
-		if (!g) continue;
-		LevelObject o;
-		o.texture = scene.GetObjectTexturePath(g->GetID());
-		glm::vec3 p = g->GetPositionGLM();
-		glm::vec3 s = g->GetScaleGLM();
-		o.x = p.x; o.y = p.y; o.w = s.x; o.h = s.y;
-		o.rotation = g->GetRotationAngleZ();
-		lvl.objects.push_back(o);
+static void SyncSceneToLevel(Scene& scene, LevelData& levelOut) {
+	levelOut.objects.clear();
+
+	std::vector<GameObject*> objectList;
+	scene.CollectRenderablePointers(objectList);
+
+	for (GameObject* obj : objectList) {
+		if (!obj) {
+			continue;
+		}
+
+		LevelObject out{};
+		out.texture = scene.GetObjectTexturePath(obj->GetID());
+
+		glm::vec3 p = obj->GetPositionGLM();
+		glm::vec3 s = obj->GetScaleGLM();
+
+		out.x = p.x; out.y = p.y;
+		out.w = s.x; out.h = s.y;
+
+		// Store DEGREES.
+		out.rotation = glm::degrees(obj->GetRotationAngleZ());
+
+		levelOut.objects.push_back(out);
 	}
 }
