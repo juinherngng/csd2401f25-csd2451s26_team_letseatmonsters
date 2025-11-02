@@ -4,7 +4,8 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:
+ DESCRIPTION:		Spatial hash grid for broad-phase collision queries.
+					Stores cells keyed by packed (cx, cy) and supports box/point queries.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -12,9 +13,10 @@
 
 #pragma once
 
-#include <unordered_map>
-#include <vector>
 #include <cstdint>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
 #include <functional>
 
 #include "Math.hpp"
@@ -24,45 +26,39 @@
  // Broad-phase uniform grid for 2D AABBs.
 class SpatialGrid {
 public:
-	explicit SpatialGrid(float cellSize = 128.0f);
+	using Key = std::uint64_t;
+
+	explicit SpatialGrid(float cellSize);
 
 	void Clear();
 
-	// Register/update an object's current AABB in the grid (call once per frame).
-	void Insert(GameObject* obj, const collision::AABB& box);
+	void Insert(GameObject* object, const collision::AABB& box);
 
-	// Return unique candidate objects overlapping the 1-cell neighborhood of 'box'.
 	void Query(const collision::AABB& box, std::vector<GameObject*>& outCandidates) const;
 
-	// Return objects in the cell containing point p.
-	void QueryPoint(const Math::Vector2D& p, std::vector<GameObject*>& outCandidates) const;
+	void QueryPoint(const Math::Vector2D& point, std::vector<GameObject*>& outCandidates) const;
 
-	float CellSize() const { return m_cellSize; }
+	float CellSize() const;
 
 private:
-	using Key = std::uint64_t;
+	Key ToKey(int cellX, int cellY) const;
 
-	struct ObjRec { GameObject* obj; collision::AABB box; };
+	void ForEachCell(const collision::AABB& box, const std::function<void(Key)>& visit) const;
+	void ForEachCellWithNeighbors(const collision::AABB& box, const std::function<void(Key)>& visit) const;
 
-	// fast “seen” set for dedupe during Query()
-	struct PtrHasher {
-		size_t operator()(const void* p) const noexcept {
-			return std::hash<std::uintptr_t>{}(reinterpret_cast<std::uintptr_t>(p));
-		}
-	};
 	struct TempVisited {
-		std::unordered_map<GameObject*, bool, PtrHasher> seen;
-		bool Seen(GameObject* g) const { return seen.find(g) != seen.end(); }
-		void Mark(GameObject* g) { seen[g] = true; }
+		bool Seen(GameObject* g) const;
+		void Mark(GameObject* g);
+		std::unordered_set<GameObject*> marks;
 	};
 
-	// data
-	float m_cellSize;
-	std::unordered_map<Key, std::vector<GameObject*>> m_cells;
-	std::vector<ObjRec> m_objects;
+	struct Tracked {
+		GameObject* object{ nullptr };
+		collision::AABB  bounds{};
+	};
 
-	// helpers
-	Key ToKey(int cx, int cy) const;
-	void ForEachCell(const collision::AABB& b, const std::function<void(Key)>& fn) const;
-	void ForEachCellWithNeighbors(const collision::AABB& b, const std::function<void(Key)>& fn) const;
+	float cellSize{ 128.0f };
+
+	std::unordered_map<Key, std::vector<GameObject*>> cells;
+	std::vector<Tracked> objects;
 };

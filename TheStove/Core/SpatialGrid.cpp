@@ -15,54 +15,71 @@
 
 #include "SpatialGrid.hpp"
 
+ // Constructors / Clear
 SpatialGrid::SpatialGrid(float cellSize)
-	: m_cellSize(cellSize) {
+	: cellSize(cellSize) {
 }
 
 void SpatialGrid::Clear() {
-	m_cells.clear();
-	m_objects.clear();
+	cells.clear();
+	objects.clear();
 }
 
-SpatialGrid::Key SpatialGrid::ToKey(int cx, int cy) const {
-	return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(cx)) << 32) | static_cast<std::uint64_t>(static_cast<std::uint32_t>(cy));
+// Utility Struct: TempVisited
+bool SpatialGrid::TempVisited::Seen(GameObject* g) const {
+	return marks.find(g) != marks.end();
 }
 
-void SpatialGrid::ForEachCell(const collision::AABB& b, const std::function<void(Key)>& fn) const {
-	const int minCx = static_cast<int>(std::floor(b.min.x / m_cellSize));
-	const int maxCx = static_cast<int>(std::floor(b.max.x / m_cellSize));
-	const int minCy = static_cast<int>(std::floor(b.min.y / m_cellSize));
-	const int maxCy = static_cast<int>(std::floor(b.max.y / m_cellSize));
+void SpatialGrid::TempVisited::Mark(GameObject* g) {
+	marks.insert(g);
+}
 
-	for (int cy = minCy; cy <= maxCy; ++cy) {
-		for (int cx = minCx; cx <= maxCx; ++cx) {
-			fn(ToKey(cx, cy));
+// Internal helpers
+SpatialGrid::Key SpatialGrid::ToKey(int cellX, int cellY) const {
+	return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(cellX)) << 32)
+		| static_cast<std::uint64_t>(static_cast<std::uint32_t>(cellY));
+}
+
+void SpatialGrid::ForEachCell(const collision::AABB& box, const std::function<void(Key)>& visit) const {
+	const int minCellX = static_cast<int>(std::floor(box.min.x / cellSize));
+	const int maxCellX = static_cast<int>(std::floor(box.max.x / cellSize));
+	const int minCellY = static_cast<int>(std::floor(box.min.y / cellSize));
+	const int maxCellY = static_cast<int>(std::floor(box.max.y / cellSize));
+
+	for (int cy = minCellY; cy <= maxCellY; ++cy) {
+		for (int cx = minCellX; cx <= maxCellX; ++cx) {
+			visit(ToKey(cx, cy));
 		}
 	}
 }
 
-void SpatialGrid::ForEachCellWithNeighbors(const collision::AABB& b, const std::function<void(Key)>& fn) const {
-	const int minCx = static_cast<int>(std::floor(b.min.x / m_cellSize)) - 1;
-	const int maxCx = static_cast<int>(std::floor(b.max.x / m_cellSize)) + 1;
-	const int minCy = static_cast<int>(std::floor(b.min.y / m_cellSize)) - 1;
-	const int maxCy = static_cast<int>(std::floor(b.max.y / m_cellSize)) + 1;
+void SpatialGrid::ForEachCellWithNeighbors(const collision::AABB& box, const std::function<void(Key)>& visit) const {
+	const int minCellX = static_cast<int>(std::floor(box.min.x / cellSize)) - 1;
+	const int maxCellX = static_cast<int>(std::floor(box.max.x / cellSize)) + 1;
+	const int minCellY = static_cast<int>(std::floor(box.min.y / cellSize)) - 1;
+	const int maxCellY = static_cast<int>(std::floor(box.max.y / cellSize)) + 1;
 
-	for (int cy = minCy; cy <= maxCy; ++cy) {
-		for (int cx = minCx; cx <= maxCx; ++cx) {
-			fn(ToKey(cx, cy));
+	for (int cy = minCellY; cy <= maxCellY; ++cy) {
+		for (int cx = minCellX; cx <= maxCellX; ++cx) {
+			visit(ToKey(cx, cy));
 		}
 	}
 }
 
-void SpatialGrid::Insert(GameObject* obj, const collision::AABB& box) {
-	if (!obj) {
+// Public Interface
+float SpatialGrid::CellSize() const {
+	return cellSize;
+}
+
+void SpatialGrid::Insert(GameObject* object, const collision::AABB& box) {
+	if (object == nullptr) {
 		return;
 	}
 
-	m_objects.push_back({ obj, box });
+	objects.push_back({ object, box });
 
-	ForEachCell(box, [&](Key k) {
-		m_cells[k].push_back(obj);
+	ForEachCell(box, [&](Key key) {
+		cells[key].push_back(object);
 		});
 }
 
@@ -70,33 +87,34 @@ void SpatialGrid::Query(const collision::AABB& box, std::vector<GameObject*>& ou
 	outCandidates.clear();
 	TempVisited visited;
 
-	ForEachCellWithNeighbors(box, [&](Key k) {
-		auto it = m_cells.find(k);
-		if (it == m_cells.end()) {
+	ForEachCellWithNeighbors(box, [&](Key key) {
+		auto it = cells.find(key);
+		if (it == cells.end()) {
 			return;
 		}
 
-		for (GameObject* g : it->second) {
-			if (!g) {
+		for (GameObject* obj : it->second) {
+			if (obj == nullptr) {
 				continue;
 			}
 
-			if (!visited.Seen(g)) {
-				visited.Mark(g);
-				outCandidates.push_back(g);
+			if (!visited.Seen(obj)) {
+				visited.Mark(obj);
+				outCandidates.push_back(obj);
 			}
 		}
 		});
 }
 
-void SpatialGrid::QueryPoint(const Math::Vector2D& p, std::vector<GameObject*>& outCandidates) const {
+void SpatialGrid::QueryPoint(const Math::Vector2D& point, std::vector<GameObject*>& outCandidates) const {
 	outCandidates.clear();
-	const int cx = static_cast<int>(std::floor(p.x / m_cellSize));
-	const int cy = static_cast<int>(std::floor(p.y / m_cellSize));
-	const Key k = ToKey(cx, cy);
 
-	auto it = m_cells.find(k);
-	if (it != m_cells.end()) {
+	const int cellX = static_cast<int>(std::floor(point.x / cellSize));
+	const int cellY = static_cast<int>(std::floor(point.y / cellSize));
+	const Key key = ToKey(cellX, cellY);
+
+	auto it = cells.find(key);
+	if (it != cells.end()) {
 		outCandidates = it->second;
 	}
 }

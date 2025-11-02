@@ -4,7 +4,9 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:
+ DESCRIPTION:		Simple in-engine level editor window.
+					- JSON/Editor store rotation in DEGREES.
+					- GameObject setters should receive RADIANS (convert at call-site).
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

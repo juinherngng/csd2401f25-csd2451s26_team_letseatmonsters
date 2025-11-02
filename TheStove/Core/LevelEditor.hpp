@@ -4,7 +4,9 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:
+ DESCRIPTION:		In-engine level editor interface. Rotation values are handled in DEGREES
+					at the editor/JSON layer; conversions to RADIANS should happen at the
+					GameObject boundary (see LevelEditor.cpp usage).
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

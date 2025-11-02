@@ -4,7 +4,8 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:
+ DESCRIPTION:		Declares LevelSerializer for saving/loading LevelData.
+					Rotation values are stored in DEGREES in JSON (editor/UI friendly).
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
