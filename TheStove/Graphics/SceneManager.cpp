@@ -228,11 +228,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 
 	// Walk area for clamps (scaled to current framebuffer size)
-	const collision::WalkArea walk{
-	ScaleXToCurrent(kWalkL), ScaleXToCurrent(kWalkR),
-	ScaleYToCurrent(kWalkT), ScaleYToCurrent(kWalkB),
-	std::max(ScaleXToCurrent(kEdgeThick), ScaleYToCurrent(kEdgeThick))
-	};
+	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
 
 	// Advance animations (per-object)
 	for (auto& [id, animMap] : objectAnimations) {
@@ -425,58 +421,59 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			std::cout << "Set to Idle Animation" << std::endl;
 		}*/
 
-		// Click-to-Move: selection and target setting
-		//if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-		//	glm::vec2 mouseWorld;
-		//	if (graphicsEngine.GetMouseWorldInScene(mouseWorld)) {
-		//		const glm::vec2 mouse = mouseWorld;
+		if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+			glm::vec2 mouseWorld;
+			if (graphicsEngine.GetMouseWorldInScene(mouseWorld)) {
+				const glm::vec2 mouse = mouseWorld;
 
-		//		if (!playerSelected) {
-		//			const Math::Vector2D csize = sprite->GetColliderSize();
-		//			const Math::Vector2D coff = sprite->GetColliderOffset();
+				if (!playerSelected) {
+					const Math::Vector2D csize = sprite->GetColliderSize();
+					const Math::Vector2D coff = sprite->GetColliderOffset();
 
-		//			const Math::Vector3D selCenterM(position.x + coff.x, position.y + coff.y, position.z);
-		//			const Math::Vector3D selScaleM(csize.x, csize.y, 1.0f);
+					const Math::Vector3D selCenterM(position.x + coff.x, position.y + coff.y, position.z);
+					const Math::Vector3D selScaleM(csize.x, csize.y, 1.0f);
 
-		//			if (collision::pointInsideCenterAABB(toM(mouse), selCenterM, selScaleM)) {
-		//				playerSelected = true;
-		//				hasClickTarget = false;
-		//				stuckFrames = 0;
+					if (collision::pointInsideCenterAABB(toM(mouse), selCenterM, selScaleM)) {
+						playerSelected = true;
+						hasClickTarget = false;
+						stuckFrames = 0;
 
-		//				seekTargetM = Math::Vector2D(position.x, position.y);
-		//				if (playerRB_ != nullptr) {
-		//					playerRB_->Stop();
-		//				}
-		//			}
-		//		}
-		//		else {
-		//			clickTarget = glm::vec3(mouse.x, mouse.y, 0.0f);
-		//			hasClickTarget = true;
-		//			stuckFrames = 0;
+						seekTargetM = Math::Vector2D(position.x, position.y);
+						if (playerRB_ != nullptr) {
+							playerRB_->Stop();
+						}
+					}
+				}
+				else {
+					clickTarget = glm::vec3(mouse.x, mouse.y, 0.0f);
+					hasClickTarget = true;
+					stuckFrames = 0;
 
-		//			seekTargetM = Math::Vector2D(clickTarget.x, clickTarget.y);
+					seekTargetM = Math::Vector2D(clickTarget.x, clickTarget.y);
 
-		//			// Face toward the new target (dominant axis)
-		//			glm::vec2 toTarget = clickTarget - glm::vec2(position.x, position.y);
-		//			if (glm::length(toTarget) > 0.001f) {
-		//				float ax = std::abs(toTarget.x);
-		//				float ay = std::abs(toTarget.y);
-		//				if (ax >= ay) {
-		//					if (toTarget.x >= 0.0f)
-		//						sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideright", "../assets/mc_sprite_right.png"));
-		//					else
-		//						sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideleft", "../assets/mc_sprite_left.png"));
-		//				}
-		//				else {
-		//					if (toTarget.y >= 0.0f)
-		//						sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_front", "../assets/mc_sprite_front.png"));
-		//					else
-		//						sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
-		//				}
-		//			}
-		//		}
-		//	}
-		//}
+					// Face toward the new target (dominant axis)
+					glm::vec2 toTarget = glm::vec2(clickTarget.x, clickTarget.y) - glm::vec2(position.x, position.y);
+
+					if (glm::length(toTarget) > 0.001f) {
+						float ax = std::abs(toTarget.x);
+						float ay = std::abs(toTarget.y);
+						if (ax >= ay) {
+							if (toTarget.x >= 0.0f)
+								sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideright", "../assets/mc_sprite_right.png"));
+							else
+								sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideleft", "../assets/mc_sprite_left.png"));
+						}
+						else {
+							if (toTarget.y >= 0.0f)
+								sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_front", "../assets/mc_sprite_front.png"));
+							else
+								sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
+						}
+					}
+				}
+			}
+		}
+
 
 
 		if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_RIGHT)) {
@@ -510,7 +507,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Click-to-move displacement (either kinematic OR force-driven)
 	if (playerSelected && hasClickTarget) {
 		const glm::vec2 pos2(position.x, position.y);
-		const glm::vec2 toTarget = clickTarget - pos2;
+		const glm::vec2 tgt(clickTarget.x, clickTarget.y);
+		const glm::vec2 toTarget = tgt - pos2;
 		const float dist = glm::length(toTarget);
 
 		// Arrive & stop
@@ -561,7 +559,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	if (simulationActive_) {
 		// NPC lane updates
-		const float kLaneX = ScaleXToCurrent(1000.0f);
+		const float kLaneX = 1000.0f;
 		if (other1 != nullptr && o1position != nullptr) {
 			Math::Vector3D posM = toM(*o1position);
 			physics::MoveYLaneWithBounce(mCollision, other1, posM, other1VelM, kLaneX, physicsDt);
@@ -704,10 +702,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Gate clamp (stage end)
 	const collision::StageEndGateVertical gate{
-	ScaleXToCurrent(kEndVX0), ScaleXToCurrent(kEndVX1),
-	ScaleYToCurrent(kEndVTopMinY), ScaleYToCurrent(kEndVTopMaxY),
-	ScaleYToCurrent(kEndVGapMinY), ScaleYToCurrent(kEndVGapMaxY),
-	ScaleYToCurrent(kEndVBotMinY), ScaleYToCurrent(kEndVBotMaxY)
+  kEndVX0, kEndVX1,
+  kEndVTopMinY, kEndVTopMaxY,
+  kEndVGapMinY, kEndVGapMaxY,
+  kEndVBotMinY, kEndVBotMaxY
 	};
 
 	if (hasPlayer && sprite) {
@@ -944,6 +942,13 @@ GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath, const glm
 	obj->SetPosition(position);
 	obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
 	obj->SetTexture(spriteTex);
+
+	std::vector<glm::vec4> safeFrames = frames;
+	if (safeFrames.empty()) {
+		safeFrames.push_back(glm::vec4(0.f, 0.f, 1.f, 1.f)); // full texture
+	}
+	obj->SetUVRect(safeFrames.front());
+
 	GameObject* raw = obj.get();
 	sceneObjects.push_back(std::move(obj));
 
@@ -1101,24 +1106,20 @@ void Scene::AttachDinoAnimations(int objID) {
 
 // World / Collision
 void Scene::BuildLevelColliders() {
-	collision::WalkArea walk{
-	ScaleXToCurrent(kWalkL), ScaleXToCurrent(kWalkR),
-	ScaleYToCurrent(kWalkT), ScaleYToCurrent(kWalkB),
-	std::max(ScaleXToCurrent(kEdgeThick), ScaleYToCurrent(kEdgeThick))
-	};
+	collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
 
 	collision::WoodVertical wood{
-		ScaleXToCurrent(kWoodX0), ScaleXToCurrent(kWoodX1),
-		ScaleYToCurrent(kWoodTopMinY), ScaleYToCurrent(kWoodTopMaxY),
-		ScaleYToCurrent(kWoodGapMinY), ScaleYToCurrent(kWoodGapMaxY),
-		ScaleYToCurrent(kWoodBotMinY), ScaleYToCurrent(kWoodBotMaxY)
+	  kWoodX0, kWoodX1,
+	  kWoodTopMinY, kWoodTopMaxY,
+	  kWoodGapMinY, kWoodGapMaxY,
+	  kWoodBotMinY, kWoodBotMaxY
 	};
 
 	collision::StageEndGateVertical gate{
-		ScaleXToCurrent(kEndVX0), ScaleXToCurrent(kEndVX1),
-		ScaleYToCurrent(kEndVTopMinY), ScaleYToCurrent(kEndVTopMaxY),
-		ScaleYToCurrent(kEndVGapMinY), ScaleYToCurrent(kEndVGapMaxY),
-		ScaleYToCurrent(kEndVBotMinY), ScaleYToCurrent(kEndVBotMaxY)
+	  kEndVX0, kEndVX1,
+	  kEndVTopMinY, kEndVTopMaxY,
+	  kEndVGapMinY, kEndVGapMaxY,
+	  kEndVBotMinY, kEndVBotMaxY
 	};
 
 	mCollision.build(walk, wood, gate);

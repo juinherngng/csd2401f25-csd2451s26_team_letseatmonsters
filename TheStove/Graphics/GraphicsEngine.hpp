@@ -78,6 +78,10 @@ public:
 
 	void DrawSceneDockWindow();
 
+	bool GetMouseWorldInScene(glm::vec2& outWorld) const;
+
+	ImGuiID GetMainDockspaceID() const;
+
 private:
 	Renderer renderer;
 	ResourceManager& resourceManager;
@@ -118,7 +122,5 @@ private:
 	ImVec2 sceneImagePos_{ 0, 0 };
 	ImVec2 sceneImageSize_{ 0, 0 };
 
-	// Map current mouse to world inside the Scene window.
-	// Returns false if mouse is outside the scene image.
-	bool GetMouseWorldInScene(glm::vec2& outWorld) const;
+	ImGuiID mMainDockspaceId = 0;
 };

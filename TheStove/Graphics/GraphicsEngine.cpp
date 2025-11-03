@@ -116,6 +116,9 @@ const glm::mat4& GraphicsEngine::GetProjection() const {
 const glm::mat4& GraphicsEngine::GetView() const {
 	return view;
 }
+
+ImGuiID GraphicsEngine::GetMainDockspaceID() const { return mMainDockspaceId; }
+
 void GraphicsEngine::Resize(int width, int height) {
 	if (width <= 0 || height <= 0) {
 		return;
@@ -240,12 +243,12 @@ void GraphicsEngine::BeginImGuiFrame() {
 	ImGui::NewFrame();
 	ImGuiViewport* vp = ImGui::GetMainViewport();
 
-	ImGui::DockSpaceOverViewport(
+	/*ImGui::DockSpaceOverViewport(
 		vp->ID,
 		vp,
 		ImGuiDockNodeFlags_PassthruCentralNode |
 		ImGuiDockNodeFlags_NoDockingInCentralNode
-	);
+	);*/
 
 	// DockSpace host (lets all editor windows dock/undock)
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -257,15 +260,15 @@ void GraphicsEngine::BeginImGuiFrame() {
 		ImGuiWindowFlags_NoDocking |
 		ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
 		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus |
-		ImGuiWindowFlags_NoBackground;
+		ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 
 	if (ImGui::Begin("###DockSpaceHost", nullptr, hostFlags)) {
 		ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
-		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), 0);
+		mMainDockspaceId = dockspaceId;
 	}
 
 	ImGui::End();
@@ -273,7 +276,9 @@ void GraphicsEngine::BeginImGuiFrame() {
 }
 
 void GraphicsEngine::DrawSceneDockWindow() {
-	if (ImGui::Begin("Scene")) {
+	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
+		ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Scene###SceneWindow")) {
 		ImVec2 avail = ImGui::GetContentRegionAvail();
 		const float targetAspect = float(kRefW) / float(kRefH);
 		float w = avail.x, h = avail.y;
@@ -344,9 +349,8 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	const float u = localX / sceneImageSize_.x;
 	const float v = localY / sceneImageSize_.y;
 
-	// Because we drew Image with uv0=(0,1) uv1=(1,0), Y is flipped:
 	const float px = u * float(kRefW);
-	const float py = (1.0f - v) * float(kRefH);
+	const float py = v * float(kRefH);
 
 	// Convert FBO pixel (px,py) -> world using inverse(View * Projection)
 	// First go from pixels to NDC:
