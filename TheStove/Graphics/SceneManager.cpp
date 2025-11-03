@@ -426,58 +426,57 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}*/
 
 		// Click-to-Move: selection and target setting
-		if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-			glm::vec2 mouseWorld;
-			// ✅ New FBO-based picking call
-			if (graphicsEngine.GetMouseWorldInScene(mouseWorld)) {
-				const glm::vec2 mouse = mouseWorld;
+		//if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+		//	glm::vec2 mouseWorld;
+		//	if (graphicsEngine.GetMouseWorldInScene(mouseWorld)) {
+		//		const glm::vec2 mouse = mouseWorld;
 
-				if (!playerSelected) {
-					const Math::Vector2D csize = sprite->GetColliderSize();
-					const Math::Vector2D coff = sprite->GetColliderOffset();
+		//		if (!playerSelected) {
+		//			const Math::Vector2D csize = sprite->GetColliderSize();
+		//			const Math::Vector2D coff = sprite->GetColliderOffset();
 
-					const Math::Vector3D selCenterM(position.x + coff.x, position.y + coff.y, position.z);
-					const Math::Vector3D selScaleM(csize.x, csize.y, 1.0f);
+		//			const Math::Vector3D selCenterM(position.x + coff.x, position.y + coff.y, position.z);
+		//			const Math::Vector3D selScaleM(csize.x, csize.y, 1.0f);
 
-					if (collision::pointInsideCenterAABB(toM(mouse), selCenterM, selScaleM)) {
-						playerSelected = true;
-						hasClickTarget = false;
-						stuckFrames = 0;
+		//			if (collision::pointInsideCenterAABB(toM(mouse), selCenterM, selScaleM)) {
+		//				playerSelected = true;
+		//				hasClickTarget = false;
+		//				stuckFrames = 0;
 
-						seekTargetM = Math::Vector2D(position.x, position.y);
-						if (playerRB_ != nullptr) {
-							playerRB_->Stop();
-						}
-					}
-				}
-				else {
-					clickTarget = glm::vec3(mouse.x, mouse.y, 0.0f);
-					hasClickTarget = true;
-					stuckFrames = 0;
+		//				seekTargetM = Math::Vector2D(position.x, position.y);
+		//				if (playerRB_ != nullptr) {
+		//					playerRB_->Stop();
+		//				}
+		//			}
+		//		}
+		//		else {
+		//			clickTarget = glm::vec3(mouse.x, mouse.y, 0.0f);
+		//			hasClickTarget = true;
+		//			stuckFrames = 0;
 
-					seekTargetM = Math::Vector2D(clickTarget.x, clickTarget.y);
+		//			seekTargetM = Math::Vector2D(clickTarget.x, clickTarget.y);
 
-					// Face toward the new target (dominant axis)
-					glm::vec2 toTarget = clickTarget - glm::vec2(position.x, position.y);
-					if (glm::length(toTarget) > 0.001f) {
-						float ax = std::abs(toTarget.x);
-						float ay = std::abs(toTarget.y);
-						if (ax >= ay) {
-							if (toTarget.x >= 0.0f)
-								sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideright", "../assets/mc_sprite_right.png"));
-							else
-								sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideleft", "../assets/mc_sprite_left.png"));
-						}
-						else {
-							if (toTarget.y >= 0.0f)
-								sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_front", "../assets/mc_sprite_front.png"));
-							else
-								sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
-						}
-					}
-				}
-			}
-		}
+		//			// Face toward the new target (dominant axis)
+		//			glm::vec2 toTarget = clickTarget - glm::vec2(position.x, position.y);
+		//			if (glm::length(toTarget) > 0.001f) {
+		//				float ax = std::abs(toTarget.x);
+		//				float ay = std::abs(toTarget.y);
+		//				if (ax >= ay) {
+		//					if (toTarget.x >= 0.0f)
+		//						sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideright", "../assets/mc_sprite_right.png"));
+		//					else
+		//						sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_sideleft", "../assets/mc_sprite_left.png"));
+		//				}
+		//				else {
+		//					if (toTarget.y >= 0.0f)
+		//						sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_front", "../assets/mc_sprite_front.png"));
+		//					else
+		//						sprite->SetTexture(ResourceManager::Instance().LoadTexture("mc_back", "../assets/mc_sprite_back.png"));
+		//				}
+		//			}
+		//		}
+		//	}
+		//}
 
 
 		if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_RIGHT)) {
