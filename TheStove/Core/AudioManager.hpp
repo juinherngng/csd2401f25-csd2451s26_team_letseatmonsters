@@ -316,15 +316,28 @@ public:
 	/************************************************************************/
 	void FadeChannel(std::string const& name, float toVolume, float duration);
 
+    // UI Sound Effects
+
+    /************************************************************************/
+    /*!
+    \brief
+    Plays the UI click sound effect.
+    \details
+    Convenience method for playing button click sounds with appropriate volume.
+    Uses VFX volume scaled down to 50% for subtle UI feedback.
+    */
+    /************************************************************************/
+    void PlayUIClickSound();
+
 private:
     /************************************************************************/
     /*!
     \brief
-	Error handling for FMOD operations.
-	\param result
-	The FMOD_RESULT to check.
-	\param context
-	Contextual information for the error.
+    Error handling for FMOD operations.
+    \param result
+    The FMOD_RESULT to check.
+    \param context
+    Contextual information for the error.
     */
     /************************************************************************/
     void CheckError(FMOD_RESULT result, std::string const& context);

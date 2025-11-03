@@ -399,3 +399,10 @@ void AudioManager::FadeChannel(std::string const& name, float toVolume, float du
 	// set up fade
 	activeFades[name] = VolumeFade{ currentVolume, toVolume, duration, 0.f };
 }
+
+void AudioManager::PlayUIClickSound()
+{
+	// Play UI click sound with appropriate volume for subtle feedback
+	float clickVolume = GetVfxVolume() * 0.5f; // 50% of VFX volume for subtle UI sounds
+	PlaySound("ui_click", clickVolume, false);
+}

@@ -79,6 +79,7 @@ static void DumpLeaksFiltered(const _CrtMemState* startState)
 #include "Core/Core.hpp"
 #include "Core/ConfigManager.hpp"
 #include "Core/AudioManager.hpp"
+#include "Core/AudioLoading.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/TileMap.hpp"
 
@@ -379,6 +380,9 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	{
 		ResourceManager::Instance().SetAudioManager(audioMgr);
 		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
+		
+		// Load all audio assets centrally using AudioCatalog
+		Audio::AudioCatalog::LoadAllAudio();
 	}
 	else
 	{
@@ -521,6 +525,10 @@ void cleanup(ApplicationState& app) {
             audioMgr->Shutdown();
         }
     }
+    
+    // STEP 6.5: Unload all audio assets
+    std::cout << "Unloading audio assets..." << std::endl;
+    Audio::AudioCatalog::UnloadAllAudio();
 
     // STEP 7: Shutdown graphics engine (clears background object)
     if (app.graphicsEngine)

@@ -14,7 +14,6 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 
 #include "DebugUI.hpp"
 #include "Core.hpp"
-#include "../Graphics/ResourceManager.hpp"
 
 namespace Debug
 {
@@ -71,50 +70,7 @@ namespace Debug
 			std::cerr << "Failed to initialize OpenGL context\n";
 			return false;
 		}
-
-		// Load audio files through ResourceManager
-		auto& resMgr = ResourceManager::Instance();
 		
-		// Load boiling sound (looping, not streamed - for sound effects)
-		if (resMgr.LoadAudio("boiling sound", "../assets/Audio/Boiling7.wav", true, false))
-		{
-			std::cout << "DebugUI: Loaded 'boiling sound' through ResourceManager." << std::endl;
-			
-			// Get and display audio info
-			unsigned int lenMs = 0;
-			int ch = 0, bits = 0;
-			float freq = 0;
-			if (resMgr.GetAudioInfo("boiling sound", lenMs, ch, bits, freq))
-			{
-				std::cout << "Audio 'boiling sound' info - Length: " << lenMs << " ms, Channels: " << ch 
-						  << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
-			}
-		}
-		else
-		{
-			std::cerr << "DebugUI: Failed to load 'boiling sound' through ResourceManager." << std::endl;
-		}
-		
-		// Load background music (looping, streamed - for music)
-		if (resMgr.LoadAudio("background music", "../assets/Audio/bgm.wav", true, true))
-		{
-			std::cout << "DebugUI: Loaded 'background music' through ResourceManager." << std::endl;
-			
-			// Get and display audio info
-			unsigned int lenMs = 0;
-			int ch = 0, bits = 0;
-			float freq = 0;
-			if (resMgr.GetAudioInfo("background music", lenMs, ch, bits, freq))
-			{
-				std::cout << "Audio 'background music' info - Length: " << lenMs << " ms, Channels: " << ch 
-						  << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
-			}
-		}
-		else
-		{
-			std::cerr << "DebugUI: Failed to load 'background music' through ResourceManager." << std::endl;
-		}
-
 		isInitialised = true;
 		return true;
 	}
@@ -166,6 +122,14 @@ namespace Debug
 			ImGui::Text("[Current FPS : %.1f FPS ] [ms/frame : %.1f ms]", fps, msperFrame);
 			if (ImGui::Combo("FPS Modes", &selectedfpsMode, fpsModes, fpsmodeCount))
 			{
+				if (coreEngine)
+				{
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						audioMgr->PlayUIClickSound();
+					}
+				}
+				
 				if (selectedfpsMode == 0)
 				{
 					fpsMode = FPSMode::VSYNC;
@@ -195,13 +159,33 @@ namespace Debug
 				{
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
 					{
+						audioMgr->PlayUIClickSound();
+						
 						// test play audio
 						bgm = audioMgr->GetBgmVolume();
-						audioMgr->PlaySound("boiling sound", bgm, false);
+						audioMgr->PlaySound("boiling_sound", bgm, false);
 						DebuggerApp::AddDebugLine("Playing: boiling sound\n");
 					}
 				}
 			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Play: grilling sound"))
+			{
+				if (coreEngine)
+				{
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						audioMgr->PlayUIClickSound();
+
+						// test play audio
+						bgm = audioMgr->GetBgmVolume();
+						audioMgr->PlaySound("grilling_sound", bgm, false);
+						DebuggerApp::AddDebugLine("Playing: grilling sound\n");
+					}
+				}
+			}
+
 			ImGui::SameLine();
 			if (ImGui::Button("Play: background music"))
 			{
@@ -209,9 +193,11 @@ namespace Debug
 				{
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
 					{
+						audioMgr->PlayUIClickSound();
+						
 						// test play bgm
 						bgm = audioMgr->GetBgmVolume();
-						audioMgr->PlaySound("background music", bgm, false);
+						audioMgr->PlaySound("background_music", bgm, false);
 						DebuggerApp::AddDebugLine("Playing: background music\n");
 					}
 				}
@@ -223,12 +209,31 @@ namespace Debug
 				{
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
 					{
+						audioMgr->PlayUIClickSound();
+						
 						// test stopping audio
-						audioMgr->StopSound("boiling sound");
+						audioMgr->StopSound("boiling_sound");
 						DebuggerApp::AddDebugLine("Stopping: boiling sound\n");
 					}
 				}
 			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Stop grilling sound"))
+			{
+				if (coreEngine)
+				{
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						audioMgr->PlayUIClickSound();
+
+						// test stopping audio
+						audioMgr->StopSound("grilling_sound");
+						DebuggerApp::AddDebugLine("Stopping: grilling sound\n");
+					}
+				}
+			}
+
 			ImGui::SameLine();
 			if (ImGui::Button("Stop background music"))
 			{
@@ -236,8 +241,10 @@ namespace Debug
 				{
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
 					{
+						audioMgr->PlayUIClickSound();
+						
 						// test stopping bgm
-						audioMgr->StopSound("background music");
+						audioMgr->StopSound("background_music");
 						DebuggerApp::AddDebugLine("Stopping: background music\n");
 					}
 				}
@@ -252,6 +259,9 @@ namespace Debug
 						// test stopping all audio
 						audioMgr->StopAllSounds();
 						DebuggerApp::AddDebugLine("Stopping: all audio\n");
+						
+						// Play UI click sound AFTER stopping all audio
+						audioMgr->PlayUIClickSound();
 					}
 				}
 			}
@@ -339,6 +349,13 @@ namespace Debug
 		// Clear logs if the button was pressed
 		if (ImGui::Button("Clear Logs"))
 		{
+			if (coreEngine)
+			{
+				if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+				{
+					audioMgr->PlayUIClickSound();
+				}
+			}
 			ClearDebugLog();
 		}
 
