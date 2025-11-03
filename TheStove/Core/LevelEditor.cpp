@@ -21,15 +21,29 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <unordered_map>
 namespace fs = std::filesystem;
 
 // Prefab helpers
-static bool SavePrefabToFile(const std::string& prefabPath, const LevelObject& src) {
+static bool SavePrefabToFile(std::string prefabPath, const LevelObject& src) {
+	// Ensure extension
+	if (fs::path(prefabPath).extension().empty())
+		prefabPath += ".json";
+
+	// Ensure directory exists
+	std::error_code ec;
+	fs::path dir = fs::path(prefabPath).parent_path();
+	if (!dir.empty() && !fs::exists(dir, ec)) {
+		fs::create_directories(dir, ec);
+		if (ec) return false; // cannot create directory
+	}
+
 	LevelData one;
 	one.objects.clear();
 	one.objects.push_back(src);
 	return LevelSerializer::Save(prefabPath, one);
 }
+
 
 static bool LoadPrefabFromFile(const std::string& prefabPath, LevelObject& out) {
 	LevelData one;
@@ -39,6 +53,8 @@ static bool LoadPrefabFromFile(const std::string& prefabPath, LevelObject& out) 
 	out = one.objects.front();
 	return true;
 }
+
+static std::unordered_map<int, std::string> sPrefabLinkByID;
 
 // Apply prefab data to an existing object but keep its current position/z
 static void ApplyPrefabToObjectKeepPosition(const LevelObject& prefab, Scene& scene, GameObject* obj) {
@@ -116,6 +132,7 @@ static std::vector<std::string> ListAssetsWithExt(const std::string& dir,
 
 void LevelEditor::DrawUI(Scene& scene) {
 	static int selectedIndex = -1;
+	static int selectedObjectId = -1;
 
 	if (!isEnabled) {
 		return;
@@ -176,6 +193,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 				scene.ResetResizeBaseline();
 				isPlaying = false;
 				selectedIndex = -1;
+				selectedObjectId = -1;
 			}
 		}
 		ImGui::SameLine();
@@ -214,9 +232,12 @@ void LevelEditor::DrawUI(Scene& scene) {
 			if (!isPlaying) {
 				playStartSnapshot.objects.clear();
 				SyncSceneToLevel(scene, playStartSnapshot);
+
 				isPlaying = true;
-				playStartSnapshot = level;
 				scene.SetSimulationActive(true);
+				scene.ClearAll();
+				SyncLevelToScene(playStartSnapshot, scene);
+				scene.RebuildColliders();
 			}
 		}
 		ImGui::SameLine();
@@ -240,6 +261,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 				std::string label = "ID " + std::to_string(objectList[i]->GetID());
 				if (ImGui::Selectable(label.c_str(), selectedIndex == i)) {
 					selectedIndex = i;
+					selectedObjectId = objectList[i]->GetID();
 				}
 			}
 			ImGui::EndListBox();
@@ -275,6 +297,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 		if (ImGui::Button("Remove Selected") && selectedIndex >= 0 && selectedIndex < (int)objectList.size()) {
 			scene.DespawnByID(objectList[selectedIndex]->GetID());
 			selectedIndex = -1;
+			selectedObjectId = -1;
 		}
 		if (isPlaying) ImGui::EndDisabled();
 
@@ -349,22 +372,51 @@ void LevelEditor::DrawUI(Scene& scene) {
 			ImGui::SetNextItemWidth(140.0f);
 			if (ImGui::InputText("##TexturePath", textureBuf, IM_ARRAYSIZE(textureBuf))) {
 				scene.SetObjectTexturePath(id, textureBuf);
-				if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(textureBuf)), textureBuf)) {
+				std::string newPath = textureBuf;
+				if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + newPath), newPath)) {
 					obj->SetTexture(tex);
+
+					if (newPath.find("dino_") != std::string::npos) {
+						scene.AttachDinoAnimations(id);
+						scene.SetAnimation(id, "IDLE");
+						scene.MarkAnimated(id, true);
+					}
+					else {
+						obj->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
+						scene.MarkAnimated(id, false);
+					}
 				}
 			}
+
 			// Accept drag-drop of textures on the same row
 			if (ImGui::BeginDragDropTarget()) {
-				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
-					const char* dropped = static_cast<const char*>(payload->Data);
-					scene.SetObjectTexturePath(id, dropped);
-					if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(dropped)), dropped)) {
-						obj->SetTexture(tex);
+				if (const ImGuiPayload* tp = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
+					const char* dropped = static_cast<const char*>(tp->Data);
+					std::vector<GameObject*> objs; scene.CollectRenderablePointers(objs);
+					if (selectedIndex >= 0 && selectedIndex < (int)objs.size() && objs[selectedIndex]) {
+						GameObject* o = objs[selectedIndex];
+						const int id2 = o->GetID();
+						std::string droppedPath = dropped;
+
+						scene.SetObjectTexturePath(id2, droppedPath);
+						if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + droppedPath), droppedPath)) {
+							o->SetTexture(tex);
+
+							if (droppedPath.find("dino_") != std::string::npos) {
+								scene.AttachDinoAnimations(id2);
+								scene.SetAnimation(id2, "IDLE");
+								scene.MarkAnimated(id2, true);
+							}
+							else {
+								o->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
+								scene.MarkAnimated(id2, false);
+							}
+						}
 					}
-					std::snprintf(textureBuf, sizeof(textureBuf), "%s", dropped);
 				}
 				ImGui::EndDragDropTarget();
 			}
+
 			ImGui::NextColumn();
 
 			// Tag -------------------------------------------------------
@@ -459,6 +511,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 					LevelObject data{};
 					if (LoadPrefabFromFile(dropped, data)) {
 						ApplyPrefabToObjectKeepPosition(data, scene, obj);
+						sPrefabLinkByID[obj->GetID()] = dropped;
 					}
 				}
 				ImGui::EndDragDropTarget();
@@ -492,6 +545,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 				LevelObject data{};
 				if (LoadPrefabFromFile(dropped, data)) {
 					GameObject* g = scene.SpawnStaticSprite(data.texture, { data.x, data.y, data.z }, { data.w, data.h });
+					sPrefabLinkByID[g->GetID()] = dropped;
 					if (g) {
 						g->SetRotation(glm::radians(data.rotation), { 0,0,1 });
 						g->SetColliderSize({ data.colWidth, data.colHeight });
@@ -556,21 +610,132 @@ void LevelEditor::DrawUI(Scene& scene) {
 
 		const bool prefabExists = fs::exists(prefabPathBuf);
 
+		// --- Save selected as prefab -------------------------------------------------
 		if (ImGui::Button("Save selected as prefab")) {
-			// uses the same selectedIndex static from Level window — you can
-			// either move selection state into a shared member, or re-select there first.
-			// Easiest: duplicate the save code but guard against invalid selection:
-			int selectedIndexShadow = -1;
-			// (optional) you can expose selectedIndex via LevelEditor as a member if you prefer.
+			// We use the shared selectedObjectId captured from the Level window
+			if (selectedObjectId >= 0) {
+				// Find selected game object
+				GameObject* gSel = nullptr;
+				{
+					std::vector<GameObject*> objs; scene.CollectRenderablePointers(objs);
+					for (auto* g : objs) if (g && g->GetID() == selectedObjectId) { gSel = g; break; }
+				}
 
-			// For now: attempt to find "most recently clicked" by checking a stored id,
-			// but if you don't have that, keep using selectedIndex if you made it a member.
+				if (gSel) {
+					LevelObject out{};
+					out.texture = scene.GetObjectTexturePath(selectedObjectId);
+
+					const glm::vec3 p = gSel->GetPositionGLM();
+					const glm::vec3 s = gSel->GetScaleGLM();
+					out.x = p.x; out.y = p.y; out.z = p.z;
+					out.w = s.x; out.h = s.y;
+
+					out.rotation = glm::degrees(gSel->GetRotationAngleZ());
+					const auto csz = gSel->GetColliderSize();
+					const auto cof = gSel->GetColliderOffset();
+					out.colWidth = csz.x; out.colHeight = csz.y;
+					out.colOffsetX = cof.x; out.colOffsetY = cof.y;
+
+					// Tags & velocity
+					if (selectedObjectId == scene.GetPlayerID()) out.tag = "player";
+					else if (selectedObjectId == scene.GetNPC1ID()) out.tag = "npc1";
+					else if (selectedObjectId == scene.GetNPC2ID()) out.tag = "npc2";
+					else if (selectedObjectId == scene.GetDinoID()) out.tag = "dino";
+
+					const glm::vec2 v = scene.GetNPCVelocity(selectedObjectId);
+					out.speedX = v.x; out.speedY = v.y;
+
+					out.animated = scene.HasAnimations(selectedObjectId);
+
+					// Normalize path and save
+					std::string savePath = prefabPathBuf;          // copy buffer
+					if (SavePrefabToFile(savePath, out)) {
+						// Update text buffer with normalized path (adds .json if missing)
+						std::snprintf(prefabPathBuf, sizeof(prefabPathBuf), "%s", savePath.c_str());
+
+						// Link selection to this prefab
+						sPrefabLinkByID[selectedObjectId] = savePath;
+
+						// Refresh list so it appears immediately
+						sPrefabFiles = ListJsonFiles("../prefabs");
+						ImGui::OpenPopup("PrefabSavedPopup");
+					}
+				}
+			}
+			if (ImGui::BeginPopup("PrefabSavedPopup")) {
+				ImGui::TextUnformatted("Prefab saved.");
+				ImGui::EndPopup();
+			}
+
+		}
+
+		// --- Instantiate from prefab -------------------------------------------------
+		if (fs::path(prefabPathBuf).extension().empty()) {
+			std::string normalized = std::string(prefabPathBuf) + ".json";
+			std::snprintf(prefabPathBuf, sizeof(prefabPathBuf), "%s", normalized.c_str());
 		}
 
 		ImGui::BeginDisabled(!prefabExists);
-		if (ImGui::Button("Instantiate from prefab")) { /* same as your current code */ }
-		if (ImGui::Button("Propagate prefab changes")) { /* same as your current code */ }
+		if (ImGui::Button("Instantiate from prefab")) {
+			LevelObject data{};
+			if (LoadPrefabFromFile(prefabPathBuf, data)) {
+				GameObject* g = nullptr;
+
+				if (data.animated) {
+					// Spawn animated with a valid first frame; attach real anims after
+					const std::vector<glm::vec4> one = { glm::vec4(0.f,0.f,1.f,1.f) };
+					g = scene.SpawnAnimatedSprite(
+						data.texture, { data.x, data.y, data.z }, { data.w, data.h }, one, 0.25f, true);
+					scene.AttachDinoAnimations(g->GetID());
+					scene.SetAnimation(g->GetID(), "IDLE");
+				}
+				else {
+					g = scene.SpawnStaticSprite(data.texture, { data.x, data.y, data.z }, { data.w, data.h });
+				}
+
+				if (g) {
+					g->SetRotation(glm::radians(data.rotation), { 0,0,1 });
+					g->SetColliderSize({ data.colWidth, data.colHeight });
+					g->SetColliderOffset({ data.colOffsetX, data.colOffsetY });
+
+					scene.SetObjectTexturePath(g->GetID(), data.texture);
+					scene.SetTransformFromLevel(g->GetID(), { data.x, data.y, data.z }, { data.w, data.h, 1.0f }, data.rotation);
+					scene.SetNPCVelocity(g->GetID(), data.speedX, data.speedY);
+
+					// special tags (optional)
+					if (data.tag == "player") scene.SetPlayerID(g->GetID());
+					else if (data.tag == "npc1") scene.SetNPC1ID(g->GetID());
+					else if (data.tag == "npc2") scene.SetNPC2ID(g->GetID());
+					else if (data.tag == "dino") scene.SetDinoID(g->GetID());
+
+					scene.ClampToWalkArea(g);
+
+					// link this new instance to the prefab path so "Propagate" works
+					sPrefabLinkByID[g->GetID()] = prefabPathBuf;
+				}
+			}
+		}
+
+		// --- Propagate prefab changes ----------------------------------------------
+		if (ImGui::Button("Propagate prefab changes")) {
+			if (prefabExists) {
+				LevelObject data{};
+				if (LoadPrefabFromFile(prefabPathBuf, data)) {
+					std::vector<GameObject*> objs; scene.CollectRenderablePointers(objs);
+					for (auto* g : objs) {
+						if (!g) continue;
+						const int gid = g->GetID();
+						auto it = sPrefabLinkByID.find(gid);
+						if (it != sPrefabLinkByID.end() && it->second == std::string(prefabPathBuf)) {
+							// apply but keep each instance's current position/z
+							ApplyPrefabToObjectKeepPosition(data, scene, g);
+						}
+					}
+				}
+			}
+		}
 		ImGui::EndDisabled();
+
 
 	}
 	ImGui::End(); // Prefabs window

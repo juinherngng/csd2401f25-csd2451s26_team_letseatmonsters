@@ -5,16 +5,16 @@
       "col_h": 128.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
-      "col_w": 64.0,
+      "col_w": 149.0,
       "h": 128.0,
       "rotation": 0.0,
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "",
       "texture": "../assets/goat_sprite_front.png",
-      "w": 128.0,
-      "x": 201.0,
-      "y": 656.697998046875,
+      "w": 126.0,
+      "x": 560.0,
+      "y": 437.697998046875,
       "z": 0.0
     }
   ]

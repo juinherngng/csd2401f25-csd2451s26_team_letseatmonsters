@@ -177,6 +177,8 @@ public:
 
 	void ResetResizeBaseline();
 
+	void MarkAnimated(int id, bool state);
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;

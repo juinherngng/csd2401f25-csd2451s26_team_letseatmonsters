@@ -590,6 +590,35 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			other1->SetPosition(*o1position);
 			other2->SetPosition(*o2position);
 		}
+
+		// Generic per-object velocity integration (for any object edited in the editor)
+		for (auto const& kv : npcVelocities_) {
+			const int id = kv.first;
+			const glm::vec2 v = kv.second;
+
+			// Skip the two special lane NPCs (already updated above)
+			if (id == otherID || id == otherID2) {
+				continue;
+			}
+
+			GameObject* g = GetGameObjectByID(id);
+			if (!g) {
+				continue;
+			}
+
+			Math::Vector3D posM(g->GetPosition().x, g->GetPosition().y, g->GetPosition().z);
+
+			// simple Euler step
+			posM.x += v.x * physicsDt;
+			posM.y += v.y * physicsDt;
+
+			// keep inside walk area
+			physics::ClampInsideWalk(walk, g, posM);
+
+			// write back
+			g->SetPosition(glm::vec3(posM.x, posM.y, posM.z));
+			spritePositions[id] = g->GetPositionGLM();
+		}
 	}
 
 	// Use spatial grid to collide player vs nearby objects (split-weight stop)
@@ -1103,6 +1132,25 @@ void Scene::AttachDinoAnimations(int objID) {
 	objectAnimations[objID]["ATTACK"] = attack;
 	currentAnimation[objID] = "IDLE";
 }
+
+void Scene::MarkAnimated(int id, bool state) {
+	if (!state) {
+		// Turning OFF animation: remove any per-object animation state
+		animators.erase(id);
+		objectAnimations.erase(id);
+		currentAnimation.erase(id);
+
+		if (GameObject* obj = GetGameObjectByID(id)) {
+			// Ensure it renders the full texture as a static sprite
+			obj->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
+		}
+	}
+	else {
+		// Turning ON: no-op here; your AttachDinoAnimations() will populate maps.
+		// (HasAnimations() will start returning true once frames are attached.)
+	}
+}
+
 
 // World / Collision
 void Scene::BuildLevelColliders() {
