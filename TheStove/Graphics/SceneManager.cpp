@@ -99,6 +99,13 @@ namespace {
 	}
 }
 
+void Scene::SetSimulationActive(bool active) { simulationActive_ = active; }
+bool Scene::IsSimulationActive() const { return simulationActive_; }
+
+void Scene::RebuildColliders() {
+	BuildLevelColliders();
+}
+
 int Scene::AcquireID() {
 	if (!mFreeIDs.empty()) {
 		int id = mFreeIDs.back();
@@ -128,6 +135,15 @@ float Scene::ScaleYToCurrent(float referenceY) const {
 	return referenceY * worldHeight / kRefH;
 }
 
+float Scene::ToRefX(float currentX) const {
+	const float worldW = static_cast<float>(graphicsEngine.GetWidth());
+	return currentX * (kRefW / worldW);
+}
+float Scene::ToRefY(float currentY) const {
+	const float worldH = static_cast<float>(graphicsEngine.GetHeight());
+	return currentY * (kRefH / worldH);
+}
+
 // Core Lifecycle
 Scene::Scene(GraphicsEngine& engine) : graphicsEngine(engine) {}
 
@@ -155,70 +171,61 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	inputManager.Update(window);
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
 
-	{
-		// Track the last framebuffer size to compute scale ratios on change
-		static int prevWidth = 0;
-		static int prevHeight = 0;
+	//{
+	//	const int curW = graphicsEngine.GetWidth();
+	//	const int curH = graphicsEngine.GetHeight();
 
-		const int currentWidth = graphicsEngine.GetWidth();
-		const int currentHeight = graphicsEngine.GetHeight();
+	//	// If the editor just loaded/restored a level, don't rescale everything once more.
+	//	// Instead, adopt the current framebuffer as the new baseline.
+	//	if (resetBaseline_) {
+	//		lastWidth_ = curW;
+	//		lastHeight_ = curH;
+	//		resetBaseline_ = false;
+	//		// Nothing else to do this frame.
+	//		return;
+	//	}
 
-		if (currentWidth != prevWidth || currentHeight != prevHeight) {
-			// Scale from old to new (first run uses reference size to avoid drift)
-			const float baseWidth = (prevWidth > 0) ? static_cast<float>(prevWidth) : kRefW;
-			const float baseHeight = (prevHeight > 0) ? static_cast<float>(prevHeight) : kRefH;
+	//	//if (curW != lastWidth_ || curH != lastHeight_) {
+	//	//	const float baseW = (lastWidth_ > 0) ? float(lastWidth_) : kRefW;
+	//	//	const float baseH = (lastHeight_ > 0) ? float(lastHeight_) : kRefH;
+	//	//	const float rx = float(curW) / baseW;
+	//	//	const float ry = float(curH) / baseH;
 
-			const float xScale = static_cast<float>(currentWidth) / baseWidth;
-			const float yScale = static_cast<float>(currentHeight) / baseHeight;
+	//	//	// Rescale positions, visual scales, colliders, and caches
+	//	//	for (auto& up : sceneObjects) {
+	//	//		if (!up) { continue; }
+	//	//		GameObject* g = up.get();
 
-			// Rescale every object’s position, visual scale, and collider
-			for (auto& objectUniquePtr : sceneObjects) {
-				if (!objectUniquePtr) {
-					continue;
-				}
+	//	//		glm::vec3 p = g->GetPositionGLM();
+	//	//		p.x *= rx; p.y *= ry;
+	//	//		g->SetPosition(p);
 
-				GameObject* obj = objectUniquePtr.get();
+	//	//		glm::vec3 s = g->GetScaleGLM();
+	//	//		s.x *= rx; s.y *= ry;
+	//	//		g->SetScale(s);
 
-				// Position
-				glm::vec3 position = obj->GetPositionGLM();
-				position.x *= xScale;
-				position.y *= yScale;
-				obj->SetPosition(position);
+	//	//		Math::Vector2D cs = g->GetColliderSize();
+	//	//		Math::Vector2D co = g->GetColliderOffset();
+	//	//		g->SetColliderSize({ cs.x * rx, cs.y * ry });
+	//	//		g->SetColliderOffset({ co.x * rx, co.y * ry });
 
-				// Visual scale
-				glm::vec3 scale = obj->GetScaleGLM();
-				scale.x *= xScale;
-				scale.y *= yScale;
-				obj->SetScale(scale);
+	//	//		const int id = g->GetID();
+	//	//		spritePositions[id] = g->GetPositionGLM();
+	//	//		spriteScales[id] = g->GetScaleGLM();
+	//	//	}
 
-				// Collider (size + offset)
-				Math::Vector2D colliderSize = obj->GetColliderSize();
-				Math::Vector2D colliderOffset = obj->GetColliderOffset();
-				obj->SetColliderSize({ colliderSize.x * xScale, colliderSize.y * yScale });
-				obj->SetColliderOffset({ colliderOffset.x * xScale, colliderOffset.y * yScale });
+	//	//	// Rescale click/seek targets if you use them
+	//	//	clickTarget.x *= rx; clickTarget.y *= ry;
+	//	//	seekTargetM.x *= rx; seekTargetM.y *= ry;
+	//	//	playerPosM2D_.x *= rx; playerPosM2D_.y *= ry;
 
-				// Keep the cached maps in sync
-				const int objectId = obj->GetID();
-				spritePositions[objectId] = obj->GetPositionGLM();
-				spriteScales[objectId] = obj->GetScaleGLM();
-			}
+	//	//	RebuildColliders();
 
-			// Rescale click/seek targets so pathing still points to the same visual spot
-			clickTarget.x *= xScale;
-			clickTarget.y *= yScale;
-			seekTargetM.x *= xScale;
-			seekTargetM.y *= yScale;
-			playerPosM2D_.x *= xScale;
-			playerPosM2D_.y *= yScale;
+	//	//	lastWidth_ = curW;
+	//	//	lastHeight_ = curH;
+	//	//}
+	//}
 
-			// Rebuild static colliders for the new size
-			BuildLevelColliders();
-
-			// Update the previous size markers
-			prevWidth = currentWidth;
-			prevHeight = currentHeight;
-		}
-	}
 
 	// Walk area for clamps (scaled to current framebuffer size)
 	const collision::WalkArea walk{
@@ -231,15 +238,17 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	for (auto& [id, animMap] : objectAnimations) {
 		std::string& animName = currentAnimation[id];
 		Animator2D& animator = animMap[animName];
-		animator.Update(deltaTime);
 
-		GameObject* obj = GetGameObjectByID(id);
-		if (obj == nullptr) {
-			continue;
+		// Only move the animator clock when the simulation is running.
+		if (simulationActive_) {
+			animator.Update(deltaTime);
 		}
 
-		const glm::vec4 uv = animator.GetCurrentFrameUV();
-		obj->SetUVRect(uv);
+		// Always push whatever the current frame is to the sprite,
+		// so pausing leaves a stable, non-smeared frame on screen.
+		if (GameObject* obj = GetGameObjectByID(id)) {
+			obj->SetUVRect(animator.GetCurrentFrameUV());
+		}
 	}
 
 	// Basic transforms
@@ -556,37 +565,39 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 	}
 
-	// NPC lane updates
-	const float kLaneX = ScaleXToCurrent(1000.0f);
-	if (other1 != nullptr && o1position != nullptr) {
-		Math::Vector3D posM = toM(*o1position);
-		physics::MoveYLaneWithBounce(mCollision, other1, posM, other1VelM, kLaneX, physicsDt);
-		physics::ClampInsideWalk(walk, other1, posM);
-		*o1position = toG(posM);
-		other1->SetPosition(*o1position);
-	}
+	if (simulationActive_) {
+		// NPC lane updates
+		const float kLaneX = ScaleXToCurrent(1000.0f);
+		if (other1 != nullptr && o1position != nullptr) {
+			Math::Vector3D posM = toM(*o1position);
+			physics::MoveYLaneWithBounce(mCollision, other1, posM, other1VelM, kLaneX, physicsDt);
+			physics::ClampInsideWalk(walk, other1, posM);
+			*o1position = toG(posM);
+			other1->SetPosition(*o1position);
+		}
 
-	if (other2 != nullptr && o2position != nullptr) {
-		Math::Vector3D posM = toM(*o2position);
-		physics::MoveYLaneWithBounce(mCollision, other2, posM, other2VelM, kLaneX, physicsDt);
-		physics::ClampInsideWalk(walk, other2, posM);
-		*o2position = toG(posM);
-		other2->SetPosition(*o2position);
-	}
+		if (other2 != nullptr && o2position != nullptr) {
+			Math::Vector3D posM = toM(*o2position);
+			physics::MoveYLaneWithBounce(mCollision, other2, posM, other2VelM, kLaneX, physicsDt);
+			physics::ClampInsideWalk(walk, other2, posM);
+			*o2position = toG(posM);
+			other2->SetPosition(*o2position);
+		}
 
-	// NPC–NPC elastic bounce (only if both exist)
-	if (other1 != nullptr && other2 != nullptr && o1position != nullptr && o2position != nullptr) {
-		Math::Vector3D p1M = toM(*o1position);
-		Math::Vector3D p2M = toM(*o2position);
-		physics::ElasticBounceEqualMass(other1, other2, p1M, p2M, other1VelM, other2VelM);
+		// NPC–NPC elastic bounce (only if both exist)
+		if (other1 != nullptr && other2 != nullptr && o1position != nullptr && o2position != nullptr) {
+			Math::Vector3D p1M = toM(*o1position);
+			Math::Vector3D p2M = toM(*o2position);
+			physics::ElasticBounceEqualMass(other1, other2, p1M, p2M, other1VelM, other2VelM);
 
-		npcVelocities_[otherID] = toG(other1VelM);
-		npcVelocities_[otherID2] = toG(other2VelM);
+			npcVelocities_[otherID] = toG(other1VelM);
+			npcVelocities_[otherID2] = toG(other2VelM);
 
-		*o1position = toG(p1M);
-		*o2position = toG(p2M);
-		other1->SetPosition(*o1position);
-		other2->SetPosition(*o2position);
+			*o1position = toG(p1M);
+			*o2position = toG(p2M);
+			other1->SetPosition(*o1position);
+			other2->SetPosition(*o2position);
+		}
 	}
 
 	// Use spatial grid to collide player vs nearby objects (split-weight stop)
@@ -863,7 +874,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			}
 		}
 	}
+}
 
+void Scene::ResetResizeBaseline() {
+	resetBaseline_ = true;
 }
 
 void Scene::DrawUI() {

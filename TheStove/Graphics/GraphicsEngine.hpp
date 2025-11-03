@@ -51,6 +51,31 @@ public:
 
 	static GraphicsEngine& Instance();
 
+	static constexpr int kRefW = 1200;
+	static constexpr int kRefH = 800;
+
+	// FBO workflow
+	void BeginSceneRender();  // bind FBO and set viewport
+	void EndSceneRender();    // unbind FBO
+
+	// The color attachment (for ImGui::Image)
+	unsigned int GetSceneColorTexture() const { return mSceneColor; }
+
+	// Optional: keep a getter for scene size (letterboxing in UI)
+	int GetSceneWidth()  const { return mSceneWidth; }
+	int GetSceneHeight() const { return mSceneHeight; }
+
+	// Call this when the OS window/framebuffer size changes
+	void OnFramebufferResize(int fbW, int fbH);
+
+	int GetViewportX() const { return viewportX_; }
+	int GetViewportY() const { return viewportY_; }
+	int GetViewportW() const { return viewportW_; }
+	int GetViewportH() const { return viewportH_; }
+	float GetViewportScale() const { return viewportScale_; }
+
+	void ApplyViewport() const;
+
 private:
 	Renderer renderer;
 	ResourceManager& resourceManager;
@@ -67,4 +92,23 @@ private:
 	glm::mat4 projection{ 1.0f };
 
 	void LoadDefaultResources();
+
+	int viewportX_ = 0;
+	int viewportY_ = 0;
+	int viewportW_ = 0;
+	int viewportH_ = 0;
+	float viewportScale_ = 1.0f;
+
+	// --- Off-screen scene FBO (render target for the game) ---
+	unsigned int mSceneFBO = 0;
+	unsigned int mSceneColor = 0;   // GL_RGBA8 color texture
+	unsigned int mSceneDepth = 0;   // GL_DEPTH24_STENCIL8 renderbuffer
+
+	int mSceneWidth = 1200;        // initial reference size
+	int mSceneHeight = 800;
+
+	// helpers
+	void CreateSceneFBO(int w, int h);
+	void DestroySceneFBO();
+	void ResizeSceneFBO(int w, int h);
 };

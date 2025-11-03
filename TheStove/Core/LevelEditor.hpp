@@ -15,8 +15,10 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 #include "LevelSerializer.hpp"
+#include "../Graphics/SceneManager.hpp"
 
 class Scene;
 
@@ -36,6 +38,13 @@ public:
 
 	// Set path used by Load/Save.
 	void SetPath(const std::string& path) { levelPath = path; }
+
+	// Play/Stop state 
+	bool isPlaying = false;
+	LevelData playStartSnapshot;
+
+	// Prefab links
+	std::unordered_map<int, std::string> prefabPathById;
 
 private:
 	bool isEnabled{ true };

@@ -290,7 +290,7 @@ namespace Debug
 			return;
 		}
 
-		ImGui::Begin("Debug Log from std::cout");
+		ImGui::Begin("Console Log");
 
 		// Clear logs if the button was pressed
 		if (ImGui::Button("Clear Logs"))

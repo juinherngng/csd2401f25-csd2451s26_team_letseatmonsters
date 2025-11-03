@@ -163,6 +163,20 @@ public:
 		return (it != defaults_.end()) ? it->second : Defaults{};
 	}
 
+	float ScaleXToCurrent(float referenceX) const;
+	float ScaleYToCurrent(float referenceY) const;
+
+	float ToRefX(float currentX) const;
+	float ToRefY(float currentY) const;
+
+	// Rebuild world/static colliders after level reload or editor reset
+	void RebuildColliders();
+
+	void SetSimulationActive(bool active);
+	bool IsSimulationActive() const;
+
+	void ResetResizeBaseline();
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -171,9 +185,6 @@ private:
 	// World/collision
 	void BuildLevelColliders();
 	collision::World mCollision;
-
-	float ScaleXToCurrent(float referenceX) const;
-	float ScaleYToCurrent(float referenceY) const;
 
 	// Step-by-step controller
 	physics::StepController physicsStep_;
@@ -232,4 +243,9 @@ private:
 	Math::Vector2D seekTargetM{ 0.f, 0.f };
 	Math::Vector2D playerPosM2D_{ 0.f, 0.f };
 	bool useForceForClickMove_ = false;
+
+	bool simulationActive_ = false;
+	int lastWidth_ = -1;
+	int lastHeight_ = -1;
+	bool resetBaseline_ = false;
 };

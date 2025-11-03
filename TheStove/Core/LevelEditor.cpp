@@ -19,12 +19,63 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+ // Prefab helpers
+static bool SavePrefabToFile(const std::string& prefabPath, const LevelObject& src) {
+	LevelData one;
+	one.objects.clear();
+	one.objects.push_back(src);
+	return LevelSerializer::Save(prefabPath, one);
+}
+
+static bool LoadPrefabFromFile(const std::string& prefabPath, LevelObject& out) {
+	LevelData one;
+	if (!LevelSerializer::Load(prefabPath, one) || one.objects.empty()) {
+		return false;
+	}
+	out = one.objects.front();
+	return true;
+}
+
+// Apply prefab data to an existing object but keep its current position/z
+static void ApplyPrefabToObjectKeepPosition(const LevelObject& prefab, Scene& scene, GameObject* obj) {
+	if (obj == nullptr) {
+		return;
+	}
+
+	const int id = obj->GetID();
+	glm::vec3 keepPos = obj->GetPositionGLM();
+
+	const float ww = scene.ScaleXToCurrent(prefab.w);
+	const float hh = scene.ScaleYToCurrent(prefab.h);
+	obj->SetScale(glm::vec3(ww, hh, 1.0f));
+
+	obj->SetColliderSize({
+		scene.ScaleXToCurrent(prefab.colWidth),
+		scene.ScaleYToCurrent(prefab.colHeight)
+		});
+	obj->SetColliderOffset({
+		scene.ScaleXToCurrent(prefab.colOffsetX),
+		scene.ScaleYToCurrent(prefab.colOffsetY)
+		});
+
+	// keep position; write current-space transform for editor cache
+	scene.SetTransformFromLevel(id, obj->GetPositionGLM(), { ww, hh, 1.0f }, prefab.rotation);
+
+
+	scene.SetObjectTexturePath(id, prefab.texture);
+	if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + prefab.texture), prefab.texture)) {
+		obj->SetTexture(tex);
+	}
+
+	obj->SetPosition(keepPos);
+	scene.ClampToWalkArea(obj);
+}
+
 static void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
 static void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
 
 // LevelEditor methods
-bool LevelEditor::LoadIntoScene(Scene& scene)
-{
+bool LevelEditor::LoadIntoScene(Scene& scene) {
 	if (!LevelSerializer::Load(levelPath, level)) {
 		return false;
 	}
@@ -34,6 +85,8 @@ bool LevelEditor::LoadIntoScene(Scene& scene)
 }
 
 void LevelEditor::DrawUI(Scene& scene) {
+	static int selectedIndex = -1;
+
 	if (!isEnabled) {
 		return;
 	}
@@ -45,10 +98,6 @@ void LevelEditor::DrawUI(Scene& scene) {
 	}
 
 	bool windowOpen = true;
-	if (ImGui::Begin("Level Editor", &windowOpen)) {
-		// Header space (kept intentionally minimal).
-	}
-	ImGui::End();
 
 	if (!windowOpen) {
 		isEnabled = false;
@@ -65,82 +114,18 @@ void LevelEditor::DrawUI(Scene& scene) {
 	ImGui::InputText("Level path", _pathBuf, IM_ARRAYSIZE(_pathBuf));
 	levelPath = _pathBuf;
 
-	//  Load 
+	// Load 
 	if (ImGui::Button("Load Level")) {
 		if (LevelSerializer::Load(levelPath, level)) {
-			// Start clean so the scene only reflects the file.
 			scene.ClearAll();
+			SyncLevelToScene(level, scene);
+			scene.RebuildColliders();
 
-			for (auto& levelObj : level.objects) {
-				GameObject* obj = nullptr;
-				if (levelObj.animated) {
-					obj = scene.SpawnAnimatedSprite(
-						levelObj.texture,
-						{ levelObj.x, levelObj.y, levelObj.z },
-						{ levelObj.w, levelObj.h },
-						/*frames*/{}, 0.2f, true
-					);
-				}
-				else {
-					obj = scene.SpawnStaticSprite(
-						levelObj.texture,
-						{ levelObj.x, levelObj.y, levelObj.z },
-						{ levelObj.w, levelObj.h }
-					);
-				}
+			scene.SetSimulationActive(false);
+			scene.ResetResizeBaseline();
 
-				if (!obj) {
-					continue;
-				}
-
-				// NOTE: Rotation in levelObj.rotation is DEGREES at the editor/JSON layer.
-				// Convert to radians at GameObject boundary if your SetRotation expects radians.
-				obj->SetRotation(glm::radians(levelObj.rotation), { 0, 0, 1 });
-
-				obj->SetColliderSize({ levelObj.colWidth, levelObj.colHeight });
-				obj->SetColliderOffset({ levelObj.colOffsetX, levelObj.colOffsetY });
-				scene.SetObjectTexturePath(obj->GetID(), levelObj.texture);
-
-				// Store defaults for right click reset in the inspector.
-				Scene::Defaults defaults{};
-				defaults.pos = { levelObj.x, levelObj.y, levelObj.z };
-				defaults.size = { levelObj.w, levelObj.h };
-				defaults.rot = levelObj.rotation; // degrees
-				defaults.colSize = { levelObj.colWidth, levelObj.colHeight };
-				defaults.colOff = { levelObj.colOffsetX, levelObj.colOffsetY };
-				defaults.vel = { levelObj.speedX, levelObj.speedY };
-				defaults.texture = levelObj.texture;
-				defaults.tag = levelObj.tag;
-				scene.SetDefaults(obj->GetID(), defaults);
-
-				// Keep editor/scene state in sync (rotation in DEGREES).
-				scene.SetTransformFromLevel(
-					obj->GetID(),
-					{ levelObj.x, levelObj.y, levelObj.z },
-					{ levelObj.w, levelObj.h, 1.0f },
-					levelObj.rotation
-				);
-
-				scene.ClampToWalkArea(obj);
-
-				// Named handles by tag.
-				if (levelObj.tag == "player") {
-					scene.SetPlayerID(obj->GetID());
-				}
-				if (levelObj.tag == "npc1") {
-					scene.SetNPC1ID(obj->GetID());
-					scene.SetNPCVelocity(obj->GetID(), levelObj.speedX, levelObj.speedY);
-				}
-				if (levelObj.tag == "npc2") {
-					scene.SetNPC2ID(obj->GetID());
-					scene.SetNPCVelocity(obj->GetID(), levelObj.speedX, levelObj.speedY);
-				}
-
-				if (levelObj.animated) {
-					// Give this object its own IDLE/WALK/ATTACK set.
-					scene.AttachDinoAnimations(obj->GetID());
-				}
-			}
+			isPlaying = false;
+			selectedIndex = -1;
 		}
 	}
 
@@ -164,21 +149,22 @@ void LevelEditor::DrawUI(Scene& scene) {
 			const glm::vec3 position = obj->GetPositionGLM();
 			const glm::vec3 size = obj->GetScaleGLM();
 
-			out.x = position.x;
-			out.y = position.y;
+			out.x = scene.ToRefX(position.x);
+			out.y = scene.ToRefY(position.y);
 			out.z = position.z;
-			out.w = size.x;
-			out.h = size.y;
+			out.w = scene.ToRefX(size.x);
+			out.h = scene.ToRefY(size.y);
 
 			// Save DEGREES to JSON.
 			out.rotation = glm::degrees(obj->GetRotationAngleZ());
 
 			const auto colliderSize = obj->GetColliderSize();
 			const auto colliderOffset = obj->GetColliderOffset();
-			out.colWidth = colliderSize.x;
-			out.colHeight = colliderSize.y;
-			out.colOffsetX = colliderOffset.x;
-			out.colOffsetY = colliderOffset.y;
+
+			out.colWidth = scene.ToRefX(colliderSize.x);
+			out.colHeight = scene.ToRefY(colliderSize.y);
+			out.colOffsetX = scene.ToRefX(colliderOffset.x);
+			out.colOffsetY = scene.ToRefY(colliderOffset.y);
 
 			// Infer tag from special IDs.
 			if (obj->GetID() == scene.GetPlayerID()) { out.tag = "player"; }
@@ -196,13 +182,36 @@ void LevelEditor::DrawUI(Scene& scene) {
 		LevelSerializer::Save(levelPath, level);
 	}
 
+	// Play / Stop
+	if (ImGui::Button(isPlaying ? "Playing..." : "Play")) {
+		if (!isPlaying) {
+			playStartSnapshot.objects.clear();
+			SyncSceneToLevel(scene, playStartSnapshot);
+			isPlaying = true;
+			playStartSnapshot = level;
+			scene.SetSimulationActive(true);
+		}
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Stop")) {
+		if (isPlaying) {
+			scene.ClearAll();
+			SyncLevelToScene(playStartSnapshot, scene);
+			scene.RebuildColliders();
+
+			// scene.ResetResizeBaseline();
+			scene.SetSimulationActive(false);
+
+			isPlaying = false;
+		}
+	}
+
 	ImGui::Separator();
 
 	// Hierarchy
 	std::vector<GameObject*> objectList;
 	scene.CollectRenderablePointers(objectList);
 
-	static int selectedIndex = -1;
 	if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200.0f))) {
 		for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
 			if (!objectList[i]) {
@@ -223,6 +232,11 @@ void LevelEditor::DrawUI(Scene& scene) {
 		selectedIndex < static_cast<int>(objectList.size()) &&
 		objectList[selectedIndex])
 	{
+		// Disable editing while playing
+		if (isPlaying) {
+			ImGui::BeginDisabled();
+		}
+
 		GameObject* obj = objectList[selectedIndex];
 		const int id = obj->GetID();
 
@@ -422,6 +436,101 @@ void LevelEditor::DrawUI(Scene& scene) {
 		if (newTag == "npc1") { scene.SetNPC1ID(id); }
 		if (newTag == "npc2") { scene.SetNPC2ID(id); }
 		if (newTag == "dino") { scene.SetDinoID(id); }
+
+		if (isPlaying) {
+			ImGui::EndDisabled();
+		}
+	}
+
+	// --- Prefabs / Archetypes ----------------------------------------------------
+	ImGui::Separator();
+	ImGui::Text("Prefabs / Archetypes");
+
+	// Choose a prefab path (you can change it per use)
+	static char prefabPathBuf[256] = "../prefabs/my_goat.json";
+	ImGui::InputText("Prefab path", prefabPathBuf, IM_ARRAYSIZE(prefabPathBuf));
+
+	if (ImGui::Button("Save selected as prefab")) {
+		if (selectedIndex >= 0 && selectedIndex < static_cast<int>(objectList.size()) && objectList[selectedIndex]) {
+			GameObject* obj = objectList[selectedIndex];
+
+			LevelObject data{};
+			data.texture = scene.GetObjectTexturePath(obj->GetID());
+			const glm::vec3 p = obj->GetPositionGLM();
+			const glm::vec3 s = obj->GetScaleGLM();
+			data.x = p.x; data.y = p.y; data.z = p.z;
+			data.w = s.x; data.h = s.y;
+			data.rotation = glm::degrees(obj->GetRotationAngleZ());
+
+			const auto csz = obj->GetColliderSize();
+			const auto cof = obj->GetColliderOffset();
+			data.colWidth = csz.x; data.colHeight = csz.y;
+			data.colOffsetX = cof.x; data.colOffsetY = cof.y;
+
+			// Optional: tag/velocity persist
+			data.tag = "prefab";
+			const glm::vec2 v = scene.GetNPCVelocity(obj->GetID());
+			data.speedX = v.x; data.speedY = v.y;
+
+			if (SavePrefabToFile(prefabPathBuf, data)) {
+				// Remember link for propagation
+				prefabPathById[obj->GetID()] = prefabPathBuf;
+			}
+		}
+	}
+
+	ImGui::SameLine();
+	if (ImGui::Button("Instantiate from prefab")) {
+		LevelObject data{};
+		if (LoadPrefabFromFile(prefabPathBuf, data)) {
+			const float x = scene.ScaleXToCurrent(data.x);
+			const float y = scene.ScaleYToCurrent(data.y);
+			const float ww = scene.ScaleXToCurrent(data.w);
+			const float hh = scene.ScaleYToCurrent(data.h);
+
+			GameObject* obj = scene.SpawnStaticSprite(
+				data.texture, { x, y, data.z }, { ww, hh });
+
+			if (obj) {
+				obj->SetRotation(glm::radians(data.rotation), { 0,0,1 });
+				obj->SetColliderSize({
+					scene.ScaleXToCurrent(data.colWidth),
+					scene.ScaleYToCurrent(data.colHeight)
+					});
+				obj->SetColliderOffset({
+					scene.ScaleXToCurrent(data.colOffsetX),
+					scene.ScaleYToCurrent(data.colOffsetY)
+					});
+				scene.SetObjectTexturePath(obj->GetID(), data.texture);
+
+				scene.SetTransformFromLevel(
+					obj->GetID(),
+					{ x, y, data.z },
+					{ ww, hh, 1.0f },
+					data.rotation
+				);
+				scene.ClampToWalkArea(obj);
+			}
+		}
+	}
+
+	if (ImGui::Button("Propagate prefab changes")) {
+		LevelObject data{};
+		if (LoadPrefabFromFile(prefabPathBuf, data)) {
+			std::vector<GameObject*> all;
+			scene.CollectRenderablePointers(all);
+			for (GameObject* g : all) {
+				if (!g) { continue; }
+				auto it = prefabPathById.find(g->GetID());
+				if (it != prefabPathById.end() && it->second == std::string(prefabPathBuf)) {
+					ApplyPrefabToObjectKeepPosition(data, scene, g);
+				}
+			}
+		}
+	}
+
+	if (isPlaying) {
+		ImGui::BeginDisabled();
 	}
 
 	// Add / Remove
@@ -460,48 +569,117 @@ void LevelEditor::DrawUI(Scene& scene) {
 		selectedIndex = -1;
 	}
 
+	if (isPlaying) {
+		ImGui::EndDisabled();
+	}
+
 	ImGui::End();
 }
 
-// Optional sync helpers (kept for parity)
 static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
-	// If you prefer: scene.ClearAll();
-	for (auto* g : scene.GetAllObjectsRaw()) {
-		(void)g; // Keep or clear depending on design
-	}
+	for (const auto& obj : levelIn.objects) {
+		const float x = scene.ScaleXToCurrent(obj.x);
+		const float y = scene.ScaleYToCurrent(obj.y);
+		const float ww = scene.ScaleXToCurrent(obj.w);
+		const float hh = scene.ScaleYToCurrent(obj.h);
 
-	for (const auto& levelObj : levelIn.objects) {
-		GameObject* obj = scene.SpawnStaticSprite(levelObj.texture, { levelObj.x, levelObj.y, 0.0f }, { levelObj.w, levelObj.h });
-		if (obj) {
-			obj->SetRotation(glm::radians(levelObj.rotation), { 0, 0, 1 }); // JSON/editor is degrees
-			scene.SetObjectTexturePath(obj->GetID(), levelObj.texture);
+		GameObject* g = nullptr;
+		if (obj.animated) {
+			g = scene.SpawnAnimatedSprite(
+				obj.texture,
+				{ x, y, 0.0f },
+				{ ww, hh },
+				/*frames*/{}, 0.2f, true);
 		}
+		else {
+			g = scene.SpawnStaticSprite(
+				obj.texture,
+				{ x, y, 0.0f },
+				{ ww, hh });
+		}
+
+		if (!g) {
+			return;
+		}
+
+		// Rotation in LEVEL is degrees; GameObject expects radians.
+		g->SetRotation(glm::radians(obj.rotation), { 0, 0, 1 });
+
+		// Collider
+		g->SetColliderSize({ scene.ScaleXToCurrent(obj.colWidth), scene.ScaleYToCurrent(obj.colHeight) });
+		g->SetColliderOffset({ scene.ScaleXToCurrent(obj.colOffsetX), scene.ScaleYToCurrent(obj.colOffsetY) });
+
+		// Track texture path for save/inspector
+		scene.SetObjectTexturePath(g->GetID(), obj.texture);
+
+		// Tag special handles per-NPC velocity
+		if (obj.tag == "player") {
+			scene.SetPlayerID(g->GetID());
+		}
+		else if (obj.tag == "npc1") {
+			scene.SetNPC1ID(g->GetID());
+		}
+		else if (obj.tag == "npc2") {
+			scene.SetNPC2ID(g->GetID());
+		}
+		scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
+
+		// Keep editor/scene caches consistent (rotation stays in degrees at editor layer)
+		scene.SetTransformFromLevel(g->GetID(),
+			{ x, y, 0.0f },
+			{ ww, hh, 1.0f },
+			obj.rotation);
+
+		// Store defaults so right-click “Reset” works
+		Scene::Defaults defs{};
+		defs.pos = { x, y, 0.0f };
+		defs.size = { ww, hh };
+		defs.rot = obj.rotation;                // degrees
+		defs.colSize = { scene.ScaleXToCurrent(obj.colWidth),  scene.ScaleYToCurrent(obj.colHeight) };
+		defs.colOff = { scene.ScaleXToCurrent(obj.colOffsetX), scene.ScaleYToCurrent(obj.colOffsetY) };
+		defs.vel = { obj.speedX, obj.speedY };
+		defs.texture = obj.texture;
+		defs.tag = obj.tag;
+		scene.SetDefaults(g->GetID(), defs);
+
+		// Optional: attach a standard animation set to animated objects
+		if (obj.animated) {
+			scene.AttachDinoAnimations(g->GetID());
+		}
+
+		// Clamp to walk area once after spawn
+		scene.ClampToWalkArea(g);
 	}
 }
 
 static void SyncSceneToLevel(Scene& scene, LevelData& levelOut) {
 	levelOut.objects.clear();
 
-	std::vector<GameObject*> objectList;
-	scene.CollectRenderablePointers(objectList);
+	std::vector<GameObject*> list;
+	scene.CollectRenderablePointers(list);
 
-	for (GameObject* obj : objectList) {
-		if (!obj) {
-			continue;
-		}
+	for (GameObject* g : list) {
+		if (!g) continue;
 
-		LevelObject out{};
-		out.texture = scene.GetObjectTexturePath(obj->GetID());
+		LevelObject obj{};
+		obj.texture = scene.GetObjectTexturePath(g->GetID());
+		obj.rotation = glm::degrees(g->GetRotationAngleZ());
+		glm::vec3 p = g->GetPositionGLM();
+		glm::vec3 s = g->GetScaleGLM();
 
-		glm::vec3 p = obj->GetPositionGLM();
-		glm::vec3 s = obj->GetScaleGLM();
+		obj.x = scene.ToRefX(p.x);
+		obj.y = scene.ToRefY(p.y);
+		obj.w = scene.ToRefX(s.x);
+		obj.h = scene.ToRefY(s.y);
 
-		out.x = p.x; out.y = p.y;
-		out.w = s.x; out.h = s.y;
+		obj.tag = "";
+		if (g->GetID() == scene.GetPlayerID()) obj.tag = "player";
+		else if (g->GetID() == scene.GetNPC1ID()) obj.tag = "npc1";
+		else if (g->GetID() == scene.GetNPC2ID()) obj.tag = "npc2";
 
-		// Store DEGREES.
-		out.rotation = glm::degrees(obj->GetRotationAngleZ());
+		glm::vec2 v = scene.GetNPCVelocity(g->GetID());
+		obj.speedX = v.x; obj.speedY = v.y;
 
-		levelOut.objects.push_back(out);
+		levelOut.objects.push_back(obj);
 	}
 }
