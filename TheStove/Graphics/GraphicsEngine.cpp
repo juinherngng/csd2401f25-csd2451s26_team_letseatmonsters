@@ -38,7 +38,7 @@ GraphicsEngine::GraphicsEngine()
 void GraphicsEngine::Initialize() {
 	renderer.Initialize();
 	renderer.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-	CreateSceneFBO(1200, 800);
+	CreateSceneFBO(kRefW, kRefH);
 	// Resize(kRefW, kRefH);
 	view = glm::mat4(1.0f);
 
@@ -272,6 +272,35 @@ void GraphicsEngine::BeginImGuiFrame() {
 	ImGui::PopStyleVar(2);
 }
 
+void GraphicsEngine::DrawSceneDockWindow() {
+	if (ImGui::Begin("Scene")) {
+		ImVec2 avail = ImGui::GetContentRegionAvail();
+		const float targetAspect = float(kRefW) / float(kRefH);
+		float w = avail.x, h = avail.y;
+		float r = w / h;
+		if (r > targetAspect) { w = h * targetAspect; }
+		else { h = w / targetAspect; }
+
+		// Center the image in the window
+		ImVec2 cursor = ImGui::GetCursorPos();
+		ImGui::SetCursorPos(ImVec2(cursor.x + (avail.x - w) * 0.5f,
+			cursor.y + (avail.y - h) * 0.5f));
+
+		// Record absolute (screen) rectangle for picking
+		sceneImagePos_ = ImGui::GetCursorScreenPos();
+		sceneImageSize_ = ImVec2(w, h);
+
+		// Draw the texture (flip vertically)
+		ImGui::Image(
+			(ImTextureID)(intptr_t)mSceneColor,
+			ImVec2(w, h),
+			ImVec2(0, 1),   // uv0
+			ImVec2(1, 0)    // uv1
+		);
+	}
+
+	ImGui::End();
+}
 
 void GraphicsEngine::EndImGuiFrame() {
 	ImGui::Render();
@@ -286,8 +315,54 @@ void GraphicsEngine::BeginFrame() {
 	// Then restrict rendering to the centered game area
 	ApplyViewport();
 
+	BeginSceneRender();
+
 	BeginImGuiFrame();
 }
+
+bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
+	// If Scene window hasn't drawn yet this frame
+	if (sceneImageSize_.x <= 1.0f || sceneImageSize_.y <= 1.0f) {
+		return false;
+	}
+
+	// Mouse in absolute screen coordinates
+	ImVec2 mouse = ImGui::GetMousePos();
+
+	// Early out if outside the image rect
+	if (mouse.x < sceneImagePos_.x || mouse.y < sceneImagePos_.y ||
+		mouse.x > sceneImagePos_.x + sceneImageSize_.x ||
+		mouse.y > sceneImagePos_.y + sceneImageSize_.y) {
+		return false;
+	}
+
+	// Local position (0..size) within the image
+	const float localX = mouse.x - sceneImagePos_.x;
+	const float localY = mouse.y - sceneImagePos_.y;
+
+	// UV inside the image (0..1)
+	const float u = localX / sceneImageSize_.x;
+	const float v = localY / sceneImageSize_.y;
+
+	// Because we drew Image with uv0=(0,1) uv1=(1,0), Y is flipped:
+	const float px = u * float(kRefW);
+	const float py = (1.0f - v) * float(kRefH);
+
+	// Convert FBO pixel (px,py) -> world using inverse(View * Projection)
+	// First go from pixels to NDC:
+	glm::vec4 clip;
+	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;   // [-1,1]
+	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;   // [-1,1] (top->+1)
+	clip.z = 0.0f;
+	clip.w = 1.0f;
+
+	const glm::mat4 invVP = glm::inverse(projection * view);
+	const glm::vec4 world4 = invVP * clip;
+
+	outWorld = glm::vec2(world4.x, world4.y);
+	return true;
+}
+
 
 // Render the background and then all provided GameObjects
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
@@ -318,6 +393,10 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 		DebugRenderer::Flush(view, projection);
 		glEnable(GL_DEPTH_TEST);
 	}
+
+	EndSceneRender();
+
+	DrawSceneDockWindow();
 
 	// ImGui on top
 	EndImGuiFrame();

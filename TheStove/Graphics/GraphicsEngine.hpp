@@ -76,6 +76,8 @@ public:
 
 	void ApplyViewport() const;
 
+	void DrawSceneDockWindow();
+
 private:
 	Renderer renderer;
 	ResourceManager& resourceManager;
@@ -111,4 +113,12 @@ private:
 	void CreateSceneFBO(int w, int h);
 	void DestroySceneFBO();
 	void ResizeSceneFBO(int w, int h);
+
+	// Last frame's Scene image rect in screen coordinates (for picking)
+	ImVec2 sceneImagePos_{ 0, 0 };
+	ImVec2 sceneImageSize_{ 0, 0 };
+
+	// Map current mouse to world inside the Scene window.
+	// Returns false if mouse is outside the scene image.
+	bool GetMouseWorldInScene(glm::vec2& outWorld) const;
 };
