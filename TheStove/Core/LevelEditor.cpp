@@ -22,7 +22,120 @@
 #include <algorithm>
 #include <filesystem>
 #include <unordered_map>
+
 namespace fs = std::filesystem;
+
+// File Dialog & Asset Utilities
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <commdlg.h>
+#endif
+
+// Pick a file using the OS dialog. Returns empty string if cancelled.
+static std::string OpenFileDialog(const char* filter) {
+#ifdef _WIN32
+	char filePathBuffer[MAX_PATH] = { 0 };
+
+	OPENFILENAMEA ofn{};
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = nullptr;
+	ofn.lpstrFilter = filter;
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFile = filePathBuffer;
+	ofn.nMaxFile = MAX_PATH;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER;
+
+	if (GetOpenFileNameA(&ofn)) {
+		return std::string(filePathBuffer);
+	}
+#endif
+	return {};
+}
+
+// Copy src into destDir/<basename>.
+static std::string CopyFileIntoProjectUnique(const std::string& sourcePath, const std::string& destinationDir) {
+	if (sourcePath.empty()) {
+		return {};
+	}
+
+	std::error_code ec;
+	fs::path src(sourcePath);
+
+	if (!fs::exists(src, ec)) {
+		return {};
+	}
+
+	fs::path dstDir(destinationDir);
+	if (!fs::exists(dstDir, ec)) {
+		fs::create_directories(dstDir, ec);
+		if (ec) {
+			return {};
+		}
+	}
+
+	fs::path baseName = src.filename();
+	fs::path dst = dstDir / baseName;
+
+	int suffix = 1;
+	while (fs::exists(dst, ec)) {
+		dst = dstDir / (baseName.stem().string() + " (" + std::to_string(suffix++) + ")" +
+			baseName.extension().string());
+	}
+
+	fs::copy_file(src, dst, fs::copy_options::overwrite_existing, ec);
+	if (ec) {
+		return {};
+	}
+
+	// Return normalized with forward slashes so the rest of the pipeline stays happy.
+	return (fs::path("..") / dst.lexically_normal().relative_path()).generic_string();
+}
+
+// Force-load a texture even if your ResourceManager caches by key.
+static Texture* LoadTextureBypassingCache(const std::string& path) {
+	const uint64_t tick = static_cast<uint64_t>(ImGui::GetTime() * 1'000'000.0);
+	const std::string key = "sprite_" + path + "#v" + std::to_string(tick);
+	return ResourceManager::Instance().LoadTexture(key, path);
+}
+
+// Rename / Delete (Trash) helpers 
+static bool RenameFileOnDisk(const std::string& fullPathOld, const std::string& newNameWithoutExtOrWith) {
+	std::error_code ec;
+	fs::path oldPath(fullPathOld);
+
+	if (!fs::exists(oldPath, ec)) {
+		return false;
+	}
+
+	fs::path newPath = oldPath.parent_path() / newNameWithoutExtOrWith;
+
+	// If user omitted extension, keep the original extension.
+	if (newPath.extension().empty()) {
+		newPath += oldPath.extension();
+	}
+
+	fs::rename(oldPath, newPath, ec);
+	return !ec;
+}
+
+static bool MoveToTrash(const std::string& filePath) {
+	std::error_code ec;
+	fs::path src(filePath);
+
+	if (!fs::exists(src, ec)) {
+		return false;
+	}
+
+	fs::path trashDir = src.parent_path() / "trash";
+	if (!fs::exists(trashDir, ec)) {
+		fs::create_directories(trashDir, ec);
+	}
+
+	fs::path dst = trashDir / src.filename();
+	fs::rename(src, dst, ec);
+	return !ec;
+}
 
 // Prefab helpers
 static bool SavePrefabToFile(std::string prefabPath, const LevelObject& src) {
@@ -740,10 +853,9 @@ void LevelEditor::DrawUI(Scene& scene) {
 	}
 	ImGui::End(); // Prefabs window
 
-	// ===== Assets Window =========================================================
+	// Assets Window
 	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 	if (ImGui::Begin("Assets###LE_Assets")) {
-
 		ImGui::Text("Assets");
 		ImGui::Spacing();
 		ImGui::BeginChild("##AssetsBox", ImVec2(0, 0), true);
@@ -751,37 +863,220 @@ void LevelEditor::DrawUI(Scene& scene) {
 		static std::vector<std::string> sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
 		static std::vector<std::string> sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
 
+		// Import row (browse & copy into ../assets)
+		if (ImGui::Button("Import Texture...")) {
+			const std::string pickedPath = OpenFileDialog("PNG files\0*.png\0All files\0*.*\0");
+			if (!pickedPath.empty()) {
+				const std::string projectPath = CopyFileIntoProjectUnique(pickedPath, "../assets");
+				if (!projectPath.empty()) {
+					// Live refresh so the new file appears immediately
+					sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
+
+					ImGuiIO& io = ImGui::GetIO();
+					const bool skipAutoApply = io.KeyCtrl
+						|| ImGui::IsKeyDown(ImGuiKey_LeftCtrl)
+						|| ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+
+					if (!skipAutoApply) {
+						std::vector<GameObject*> objectList;
+						scene.CollectRenderablePointers(objectList);
+
+						if (selectedIndex >= 0 &&
+							selectedIndex < static_cast<int>(objectList.size()) &&
+							objectList[selectedIndex] != nullptr) {
+							GameObject* obj = objectList[selectedIndex];
+							const int id = obj->GetID();
+
+							scene.SetObjectTexturePath(id, projectPath);
+
+							if (Texture* tex = LoadTextureBypassingCache(projectPath)) {
+								obj->SetTexture(tex);
+
+								if (projectPath.find("dino_") != std::string::npos) {
+									scene.AttachDinoAnimations(id);
+									scene.SetAnimation(id, "IDLE");
+									scene.MarkAnimated(id, true);
+								}
+								else {
+									obj->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
+									scene.MarkAnimated(id, false);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Import Prefab...")) {
+			const std::string picked = OpenFileDialog("JSON files\0*.json\0All files\0*.*\0");
+			if (!picked.empty()) {
+				const std::string projPath = CopyFileIntoProjectUnique(picked, "../prefabs");
+				if (!projPath.empty()) {
+					sPrefabs = ListAssetsWithExt("../prefabs", { ".json" }); // live refresh
+				}
+			}
+		}
+		ImGui::Separator();
+
 		if (ImGui::CollapsingHeader("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##tex")) sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
+
 			for (auto const& path : sTextures) {
-				if (ImGui::Selectable(path.c_str(), false)) {}
+				ImGui::PushID(path.c_str());              // avoid ID collisions
+				ImGui::Selectable(path.c_str(), false);   // simple row; we handle dbl-click below
+
+				// Robust double-click even while Selectable is active
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
+					ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+				{
+					std::vector<GameObject*> objs; scene.CollectRenderablePointers(objs);
+					if (selectedIndex >= 0 && selectedIndex < (int)objs.size() && objs[selectedIndex]) {
+						GameObject* o = objs[selectedIndex];
+						const int id2 = o->GetID();
+
+						scene.SetObjectTexturePath(id2, path);
+						if (auto* tex = LoadTextureBypassingCache(path)) {
+							o->SetTexture(tex);
+							if (path.find("dino_") != std::string::npos) {
+								scene.AttachDinoAnimations(id2);
+								scene.SetAnimation(id2, "IDLE");
+								scene.MarkAnimated(id2, true);
+							}
+							else {
+								o->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
+								scene.MarkAnimated(id2, false);
+							}
+						}
+					}
+				}
+
+				// Drag source still works
 				if (ImGui::BeginDragDropSource()) {
 					ImGui::SetDragDropPayload("ASSET_PATH", path.c_str(), path.size() + 1);
 					ImGui::TextUnformatted("Texture");
 					ImGui::TextWrapped("%s", path.c_str());
 					ImGui::EndDragDropSource();
 				}
+
+				// Right-click context menu for rename / delete
+				if (ImGui::BeginPopupContextItem()) {
+					if (ImGui::MenuItem("Rename")) {
+						char buf[128];
+						std::strncpy(buf, fs::path(path).stem().string().c_str(), sizeof(buf));
+						buf[sizeof(buf) - 1] = 0;
+						ImGui::OpenPopup("RenameTexturePopup");
+						ImGui::SetItemDefaultFocus();
+						ImGui::SetNextWindowSize(ImVec2(250, 80));
+						ImGui::SetItemDefaultFocus();
+						ImGui::SetClipboardText(buf); // optional
+					}
+					if (ImGui::MenuItem("Delete")) {
+						MoveToTrash(path);
+						sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
+					}
+					ImGui::EndPopup();
+				}
+
+				ImGui::PopID();
 			}
+
+			// --- Rename popup ---
+			static char renameBuf[128] = "";
+			static std::string pendingRenameOld;
+			if (ImGui::BeginPopup("RenameTexturePopup")) {
+				if (pendingRenameOld.empty()) {
+					pendingRenameOld = ImGui::GetClipboardText() ? ImGui::GetClipboardText() : "";
+					std::strncpy(renameBuf, pendingRenameOld.c_str(), sizeof(renameBuf));
+					renameBuf[sizeof(renameBuf) - 1] = 0;
+				}
+				ImGui::InputText("New name", renameBuf, IM_ARRAYSIZE(renameBuf));
+				if (ImGui::Button("OK")) {
+					if (RenameFileOnDisk(pendingRenameOld, renameBuf)) {
+						sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
+					}
+					pendingRenameOld.clear();
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel")) {
+					pendingRenameOld.clear();
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::EndPopup();
+			}
+
+
 		}
 
 		if (ImGui::CollapsingHeader("Prefabs", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##pf")) sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+
 			for (auto const& path : sPrefabs) {
-				if (ImGui::Selectable(path.c_str(), false)) {}
+				ImGui::PushID(path.c_str());
+				ImGui::Selectable(path.c_str(), false);
+
+				// Drag source for prefab
 				if (ImGui::BeginDragDropSource()) {
 					ImGui::SetDragDropPayload("PREFAB_PATH", path.c_str(), path.size() + 1);
 					ImGui::TextUnformatted("Prefab");
 					ImGui::TextWrapped("%s", path.c_str());
 					ImGui::EndDragDropSource();
 				}
+
+				// --- Right-click context menu ---
+				if (ImGui::BeginPopupContextItem()) {
+					if (ImGui::MenuItem("Rename")) {
+						char buf[128];
+						std::strncpy(buf, fs::path(path).stem().string().c_str(), sizeof(buf));
+						buf[sizeof(buf) - 1] = 0;
+						ImGui::OpenPopup("RenamePrefabPopup");
+						ImGui::SetItemDefaultFocus();
+						ImGui::SetNextWindowSize(ImVec2(250, 80));
+						ImGui::SetClipboardText(buf);
+					}
+					if (ImGui::MenuItem("Delete")) {
+						MoveToTrash(path);
+						sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+					}
+					ImGui::EndPopup();
+				}
+
+				ImGui::PopID();
+			}
+
+			// --- Rename popup ---
+			static char renameBufP[128] = "";
+			static std::string pendingRenameOldP;
+			if (ImGui::BeginPopup("RenamePrefabPopup")) {
+				if (pendingRenameOldP.empty()) {
+					pendingRenameOldP = ImGui::GetClipboardText() ? ImGui::GetClipboardText() : "";
+					std::strncpy(renameBufP, pendingRenameOldP.c_str(), sizeof(renameBufP));
+					renameBufP[sizeof(renameBufP) - 1] = 0;
+				}
+
+				ImGui::InputText("New name", renameBufP, IM_ARRAYSIZE(renameBufP));
+				if (ImGui::Button("OK")) {
+					if (RenameFileOnDisk(pendingRenameOldP, renameBufP)) {
+						sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+					}
+					pendingRenameOldP.clear();
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel")) {
+					pendingRenameOldP.clear();
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::EndPopup();
 			}
 		}
 
 		ImGui::EndChild();
 	}
+
 	ImGui::End(); // Assets window
-
-
 }
 
 static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {

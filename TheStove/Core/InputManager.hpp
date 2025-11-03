@@ -15,6 +15,7 @@
 #pragma once
 
 #include "../Graphics/GraphicsEngine.hpp"
+#include "imgui.h"
 
 #include <unordered_map>
 #include <GLFW/glfw3.h>

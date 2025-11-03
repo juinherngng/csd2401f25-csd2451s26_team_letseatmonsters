@@ -19,6 +19,8 @@ void InputManager::Update(GLFWwindow* window) {
 	mPreviousKeyStates = mCurrentKeyStates;
 	mPrevMouseButtons = mMouseButtons;
 
+	ImGuiIO& io = ImGui::GetIO();
+
 	// Poll commonly used keys
 	int keys[] = {
 		GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN,
@@ -28,14 +30,31 @@ void InputManager::Update(GLFWwindow* window) {
 		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3
 	};
 
-	for (int key : keys) {
-		mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
+	// If ImGui wants the keyboard, clear key states so gameplay won’t react
+	if (!io.WantCaptureKeyboard) {
+		for (int key : keys) {
+			mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
+		}
+	}
+	else {
+		for (int key : keys) {
+			mCurrentKeyStates[key] = false;
+		}
 	}
 
-	// Poll mouse buttons
+	// Mouse buttons to track
 	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
-	for (int b : buttons) {
-		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
+
+	// If ImGui wants the mouse, clear mouse buttons so gameplay clicks won’t fire
+	if (!io.WantCaptureMouse) {
+		for (int b : buttons) {
+			mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
+		}
+	}
+	else {
+		for (int b : buttons) {
+			mMouseButtons[b] = false;
+		}
 	}
 
 	// Get mouse cursor position
