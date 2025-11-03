@@ -13,7 +13,7 @@
       "tag": "player",
       "texture": "../assets/mc_sprite_front.png",
       "w": 128.0,
-      "x": 377.969970703125,
+      "x": 376.9849853515625,
       "y": 513.3967895507813,
       "z": 0.0
     },
@@ -116,6 +116,23 @@
       "texture": "../assets/goat_sprite_front.png",
       "w": 128.0,
       "x": 488.0,
+      "y": 300.0,
+      "z": 0.0
+    },
+    {
+      "animated": false,
+      "col_h": 128.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "col_w": 64.0,
+      "h": 128.0,
+      "rotation": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0,
+      "tag": "",
+      "texture": "../assets/goat_sprite_front.png",
+      "w": 128.0,
+      "x": 300.0,
       "y": 300.0,
       "z": 0.0
     }

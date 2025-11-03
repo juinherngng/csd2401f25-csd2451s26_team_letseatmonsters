@@ -147,11 +147,10 @@ void LevelEditor::DrawUI(Scene& scene) {
 		ImGui::EndCombo();
 	}
 
-	// Optional manual typing field (kept for convenience)
+	// Manual typing (editable)
 	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-	if (ImGui::InputText("##LevelPathEdit", _pathBuf, IM_ARRAYSIZE(_pathBuf),
-		ImGuiInputTextFlags_ReadOnly)) {
-		levelPath = _pathBuf;
+	if (ImGui::InputText("##LevelPathEdit", _pathBuf, IM_ARRAYSIZE(_pathBuf))) {
+		levelPath = _pathBuf;            // keep levelPath in sync as you type
 	}
 
 	// Load 
@@ -371,99 +370,109 @@ void LevelEditor::DrawUI(Scene& scene) {
 			scene.ClampToWalkArea(obj);
 			};
 
-		// Texture (with reset)
-		if (ImGui::InputText("Texture", textureBuf, IM_ARRAYSIZE(textureBuf))) {
+		// --- COMPACT PROPERTIES LAYOUT (replace the big block) ---
+
+// two columns: left = labels, right = compact widgets
+		ImGui::Columns(2, nullptr, false);
+		ImGui::SetColumnWidth(0, 110.0f);
+
+		// Texture ---------------------------------------------------
+		ImGui::Text("Texture"); ImGui::NextColumn();
+		ImGui::SetNextItemWidth(140.0f);
+		if (ImGui::InputText("##TexturePath", textureBuf, IM_ARRAYSIZE(textureBuf))) {
 			scene.SetObjectTexturePath(id, textureBuf);
 			if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(textureBuf)), textureBuf)) {
 				obj->SetTexture(tex);
 			}
 		}
+		ImGui::NextColumn();
 
-		if (ImGui::BeginPopupContextItem("tex_ctx")) {
-			if (ImGui::MenuItem("Reset texture")) {
-				std::snprintf(textureBuf, sizeof(textureBuf), "%s", defaults.texture.c_str());
-				scene.SetObjectTexturePath(id, textureBuf);
-				if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(textureBuf)), textureBuf)) {
-					obj->SetTexture(tex);
-				}
-			}
+		// Tag -------------------------------------------------------
+		ImGui::Text("Tag"); ImGui::NextColumn();
+		ImGui::SetNextItemWidth(140.0f);
+		ImGui::InputText("##Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
+		ImGui::NextColumn();
 
-			ImGui::EndPopup();
-		}
+		// Position (x,y) -------------------------------------------
+		ImGui::Text("Position (x,y)"); ImGui::NextColumn();
+		ImGui::SetNextItemWidth(140.0f);
+		DragVec2WithReset("##pos", &position.x, ImVec2(defaults.pos.x, defaults.pos.y), 1.0f, [&](bool) {
+			// GameObject expects radians; editor stores degrees
+			obj->SetRotation(glm::radians(rotationDeg), { 0,0,1 });
+			scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
+			scene.ClampToWalkArea(obj);
+			});
+		ImGui::NextColumn();
 
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Right-click to reset");
-		}
+		// Size (w,h) -----------------------------------------------
+		ImGui::Text("Size (w,h)"); ImGui::NextColumn();
+		ImGui::SetNextItemWidth(140.0f);
+		DragVec2WithReset("##size", &size.x, ImVec2(defaults.size.x, defaults.size.y), 1.0f, [&](bool) {
+			obj->SetRotation(glm::radians(rotationDeg), { 0,0,1 });
+			scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
+			scene.ClampToWalkArea(obj);
+			});
+		ImGui::NextColumn();
 
-		// Tag (with reset)
-		ImGui::InputText("Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
-		if (ImGui::BeginPopupContextItem("tag_ctx")) {
-			if (ImGui::MenuItem("Reset tag")) {
-				std::snprintf(tagBuf, sizeof(tagBuf), "%s", defaults.tag.c_str());
-			}
+		// Rotation (deg) -------------------------------------------
+		ImGui::Text("Rotation (deg)"); ImGui::NextColumn();
+		ImGui::SetNextItemWidth(140.0f);
+		DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.25f, [&](bool) {
+			obj->SetRotation(glm::radians(rotationDeg), { 0,0,1 });
+			scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
+			});
+		ImGui::NextColumn();
 
-			ImGui::EndPopup();
-		}
+		// Collider (w,h) --------------------------------------------
+		ImGui::Text("Collider (w,h)"); ImGui::NextColumn();
+		ImGui::SetNextItemWidth(140.0f);
+		DragVec2WithReset("##colsz", &colliderSize.x, ImVec2(defaults.colSize.x, defaults.colSize.y), 1.0f, [&](bool) {
+			obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+			});
+		ImGui::NextColumn();
 
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Right-click to reset");
-		}
+		// Collider offset -------------------------------------------
+		ImGui::Text("Collider offset"); ImGui::NextColumn();
+		ImGui::SetNextItemWidth(140.0f);
+		DragVec2WithReset("##coloff", &colliderOffset.x, ImVec2(defaults.colOff.x, defaults.colOff.y), 1.0f, [&](bool) {
+			obj->SetColliderOffset({ colliderOffset.x, colliderOffset.y });
+			});
+		ImGui::NextColumn();
 
-		// Position / Size / Rotation
-		DragVec2WithReset("Position", &position.x, ImVec2(defaults.pos.x, defaults.pos.y), 1.0f, [&](bool) { ApplyTransform(); });
-		DragVec2WithReset("Size (w,h)", &size.x, ImVec2(defaults.size.x, defaults.size.y), 1.0f, [&](bool) { ApplyTransform(); });
-		DragFloatWithReset("Rotation (deg)", &rotationDeg, defaults.rot, 0.25f, [&](bool) { ApplyTransform(); });
+		// Velocity (x,y) --------------------------------------------
+		ImGui::Text("Velocity (x,y)"); ImGui::NextColumn();
+		ImGui::SetNextItemWidth(140.0f);
+		DragVec2WithReset("##vel", &velocity.x, ImVec2(defaults.vel.x, defaults.vel.y), 1.0f, [&](bool) {
+			scene.SetNPCVelocity(id, velocity.x, velocity.y);
+			});
+		ImGui::NextColumn();
 
-		// Collider
-		DragVec2WithReset("Collider (w,h)", &colliderSize.x, ImVec2(defaults.colSize.x, defaults.colSize.y), 1.0f,
-			[&](bool) { obj->SetColliderSize({ colliderSize.x, colliderSize.y }); });
-		DragVec2WithReset("Collider offset", &colliderOffset.x, ImVec2(defaults.colOff.x, defaults.colOff.y), 1.0f,
-			[&](bool) { obj->SetColliderOffset({ colliderOffset.x, colliderOffset.y }); });
-
-		// Velocity
-		DragVec2WithReset("Velocity (x,y)", &velocity.x, ImVec2(defaults.vel.x, defaults.vel.y), 1.0f,
-			[&](bool) { scene.SetNPCVelocity(id, velocity.x, velocity.y); });
-
-		// Animations
+		// Start animation -------------------------------------------
 		if (scene.HasAnimations(id)) {
 			std::vector<std::string> animationNames = scene.GetAnimationList(id);
 			std::string currentAnim = scene.GetCurrentAnimationName(id);
-
 			int currentIndex = 0;
-			for (int i = 0; i < static_cast<int>(animationNames.size()); ++i) {
-				if (animationNames[i] == currentAnim) {
-					currentIndex = i;
-					break;
-				}
+			for (int i = 0; i < (int)animationNames.size(); ++i) {
+				if (animationNames[i] == currentAnim) { currentIndex = i; break; }
 			}
 
-			if (ImGui::BeginCombo("Start animation", currentAnim.empty() ? "(none)" : currentAnim.c_str())) {
-				for (int i = 0; i < static_cast<int>(animationNames.size()); ++i) {
+			ImGui::Text("Start animation"); ImGui::NextColumn();
+			ImGui::SetNextItemWidth(140.0f);
+			if (ImGui::BeginCombo("##animCombo", currentAnim.empty() ? "(none)" : currentAnim.c_str())) {
+				for (int i = 0; i < (int)animationNames.size(); ++i) {
 					bool selected = (i == currentIndex);
 					if (ImGui::Selectable(animationNames[i].c_str(), selected)) {
-						scene.SetAnimation(id, animationNames[i]); // switch THIS object's animation
+						scene.SetAnimation(id, animationNames[i]);
 					}
-
-					if (selected) {
-						ImGui::SetItemDefaultFocus();
-					}
+					if (selected) ImGui::SetItemDefaultFocus();
 				}
-
 				ImGui::EndCombo();
 			}
-
-			if (ImGui::BeginPopupContextItem("anim_ctx")) {
-				if (ImGui::MenuItem("Reset animation")) {
-					scene.SetAnimation(id, "IDLE");
-				}
-
-				ImGui::EndPopup();
-			}
-
-			if (ImGui::IsItemHovered()) {
-				ImGui::SetTooltip("Right-click to reset");
-			}
+			ImGui::NextColumn();
 		}
+		ImGui::Columns(1);
+		// --- END COMPACT PROPERTIES LAYOUT ---
+
 
 		// Final apply (keep maps in sync)
 		scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
@@ -486,6 +495,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 	// --- Prefabs / Archetypes ----------------------------------------------------
 	ImGui::Separator();
 	ImGui::Text("Prefabs / Archetypes");
+	ImGui::Spacing();
 
 	// ----- Prefab Path Row (dropdown + refresh) -----
 	static char prefabPathBuf[256] = "../prefabs/my_goat.json";
@@ -511,11 +521,10 @@ void LevelEditor::DrawUI(Scene& scene) {
 	}
 
 	// (Optional) still allow manual typing
-	if (ImGui::InputText("##PrefabPathEdit", prefabPathBuf, IM_ARRAYSIZE(prefabPathBuf),
-		ImGuiInputTextFlags_ReadOnly)) {
-		// nothing else; buttons below already read prefabPathBuf
-	}
+	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+	ImGui::InputText("##PrefabPathEdit", prefabPathBuf, IM_ARRAYSIZE(prefabPathBuf));
 
+	const bool prefabExists = fs::exists(prefabPathBuf);
 	if (ImGui::Button("Save selected as prefab")) {
 		if (selectedIndex >= 0 && selectedIndex < static_cast<int>(objectList.size()) && objectList[selectedIndex]) {
 			GameObject* obj = objectList[selectedIndex];
@@ -545,6 +554,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 		}
 	}
 
+	ImGui::BeginDisabled(!prefabExists);
 	if (ImGui::Button("Instantiate from prefab")) {
 		LevelObject data{};
 		if (LoadPrefabFromFile(prefabPathBuf, data)) {
@@ -587,6 +597,8 @@ void LevelEditor::DrawUI(Scene& scene) {
 			}
 		}
 	}
+
+	ImGui::EndDisabled();
 
 	if (isPlaying) {
 		ImGui::BeginDisabled();
@@ -709,11 +721,6 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		defs.texture = obj.texture;
 		defs.tag = obj.tag;
 		scene.SetDefaults(g->GetID(), defs);
-
-		// Optional: attach a standard animation set to animated objects
-		if (obj.animated) {
-			scene.AttachDinoAnimations(g->GetID());
-		}
 
 		// Clamp to walk area once after spawn
 		scene.ClampToWalkArea(g);
