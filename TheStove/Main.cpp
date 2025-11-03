@@ -374,6 +374,17 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 	app.coreEngine->Initialize();
 	
+	// Initialize ResourceManager with AudioManager
+	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
+	{
+		ResourceManager::Instance().SetAudioManager(audioMgr);
+		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
+	}
+	else
+	{
+		std::cerr << "Warning: AudioManager not found in CoreEngine for ResourceManager!" << std::endl;
+	}
+	
 	// Create GraphicsEngine with smart pointer
 	app.graphicsEngine = std::make_unique<GraphicsEngine>();
 	app.graphicsEngine->Initialize();

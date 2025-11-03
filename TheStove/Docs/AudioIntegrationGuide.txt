@@ -1,0 +1,132 @@
+===================================================================================
+AUDIO INTEGRATION GUIDE - ResourceManager + AudioManager
+===================================================================================
+
+OVERVIEW
+--------
+The audio system now uses a two-layer architecture:
+1. ResourceManager - Provides a unified interface for loading all resources (shaders, textures, meshes, audio)
+2. AudioManager - Handles FMOD audio system management and playback
+
+INITIALIZATION SEQUENCE
+-----------------------
+1. CoreEngine creates and initializes AudioManager as a system
+2. Main.cpp initializes ResourceManager with the AudioManager instance
+3. ResourceManager can now delegate audio loading to AudioManager
+4. Other systems (like DebugUI) load audio through ResourceManager
+
+CODE FLOW EXAMPLE (from Main.cpp)
+----------------------------------
+    // Step 1: Create CoreEngine and add AudioManager as a system
+    app.coreEngine = std::make_unique<CoreFramework::CoreEngine>();
+    app.coreEngine->AddSystem(std::make_unique<AudioManager>());
+    app.coreEngine->Initialize();
+    
+    // Step 2: Connect ResourceManager to AudioManager
+    if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
+    {
+        ResourceManager::Instance().SetAudioManager(audioMgr);
+    }
+
+LOADING AUDIO
+-------------
+Audio files should be loaded through ResourceManager, not AudioManager directly.
+
+Example from DebugUI.cpp:
+    auto& resMgr = ResourceManager::Instance();
+    
+    // Load a sound effect (looping, not streamed)
+    resMgr.LoadAudio("boiling sound", "../assets/Audio/Boiling7.wav", true, false);
+    
+    // Load background music (looping, streamed)
+    resMgr.LoadAudio("background music", "../assets/Audio/bgm.wav", true, true);
+
+ResourceManager API for Audio:
+    bool LoadAudio(name, filepath, loop, stream)  // Load audio file
+    bool HasAudio(name)                           // Check if audio exists
+    void UnloadAudio(name)                        // Unload audio file
+    bool GetAudioInfo(name, lengthMs, channels, bits, freq)  // Get audio info
+
+Parameters:
+    - name: Logical name to reference the audio
+    - filepath: Path to the audio file
+    - loop: true = loop the audio, false = play once
+    - stream: true = stream from disk (for music), false = load into memory (for SFX)
+
+PLAYING AUDIO
+-------------
+Audio playback is still handled by AudioManager through CoreEngine.
+
+Example from DebugUI.cpp:
+    if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+    {
+        // Play audio
+        audioMgr->PlaySound("background music", 1.0f, false);
+        
+        // Stop audio
+        audioMgr->StopSound("background music");
+        
+        // Stop all audio
+        audioMgr->StopAllSounds();
+    }
+
+AudioManager Playback API:
+    void PlaySound(name, volume, paused)      // Play a loaded sound
+    void StopSound(name)                      // Stop a playing sound
+    void StopAllSounds()                      // Stop all sounds
+    void SetBgmVolume(volume)                 // Set BGM volume (0.0 - 1.0)
+    void SetVfxVolume(volume)                 // Set VFX volume (0.0 - 1.0)
+    void Mute(shouldMute)                     // Mute/unmute all audio
+    void EnqueuePlay(name, volume, paused)    // Queue sound to play next update
+    void FadeChannel(name, toVolume, duration) // Fade volume over time
+
+BEST PRACTICES
+--------------
+1. Load audio through ResourceManager during initialization
+2. Play/stop audio through AudioManager during runtime
+3. Use streaming (stream=true) for long audio files like background music
+4. Use memory loading (stream=false) for short sound effects
+5. Set loop=true for background music and ambient sounds
+6. Set loop=false for one-shot sound effects
+
+EXAMPLE WORKFLOW
+----------------
+// During initialization (e.g., Scene::LoadScene, DebugUI::Initialize)
+auto& resMgr = ResourceManager::Instance();
+resMgr.LoadAudio("bgm_menu", "../assets/Audio/menu_music.wav", true, true);
+resMgr.LoadAudio("sfx_click", "../assets/Audio/click.wav", false, false);
+
+// During gameplay (e.g., button click handler)
+if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+{
+    audioMgr->PlaySound("sfx_click", 1.0f, false);
+}
+
+// During scene transition
+if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+{
+    audioMgr->FadeChannel("bgm_menu", 0.0f, 2.0f);  // Fade out over 2 seconds
+}
+
+// During cleanup
+auto& resMgr = ResourceManager::Instance();
+resMgr.UnloadAudio("bgm_menu");
+resMgr.UnloadAudio("sfx_click");
+
+MODIFIED FILES
+--------------
+1. ResourceManager.hpp - Added audio management methods and AudioManager pointer
+2. ResourceManager.cpp - Implemented audio methods that delegate to AudioManager
+3. Main.cpp - Added ResourceManager initialization with AudioManager
+4. AudioManager.cpp - Removed hardcoded audio loading from Initialize()
+5. DebugUI.cpp - Updated to load audio through ResourceManager
+
+BENEFITS
+--------
+1. Unified resource loading interface
+2. Clear separation of concerns (loading vs playback)
+3. Centralized resource management
+4. Easier to track and manage all loaded resources
+5. Consistent API across all resource types
+
+===================================================================================

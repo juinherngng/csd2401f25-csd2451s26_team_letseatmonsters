@@ -26,52 +26,13 @@ void AudioManager::Initialize()
 {
 	if (InitializeSystem())
 	{
-		std::cout << "AudioManagerSystem initialized." << std::endl;
-
-		// Load initial sounds here or later as needed
-		auto* snd = LoadSound("boiling sound", "../assets/Audio/Boiling7.wav", true, true);
-		if (!snd)
-		{
-			std::cerr << "Failed to load audio 'boiling sound'\n";
-		}
-		else
-		{
-			unsigned int lenMs = 0;
-			int ch = 0, bits = 0;
-			float freq = 0;
-			if (GetSoundInfo("boiling sound", lenMs, ch, bits, freq))
-			{
-				std::cout << "Audio 'boiling sound' info - Length: " << lenMs << " ms, Channels: " << ch << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
-			}
-			else
-			{
-				std::cerr << "Failed to get audio info for 'boiling sound'\n";
-			}
-		}
-
-		auto* snd1 = LoadSound("background music", "../assets/Audio/bgm.wav", true, true);
-		if (!snd1)
-		{
-			std::cerr << "Failed to load audio 'background music'\n";
-		}
-		else
-		{
-			unsigned int lenMs = 0;
-			int ch = 0, bits = 0;
-			float freq = 0;
-			if (GetSoundInfo("background music", lenMs, ch, bits, freq))
-			{
-				std::cout << "Audio 'background music' info - Length: " << lenMs << " ms, Channels: " << ch << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
-			}
-			else
-			{
-				std::cerr << "Failed to get audio info for 'background music'\n";
-			}
-		}
+		std::cout << "AudioManager system initialized." << std::endl;
+		
+		// Audio files should now be loaded through ResourceManager
 	}
 	else
 	{
-		std::cerr << "AudioManagerSystem failed to initialize." << std::endl;
+		std::cerr << "AudioManager system failed to initialize." << std::endl;
 	}
 }
 
@@ -150,7 +111,7 @@ void AudioManager::SendMessage(CoreFramework::Message* message)
 
 std::string AudioManager::GetName()
 {
-	return "AudioManagerSystem";
+	return "AudioManager";
 }
 
 // AudioManager functions

@@ -20,6 +20,8 @@ DESCRIPTION:		Singleton cache for loading and retrieving Shaders, Textures, and 
 #include <memory>
 #include <vector>
 
+// Forward declaration
+class AudioManager;
 
 class ResourceManager {
 public:
@@ -27,6 +29,9 @@ public:
         static ResourceManager instance;
         return instance;
     }
+
+    // AudioManager injection
+    void SetAudioManager(AudioManager* audioMgr);
 
     // Shader management
     Shader* LoadShader(const std::string& name, const std::string& vertexPath, const std::string& fragmentPath);
@@ -40,11 +45,17 @@ public:
     Texture* LoadTexture(const std::string& name, const std::string& filePath);
     Texture* GetTexture(const std::string& name);
 
+    // Audio management (delegates to AudioManager)
+    bool LoadAudio(const std::string& name, const std::string& filePath, bool loop = false, bool stream = false);
+    bool HasAudio(const std::string& name) const;
+    void UnloadAudio(const std::string& name);
+    bool GetAudioInfo(const std::string& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const;
+
     // Cleanup
     void Clear();
 
 private:
-    ResourceManager() : isCleared(false) {}
+    ResourceManager() : isCleared(false), audioManager(nullptr) {}
     ~ResourceManager() { Clear(); }
 
     // Non-copyable singleton
@@ -55,6 +66,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes;
     std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
 
+    AudioManager* audioManager; // Non-owning pointer to AudioManager
     bool isCleared;
 
 };

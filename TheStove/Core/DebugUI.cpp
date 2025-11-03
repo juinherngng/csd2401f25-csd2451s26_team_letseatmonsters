@@ -14,6 +14,7 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 
 #include "DebugUI.hpp"
 #include "Core.hpp"
+#include "../Graphics/ResourceManager.hpp"
 
 namespace Debug
 {
@@ -69,6 +70,49 @@ namespace Debug
 		{
 			std::cerr << "Failed to initialize OpenGL context\n";
 			return false;
+		}
+
+		// Load audio files through ResourceManager
+		auto& resMgr = ResourceManager::Instance();
+		
+		// Load boiling sound (looping, not streamed - for sound effects)
+		if (resMgr.LoadAudio("boiling sound", "../assets/Audio/Boiling7.wav", true, false))
+		{
+			std::cout << "DebugUI: Loaded 'boiling sound' through ResourceManager." << std::endl;
+			
+			// Get and display audio info
+			unsigned int lenMs = 0;
+			int ch = 0, bits = 0;
+			float freq = 0;
+			if (resMgr.GetAudioInfo("boiling sound", lenMs, ch, bits, freq))
+			{
+				std::cout << "Audio 'boiling sound' info - Length: " << lenMs << " ms, Channels: " << ch 
+						  << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
+			}
+		}
+		else
+		{
+			std::cerr << "DebugUI: Failed to load 'boiling sound' through ResourceManager." << std::endl;
+		}
+		
+		// Load background music (looping, streamed - for music)
+		if (resMgr.LoadAudio("background music", "../assets/Audio/bgm.wav", true, true))
+		{
+			std::cout << "DebugUI: Loaded 'background music' through ResourceManager." << std::endl;
+			
+			// Get and display audio info
+			unsigned int lenMs = 0;
+			int ch = 0, bits = 0;
+			float freq = 0;
+			if (resMgr.GetAudioInfo("background music", lenMs, ch, bits, freq))
+			{
+				std::cout << "Audio 'background music' info - Length: " << lenMs << " ms, Channels: " << ch 
+						  << ", Bits: " << bits << ", Frequency: " << freq << " Hz\n";
+			}
+		}
+		else
+		{
+			std::cerr << "DebugUI: Failed to load 'background music' through ResourceManager." << std::endl;
 		}
 
 		isInitialised = true;

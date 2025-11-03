@@ -30,7 +30,7 @@ namespace Framework {
 	extern FP fpInit = nullptr, fpUpdate = nullptr, fpExit = nullptr; // Function pointers that changes depending on what state the game is in currently
 	//Setup Manager Logic
 	void GameStateManager::Initialize() {
-		std::cout << "GameStateManagerSystem initialized." << std::endl;
+		std::cout << "GameStateManager system initialized." << std::endl;
 	}
 	//Manager Update loop
 	void GameStateManager::Update(float dt) {

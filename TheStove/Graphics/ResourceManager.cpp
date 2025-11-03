@@ -11,7 +11,17 @@ DESCRIPTION:		Implements lazy-loading, storage maps, and cleanup for shared GPU 
 */
 
 #include "ResourceManager.hpp"
+#include "../Core/AudioManager.hpp"
 #include <iostream>
+
+void ResourceManager::SetAudioManager(AudioManager* audioMgr)
+{
+    audioManager = audioMgr;
+    if (audioManager)
+    {
+        std::cout << "AudioManager set in ResourceManager." << std::endl;
+    }
+}
 
 Shader* ResourceManager::LoadShader(const std::string& name, const std::string& vertexPath, const std::string& fragmentPath) {
     auto it = shaders.find(name);
@@ -96,12 +106,60 @@ Texture* ResourceManager::GetTexture(const std::string& name) {
     return nullptr;
 }
 
+// Audio management methods - delegate to AudioManager
+
+bool ResourceManager::LoadAudio(const std::string& name, const std::string& filePath, bool loop, bool stream)
+{
+    if (!audioManager)
+    {
+        std::cerr << "AudioManager not set in ResourceManager! Cannot load audio." << std::endl;
+        return false;
+    }
+
+    auto* sound = audioManager->LoadSound(name, filePath, loop, stream);
+    return sound != nullptr;
+}
+
+bool ResourceManager::HasAudio(const std::string& name) const
+{
+    if (!audioManager)
+    {
+        std::cerr << "AudioManager not set in ResourceManager! Cannot check audio." << std::endl;
+        return false;
+    }
+
+    return audioManager->HasSound(name);
+}
+
+void ResourceManager::UnloadAudio(const std::string& name)
+{
+    if (!audioManager)
+    {
+        std::cerr << "AudioManager not set in ResourceManager! Cannot unload audio." << std::endl;
+        return;
+    }
+
+    audioManager->UnloadSound(name);
+}
+
+bool ResourceManager::GetAudioInfo(const std::string& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const
+{
+    if (!audioManager)
+    {
+        std::cerr << "AudioManager not set in ResourceManager! Cannot get audio info." << std::endl;
+        return false;
+    }
+
+    return audioManager->GetSoundInfo(name, lengthMs, channels, bits, freq);
+}
+
 void ResourceManager::Clear() {
     if (!isCleared) {
         std::cout << "Clearing ResourceManager..." << std::endl;
         shaders.clear();
         meshes.clear();
         textures.clear();
+        // Note: Audio is managed by AudioManager, so we don't clear it here
         isCleared = true;
     }
 }
