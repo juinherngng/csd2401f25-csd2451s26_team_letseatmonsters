@@ -8,7 +8,7 @@
 					- JSON/Editor store rotation in DEGREES.
 					- GameObject setters should receive RADIANS (convert at call-site).
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -401,7 +401,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 	ImGuiContext* imguiContext = ImGui::GetCurrentContext();
 
 	if (imguiContext == nullptr || !imguiContext->WithinFrameScope) {
-		// ImGui frame hasn’t started yet; skip safely.
+		// ImGui frame hasnï¿½t started yet; skip safely.
 		return;
 	}
 
@@ -1566,17 +1566,20 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 			);
 
 			// Now attach real animations (IDLE/WALK/ATTACK etc.)
-			scene.AttachDinoAnimations(g->GetID());
-			scene.SetAnimation(g->GetID(), "IDLE");
+			if (obj.texture.find("dino") != std::string::npos) {
+				scene.AttachDinoAnimations(g->GetID());
+				scene.SetAnimation(g->GetID(), "IDLE");
+			}
 		}
 		else {
 			g = scene.SpawnStaticSprite(obj.texture, { x, y, 0.0f }, { ww, hh });
 		}
 
-
 		if (!g) {
-			return;
+			std::cerr << "Failed to spawn object: " << obj.texture << std::endl;
+			continue;  // âœ… CORRECT - skip this object, continue with next
 		}
+
 
 		// Rotation in LEVEL is degrees; GameObject expects radians
 		g->SetRotation(glm::radians(obj.rotation), { 0, 0, 1 });
@@ -1608,7 +1611,7 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 			obj.rotation
 		);
 
-		// Store defaults so right-click “Reset” works
+		// Store defaults so right-click ï¿½Resetï¿½ works
 		Scene::Defaults defs{};
 		defs.pos = { x, y, 0.0f };
 		defs.size = { ww, hh };

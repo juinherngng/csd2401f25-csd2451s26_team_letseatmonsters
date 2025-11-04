@@ -7,7 +7,7 @@
 
  DESCRIPTION:		Implements the InputManager class for handling keyboard and mouse input.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -47,7 +47,7 @@ void InputManager::Update(GLFWwindow* window) {
 		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3
 	};
 
-	// If ImGui wants the keyboard, clear key states so gameplay won’t react
+	// If ImGui wants the keyboard, clear key states so gameplay wonï¿½t react
 	if (!io.WantCaptureKeyboard) {
 		for (int key : keys) {
 			mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
@@ -61,8 +61,17 @@ void InputManager::Update(GLFWwindow* window) {
 
 	// Mouse buttons to track
 	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
-	for (int b : buttons) {
-		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
+
+	// If ImGui wants the mouse, clear button states so gameplay won't react
+	if (!io.WantCaptureMouse) {
+		for (int b : buttons) {
+			mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
+		}
+	}
+	else {
+		for (int b : buttons) {
+			mMouseButtons[b] = false;  // Clear when clicking UI
+		}
 	}
 
 	// Get mouse cursor position
@@ -101,7 +110,17 @@ bool InputManager::IsMouseButtonJustPressed(int button) const {
 	bool curr = (itC != mMouseButtons.end()) && itC->second;
 	bool prev = (itP != mPrevMouseButtons.end()) && itP->second;
 
-	return curr && !prev;
+	return curr && !prev;  
+}
+
+bool InputManager::IsMouseButtonJustReleased(int button) const {
+	auto itC = mMouseButtons.find(button);
+	auto itP = mPrevMouseButtons.find(button);
+
+	bool curr = (itC != mMouseButtons.end()) && itC->second;
+	bool prev = (itP != mPrevMouseButtons.end()) && itP->second;
+
+	return !curr && prev;  
 }
 
 glm::dvec2 InputManager::GetMousePosition() const {

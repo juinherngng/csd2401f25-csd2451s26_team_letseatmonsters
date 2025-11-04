@@ -1,0 +1,168 @@
+﻿
+#include "EntityManager.hpp"
+#include "ResourceManager.hpp"
+#include <algorithm>
+#include <iostream>
+
+int EntityManager::AcquireID() {
+    if (!freeIDs_.empty()) {
+        int id = freeIDs_.back();
+        freeIDs_.pop_back();
+        return id;
+    }
+    return nextID_++;
+}
+
+void EntityManager::ReleaseID(int id) {
+    freeIDs_.push_back(id);
+}
+
+GameObject* EntityManager::SpawnStaticSprite(const std::string& texturePath,
+    const glm::vec3& pos,
+    const glm::vec2& size) {
+    int id = AcquireID();
+    std::cout << "  Acquired ID: " << id << std::endl;  // ✅ ADD THIS
+
+    // ✅ FIX 1: Use "staticsprite" shader, not "sprite"
+    Mesh* quadMesh = ResourceManager::Instance().GetMesh("sprite");
+    Shader* spriteShader = ResourceManager::Instance().GetShader("staticsprite");
+
+    // ✅ FIX 2: Add "sprite_" prefix to texture name (matching old behavior)
+    std::string textureName = "staticsprite_" + texturePath;
+    Texture* texture = ResourceManager::Instance().LoadTexture(textureName, texturePath);
+
+    // Use GameObject(Mesh*, Shader*) constructor
+    auto obj = std::make_unique<GameObject>(quadMesh, spriteShader);
+    obj->SetID(id);
+
+    // Configure transform
+    obj->SetPosition(pos);
+    obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
+    obj->SetRotation(0.0f, glm::vec3(0, 0, 1));
+
+    // Set texture
+    obj->SetTexture(texture);
+
+    GameObject* ptr = obj.get();
+    sceneObjects_.push_back(std::move(obj));
+
+    // Store metadata
+    spritePositions_[id] = pos;
+    spriteScales_[id] = glm::vec3(size.x, size.y, 1.0f);
+    spriteRotations_[id] = 0.0f;
+    texturePathByID_[id] = texturePath;
+
+    return ptr;
+}
+
+GameObject* EntityManager::SpawnAnimatedSprite(const std::string& texturePath,
+    const glm::vec3& pos,
+    const glm::vec2& size,
+    const std::vector<glm::vec4>& frames,
+    float frameDuration,
+    bool loop) {
+    int id = AcquireID();
+
+    // ✅ FIX 3: Use "animatedsprite" shader, not "sprite"
+    Mesh* quadMesh = ResourceManager::Instance().GetMesh("sprite");
+    Shader* spriteShader = ResourceManager::Instance().GetShader("animatedsprite");
+
+    // ✅ FIX 4: Add "sprite_" prefix to texture name
+    std::string textureName = "animatedsprite_" + texturePath;
+    Texture* texture = ResourceManager::Instance().LoadTexture(textureName, texturePath);
+
+    // Use GameObject(Mesh*, Shader*) constructor
+    auto obj = std::make_unique<GameObject>(quadMesh, spriteShader);
+    obj->SetID(id);
+
+    // Configure transform
+    obj->SetPosition(pos);
+    obj->SetScale(glm::vec3(size.x, size.y, 1.0f));
+    obj->SetRotation(0.0f, glm::vec3(0, 0, 1));
+
+    // Set texture
+    obj->SetTexture(texture);
+
+    // ✅ FIX 5: Set the FIRST frame from the frames vector (not full texture)
+    std::vector<glm::vec4> safeFrames = frames;
+    if (safeFrames.empty()) {
+        safeFrames.push_back(glm::vec4(0.f, 0.f, 1.f, 1.f)); // fallback
+    }
+    obj->SetUVRect(safeFrames.front());  // Set first frame immediately
+
+    GameObject* ptr = obj.get();
+    sceneObjects_.push_back(std::move(obj));
+
+    // Store metadata
+    spritePositions_[id] = pos;
+    spriteScales_[id] = glm::vec3(size.x, size.y, 1.0f);
+    spriteRotations_[id] = 0.0f;
+    texturePathByID_[id] = texturePath;
+
+    // Note: Animation frames are handled by Scene/AnimationManager
+
+    return ptr;
+}
+
+GameObject* EntityManager::GetByID(int id) {
+    auto it = std::find_if(sceneObjects_.begin(), sceneObjects_.end(),
+        [id](const std::unique_ptr<GameObject>& obj) {
+            return obj && obj->GetID() == id;
+        });
+    return (it != sceneObjects_.end()) ? it->get() : nullptr;
+}
+
+std::vector<GameObject*> EntityManager::GetAllObjects() {
+    std::vector<GameObject*> result;
+    result.reserve(sceneObjects_.size());
+    for (const auto& obj : sceneObjects_) {
+        if (obj) result.push_back(obj.get());
+    }
+    return result;
+}
+
+void EntityManager::DespawnByID(int id) {
+    auto it = std::find_if(sceneObjects_.begin(), sceneObjects_.end(),
+        [id](const std::unique_ptr<GameObject>& obj) {
+            return obj && obj->GetID() == id;
+        });
+    if (it != sceneObjects_.end()) {
+        sceneObjects_.erase(it);
+        spritePositions_.erase(id);
+        spriteScales_.erase(id);
+        spriteRotations_.erase(id);
+        texturePathByID_.erase(id);
+        ReleaseID(id);
+    }
+}
+
+void EntityManager::Clear() {
+    sceneObjects_.clear();
+    spritePositions_.clear();
+    spriteScales_.clear();
+    spriteRotations_.clear();
+    texturePathByID_.clear();
+    freeIDs_.clear();
+    nextID_ = 0;
+}
+
+glm::vec3 EntityManager::GetPosition(int id) const {
+    auto it = spritePositions_.find(id);
+    return (it != spritePositions_.end()) ? it->second : glm::vec3(0.0f);
+}
+
+glm::vec3 EntityManager::GetScale(int id) const {
+    auto it = spriteScales_.find(id);
+    return (it != spriteScales_.end()) ? it->second : glm::vec3(1.0f);
+}
+
+float EntityManager::GetRotation(int id) const {
+    auto it = spriteRotations_.find(id);
+    return (it != spriteRotations_.end()) ? it->second : 0.0f;
+}
+
+const std::string& EntityManager::GetTexturePath(int id) const {
+    auto it = texturePathByID_.find(id);
+    static const std::string empty;
+    return (it != texturePathByID_.end()) ? it->second : empty;
+}

@@ -16,12 +16,15 @@
 
 #include "GraphicsEngine.hpp"
 #include "Animator.hpp"
+#include "EntityManager.hpp"
+#include "AnimationManager.hpp"
 
+#include "../Core/CollisionManager.hpp"
+#include "../Core/MovementManager.hpp" 
 #include "../Core/InputManager.hpp"
-#include "../Core/Collision.hpp"
+#include "../Core/PhysicsManager.hpp"
 #include "../Core/Physics.hpp"
 #include "../Core/Math.hpp"
-#include "../Core/SpatialGrid.hpp"
 #include "../Core/LevelEditor.hpp"
 #include "../Core/Forces.hpp"
 #include "../Core/RigidBody2D.hpp"
@@ -69,7 +72,7 @@ public:
 	 * @param rotation Rotation in degrees.
 	 * @return Pointer to spawned GameObject, or nullptr if failed.
 	 */
-	GameObject* SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation = 0.0f);
+	//GameObject* SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation = 0.0f);
 
 	/**
 	 * @brief Spawns a static sprite with a given texture and size.
@@ -101,7 +104,7 @@ public:
 	/**
 	 * @brief Collect raw pointers to all renderable game objects.
 	 */
-	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
+	void CollectRenderablePointers(std::vector<GameObject*>& out);
 
 	// Scene / Transform Utilities
 
@@ -128,7 +131,7 @@ public:
 	void AttachDinoAnimations(int objID);
 
 	// ID Accessors
-	void SetPlayerID(int id) { spriteID = id; }
+	void SetPlayerID(int id);
 	void SetNPC1ID(int id) { otherID = id; }
 	void SetNPC2ID(int id) { otherID2 = id; }
 	void SetDinoID(int id) { dinoID = id; }
@@ -183,70 +186,37 @@ private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
 	InputManager inputManager;
+	EntityManager entityManager;
+	AnimationManager animationManager;
+	MovementManager movementManager;
+	CollisionManager collisionManager;
+	PhysicsManager physicsManager;
+
+	void UpdateSpriteDirections();
 
 	// World/collision
 	void BuildLevelColliders();
-	collision::World mCollision;
 
 	// Step-by-step controller
 	physics::StepController physicsStep_;
 
 	// Scene objects
-	std::vector<std::unique_ptr<GameObject>> sceneObjects;
-	int nextID = 0;	   // ID counter for sceneObjects
 	int spriteID = -1; // default invalid ID
 	int dinoID = -1;   // for testing
 	int otherID = -1;
 	int otherID2 = -1;
 
-	// Reuse IDs of despawned objects
-	std::vector<int> mFreeIDs;
-	int AcquireID();
-
-	// Per-object transforms
-	std::unordered_map<int, glm::vec3> spriteScales;
-	std::unordered_map<int, glm::vec3> spritePositions;
-	std::unordered_map<int, float> spriteRotations;
-	std::unordered_map<int, Animator2D> animators; // map GameObject ID to Animator2D
-
-	// Map from GameObject ID to map of animation name to Animator2D
-	std::unordered_map<int, std::unordered_map<std::string, Animator2D>> objectAnimations;
-
-	// Current animation name for each object
-	std::unordered_map<int, std::string> currentAnimation;
-
-	// Scene content
-	void LoadTest();
-
-	// Click-to-move
-	bool hasClickTarget = false;
-	glm::vec2 clickTarget{ 0.0f, 0.0f };
-
-	bool playerSelected = false;
-	float playerSpeed = 260.0f;
-
-	// Stuck detection (cancel click move if not progressing)
-	int stuckFrames = 0;
-	static constexpr int kStuckFramesToCancel = 12;
+	bool simulationActive = false;
 
 	// Debug / Editor
 	bool showAuxDebug_ = true;
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;
-	SpatialGrid mSpatialGrid{ 128.0f };
 
 	// NPC / Defaults Data
 	std::unordered_map<int, glm::vec2> npcVelocities_;
 	std::unordered_map<int, Defaults> defaults_;
 
-	// Physics / Forces
-	ForceRegistry mForceRegistry{};
-	RigidBody2D* playerRB_ = nullptr;
-	Math::Vector2D seekTargetM{ 0.f, 0.f };
-	Math::Vector2D playerPosM2D_{ 0.f, 0.f };
-	bool useForceForClickMove_ = false;
-
-	bool simulationActive_ = false;
 	int lastWidth_ = -1;
 	int lastHeight_ = -1;
 	bool resetBaseline_ = false;

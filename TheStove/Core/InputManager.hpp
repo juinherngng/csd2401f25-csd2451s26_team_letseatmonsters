@@ -9,7 +9,7 @@
 					- Polls GLFW each frame and mirrors common key/mouse states.
 					- Respects ImGui IO capture flags to avoid consuming UI input.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -47,6 +47,7 @@ public:
 	// Mouse Queries
 	bool IsMouseButtonPressed(int button) const;
 	bool IsMouseButtonJustPressed(int button) const;
+	bool IsMouseButtonJustReleased(int button) const;
 	glm::dvec2 GetMousePosition() const;
 
 	// Coordinate Conversion
