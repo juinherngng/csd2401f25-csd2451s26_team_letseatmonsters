@@ -15,6 +15,21 @@
 
 #include "InputManager.hpp"
 
+InputManager* InputManager::sActive = nullptr;
+
+InputManager::InputManager() {
+	sActive = this;
+}
+
+InputManager& InputManager::Get() {
+	static InputManager fallback;
+	return sActive ? *sActive : fallback;
+}
+
+void InputManager::SetSceneViewportWantsGameMouse(bool enable) {
+	mSceneViewportWantsGameMouse = enable;
+}
+
 void InputManager::Update(GLFWwindow* window) {
 	mPreviousKeyStates = mCurrentKeyStates;
 	mPrevMouseButtons = mMouseButtons;
@@ -44,17 +59,8 @@ void InputManager::Update(GLFWwindow* window) {
 
 	// Mouse buttons to track
 	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
-
-	// If ImGui wants the mouse, clear mouse buttons so gameplay clicks won’t fire
-	if (!io.WantCaptureMouse) {
-		for (int b : buttons) {
-			mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
-		}
-	}
-	else {
-		for (int b : buttons) {
-			mMouseButtons[b] = false;
-		}
+	for (int b : buttons) {
+		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
 	}
 
 	// Get mouse cursor position

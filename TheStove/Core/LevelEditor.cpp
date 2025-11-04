@@ -99,26 +99,7 @@ static Texture* LoadTextureBypassingCache(const std::string& path) {
 	return ResourceManager::Instance().LoadTexture(key, path);
 }
 
-// Rename / Delete (Trash) helpers 
-static bool RenameFileOnDisk(const std::string& fullPathOld, const std::string& newNameWithoutExtOrWith) {
-	std::error_code ec;
-	fs::path oldPath(fullPathOld);
-
-	if (!fs::exists(oldPath, ec)) {
-		return false;
-	}
-
-	fs::path newPath = oldPath.parent_path() / newNameWithoutExtOrWith;
-
-	// If user omitted extension, keep the original extension.
-	if (newPath.extension().empty()) {
-		newPath += oldPath.extension();
-	}
-
-	fs::rename(oldPath, newPath, ec);
-	return !ec;
-}
-
+// Delete helpers
 static bool MoveToTrash(const std::string& filePath) {
 	std::error_code ec;
 	fs::path src(filePath);
@@ -197,6 +178,106 @@ static void ApplyPrefabToObjectKeepPosition(const LevelObject& prefab, Scene& sc
 	scene.ClampToWalkArea(obj);
 }
 
+// Point-in-AABB hit test for a sprite treated as a box centered at (pos.x, pos.y)
+static bool IsPointInsideObject(const ImVec2 pointPx, const GameObject* obj) {
+	if (obj == nullptr) {
+		return false;
+	}
+
+	const glm::vec3 pos = obj->GetPositionGLM();
+	const glm::vec3 size = obj->GetScaleGLM(); // w,h pixels; z ignored
+
+	const float halfW = 0.5f * size.x;
+	const float halfH = 0.5f * size.y;
+
+	const float minX = pos.x - halfW;
+	const float maxX = pos.x + halfW;
+	const float minY = pos.y - halfH;
+	const float maxY = pos.y + halfH;
+
+	return (pointPx.x >= minX && pointPx.x <= maxX && pointPx.y >= minY && pointPx.y <= maxY);
+}
+
+// -- Scene picking / dragging (Scene viewport only; respects ImGui capture) --
+static void HandleScenePickDrag(Scene& scene, int& selectedIndex, int& selectedObjectId) {
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureMouse) return;
+
+	// Ask GraphicsEngine where the mouse is *inside the Scene image*
+	glm::vec2 mouseWorld;
+	if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {
+		return; // mouse not over the Scene viewport this frame
+	}
+
+	static bool   isDragging = false;
+	static int    draggingId = -1;
+	static ImVec2 grabOffset = ImVec2(0.f, 0.f);
+
+	// Build a list of objects for hit testing
+	std::vector<GameObject*> list;
+	scene.CollectRenderablePointers(list);
+
+	// LMB press -> pick (top-most)
+	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+	{
+		int picked = -1;
+		for (int i = (int)list.size() - 1; i >= 0; --i)
+		{
+			GameObject* g = list[i];
+			if (!g) continue;
+
+			// Treat sprite as centered AABB in world pixels
+			const glm::vec3 pos = g->GetPositionGLM();
+			const glm::vec3 sz = g->GetScaleGLM();
+			const float hx = 0.5f * sz.x, hy = 0.5f * sz.y;
+
+			if (mouseWorld.x >= pos.x - hx && mouseWorld.x <= pos.x + hx &&
+				mouseWorld.y >= pos.y - hy && mouseWorld.y <= pos.y + hy)
+			{
+				picked = i;
+				break;
+			}
+		}
+
+		if (picked >= 0) {
+			selectedIndex = picked;
+			selectedObjectId = list[picked]->GetID();
+
+			const glm::vec3 p = list[picked]->GetPositionGLM();
+			grabOffset = ImVec2(mouseWorld.x - p.x, mouseWorld.y - p.y);
+			isDragging = true;
+			draggingId = selectedObjectId;
+		}
+		else {
+			isDragging = false;
+			draggingId = -1;
+		}
+	}
+
+	// While LMB held -> drag
+	if (isDragging && ImGui::IsMouseDown(ImGuiMouseButton_Left))
+	{
+		GameObject* g = scene.GetGameObjectByID(draggingId);
+		if (g) {
+			const float newX = mouseWorld.x - grabOffset.x;
+			const float newY = mouseWorld.y - grabOffset.y;
+			const glm::vec3 size = g->GetScaleGLM();
+			const float rotDeg = glm::degrees(g->GetRotationAngleZ());
+
+			scene.SetTransformFromLevel(draggingId, { newX, newY, g->GetPositionGLM().z },
+				{ size.x, size.y, 1.f }, rotDeg);
+			scene.ClampToWalkArea(g);
+		}
+	}
+
+	// Release -> stop dragging
+	if (isDragging && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+	{
+		isDragging = false;
+		draggingId = -1;
+	}
+}
+
 static void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
 static void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
 
@@ -246,6 +327,8 @@ static std::vector<std::string> ListAssetsWithExt(const std::string& dir,
 void LevelEditor::DrawUI(Scene& scene) {
 	static int selectedIndex = -1;
 	static int selectedObjectId = -1;
+
+	InputManager::Get().SetSceneViewportWantsGameMouse(false);
 
 	if (!isEnabled) {
 		return;
@@ -646,12 +729,100 @@ void LevelEditor::DrawUI(Scene& scene) {
 			if (isPlaying) ImGui::EndDisabled();
 		}
 
-
-		// Big drop zone for scene
+		//  Scene viewport area: drop-zone + pick/drag
 		ImGui::Separator();
 		ImGui::TextDisabled("Drop prefab to instantiate,\nor texture to apply to selected");
-		ImVec2 avail = ImGui::GetContentRegionAvail(); if (avail.y < 64.f) avail.y = 64.f;
-		ImGui::InvisibleButton("##SceneDropZone", avail);
+		ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+		if (viewportSize.y < 64.f) {
+			viewportSize.y = 64.f;
+		}
+
+		// One big interactive area
+		ImGui::InvisibleButton("##SceneViewport", viewportSize, ImGuiButtonFlags_MouseButtonLeft);
+		const bool viewportHovered = ImGui::IsItemHovered();
+		const bool viewportActive = ImGui::IsItemActive();
+		InputManager::Get().SetSceneViewportWantsGameMouse(viewportHovered || viewportActive);
+
+		// Rect of the scene viewport in screen (ImGui) coords
+		const ImVec2 rectMin = ImGui::GetItemRectMin();   // top-left of the scene area
+		// const ImVec2 rectMax = ImGui::GetItemRectMax(); // (not needed now)
+
+		// Static drag-state (file-scoped style would be _camelCase; function-static is fine camelCase)
+		static bool isDragging = false;
+		static int draggingObjectId = -1;
+		static ImVec2 grabOffsetPx = ImVec2(0.f, 0.f);
+
+		// Collect current objects (also used by drop handling below)
+		std::vector<GameObject*> objectListForViewport;
+		scene.CollectRenderablePointers(objectListForViewport);
+
+		// Begin pick if user presses LMB inside the viewport and no ImGui drag-drop is in progress
+		if (viewportHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsDragDropActive()) {
+			// Mouse in scene pixel coords (we assume world == screen pixels in your 2D)
+			const ImVec2 mouseScreen = ImGui::GetIO().MousePos;
+
+			// Pick topmost by iterating back-to-front (last rendered tends to be last in vector;
+			// if your render order differs, reverse this logic)
+			int pickedIndex = -1;
+			for (int i = static_cast<int>(objectListForViewport.size()) - 1; i >= 0; --i) {
+				GameObject* g = objectListForViewport[i];
+				if (!g) {
+					continue;
+				}
+
+				if (IsPointInsideObject(mouseScreen, g)) {
+					pickedIndex = i;
+					break;
+				}
+			}
+
+			if (pickedIndex >= 0) {
+				// Select in hierarchy
+				selectedIndex = pickedIndex;
+				draggingObjectId = objectListForViewport[pickedIndex]->GetID();
+
+				// Calculate grab offset so the object doesn't snap its center to the mouse instantly
+				const glm::vec3 pos = objectListForViewport[pickedIndex]->GetPositionGLM();
+				grabOffsetPx = ImVec2(mouseScreen.x - pos.x, mouseScreen.y - pos.y);
+
+				isDragging = true;
+			}
+			else {
+				// Clicked empty space; clear drag state
+				isDragging = false;
+				draggingObjectId = -1;
+			}
+		}
+
+		// While dragging with LMB down, move selected object with clamp
+		if (isDragging && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+			GameObject* g = scene.GetGameObjectByID(draggingObjectId);
+			if (g) {
+				const ImVec2 mouseScreen = ImGui::GetIO().MousePos;
+				const float newX = mouseScreen.x - grabOffsetPx.x;
+				const float newY = mouseScreen.y - grabOffsetPx.y;
+
+				// Apply in one place so Properties stay in sync
+				const glm::vec3 currentScale = g->GetScaleGLM();
+				const float rotationDeg = glm::degrees(g->GetRotationAngleZ());
+
+				// Update transform using your existing helper (rotation stored in degrees at editor layer)
+				scene.SetTransformFromLevel(draggingObjectId,
+					glm::vec3(newX, newY, g->GetPositionGLM().z),
+					glm::vec3(currentScale.x, currentScale.y, 1.0f),
+					rotationDeg);
+
+				// Clamp to walkable area and bounce/order as per your existing rules
+				scene.ClampToWalkArea(g);
+			}
+		}
+		else if (isDragging && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			// Stop dragging when mouse is released
+			isDragging = false;
+			draggingObjectId = -1;
+		}
+
+		// Accept drag-drop
 		if (ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* pp = ImGui::AcceptDragDropPayload("PREFAB_PATH")) {
 				const char* dropped = static_cast<const char*>(pp->Data);
@@ -669,21 +840,23 @@ void LevelEditor::DrawUI(Scene& scene) {
 					}
 				}
 			}
+
 			if (const ImGuiPayload* tp = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
 				const char* dropped = static_cast<const char*>(tp->Data);
-				std::vector<GameObject*> objs; scene.CollectRenderablePointers(objs);
-				if (selectedIndex >= 0 && selectedIndex < (int)objs.size() && objs[selectedIndex]) {
-					GameObject* o = objs[selectedIndex];
-					int id2 = o->GetID();
+				if (selectedIndex >= 0 && selectedIndex < (int)objectListForViewport.size() && objectListForViewport[selectedIndex]) {
+					GameObject* o = objectListForViewport[selectedIndex];
+					const int id2 = o->GetID();
 					scene.SetObjectTexturePath(id2, dropped);
 					if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(dropped)), dropped)) {
 						o->SetTexture(tex);
 					}
 				}
 			}
+
 			ImGui::EndDragDropTarget();
 		}
 	}
+
 	ImGui::End(); // Level window
 
 	// ===== Prefabs Window ========================================================
@@ -775,11 +948,6 @@ void LevelEditor::DrawUI(Scene& scene) {
 					}
 				}
 			}
-			if (ImGui::BeginPopup("PrefabSavedPopup")) {
-				ImGui::TextUnformatted("Prefab saved.");
-				ImGui::EndPopup();
-			}
-
 		}
 
 		// --- Instantiate from prefab -------------------------------------------------
@@ -923,6 +1091,8 @@ void LevelEditor::DrawUI(Scene& scene) {
 		if (ImGui::CollapsingHeader("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##tex")) sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
 
+			bool refreshTextures = false;
+
 			for (auto const& path : sTextures) {
 				ImGui::PushID(path.c_str());              // avoid ID collisions
 				ImGui::Selectable(path.c_str(), false);   // simple row; we handle dbl-click below
@@ -960,21 +1130,10 @@ void LevelEditor::DrawUI(Scene& scene) {
 					ImGui::EndDragDropSource();
 				}
 
-				// Right-click context menu for rename / delete
-				if (ImGui::BeginPopupContextItem()) {
-					if (ImGui::MenuItem("Rename")) {
-						char buf[128];
-						std::strncpy(buf, fs::path(path).stem().string().c_str(), sizeof(buf));
-						buf[sizeof(buf) - 1] = 0;
-						ImGui::OpenPopup("RenameTexturePopup");
-						ImGui::SetItemDefaultFocus();
-						ImGui::SetNextWindowSize(ImVec2(250, 80));
-						ImGui::SetItemDefaultFocus();
-						ImGui::SetClipboardText(buf); // optional
-					}
+				// Right-click context menu (unique context id per item)
+				if (ImGui::BeginPopupContextItem(("ctx_tex##" + path).c_str())) {
 					if (ImGui::MenuItem("Delete")) {
-						MoveToTrash(path);
-						sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
+						if (MoveToTrash(path)) refreshTextures = true;
 					}
 					ImGui::EndPopup();
 				}
@@ -982,36 +1141,15 @@ void LevelEditor::DrawUI(Scene& scene) {
 				ImGui::PopID();
 			}
 
-			// --- Rename popup ---
-			static char renameBuf[128] = "";
-			static std::string pendingRenameOld;
-			if (ImGui::BeginPopup("RenameTexturePopup")) {
-				if (pendingRenameOld.empty()) {
-					pendingRenameOld = ImGui::GetClipboardText() ? ImGui::GetClipboardText() : "";
-					std::strncpy(renameBuf, pendingRenameOld.c_str(), sizeof(renameBuf));
-					renameBuf[sizeof(renameBuf) - 1] = 0;
-				}
-				ImGui::InputText("New name", renameBuf, IM_ARRAYSIZE(renameBuf));
-				if (ImGui::Button("OK")) {
-					if (RenameFileOnDisk(pendingRenameOld, renameBuf)) {
-						sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
-					}
-					pendingRenameOld.clear();
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Cancel")) {
-					pendingRenameOld.clear();
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::EndPopup();
+			if (refreshTextures) {
+				sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
 			}
-
-
 		}
 
 		if (ImGui::CollapsingHeader("Prefabs", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##pf")) sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+
+			bool refreshPrefabs = false;
 
 			for (auto const& path : sPrefabs) {
 				ImGui::PushID(path.c_str());
@@ -1026,56 +1164,28 @@ void LevelEditor::DrawUI(Scene& scene) {
 				}
 
 				// --- Right-click context menu ---
-				if (ImGui::BeginPopupContextItem()) {
-					if (ImGui::MenuItem("Rename")) {
-						char buf[128];
-						std::strncpy(buf, fs::path(path).stem().string().c_str(), sizeof(buf));
-						buf[sizeof(buf) - 1] = 0;
-						ImGui::OpenPopup("RenamePrefabPopup");
-						ImGui::SetItemDefaultFocus();
-						ImGui::SetNextWindowSize(ImVec2(250, 80));
-						ImGui::SetClipboardText(buf);
-					}
+				if (ImGui::BeginPopupContextItem(("ctx_prefab##" + path).c_str())) {
 					if (ImGui::MenuItem("Delete")) {
-						MoveToTrash(path);
-						sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+						if (MoveToTrash(path)) {
+							refreshPrefabs = true;
+						}
 					}
+
 					ImGui::EndPopup();
 				}
 
 				ImGui::PopID();
 			}
 
-			// --- Rename popup ---
-			static char renameBufP[128] = "";
-			static std::string pendingRenameOldP;
-			if (ImGui::BeginPopup("RenamePrefabPopup")) {
-				if (pendingRenameOldP.empty()) {
-					pendingRenameOldP = ImGui::GetClipboardText() ? ImGui::GetClipboardText() : "";
-					std::strncpy(renameBufP, pendingRenameOldP.c_str(), sizeof(renameBufP));
-					renameBufP[sizeof(renameBufP) - 1] = 0;
-				}
-
-				ImGui::InputText("New name", renameBufP, IM_ARRAYSIZE(renameBufP));
-				if (ImGui::Button("OK")) {
-					if (RenameFileOnDisk(pendingRenameOldP, renameBufP)) {
-						sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
-					}
-					pendingRenameOldP.clear();
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::SameLine();
-				if (ImGui::Button("Cancel")) {
-					pendingRenameOldP.clear();
-					ImGui::CloseCurrentPopup();
-				}
-				ImGui::EndPopup();
+			if (refreshPrefabs) {
+				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
 			}
 		}
 
 		ImGui::EndChild();
 	}
 
+	HandleScenePickDrag(scene, selectedIndex, selectedObjectId);
 	ImGui::End(); // Assets window
 }
 

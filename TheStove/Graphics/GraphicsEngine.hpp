@@ -65,9 +65,6 @@ public:
 	int GetSceneWidth()  const { return mSceneWidth; }
 	int GetSceneHeight() const { return mSceneHeight; }
 
-	// Call this when the OS window/framebuffer size changes
-	void OnFramebufferResize(int fbW, int fbH);
-
 	int GetViewportX() const { return viewportX_; }
 	int GetViewportY() const { return viewportY_; }
 	int GetViewportW() const { return viewportW_; }

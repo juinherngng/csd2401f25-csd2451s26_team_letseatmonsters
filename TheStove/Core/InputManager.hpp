@@ -72,6 +72,10 @@ public:
 
 	glm::vec3 ScreenToWorld(float mouseX, float mouseY) const;
 
+	static InputManager& Get();
+	void SetSceneViewportWantsGameMouse(bool enable);
+	InputManager();
+
 private:
 	// Keyboard state tracking
 	std::unordered_map<int, bool> mCurrentKeyStates;
@@ -83,4 +87,7 @@ private:
 
 	// Current mouse position in window coordinates
 	glm::dvec2 mMousePos{ 0.0, 0.0 };
+
+	static InputManager* sActive;
+	bool mSceneViewportWantsGameMouse = false;
 };

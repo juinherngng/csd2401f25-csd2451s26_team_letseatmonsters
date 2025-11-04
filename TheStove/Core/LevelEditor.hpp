@@ -18,6 +18,7 @@
 #include <unordered_map>
 
 #include "LevelSerializer.hpp"
+#include "InputManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 
 class Scene;
