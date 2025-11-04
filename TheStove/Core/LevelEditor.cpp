@@ -223,6 +223,7 @@ static bool IsPointInsideObject(const ImVec2 pointPx, const GameObject* obj) {
 	return (pointPx.x >= minX && pointPx.x <= maxX && pointPx.y >= minY && pointPx.y <= maxY);
 }
 
+// NOT WORKING
 // Scene picking / dragging (Scene viewport only; respects ImGui capture)
 static void HandleScenePickDrag(Scene& scene, int& selectedIndex, int& selectedObjectId) {
 	ImGuiIO& io = ImGui::GetIO();
