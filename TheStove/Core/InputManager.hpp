@@ -5,8 +5,9 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Declares the InputManager class responsible for handling keyboard
-					and mouse input using GLFW.
+ DESCRIPTION:		Centralized keyboard/mouse input state tracker with edge detection.
+					- Polls GLFW each frame and mirrors common key/mouse states.
+					- Respects ImGui IO capture flags to avoid consuming UI input.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -14,12 +15,13 @@
 
 #pragma once
 
-#include "../Graphics/GraphicsEngine.hpp"
-#include "imgui.h"
-
 #include <unordered_map>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+
+#include "imgui.h"
+#include "../Graphics/GraphicsEngine.hpp"
 
  /**
   * @class InputManager
@@ -30,64 +32,39 @@
   */
 class InputManager {
 public:
-	/**
-	 * @brief Update the internal state of keys and mouse buttons.
-	 * @param window Pointer to the active GLFW window for input polling.
-	 */
+	// Lifetime / Access
+	InputManager();
+	static InputManager& Get();
+
+	// Frame Update / Focus Hints
+	void SetSceneViewportWantsGameMouse(bool enable);
 	void Update(GLFWwindow* window);
 
-	/**
-	 * @brief Check if a key is currently held down.
-	 * @param key GLFW key code.
-	 * @return True if pressed, false otherwise.
-	 */
+	// Keyboard Queries
 	bool IsKeyPressed(int key) const;
-
-	/**
-	 * @brief Check if a key transitioned from released to pressed this frame.
-	 * @param key GLFW key code.
-	 * @return True if just pressed, false otherwise.
-	 */
 	bool IsKeyJustPressed(int key) const;
 
-	/**
-	 * @brief Check if a mouse button is currently held down.
-	 * @param button GLFW mouse button code.
-	 * @return True if pressed, false otherwise.
-	 */
+	// Mouse Queries
 	bool IsMouseButtonPressed(int button) const;
-
-	/**
-	 * @brief Check if a mouse button was pressed this frame.
-	 * @param button GLFW mouse button code.
-	 * @return True if just pressed, false otherwise.
-	 */
 	bool IsMouseButtonJustPressed(int button) const;
-
-	/**
-	 * @brief Get the current mouse cursor position in window coordinates.
-	 * @return glm::dvec2 representing (x,y) position.
-	 */
 	glm::dvec2 GetMousePosition() const;
 
+	// Coordinate Conversion
 	glm::vec3 ScreenToWorld(float mouseX, float mouseY) const;
 
-	static InputManager& Get();
-	void SetSceneViewportWantsGameMouse(bool enable);
-	InputManager();
-
 private:
-	// Keyboard state tracking
+	// Data Members
+	static InputManager* sActive;
+	bool mSceneViewportWantsGameMouse = false;
+
+	// Current/previous keyboard states (by GLFW key code)
 	std::unordered_map<int, bool> mCurrentKeyStates;
 	std::unordered_map<int, bool> mPreviousKeyStates;
 
-	// Mouse button tracking
+	// Current/previous mouse button states (by GLFW button code)
 	std::unordered_map<int, bool> mMouseButtons;
 	std::unordered_map<int, bool> mPrevMouseButtons;
 
-	// Current mouse position in window coordinates
+	// Mouse position in window coordinates (pixels)
 	glm::dvec2 mMousePos{ 0.0, 0.0 };
-
-	static InputManager* sActive;
-	bool mSceneViewportWantsGameMouse = false;
 };

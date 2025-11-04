@@ -4,8 +4,11 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Provides Axis-Aligned Bounding Box (AABB) primitives and a lightweight
-					collision world with support for static walls, walk areas, dividers, and gates.
+ DESCRIPTION:		AABB primitives and a simple world collision utility (gridless).
+					- AABB overlap & minimum translation vector (MTV).
+					- Weighted separation for pairwise resolution.
+					- Point-in-center-AABB helper (using half-extents).
+					- World: static walls collection + sweep-based resolve.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -15,142 +18,64 @@
 
 #include <vector>
 #include <cfloat>
-#include "../Core/Math.hpp"
+
+#include "Math.hpp"
 
 namespace collision {
-	/**
-	 * @struct AABB
-	 * @brief Axis-Aligned Bounding Box primitive.
-	 *
-	 * Represents a rectangular area aligned with the axes.
-	 */
+	// Primitives
 	struct AABB {
-		Math::Vector2D min;
-		Math::Vector2D max;
+		Math::Vector2D min; // lower-left
+		Math::Vector2D max; // upper-right
 	};
 
-	/**
-	 * @struct WalkArea
-	 * @brief Walkable rectangle with thin blocking edges.
-	 *
-	 * Defines the playable region and the thickness of its blocking walls.
-	 */
+	// Axis-aligned walkable region & obstacle pieces used to build walls.
 	struct WalkArea {
-		float L, R, T, B;
-		float edgeThick;
+		float L, R, T, B; // bounds (left/right/top/bottom)
+		float edgeThick;  // boundary wall thickness
 	};
 
-	/**
-	 * @struct WoodVertical
-	 * @brief Vertical divider composed of solid and open regions.
-	 *
-	 * Defines a vertical wooden divider with a top solid segment,
-	 * a central gap (walkthrough), and a bottom solid segment.
-	 */
 	struct WoodVertical {
-		float x0, x1;
-		float topMinY, topMaxY;
-		float gapMinY, gapMaxY;
-		float botMinY, botMaxY;
+		float x0, x1;			// slab x-range
+		float topMinY, topMaxY; // top solid segment
+		float gapMinY, gapMaxY; // middle gap (non-solid)
+		float botMinY, botMaxY; // bottom solid segment
 	};
 
-	/**
-	 * @struct StageEndGateVertical
-	 * @brief Vertical gate marking the end of a stage.
-	 *
-	 * Defines an end gate with top/bottom solid parts and a central open gap.
-	 */
 	struct StageEndGateVertical {
-		float x0, x1;
-		float topMinY, topMaxY;
-		float gapMinY, gapMaxY;
-		float botMinY, botMaxY;
+		float x0, x1;			// slab x-range
+		float topMinY, topMaxY; // top solid segment
+		float gapMinY, gapMaxY; // middle gap (non-solid)
+		float botMinY, botMaxY; // bottom solid segment
 	};
 
-	/**
-	 * @brief Compute minimal translation vector to separate overlapping AABBs.
-	 *
-	 * @param a First AABB.
-	 * @param b Second AABB.
-	 * @param mtvOut Output minimal translation vector for A.
-	 * @return true if AABBs overlap, false otherwise.
-	 */
+	// Primitive Queries
+
+	// Returns true and writes MTV if overlapping (A relative to B). False if separated.
 	bool overlapMTV(const AABB& a, const AABB& b, Math::Vector2D& mtvOut);
 
-	/**
-	 * @brief Split the MTV between two AABBs based on weighting.
-	 *
-	 * @param a First AABB.
-	 * @param b Second AABB.
-	 * @param weightA Weight factor for A (0.5 = equal, 1.0 = A only).
-	 * @param moveA Output movement for A.
-	 * @param moveB Output movement for B.
-	 * @return true if overlap occurred, false otherwise.
-	 */
+	// Splits MTV using weightA in [0..1] between A and B (moveA/moveB are outputs).
 	bool separateWeighted(const AABB& a, const AABB& b, float weightA, Math::Vector2D& moveA, Math::Vector2D& moveB);
 
-	/**
-	 * @brief Check if a 2D point lies inside a center-based AABB.
-	 *
-	 * @param p The 2D point.
-	 * @param center Center of the AABB.
-	 * @param scale Full width/height of the AABB.
-	 * @return true if inside, false otherwise.
-	 */
+	// Half-extent check: is 2D point inside AABB defined by center/scale (x,y used)?
 	bool pointInsideCenterAABB(const Math::Vector2D& point, const Math::Vector3D& center, const Math::Vector3D& scale);
 
-	/**
-	 * @class World
-	 * @brief Represents a static collision world.
-	 *
-	 * Stores static walls built from walk areas, dividers, and gates, and provides
-	 * collision resolution for moving AABBs.
-	 */
+	// World (static walls + resolve)
 	class World {
 	public:
-		World() = default;
-
-		/** @brief Clear all walls from the world. */
+		// Walls management
 		void clear();
-
-		/**
-		 * @brief Add a custom wall AABB.
-		 * @param aabb Wall to add.
-		 */
 		void addWall(const AABB& aabb);
 
-		/**
-		 * @brief Build the collision world from primitives.
-		 * @param walk Walkable area.
-		 * @param wood Wooden divider.
-		 * @param end End gate.
-		 */
+		// Build boundary/obstacles from editor primitives.
 		void build(const WalkArea& walk, const WoodVertical& wood, const StageEndGateVertical& end);
 
-		/**
-		 * @brief Resolve desired motion against world walls.
-		 * @param startBox Starting AABB.
-		 * @param desiredDelta Desired translation.
-		 * @return Adjusted translation that avoids penetration.
-		 */
+		// Axis-separable sweep: tries desiredDelta, trims by walls, returns allowed delta.
 		Math::Vector2D resolve(const AABB& startBox, Math::Vector2D desiredDelta) const;
 
-		/**
-		 * @brief Construct an AABB from a center and size.
-		 * @param center Object center (X/Y used).
-		 * @param scale Full size (X/Y used).
-		 * @return Constructed AABB.
-		 */
+		// Utility: construct AABB from 2D center & 2D size (z ignored).
 		static AABB makeAABBFromCenter(const Math::Vector3D& center, const Math::Vector3D& scale);
 
-		/**
-		 * @brief Get read-only access to walls for debugging.
-		 * @return Vector of AABBs representing walls.
-		 */
-		const std::vector<AABB>& walls() const { return mWalls; }
-
 	private:
-		std::vector<AABB> mWalls;			  // Internal wall list
-		static constexpr float kSkin = 0.75f; // Small offset to prevent sticking
+		std::vector<AABB> mWalls;
 	};
 }

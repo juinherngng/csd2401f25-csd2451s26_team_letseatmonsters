@@ -15,6 +15,7 @@
 
 #include "InputManager.hpp"
 
+ // Lifetime / Access
 InputManager* InputManager::sActive = nullptr;
 
 InputManager::InputManager() {
@@ -26,6 +27,7 @@ InputManager& InputManager::Get() {
 	return sActive ? *sActive : fallback;
 }
 
+// Frame Update / Focus Hints
 void InputManager::SetSceneViewportWantsGameMouse(bool enable) {
 	mSceneViewportWantsGameMouse = enable;
 }
@@ -67,13 +69,12 @@ void InputManager::Update(GLFWwindow* window) {
 	glfwGetCursorPos(window, &mMousePos.x, &mMousePos.y);
 }
 
-// Returns whether a key is currently pressed.
+// Keyboard Queries
 bool InputManager::IsKeyPressed(int key) const {
 	auto it = mCurrentKeyStates.find(key);
 	return (it != mCurrentKeyStates.end()) && it->second;
 }
 
-// Returns whether a key transitioned from up to down this frame.
 bool InputManager::IsKeyJustPressed(int key) const {
 	bool curr = false;
 	bool prev = false;
@@ -87,13 +88,12 @@ bool InputManager::IsKeyJustPressed(int key) const {
 	return curr && !prev;
 }
 
-// Returns whether a mouse button is currently pressed.
+// Mouse Queries
 bool InputManager::IsMouseButtonPressed(int button) const {
 	auto it = mMouseButtons.find(button);
 	return (it != mMouseButtons.end()) && it->second;
 }
 
-// Returns whether a mouse button was pressed this frame (edge).
 bool InputManager::IsMouseButtonJustPressed(int button) const {
 	auto itC = mMouseButtons.find(button);
 	auto itP = mPrevMouseButtons.find(button);
@@ -104,11 +104,11 @@ bool InputManager::IsMouseButtonJustPressed(int button) const {
 	return curr && !prev;
 }
 
-// Get the current mouse cursor position in window coordinates.
 glm::dvec2 InputManager::GetMousePosition() const {
 	return mMousePos;
 }
 
+// Coordinate Conversion
 glm::vec3 InputManager::ScreenToWorld(float mouseX, float mouseY) const {
 	const int w = GraphicsEngine::Instance().GetWidth();
 	const int h = GraphicsEngine::Instance().GetHeight();
@@ -118,9 +118,7 @@ glm::vec3 InputManager::ScreenToWorld(float mouseX, float mouseY) const {
 	float y = 1.0f - (2.0f * mouseY) / static_cast<float>(h);
 	glm::vec4 clipCoords(x, y, -1.0f, 1.0f);
 
-	const glm::mat4 vpInv =
-		glm::inverse(GraphicsEngine::Instance().GetProjection() *
-			GraphicsEngine::Instance().GetView());
+	const glm::mat4 vpInv = glm::inverse(GraphicsEngine::Instance().GetProjection() * GraphicsEngine::Instance().GetView());
 
 	glm::vec4 world = vpInv * clipCoords;
 

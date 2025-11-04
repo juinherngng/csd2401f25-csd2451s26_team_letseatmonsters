@@ -4,8 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Declares LevelSerializer for saving/loading LevelData.
-					Rotation values are stored in DEGREES in JSON (editor/UI friendly).
+ DESCRIPTION:		JSON-based (de)serialization for level data used by the editor/runtime.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -16,27 +15,27 @@
 #include <string>
 #include <vector>
 
- // Represents a single object saved/loaded in a level file.
+ // Types
 struct LevelObject {
-	// Visuals / identity
+	// Texture / tagging
 	std::string texture;
 	std::string tag;
 
-	// Transform (position, size, rotationDeg)
+	// Transform (z used for sort/layering if applicable)
 	float x{ 0.0f };
 	float y{ 0.0f };
 	float z{ 0.0f };
 	float w{ 128.0f };
 	float h{ 128.0f };
-	float rotation{ 0.0f }; // Stored in DEGREES in JSON
+	float rotation{ 0.0f }; // stored in degrees for editor compatibility
 
-	// Collider
+	// Collision box (size + local offset)
 	float colWidth{ 64.0f };
 	float colHeight{ 128.0f };
 	float colOffsetX{ 0.0f };
 	float colOffsetY{ 0.0f };
 
-	// Optional motion (used by some NPCs)
+	// Optional motion (editor helpers)
 	float speedX{ 0.0f };
 	float speedY{ 0.0f };
 
@@ -48,7 +47,11 @@ struct LevelData {
 	std::vector<LevelObject> objects{};
 };
 
+// Public Interface
 struct LevelSerializer {
+	// Load a JSON file into outLevel; returns false if file open/parse failed.
 	static bool Load(const std::string& path, LevelData& outLevel);
+
+	// Save inLevel as pretty-printed JSON; returns false if file open failed.
 	static bool Save(const std::string& path, const LevelData& inLevel);
 };
