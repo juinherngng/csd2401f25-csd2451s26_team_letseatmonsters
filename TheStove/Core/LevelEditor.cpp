@@ -993,6 +993,9 @@ void LevelEditor::DrawUI(Scene& scene) {
 		if (viewportSize.y < 64.f) {
 			viewportSize.y = 64.f;
 		}
+		if (viewportSize.x < 64.f) {
+			viewportSize.x = 64.f;
+		}
 
 		// One big interactive area
 		ImGui::InvisibleButton("##SceneViewport", viewportSize, ImGuiButtonFlags_MouseButtonLeft);
