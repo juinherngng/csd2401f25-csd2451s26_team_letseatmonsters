@@ -21,6 +21,7 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 #include <vector>
 
 #include "System.hpp"
+#include "MessageBus.hpp"
 #include "ConfigManager.hpp"
 
 class AudioManager : public CoreFramework::SystemInterface
@@ -47,15 +48,6 @@ public:
     /************************************************************************/
     /*!
     \brief
-    Handles messages sent to the audio system.
-    \param message
-    Pointer to the message object.
-    */
-    /************************************************************************/
-    void SendMessage(CoreFramework::Message* message) override;
-    /************************************************************************/
-    /*!
-    \brief
     Returns the name of the system.
     \return
     The system name as a string.
@@ -69,9 +61,11 @@ public:
     /*!
     \brief
     Constructs the AudioManager and initializes member variables.
+    \param bus
+    Reference to the MessageBus for pub/sub messaging.
     */
     /************************************************************************/
-    AudioManager();
+    AudioManager(CoreFramework::MessageBus& bus);
     /************************************************************************/
     /*!
     \brief
@@ -270,14 +264,14 @@ public:
     /************************************************************************/
     void ApplySettings(ConfigManager::Settings const& settings);
 
-    /************************************************************************/
-    /*!
-    \brief
+	/************************************************************************/
+	/*!
+	\brief
 	Gets the underlying FMOD system instance.
     \return
 	Pointer to the FMOD::System instance.
-    */
-    /************************************************************************/
+	*/
+	/************************************************************************/
 	FMOD::System* GetSystem() const { return system; }
 
 	/************************************************************************/
@@ -342,6 +336,11 @@ private:
     /************************************************************************/
     void CheckError(FMOD_RESULT result, std::string const& context);
 
+    // Message handlers
+    void OnToggleDebugInfo(const CoreFramework::Message& msg);
+    void OnPlayAudio(const CoreFramework::Message& msg);
+    void OnStopAudio(const CoreFramework::Message& msg);
+
     // FMOD System and resources
     FMOD::System*                         system;
     FMOD::ChannelGroup*                   masterGroup;
@@ -368,4 +367,9 @@ private:
 	std::vector<PendingPlay> pendingPlays;                      // queued play requests
 	std::unordered_map<std::string, VolumeFade> activeFades;    // per-sound active fades
 
+    // Pub/sub
+    CoreFramework::MessageBus& messageBus;
+    CoreFramework::SubscriberId debugInfoSubId;
+    CoreFramework::SubscriberId playAudioSubId;
+    CoreFramework::SubscriberId stopAudioSubId;
 };

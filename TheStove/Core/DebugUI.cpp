@@ -166,8 +166,12 @@ namespace Debug
 						
 						// test play audio
 						bgm = audioMgr->GetBgmVolume();
-						audioMgr->PlaySound("boiling_sound", bgm, false);
-						DebuggerApp::AddDebugLine("Playing: boiling sound\n");
+
+						// Publish via MessageBus instead of calling AudioManager directly
+						coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>("boiling_sound", 1.0f, false);
+						// audioMgr->PlaySound("boiling_sound", bgm, false); // Direct call (not via MessageBus)
+						DebuggerApp::AddDebugLine("Playing: boiling sound (via MessageBus)\n");
+						AddDebugLine("Published PLAY_AUDIO message for boiling_sound\n");
 					}
 				}
 			}
@@ -177,14 +181,16 @@ namespace Debug
 			{
 				if (coreEngine)
 				{
+					// UI click sound
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
 					{
 						audioMgr->PlayUIClickSound();
-
-						// test stopping audio
-						audioMgr->StopSound("boiling_sound");
-						DebuggerApp::AddDebugLine("Stopping: boiling sound\n");
 					}
+
+					// Publish stop message via MessageBus
+					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("boiling_sound");
+					DebuggerApp::AddDebugLine("Stopping: boiling sound (via MessageBus)\n");
+					AddDebugLine("Published STOP_AUDIO message for boiling_sound\n");
 				}
 			}
 
@@ -192,15 +198,16 @@ namespace Debug
 			{
 				if (coreEngine)
 				{
+					// UI click sound
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
 					{
 						audioMgr->PlayUIClickSound();
-
-						// test play audio
-						bgm = audioMgr->GetBgmVolume();
-						audioMgr->PlaySound("grilling_sound", bgm, false);
-						DebuggerApp::AddDebugLine("Playing: grilling sound\n");
 					}
+
+					// Publish via MessageBus instead of calling AudioManager directly
+					coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>("grilling_sound", 1.0f, false);
+					DebuggerApp::AddDebugLine("Playing: grilling sound (via MessageBus)\n");
+					AddDebugLine("Published PLAY_AUDIO message for grilling_sound\n");
 				}
 			}
 
@@ -209,14 +216,16 @@ namespace Debug
 			{
 				if (coreEngine)
 				{
+					// UI click sound
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
 					{
 						audioMgr->PlayUIClickSound();
-
-						// test stopping audio
-						audioMgr->StopSound("grilling_sound");
-						DebuggerApp::AddDebugLine("Stopping: grilling sound\n");
 					}
+
+					// Publish stop message via MessageBus
+					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("grilling_sound");
+					DebuggerApp::AddDebugLine("Stopping: grilling sound (via MessageBus)\n");
+					AddDebugLine("Published STOP_AUDIO message for grilling_sound\n");
 				}
 			}
 
@@ -224,15 +233,16 @@ namespace Debug
 			{
 				if (coreEngine)
 				{
+					// UI click sound
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
 					{
 						audioMgr->PlayUIClickSound();
-						
-						// test play bgm
-						bgm = audioMgr->GetBgmVolume();
-						audioMgr->PlaySound("background_music", bgm, false);
-						DebuggerApp::AddDebugLine("Playing: background music\n");
 					}
+					
+					// Publish via MessageBus instead of calling AudioManager directly
+					coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>("background_music", 1.0f, false);
+					DebuggerApp::AddDebugLine("Playing: background music (via MessageBus)\n");
+					AddDebugLine("Published PLAY_AUDIO message for background_music\n");
 				}
 			}
 
@@ -241,14 +251,16 @@ namespace Debug
 			{
 				if (coreEngine)
 				{
+					// UI click sound
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
 					{
 						audioMgr->PlayUIClickSound();
-						
-						// test stopping bgm
-						audioMgr->StopSound("background_music");
-						DebuggerApp::AddDebugLine("Stopping: background music\n");
 					}
+					
+					// Publish stop message via MessageBus
+					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("background_music");
+					DebuggerApp::AddDebugLine("Stopping: background music (via MessageBus)\n");
+					AddDebugLine("Published STOP_AUDIO message for background_music\n");
 				}
 			}
 
@@ -256,13 +268,13 @@ namespace Debug
 			{
 				if (coreEngine)
 				{
+					// Publish stop all message (empty string = stop all)
+					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("");
+					DebuggerApp::AddDebugLine("Stopping: all audio (via MessageBus)\n");
+					
+					// Play UI click sound AFTER stopping all audio
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
 					{
-						// test stopping all audio
-						audioMgr->StopAllSounds();
-						DebuggerApp::AddDebugLine("Stopping: all audio\n");
-						
-						// Play UI click sound AFTER stopping all audio
 						audioMgr->PlayUIClickSound();
 					}
 				}

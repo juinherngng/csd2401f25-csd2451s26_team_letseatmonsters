@@ -13,6 +13,7 @@ DESCRIPTION:		Game State Manager interface derived from System.hpp. Uses 3 Funct
 ----------------------------------------------------------------------------------------------------
 */
 #include "System.hpp"
+#include "MessageBus.hpp"
 #include "TestLevel.hpp"
 #include "TestLevel2.hpp"
 #include <memory>
@@ -34,20 +35,45 @@ namespace Framework {
 	typedef std::function<void(float dt)> FP;
 
 	extern FP fpInit, fpUpdate, fpExit; // Function pointers that changes depending on what state the game is in currently
+	
 	class GameStateManager : public CoreFramework::SystemInterface
 	{
 	public:
+		/************************************************************************/
+		/*!
+		\brief
+		Constructs the GameStateManager with MessageBus reference.
+		\param bus
+		Reference to the MessageBus for pub/sub messaging.
+		*/
+		/************************************************************************/
+		GameStateManager(CoreFramework::MessageBus& bus);
+		
+		/************************************************************************/
+		/*!
+		\brief
+		Destroys the GameStateManager and unsubscribes from messages.
+		*/
+		/************************************************************************/
+		~GameStateManager();
+		
 		//Setup Manager Logic
 		void Initialize() override;
 		//Manager Update loop
 		void Update(float dt) override;
-		// Message handler
-		void SendMessage(CoreFramework::Message* msg) override;
 		//Get System Name
 		std::string GetName() override;
 		//Set Default Game State before use in Update
 		void InitializeGameState(int GS, float dt);
 		//Call function pointer to state update
 		void UpdateGameState(int newState, float dt);
+		
+	private:
+		// Message handlers
+		void OnQuit(const CoreFramework::Message& msg);
+		
+		// Pub/sub
+		CoreFramework::MessageBus& messageBus;
+		CoreFramework::SubscriberId quitSubId;
 	};
 }

@@ -336,7 +336,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		{
 			(void)win;   // suppress unused parameter warning
 			if (g_AppState && g_AppState->coreEngine)
-				g_AppState->coreEngine->Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
+				g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
 		});
 
 	glfwSetMouseButtonCallback(app.window, [](GLFWwindow* win, int button, int action, int mods)
@@ -346,7 +346,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			{
 				double x, y;
 				glfwGetCursorPos(g_AppState->window, &x, &y);
-				g_AppState->coreEngine->Post<CoreFramework::MouseButtonMessage>(button, action == GLFW_PRESS, x, y);
+				g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::MouseButtonMessage>(button, action == GLFW_PRESS, x, y);
 			}
 		});
 
@@ -372,7 +372,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 				g_AppState->lastMouseX = xpos;
 				g_AppState->lastMouseY = ypos;
 
-				g_AppState->coreEngine->Post<CoreFramework::MouseMoveMessage>(xpos, ypos, dx, dy);
+				g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::MouseMoveMessage>(xpos, ypos, dx, dy);
 			}
 		});
 
@@ -391,9 +391,9 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Create CoreEngine with smart pointer
 	app.coreEngine = std::make_unique<CoreFramework::CoreEngine>();
 
-	// Add systems using unique_ptr
-	app.coreEngine->AddSystem(std::make_unique<AudioManager>());
-	app.coreEngine->AddSystem(std::make_unique<Framework::GameStateManager>());
+	// Add systems using unique_ptr with MessageBus reference
+	app.coreEngine->AddSystem(std::make_unique<AudioManager>(app.coreEngine->GetMessageBus()));
+	app.coreEngine->AddSystem(std::make_unique<Framework::GameStateManager>(app.coreEngine->GetMessageBus()));
 
 	app.coreEngine->Initialize();
 
@@ -530,7 +530,7 @@ void cleanup(ApplicationState& app) {
 	if (app.coreEngine)
 	{
 		std::cout << "Flushing remaining messages..." << std::endl;
-		app.coreEngine->FlushMessages();
+		app.coreEngine->GetMessageBus().ClearQueue();
 	}
 
 	// STEP 6: Stop and shutdown audio
