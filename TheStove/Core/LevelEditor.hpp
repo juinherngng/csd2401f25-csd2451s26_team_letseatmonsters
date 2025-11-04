@@ -4,9 +4,11 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		In-engine level editor interface. Rotation values are handled in DEGREES
-					at the editor/JSON layer; conversions to RADIANS should happen at the
-					GameObject boundary (see LevelEditor.cpp usage).
+ DESCRIPTION:		In-engine level editor panel:
+					- Load/Save JSON levels
+					- Object hierarchy + property inspector
+					- Drag/drop textures & prefabs
+					- Play/Stop snapshot restore
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -19,36 +21,32 @@
 
 #include "LevelSerializer.hpp"
 #include "InputManager.hpp"
-#include "../Graphics/SceneManager.hpp"
 
 class Scene;
 
 class LevelEditor {
 public:
-	// Load level from 'levelPath' into the given scene (spawns objects, sets defaults).
-	bool LoadIntoScene(Scene& scene);
+	// Lifecycle / Windows
+	LevelEditor() = default;
+	~LevelEditor() = default;
 
-	// Draw the editor ImGui window and apply edits to the scene.
+	// Draw the full Level/Prefabs/Assets UI and handle interactions.
 	void DrawUI(Scene& scene);
 
-	// Toggle editor visibility.
-	void Toggle() { isEnabled = !isEnabled; }
+	// Load current levelPath into the scene. Returns false if load failed.
+	bool LoadIntoScene(Scene& scene);
 
-	// Check if the editor UI is enabled (visible).
-	bool IsEnabled() const { return isEnabled; }
+	// Controls / Path
+	bool IsEnabled() const;
+	void Toggle();
+	void SetPath(const std::string& path);
 
-	// Set path used by Load/Save.
-	void SetPath(const std::string& path) { levelPath = path; }
-
-	// Play/Stop state 
-	bool isPlaying = false;
-	LevelData playStartSnapshot;
-
-	// Prefab links
-	std::unordered_map<int, std::string> prefabPathById;
+	std::string levelPath{};
 
 private:
-	bool isEnabled{ true };
-	std::string levelPath{};
-	LevelData level{};
+	bool isEnabled = true;
+	bool isPlaying = false;
+
+	LevelData level{};			   // Working copy for editing (Save/Load)
+	LevelData playStartSnapshot{}; // Snapshot captured at Play, restored on Stop
 };
