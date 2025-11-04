@@ -10,19 +10,15 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "Collision.hpp"
 #include <algorithm>
 #include <cmath>
+
+#include "Collision.hpp"
 
 static constexpr float kEPS = 1e-4f;
 
 namespace collision {
-	/**
-	 * @brief Check overlap between two AABBs.
-	 * @param a First AABB.
-	 * @param b Second AABB.
-	 * @return true if overlap exists, false otherwise.
-	 */
+	// Internal overlap test (AABB vs AABB).
 	static inline bool overlaps(const AABB& a, const AABB& b) {
 		bool aRightOfB = (a.min.x >= b.max.x);
 		bool aLeftOfB = (a.max.x <= b.min.x);
@@ -38,20 +34,11 @@ namespace collision {
 		return overlapExists;
 	}
 
-	/**
-	 * @brief Clamp float between two values.
-	 * @param v Value to clamp.
-	 * @param lo Minimum bound.
-	 * @param hi Maximum bound.
-	 * @return Clamped value.
-	 */
 	static inline float clampf(float v, float lo, float hi) {
 		return std::max(lo, std::min(v, hi));
 	}
 
-	// --- Primitives ---
-
-	// Computes signed penetration depths and selects smallest axis.
+	// Primitives 
 	bool overlapMTV(const AABB& a, const AABB& b, Math::Vector2D& mtvOut) {
 		// Signed gaps (A relative to B)
 		float left = b.min.x - a.max.x;
@@ -79,7 +66,6 @@ namespace collision {
 		return true;
 	}
 
-	// Splits MTV based on given weight between A and B.
 	bool separateWeighted(const AABB& a, const AABB& b, float weightA, Math::Vector2D& moveA, Math::Vector2D& moveB) {
 		Math::Vector2D mtv;
 		if (!overlapMTV(a, b, mtv)) {
@@ -95,7 +81,6 @@ namespace collision {
 		return true;
 	}
 
-	// Half-extents based point inclusion test.
 	bool pointInsideCenterAABB(const Math::Vector2D& point, const Math::Vector3D& center, const Math::Vector3D& scale) {
 		const float hx = scale.x * 0.5f;
 		const float hy = scale.y * 0.5f;
@@ -103,19 +88,15 @@ namespace collision {
 			point.y >= center.y - hy && point.y <= center.y + hy);
 	}
 
-	// --- World methods ---
-
-	// Reset world by removing all walls.
+	// World methods
 	void World::clear() {
 		mWalls.clear();
 	}
 
-	// Push custom AABB wall into world.
 	void World::addWall(const AABB& aabb) {
 		mWalls.push_back(aabb);
 	}
 
-	// Builds world boundary and obstacles from primitives.
 	void World::build(const WalkArea& w, const WoodVertical& wood, const StageEndGateVertical& end) {
 		mWalls.clear();
 
@@ -172,7 +153,6 @@ namespace collision {
 		mWalls.push_back(endBottom);
 	}
 
-	// Axis-separable sweep test: move along X then Y, correcting overlaps.
 	Math::Vector2D World::resolve(const AABB& startBox, Math::Vector2D desiredDelta) const {
 		// Begin with desired; trim by walls.
 		Math::Vector2D allowedDelta = desiredDelta;
@@ -180,7 +160,6 @@ namespace collision {
 		// X sweep
 		AABB movedX = startBox;
 
-		// Apply X shift
 		movedX.min.x += allowedDelta.x;
 		movedX.max.x += allowedDelta.x;
 
@@ -222,7 +201,6 @@ namespace collision {
 		// Y sweep
 		AABB movedY = movedX;
 
-		// Apply Y shift
 		movedY.min.y += allowedDelta.y;
 		movedY.max.y += allowedDelta.y;
 
@@ -264,7 +242,6 @@ namespace collision {
 		return allowedDelta;
 	}
 
-	// Construct AABB from 2D center and full size.
 	AABB World::makeAABBFromCenter(const Math::Vector3D& center, const Math::Vector3D& scale) {
 		const float halfW = scale.x * 0.5f;
 		const float halfH = scale.y * 0.5f;

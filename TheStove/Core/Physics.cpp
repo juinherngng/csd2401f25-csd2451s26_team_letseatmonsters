@@ -12,7 +12,6 @@
  */
 
 #include "Physics.hpp"
-#include "../Core/InputManager.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -22,13 +21,17 @@ namespace {
 	// Safe normalize (returns 0,0 if tiny)
 	inline Math::Vector2D SafeNormalize(const Math::Vector2D& v) {
 		const float len = v.Length();
-		if (len > 1e-6f) return Math::Vector2D(v.x / len, v.y / len);
+		if (len > 1e-6f) {
+			return Math::Vector2D(v.x / len, v.y / len);
+		}
+
 		return Math::Vector2D(0.f, 0.f);
 	}
 
 }
 
 namespace physics {
+	// Colliders / Clamp
 	collision::AABB MakeColliderBox(GameObject* gameObj, const Math::Vector3D& pos) {
 		const Math::Vector2D offset = gameObj->GetColliderOffset();
 		const Math::Vector2D size = gameObj->GetColliderSize();
@@ -55,17 +58,18 @@ namespace physics {
 
 		pos.y = std::clamp(pos.y, walk.T + half.y - off.y, walk.B - half.y - off.y);
 
-		float maxX = walk.R - half.x - off.x;               // default: inner wall
+		float maxX = walk.R - half.x - off.x;
 		const float centerY = pos.y + off.y;
-		const float eps = 1.0f;                             // small tolerance
+		const float eps = 1.0f;
 		if (centerY >= gate.gapMinY - eps && centerY <= gate.gapMaxY + eps) {
-			maxX = gate.x1 - half.x - off.x;                // allow through gap
+			maxX = gate.x1 - half.x - off.x;
 		}
 
 		const float minX = walk.L - off.x + half.x;
 		pos.x = std::clamp(pos.x, minX, maxX);
 	}
 
+	// Step Controller
 	float StepController::resolveDt(::InputManager& input, float deltaTime) {
 		const bool pNow = input.IsKeyPressed(GLFW_KEY_P);
 		const bool wNow = input.IsKeyPressed(GLFW_KEY_W);
@@ -121,6 +125,7 @@ namespace physics {
 		}
 	}
 
+	// Separation / Movement helpers
 	void SeparatePlayerVsOther_StopPlayerOnly(
 		collision::World& world,
 		GameObject* player, GameObject* other,

@@ -18,6 +18,7 @@
 
 using nlohmann::json;
 
+// Helpers (local)
 static LevelObject ReadLevelObject(const json& jsonObj) {
 	LevelObject obj{};
 
@@ -30,7 +31,7 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.w = jsonObj.value("w", 128.0f);
 	obj.h = jsonObj.value("h", 128.0f);
 
-	// Stored in degrees
+	// Stored in degrees for editor friendliness
 	obj.rotation = jsonObj.value("rotation", 0.0f);
 
 	obj.colWidth = jsonObj.value("col_w", 64.0f);
@@ -69,7 +70,7 @@ static json WriteLevelObject(const LevelObject& obj) {
 	return jsonData;
 }
 
-// Loads a level JSON file into LevelData
+// Public Interface
 bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	std::ifstream file(path);
 	if (!file) {
@@ -82,7 +83,7 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	outLevel.objects.clear();
 
 	if (!jsonData.contains("objects")) {
-		return true;
+		return true; // empty level file is valid
 	}
 
 	for (auto& jsonObj : jsonData["objects"]) {
