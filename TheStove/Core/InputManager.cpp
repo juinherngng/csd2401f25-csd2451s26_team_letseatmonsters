@@ -15,22 +15,49 @@
 
 #include "InputManager.hpp"
 
+InputManager* InputManager::sActive = nullptr;
+
+InputManager::InputManager() {
+	sActive = this;
+}
+
+InputManager& InputManager::Get() {
+	static InputManager fallback;
+	return sActive ? *sActive : fallback;
+}
+
+void InputManager::SetSceneViewportWantsGameMouse(bool enable) {
+	mSceneViewportWantsGameMouse = enable;
+}
+
 void InputManager::Update(GLFWwindow* window) {
 	mPreviousKeyStates = mCurrentKeyStates;
 	mPrevMouseButtons = mMouseButtons;
 
+	ImGuiIO& io = ImGui::GetIO();
+
 	// Poll commonly used keys
 	int keys[] = {
 		GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN,
-		GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_P, GLFW_KEY_R, GLFW_KEY_T, GLFW_KEY_L,
+		GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D,
+		// physics dt, collider, points/lines, level editor
+		GLFW_KEY_P, GLFW_KEY_R, GLFW_KEY_T, GLFW_KEY_F, GLFW_KEY_L,
 		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3
 	};
 
-	for (int key : keys) {
-		mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
+	// If ImGui wants the keyboard, clear key states so gameplay won’t react
+	if (!io.WantCaptureKeyboard) {
+		for (int key : keys) {
+			mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
+		}
+	}
+	else {
+		for (int key : keys) {
+			mCurrentKeyStates[key] = false;
+		}
 	}
 
-	// Poll mouse buttons
+	// Mouse buttons to track
 	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
 	for (int b : buttons) {
 		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
@@ -80,4 +107,26 @@ bool InputManager::IsMouseButtonJustPressed(int button) const {
 // Get the current mouse cursor position in window coordinates.
 glm::dvec2 InputManager::GetMousePosition() const {
 	return mMousePos;
+}
+
+glm::vec3 InputManager::ScreenToWorld(float mouseX, float mouseY) const {
+	const int w = GraphicsEngine::Instance().GetWidth();
+	const int h = GraphicsEngine::Instance().GetHeight();
+
+	// Normalize to -1..1 in NDC (OpenGL origin bottom-left)
+	float x = (2.0f * mouseX) / static_cast<float>(w) - 1.0f;
+	float y = 1.0f - (2.0f * mouseY) / static_cast<float>(h);
+	glm::vec4 clipCoords(x, y, -1.0f, 1.0f);
+
+	const glm::mat4 vpInv =
+		glm::inverse(GraphicsEngine::Instance().GetProjection() *
+			GraphicsEngine::Instance().GetView());
+
+	glm::vec4 world = vpInv * clipCoords;
+
+	if (world.w != 0.0f) {
+		world /= world.w;
+	}
+
+	return glm::vec3(world.x, world.y, world.z);
 }

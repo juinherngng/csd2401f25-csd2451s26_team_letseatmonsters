@@ -112,7 +112,9 @@ namespace Debug
 		}
 
 		// Create my window
-		if (ImGui::Begin("Debug Infomation", &openedDebugger))
+		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
+			ImGuiCond_FirstUseEver);
+		ImGui::Begin("Debug Information###DebugInfo", &openedDebugger);
 		{
 			static int selectedfpsMode = 0;
 			const char* fpsModes[] = { "Vsync", "Unlimited" };
@@ -343,8 +345,9 @@ namespace Debug
 		if (ImGui::GetCurrentContext() == nullptr) {
 			return;
 		}
-
-		ImGui::Begin("Debug Log from std::cout");
+		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
+			ImGuiCond_FirstUseEver);
+		ImGui::Begin("Console Log###ConsoleLog");
 
 		// Clear logs if the button was pressed
 		if (ImGui::Button("Clear Logs"))

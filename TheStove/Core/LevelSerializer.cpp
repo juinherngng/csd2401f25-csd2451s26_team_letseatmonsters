@@ -4,7 +4,8 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:
+ DESCRIPTION:		Handles saving and loading of LevelData to and from JSON files.
+					Rotation values are stored in DEGREES for editor compatibility.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -14,64 +15,97 @@
 
 #include "LevelSerializer.hpp"
 #include "JSONInclude.hpp"
+
 using nlohmann::json;
 
-static LevelObject ReadObj(const json& o) {
-	LevelObject lo;
-	lo.texture = o.value("texture", "");
-	lo.tag = o.value("tag", "");
+static LevelObject ReadLevelObject(const json& jsonObj) {
+	LevelObject obj{};
 
-	lo.x = o.value("x", 0.f);
-	lo.y = o.value("y", 0.f);
-	lo.z = o.value("z", 0.f);
-	lo.w = o.value("w", 128.f);
-	lo.h = o.value("h", 128.f);
-	lo.rotation = o.value("rotation", 0.f);
+	obj.texture = jsonObj.value("texture", "");
+	obj.tag = jsonObj.value("tag", "");
 
-	lo.col_w = o.value("col_w", 64.f);
-	lo.col_h = o.value("col_h", 128.f);
-	lo.col_offx = o.value("col_offx", 0.f);
-	lo.col_offy = o.value("col_offy", 0.f);
+	obj.x = jsonObj.value("x", 0.0f);
+	obj.y = jsonObj.value("y", 0.0f);
+	obj.z = jsonObj.value("z", 0.0f);
+	obj.w = jsonObj.value("w", 128.0f);
+	obj.h = jsonObj.value("h", 128.0f);
 
-	lo.speed_x = o.value("speed_x", 0.f);
-	lo.speed_y = o.value("speed_y", 0.f);
+	// Stored in degrees
+	obj.rotation = jsonObj.value("rotation", 0.0f);
 
-	lo.animated = o.value("animated", false);
-	return lo;
+	obj.colWidth = jsonObj.value("col_w", 64.0f);
+	obj.colHeight = jsonObj.value("col_h", 128.0f);
+	obj.colOffsetX = jsonObj.value("col_offx", 0.0f);
+	obj.colOffsetY = jsonObj.value("col_offy", 0.0f);
+
+	obj.speedX = jsonObj.value("speed_x", 0.0f);
+	obj.speedY = jsonObj.value("speed_y", 0.0f);
+
+	obj.animated = jsonObj.value("animated", false);
+
+	return obj;
 }
 
-static json WriteObj(const LevelObject& o) {
-	return json{
-		{"texture",   o.texture},
-		{"tag",       o.tag},
-		{"x",         o.x}, {"y", o.y}, {"z", o.z},
-		{"w",         o.w}, {"h", o.h},
-		{"rotation",  o.rotation},
-		{"col_w",     o.col_w}, {"col_h", o.col_h},
-		{"col_offx",  o.col_offx}, {"col_offy", o.col_offy},
-		{"speed_x",   o.speed_x}, {"speed_y", o.speed_y},
-		{"animated",  o.animated}
+// Converts a LevelObject to JSON
+static json WriteLevelObject(const LevelObject& obj) {
+	json jsonData = {
+		{ "texture", obj.texture },
+		{ "tag", obj.tag },
+		{ "x", obj.x },
+		{ "y", obj.y },
+		{ "z", obj.z },
+		{ "w", obj.w },
+		{ "h", obj.h },
+		{ "rotation", obj.rotation },
+		{ "col_w", obj.colWidth },
+		{ "col_h", obj.colHeight },
+		{ "col_offx", obj.colOffsetX },
+		{ "col_offy", obj.colOffsetY },
+		{ "speed_x", obj.speedX },
+		{ "speed_y", obj.speedY },
+		{ "animated", obj.animated }
 	};
+
+	return jsonData;
 }
 
-bool LevelSerializer::Load(const std::string& path, LevelData& out) {
-	std::ifstream f(path);
-	if (!f) return false;
-	json j; f >> j;
-	out.objects.clear();
+// Loads a level JSON file into LevelData
+bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
+	std::ifstream file(path);
+	if (!file) {
+		return false;
+	}
 
-	if (!j.contains("objects")) return true;
-	for (auto& o : j["objects"])
-		out.objects.push_back(ReadObj(o));
+	json jsonData;
+	file >> jsonData;
+
+	outLevel.objects.clear();
+
+	if (!jsonData.contains("objects")) {
+		return true;
+	}
+
+	for (auto& jsonObj : jsonData["objects"]) {
+		outLevel.objects.push_back(ReadLevelObject(jsonObj));
+	}
+
 	return true;
 }
 
-bool LevelSerializer::Save(const std::string& path, const LevelData& in) {
-	json j;
-	j["objects"] = json::array();
-	for (auto& o : in.objects) j["objects"].push_back(WriteObj(o));
-	std::ofstream f(path);
-	if (!f) return false;
-	f << j.dump(2);
+// Saves LevelData into a JSON file
+bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
+	json jsonData;
+	jsonData["objects"] = json::array();
+
+	for (auto& obj : inLevel.objects) {
+		jsonData["objects"].push_back(WriteLevelObject(obj));
+	}
+
+	std::ofstream file(path);
+	if (!file) {
+		return false;
+	}
+
+	file << jsonData.dump(2);
 	return true;
 }

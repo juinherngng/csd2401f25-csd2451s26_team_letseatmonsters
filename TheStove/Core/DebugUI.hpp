@@ -21,6 +21,7 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 
 #include "Precompiled.hpp"
 #include "AudioManager.hpp"
+#include "../Graphics/GraphicsEngine.hpp"
 
 namespace CoreFramework { class CoreEngine; }
 

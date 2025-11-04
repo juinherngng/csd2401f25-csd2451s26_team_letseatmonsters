@@ -11,7 +11,6 @@ DESCRIPTION:		Implements initialization, default resource loading, background ha
 ----------------------------------------------------------------------------------------------------
 */
 
-
 #include <iostream>
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
@@ -21,6 +20,11 @@ DESCRIPTION:		Implements initialization, default resource loading, background ha
 #include "MeshLoader.hpp"
 
 static bool s_imguiInitialized = false;
+
+GraphicsEngine& GraphicsEngine::Instance() {
+	static GraphicsEngine instance;
+	return instance;
+}
 
 // Constructor: Initializes references and identity matrices for view/projection.
 GraphicsEngine::GraphicsEngine()
@@ -34,10 +38,8 @@ GraphicsEngine::GraphicsEngine()
 void GraphicsEngine::Initialize() {
 	renderer.Initialize();
 	renderer.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-	glViewport(0, 0, 1200, 800);
-
-	// Setup matrices
-	projection = glm::ortho(0.0f, 1200.0f, 800.0f, 0.0f);
+	CreateSceneFBO(kRefW, kRefH);
+	// Resize(kRefW, kRefH);
 	view = glm::mat4(1.0f);
 
 	// Load default resources
@@ -49,12 +51,116 @@ void GraphicsEngine::Initialize() {
 	if (!s_imguiInitialized) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 		ImGui::StyleColorsDark();
 		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
 		s_imguiInitialized = true;
 	}
 }
+
+void GraphicsEngine::DestroySceneFBO() {
+	if (mSceneDepth) { glDeleteRenderbuffers(1, &mSceneDepth);  mSceneDepth = 0; }
+	if (mSceneColor) { glDeleteTextures(1, &mSceneColor);      mSceneColor = 0; }
+	if (mSceneFBO) { glDeleteFramebuffers(1, &mSceneFBO);    mSceneFBO = 0; }
+}
+
+void GraphicsEngine::CreateSceneFBO(int w, int h) {
+	DestroySceneFBO();
+
+	glGenFramebuffers(1, &mSceneFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, mSceneFBO);
+
+	glGenTextures(1, &mSceneColor);
+	glBindTexture(GL_TEXTURE_2D, mSceneColor);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mSceneColor, 0);
+
+	glGenRenderbuffers(1, &mSceneDepth);
+	glBindRenderbuffer(GL_RENDERBUFFER, mSceneDepth);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mSceneDepth);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		// handle/log error as you prefer
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	mSceneWidth = w; mSceneHeight = h;
+}
+
+void GraphicsEngine::ResizeSceneFBO(int w, int h) {
+	if (w <= 0 || h <= 0) return;
+	CreateSceneFBO(w, h);
+}
+
+void GraphicsEngine::BeginSceneRender() {
+	glBindFramebuffer(GL_FRAMEBUFFER, mSceneFBO);
+	glViewport(0, 0, mSceneWidth, mSceneHeight);
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+}
+
+void GraphicsEngine::EndSceneRender() {
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+
+const glm::mat4& GraphicsEngine::GetProjection() const {
+	return projection;
+}
+
+const glm::mat4& GraphicsEngine::GetView() const {
+	return view;
+}
+
+ImGuiID GraphicsEngine::GetMainDockspaceID() const { return mMainDockspaceId; }
+
+void GraphicsEngine::Resize(int width, int height) {
+	if (width <= 0 || height <= 0) {
+		return;
+	}
+
+	screenWidth = width;
+	screenHeight = height;
+
+	// Keep the *projection* fixed to reference pixels so sprites don't scale
+	// (0,0) top-left, (kRefW,kRefH) bottom-right
+	projection = glm::ortho(
+		0.0f, static_cast<float>(kRefW),
+		static_cast<float>(kRefH), 0.0f,
+		-1.0f, 1.0f
+	);
+
+	// Compute letterboxed viewport centered in the window
+	const float sx = static_cast<float>(width) / static_cast<float>(kRefW);
+	const float sy = static_cast<float>(height) / static_cast<float>(kRefH);
+	viewportScale_ = std::min(sx, sy);
+
+	viewportW_ = static_cast<int>(kRefW * viewportScale_);
+	viewportH_ = static_cast<int>(kRefH * viewportScale_);
+	viewportX_ = (width - viewportW_) / 2;
+	viewportY_ = (height - viewportH_) / 2;
+
+	// Apply the viewport now
+	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
+
+	// Background should match the reference canvas (it renders in world pixels)
+	if (backgroundObject) {
+		backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
+		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
+			static_cast<float>(kRefH), 1.0f));
+	}
+}
+
+void GraphicsEngine::ApplyViewport() const {
+	// Centered letterbox area where the game actually renders
+	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
+}
+
 
 // Internal helper to preload common shaders and meshes.
 void GraphicsEngine::LoadDefaultResources() {
@@ -116,8 +222,8 @@ void GraphicsEngine::SetBackground(const std::string& texturePath) {
 		if (quadMesh && textureShader) {
 			backgroundObject = std::make_unique<GameObject>(quadMesh, textureShader);
 			// Position background to fill screen
-			backgroundObject->SetPosition(glm::vec3(600.0f, 400.0f, 0.0f)); // Center of 1200x800 screen
-			backgroundObject->SetScale(glm::vec3(1200.0f, 800.0f, 1.0f));   // Full screen size
+			backgroundObject->SetPosition(glm::vec3(screenWidth * 0.5f, screenHeight * 0.5f, 0.0f));
+			backgroundObject->SetScale(glm::vec3(static_cast<float>(screenWidth), static_cast<float>(screenHeight), 1.0f));
 		}
 	}
 
@@ -135,6 +241,70 @@ void GraphicsEngine::BeginImGuiFrame() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
+	ImGuiViewport* vp = ImGui::GetMainViewport();
+
+	/*ImGui::DockSpaceOverViewport(
+		vp->ID,
+		vp,
+		ImGuiDockNodeFlags_PassthruCentralNode |
+		ImGuiDockNodeFlags_NoDockingInCentralNode
+	);*/
+
+	// DockSpace host (lets all editor windows dock/undock)
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->WorkPos);
+	ImGui::SetNextWindowSize(viewport->WorkSize);
+	ImGui::SetNextWindowViewport(viewport->ID);
+
+	ImGuiWindowFlags hostFlags =
+		ImGuiWindowFlags_NoDocking |
+		ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+
+	if (ImGui::Begin("###DockSpaceHost", nullptr, hostFlags)) {
+		ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
+		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), 0);
+		mMainDockspaceId = dockspaceId;
+	}
+
+	ImGui::End();
+	ImGui::PopStyleVar(2);
+}
+
+void GraphicsEngine::DrawSceneDockWindow() {
+	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
+		ImGuiCond_FirstUseEver);
+	if (ImGui::Begin("Scene###SceneWindow")) {
+		ImVec2 avail = ImGui::GetContentRegionAvail();
+		const float targetAspect = float(kRefW) / float(kRefH);
+		float w = avail.x, h = avail.y;
+		float r = w / h;
+		if (r > targetAspect) { w = h * targetAspect; }
+		else { h = w / targetAspect; }
+
+		// Center the image in the window
+		ImVec2 cursor = ImGui::GetCursorPos();
+		ImGui::SetCursorPos(ImVec2(cursor.x + (avail.x - w) * 0.5f,
+			cursor.y + (avail.y - h) * 0.5f));
+
+		// Record absolute (screen) rectangle for picking
+		sceneImagePos_ = ImGui::GetCursorScreenPos();
+		sceneImageSize_ = ImVec2(w, h);
+
+		// Draw the texture (flip vertically)
+		ImGui::Image(
+			(ImTextureID)(intptr_t)mSceneColor,
+			ImVec2(w, h),
+			ImVec2(0, 1),   // uv0
+			ImVec2(1, 0)    // uv1
+		);
+	}
+
+	ImGui::End();
 }
 
 void GraphicsEngine::EndImGuiFrame() {
@@ -143,9 +313,60 @@ void GraphicsEngine::EndImGuiFrame() {
 }
 
 void GraphicsEngine::BeginFrame() {
+	// Clear the entire backbuffer first (black bars included)
+	glViewport(0, 0, screenWidth, screenHeight);
 	renderer.Clear();
+
+	// Then restrict rendering to the centered game area
+	ApplyViewport();
+
+	BeginSceneRender();
+
 	BeginImGuiFrame();
 }
+
+bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
+	// If Scene window hasn't drawn yet this frame
+	if (sceneImageSize_.x <= 1.0f || sceneImageSize_.y <= 1.0f) {
+		return false;
+	}
+
+	// Mouse in absolute screen coordinates
+	ImVec2 mouse = ImGui::GetMousePos();
+
+	// Early out if outside the image rect
+	if (mouse.x < sceneImagePos_.x || mouse.y < sceneImagePos_.y ||
+		mouse.x > sceneImagePos_.x + sceneImageSize_.x ||
+		mouse.y > sceneImagePos_.y + sceneImageSize_.y) {
+		return false;
+	}
+
+	// Local position (0..size) within the image
+	const float localX = mouse.x - sceneImagePos_.x;
+	const float localY = mouse.y - sceneImagePos_.y;
+
+	// UV inside the image (0..1)
+	const float u = localX / sceneImageSize_.x;
+	const float v = localY / sceneImageSize_.y;
+
+	const float px = u * float(kRefW);
+	const float py = v * float(kRefH);
+
+	// Convert FBO pixel (px,py) -> world using inverse(View * Projection)
+	// First go from pixels to NDC:
+	glm::vec4 clip;
+	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;   // [-1,1]
+	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;   // [-1,1] (top->+1)
+	clip.z = 0.0f;
+	clip.w = 1.0f;
+
+	const glm::mat4 invVP = glm::inverse(projection * view);
+	const glm::vec4 world4 = invVP * clip;
+
+	outWorld = glm::vec2(world4.x, world4.y);
+	return true;
+}
+
 
 // Render the background and then all provided GameObjects
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
@@ -176,6 +397,10 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 		DebugRenderer::Flush(view, projection);
 		glEnable(GL_DEPTH_TEST);
 	}
+
+	EndSceneRender();
+
+	DrawSceneDockWindow();
 
 	// ImGui on top
 	EndImGuiFrame();

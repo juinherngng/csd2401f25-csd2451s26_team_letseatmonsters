@@ -42,17 +42,82 @@ public:
 	void BeginImGuiFrame(); // call at start of each frame
 	void EndImGuiFrame(); // call at end of each frame
 
+	void Resize(int width, int height);
+	int GetWidth() const { return screenWidth; }
+	int GetHeight() const { return screenHeight; }
+
+	const glm::mat4& GetProjection() const;
+	const glm::mat4& GetView() const;
+
+	static GraphicsEngine& Instance();
+
+	static constexpr int kRefW = 1200;
+	static constexpr int kRefH = 800;
+
+	// FBO workflow
+	void BeginSceneRender();  // bind FBO and set viewport
+	void EndSceneRender();    // unbind FBO
+
+	// The color attachment (for ImGui::Image)
+	unsigned int GetSceneColorTexture() const { return mSceneColor; }
+
+	// Optional: keep a getter for scene size (letterboxing in UI)
+	int GetSceneWidth()  const { return mSceneWidth; }
+	int GetSceneHeight() const { return mSceneHeight; }
+
+	int GetViewportX() const { return viewportX_; }
+	int GetViewportY() const { return viewportY_; }
+	int GetViewportW() const { return viewportW_; }
+	int GetViewportH() const { return viewportH_; }
+	float GetViewportScale() const { return viewportScale_; }
+
+	void ApplyViewport() const;
+
+	void DrawSceneDockWindow();
+
+	bool GetMouseWorldInScene(glm::vec2& outWorld) const;
+
+	ImGuiID GetMainDockspaceID() const;
+
 private:
 	Renderer renderer;
 	ResourceManager& resourceManager;
+
+	int screenWidth = 1200;
+	int screenHeight = 800;
 
 	// Game Object rendering
 	std::vector<std::unique_ptr<GameObject>> gameObjects;
 	// Background rendering
 	std::unique_ptr<GameObject> backgroundObject;
 
-	glm::mat4 projection;
-	glm::mat4 view;
+	glm::mat4 view{ 1.0f };
+	glm::mat4 projection{ 1.0f };
 
 	void LoadDefaultResources();
+
+	int viewportX_ = 0;
+	int viewportY_ = 0;
+	int viewportW_ = 0;
+	int viewportH_ = 0;
+	float viewportScale_ = 1.0f;
+
+	// --- Off-screen scene FBO (render target for the game) ---
+	unsigned int mSceneFBO = 0;
+	unsigned int mSceneColor = 0;   // GL_RGBA8 color texture
+	unsigned int mSceneDepth = 0;   // GL_DEPTH24_STENCIL8 renderbuffer
+
+	int mSceneWidth = 1200;        // initial reference size
+	int mSceneHeight = 800;
+
+	// helpers
+	void CreateSceneFBO(int w, int h);
+	void DestroySceneFBO();
+	void ResizeSceneFBO(int w, int h);
+
+	// Last frame's Scene image rect in screen coordinates (for picking)
+	ImVec2 sceneImagePos_{ 0, 0 };
+	ImVec2 sceneImageSize_{ 0, 0 };
+
+	ImGuiID mMainDockspaceId = 0;
 };

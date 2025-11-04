@@ -4,7 +4,8 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:
+ DESCRIPTION:		Declares LevelSerializer for saving/loading LevelData.
+					Rotation values are stored in DEGREES in JSON (editor/UI friendly).
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -15,29 +16,39 @@
 #include <string>
 #include <vector>
 
+ // Represents a single object saved/loaded in a level file.
 struct LevelObject {
+	// Visuals / identity
 	std::string texture;
-	std::string tag;        // e.g., "player", "npc1", "npc2", "dino"
+	std::string tag;
 
-	float x = 0.f, y = 0.f, z = 0.f;   // z optional
-	float w = 128.f, h = 128.f;
-	float rotation = 0.f;
+	// Transform (position, size, rotationDeg)
+	float x{ 0.0f };
+	float y{ 0.0f };
+	float z{ 0.0f };
+	float w{ 128.0f };
+	float h{ 128.0f };
+	float rotation{ 0.0f }; // Stored in DEGREES in JSON
 
-	// collider
-	float col_w = 64.f, col_h = 128.f;
-	float col_offx = 0.f, col_offy = 0.f;
+	// Collider
+	float colWidth{ 64.0f };
+	float colHeight{ 128.0f };
+	float colOffsetX{ 0.0f };
+	float colOffsetY{ 0.0f };
 
-	// optional motion (for simple NPC lane movers, etc.)
-	float speed_x = 0.f, speed_y = 0.f;
+	// Optional motion (used by some NPCs)
+	float speedX{ 0.0f };
+	float speedY{ 0.0f };
 
-	bool animated = false;  // if true, we’ll use animated spawn
+	// Animation flag
+	bool animated{ false };
 };
 
 struct LevelData {
-	std::vector<LevelObject> objects;
+	std::vector<LevelObject> objects{};
 };
 
-namespace LevelSerializer {
-	bool Load(const std::string& path, LevelData& out);
-	bool Save(const std::string& path, const LevelData& in);
-}
+struct LevelSerializer {
+	static bool Load(const std::string& path, LevelData& outLevel);
+	static bool Save(const std::string& path, const LevelData& inLevel);
+};

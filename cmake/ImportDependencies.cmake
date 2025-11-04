@@ -54,8 +54,8 @@ macro(import_imgui)
     if(NOT TARGET imgui)  # Guard to prevent multiple inclusion
         FetchContent_Declare(
             imgui
-            GIT_REPOSITORY https://github.com/ocornut/imgui.git
-            GIT_TAG v1.90.4
+            GIT_REPOSITORY https://github.com/ocornut/imgui
+            GIT_TAG docking
         )
         if(NOT imgui_POPULATED)
             FetchContent_MakeAvailable(imgui)

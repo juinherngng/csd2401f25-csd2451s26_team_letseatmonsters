@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <cmath>
 
+static constexpr float kEPS = 1e-4f;
+
 namespace collision {
 	/**
 	 * @brief Check overlap between two AABBs.
@@ -182,27 +184,38 @@ namespace collision {
 		movedX.min.x += allowedDelta.x;
 		movedX.max.x += allowedDelta.x;
 
-		// Check against each wall
 		for (const auto& wall : mWalls) {
-			const bool hit = overlaps(movedX, wall);
-			if (!hit) continue;
+			// We only care if we overlap on Y (otherwise no X collision possible)
+			const bool yOverlap = !(movedX.min.y >= wall.max.y || movedX.max.y <= wall.min.y);
+			if (!yOverlap) {
+				continue;
+			}
 
 			if (allowedDelta.x > 0.0f) {
-				// Moving right; push left
-				const float penX = movedX.max.x - wall.min.x;
+				// Moving right; we must be to the left initially and cross wall.min.x
+				const bool wasLeft = (startBox.max.x <= wall.min.x + kEPS);
+				const bool nowPenetrating = (movedX.max.x > wall.min.x);
+				if (wasLeft && nowPenetrating) {
+					const float penX = movedX.max.x - wall.min.x;
+					const float corr = std::min(penX, allowedDelta.x); // don’t overshoot
 
-				allowedDelta.x -= penX; // trim
-				movedX.min.x -= penX;   // shift box back
-				movedX.max.x -= penX;
-
+					allowedDelta.x -= corr;
+					movedX.min.x -= corr;
+					movedX.max.x -= corr;
+				}
 			}
 			else if (allowedDelta.x < 0.0f) {
-				// Moving left; push right
-				const float penX = wall.max.x - movedX.min.x;
+				// Moving left; we must be to the right initially and cross wall.max.x
+				const bool wasRight = (startBox.min.x >= wall.max.x - kEPS);
+				const bool nowPenetrating = (movedX.min.x < wall.max.x);
+				if (wasRight && nowPenetrating) {
+					const float penX = wall.max.x - movedX.min.x;
+					const float corr = std::min(penX, -allowedDelta.x); // don’t overshoot
 
-				allowedDelta.x += penX; // trim
-				movedX.min.x += penX;   // shift box forward
-				movedX.max.x += penX;
+					allowedDelta.x += corr;
+					movedX.min.x += corr;
+					movedX.max.x += corr;
+				}
 			}
 		}
 
@@ -214,25 +227,37 @@ namespace collision {
 		movedY.max.y += allowedDelta.y;
 
 		for (const auto& wall : mWalls) {
-			const bool hit = overlaps(movedY, wall);
-			if (!hit) continue;
+			// Only resolve if we overlap on X (otherwise no Y collision possible)
+			const bool xOverlap = !(movedY.min.x >= wall.max.x || movedY.max.x <= wall.min.x);
+			if (!xOverlap) {
+				continue;
+			}
 
 			if (allowedDelta.y > 0.0f) {
-				// Moving down; push up
-				const float penY = movedY.max.y - wall.min.y;
+				// Moving down; must be above initially and cross wall.min.y
+				const bool wasAbove = (startBox.max.y <= wall.min.y + kEPS);
+				const bool nowPenetrating = (movedY.max.y > wall.min.y);
+				if (wasAbove && nowPenetrating) {
+					const float penY = movedY.max.y - wall.min.y;
+					const float corr = std::min(penY, allowedDelta.y); // don’t overshoot
 
-				allowedDelta.y -= penY;
-				movedY.min.y -= penY;
-				movedY.max.y -= penY;
-
+					allowedDelta.y -= corr;
+					movedY.min.y -= corr;
+					movedY.max.y -= corr;
+				}
 			}
 			else if (allowedDelta.y < 0.0f) {
-				// Moving up; push down
-				const float penY = wall.max.y - movedY.min.y;
+				// Moving up; must be below initially and cross wall.max.y
+				const bool wasBelow = (startBox.min.y >= wall.max.y - kEPS);
+				const bool nowPenetrating = (movedY.min.y < wall.max.y);
+				if (wasBelow && nowPenetrating) {
+					const float penY = wall.max.y - movedY.min.y;
+					const float corr = std::min(penY, -allowedDelta.y); // don’t overshoot
 
-				allowedDelta.y += penY;
-				movedY.min.y += penY;
-				movedY.max.y += penY;
+					allowedDelta.y += corr;
+					movedY.min.y += corr;
+					movedY.max.y += corr;
+				}
 			}
 		}
 
