@@ -4,7 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:
+ DESCRIPTION:		Definitions for a uniform 2D spatial hash grid used for broad-phase queries.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ void SpatialGrid::Clear() {
 	objects.clear();
 }
 
-// Utility Struct: TempVisited
+// TempVisited (uniqueness helper during queries)
 bool SpatialGrid::TempVisited::Seen(GameObject* g) const {
 	return marks.find(g) != marks.end();
 }

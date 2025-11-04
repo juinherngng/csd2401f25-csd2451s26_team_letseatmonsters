@@ -27,6 +27,7 @@ All content © 2025 DigiPen Institute of Technology Singapore. All rights reserve
 #include "Transform.hpp"
 #include "Forces.hpp"
 
+// Lifecycle
 void RigidBody2D::Initialize() {
 	velocity = Math::Vector2D::ZERO;
 	acceleration = Math::Vector2D::ZERO;
@@ -67,6 +68,7 @@ void RigidBody2D::Update(float dt) {
 	ClearAccum();
 }
 
+// Forces / Impulses
 void RigidBody2D::AddForce(const Math::Vector2D& force) {
 	// Accumulate forces for this step
 	forceAccum = forceAccum + force;
@@ -81,6 +83,7 @@ void RigidBody2D::AddImpulse(const Math::Vector2D& impulse) {
 	velocity = velocity + (impulse * invMass);
 }
 
+// Queries
 Math::Vector2D const RigidBody2D::GetVelocity() const
 {
 	return velocity;
@@ -115,6 +118,7 @@ float RigidBody2D::GetInverseMass() const {
 	return invMass;
 }
 
+// Setters
 void RigidBody2D::SetVelocity(const Math::Vector2D& newVelocity) {
 	velocity = newVelocity;
 }
@@ -153,6 +157,7 @@ GameComponent* RigidBody2D::Clone() const
 	return new RigidBody2D(*this);
 }
 
+// Internal helpers
 void RigidBody2D::Integrate(float dt) {
 	// Infinite mass - static body
 	if (invMass <= 0.0f) {

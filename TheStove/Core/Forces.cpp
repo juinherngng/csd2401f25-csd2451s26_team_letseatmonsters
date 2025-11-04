@@ -16,18 +16,18 @@
 #include "Forces.hpp"
 #include "RigidBody2D.hpp"
 
-#define FORCE_DEBUG   // uncomment to show per-frame force application logs
+#define FORCE_DEBUG // uncomment to show per-frame force application logs
 
- // ForceRegistry
+ // IForceGenerator 
 IForceGenerator::~IForceGenerator() = default;
 
-void ForceRegistry::Add(RigidBody2D* body, IForceGenerator* gen) {
-	entries.push_back({ body, gen });
+void ForceRegistry::Add(RigidBody2D* bodyPtr, IForceGenerator* generator) {
+	entries.push_back({ bodyPtr, generator });
 }
 
-void ForceRegistry::Remove(RigidBody2D* body, IForceGenerator* gen) {
+void ForceRegistry::Remove(RigidBody2D* bodyPtr, IForceGenerator* generator) {
 	entries.erase(std::remove_if(entries.begin(), entries.end(), [&](const Entry& e) {
-		return (e.body == body) && (e.gen == gen);
+		return (e.body == bodyPtr) && (e.gen == generator);
 		}),
 		entries.end()
 	);
@@ -54,10 +54,12 @@ GravityForce::GravityForce(Math::Vector2D gravity)
 }
 
 void GravityForce::UpdateForce(RigidBody2D& body, float) {
+	// Static bodies have inverse mass 0 (or less) — ignore gravity
 	if (body.GetInverseMass() <= 0.0f) {
 		return;
 	}
 
+	// F = m * a
 	body.AddForce(g * body.GetMass());
 }
 
@@ -70,6 +72,7 @@ void DragForce::UpdateForce(RigidBody2D& body, float) {
 	const Math::Vector2D velocity = body.GetVelocity();
 	const float speed = velocity.Length();
 
+	// No drag if not moving
 	if (speed <= 1e-6f) {
 		return;
 	}
@@ -88,15 +91,15 @@ void ConstantForce::UpdateForce(RigidBody2D& body, float) {
 }
 
 // SeekForce
-SeekForce::SeekForce(Math::Vector2D* tgt, float maxA, float arrive)
-	: target(tgt), currentPos2DPtr(nullptr), maxAccel(maxA), arriveRadius(arrive) {
+SeekForce::SeekForce(Math::Vector2D* targetPtr, float maxAccelIn, float arrive)
+	: target(targetPtr), currentPos2DPtr(nullptr), maxAccel(maxAccelIn), arriveRadius(arrive) {
 }
 
-SeekForce::SeekForce(Math::Vector2D* tgt,
+SeekForce::SeekForce(Math::Vector2D* targetPtr,
 	const Math::Vector2D* cur,
-	float maxA,
+	float maxAccelIn,
 	float arrive)
-	: target(tgt), currentPos2DPtr(cur), maxAccel(maxA), arriveRadius(arrive) {
+	: target(targetPtr), currentPos2DPtr(cur), maxAccel(maxAccelIn), arriveRadius(arrive) {
 }
 
 void SeekForce::UpdateForce(RigidBody2D& body, float) {
@@ -104,7 +107,7 @@ void SeekForce::UpdateForce(RigidBody2D& body, float) {
 		return;
 	}
 
-	// Determine current position (prefer externally supplied sprite position)
+	// Use externally-supplied position if provided; otherwise, read from body.
 	Math::Vector2D currentPos2D;
 	if (currentPos2DPtr) {
 		currentPos2D = *currentPos2DPtr;

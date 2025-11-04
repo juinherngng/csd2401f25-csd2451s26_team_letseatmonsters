@@ -44,12 +44,12 @@ public:
 	void AddForce(const Math::Vector2D& force);
 	void AddImpulse(const Math::Vector2D& impulse);
 
-	// Getters
+	// Queries
 	Math::Vector2D const GetVelocity() const;
 	Math::Vector2D const GetAcceleration() const;
 	bool const GetUseGravity() const;
-	Math::Vector2D GetPosition() const;
 
+	Math::Vector2D GetPosition() const;
 	float GetMass() const;
 	float GetInverseMass() const;
 

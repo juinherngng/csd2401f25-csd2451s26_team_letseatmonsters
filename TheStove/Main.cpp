@@ -396,13 +396,13 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	app.coreEngine->AddSystem(std::make_unique<Framework::GameStateManager>());
 
 	app.coreEngine->Initialize();
-	
+
 	// Initialize ResourceManager with AudioManager
 	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
 	{
 		ResourceManager::Instance().SetAudioManager(audioMgr);
 		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
-		
+
 		// Load all audio assets centrally using AudioCatalog
 		Audio::AudioCatalog::LoadAllAudio();
 	}
@@ -410,7 +410,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	{
 		std::cerr << "Warning: AudioManager not found in CoreEngine for ResourceManager!" << std::endl;
 	}
-	
+
 
 	// Create GraphicsEngine with smart pointer
 	app.graphicsEngine = std::make_unique<GraphicsEngine>();
@@ -533,21 +533,21 @@ void cleanup(ApplicationState& app) {
 		app.coreEngine->FlushMessages();
 	}
 
-    // STEP 6: Stop and shutdown audio
-    if (app.coreEngine)
-    {
-        if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
-        {
-            std::cout << "Stopping all sounds..." << std::endl;
-            audioMgr->StopAllSounds();
-            std::cout << "Shutting down audio..." << std::endl;
-            audioMgr->Shutdown();
-        }
-    }
-    
-    // STEP 6.5: Unload all audio assets
-    std::cout << "Unloading audio assets..." << std::endl;
-    Audio::AudioCatalog::UnloadAllAudio();
+	// STEP 6: Stop and shutdown audio
+	if (app.coreEngine)
+	{
+		if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
+		{
+			std::cout << "Stopping all sounds..." << std::endl;
+			audioMgr->StopAllSounds();
+			std::cout << "Shutting down audio..." << std::endl;
+			audioMgr->Shutdown();
+		}
+	}
+
+	// STEP 6.5: Unload all audio assets
+	std::cout << "Unloading audio assets..." << std::endl;
+	Audio::AudioCatalog::UnloadAllAudio();
 	// STEP 4: Shutdown ImGui (must happen while OpenGL context is valid)
 	if (app.debugApp)
 	{
