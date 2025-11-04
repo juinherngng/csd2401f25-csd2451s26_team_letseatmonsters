@@ -22,14 +22,43 @@ namespace CoreFramework
 	CoreEngine::CoreEngine()
 	{
 		gameActive = true;	// game is running
+
+		// Subscribe to QUIT messages to handle application shutdown
+		messageBus.Subscribe(MessageType::QUIT, 
+			[this](const Message& msg) {
+				(void)msg; // suppress unused parameter warning
+				std::cout << "[Core] QUIT message received, shutting down..." << std::endl;
+				gameActive = false;
+			});
+
+		// Subscribe to PLAY_AUDIO messages for logging purposes (optional)
+		// This allows Core to see audio message traffic for debugging
+		messageBus.Subscribe(MessageType::PLAY_AUDIO, 
+			[](const Message& msg) {
+				const auto& audioMsg = static_cast<const PlayAudioMessage&>(msg);
+				std::cout << "[Core] PLAY_AUDIO message: sound='" << audioMsg.soundName 
+						  << "', volume=" << audioMsg.volume 
+						  << ", paused=" << (audioMsg.paused ? "true" : "false") << std::endl;
+			});
+
+		// Subscribe to STOP_AUDIO messages for logging
+		messageBus.Subscribe(MessageType::STOP_AUDIO,
+			[](const Message& msg) {
+				const auto& stopMsg = static_cast<const StopAudioMessage&>(msg);
+				if (stopMsg.soundName.empty()) {
+					std::cout << "[Core] STOP_AUDIO message: stopping ALL sounds" << std::endl;
+				} else {
+					std::cout << "[Core] STOP_AUDIO message: sound='" << stopMsg.soundName << "'" << std::endl;
+				}
+			});
 	}
 
 	CoreEngine::~CoreEngine() 
 	{
 		// Ensure proper cleanup order
-		messageQueue.clear();  // Clear any remaining messages
-		DestroySystems();      // Destroy all systems
-		Systems.clear();       // Explicitly clear the vector
+		messageBus.ClearQueue();   // Clear MessageBus queue
+		DestroySystems();          // Destroy all systems
+		Systems.clear();           // Explicitly clear the vector
 	}
 
 	void CoreEngine::Initialize()
@@ -67,25 +96,11 @@ namespace CoreFramework
 			s->lastDt = sysElapsed.count();
 		}
 
-		FlushMessages();	// process any queued messages
+		// Process pub/sub messages from MessageBus
+		messageBus.ProcessQueue();
 
 		// update lastUpdated to current time
 		lastTime = currentTime;
-	}
-
-	void CoreEngine::BroadcastMessage(Message *message)
-	{
-		// print out message for debugging purposes
-		//std::cout << "CoreEngine broadcasting message " << MsgIdToString(message->MessageId) << std::endl;
-
-		//The message that tells the game to quit
-		if (message->MessageId == MsgId::QUIT)
-			gameActive = false;
-
-		for (auto& s : Systems)
-		{
-			s->SendMessage(message);
-		}
 	}
 
 	void CoreEngine::AddSystem(std::unique_ptr<SystemInterface> system)

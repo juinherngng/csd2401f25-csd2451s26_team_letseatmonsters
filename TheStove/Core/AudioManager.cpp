@@ -14,10 +14,34 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 
 #include "AudioManager.hpp"
 
-AudioManager::AudioManager() : system(nullptr), masterGroup(nullptr), bgmVolume(1.f), vfxVolume(1.f), muted(false) {}
+AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), system(nullptr), masterGroup(nullptr), bgmVolume(1.f), vfxVolume(1.f), muted(false)
+{
+	// Subscribe to messages
+	debugInfoSubId = messageBus.Subscribe(
+		CoreFramework::MessageType::TOGGLE_DEBUG_INFO,
+		[this](const CoreFramework::Message& msg) { OnToggleDebugInfo(msg); }
+	);
+
+	// Subscribe to PLAY_AUDIO messages
+	playAudioSubId = messageBus.Subscribe(
+		CoreFramework::MessageType::PLAY_AUDIO,
+		[this](const CoreFramework::Message& msg) { OnPlayAudio(msg); }
+	);
+
+	// Subscribe to STOP_AUDIO messages
+	stopAudioSubId = messageBus.Subscribe(
+		CoreFramework::MessageType::STOP_AUDIO,
+		[this](const CoreFramework::Message& msg) { OnStopAudio(msg); }
+	);
+}
 
 AudioManager::~AudioManager() 
 {
+	// Unsubscribe from messages
+	messageBus.Unsubscribe(CoreFramework::MessageType::TOGGLE_DEBUG_INFO, debugInfoSubId);
+	messageBus.Unsubscribe(CoreFramework::MessageType::PLAY_AUDIO, playAudioSubId);
+	messageBus.Unsubscribe(CoreFramework::MessageType::STOP_AUDIO, stopAudioSubId);
+	
 	Shutdown();
 }
 
@@ -97,15 +121,31 @@ void AudioManager::Update(float dt)
 	}
 }
 
-void AudioManager::SendMessage(CoreFramework::Message* message)
+void AudioManager::OnToggleDebugInfo(const CoreFramework::Message& msg)
 {
-	switch (message->MessageId)
-	{
-	case CoreFramework::MsgId::TOGGLE_DEBUG_INFO:
-		// Could toggle audio debug overlay logging, etc.
-		break;
-	default:
-		break;
+	// Could toggle audio debug overlay logging, etc.
+	(void)msg; // Suppress unused parameter warning
+}
+
+void AudioManager::OnPlayAudio(const CoreFramework::Message& msg)
+{
+	// Cast to specific message type
+	const auto& playMsg = static_cast<const CoreFramework::PlayAudioMessage&>(msg);
+	
+	// Enqueue the audio playback request
+	EnqueuePlay(playMsg.soundName, playMsg.volume, playMsg.paused);
+}
+
+void AudioManager::OnStopAudio(const CoreFramework::Message& msg)
+{
+	// Cast to specific message type
+	const auto& stopMsg = static_cast<const CoreFramework::StopAudioMessage&>(msg);
+	
+	// If sound name is empty, stop all sounds
+	if (stopMsg.soundName.empty()) {
+		StopAllSounds();
+	} else {
+		StopSound(stopMsg.soundName);
 	}
 }
 

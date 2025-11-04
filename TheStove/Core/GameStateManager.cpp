@@ -28,6 +28,23 @@ namespace Framework {
 	typedef std::function<void(float dt)> FP;
 
 	extern FP fpInit = nullptr, fpUpdate = nullptr, fpExit = nullptr; // Function pointers that changes depending on what state the game is in currently
+	
+	GameStateManager::GameStateManager(CoreFramework::MessageBus& bus)
+		: messageBus(bus)
+	{
+		// Subscribe to QUIT message
+		quitSubId = messageBus.Subscribe(
+			CoreFramework::MessageType::QUIT,
+			[this](const CoreFramework::Message& msg) { OnQuit(msg); }
+		);
+	}
+	
+	GameStateManager::~GameStateManager()
+	{
+		// Unsubscribe from messages
+		messageBus.Unsubscribe(CoreFramework::MessageType::QUIT, quitSubId);
+	}
+	
 	//Setup Manager Logic
 	void GameStateManager::Initialize() {
 		std::cout << "GameStateManager system initialized." << std::endl;
@@ -44,17 +61,11 @@ namespace Framework {
 		lastDt = dt;
 	}
 
-	void GameStateManager::SendMessage(CoreFramework::Message* msg) {
-		// print out message for debugging purposes
-		switch (msg->MessageId)
-		{
-			case CoreFramework::MsgId::QUIT:
-				nextGS = GS_Quit;
-				break;
-			default:
-				break;
-		}
+	void GameStateManager::OnQuit(const CoreFramework::Message& msg) {
+		(void)msg; // Suppress unused parameter warning
+		nextGS = GS_Quit;
 	}
+	
 	//Get string of manager for debugging
 	std::string GameStateManager::GetName() {
 		return "GameStateManager";
