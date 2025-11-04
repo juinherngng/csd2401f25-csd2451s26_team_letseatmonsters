@@ -172,6 +172,21 @@ namespace Debug
 			}
 
 			ImGui::SameLine();
+			if (ImGui::Button("Stop boiling sound"))
+			{
+				if (coreEngine)
+				{
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						audioMgr->PlayUIClickSound();
+
+						// test stopping audio
+						audioMgr->StopSound("boiling_sound");
+						DebuggerApp::AddDebugLine("Stopping: boiling sound\n");
+					}
+				}
+			}
+
 			if (ImGui::Button("Play: grilling sound"))
 			{
 				if (coreEngine)
@@ -184,38 +199,6 @@ namespace Debug
 						bgm = audioMgr->GetBgmVolume();
 						audioMgr->PlaySound("grilling_sound", bgm, false);
 						DebuggerApp::AddDebugLine("Playing: grilling sound\n");
-					}
-				}
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("Play: background music"))
-			{
-				if (coreEngine)
-				{
-					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
-					{
-						audioMgr->PlayUIClickSound();
-						
-						// test play bgm
-						bgm = audioMgr->GetBgmVolume();
-						audioMgr->PlaySound("background_music", bgm, false);
-						DebuggerApp::AddDebugLine("Playing: background music\n");
-					}
-				}
-			}
-
-			if (ImGui::Button("Stop boiling sound"))
-			{
-				if (coreEngine)
-				{
-					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
-					{
-						audioMgr->PlayUIClickSound();
-						
-						// test stopping audio
-						audioMgr->StopSound("boiling_sound");
-						DebuggerApp::AddDebugLine("Stopping: boiling sound\n");
 					}
 				}
 			}
@@ -236,6 +219,22 @@ namespace Debug
 				}
 			}
 
+			if (ImGui::Button("Play: background music"))
+			{
+				if (coreEngine)
+				{
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						audioMgr->PlayUIClickSound();
+						
+						// test play bgm
+						bgm = audioMgr->GetBgmVolume();
+						audioMgr->PlaySound("background_music", bgm, false);
+						DebuggerApp::AddDebugLine("Playing: background music\n");
+					}
+				}
+			}
+
 			ImGui::SameLine();
 			if (ImGui::Button("Stop background music"))
 			{
@@ -251,7 +250,7 @@ namespace Debug
 					}
 				}
 			}
-			ImGui::SameLine();
+
 			if (ImGui::Button("Stop all audio"))
 			{
 				if (coreEngine)
