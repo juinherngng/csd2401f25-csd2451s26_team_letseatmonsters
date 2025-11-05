@@ -208,6 +208,8 @@ private:
 
 	bool simulationActive = false;
 
+	float playerRotation = 0.0f;
+
 	// Debug / Editor
 	bool showAuxDebug_ = true;
 	LevelEditor mLevelEditor;

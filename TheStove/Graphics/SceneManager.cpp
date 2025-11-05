@@ -178,7 +178,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	animationManager.Update(deltaTime, entityManager);
 
 	// Basic transforms
-	const float rotationSpeed = deltaTime; // degrees per second
+	const float rotationSpeed = 15.0f; // degrees per second
 	float moveSpeed = 200.0f * physicsDt;
 
 	GameObject* sprite = nullptr;
@@ -254,19 +254,75 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			scale = glm::max(scale, glm::vec3(50.0f));
 		}
 		if (inputManager.IsKeyPressed(GLFW_KEY_RIGHT)) {
-			rotation += rotationSpeed;
-			if (rotation > 360.0f) rotation -= 360.0f;
+			playerRotation += 15.0f * deltaTime;
+			//if (rotation > 360.0f) rotation -= 360.0f;
 
-			std::cout << "Right key pressed: rotation = " << rotation << std::endl;
+			std::cout << "Right key pressed: rotation = " << Math::ToDegrees(rotation) << std::endl;
 		}
 		if (inputManager.IsKeyPressed(GLFW_KEY_LEFT)) {
-			rotation -= rotationSpeed;
-			if (rotation < 0.0f) rotation += 360.0f;
+			playerRotation -= 15.0f * deltaTime;
+			//if (rotation < 0.0f) rotation += 360.0f;
 
-			std::cout << "Left key pressed: rotation = " << rotation << std::endl;
+			std::cout << "Left key pressed: rotation = " << Math::ToDegrees(rotation) << std::endl;
 		}
 
 		if (simulationActive) {
+
+			// Handle click-to-move
+			if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+				std::cout << "Mouse button pressed!" << std::endl;
+				glm::vec2 mouseWorld;
+				if (graphicsEngine.GetMouseWorldInScene(mouseWorld)) {
+					std::cout << "Mouse world position: (" << mouseWorld.x << ", " << mouseWorld.y << ")" << std::endl;
+					// Only set move target if not clicking on ImGui window
+					ImGuiIO& io = ImGui::GetIO();
+					std::cout << "WantCaptureMouse: " << io.WantCaptureMouse << std::endl;  
+					std::cout << "hasPlayer: " << hasPlayer << std::endl;  
+					std::cout << "sprite != nullptr: " << (sprite != nullptr) << std::endl;
+					if (hasPlayer && sprite) {
+						std::cout << "All conditions passed! Calling SetMoveTarget" << std::endl;
+						// Set the move target in MovementManager
+						movementManager.SetMoveTarget(spriteID, mouseWorld);
+
+						// Face toward the new target (dominant axis)
+						glm::vec2 toTarget = mouseWorld - glm::vec2(position.x, position.y);
+						if (glm::length(toTarget) > 0.001f) {
+							float ax = std::abs(toTarget.x);
+							float ay = std::abs(toTarget.y);
+
+							if (ax > ay) {
+								// Horizontal movement dominant
+								if (toTarget.x > 0.0f) {
+									sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+										"../assets/mcspriteright.png", "../assets/mcspriteright.png"));
+								}
+								else {
+									sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+										"../assets/mcspriteleft.png", "../assets/mcspriteleft.png"));
+								}
+							}
+							else {
+								// Vertical movement dominant
+								if (toTarget.y > 0.0f) {
+									sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+										"../assets/mcspritefront.png", "../assets/mcspritefront.png"));
+								}
+								else {
+									sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+										"../assets/mcspriteback.png", "../assets/mcspriteback.png"));
+								}
+							}
+						}
+					}
+					else{
+						std::cout << "Conditions FAILED for SetMoveTarget" << std::endl;
+					}
+				}
+				else{
+					std::cout << "GetMouseWorldInScene FAILED" << std::endl;
+				}
+			}
+
 			movementManager.Update(physicsDt, entityManager, inputManager);
 
 			if (hasPlayer && sprite) {
@@ -274,17 +330,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			}
 
 			UpdateSpriteDirections();
-
-			// Handle click-to-move
-			if (inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-				glm::vec2 mouseWorld;
-				if (graphicsEngine.GetMouseWorldInScene(mouseWorld)) {
-					// Only set move target if not clicking on ImGui window
-					ImGuiIO& io = ImGui::GetIO();
-				}
-			}
 		}
-
 	}
 
 	// Build current AABB from collider size/offset for collision resolution
@@ -482,7 +528,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		position.y = glm::clamp(position.y, 0.0f, worldH);
 
 		sprite->SetScale(scale);
-		sprite->SetRotation(rotation, glm::vec3(0, 0, 1));
+		sprite->SetRotation(playerRotation, glm::vec3(0, 0, 1));
 		sprite->SetPosition(position);
 	}
 

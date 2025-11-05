@@ -47,7 +47,7 @@ void InputManager::Update(GLFWwindow* window) {
 		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3
 	};
 
-	// If ImGui wants the keyboard, clear key states so gameplay won�t react
+	// If ImGui wants the keyboard, clear key states so gameplay won't react
 	if (!io.WantCaptureKeyboard) {
 		for (int key : keys) {
 			mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
@@ -62,21 +62,15 @@ void InputManager::Update(GLFWwindow* window) {
 	// Mouse buttons to track
 	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
 
-	// If ImGui wants the mouse, clear button states so gameplay won't react
-	if (!io.WantCaptureMouse) {
-		for (int b : buttons) {
-			mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
-		}
-	}
-	else {
-		for (int b : buttons) {
-			mMouseButtons[b] = false;  // Clear when clicking UI
-		}
+	// ALWAYS track mouse button states - let individual systems check WantCaptureMouse themselves
+	for (int b : buttons) {
+		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
 	}
 
 	// Get mouse cursor position
 	glfwGetCursorPos(window, &mMousePos.x, &mMousePos.y);
 }
+
 
 // Keyboard Queries
 bool InputManager::IsKeyPressed(int key) const {

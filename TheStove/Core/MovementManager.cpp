@@ -54,9 +54,14 @@ float MovementManager::GetMoveSpeed(int objectID) const {
 }
 
 void MovementManager::SetMoveTarget(int objectID, const glm::vec2& target) {
+    std::cout << "SetMoveTarget called for objectID: " << objectID << " to (" << target.x << ", " << target.y << ")" << std::endl;  
+
     movementData_[objectID].hasTarget = true;
     movementData_[objectID].moveTarget = target;
+
+    std::cout << "After setting: hasTarget = " << movementData_[objectID].hasTarget << std::endl; 
 }
+
 
 void MovementManager::ClearMoveTarget(int objectID) {
     auto it = movementData_.find(objectID);
@@ -111,34 +116,66 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
     if (!player) return;
 
     auto& data = movementData_[playerID_];
+    //std::cout << "Player found. hasTarget: " << data.hasTarget << std::endl;
 
-    // WASD movement
+    // Priority 1: WASD movement (cancels click-to-move)
     glm::vec2 desiredMove(0.f, 0.f);
+    bool pressingWASD = false;
+    
+    if (inputManager.IsKeyPressed(GLFW_KEY_W)) { desiredMove.y = -1.f; pressingWASD = true; }
+    if (inputManager.IsKeyPressed(GLFW_KEY_S)) { desiredMove.y = 1.f; pressingWASD = true; }
+    if (inputManager.IsKeyPressed(GLFW_KEY_A)) { desiredMove.x = -1.f; pressingWASD = true; }
+    if (inputManager.IsKeyPressed(GLFW_KEY_D)) { desiredMove.x = 1.f; pressingWASD = true; }
 
-    if (inputManager.IsKeyPressed(GLFW_KEY_W)) desiredMove.y = -1.f; // up
-    if (inputManager.IsKeyPressed(GLFW_KEY_S)) desiredMove.y = 1.f; // down
-    if (inputManager.IsKeyPressed(GLFW_KEY_A)) desiredMove.x = -1.f; // left
-    if (inputManager.IsKeyPressed(GLFW_KEY_D)) desiredMove.x = 1.f; // right
+    //std::cout << "pressingWASD: " << pressingWASD << std::endl;
 
-
-    // Normalize diagonal movement
-    if (desiredMove.x != 0.f || desiredMove.y != 0.f) {
-        float length = std::sqrt(desiredMove.x * desiredMove.x + desiredMove.y * desiredMove.y);
-        desiredMove /= length;
-
-        // Clear click-to-move target when using WASD
+    if (pressingWASD) {
+        //std::cout << "WASD pressed - cancelling click-to-move" << std::endl;
+        // WASD pressed - cancel click-to-move and use keyboard input
         data.hasTarget = false;
+
+        // Normalize diagonal movement
+        float length = std::sqrt(desiredMove.x * desiredMove.x + desiredMove.y * desiredMove.y);
+        if (length > 0.f) {
+            desiredMove /= length;
+        }
+
+        data.velocity = desiredMove * data.moveSpeed;
+    }
+    else if (data.hasTarget) {
+        std::cout << "Processing click-to-move to (" << data.moveTarget.x << ", " << data.moveTarget.y << ")" << std::endl;
+        // Priority 2: Click-to-move (only if not pressing WASD)
+        glm::vec3 pos3D = player->GetPositionGLM();
+        glm::vec2 pos(pos3D.x, pos3D.y);
+
+        // Calculate direction to target
+        glm::vec2 toTarget = data.moveTarget - pos;
+        float distance = std::sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y);
+
+        // Arrival threshold
+        if (distance < 5.0f) {
+            data.hasTarget = false;
+            data.velocity = { 0.f, 0.f };
+        }
+        else {
+            // Move towards target
+            glm::vec2 direction = toTarget / distance;
+            data.velocity = direction * data.moveSpeed;
+        }
+    }
+    else {
+        //std::cout << "No movement - velocity set to 0" << std::endl;
+        // Priority 3: No input - stop moving
+        data.velocity = { 0.f, 0.f };
     }
 
-    // Apply movement
-    data.velocity = desiredMove * data.moveSpeed;
-
-    // Update position
+    // Apply velocity to position
     glm::vec3 pos = player->GetPositionGLM();
     pos.x += data.velocity.x * deltaTime;
     pos.y += data.velocity.y * deltaTime;
     player->SetPosition(pos);
 }
+
 
 void MovementManager::UpdateClickToMove(int objectID, MovementData& data, float deltaTime, EntityManager& entityManager) {
     GameObject* obj = entityManager.GetByID(objectID);
