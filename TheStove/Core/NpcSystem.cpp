@@ -43,17 +43,17 @@ void NPCSystem::UpdateLaneNPCs(float deltaTime,
 }
 
 void NPCSystem::HandleNPCCollisions(EntityManager& entityManager) {
-    // Collect ALL NPCs (not just lane NPCs)
-    std::vector<int> allNPCIDs;
-    for (const auto& [id, _] : npcVelocities_) {
-        allNPCIDs.push_back(id);
+    //  Lane goats collide with each other
+    std::vector<int> laneNPCIDs;
+    for (const auto& [id, _] : laneNPCs_) {
+        laneNPCIDs.push_back(id);
     }
 
-    // Pairwise elastic bounce for all NPCs
-    for (size_t i = 0; i < allNPCIDs.size(); ++i) {
-        for (size_t j = i + 1; j < allNPCIDs.size(); ++j) {
-            int id1 = allNPCIDs[i];
-            int id2 = allNPCIDs[j];
+    // Pairwise elastic bounce for lane goats only
+    for (size_t i = 0; i < laneNPCIDs.size(); ++i) {
+        for (size_t j = i + 1; j < laneNPCIDs.size(); ++j) {
+            int id1 = laneNPCIDs[i];
+            int id2 = laneNPCIDs[j];
 
             GameObject* npc1 = entityManager.GetByID(id1);
             GameObject* npc2 = entityManager.GetByID(id2);
@@ -72,7 +72,46 @@ void NPCSystem::HandleNPCCollisions(EntityManager& entityManager) {
             npcVelocities_[id2] = glm::vec2(v2.x, v2.y);
         }
     }
+
+    //  Non-lane NPCs collide with each other
+    std::vector<int> nonLaneNPCIDs;
+    for (const auto& [id, _] : npcVelocities_) {
+        // Skip lane NPCs
+        if (laneNPCs_.find(id) != laneNPCs_.end()) {
+            continue;
+        }
+        nonLaneNPCIDs.push_back(id);
+    }
+
+    // Pairwise elastic bounce for non-lane NPCs only
+    for (size_t i = 0; i < nonLaneNPCIDs.size(); ++i) {
+        for (size_t j = i + 1; j < nonLaneNPCIDs.size(); ++j) {
+            int id1 = nonLaneNPCIDs[i];
+            int id2 = nonLaneNPCIDs[j];
+
+            GameObject* npc1 = entityManager.GetByID(id1);
+            GameObject* npc2 = entityManager.GetByID(id2);
+            if (!npc1 || !npc2) continue;
+
+            Math::Vector3D p1(npc1->GetPosition().x, npc1->GetPosition().y, npc1->GetPosition().z);
+            Math::Vector3D p2(npc2->GetPosition().x, npc2->GetPosition().y, npc2->GetPosition().z);
+            Math::Vector2D v1(npcVelocities_[id1].x, npcVelocities_[id1].y);
+            Math::Vector2D v2(npcVelocities_[id2].x, npcVelocities_[id2].y);
+
+            physics::ElasticBounceEqualMass(npc1, npc2, p1, p2, v1, v2);
+
+            npc1->SetPosition(glm::vec3(p1.x, p1.y, p1.z));
+            npc2->SetPosition(glm::vec3(p2.x, p2.y, p2.z));
+            npcVelocities_[id1] = glm::vec2(v1.x, v1.y);
+            npcVelocities_[id2] = glm::vec2(v2.x, v2.y);
+        }
+    }
+
+    // Note: No collision between lane and non-lane NPCs
+    // They pass through each other
 }
+
+
 
 
 void NPCSystem::UpdateGenericNPCs(float deltaTime,

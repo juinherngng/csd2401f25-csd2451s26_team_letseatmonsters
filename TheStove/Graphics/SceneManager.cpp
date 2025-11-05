@@ -364,24 +364,6 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 	// Desired movement from movement system
 	Math::Vector2D desiredMoveM{ 0.0f, 0.0f };
 
-	// Split weight heuristic for collision response
-	auto pickWeight = [&](float otherSpeed) {
-		constexpr float kIdle = 5.0f;
-		constexpr float kPushBiasIdle = 0.50f;
-		constexpr float kPushBiasMoving = 0.50f;
-
-		const float intentSpeed = (physicsDt > 0.0f)
-			? (Math::Vector2D(desiredMoveM.x / physicsDt, desiredMoveM.y / physicsDt).Length())
-			: 0.0f;
-
-		if (otherSpeed < kIdle && intentSpeed > 0.0f) {
-			return kPushBiasIdle;
-		}
-		else {
-			return kPushBiasMoving;
-		}
-		};
-
 	for (GameObject* other : candidates) {
 		if (other == nullptr || other == sprite) {
 			continue;
@@ -392,18 +374,43 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 			continue;
 		}
 
+		int otherID = other->GetID();
+
+		// Skip lane goats entirely - they ignore player collision
+		if (npcSystem.IsLaneNPC(otherID)) {
+			continue;  // Lane goats pass through player
+		}
+
+		// Normal collision handling for non-lane entities
 		Math::Vector3D playerPosM(position.x, position.y, position.z);
 		Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
 
 		// Get NPC speed for weight calculation
 		float otherSpeed = 0.0f;
-		int otherID = other->GetID();
 		glm::vec2 npcVel = npcSystem.GetNPCVelocity(otherID);
 		otherSpeed = std::sqrt(npcVel.x * npcVel.x + npcVel.y * npcVel.y);
 
 		bool playerIsMoving = useForces_
 			? physicsManager.HasPhysics(spriteID)
 			: movementManager.IsMoving(spriteID);
+
+		// Split weight heuristic for collision response
+		auto pickWeight = [&](float otherSpeed) {
+			constexpr float kIdle = 5.0f;
+			constexpr float kPushBiasIdle = 0.50f;
+			constexpr float kPushBiasMoving = 0.50f;
+
+			const float intentSpeed = (physicsDt > 0.0f)
+				? (Math::Vector2D(desiredMoveM.x / physicsDt, desiredMoveM.y / physicsDt).Length())
+				: 0.0f;
+
+			if (otherSpeed < kIdle && intentSpeed > 0.0f) {
+				return kPushBiasIdle;
+			}
+			else {
+				return kPushBiasMoving;
+			}
+			};
 
 		physics::SeparatePlayerVsOther_StopPlayerOnly(
 			collisionManager.GetCollisionWorld(),
@@ -421,6 +428,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 		other->SetPosition(toG(otherPosM));
 	}
 }
+
 
 void Scene::ApplyFinalConstraints(EntityManager& entityManager) {
 	if (spriteID < 0) return;

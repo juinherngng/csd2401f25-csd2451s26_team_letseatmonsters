@@ -30,6 +30,10 @@ public:
     void RegisterLaneNPC(int npcID, float laneX);
     void Clear();
 
+    bool IsLaneNPC(int npcID) const {
+        return laneNPCs_.find(npcID) != laneNPCs_.end();
+    }
+
 private:
     std::unordered_map<int, glm::vec2> npcVelocities_;
     std::unordered_map<int, float> laneNPCs_; // NPC ID -> lane X position
