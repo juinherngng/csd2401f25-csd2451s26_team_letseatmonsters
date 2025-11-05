@@ -374,59 +374,120 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 			continue;
 		}
 
-		int otherID = other->GetID();
-
-		// Skip lane goats entirely - they ignore player collision
+		const int otherID = other->GetID();
 		if (npcSystem.IsLaneNPC(otherID)) {
-			continue;  // Lane goats pass through player
+			continue; // lane NPCs ignore player collision
 		}
 
-		// Normal collision handling for non-lane entities
+		// Current positions (M-space)
 		Math::Vector3D playerPosM(position.x, position.y, position.z);
 		Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
 
-		// Get NPC speed for weight calculation
-		float otherSpeed = 0.0f;
-		glm::vec2 npcVel = npcSystem.GetNPCVelocity(otherID);
-		otherSpeed = std::sqrt(npcVel.x * npcVel.x + npcVel.y * npcVel.y);
+		// Build AABBs at those positions
+		const collision::AABB pBox = physics::MakeColliderBox(sprite, playerPosM);
+		const collision::AABB oBox = physics::MakeColliderBox(other, otherPosM);
 
-		bool playerIsMoving = useForces_
-			? physicsManager.HasPhysics(spriteID)
-			: movementManager.IsMoving(spriteID);
+		// Minimum translation vector to separate player from goat
+		Math::Vector2D mtv;
+		if (!collision::overlapMTV(pBox, oBox, mtv)) {
+			continue;
+		}
 
-		// Split weight heuristic for collision response
-		auto pickWeight = [&](float otherSpeed) {
-			constexpr float kIdle = 5.0f;
-			constexpr float kPushBiasIdle = 0.50f;
-			constexpr float kPushBiasMoving = 0.50f;
+		// --- World-aware push: try to move the goat, clamped by walls ---
+		constexpr float kGoatShare = 0.50f; // you can tune 0.25f..0.50f
+		const Math::Vector2D desiredOtherDelta(-mtv.x * kGoatShare, -mtv.y * kGoatShare);
 
-			const float intentSpeed = (physicsDt > 0.0f)
-				? (Math::Vector2D(desiredMoveM.x / physicsDt, desiredMoveM.y / physicsDt).Length())
-				: 0.0f;
+		// Clamp goat movement against static walls
+		Math::Vector2D allowedOtherDelta = collisionManager.GetCollisionWorld().resolve(oBox, desiredOtherDelta);
 
-			if (otherSpeed < kIdle && intentSpeed > 0.0f) {
-				return kPushBiasIdle;
+		// Move goat by the allowed portion (could be zero if pinned)
+		otherPosM.x += allowedOtherDelta.x;
+		otherPosM.y += allowedOtherDelta.y;
+
+		// Player receives the remainder so relative separation equals MTV
+		Math::Vector2D playerDelta(mtv.x, mtv.y);
+		playerDelta.x += allowedOtherDelta.x; // note: allowedOtherDelta is opposite-signed to MTV
+		playerDelta.y += allowedOtherDelta.y;
+
+		// Apply small bias to avoid re-penetration next frame
+		constexpr float kEps = 0.5f;
+		if (playerDelta.x > 0.0f) { playerPosM.x += kEps; }
+		if (playerDelta.x < 0.0f) { playerPosM.x -= kEps; }
+		if (playerDelta.y > 0.0f) { playerPosM.y += kEps; }
+		if (playerDelta.y < 0.0f) { playerPosM.y -= kEps; }
+
+		// Apply the separation
+		playerPosM.x += playerDelta.x;
+		playerPosM.y += playerDelta.y;
+
+		// ---------------------------
+		// Smooth SLIDE when goat is pinned
+		// ---------------------------
+		// If the goat barely moved (pinned) and we were trying to move into it,
+		// remove our inward component, keep tangent (glide along goat/wall).
+		{
+			// Intent this frame from movement system
+			const glm::vec2 v = movementManager.GetVelocity(spriteID);
+			const float vLen = std::sqrt(v.x * v.x + v.y * v.y);
+
+			// Contact normal is MTV normalized (player must move by +MTV to exit),
+			// so "into" the goat means our velocity is opposite the MTV direction.
+			const float mtvLen = std::sqrt(mtv.x * mtv.x + mtv.y * mtv.y);
+
+			// How much goat actually moved vs we wanted it to move
+			const float desiredLen = std::sqrt(desiredOtherDelta.x * desiredOtherDelta.x +
+				desiredOtherDelta.y * desiredOtherDelta.y);
+			const float allowedLen = std::sqrt(allowedOtherDelta.x * allowedOtherDelta.x +
+				allowedOtherDelta.y * allowedOtherDelta.y);
+			const bool goatPinned = (desiredLen > 0.0f) && (allowedLen < 0.1f * desiredLen);
+
+			if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f && physicsDt > 0.0f) {
+				// Normal pointing from goat to player (same dir as MTV applied to player)
+				const glm::vec2 n = glm::vec2(mtv.x / mtvLen, mtv.y / mtvLen);
+
+				// Inward component of our desired displacement this frame
+				const glm::vec2 desiredDelta = v * physicsDt;               // what we wanted to move
+				const float into = desiredDelta.x * n.x + desiredDelta.y * n.y;
+
+				if (into > 0.0f) {
+					// Remove inward component; keep tangential part (slide)
+					const glm::vec2 tangential = desiredDelta - into * n;
+
+					// Clamp slide against world (so we don’t scrape into walls)
+					const collision::AABB pAfterSep =
+						collision::World::makeAABBFromCenter(playerPosM,
+							Math::Vector3D(sprite->GetScaleGLM().x, sprite->GetScaleGLM().y, 1.0f));
+
+					const Math::Vector2D slideDesired(tangential.x, tangential.y);
+					const Math::Vector2D slideAllowed =
+						collisionManager.GetCollisionWorld().resolve(pAfterSep, slideDesired);
+
+					// Apply the allowed slide
+					playerPosM.x += slideAllowed.x;
+					playerPosM.y += slideAllowed.y;
+
+					// We *don’t* clear the click target here; player is gliding along nicely.
+				}
+				else {
+					// We’re not pushing into the goat (moving away or parallel) – no special handling.
+				}
 			}
-			else {
-				return kPushBiasMoving;
+			else if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f) {
+				// If we cannot compute a valid slide (e.g., physicsDt==0), at least
+				// stop the long click-run to prevent jitter.
+				const float dotInto = (mtv.x / mtvLen) * (v.x / (vLen + 1e-6f))
+					+ (mtv.y / mtvLen) * (v.y / (vLen + 1e-6f));
+				if (dotInto > 0.1f) {
+					movementManager.ClearMoveTarget(spriteID);
+				}
 			}
-			};
+		}
 
-		physics::SeparatePlayerVsOther_StopPlayerOnly(
-			collisionManager.GetCollisionWorld(),
-			sprite,
-			other,
-			playerPosM,
-			otherPosM,
-			desiredMoveM,
-			playerIsMoving,
-			pickWeight(otherSpeed)
-		);
-
-		// Write back positions
+		// Write back
 		sprite->SetPosition(toG(playerPosM));
 		other->SetPosition(toG(otherPosM));
 	}
+
 }
 
 

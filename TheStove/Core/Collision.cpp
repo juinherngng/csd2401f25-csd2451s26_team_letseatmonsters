@@ -15,9 +15,13 @@
 
 #include "Collision.hpp"
 
-static constexpr float kEPS = 1e-4f;
-
 namespace collision {
+	static constexpr float kEPS = 1e-4f;
+
+	static inline float clampf(float v, float lo, float hi) {
+		return std::max(lo, std::min(v, hi));
+	}
+
 	// Internal overlap test (AABB vs AABB).
 	static inline bool overlaps(const AABB& a, const AABB& b) {
 		bool aRightOfB = (a.min.x >= b.max.x);
@@ -32,10 +36,6 @@ namespace collision {
 		bool overlapExists = !anyNoOverlap;
 
 		return overlapExists;
-	}
-
-	static inline float clampf(float v, float lo, float hi) {
-		return std::max(lo, std::min(v, hi));
 	}
 
 	// Primitives 
