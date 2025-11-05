@@ -453,7 +453,6 @@ void Scene::ApplyFinalConstraints(EntityManager& entityManager) {
 
 	// Apply final transforms
 	sprite->SetPosition(position);
-	sprite->SetRotation(playerRotation, glm::vec3(0, 0, 1));
 }
 
 void Scene::RebuildColliders() {

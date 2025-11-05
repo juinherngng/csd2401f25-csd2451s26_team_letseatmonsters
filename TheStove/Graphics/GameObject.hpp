@@ -109,6 +109,7 @@ public:
 
 	glm::vec3 GetScaleGLM() const;
 	float GetRotationAngleZ() const;
+	float GetRotation() const { return rotation_; }
 
 	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const;
 
@@ -137,6 +138,7 @@ private:
 	glm::vec4 m_uvRect{ 0.f, 0.f, 1.f, 1.f };
 
 	int id; // Unique identifier for GameObjects
+	float rotation_ = 0.0f;
 
 	// Physics-friendly state
 	Math::Vector2D m_Velocity{ 0.f, 0.f };

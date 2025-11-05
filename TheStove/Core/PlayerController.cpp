@@ -18,8 +18,9 @@ void PlayerController::HandleInput(float deltaTime,
     // Handle scale controls
     HandleScaleInput(inputManager, sprite, deltaTime);
 
-    // Handle rotation controls (if you have playerRotation stored somewhere)
-    // HandleRotationInput(inputManager, playerRotation, deltaTime);
+    // Handle rotation controls 
+    HandleRotationInput(inputManager, deltaTime);
+    sprite->SetRotation(rotation_, glm::vec3(0, 0, 1));
 
     // Handle click-to-move
     HandleClickToMove(inputManager, entityManager, movementManager,
@@ -40,6 +41,22 @@ void PlayerController::HandleScaleInput(InputManager& inputManager, GameObject* 
         scale = glm::max(scale, glm::vec3(50.0f));
         sprite->SetScale(scale);
     }
+}
+
+void PlayerController::HandleRotationInput(InputManager& inputManager, float deltaTime) {
+    const float rotationSpeed = 10.0f; // degrees per second
+
+    if (inputManager.IsKeyPressed(GLFW_KEY_RIGHT)) {
+        rotation_ += rotationSpeed * deltaTime;
+    }
+
+    if (inputManager.IsKeyPressed(GLFW_KEY_LEFT)) {
+        rotation_ -= rotationSpeed * deltaTime;
+    }
+
+    // Normalize rotation to [0, 360)
+    while (rotation_ >= 360.0f) rotation_ -= 360.0f;
+    while (rotation_ < 0.0f) rotation_ += 360.0f;
 }
 
 void PlayerController::HandleClickToMove(InputManager& inputManager,

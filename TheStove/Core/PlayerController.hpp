@@ -33,9 +33,11 @@ public:
     // Update player sprite texture based on movement direction
     void UpdateSpriteDirection(const glm::vec2& direction, GameObject* sprite);
 
+    float GetRotation() const { return rotation_; }
+
 private:
     void HandleScaleInput(InputManager& inputManager, GameObject* sprite, float deltaTime);
-    //void HandleRotationInput(InputManager& inputManager, float& playerRotation, float deltaTime);
+    void HandleRotationInput(InputManager& inputManager, float deltaTime);
     void HandleClickToMove(InputManager& inputManager,
         EntityManager& entityManager,
         MovementManager& movementManager,
@@ -43,4 +45,6 @@ private:
         GraphicsEngine& graphicsEngine,
         int playerID,
         bool useForces);
+
+    float rotation_ = 0.0f;
 };
