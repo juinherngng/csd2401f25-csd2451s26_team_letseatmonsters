@@ -103,10 +103,10 @@ void Scene::SetSimulationActive(bool active) {
 	simulationActive = active;
 
 	if (active) {
-		animationManager.Play();   
+		animationManager.Play();
 	}
 	else {
-		animationManager.Stop();   
+		animationManager.Stop();
 	}
 }
 
@@ -487,6 +487,11 @@ void Scene::BuildLevelColliders() {
 	};
 
 	collisionManager.BuildWalls(walk, wood, gate);
+
+	//physicsManager.SetCollisionWorld(&collisionManager.GetWorld());
+	movementManager.SetCollisionWorld(&collisionManager.GetWorld());
+
+	physicsManager.SetMovementManager(&movementManager);
 }
 
 
