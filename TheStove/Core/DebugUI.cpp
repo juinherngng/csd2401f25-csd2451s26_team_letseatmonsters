@@ -15,6 +15,7 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 
 #include "DebugUI.hpp"
 #include "Core.hpp"
+#include "../Graphics/SceneManager.hpp"
 
 namespace Debug
 {
@@ -154,13 +155,49 @@ namespace Debug
 				ImGui::Text("%s: %1.f%%", performance.name.c_str(), performance.percentageOf);
 			}
 
+			if (scene_) {
+				static int stressTestCount = 2500;
+				ImGui::InputInt("Object Count", &stressTestCount, 100, 500);
+				stressTestCount = glm::clamp(stressTestCount, 0, 10000);
+
+				if (ImGui::Button("Generate Stress Test")) {
+					if (coreEngine) {
+						if (auto* audioMgr = coreEngine->GetSystem<AudioManager>()) {
+							audioMgr->PlayUIClickSound();
+						}
+					}
+					scene_->GenerateStressTest(stressTestCount);
+					scene_->SetSimulationActive(true);
+					AddDebugLine("Generated stress test with " + std::to_string(stressTestCount) + " objects\n");
+				}
+
+				ImGui::SameLine();
+
+				// Simulation toggle
+				bool simActive = scene_->IsSimulationActive();
+				if (ImGui::Checkbox("Simulation Active", &simActive)) {
+					if (coreEngine) {
+						if (auto* audioMgr = coreEngine->GetSystem<AudioManager>()) {
+							audioMgr->PlayUIClickSound();
+						}
+					}
+					scene_->SetSimulationActive(simActive);
+					AddDebugLine(simActive ? "Simulation started\n" : "Simulation paused\n");
+				}
+			}
+			else {
+				ImGui::TextDisabled("(Scene not connected)");
+			}
+
+
+			ImGui::Separator();
 			ImGui::Text("----Render Infomation----");
 			ImGui::Text("Total Objects: %d", totalObjects);
 			ImGui::Text("Total Batches: %d", totalBatches);
 			ImGui::Text("Instanced Objects: %d", instancedObjects);
 			ImGui::Text("Draw Calls: %d", drawCalls);
+			
 			ImGui::Separator();
-
 			ImGui::Text("---- Audio ----");
 			if (ImGui::Button("Play: boiling sound"))
 			{

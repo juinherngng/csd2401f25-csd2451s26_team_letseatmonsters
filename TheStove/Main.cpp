@@ -443,6 +443,8 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		app.debugApp->AddDebugLine("DebuggerApp initialized successfully\n");
 	}
 
+	app.debugApp->SetScene(app.currentScene.get());
+
 	return true;
 }
 

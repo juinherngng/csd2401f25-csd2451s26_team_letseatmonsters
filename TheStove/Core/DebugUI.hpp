@@ -24,6 +24,7 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 #include "../Graphics/GraphicsEngine.hpp"
 
 namespace CoreFramework { class CoreEngine; }
+class Scene;
 
 struct SystemPerformance
 {
@@ -80,6 +81,8 @@ namespace Debug
 
 		void SetRenderStats(int objects, int batches, int instanced, int draws);
 
+		void SetScene(Scene* scenePtr) { scene_ = scenePtr; }
+
 	public:
 		float fps = 0; // FPS 
 		float msperFrame = 0; // MS/frame
@@ -107,6 +110,8 @@ namespace Debug
 		int totalBatches = 0;
 		int instancedObjects = 0;
 		int drawCalls = 0;
+
+		Scene* scene_ = nullptr;
 
 	};
 	extern DebuggerApp gDebugger;

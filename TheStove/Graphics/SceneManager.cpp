@@ -227,6 +227,7 @@ void Scene::ClearAll() {
 	entityManager.Clear();
 	animationManager.Clear();
 	movementManager.Clear();
+	npcSystem.Clear();
 
 	spriteID = -1;
 	dinoID = -1;
