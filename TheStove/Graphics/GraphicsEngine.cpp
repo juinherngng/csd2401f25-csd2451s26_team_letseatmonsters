@@ -189,6 +189,16 @@ void GraphicsEngine::LoadDefaultResources() {
 		"../TheStove/Graphics/shaders/animatedsprite.vert",
 		"../TheStove/Graphics/shaders/animatedsprite.frag");
 
+	// Load instanced static sprite shader
+	resourceManager.LoadShader("staticsprite_instanced",
+		"../TheStove/Graphics/shaders/staticsprite_instanced.vert",
+		"../TheStove/Graphics/shaders/staticsprite_instanced.frag");
+
+	// Load instanced animated sprite shader
+	resourceManager.LoadShader("animatedsprite_instanced",
+		"../TheStove/Graphics/shaders/animatedsprite_instanced.vert",
+		"../TheStove/Graphics/shaders/animatedsprite.frag");
+
 	// Load triangle mesh
 	std::vector<float> vertices;
 	GLsizei vertexCount, vertexSize;
@@ -414,6 +424,7 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 
 // Destroy background and clear ResourceManager caches
 void GraphicsEngine::Shutdown() {
+
 	backgroundObject.reset();
 	DebugRenderer::Shutdown();
 	resourceManager.Clear();
@@ -426,3 +437,156 @@ void GraphicsEngine::Shutdown() {
 		s_imguiInitialized = false;
 	}
 }
+
+void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
+	// Reset stats
+	renderStats = RenderStats();
+	renderStats.totalObjects = static_cast<int>(objects.size());
+
+	// Draw background first
+	if (backgroundObject) {
+		glDisable(GL_DEPTH_TEST);
+		backgroundObject->Draw(view, projection);
+		glEnable(GL_DEPTH_TEST);
+	}
+
+	if (objects.empty()) {
+		EndSceneRender();
+		DrawSceneDockWindow();
+		EndImGuiFrame();
+		return;
+	}
+
+	// Separate static and animated sprites
+	std::vector<GameObject*> staticSprites;
+	std::vector<GameObject*> animatedSprites;
+
+	// Get the animatedsprite shader once for comparison
+	Shader* animShader = resourceManager.GetShader("animatedsprite");
+
+	for (auto* obj : objects) {
+		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
+
+		//	 Categorize based on shader type
+		if (obj->GetShader() == animShader) {
+			animatedSprites.push_back(obj);  // Animated sprite
+		}
+		else {
+			staticSprites.push_back(obj);     // Static sprite
+		}
+	}
+
+	// Render static sprites with batching and instancing
+	if (!staticSprites.empty()) {
+		std::map<RenderKey, std::vector<GameObject*>> batches;
+
+		for (auto* obj : staticSprites) {
+			RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
+			batches[key].push_back(obj);
+		}
+
+		renderStats.totalBatches += static_cast<int>(batches.size());
+
+		for (auto& [key, batch] : batches) {
+			if (batch.size() >= INSTANCING_THRESHOLD) {
+				// Use instanced rendering if >= threshold
+				renderStats.instancedObjects += static_cast<int>(batch.size());
+
+				std::vector<glm::mat4> modelMatrices;
+				modelMatrices.reserve(batch.size());
+				for (const auto* obj : batch) {
+					modelMatrices.push_back(obj->GetModelMatrix());
+				}
+
+				key.mesh->SetupInstanceBuffer(modelMatrices);
+
+				Shader* instancedShader = resourceManager.GetShader("staticsprite_instanced");
+				if (!instancedShader) {
+					instancedShader = key.shader;
+				}
+
+				instancedShader->Use();
+				instancedShader->SetViewMatrix(view);
+				instancedShader->SetProjectionMatrix(projection);
+				if (key.texture) {
+					instancedShader->SetTexture("u_Texture", 0);
+				}
+
+				key.mesh->DrawInstanced(key.texture, batch.size());
+				renderStats.drawCalls++;
+			}
+			else {
+				// Use noramal rendering if < threshold
+				key.shader->Use();
+				key.shader->SetViewMatrix(view);
+				key.shader->SetProjectionMatrix(projection);
+				if (key.texture) {
+					key.texture->Bind(0);
+					key.shader->SetTexture("u_Texture", 0);
+				}
+
+				for (const auto* obj : batch) {
+					key.shader->SetModelMatrix(obj->GetModelMatrix());
+					key.mesh->Draw();
+					renderStats.drawCalls++;
+				}
+			}
+		}
+	}
+
+	// Render animated sprites (no batching/instancing, not implemented yet)
+	for (const auto* obj : animatedSprites) {
+		Shader* shader = obj->GetShader();
+		Mesh* mesh = obj->GetMesh();
+		Texture* texture = obj->GetTexture();
+
+		shader->Use();
+		shader->SetModelMatrix(obj->GetModelMatrix());
+		shader->SetViewMatrix(view);
+		shader->SetProjectionMatrix(projection);
+
+		// Set UV coordinates 
+		const glm::vec4 uv = obj->GetUVRect();
+		shader->SetUVOffset(glm::vec2(uv.x, uv.y));
+		shader->SetUVScale(glm::vec2(uv.z, uv.w));
+
+		if (texture) {
+			texture->Bind(0);
+			shader->SetTexture("u_Texture", 0);
+		}
+
+		mesh->Draw();
+		renderStats.drawCalls++;
+	}
+
+	// Debug bounding boxes render
+	if (DebugRenderer::IsEnabled()) {
+		glDisable(GL_DEPTH_TEST);
+		for (const auto* obj : objects) {
+			if (obj) {
+				obj->DrawBoundingBox(view, projection, glm::vec3(1.0f, 0.0f, 0.0f));
+			}
+		}
+		DebugRenderer::Flush(view, projection);
+		glEnable(GL_DEPTH_TEST);
+	}
+
+	// Imgui frame end
+	EndSceneRender();
+	DrawSceneDockWindow();
+	EndImGuiFrame();
+
+	//Error Check
+	GLenum error;
+	while ((error = glGetError()) != GL_NO_ERROR) {
+		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
+	}
+}
+
+
+
+
+
+
+
+

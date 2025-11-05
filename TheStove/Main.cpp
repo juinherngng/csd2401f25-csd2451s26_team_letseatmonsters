@@ -492,7 +492,8 @@ static void draw(ApplicationState& app) {
 		app.debugApp->RenderDebuggerApp();
 	}
 
-	app.graphicsEngine->Render(drawList);
+	//app.graphicsEngine->Render(drawList);
+	app.graphicsEngine->RenderBatched(drawList);
 
 	glfwSwapBuffers(app.window);
 }

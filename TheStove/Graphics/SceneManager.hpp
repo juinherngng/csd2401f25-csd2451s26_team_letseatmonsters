@@ -65,6 +65,9 @@ public:
 	 */
 	void Update(float deltaTime, GLFWwindow* window);
 
+	// Stress Test Generation
+	void GenerateStressTest(int objectCount = 2500);
+
 	void DrawUI();
 	void ClearAll();
 

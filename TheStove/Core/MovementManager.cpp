@@ -2,6 +2,7 @@
 #include "../Graphics/EntityManager.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Core/InputManager.hpp"
+#include "NPCSystem.hpp"
 #include <iostream>
 #include <cmath>
 
@@ -25,6 +26,7 @@ void MovementManager::Update(float deltaTime, EntityManager& entityManager, Inpu
 			UpdateClickToMove(objID, data, deltaTime, entityManager);
 		}
 	}
+	UpdateVelocityBasedMovement(deltaTime, entityManager);
 }
 
 void MovementManager::Clear() {
@@ -111,7 +113,6 @@ glm::vec2 MovementManager::GetVelocity(int objectID) const {
 	return (it != movementData_.end()) ? it->second.velocity : glm::vec2(0.f);
 }
 
-// ===== Private Helper Methods =====
 
 void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager) {
 	GameObject* player = entityManager.GetByID(playerID_);
@@ -120,7 +121,7 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
 	auto& data = movementData_[playerID_];
 	//std::cout << "Player found. hasTarget: " << data.hasTarget << std::endl;
 
-	// Priority 1: WASD movement (cancels click-to-move)
+	// WASD movement (cancels click-to-move)
 	glm::vec2 desiredMove(0.f, 0.f);
 	bool pressingWASD = false;
 
@@ -151,7 +152,7 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
 	}
 	else if (data.hasTarget) {
 		std::cout << "Processing click-to-move to (" << data.moveTarget.x << ", " << data.moveTarget.y << ")" << std::endl;
-		// Priority 2: Click-to-move (only if not pressing WASD)
+		// Click-to-move (only if not pressing WASD)
 		glm::vec3 pos3D = player->GetPositionGLM();
 		glm::vec2 pos(pos3D.x, pos3D.y);
 
@@ -177,20 +178,20 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
 
 	}
 	else {
-		// Priority 3: No input - stop moving
+		// No input, stop moving
 		data.velocity = { 0.f, 0.f };
 		data.hasFacingHint = false;
 		data.facingHint = { 0.f, 0.f };
 	}
 
-	// World-aware apply: if a wall trims our step, stop & clear click target
+	// if a wall trims our step, stop & clear click target
 	glm::vec3 pos = player->GetPositionGLM();
 
 	// desired movement this frame from current velocity
 	glm::vec2 desiredDelta2D = data.velocity * deltaTime;
 	glm::vec2 allowedDelta2D = desiredDelta2D;
 
-	// helper: detect if trimmed by resolver
+	// detect if trimmed by resolver
 	auto impacted = [](const glm::vec2& d, const glm::vec2& a) {
 		const float eps = 1e-4f;
 		return (std::fabs(d.x - a.x) > eps) || (std::fabs(d.y - a.y) > eps);
@@ -343,32 +344,32 @@ void MovementManager::UpdateSpriteDirection(int entityID, EntityManager& entityM
 		}
 	}
 
-	// Remember the chosen facing if it's meaningful
+	// Remember the chosen facing if it needed
 	if (std::fabs(basis.x) > 0.01f || std::fabs(basis.y) > 0.01f) {
 		it->second.lastFacing = basis;
 	}
 	else {
-		// If we stopped completely, keep using the previous lastFacing
+		// If stopped completely, keep using the previous lastFacing
 		basis = it->second.lastFacing;
 	}
 	float ax = std::abs(basis.x);
 	float ay = std::abs(basis.y);
 
-	// --- smooth facing selection ---
+	// Smooth facing selection
 	glm::vec2 prev = it->second.lastFacing;
 	float prevAx = std::abs(prev.x);
 	float prevAy = std::abs(prev.y);
 
-	// small bias to keep same orientation unless direction clearly changes
+	// Small bias to keep same orientation unless direction clearly changes
 	const float switchBias = 1.2f; // larger = more stickiness to previous facing
 
 	bool useHorizontal;
 	if (prevAx > prevAy) {
-		// we were horizontal last frame
+		// was horizontal last frame
 		useHorizontal = (ax * switchBias >= ay);
 	}
 	else {
-		// we were vertical last frame
+		// was were vertical last frame
 		useHorizontal = (ax > ay * switchBias);
 	}
 
@@ -398,4 +399,70 @@ void MovementManager::UpdateSpriteDirection(int entityID, EntityManager& entityM
 	}
 
 }
+
+void MovementManager::UpdateVelocityBasedMovement(float deltaTime, EntityManager& entityManager) {
+	std::vector<GameObject*> allObjects = entityManager.GetAllObjects();
+
+	for (GameObject* obj : allObjects) {
+		if (!obj) continue;
+
+		int objID = obj->GetID();
+
+		// Skip managed objects
+		auto it = movementData_.find(objID);
+		if (it != movementData_.end() && (it->second.hasTarget || it->second.patrolEnabled)) {
+			continue;
+		}
+
+		// Skip player
+		if (objID == playerID_) {
+			continue;
+		}
+
+		// Skip lane NPCs, handled by NPCSystem
+		if (npcSystem_ && npcSystem_->IsLaneNPC(objID)) {
+			continue;
+		}
+
+		// Get velocity
+		Math::Vector2D velocity = obj->GetVelocity();
+		if (velocity.x == 0.0f && velocity.y == 0.0f) {
+			continue; // No velocity, skip
+		}
+
+		// Update position
+		glm::vec3 pos = obj->GetPositionGLM();
+		pos.x += velocity.x * deltaTime;
+		pos.y += velocity.y * deltaTime;
+
+		// Bounce off screen edges
+		const float worldW = 1150.0f;
+		const float worldH = 750.0f;
+
+		if (pos.x < 0.0f) {
+			pos.x = 0.0f;
+			velocity.x = -velocity.x; // Reverse X
+			obj->SetVelocity(velocity);
+		}
+		if (pos.x > worldW) {
+			pos.x = worldW;
+			velocity.x = -velocity.x; // Reverse X
+			obj->SetVelocity(velocity);
+		}
+		if (pos.y < 0.0f) {
+			pos.y = 0.0f;
+			velocity.y = -velocity.y; // Reverse Y
+			obj->SetVelocity(velocity);
+		}
+		if (pos.y > worldH) {
+			pos.y = worldH;
+			velocity.y = -velocity.y; // Reverse Y
+			obj->SetVelocity(velocity);
+		}
+
+		obj->SetPosition(pos);
+	}
+}
+
+
 

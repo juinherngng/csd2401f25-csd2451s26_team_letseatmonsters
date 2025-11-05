@@ -27,7 +27,7 @@ void ResourceManager::SetAudioManager(AudioManager* audioMgr)
 Shader* ResourceManager::LoadShader(const std::string& name, const std::string& vertexPath, const std::string& fragmentPath) {
     auto it = shaders.find(name);
     if (it != shaders.end()) {
-        std::cout << "Shader '" << name << "' already loaded, returning existing." << std::endl;
+        //std::cout << "Shader '" << name << "' already loaded, returning existing." << std::endl;
         return it->second.get();
     }
 
@@ -56,7 +56,7 @@ Shader* ResourceManager::GetShader(const std::string& name) {
 Mesh* ResourceManager::LoadMesh(const std::string& name, const std::vector<float>& vertices, GLsizei vertexCount, GLsizei vertexSize, Mesh::VertexLayout layout) {
     auto it = meshes.find(name);
     if (it != meshes.end()) {
-        std::cout << "Mesh '" << name << "' already loaded, returning existing." << std::endl;
+        //std::cout << "Mesh '" << name << "' already loaded, returning existing." << std::endl;
         return it->second.get();
     }
 
@@ -81,7 +81,7 @@ Mesh* ResourceManager::GetMesh(const std::string& name) {
 Texture* ResourceManager::LoadTexture(const std::string& name, const std::string& filePath) {
     auto it = textures.find(name);
     if (it != textures.end()) {
-        std::cout << "Texture '" << name << "' already loaded, returning existing." << std::endl;
+        //std::cout << "Texture '" << name << "' already loaded, returning existing." << std::endl;
         return it->second.get();
     }
 

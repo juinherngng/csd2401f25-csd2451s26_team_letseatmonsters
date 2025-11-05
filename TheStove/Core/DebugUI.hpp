@@ -78,6 +78,8 @@ namespace Debug
 
 		void ShowDebugLog();
 
+		void SetRenderStats(int objects, int batches, int instanced, int draws);
+
 	public:
 		float fps = 0; // FPS 
 		float msperFrame = 0; // MS/frame
@@ -100,5 +102,12 @@ namespace Debug
 
 		// Audio Values
 		float bgm = 0.0f, vfx = 0.0f;
+
+		int totalObjects = 0;
+		int totalBatches = 0;
+		int instancedObjects = 0;
+		int drawCalls = 0;
+
 	};
+	extern DebuggerApp gDebugger;
 }

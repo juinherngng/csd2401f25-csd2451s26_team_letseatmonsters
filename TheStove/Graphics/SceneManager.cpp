@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <random>
 #include <glm/ext/matrix_clip_space.hpp>
 
 #include "SceneManager.hpp"
@@ -154,6 +155,9 @@ void Scene::LoadScene(const std::string& sceneName) {
 
 	// You can keep a background even with an empty level (or move this into JSON later)
 	SetSceneBackground("../assets/Background.png");
+
+	//GenerateStressTest(2500);
+	//SetSimulationActive(true);
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
@@ -232,7 +236,7 @@ void Scene::ClearAll() {
 
 void Scene::SetPlayerID(int id) {
 	spriteID = id;
-	movementManager.SetPlayerID(id);  // ✅ TELL MOVEMENT MANAGER
+	movementManager.SetPlayerID(id);  // inform movement manager
 }
 
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
@@ -338,7 +342,7 @@ void Scene::MarkAnimated(int id, bool state) {
 		}
 	}
 	else {
-		// Turning ON: no-op here; your AttachDinoAnimations() will populate maps.
+		// Turning ON: no-op here; AttachDinoAnimations() will populate maps.
 		// (HasAnimations() will start returning true once frames are attached.)
 	}
 }
@@ -551,10 +555,65 @@ void Scene::BuildLevelColliders() {
 
 	//physicsManager.SetCollisionWorld(&collisionManager.GetWorld());
 	movementManager.SetCollisionWorld(&collisionManager.GetWorld());
-
+	movementManager.SetNPCSystem(&npcSystem);
 	physicsManager.SetMovementManager(&movementManager);
 }
 
+void Scene::GenerateStressTest(int objectCount) {
+	std::cout << "[Scene] Generating stress test with " << objectCount << " objects...\n";
+
+	// Random number generation setup
+	std::random_device rd;
+	std::mt19937 gen(rd());
+
+	// Random position ranges 
+	std::uniform_real_distribution<float> posX(50.0f, 1150.0f);
+	std::uniform_real_distribution<float> posY(50.0f, 750.0f);
+
+	// Random velocity ranges
+	std::uniform_real_distribution<float> velX(-100.0f, 100.0f);
+	std::uniform_real_distribution<float> velY(-100.0f, 100.0f);
+
+	// Random size range
+	std::uniform_real_distribution<float> sizeRand(24.0f, 64.0f);
+
+	// Textures to render
+	std::vector<std::string> texturePaths = {
+		"../assets/goat_sprite_front.png",
+		"../assets/mc_sprite_front.png"
+	};
+
+	std::uniform_int_distribution<size_t> texIndex(0, texturePaths.size() - 1);
+
+	// Spawn objects with random properties
+	for (int i = 0; i < objectCount; i++) {
+		// Random position
+		glm::vec3 randomPos(posX(gen), posY(gen), 0.0f);
+
+		// Random size
+		float size = sizeRand(gen);
+		glm::vec2 randomSize(size, size);
+
+		// Random texture
+		std::string texPath = texturePaths[texIndex(gen)];
+
+		// Spawn using EntityManager
+		GameObject* obj = entityManager.SpawnStaticSprite(texPath, randomPos, randomSize);
+
+		if (obj) {
+			// Set random velocity 
+			Math::Vector2D randomVel(velX(gen), velY(gen));
+			obj->SetVelocity(randomVel);
+		}
+	}
+
+	std::cout << "[Scene] Stress test complete:\n";
+	std::cout << "  - Total objects: " << objectCount << "\n";
+	std::cout << "  - Random positions\n";
+	std::cout << "  - Random velocities\n";
+	std::cout << "  - Mixed textures (" << texturePaths.size() << " types)\n";
+	std::cout << "  - Scene total: " << entityManager.GetObjectCount() << " objects\n";
+}
 
 
 

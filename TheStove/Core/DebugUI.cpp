@@ -18,6 +18,8 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 
 namespace Debug
 {
+	DebuggerApp gDebugger;
+
 	// Constructor
 	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, coreEngine{ nullptr }, openedDebugger{ true }, isInitialised{ false }
 	{
@@ -64,6 +66,7 @@ namespace Debug
 
 		debugWindow = externalWindow;
 		coreEngine = coreEnginePtr;
+
 		glfwMakeContextCurrent(debugWindow);
 
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -152,8 +155,11 @@ namespace Debug
 			}
 
 			ImGui::Text("----Render Infomation----");
-			ImGui::Text("Squares rendered: ");
-			ImGui::Text("Sprites rendered: ");
+			ImGui::Text("Total Objects: %d", totalObjects);
+			ImGui::Text("Total Batches: %d", totalBatches);
+			ImGui::Text("Instanced Objects: %d", instancedObjects);
+			ImGui::Text("Draw Calls: %d", drawCalls);
+			ImGui::Separator();
 
 			ImGui::Text("---- Audio ----");
 			if (ImGui::Button("Play: boiling sound"))
@@ -381,5 +387,12 @@ namespace Debug
 		}
 
 		ImGui::End();
+	}
+
+	void DebuggerApp::SetRenderStats(int objects, int batches, int instanced, int draws) {
+		totalObjects = objects;
+		totalBatches = batches;
+		instancedObjects = instanced;
+		drawCalls = draws;
 	}
 }

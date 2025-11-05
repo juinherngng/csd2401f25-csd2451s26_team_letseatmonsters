@@ -21,7 +21,7 @@ GameObject* EntityManager::SpawnStaticSprite(const std::string& texturePath,
     const glm::vec3& pos,
     const glm::vec2& size) {
     int id = AcquireID();
-    std::cout << "  Acquired ID: " << id << std::endl;  
+    //std::cout << "  Acquired ID: " << id << std::endl;  
 
     Mesh* quadMesh = ResourceManager::Instance().GetMesh("sprite");
     Shader* spriteShader = ResourceManager::Instance().GetShader("staticsprite");

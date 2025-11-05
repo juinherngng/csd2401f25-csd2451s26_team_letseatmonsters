@@ -15,6 +15,8 @@ DESCRIPTION:		Lightweight wrapper for a VAO + VBO with fixed vertex layouts and 
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
 #include "Texture.hpp"
+#include <glm/glm.hpp>
+#include <vector>
 
 class Texture;
 
@@ -33,8 +35,14 @@ public:
     void Draw() const;
     void Draw(const Texture* texture) const;
 
+    void SetupInstanceBuffer(const std::vector<glm::mat4>& modelMatrices);
+    void DrawInstanced(Texture* texture, size_t instanceCount);
+
 private:
     VertexArray vao;
     VertexBuffer vbo;
 	GLsizei vertexCount;
+
+    GLuint instanceVBO = 0;  // Instance buffer for model matrices
+    bool instanceBufferInitialized = false;
 };

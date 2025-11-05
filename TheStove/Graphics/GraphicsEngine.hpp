@@ -79,6 +79,14 @@ public:
 
 	ImGuiID GetMainDockspaceID() const;
 
+	void RenderBatched(const std::vector<GameObject*>& objects);
+
+	// Getters for render stats
+	int GetTotalObjects() const { return renderStats.totalObjects; }
+	int GetDrawCallCount() const { return renderStats.drawCalls; }
+	int GetBatchCount() const { return renderStats.totalBatches; }
+	int GetInstancedObjectCount() const { return renderStats.instancedObjects; }
+
 private:
 	Renderer renderer;
 	ResourceManager& resourceManager;
@@ -120,4 +128,28 @@ private:
 	ImVec2 sceneImageSize_{ 0, 0 };
 
 	ImGuiID mMainDockspaceId = 0;
+
+	// RenderKey: Groups objects that can be batched together
+	struct RenderKey {
+		Mesh* mesh;
+		Shader* shader;
+		Texture* texture;
+
+		bool operator<(const RenderKey& other) const {
+			if (mesh != other.mesh) return mesh < other.mesh;
+			if (shader != other.shader) return shader < other.shader;
+			return texture < other.texture;
+		}
+	};
+
+	// Render statistics
+	struct RenderStats {
+		int totalObjects = 0;
+		int totalBatches = 0;
+		int instancedObjects = 0;
+		int drawCalls = 0;
+	} renderStats;
+
+	// Instancing threshold
+	static constexpr int INSTANCING_THRESHOLD = 2;
 };

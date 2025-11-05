@@ -92,7 +92,11 @@ public:
 	void UpdateModelMatrix();
 
 	void SetTexture(Texture* tex) { m_Texture = tex; }
+
 	Shader* GetShader() const { return m_Shader; }
+	Mesh* GetMesh() const { return m_Mesh; }
+	glm::mat4 GetModelMatrix() const { return m_ModelMatrix; }
+	Texture* GetTexture() const { return m_Texture; }
 
 	// Collider handling
 	/** @brief Set the colliders full size (width/height). */

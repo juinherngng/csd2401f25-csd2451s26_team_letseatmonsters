@@ -9,6 +9,7 @@
 
 class EntityManager;  // Forward declaration
 class InputManager;
+class NPCSystem;
 
 /**
  * @brief Manages movement for all game objects
@@ -42,6 +43,8 @@ public:
 	// NPC patrol
 	void SetPatrolPath(int objectID, const std::vector<glm::vec2>& waypoints, bool loop = true);
 	void EnablePatrol(int objectID, bool enable);
+
+	void SetNPCSystem(const NPCSystem* npcSys) { npcSystem_ = npcSys; }
 
 	// Query
 	bool IsMoving(int objectID) const;
@@ -83,10 +86,12 @@ private:
 
 	std::unordered_map<int, MovementData> movementData_;
 	const collision::World* world_ = nullptr;
+	const NPCSystem* npcSystem_ = nullptr;
 
 	// Helper methods
 	void UpdatePlayerMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager);
 	void UpdateClickToMove(int objectID, MovementData& data, float deltaTime, EntityManager& entityManager);
 	void UpdateNPCPatrol(int objectID, MovementData& data, float deltaTime, EntityManager& entityManager);
+	void UpdateVelocityBasedMovement(float deltaTime, EntityManager& entityManager);
 };
 

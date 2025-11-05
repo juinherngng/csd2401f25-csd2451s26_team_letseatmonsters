@@ -93,7 +93,7 @@ void Shader::InitUniforms() {
     std::cout << "u_Projection location: " << uniformProjMatrix << std::endl*/;
 
     if (uniformModelMatrix == -1 || uniformViewMatrix == -1 || uniformProjMatrix == -1) {
-        std::cerr << "ERROR: One or more uniform locations are invalid!" << std::endl;
+        std::cerr << "ERROR: One or more uniform locations are invalid! (ignore if using instanced shader)" << std::endl;
     }
 
 }

@@ -35,6 +35,7 @@ void NPCSystem::UpdateLaneNPCs(float deltaTime,
 
         physics::MoveYLaneWithBounce(collisionManager.GetCollisionWorld(),
             npc, posM, velM, laneX, deltaTime);
+
         physics::ClampInsideWalk(walkArea, npc, posM);
 
         npc->SetPosition(glm::vec3(posM.x, posM.y, posM.z));
@@ -110,9 +111,6 @@ void NPCSystem::HandleNPCCollisions(EntityManager& entityManager) {
     // Note: No collision between lane and non-lane NPCs
     // They pass through each other
 }
-
-
-
 
 void NPCSystem::UpdateGenericNPCs(float deltaTime,
     EntityManager& entityManager,
