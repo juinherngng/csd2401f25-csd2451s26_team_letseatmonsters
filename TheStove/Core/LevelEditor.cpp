@@ -1598,12 +1598,15 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		}
 		else if (obj.tag == "npc1") {
 			scene.SetNPC1ID(g->GetID());
+			scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
 		}
 		else if (obj.tag == "npc2") {
 			scene.SetNPC2ID(g->GetID());
+			scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
 		}
 
-		scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
+		// This sets velocity for all objects 
+		//scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
 
 		// Keep editor/scene caches consistent (rotation stays in degrees at editor layer)
 		scene.SetTransformFromLevel(g->GetID(),
