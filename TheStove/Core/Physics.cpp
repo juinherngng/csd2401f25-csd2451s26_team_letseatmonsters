@@ -7,7 +7,7 @@
  DESCRIPTION:		Definitions for physics helpers: collider construction, clamping, step control,
 					separation responses, lane motion with bounce, and equal-mass elastic collisions.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

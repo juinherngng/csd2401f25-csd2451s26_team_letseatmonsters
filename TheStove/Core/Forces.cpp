@@ -6,7 +6,7 @@
 
  DESCRIPTION:
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -54,7 +54,7 @@ GravityForce::GravityForce(Math::Vector2D gravity)
 }
 
 void GravityForce::UpdateForce(RigidBody2D& body, float) {
-	// Static bodies have inverse mass 0 (or less) — ignore gravity
+	// Static bodies have inverse mass 0 (or less) ï¿½ ignore gravity
 	if (body.GetInverseMass() <= 0.0f) {
 		return;
 	}

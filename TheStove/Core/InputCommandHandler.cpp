@@ -1,0 +1,46 @@
+#include "InputCommandHandler.hpp"
+#include <iostream>
+
+void InputCommandHandler::ProcessCommands(InputManager& inputManager,
+    PhysicsManager& physicsManager,
+    int playerID,
+    bool& useForces,
+    bool& showAuxDebug) {
+    HandleDebugToggles(inputManager, showAuxDebug);
+    HandleForceToggle(inputManager, physicsManager, playerID, useForces);
+}
+
+void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& showAuxDebug) {
+    // Toggle collider visualization
+    if (inputManager.IsKeyJustPressed(GLFW_KEY_R)) {
+        DebugRenderer::SetEnabled(!DebugRenderer::IsEnabled());
+        std::cout << "[DebugRenderer] Collider visibility: "
+            << (DebugRenderer::IsEnabled() ? "ON" : "OFF") << std::endl;
+    }
+
+    // Toggle auxiliary debug visuals
+    if (inputManager.IsKeyJustPressed(GLFW_KEY_T)) {
+        showAuxDebug = !showAuxDebug;
+        std::cout << "[Debug] Auxiliary visuals: "
+            << (showAuxDebug ? "ON" : "OFF") << std::endl;
+    }
+}
+
+void InputCommandHandler::HandleForceToggle(InputManager& inputManager,
+    PhysicsManager& physicsManager,
+    int playerID,
+    bool& useForces) {
+    if (inputManager.IsKeyJustPressed(GLFW_KEY_F)) {
+        useForces = !useForces;
+        std::cout << "[Forces] " << (useForces ? "ON" : "OFF") << std::endl;
+
+        if (playerID >= 0) {
+            if (useForces) {
+                physicsManager.EnablePhysics(playerID, 1.0f);
+            }
+            else {
+                physicsManager.DisablePhysics(playerID);
+            }
+        }
+    }
+}

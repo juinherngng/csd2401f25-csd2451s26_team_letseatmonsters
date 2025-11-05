@@ -26,8 +26,13 @@
 #include "../Core/Physics.hpp"
 #include "../Core/Math.hpp"
 #include "../Core/LevelEditor.hpp"
-#include "../Core/Forces.hpp"
-#include "../Core/RigidBody2D.hpp"
+#include "../Core/InputCommandHandler.hpp"
+#include "../Core/PlayerController.hpp"
+#include "../Core/NPCSystem.hpp"
+#include "../Core/DebugVisualizer.hpp"
+
+
+
 
 #include <string>
 #include <vector>
@@ -132,8 +137,19 @@ public:
 
 	// ID Accessors
 	void SetPlayerID(int id);
-	void SetNPC1ID(int id) { otherID = id; }
-	void SetNPC2ID(int id) { otherID2 = id; }
+	void SetNPC1ID(int id) {
+		otherID = id;
+		if (id >= 0) {
+			npcSystem.RegisterLaneNPC(id, 1000.0f); // Only this npc1 gets lane behavior
+		}
+	}
+
+	void SetNPC2ID(int id) {
+		otherID2 = id;
+		if (id >= 0) {
+			npcSystem.RegisterLaneNPC(id, 1000.0f); //Only this npc2 gets lane behavior
+		}
+	}
 	void SetDinoID(int id) { dinoID = id; }
 
 	int GetPlayerID() const { return spriteID; }
@@ -141,11 +157,15 @@ public:
 	int GetNPC2ID() const { return otherID2; }
 	int GetDinoID() const { return dinoID; }
 
-	// NPC Velocity
-	void SetNPCVelocity(int id, float vx, float vy) { npcVelocities_[id] = { vx, vy }; }
+	// NPC System
+	void SetNPCVelocity(int id, float vx, float vy) {
+		npcSystem.SetNPCVelocity(id, glm::vec2(vx, vy));
+	}
 	glm::vec2 GetNPCVelocity(int id) const {
-		auto it = npcVelocities_.find(id);
-		return (it != npcVelocities_.end()) ? it->second : glm::vec2(0.0f);
+		return npcSystem.GetNPCVelocity(id);
+	}
+	void RegisterLaneNPC(int id, float laneX) {
+		npcSystem.RegisterLaneNPC(id, laneX);
 	}
 
 	// Defaults Struct
@@ -192,7 +212,16 @@ private:
 	CollisionManager collisionManager;
 	PhysicsManager physicsManager;
 
-	void UpdateSpriteDirections();
+	// Systems
+	InputCommandHandler inputCommandHandler;
+	PlayerController playerController;
+	NPCSystem npcSystem;
+	DebugVisualizer debugVisualizer;
+
+
+	// Helper Methods
+	void HandlePlayerCollisions(float deltaTime, EntityManager& entityManager);
+	void ApplyFinalConstraints(EntityManager& entityManager);
 
 	// World/collision
 	void BuildLevelColliders();
@@ -207,6 +236,7 @@ private:
 	int otherID2 = -1;
 
 	bool simulationActive = false;
+	bool useForces_ = false;
 
 	float playerRotation = 0.0f;
 
@@ -215,10 +245,10 @@ private:
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;
 
-	// NPC / Defaults Data
-	std::unordered_map<int, glm::vec2> npcVelocities_;
+	// Defaults data
 	std::unordered_map<int, Defaults> defaults_;
 
+	// Resize tracking
 	int lastWidth_ = -1;
 	int lastHeight_ = -1;
 	bool resetBaseline_ = false;

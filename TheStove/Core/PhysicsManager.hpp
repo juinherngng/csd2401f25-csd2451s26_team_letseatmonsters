@@ -4,42 +4,64 @@
 #include "CollisionManager.hpp"
 #include "InputManager.hpp"
 #include "Math.hpp"
+#include "Forces.hpp"
 #include "../Graphics/EntityManager.hpp"
 #include <unordered_map>
-#include <glm/glm.hpp>
+#include <memory>
 
 /**
- * @class PhysicsManager
- * @brief Centralized physics simulation and collision response
+ * @brief Lightweight force-based physics for entities
  *
- * Responsibilities:
- * - Velocity integration for NPCs
- * - Lane-based movement with wall bouncing
- * - Player vs NPC collision separation
- * - Boundary clamping
+ * Manages per-entity physics state (velocity, mass) and force generators
+ * without requiring RigidBody2D components.
  */
 class PhysicsManager {
 public:
     PhysicsManager() = default;
     ~PhysicsManager() = default;
 
-    // Core update - integrate velocities and resolve collisions
+    // Core update
     void Update(float deltaTime,
         EntityManager& entityManager,
-        CollisionManager& collisionManager,
-        InputManager& inputManager,
-        int playerID,
-        const std::unordered_map<int, glm::vec2>& npcVelocities);
+        InputManager& inputManager);
 
-    // Access to step controller (for debug/pause)
+    // Entity physics setup
+    void EnablePhysics(int entityID, float mass = 1.0f);
+    void DisablePhysics(int entityID);
+    bool HasPhysics(int entityID) const;
+
+    // Force-based movement control
+    void SetSeekTarget(int entityID, const Math::Vector2D& target);
+    void ClearSeekTarget(int entityID);
+
+    // Access to step controller
     physics::StepController& GetStepController() { return physicsStep_; }
-    const physics::StepController& GetStepController() const { return physicsStep_; }
+
+    void Clear();
 
 private:
+    struct PhysicsState {
+        Math::Vector2D velocity{ 0.0f, 0.0f };
+        Math::Vector2D forceAccum{ 0.0f, 0.0f };
+        float invMass = 1.0f;
+        float damping = 0.98f;
+    };
+
     physics::StepController physicsStep_;
 
-    // Helper methods
-    void IntegrateNPCVelocities(float dt,
-        EntityManager& entityManager,
-        const std::unordered_map<int, glm::vec2>& npcVelocities);
+    // Per-entity physics state
+    std::unordered_map<int, PhysicsState> physicsStates_;
+
+    // Per-entity seek targets
+    std::unordered_map<int, Math::Vector2D> seekTargets_;
+
+    // Force generators (shared across all entities)
+    DragForce dragForce_{ 0.9f, 0.1f };  // Air resistance
+
+    // Constants
+    static constexpr float SEEK_MAX_ACCEL = 600.0f;
+    static constexpr float ARRIVE_RADIUS = 10.0f;
+
+    // Helpers
+    void IntegrateEntity(int entityID, float dt, EntityManager& entityManager);
 };

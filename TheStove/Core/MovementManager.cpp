@@ -11,6 +11,7 @@ void MovementManager::Update(float deltaTime, EntityManager& entityManager, Inpu
     // Update player movement (WASD + click-to-move)
     if (playerID_ >= 0) {
         UpdatePlayerMovement(deltaTime, entityManager, inputManager);
+        UpdateSpriteDirection(playerID_, entityManager);
     }
 
     // Update all objects with click-to-move or patrol
@@ -248,3 +249,46 @@ void MovementManager::UpdateNPCPatrol(int objectID, MovementData& data, float de
     pos3D.y += data.velocity.y * deltaTime;
     obj->SetPosition(pos3D);
 }
+
+void MovementManager::UpdateSpriteDirection(int entityID, EntityManager& entityManager) {
+    auto it = movementData_.find(entityID);
+    if (it == movementData_.end()) return;
+
+    GameObject* sprite = entityManager.GetByID(entityID);
+    if (!sprite) return;
+
+    const MovementData& data = it->second;  
+
+    // Only update texture if the entity is actually moving
+    const glm::vec2& velocity = data.velocity;
+    float magnitude = std::sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
+    if (magnitude < 0.001f) return; // Not moving enough to determine direction
+
+    float ax = std::abs(velocity.x);
+    float ay = std::abs(velocity.y);
+
+    if (ax > ay) {
+        // Horizontal movement 
+        if (velocity.x > 0.0f) {
+            sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+                "../assets/mc_sprite_right.png", "../assets/mc_sprite_right.png"));
+        }
+        else {
+            sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+                "../assets/mc_sprite_left.png", "../assets/mc_sprite_left.png"));
+        }
+    }
+    else {
+        // Vertical movement 
+        if (velocity.y > 0.0f) {
+            sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+                "../assets/mc_sprite_front.png", "../assets/mc_sprite_front.png"));
+        }
+        else {
+            sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+                "../assets/mc_sprite_back.png", "../assets/mc_sprite_back.png"));
+        }
+    }
+}
+

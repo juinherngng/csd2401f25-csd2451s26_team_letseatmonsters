@@ -21,13 +21,11 @@ GameObject* EntityManager::SpawnStaticSprite(const std::string& texturePath,
     const glm::vec3& pos,
     const glm::vec2& size) {
     int id = AcquireID();
-    std::cout << "  Acquired ID: " << id << std::endl;  // ✅ ADD THIS
+    std::cout << "  Acquired ID: " << id << std::endl;  
 
-    // ✅ FIX 1: Use "staticsprite" shader, not "sprite"
     Mesh* quadMesh = ResourceManager::Instance().GetMesh("sprite");
     Shader* spriteShader = ResourceManager::Instance().GetShader("staticsprite");
 
-    // ✅ FIX 2: Add "sprite_" prefix to texture name (matching old behavior)
     std::string textureName = "staticsprite_" + texturePath;
     Texture* texture = ResourceManager::Instance().LoadTexture(textureName, texturePath);
 
@@ -63,11 +61,9 @@ GameObject* EntityManager::SpawnAnimatedSprite(const std::string& texturePath,
     bool loop) {
     int id = AcquireID();
 
-    // ✅ FIX 3: Use "animatedsprite" shader, not "sprite"
     Mesh* quadMesh = ResourceManager::Instance().GetMesh("sprite");
     Shader* spriteShader = ResourceManager::Instance().GetShader("animatedsprite");
 
-    // ✅ FIX 4: Add "sprite_" prefix to texture name
     std::string textureName = "animatedsprite_" + texturePath;
     Texture* texture = ResourceManager::Instance().LoadTexture(textureName, texturePath);
 
@@ -83,7 +79,6 @@ GameObject* EntityManager::SpawnAnimatedSprite(const std::string& texturePath,
     // Set texture
     obj->SetTexture(texture);
 
-    // ✅ FIX 5: Set the FIRST frame from the frames vector (not full texture)
     std::vector<glm::vec4> safeFrames = frames;
     if (safeFrames.empty()) {
         safeFrames.push_back(glm::vec4(0.f, 0.f, 1.f, 1.f)); // fallback

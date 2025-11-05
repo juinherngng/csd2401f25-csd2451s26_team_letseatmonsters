@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <unordered_map>
+#include <iostream>
 
 namespace fs = std::filesystem;
 
@@ -1577,7 +1578,7 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 
 		if (!g) {
 			std::cerr << "Failed to spawn object: " << obj.texture << std::endl;
-			continue;  // ✅ CORRECT - skip this object, continue with next
+			continue;  // skip this object, continue with next
 		}
 
 

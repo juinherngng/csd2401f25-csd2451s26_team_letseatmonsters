@@ -44,6 +44,9 @@ public:
     bool IsMoving(int objectID) const;
     glm::vec2 GetVelocity(int objectID) const;
 
+	// Sprite direction update
+    void UpdateSpriteDirection(int entityID, EntityManager& entityManager);
+
 private:
     // Player tracking
     int playerID_ = -1;

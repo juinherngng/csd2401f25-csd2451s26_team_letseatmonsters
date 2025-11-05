@@ -14,9 +14,9 @@ DESCRIPTION:
 	- Apply velocity to the attached Transform each frame (in Update).
 	- Provide simple physics behavior (e.g., movement, collision stubs).
 
-	Intended as a starting point for the engine’s physics system.
+	Intended as a starting point for the engineï¿½s physics system.
 
-All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
