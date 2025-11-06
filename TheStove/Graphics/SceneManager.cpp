@@ -185,9 +185,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	if (simulationActive)
 	{
-	// NEW: run all scripts
-	logicManager.StartAll(*this);
-	logicManager.UpdateAll(deltaTime, *this, inputManager);
+		// NEW: run all scripts
+		logicManager.StartAll(*this);
+		logicManager.UpdateAll(deltaTime, *this, inputManager);
 		// Handle player input
 		playerController.HandleInput(deltaTime, inputManager, entityManager,
 			movementManager, physicsManager,

@@ -56,9 +56,9 @@ void GraphicsEngine::Initialize() {
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 		// Bigger UI
-		io.FontGlobalScale = 1.35f;
+		io.FontGlobalScale = 1.2f;
 		ImGuiStyle& style = ImGui::GetStyle();
-		style.ScaleAllSizes(1.35f);
+		style.ScaleAllSizes(1.2f);
 
 		ImGui::StyleColorsDark();
 
@@ -321,11 +321,25 @@ void GraphicsEngine::DrawSceneDockWindow() {
 			ImVec2(1, 0)    // uv1
 		);
 
+
+
 		// Overlay an invisible hit proxy exactly matching the scene image.
 		// This makes ImGui "hover/active" states line up with the scene viewport.
 		if (sceneImageSize_.x > 1.0f && sceneImageSize_.y > 1.0f) {
+			// Draw the texture (flip vertically) as a clickable image to capture hover/click.
 			ImGui::SetCursorScreenPos(sceneImagePos_);
-			ImGui::InvisibleButton("##SceneHitProxy", sceneImageSize_, ImGuiButtonFlags_MouseButtonLeft);
+			const bool pressed = ImGui::ImageButton(
+				"##SceneImageBtn",
+				(ImTextureID)(intptr_t)mSceneColor,
+				ImVec2(sceneImageSize_.x, sceneImageSize_.y),
+				ImVec2(0, 1),   // uv0 (flip vertically)
+				ImVec2(1, 0)    // uv1
+			);
+
+			// Debug click ping to prove clicks are inside the Scene image
+			if (pressed || ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+				std::cout << "[Scene] LMB click inside Scene image\n";
+			}
 		}
 	}
 
@@ -351,37 +365,70 @@ void GraphicsEngine::BeginFrame() {
 }
 
 bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
-	// If Scene window hasn't drawn yet this frame
-	if (sceneImageSize_.x <= 1.0f || sceneImageSize_.y <= 1.0f) {
+	// We will use a local rect this frame; start from the cached one.
+	ImVec2 imgPos = sceneImagePos_;
+	ImVec2 imgSize = sceneImageSize_;
+
+	// Fallback if the Scene window hasn't drawn yet this frame.
+	if (imgSize.x <= 1.0f || imgSize.y <= 1.0f) {
+		// Try to find the Scene window and compute the centered image rect with correct aspect.
+		ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
+		if (sceneWin) {
+			// Content rect in **screen** space
+			const ImRect c = sceneWin->InnerRect; // already screen-space min/max
+			const float availW = c.GetWidth();
+			const float availH = c.GetHeight();
+
+			const float targetAspect = float(kRefW) / float(kRefH);
+			float w = availW, h = availH, r = w / h;
+			if (r > targetAspect) { w = h * targetAspect; }
+			else { h = w / targetAspect; }
+
+			// Center inside content rect
+			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f, c.Min.y + (availH - h) * 0.5f);
+			imgSize = ImVec2(w, h);
+		}
+		else {
+			// Last-resort: center in the main viewport's work area
+			ImGuiViewport* vp = ImGui::GetMainViewport();
+			const float availW = vp->WorkSize.x;
+			const float availH = vp->WorkSize.y;
+
+			const float targetAspect = float(kRefW) / float(kRefH);
+			float w = availW, h = availH, r = w / h;
+			if (r > targetAspect) { w = h * targetAspect; }
+			else { h = w / targetAspect; }
+
+			imgPos = ImVec2(vp->WorkPos.x + (availW - w) * 0.5f, vp->WorkPos.y + (availH - h) * 0.5f);
+			imgSize = ImVec2(w, h);
+		}
+		// NOTE: we intentionally **do not** print the "invalid size" spam anymore.
+	}
+
+	// Mouse in absolute screen space
+	const ImVec2 mouse = ImGui::GetMousePos();
+
+	// Early out if outside the image rect (using the local rect computed above)
+	if (mouse.x < imgPos.x || mouse.y < imgPos.y ||
+		mouse.x > imgPos.x + imgSize.x || mouse.y > imgPos.y + imgSize.y) {
 		return false;
 	}
 
-	// Mouse in absolute screen coordinates
-	ImVec2 mouse = ImGui::GetMousePos();
+	// Local (0..size) inside the image
+	const float localX = mouse.x - imgPos.x;
+	const float localY = mouse.y - imgPos.y;
 
-	// Early out if outside the image rect
-	if (mouse.x < sceneImagePos_.x || mouse.y < sceneImagePos_.y ||
-		mouse.x > sceneImagePos_.x + sceneImageSize_.x ||
-		mouse.y > sceneImagePos_.y + sceneImageSize_.y) {
-		return false;
-	}
-
-	// Local position (0..size) within the image
-	const float localX = mouse.x - sceneImagePos_.x;
-	const float localY = mouse.y - sceneImagePos_.y;
-
-	// UV inside the image (0..1)
-	const float u = localX / sceneImageSize_.x;
-	const float v = localY / sceneImageSize_.y;
+	// UV (0..1)
+	const float u = localX / imgSize.x;
+	const float v = localY / imgSize.y;
 
 	const float px = u * float(kRefW);
 	const float py = v * float(kRefH);
 
-	// Convert FBO pixel (px,py) -> world using inverse(View * Projection)
-	// First go from pixels to NDC:
+	// Convert FBO pixel (px,py) -> world using inverse(View*Projection) ...
 	glm::vec4 clip;
-	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;   // [-1,1]
-	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;   // [-1,1] (top->+1)
+	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;
+	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;
 	clip.z = 0.0f;
 	clip.w = 1.0f;
 
@@ -391,6 +438,7 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	outWorld = glm::vec2(world4.x, world4.y);
 	return true;
 }
+
 
 
 // Render the background and then all provided GameObjects

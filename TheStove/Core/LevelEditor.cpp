@@ -227,18 +227,21 @@ static bool IsPointInsideObject(const ImVec2 pointPx, const GameObject* obj) {
 // NOT WORKING
 // Scene picking / dragging (Scene viewport only; respects ImGui capture)
 static void HandleScenePickDrag(Scene& scene, int& selectedIndex, int& selectedObjectId) {
-	ImGuiIO& io = ImGui::GetIO();
-
+	/*ImGuiIO& io = ImGui::GetIO();
 	if (io.WantCaptureMouse) {
 		return;
-	}
+	}*/
 
-	// Ask GraphicsEngine where the mouse is *inside the Scene image*
 	glm::vec2 mouseWorld;
-
 	if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {
-		return; // mouse not over the Scene viewport this frame
+		return; // not over the Scene image
 	}
+	// Prove we're actually inside the Scene image (world coords)
+	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+		std::cout << "[LE] Click in Scene@(" << mouseWorld.x << "," << mouseWorld.y << ")\n";
+	}
+
+
 
 	static bool isDragging = false;
 	static int draggingId = -1;
@@ -533,6 +536,10 @@ void LevelEditor::DrawUI(Scene& scene) {
 				SyncSceneToLevel(scene, playStartSnapshot);
 
 				isPlaying = true;
+
+				// drop any current selection/dragging state
+				selectedIndex = -1;
+				selectedObjectId = -1;
 
 				scene.SetSimulationActive(true);
 				scene.ClearAll();
@@ -990,133 +997,39 @@ void LevelEditor::DrawUI(Scene& scene) {
 			}
 		}
 
-		// Scene viewport area: drop-zone + pick/drag
+		// Scene viewport area: DROP-ZONE ONLY (picking/dragging happens on the Scene tab)
 		ImGui::Separator();
-
 		ImGui::TextDisabled("Drop prefab to instantiate,\nor texture to apply to selected");
 
 		ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+		if (viewportSize.y < 64.f) viewportSize.y = 64.f;
+		if (viewportSize.x < 64.f) viewportSize.x = 64.f;
 
-		if (viewportSize.y < 64.f) {
-			viewportSize.y = 64.f;
-		}
-		if (viewportSize.x < 64.f) {
-			viewportSize.x = 64.f;
-		}
-
-		// One big interactive area
-		ImGui::InvisibleButton("##SceneViewport", viewportSize, ImGuiButtonFlags_MouseButtonLeft);
+		// Keep this as a passive area: we still want to accept drops here.
+		ImGui::InvisibleButton("##SceneViewport", viewportSize, ImGuiButtonFlags_None);
 
 		const bool viewportHovered = ImGui::IsItemHovered();
 		const bool viewportActive = ImGui::IsItemActive();
-
 		InputManager::Get().SetSceneViewportWantsGameMouse(viewportHovered || viewportActive);
 
-		// Drag-state for viewport dragging
-		static bool isDragging = false;
-		static int draggingObjectId = -1;
-		static ImVec2 grabOffsetPx = ImVec2(0.f, 0.f);
-
-		// Collect current objects (also used by drop handling below)
+		// We still allow dropping prefabs/textures here (unchanged)
 		std::vector<GameObject*> objectListForViewport;
 		scene.CollectRenderablePointers(objectListForViewport);
 
-		// Begin pick if user presses LMB inside the viewport and no ImGui drag-drop is in progress
-		if (viewportHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsDragDropActive()) {
-			const ImVec2 mouseScreen = ImGui::GetIO().MousePos;
-
-			// Pick topmost by iterating back-to-front.
-			int pickedIndex = -1;
-
-			for (int i = static_cast<int>(objectListForViewport.size()) - 1; i >= 0; --i) {
-				GameObject* g = objectListForViewport[i];
-
-				if (!g) {
-					continue;
-				}
-
-				if (IsPointInsideObject(mouseScreen, g)) {
-					pickedIndex = i;
-					break;
-				}
-			}
-
-			if (pickedIndex >= 0) {
-				// Select in hierarchy
-				selectedIndex = pickedIndex;
-				draggingObjectId = objectListForViewport[pickedIndex]->GetID();
-
-				// Calculate grab offset so the object doesn't snap its center to the mouse instantly
-				const glm::vec3 pos = objectListForViewport[pickedIndex]->GetPositionGLM();
-				grabOffsetPx = ImVec2(mouseScreen.x - pos.x, mouseScreen.y - pos.y);
-
-				isDragging = true;
-			}
-			else {
-				// Clicked empty space; clear drag state
-				isDragging = false;
-				draggingObjectId = -1;
-			}
-		}
-
-		// While dragging with LMB down, move selected object with clamp
-		if (isDragging && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-			GameObject* g = scene.GetGameObjectByID(draggingObjectId);
-
-			if (g) {
-				const ImVec2 mouseScreen = ImGui::GetIO().MousePos;
-
-				const float newX = mouseScreen.x - grabOffsetPx.x;
-				const float newY = mouseScreen.y - grabOffsetPx.y;
-
-				// Apply in one place so Properties stay in sync
-				const glm::vec3 currentScale = g->GetScaleGLM();
-				const float rotationDeg = glm::degrees(g->GetRotationAngleZ());
-
-				// Update transform using your existing helper (rotation stored in degrees at editor layer)
-				scene.SetTransformFromLevel(draggingObjectId,
-					glm::vec3(newX, newY, g->GetPositionGLM().z),
-					glm::vec3(currentScale.x, currentScale.y, 1.0f),
-					rotationDeg);
-
-				// Clamp to walkable area and bounce/order as per your existing rules
-				scene.ClampToWalkArea(g);
-			}
-		}
-		else {
-			if (isDragging && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-				// Stop dragging when mouse is released
-				isDragging = false;
-				draggingObjectId = -1;
-			}
-		}
-
-		// Accept drag-drop
-		if (ImGui::BeginDragDropTarget()) {
+		if (!isPlaying && ImGui::BeginDragDropTarget()) {
 			if (const ImGuiPayload* pp = ImGui::AcceptDragDropPayload("PREFAB_PATH")) {
 				const char* dropped = static_cast<const char*>(pp->Data);
-
 				LevelObject data{};
-
 				if (LoadPrefabFromFile(dropped, data)) {
 					GameObject* g = scene.SpawnStaticSprite(data.texture, { data.x, data.y, data.z }, { data.w, data.h });
-
 					sPrefabLinkByID[g->GetID()] = dropped;
-
 					if (g) {
 						g->SetRotation(glm::radians(data.rotation), { 0,0,1 });
 						g->SetColliderSize({ data.colWidth, data.colHeight });
 						g->SetColliderOffset({ data.colOffsetX, data.colOffsetY });
-
 						scene.SetObjectTexturePath(g->GetID(), data.texture);
-
-						scene.SetTransformFromLevel(
-							g->GetID(),
-							{ data.x, data.y, data.z },
-							{ data.w, data.h, 1.0f },
-							data.rotation
-						);
-
+						scene.SetTransformFromLevel(g->GetID(), { data.x, data.y, data.z }, { data.w, data.h, 1.0f }, data.rotation);
+						scene.SetNPCVelocity(g->GetID(), data.speedX, data.speedY);
 						scene.ClampToWalkArea(g);
 					}
 				}
@@ -1124,21 +1037,20 @@ void LevelEditor::DrawUI(Scene& scene) {
 
 			if (const ImGuiPayload* tp = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
 				const char* dropped = static_cast<const char*>(tp->Data);
-
-				if (selectedIndex >= 0 && selectedIndex < (int)objectListForViewport.size() && objectListForViewport[selectedIndex]) {
+				if (!objectListForViewport.empty() && selectedIndex >= 0 &&
+					selectedIndex < (int)objectListForViewport.size() &&
+					objectListForViewport[selectedIndex]) {
 					GameObject* o = objectListForViewport[selectedIndex];
 					const int id2 = o->GetID();
-
 					scene.SetObjectTexturePath(id2, dropped);
-
 					if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + std::string(dropped)), dropped)) {
 						o->SetTexture(tex);
 					}
 				}
 			}
-
 			ImGui::EndDragDropTarget();
 		}
+
 	}
 
 	ImGui::End(); // Level window
@@ -1543,8 +1455,10 @@ void LevelEditor::DrawUI(Scene& scene) {
 		ImGui::EndChild();
 	}
 
-	// Scene pick/drag integration (separate helper also handles dragging if mouse is on the Scene image).
-	HandleScenePickDrag(scene, selectedIndex, selectedObjectId);
+	// Disable editor picking/dragging while the game is running
+	if (!isPlaying) {
+		HandleScenePickDrag(scene, selectedIndex, selectedObjectId);
+	}
 
 	ImGui::End(); // Assets window
 }
