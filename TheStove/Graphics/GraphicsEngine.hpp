@@ -156,5 +156,5 @@ private:
 	} renderStats;
 
 	// Instancing threshold
-	static constexpr int INSTANCING_THRESHOLD = 2;
+	static constexpr int INSTANCING_THRESHOLD = 10;
 };

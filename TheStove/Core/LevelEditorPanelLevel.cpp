@@ -3,6 +3,7 @@
  FILE NAME:         LevelEditorPanelLevel.cpp
  PROJECT NAME:      Project GAM200
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
+ CO-AUTHOR:			Seah Wang Hua, wanghua.seah"@digipen.edu
 
  DESCRIPTION:       Implementation of the Level panel.
 					- Load/Save levels to JSON
@@ -12,7 +13,7 @@
 					- Drag-drop prefab/texture instantiation
 					- Keeps LevelData synchronized with Scene state
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -57,7 +58,7 @@ namespace {
 			if (obj.animated) {
 				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h },
-					fullFrame, 0.25f, true);
+					fullFrame, 0.25f, true, obj.layer);
 
 				if (obj.texture.find("dino") != std::string::npos) {
 					scene.AttachDinoAnimations(g->GetID());
@@ -65,7 +66,7 @@ namespace {
 				}
 			}
 			else {
-				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h });
+				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, obj.layer);
 			}
 
 			if (!g) {
@@ -121,6 +122,7 @@ namespace {
 			defs.vel = { obj.speedX, obj.speedY };
 			defs.texture = obj.texture;
 			defs.tag = obj.tag;
+			defs.layer = obj.layer;
 
 			scene.SetDefaults(g->GetID(), defs);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
@@ -143,6 +145,7 @@ namespace {
 			LevelObject out{};
 			out.texture = scene.GetObjectTexturePath(g->GetID());
 			out.animated = scene.HasAnimations(g->GetID());
+			out.layer = scene.GetObjectLayer(g->GetID());
 
 			const glm::vec3 p = g->GetPositionGLM();
 			const glm::vec3 s = g->GetScaleGLM();
@@ -316,9 +319,10 @@ namespace LEPANELLEVEL {
 					}
 				}
 
+				std::string layer = scene.GetObjectLayer(gid);
 				std::string label = niceName.empty()
-					? ("ID " + std::to_string(gid))
-					: (niceName + " (ID " + std::to_string(gid) + ")");
+					? ("ID " + std::to_string(gid) + " [Layer: " + layer + "]")
+					: (niceName + " (ID " + std::to_string(gid) + ") [Layer: " + layer + "]");
 
 				// When playing, draw items but DO NOT allow selection to change
 				if (editor.IsPlaying()) {
@@ -508,6 +512,17 @@ namespace LEPANELLEVEL {
 			ImGui::Text("Tag"); ImGui::NextColumn();
 			FullWidthNext();
 			ImGui::InputText("##Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
+			ImGui::NextColumn();
+
+			// Layer
+			ImGui::Text("Layer"); ImGui::NextColumn();
+			FullWidthNext();
+
+			char layerBuf[64] = "";
+			std::string layerName = scene.GetObjectLayer(id);
+			std::snprintf(layerBuf, sizeof(layerBuf), "%s", layerName.c_str());
+
+			ImGui::InputText("##Layer", layerBuf, IM_ARRAYSIZE(layerBuf), ImGuiInputTextFlags_ReadOnly);
 			ImGui::NextColumn();
 
 			// Position

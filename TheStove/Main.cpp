@@ -520,6 +520,13 @@ static void draw(ApplicationState& app) {
 	//graphicsEngine->Render(drawList);
 	graphicsEngine->RenderBatched(drawList);
 
+	app.debugApp->SetRenderStats(
+		app.graphicsEngine->GetTotalObjects(),
+		app.graphicsEngine->GetBatchCount(),
+		app.graphicsEngine->GetInstancedObjectCount(),
+		app.graphicsEngine->GetDrawCallCount()
+	);
+
 	glfwSwapBuffers(app.window);
 }
 

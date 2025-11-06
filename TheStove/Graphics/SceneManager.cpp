@@ -171,6 +171,17 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Input is now updated by CoreEngine's system, no need to call Update here
 	// inputManager.Update(window); // REMOVED - handled by CoreEngine
 
+	// Deferred Clear
+	if (pendingClear_) {
+		ClearAll();
+		RebuildColliders();
+		pendingClear_ = false;
+		return;  // Skip rest of update this frame
+	}
+
+	// Update input
+	inputManager.Update(window);
+
 	// Process input commands (debug toggles, force toggle, etc.)
 	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager,
 		spriteID, useForces_, showAuxDebug_);
@@ -254,8 +265,15 @@ void Scene::SetPlayerID(int id) {
 
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	const glm::vec3 position,
-	const glm::vec2 size) {
-	return entityManager.SpawnStaticSprite(texturePath, position, size);
+	const glm::vec2 size,
+	const std::string& layer)
+{
+	GameObject* obj = entityManager.SpawnStaticSprite(texturePath, position, size);
+	if (obj) {
+		int id = obj->GetID();
+		AssignObjectToLayer(id, layer);
+	}
+	return obj;
 }
 
 GameObject* Scene::SpawnAnimatedSprite(
@@ -263,9 +281,15 @@ GameObject* Scene::SpawnAnimatedSprite(
 	const glm::vec3 position,
 	const glm::vec2 size,
 	const std::vector<glm::vec4> frames,
-	float frameDuration, bool loop)
+	float frameDuration, bool loop,
+	const std::string& layer)
 {
-	return entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
+	GameObject* obj = entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
+	if (obj) {
+		int id = obj->GetID();
+		AssignObjectToLayer(id, layer);
+	}
+	return obj;
 }
 
 GameObject* Scene::GetGameObjectByID(int targetID) {
@@ -681,12 +705,11 @@ void Scene::GenerateStressTest(int objectCount) {
 		}
 	}
 
-	std::cout << "[Scene] Stress test complete:\n";
-	std::cout << "  - Total objects: " << objectCount << "\n";
-	std::cout << "  - Random positions\n";
-	std::cout << "  - Random velocities\n";
-	std::cout << "  - Mixed textures (" << texturePaths.size() << " types)\n";
-	std::cout << "  - Scene total: " << entityManager.GetObjectCount() << " objects\n";
+	std::cout << "[Scene] Stress test loaded\n";
+}
+
+void Scene::RequestClearAll() {
+	pendingClear_ = true;
 }
 
 void Scene::AttachLogicForTag(int id, const std::string& tag) {
@@ -711,4 +734,34 @@ GraphicsEngine& Scene::GetGraphicsEngine() {
 
 const GraphicsEngine& Scene::GetGraphicsEngine() const {
 	return graphicsEngine;
+}
+
+void Scene::AddLayer(const std::string& name) {
+	layers.try_emplace(name, name); // Only add if missing
+}
+
+Layer* Scene::GetLayer(const std::string& name) {
+	auto it = layers.find(name);
+	return it != layers.end() ? &(it->second) : nullptr;
+}
+
+const std::unordered_map<std::string, Layer>& Scene::GetAllLayers() const {
+	return layers;
+}
+
+std::string Scene::GetObjectLayer(int objectID) const {
+	auto it = defaults_.find(objectID);
+	if (it != defaults_.end()) {
+		return it->second.layer;
+	}
+	return "";
+}
+
+void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
+	// Remove object from all layers' ID lists
+	for (auto& pair : layers)
+		pair.second.RemoveObject(id);
+	// Register object ID with chosen layer (creates if missing)
+	layers[newLayer].AddObject(id);
+	defaults_[id].layer = newLayer; // For UI/metadata
 }
