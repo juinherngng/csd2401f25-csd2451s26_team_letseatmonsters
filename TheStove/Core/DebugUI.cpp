@@ -19,6 +19,7 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 #include "../Graphics/GraphicsEngine.hpp"
 #include <algorithm>
 #include <unordered_set>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Debug
 {
@@ -57,6 +58,14 @@ namespace Debug
 
 	// Implicit dtor for the debugger
 	void DebuggerApp::Shutdown() {
+		// Shutdown font system components
+		if (fontSystemInitialized)
+		{
+			FontSystem::TextRenderer::Instance().Shutdown();
+			FontSystem::FontManager::Instance().Shutdown();
+			fontSystemInitialized = false;
+		}
+		
 		isInitialised = false; // only mark state, do not shutdown ImGui here
 		std::cout << "Debugger Destructed with Shutdown\n";
 	}
@@ -80,7 +89,100 @@ namespace Debug
 		}
 		
 		isInitialised = true;
+		
+		// Initialize font system
+		InitializeFontSystem();
+		
 		return true;
+	}
+
+	void DebuggerApp::InitializeFontSystem()
+	{
+		// Initialize FontManager
+		if (!FontSystem::FontManager::Instance().Initialize())
+		{
+			std::cerr << "Failed to initialize FontManager\n";
+			return;
+		}
+
+		// Initialize TextRenderer
+		if (!FontSystem::TextRenderer::Instance().Initialize())
+		{
+			std::cerr << "Failed to initialize TextRenderer\n";
+			FontSystem::FontManager::Instance().Shutdown();
+			return;
+		}
+
+		// Load fonts from assets folder
+		// Load ChrustyRock font
+		FontSystem::Font* fontChrusty = FontSystem::FontManager::Instance().LoadFont(
+			"chrusty", 
+			"../assets/Font/ChrustyRock-ORLA.ttf",
+			48  // Font size
+		);
+
+		// Load ToThePoint font as fallback/default
+		FontSystem::Font* fontToThePoint = FontSystem::FontManager::Instance().LoadFont(
+			"tothepoint", 
+			"../assets/Font/ToThePointRegular-n9y4.ttf",
+			48  // Font size
+		);
+
+		// Check if at least one font loaded successfully
+		if (!fontChrusty && !fontToThePoint)
+		{
+			std::cerr << "Failed to load any fonts from assets folder\n";
+			FontSystem::TextRenderer::Instance().Shutdown();
+			FontSystem::FontManager::Instance().Shutdown();
+			return;
+		}
+
+		// Use ChrustyRock as the primary font if it loaded, otherwise use ToThePoint
+		FontSystem::Font* primaryFont = fontChrusty ? fontChrusty : fontToThePoint;
+		FontSystem::Font* secondaryFont = fontToThePoint ? fontToThePoint : fontChrusty;
+
+		// Setup first text object with primary font
+		text1.SetFont(primaryFont);
+		text1.SetText("FPS Counter");
+		text1.SetPosition(glm::vec2(50.0f, 50.0f));
+		text1.SetColor(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f)); // Green
+		text1.SetScale(0.5f);
+
+		// Setup second text object with secondary font
+		text2.SetFont(secondaryFont);
+		text2.SetText("TheStove Engine");
+		text2.SetPosition(glm::vec2(50.0f, 750.0f));
+		text2.SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)); // Yellow
+		text2.SetScale(0.75f);
+
+		fontSystemInitialized = true;
+		std::cout << "Font system initialized successfully!\n";
+		std::cout << "Loaded fonts from assets folder:\n";
+		if (fontChrusty) std::cout << "  - ChrustyRock-ORLA.ttf\n";
+		if (fontToThePoint) std::cout << "  - ToThePointRegular-n9y4.ttf\n";
+		AddDebugLine("Font system initialized with fonts from assets folder\n");
+	}
+
+	void DebuggerApp::RenderTextOverlays()
+	{
+		if (!fontSystemInitialized)
+			return;
+
+		// Get the current window dimensions
+		int width = GraphicsEngine::Instance().GetWidth();
+		int height = GraphicsEngine::Instance().GetHeight();
+
+		// Create orthographic projection for screen space rendering
+		glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(width), 
+										  static_cast<float>(height), 0.0f);
+
+		// Update first text with current FPS
+		std::string fpsText = "FPS: " + std::to_string(static_cast<int>(fps));
+		text1.SetText(fpsText);
+
+		// Render both text objects
+		FontSystem::TextRenderer::Instance().RenderText(text1, projection);
+		FontSystem::TextRenderer::Instance().RenderText(text2, projection);
 	}
 
 	void DebuggerApp::UpdateDebuggerApp()
@@ -353,6 +455,48 @@ namespace Debug
 			ImGui::Text("Total Batches: %d", totalBatches);
 			ImGui::Text("Instanced Objects: %d", instancedObjects);
 			ImGui::Text("Draw Calls: %d", drawCalls);
+			
+			// Font System Controls
+			ImGui::Separator();
+			ImGui::Text("---- Text Overlays ----");
+			if (fontSystemInitialized)
+			{
+				static char text1Buffer[256] = "FPS Counter";
+				static char text2Buffer[256] = "TheStove Engine";
+				static float text1Pos[2] = { 50.0f, 50.0f };
+				static float text2Pos[2] = { 50.0f, 750.0f };
+				static float text1Scale = 0.5f;
+				static float text2Scale = 0.75f;
+				static float text1Color[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
+				static float text2Color[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
+
+				ImGui::Text("Text 1 (FPS Display):");
+				ImGui::InputText("##text1", text1Buffer, sizeof(text1Buffer));
+				ImGui::SliderFloat2("Position##text1", text1Pos, 0.0f, 1200.0f);
+				ImGui::SliderFloat("Scale##text1", &text1Scale, 0.1f, 2.0f);
+				ImGui::ColorEdit4("Color##text1", text1Color);
+
+				ImGui::Separator();
+				ImGui::Text("Text 2 (Title):");
+				ImGui::InputText("##text2", text2Buffer, sizeof(text2Buffer));
+				ImGui::SliderFloat2("Position##text2", text2Pos, 0.0f, 800.0f);
+				ImGui::SliderFloat("Scale##text2", &text2Scale, 0.1f, 2.0f);
+				ImGui::ColorEdit4("Color##text2", text2Color);
+
+				// Apply changes to text objects
+				text1.SetPosition(glm::vec2(text1Pos[0], text1Pos[1]));
+				text1.SetScale(text1Scale);
+				text1.SetColor(glm::vec4(text1Color[0], text1Color[1], text1Color[2], text1Color[3]));
+				
+				text2.SetText(text2Buffer);
+				text2.SetPosition(glm::vec2(text2Pos[0], text2Pos[1]));
+				text2.SetScale(text2Scale);
+				text2.SetColor(glm::vec4(text2Color[0], text2Color[1], text2Color[2], text2Color[3]));
+			}
+			else
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Font System not initialized!");
+			}
 			
 			ImGui::Separator();
 			ImGui::Text("---- Audio ----");

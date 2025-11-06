@@ -520,6 +520,12 @@ static void draw(ApplicationState& app) {
 	//graphicsEngine->Render(drawList);
 	graphicsEngine->RenderBatched(drawList);
 
+	// Render text overlays on top of everything
+	if (app.debugApp)
+	{
+		app.debugApp->RenderTextOverlays();
+	}
+
 	glfwSwapBuffers(app.window);
 }
 
