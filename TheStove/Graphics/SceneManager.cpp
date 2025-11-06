@@ -180,7 +180,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Update input
-	inputManager.Update(window);
+	inputManager.Update(deltaTime);
 
 	// Process input commands (debug toggles, force toggle, etc.)
 	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager,
@@ -203,7 +203,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	if (simulationActive)
 	{
-		// NEW: run all scripts
+		// run all scripts
 		logicManager.StartAll(*this);
 		logicManager.UpdateAll(deltaTime, *this, inputManager);
 		// Handle player input
