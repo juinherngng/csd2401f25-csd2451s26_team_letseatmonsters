@@ -8,7 +8,7 @@ void SimpleNpcLogic::Awake(Scene& scene) {
     (void)scene;
     timer = 0.0f;
     state = State::Idle;
-    nextMoveUp = false; // first move: down
+    //nextMoveUp = false; // first move: down
 }
 
 void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
@@ -22,6 +22,8 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 
     timer += dt;
 
+    // Velocity as authored in the editor / level file
+    glm::vec2 vel = scene.GetNPCVelocity(npc->GetID());
     glm::vec3 pos = npc->GetPositionGLM();
 
     // Step 1: compute desired movement based on state
@@ -34,11 +36,13 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
         break;
 
     case State::MoveUp:
-        pos.y -= speed * dt; // in this engine, smaller y is visually "up"
+        pos.x += vel.x * dt;
+        pos.y -= vel.y * dt;
         break;
 
     case State::MoveDown:
-        pos.y += speed * dt; // larger y is "down"
+        pos.x += vel.x * dt;
+        pos.y += vel.y * dt; // larger y is "down"
         break;
     }
 
