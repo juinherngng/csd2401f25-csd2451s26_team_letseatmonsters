@@ -21,9 +21,9 @@
 #include "NPCSystem.hpp"
 
 void NPCSystem::Update(float deltaTime, EntityManager& entityManager, CollisionManager& collisionManager, const collision::WalkArea& walkArea) {
-    //UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
+    UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
     HandleNPCCollisions(entityManager);
-    //UpdateGenericNPCs(deltaTime, entityManager, walkArea);
+    UpdateGenericNPCs(deltaTime, entityManager, walkArea);
 }
 
 void NPCSystem::SetNPCVelocity(int npcID, const glm::vec2& velocity) {
