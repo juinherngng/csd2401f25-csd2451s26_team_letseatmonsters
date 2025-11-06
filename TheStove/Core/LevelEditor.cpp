@@ -1658,7 +1658,7 @@ static void SyncSceneToLevel(Scene& scene, LevelData& levelOut) {
 		const glm::vec3 s = g->GetScaleGLM();
 		obj.x = p.x;
 		obj.y = p.y;
-		obj.z = p.z;                              // <--- PRESERVE Z (useful if you sort by z)
+		obj.z = p.z;
 		obj.w = s.x;
 		obj.h = s.y;
 		obj.rotation = glm::degrees(g->GetRotationAngleZ());
@@ -1686,4 +1686,3 @@ static void SyncSceneToLevel(Scene& scene, LevelData& levelOut) {
 		levelOut.objects.push_back(obj);
 	}
 }
-
