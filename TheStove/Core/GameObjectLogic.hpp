@@ -1,4 +1,16 @@
-// GameObjectLogic.hpp
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			GameObjectLogic.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+
+DESCRIPTION:		Declares the base GameObjectLogic class which defines the common
+                    interface for all gameplay logic components attached to GameObjects,
+                    including lifecycle methods and owner access utilities.
+
+        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
 #pragma once
 #include <string>
 

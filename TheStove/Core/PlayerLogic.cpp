@@ -1,6 +1,18 @@
-// PlayerLogic.cpp
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			PlayerLogic.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+
+DESCRIPTION:		Implements player control logic, including movement, sprite updates,
+					mouse click handling, item pickup/drop, and scene clamping behavior.
+
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
 #include "PlayerLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
+#include "../Graphics/DebugRenderer.hpp"
 #include "../Core/InputManager.hpp"
 #include "../Core/InputControls.hpp"
 #include "../Core/DebugUI.hpp"        // for DebuggerApp
@@ -64,10 +76,15 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 
 		// Update sprite immediately based on click direction
 		UpdateSprite(scene, player, delta);
+
+		scene.GetMovementManager().SetMoveTarget(player->GetID(), dest);
 	}
 
 	moveTarget = dest;
 	hasMoveTarget = true;
+
+	//auto& movement = scene.GetMovementManager(); // hypothetical accessor
+	//movement.SetMoveTarget(player->GetID(), dest);
 }
 
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
@@ -112,6 +129,11 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	// ReachedDestination()
 	if (distSq <= arriveRadiusSq) {
 		hasMoveTarget = false;
+
+		if (GameObject* player = GetOwner(scene)) {
+			scene.GetMovementManager().ClearMoveTarget(player->GetID());
+		}
+
 		OnArrived(scene);
 		return;
 	}
@@ -126,14 +148,48 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	if (step > dist)
 		step = dist;
 
-	pos.x += dir.x * step;
-	pos.y += dir.y * step;
+	// --- NEW: ask CollisionWorld how much of this step is allowed ---
+	const auto size = player->GetColliderSize();
+	const auto offset = player->GetColliderOffset();
+
+	// Build AABB for current position (center = pos + offset)
+	Math::Vector3D center(pos3.x + offset.x, pos3.y + offset.y, pos3.z);
+	Math::Vector3D scale(size.x, size.y, 1.0f);
+
+	collision::AABB box = collision::World::makeAABBFromCenter(center, scale);
+
+	Math::Vector2D desiredDelta(dir.x * step, dir.y * step);
+	Math::Vector2D allowedDelta =
+		scene.GetCollisionManager().GetCollisionWorld().resolve(box, desiredDelta);
+
+	// If we can't move at all (hit a wall and are stuck), cancel the target
+	const float allowedLenSq = allowedDelta.x * allowedDelta.x +
+		allowedDelta.y * allowedDelta.y;
+	if (allowedLenSq < 0.0001f) {
+		hasMoveTarget = false;
+		if (GameObject* p = GetOwner(scene)) {
+			scene.GetMovementManager().ClearMoveTarget(p->GetID());
+		}
+		return;
+	}
+
+	// Apply allowed movement
+	pos.x += allowedDelta.x;
+	pos.y += allowedDelta.y;
 
 	player->SetPosition(glm::vec3(pos.x, pos.y, pos3.z));
-	scene.ClampToWalkArea(player);
+	scene.ClampToWalkArea(player); // still keep outer-frame clamp
 
-	// Update sprite based on movement direction
-	UpdateSprite(scene, player, dir);
+	// Use allowedDelta as movement direction for the sprite
+	glm::vec2 moveDir(allowedDelta.x, allowedDelta.y);
+	UpdateSprite(scene, player, moveDir);
+
+	// Debug path line from player to target
+	if (DebugRenderer::IsEnabled() && hasMoveTarget) {
+		glm::vec3 from = player->GetPositionGLM();
+		glm::vec3 to(moveTarget.x, moveTarget.y, from.z);
+		DebugRenderer::DrawLine(from, to, glm::vec3(0.0f, 1.0f, 0.0f));
+	}
 }
 
 // Unity: OnArrived()
@@ -191,17 +247,36 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	if (inputDir.x != 0.f || inputDir.y != 0.f) {
 		hasMoveTarget = false;
+
+		scene.GetMovementManager().ClearMoveTarget(player->GetID());
+
 		float len = std::sqrt(inputDir.x * inputDir.x + inputDir.y * inputDir.y);
 		if (len > 0.0001f) {
 			inputDir.x /= len;
 			inputDir.y /= len;
 		}
 
-		pos3.x += inputDir.x * speed * dt;
-		pos3.y += inputDir.y * speed * dt;
+		glm::vec2 desiredStep = inputDir * moveSpeed * dt;
 
-		player->SetPosition(pos3);
+		// Build collider at current position in M-space
+		Math::Vector3D posM(pos3.x, pos3.y, pos3.z);
+		const collision::AABB box = physics::MakeColliderBox(player, posM);
+
+		// Ask collision world to resolve movement against all static walls
+		collision::World& world = scene.GetCollisionWorld();
+		Math::Vector2D desiredMove(desiredStep.x, desiredStep.y);
+		Math::Vector2D allowedMove = world.resolve(box, desiredMove);
+
+		// Apply allowed movement
+		posM.x += allowedMove.x;
+		posM.y += allowedMove.y;
+
+		glm::vec3 newPos(posM.x, posM.y, posM.z);
+		player->SetPosition(newPos);
+
+		// Still clamp to walk area / gate as a final safeguard
 		scene.ClampToWalkArea(player);
+
 		// Update sprite based on keyboard movement
 		UpdateSprite(scene, player, inputDir);
 	}

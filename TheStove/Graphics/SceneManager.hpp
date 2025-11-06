@@ -4,6 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+					Vu Phan Hung, phanhung.vu@digipen.edu
 
  DESCRIPTION:		Declares the Scene class responsible for managing game objects,
 					animations, and scene updates.
@@ -49,6 +50,15 @@ public:
 
 	GraphicsEngine& GetGraphicsEngine();
 	const GraphicsEngine& GetGraphicsEngine() const;
+
+	MovementManager& GetMovementManager();
+	const MovementManager& GetMovementManager() const;
+
+	CollisionManager& GetCollisionManager();
+	const CollisionManager& GetCollisionManager() const;
+
+	collision::World& GetCollisionWorld();
+	const collision::World& GetCollisionWorld() const;
 
 	/**
 	 * @brief Construct a new Scene object.

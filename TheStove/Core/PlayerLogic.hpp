@@ -1,4 +1,16 @@
-// PlayerLogic.hpp
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			PlayerLogic.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+
+DESCRIPTION:		Declares the PlayerLogic class that controls player input handling,
+                    movement, sprite updates, item pickup/drop mechanics, and scene
+                    boundary clamping behavior.
+
+        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
 #pragma once
 #include "GameObjectLogic.hpp"
 #include <glm/glm.hpp>

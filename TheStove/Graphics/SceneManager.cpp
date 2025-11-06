@@ -4,6 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+					Vu Phan Hung, phanhung.vu@digipen.edu
 
  DESCRIPTION:		Implements the Scene class, handling object spawning,
 					animation, collisions, and per-frame updates.
@@ -706,4 +707,28 @@ GraphicsEngine& Scene::GetGraphicsEngine() {
 
 const GraphicsEngine& Scene::GetGraphicsEngine() const {
 	return graphicsEngine;
+}
+
+MovementManager& Scene::GetMovementManager() {
+	return movementManager;
+}
+
+const MovementManager& Scene::GetMovementManager() const {
+	return movementManager;
+}
+
+CollisionManager& Scene::GetCollisionManager() {
+	return collisionManager;
+}
+
+const CollisionManager& Scene::GetCollisionManager() const {
+	return collisionManager;
+}
+
+collision::World& Scene::GetCollisionWorld() {
+	return collisionManager.GetCollisionWorld();
+}
+
+const collision::World& Scene::GetCollisionWorld() const {
+	return collisionManager.GetCollisionWorld();
 }

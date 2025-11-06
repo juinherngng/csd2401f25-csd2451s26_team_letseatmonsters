@@ -1,4 +1,15 @@
-// SimpleNpcLogic.cpp
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			SimpleNpcLogic.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+
+DESCRIPTION:		Implements simple NPC behavior with idle, up, and down states,
+                    automatic vertical movement, clamping, and boundary collision handling.
+
+        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
 #include "SimpleNpcLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
 #include "../Core/Physics.hpp"      // optional, if you want clamp helpers
