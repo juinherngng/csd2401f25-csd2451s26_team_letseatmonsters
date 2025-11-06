@@ -16,6 +16,7 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 #include "DebugUI.hpp"
 #include "Core.hpp"
 #include "../Graphics/SceneManager.hpp"
+#include <imgui_internal.h>
 
 namespace Debug
 {
@@ -115,6 +116,8 @@ namespace Debug
 		catch (...) {
 			return; // If any exception occurs, don't render
 		}
+
+		SetupDefaultLayout();
 
 		// Create my window
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
@@ -457,4 +460,39 @@ namespace Debug
 		instancedObjects = instanced;
 		drawCalls = draws;
 	}
+
+	void DebuggerApp::SetupDefaultLayout() {
+		static bool layoutInitialized = false;
+		if (layoutInitialized) return;
+
+		ImGuiID dockspaceID = GraphicsEngine::Instance().GetMainDockspaceID();
+		if (dockspaceID == 0) return;  // Not ready yet
+
+		// Clear any existing layout
+		ImGui::DockBuilderRemoveNode(dockspaceID);
+		ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
+		ImGui::DockBuilderSetNodeSize(dockspaceID, ImGui::GetMainViewport()->Size);
+
+		// Split the dockspace
+		ImGuiID dock_left, dock_right, dock_bottom_right;
+
+		// Split horizontally: 70% right (scene), 30% left (debug info)
+		ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Left, 0.3f, &dock_left, &dock_right);
+
+		// Split right side vertically: 70% top (scene), 30% bottom (console)
+		ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.3f, &dock_bottom_right, &dock_right);
+
+		// Dock windows to their default positions
+		ImGui::DockBuilderDockWindow("Debug Information###DebugInfo", dock_left);
+		ImGui::DockBuilderDockWindow("Scene###SceneWindow", dock_right);
+		ImGui::DockBuilderDockWindow("Console Log###ConsoleLog", dock_bottom_right);
+
+		ImGui::DockBuilderFinish(dockspaceID);
+
+		layoutInitialized = true;
+	}
 }
+
+
+
+

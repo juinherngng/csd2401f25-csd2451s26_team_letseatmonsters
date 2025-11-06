@@ -83,6 +83,8 @@ namespace Debug
 
 		void SetScene(Scene* scenePtr) { scene_ = scenePtr; }
 
+		void SetupDefaultLayout();
+
 	public:
 		float fps = 0; // FPS 
 		float msperFrame = 0; // MS/frame
