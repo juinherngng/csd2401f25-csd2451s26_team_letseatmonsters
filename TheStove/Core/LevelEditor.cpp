@@ -1615,7 +1615,7 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 			obj.rotation
 		);
 
-		// Store defaults so right-click �Reset� works
+		// Store defaults so right-click Reset works
 		Scene::Defaults defs{};
 		defs.pos = { x, y, 0.0f };
 		defs.size = { ww, hh };
