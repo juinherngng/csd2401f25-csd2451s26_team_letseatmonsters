@@ -4,9 +4,10 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:
+ DESCRIPTION:		Implements the force system (registry + generators). Each generator applies
+					its force to a body during UpdateForce; the registry iterates all pairs.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -21,14 +22,17 @@
  // IForceGenerator 
 IForceGenerator::~IForceGenerator() = default;
 
+// ForceRegistry
 void ForceRegistry::Add(RigidBody2D* bodyPtr, IForceGenerator* generator) {
 	entries.push_back({ bodyPtr, generator });
 }
 
 void ForceRegistry::Remove(RigidBody2D* bodyPtr, IForceGenerator* generator) {
-	entries.erase(std::remove_if(entries.begin(), entries.end(), [&](const Entry& e) {
-		return (e.body == bodyPtr) && (e.gen == generator);
-		}),
+	entries.erase(
+		std::remove_if(entries.begin(), entries.end(),
+			[&](const Entry& e) {
+				return (e.body == bodyPtr) && (e.gen == generator);
+			}),
 		entries.end()
 	);
 }
@@ -72,12 +76,14 @@ void DragForce::UpdateForce(RigidBody2D& body, float) {
 	const Math::Vector2D velocity = body.GetVelocity();
 	const float speed = velocity.Length();
 
-	// No drag if not moving
+	// No drag if not moving.
 	if (speed <= 1e-6f) {
 		return;
 	}
 
 	const float dragMagnitude = (k1 * speed) + (k2 * speed * speed);
+
+	// Direction opposite velocity; guard divide by zero with small epsilon.
 	body.AddForce(velocity * (-dragMagnitude / (speed + 1e-6f)));
 }
 

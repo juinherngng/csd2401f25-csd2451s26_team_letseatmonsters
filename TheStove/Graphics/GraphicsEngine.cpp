@@ -3,11 +3,12 @@
 FILE NAME:			GraphicsEngine.cpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
 
 DESCRIPTION:		Implements initialization, default resource loading, background handling,
 					and batched rendering of GameObjects with error checks.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -19,14 +20,15 @@ DESCRIPTION:		Implements initialization, default resource loading, background ha
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
 
-static bool s_imguiInitialized = false;
+// File-scoped state
+static bool _imguiInitialized = false;
 
 GraphicsEngine& GraphicsEngine::Instance() {
 	static GraphicsEngine instance;
 	return instance;
 }
 
-// Constructor: Initializes references and identity matrices for view/projection.
+// Constructor: Initializes references and identity matrices for view/projection
 GraphicsEngine::GraphicsEngine()
 	: resourceManager(ResourceManager::Instance()),
 	projection(1.0f),
@@ -34,38 +36,57 @@ GraphicsEngine::GraphicsEngine()
 {
 }
 
-// Initialize renderer state and default camera/projection.
+// Initialize core renderer, FBO, default resources, and ImGui
 void GraphicsEngine::Initialize() {
 	renderer.Initialize();
 	renderer.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
 	CreateSceneFBO(kRefW, kRefH);
-	// Resize(kRefW, kRefH);
 	view = glm::mat4(1.0f);
 
-	// Load default resources
 	LoadDefaultResources();
 
 	DebugRenderer::Init();
 	DebugRenderer::SetEnabled(false);
 
-	if (!s_imguiInitialized) {
+	if (!_imguiInitialized) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+		// Slightly larger UI for readability
+		io.FontGlobalScale = 1.0f;
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.ScaleAllSizes(1.2f);
 		ImGui::StyleColorsDark();
+
 		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
-		s_imguiInitialized = true;
+		_imguiInitialized = true;
 	}
 }
 
+// Destroy the current scene FBO (safe to call repeatedly)
 void GraphicsEngine::DestroySceneFBO() {
-	if (mSceneDepth) { glDeleteRenderbuffers(1, &mSceneDepth);  mSceneDepth = 0; }
-	if (mSceneColor) { glDeleteTextures(1, &mSceneColor);      mSceneColor = 0; }
-	if (mSceneFBO) { glDeleteFramebuffers(1, &mSceneFBO);    mSceneFBO = 0; }
+	if (mSceneDepth) {
+		glDeleteRenderbuffers(1, &mSceneDepth);
+		mSceneDepth = 0;
+	}
+
+	if (mSceneColor) {
+		glDeleteTextures(1, &mSceneColor);
+		mSceneColor = 0;
+	}
+
+	if (mSceneFBO) {
+		glDeleteFramebuffers(1, &mSceneFBO);
+		mSceneFBO = 0;
+	}
 }
 
+// Create a color and depth FBO for the scene at the given size
 void GraphicsEngine::CreateSceneFBO(int w, int h) {
 	DestroySceneFBO();
 
@@ -85,18 +106,24 @@ void GraphicsEngine::CreateSceneFBO(int w, int h) {
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mSceneDepth);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		// handle/log error as you prefer
+		// std::cerr << "[GraphicsEngine] Scene FBO incomplete\n";
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	mSceneWidth = w; mSceneHeight = h;
+	mSceneWidth = w;
+	mSceneHeight = h;
 }
 
+// Resize (recreate) the scene FBO if size is valid
 void GraphicsEngine::ResizeSceneFBO(int w, int h) {
-	if (w <= 0 || h <= 0) return;
+	if (w <= 0 || h <= 0) {
+		return;
+	}
+
 	CreateSceneFBO(w, h);
 }
 
+// Bind scene FBO and clear
 void GraphicsEngine::BeginSceneRender() {
 	glBindFramebuffer(GL_FRAMEBUFFER, mSceneFBO);
 	glViewport(0, 0, mSceneWidth, mSceneHeight);
@@ -104,21 +131,17 @@ void GraphicsEngine::BeginSceneRender() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
+// Unbind scene FBO
 void GraphicsEngine::EndSceneRender() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-
-const glm::mat4& GraphicsEngine::GetProjection() const {
-	return projection;
-}
-
-const glm::mat4& GraphicsEngine::GetView() const {
-	return view;
-}
-
+// Getters
+const glm::mat4& GraphicsEngine::GetProjection() const { return projection; }
+const glm::mat4& GraphicsEngine::GetView() const { return view; }
 ImGuiID GraphicsEngine::GetMainDockspaceID() const { return mMainDockspaceId; }
 
+// Handle window resize: update letterboxed viewport and background placement
 void GraphicsEngine::Resize(int width, int height) {
 	if (width <= 0 || height <= 0) {
 		return;
@@ -127,15 +150,14 @@ void GraphicsEngine::Resize(int width, int height) {
 	screenWidth = width;
 	screenHeight = height;
 
-	// Keep the *projection* fixed to reference pixels so sprites don't scale
-	// (0,0) top-left, (kRefW,kRefH) bottom-right
+	// Fixed pixel-space ortho (origin top-left)
 	projection = glm::ortho(
 		0.0f, static_cast<float>(kRefW),
 		static_cast<float>(kRefH), 0.0f,
 		-1.0f, 1.0f
 	);
 
-	// Compute letterboxed viewport centered in the window
+	// Compute centered letterboxed viewport
 	const float sx = static_cast<float>(width) / static_cast<float>(kRefW);
 	const float sy = static_cast<float>(height) / static_cast<float>(kRefH);
 	viewportScale_ = std::min(sx, sy);
@@ -148,7 +170,7 @@ void GraphicsEngine::Resize(int width, int height) {
 	// Apply the viewport now
 	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
 
-	// Background should match the reference canvas (it renders in world pixels)
+	// Keep background quad aligned to the reference canvas
 	if (backgroundObject) {
 		backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
 		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
@@ -156,13 +178,12 @@ void GraphicsEngine::Resize(int width, int height) {
 	}
 }
 
+// Apply the current letterboxed viewport (use before world rendering)
 void GraphicsEngine::ApplyViewport() const {
-	// Centered letterbox area where the game actually renders
 	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
 }
 
-
-// Internal helper to preload common shaders and meshes.
+// Load core shaders and meshes used by engine/editor
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
@@ -209,13 +230,12 @@ void GraphicsEngine::LoadDefaultResources() {
 	MeshLoader::LoadSprite(vertices, vertexCount, vertexSize);
 	resourceManager.LoadMesh("sprite", vertices, vertexCount, vertexSize);
 
-
 	// Load fullscreen quad mesh
 	MeshLoader::LoadFullscreenQuad(vertices, vertexCount, vertexSize);
 	resourceManager.LoadMesh("fullscreen_quad", vertices, vertexCount, vertexSize);
 }
 
-//Sets and update a fullscreen background texture and ensure a background quad exists.
+// Set/ensure a fullscreen background quad using the given texture path
 void GraphicsEngine::SetBackground(const std::string& texturePath) {
 	// Load background texture
 	Texture* bgTexture = resourceManager.LoadTexture("background", texturePath);
@@ -247,20 +267,13 @@ void GraphicsEngine::ClearBackground() {
 	backgroundObject.reset();
 }
 
+// Start a new ImGui frame and host a global DockSpace
 void GraphicsEngine::BeginImGuiFrame() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
-	ImGuiViewport* vp = ImGui::GetMainViewport();
 
-	/*ImGui::DockSpaceOverViewport(
-		vp->ID,
-		vp,
-		ImGuiDockNodeFlags_PassthruCentralNode |
-		ImGuiDockNodeFlags_NoDockingInCentralNode
-	);*/
-
-	// DockSpace host (lets all editor windows dock/undock)
+	// Dockspace host window (full work area)
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
 	ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -285,88 +298,145 @@ void GraphicsEngine::BeginImGuiFrame() {
 	ImGui::PopStyleVar(2);
 }
 
+// Draw the Scene window and present the scene FBO texture inside it
 void GraphicsEngine::DrawSceneDockWindow() {
 	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
 		ImGuiCond_FirstUseEver);
+
 	if (ImGui::Begin("Scene###SceneWindow")) {
 		ImVec2 avail = ImGui::GetContentRegionAvail();
 		const float targetAspect = float(kRefW) / float(kRefH);
 		float w = avail.x, h = avail.y;
 		float r = w / h;
-		if (r > targetAspect) { w = h * targetAspect; }
-		else { h = w / targetAspect; }
+		if (r > targetAspect) {
+			w = h * targetAspect;
+		}
+		else {
+			h = w / targetAspect;
+		}
 
 		// Center the image in the window
 		ImVec2 cursor = ImGui::GetCursorPos();
 		ImGui::SetCursorPos(ImVec2(cursor.x + (avail.x - w) * 0.5f,
 			cursor.y + (avail.y - h) * 0.5f));
 
-		// Record absolute (screen) rectangle for picking
+		// Absolute rect for picking
 		sceneImagePos_ = ImGui::GetCursorScreenPos();
 		sceneImageSize_ = ImVec2(w, h);
 
-		// Draw the texture (flip vertically)
+		// Draw the FBO texture (v-flipped)
 		ImGui::Image(
 			(ImTextureID)(intptr_t)mSceneColor,
 			ImVec2(w, h),
-			ImVec2(0, 1),   // uv0
-			ImVec2(1, 0)    // uv1
+			ImVec2(0, 1), // uv0
+			ImVec2(1, 0)  // uv1
 		);
+
+		// Invisible proxy for hover/click that exactly matches the scene image
+		if (sceneImageSize_.x > 1.0f && sceneImageSize_.y > 1.0f) {
+			ImGui::SetCursorScreenPos(sceneImagePos_);
+			const bool pressed = ImGui::ImageButton(
+				"##SceneImageBtn",
+				(ImTextureID)(intptr_t)mSceneColor,
+				ImVec2(sceneImageSize_.x, sceneImageSize_.y),
+				ImVec2(0, 1),
+				ImVec2(1, 0)
+			);
+
+			if (pressed || ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+				std::cout << "[Scene] LMB click inside Scene image\n";
+			}
+		}
 	}
 
 	ImGui::End();
 }
 
+// Finish the current ImGui frame and render it
 void GraphicsEngine::EndImGuiFrame() {
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
+// Frame begin: clear backbuffer, set viewport, bind scene FBO, begin ImGui
 void GraphicsEngine::BeginFrame() {
-	// Clear the entire backbuffer first (black bars included)
 	glViewport(0, 0, screenWidth, screenHeight);
 	renderer.Clear();
 
-	// Then restrict rendering to the centered game area
 	ApplyViewport();
-
 	BeginSceneRender();
-
 	BeginImGuiFrame();
 }
 
+// Convert current mouse (screen) into scene world coords if within image
 bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
-	// If Scene window hasn't drawn yet this frame
-	if (sceneImageSize_.x <= 1.0f || sceneImageSize_.y <= 1.0f) {
+	ImVec2 imgPos = sceneImagePos_;
+	ImVec2 imgSize = sceneImageSize_;
+
+	// If the Scene window hasn't drawn this frame, reconstruct its rect
+	if (imgSize.x <= 1.0f || imgSize.y <= 1.0f) {
+		ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
+		if (sceneWin) {
+			const ImRect c = sceneWin->InnerRect;  // screen-space
+			const float availW = c.GetWidth();
+			const float availH = c.GetHeight();
+
+			const float targetAspect = float(kRefW) / float(kRefH);
+			float w = availW, h = availH, r = w / h;
+			if (r > targetAspect) {
+				w = h * targetAspect;
+			}
+			else {
+				h = w / targetAspect;
+			}
+
+			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f, c.Min.y + (availH - h) * 0.5f);
+			imgSize = ImVec2(w, h);
+		}
+		else {
+			ImGuiViewport* vp = ImGui::GetMainViewport();
+			const float availW = vp->WorkSize.x;
+			const float availH = vp->WorkSize.y;
+
+			const float targetAspect = float(kRefW) / float(kRefH);
+			float w = availW, h = availH, r = w / h;
+			if (r > targetAspect) {
+				w = h * targetAspect;
+			}
+			else {
+				h = w / targetAspect;
+			}
+
+			imgPos = ImVec2(vp->WorkPos.x + (availW - w) * 0.5f, vp->WorkPos.y + (availH - h) * 0.5f);
+			imgSize = ImVec2(w, h);
+		}
+	}
+
+	// Mouse (absolute)
+	const ImVec2 mouse = ImGui::GetMousePos();
+
+	// Early-out if outside image rect
+	if (mouse.x < imgPos.x || mouse.y < imgPos.y ||
+		mouse.x > imgPos.x + imgSize.x || mouse.y > imgPos.y + imgSize.y) {
 		return false;
 	}
 
-	// Mouse in absolute screen coordinates
-	ImVec2 mouse = ImGui::GetMousePos();
+	// Local coordinates (0..size)
+	const float localX = mouse.x - imgPos.x;
+	const float localY = mouse.y - imgPos.y;
 
-	// Early out if outside the image rect
-	if (mouse.x < sceneImagePos_.x || mouse.y < sceneImagePos_.y ||
-		mouse.x > sceneImagePos_.x + sceneImageSize_.x ||
-		mouse.y > sceneImagePos_.y + sceneImageSize_.y) {
-		return false;
-	}
+	// UV (0..1)
+	const float u = localX / imgSize.x;
+	const float v = localY / imgSize.y;
 
-	// Local position (0..size) within the image
-	const float localX = mouse.x - sceneImagePos_.x;
-	const float localY = mouse.y - sceneImagePos_.y;
-
-	// UV inside the image (0..1)
-	const float u = localX / sceneImageSize_.x;
-	const float v = localY / sceneImageSize_.y;
-
+	// Pixel in reference space
 	const float px = u * float(kRefW);
 	const float py = v * float(kRefH);
 
-	// Convert FBO pixel (px,py) -> world using inverse(View * Projection)
-	// First go from pixels to NDC:
+	// Transform through inverse(V*P)
 	glm::vec4 clip;
-	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;   // [-1,1]
-	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;   // [-1,1] (top->+1)
+	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;
+	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;
 	clip.z = 0.0f;
 	clip.w = 1.0f;
 
@@ -377,10 +447,9 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	return true;
 }
 
-
-// Render the background and then all provided GameObjects
+// Simple render path (background, objects, debug, UI)
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
-	// Background first
+	// Background
 	if (backgroundObject) {
 		glDisable(GL_DEPTH_TEST);
 		backgroundObject->Draw(view, projection);
@@ -389,7 +458,9 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 
 	// Scene objects
 	for (const auto* obj : objects) {
-		if (!obj) { continue; }
+		if (!obj) {
+			continue;
+		}
 
 		obj->Draw(view, projection);
 
@@ -409,10 +480,7 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 	}
 
 	EndSceneRender();
-
 	DrawSceneDockWindow();
-
-	// ImGui on top
 	EndImGuiFrame();
 
 	// GL error check
@@ -422,22 +490,22 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
 	}
 }
 
-// Destroy background and clear ResourceManager caches
+// Free resources and shutdown ImGui
 void GraphicsEngine::Shutdown() {
-
 	backgroundObject.reset();
 	DebugRenderer::Shutdown();
 	resourceManager.Clear();
 
 	// ImGui cleanup
-	if (s_imguiInitialized) {
+	if (_imguiInitialized) {
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
-		s_imguiInitialized = false;
+		_imguiInitialized = false;
 	}
 }
 
+// Batched/instanced render path for static sprites; direct draw for animated
 void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Reset stats
 	renderStats = RenderStats();
@@ -457,7 +525,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		return;
 	}
 
-	// Separate static and animated sprites
+	// Separate by shader type
 	std::vector<GameObject*> staticSprites;
 	std::vector<GameObject*> animatedSprites;
 
@@ -465,14 +533,15 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	Shader* animShader = resourceManager.GetShader("animatedsprite");
 
 	for (auto* obj : objects) {
-		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
+		if (!obj || !obj->GetMesh() || !obj->GetShader()) {
+			continue;
+		}
 
-		//	 Categorize based on shader type
 		if (obj->GetShader() == animShader) {
-			animatedSprites.push_back(obj);  // Animated sprite
+			animatedSprites.push_back(obj); // animated
 		}
 		else {
-			staticSprites.push_back(obj);     // Static sprite
+			staticSprites.push_back(obj); // static
 		}
 	}
 
@@ -489,7 +558,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 		for (auto& [key, batch] : batches) {
 			if (batch.size() >= INSTANCING_THRESHOLD) {
-				// Use instanced rendering if >= threshold
+				// Instanced path
 				renderStats.instancedObjects += static_cast<int>(batch.size());
 
 				std::vector<glm::mat4> modelMatrices;
@@ -516,7 +585,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 				renderStats.drawCalls++;
 			}
 			else {
-				// Use noramal rendering if < threshold
+				// Non-instanced path
 				key.shader->Use();
 				key.shader->SetViewMatrix(view);
 				key.shader->SetProjectionMatrix(projection);
@@ -571,22 +640,14 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	// Imgui frame end
+	// End-of-frame UI
 	EndSceneRender();
 	DrawSceneDockWindow();
 	EndImGuiFrame();
 
-	//Error Check
+	// GL error check
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
 		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
 	}
 }
-
-
-
-
-
-
-
-

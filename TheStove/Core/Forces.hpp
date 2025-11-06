@@ -4,9 +4,15 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:
+ DESCRIPTION:		Declares a simple force system for 2D rigid bodies:
+					- IForceGenerator: interface for all force sources
+					- ForceRegistry:   maps bodies <-> force generators and updates them
+					- GravityForce:    constant acceleration (F = m * g)
+					- DragForce:       linear + quadratic velocity drag
+					- ConstantForce:   applies a fixed world-space force each step
+					- SeekForce:       seek/arrive steering toward a target with deadzone
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -15,21 +21,18 @@
 #include <vector>
 #include <algorithm>
 
+#include "RigidBody2D.hpp"
 #include "Math.hpp"
 
-class RigidBody2D;
-
-/**
- * @brief Interface for all force generators.
- */
+ // Interface: any force source implements this.
 struct IForceGenerator {
 	virtual ~IForceGenerator();
+
+	// Apply force to a body for this timestep.
 	virtual void UpdateForce(RigidBody2D& body, float dt) = 0;
 };
 
-/**
- * @brief Associates bodies with force generators and applies them each frame.
- */
+// Registry: holds body <-> generator pairs and updates all per frame.
 class ForceRegistry {
 public:
 	// Types
@@ -38,10 +41,16 @@ public:
 		IForceGenerator* gen = nullptr;
 	};
 
-	// Public Interface
+	// Register a body with a generator.
 	void Add(RigidBody2D* body, IForceGenerator* gen);
+
+	// Unregister a body from a generator.
 	void Remove(RigidBody2D* body, IForceGenerator* gen);
+
+	// Remove all entries.
 	void Clear();
+
+	// Update all registered generators (applies forces).
 	void UpdateForces(float dt);
 
 private:
@@ -49,9 +58,7 @@ private:
 	std::vector<Entry> entries;
 };
 
-/**
- * @brief Applies constant gravitational acceleration (scaled by mass).
- */
+// Concrete forces
 struct GravityForce : IForceGenerator {
 	// Data
 	Math::Vector2D g{};
@@ -61,9 +68,7 @@ struct GravityForce : IForceGenerator {
 	void UpdateForce(RigidBody2D& body, float dt) override;
 };
 
-/**
- * @brief Applies quadratic/linear drag opposite to velocity.
- */
+// Drag force with linear and quadratic terms.
 struct DragForce : IForceGenerator {
 	// Data
 	float k1 = 0.0f; // linear term
@@ -74,9 +79,7 @@ struct DragForce : IForceGenerator {
 	void UpdateForce(RigidBody2D& body, float dt) override;
 };
 
-/**
- * @brief Applies a constant world-space force vector every update.
- */
+// Applies a fixed world-space force every update.
 struct ConstantForce : IForceGenerator {
 	// Data
 	Math::Vector2D f{ 0.0f, 0.0f };
@@ -86,10 +89,7 @@ struct ConstantForce : IForceGenerator {
 	void UpdateForce(RigidBody2D& body, float dt) override;
 };
 
-/**
- * @brief Gentle steering toward a target with arrive behavior.
- *        Pushes toward target up to maxAccel and hard-stops inside arriveRadius.
- */
+// Seek / Arrive steering toward a target with max acceleration and arrive radius.
 struct SeekForce : IForceGenerator {
 	// Data
 	Math::Vector2D* target = nullptr;                 // Destination (mutable externally)
@@ -99,6 +99,7 @@ struct SeekForce : IForceGenerator {
 
 	// Ctors / Interface
 	SeekForce(Math::Vector2D* targetPtr, float maxAccelIn = 600.0f, float arrive = 6.0f);
+
 	SeekForce(Math::Vector2D* targetPtr,
 		const Math::Vector2D* currentPosPtr,
 		float maxAccelIn = 600.0f,

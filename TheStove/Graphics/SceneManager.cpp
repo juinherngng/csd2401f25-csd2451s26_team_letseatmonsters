@@ -174,7 +174,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	inputManager.Update(window);
 
 	// Process input commands (debug toggles, force toggle, etc.)
-	inputCommandHandler.ProcessCommands(inputManager, physicsManager,
+	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager,
 		spriteID, useForces_, showAuxDebug_);
 
 	// Level editor toggle
@@ -191,11 +191,16 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Update collision system
 	collisionManager.Update(entityManager);
 
-	if (simulationActive) {
+
+	if (simulationActive)
+	{
+		// NEW: run all scripts
+		logicManager.StartAll(*this);
+		logicManager.UpdateAll(deltaTime, *this, inputManager);
 		// Handle player input
-		playerController.HandleInput(deltaTime, inputManager, entityManager,
-			movementManager, physicsManager,
-			graphicsEngine, spriteID, useForces_);
+		//playerController.HandleInput(deltaTime, inputManager, entityManager,
+		//	movementManager, physicsManager,
+		//	graphicsEngine, spriteID, useForces_);
 
 		// Update movement system (kinematic or physics-based)
 		if (useForces_) {
@@ -208,6 +213,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		// Update NPC AI
 		const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
 		npcSystem.Update(physicsDt, entityManager, collisionManager, walk);
+
 
 		// Handle player-NPC collisions
 		HandlePlayerCollisions(physicsDt, entityManager);
@@ -232,7 +238,7 @@ void Scene::DrawUI() {
 }
 
 void Scene::ClearAll() {
-
+	logicManager.Clear(*this);  // <-- clear scripts first
 	entityManager.Clear();
 	animationManager.Clear();
 	movementManager.Clear();
@@ -246,7 +252,7 @@ void Scene::ClearAll() {
 
 void Scene::SetPlayerID(int id) {
 	spriteID = id;
-	movementManager.SetPlayerID(id);  // inform movement manager
+	//movementManager.SetPlayerID(id);  // inform movement manager
 }
 
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
@@ -468,9 +474,11 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 					const glm::vec2 tangential = desiredDelta - into * n;
 
 					// Clamp slide against world (so we don’t scrape into walls)
+					const Math::Vector2D csz = sprite->GetColliderSize();
 					const collision::AABB pAfterSep =
-						collision::World::makeAABBFromCenter(playerPosM,
-							Math::Vector3D(sprite->GetScaleGLM().x, sprite->GetScaleGLM().y, 1.0f));
+						collision::World::makeAABBFromCenter(
+							playerPosM,
+							Math::Vector3D(csz.x, csz.y, 1.0f));
 
 					const Math::Vector2D slideDesired(tangential.x, tangential.y);
 					const Math::Vector2D slideAllowed =
@@ -538,6 +546,68 @@ void Scene::ApplyFinalConstraints(EntityManager& entityManager) {
 	sprite->SetPosition(position);
 }
 
+// Returns true if AABB "box" overlaps the axis-aligned rectangle [x0,x1]x[y0,y1].
+static bool OverlapsRect(const collision::AABB& box, float x0, float x1, float y0, float y1) {
+	return (box.min.x < x1 && box.max.x > x0 && box.min.y < y1 && box.max.y > y0);
+}
+
+// Snap a dynamic object horizontally out of the vertical wood segment it overlaps (minimal move).
+static void SnapHorizontallyOutOfBand(const collision::AABB& box, float bandX0, float bandX1, Math::Vector3D& posM) {
+	// Move by the smallest magnitude either to the left or right so the AABB clears the band.
+	const float moveLeft = bandX0 - box.max.x - 0.5f; // small epsilon
+	const float moveRight = bandX1 - box.min.x + 0.5f;
+	if (std::abs(moveLeft) < std::abs(moveRight)) { posM.x += moveLeft; }
+	else { posM.x += moveRight; }
+}
+
+void Scene::ResolveInitialStaticOverlaps() {
+	// World rectangles (same constants you use to build the wood)
+	const float woodX0 = kWoodX0;
+	const float woodX1 = kWoodX1;
+
+	// Two solid vertical segments (top and bottom). The gap is between them.
+	const float topY0 = kWoodTopMinY, topY1 = kWoodTopMaxY;
+	const float botY0 = kWoodBotMinY, botY1 = kWoodBotMaxY;
+
+	// Walkable frame (outer walls) – we’ll clamp to this too.
+	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+
+	std::vector<GameObject*> objs = entityManager.GetAllObjects();
+
+	for (GameObject* g : objs) {
+		if (!g) continue;
+
+		// Work in M-space (your math structs)
+		Math::Vector3D pM(g->GetPositionGLM().x, g->GetPositionGLM().y, g->GetPositionGLM().z);
+
+		// First, keep inside the big walk rect (matches your art frame)
+		physics::ClampInsideWalk(walk, g, pM);
+
+		// Build the object's collider AABB at this tentative position
+		collision::AABB box = physics::MakeColliderBox(g, pM);
+
+		// If overlapping TOP wood plank, nudge horizontally to nearest side.
+		if (OverlapsRect(box, woodX0, woodX1, topY0, topY1)) {
+			SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
+			// Rebuild AABB after moving
+			box = physics::MakeColliderBox(g, pM);
+		}
+
+		// If overlapping BOTTOM wood plank, nudge horizontally to nearest side.
+		if (OverlapsRect(box, woodX0, woodX1, botY0, botY1)) {
+			SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
+			box = physics::MakeColliderBox(g, pM);
+		}
+
+		// Done. Commit the corrected position.
+		g->SetPosition(glm::vec3(pM.x, pM.y, pM.z));
+	}
+
+	// Optional: if any objects moved significantly, update world structures once.
+	RebuildColliders();
+}
+
+
 void Scene::RebuildColliders() {
 	collisionManager.Clear();
 	BuildLevelColliders();
@@ -563,9 +633,10 @@ void Scene::BuildLevelColliders() {
 
 	collisionManager.BuildWalls(walk, wood, gate);
 
-	//physicsManager.SetCollisionWorld(&collisionManager.GetWorld());
-	movementManager.SetCollisionWorld(&collisionManager.GetWorld());
+	movementManager.SetCollisionWorld(&collisionManager.GetCollisionWorld());
+
 	movementManager.SetNPCSystem(&npcSystem);
+
 	physicsManager.SetMovementManager(&movementManager);
 }
 
@@ -630,6 +701,22 @@ void Scene::RequestClearAll() {
 }
 
 
+void Scene::AttachLogicForTag(int id, const std::string& tag) {
+	if (tag == "player") {
+		logicManager.AddLogic<PlayerLogic>(id);
+		spriteID = id; // keep existing usage
+	}
+	else if (tag == "npc1" || tag == "npc2") {
+		logicManager.AddLogic<SimpleNpcLogic>(id);
+	}
+	// you can extend with more tags later
+}
 
 
+GraphicsEngine& Scene::GetGraphicsEngine() {
+	return graphicsEngine;
+}
 
+const GraphicsEngine& Scene::GetGraphicsEngine() const {
+	return graphicsEngine;
+}
