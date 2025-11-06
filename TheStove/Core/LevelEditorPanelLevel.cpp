@@ -320,9 +320,15 @@ namespace LEPANELLEVEL {
 					? ("ID " + std::to_string(gid))
 					: (niceName + " (ID " + std::to_string(gid) + ")");
 
-				if (ImGui::Selectable(label.c_str(), selectedIndex == i)) {
-					selectedIndex = i;
-					selectedObjectId = gid;
+				// When playing, draw items but DO NOT allow selection to change
+				if (editor.IsPlaying()) {
+					ImGui::Selectable(label.c_str(), selectedIndex == i, ImGuiSelectableFlags_Disabled);
+				}
+				else {
+					if (ImGui::Selectable(label.c_str(), selectedIndex == i)) {
+						selectedIndex = i;
+						selectedObjectId = gid;
+					}
 				}
 			}
 
