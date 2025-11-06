@@ -47,6 +47,9 @@ class Scene {
 public:
 	// Core Lifecycle testing
 
+	GraphicsEngine& GetGraphicsEngine();
+	const GraphicsEngine& GetGraphicsEngine() const;
+
 	/**
 	 * @brief Construct a new Scene object.
 	 * @param engine Reference to the graphics engine used for rendering.
