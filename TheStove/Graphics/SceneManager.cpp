@@ -168,8 +168,9 @@ void Scene::LoadScene(const std::string& sceneName) {
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
+
 	// Input is now updated by CoreEngine's system, no need to call Update here
-	// inputManager.Update(window); // REMOVED - handled by CoreEngine
+	// inputManager.Update(deltaTime); // REMOVED - handled by CoreEngine
 
 	// Deferred Clear
 	if (pendingClear_) {
@@ -178,9 +179,6 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		pendingClear_ = false;
 		return;  // Skip rest of update this frame
 	}
-
-	// Update input
-	inputManager.Update(deltaTime);
 
 	// Process input commands (debug toggles, force toggle, etc.)
 	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager,
