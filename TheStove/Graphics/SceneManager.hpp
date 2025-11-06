@@ -8,7 +8,7 @@
  DESCRIPTION:		Declares the Scene class responsible for managing game objects,
 					animations, and scene updates.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

@@ -7,7 +7,7 @@ AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
 DESCRIPTION:		Initializes rendering, loads default GPU resources, manages a fullscreen background,
 					and renders scene GameObjects with view/projection.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
