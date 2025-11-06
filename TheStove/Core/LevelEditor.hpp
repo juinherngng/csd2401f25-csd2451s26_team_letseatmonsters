@@ -24,29 +24,40 @@
 
 class Scene;
 
+/**
+ * @class LevelEditor
+ * @brief Hosts all ImGui panels for level editing (Level, Prefabs, Assets, Inspector).
+ *
+ * Notes:
+ * - JSON/editor rotation is in DEGREES.
+ * - GameObject setters expect RADIANS (convert at call site).
+ */
 class LevelEditor {
 public:
-	// Lifecycle / Windows
+	// ----- Lifecycle -----
 	LevelEditor() = default;
 	~LevelEditor() = default;
 
-	// Draw the full Level/Prefabs/Assets UI and handle interactions.
+	// Draw all editor UI (Level, Prefabs, Assets); also handles picking/dragging when not playing
 	void DrawUI(Scene& scene);
 
-	// Load current levelPath into the scene. Returns false if load failed.
+	// Load current levelPath into the scene. Returns false if load fails.
 	bool LoadIntoScene(Scene& scene);
 
-	// Controls / Path
+	// ----- Controls & Path -----
 	bool IsEnabled() const;
 	void Toggle();
 	void SetPath(const std::string& path);
 
+	// Current JSON file used for loading/saving levels.
 	std::string levelPath{};
 
 private:
+	// State flags
 	bool isEnabled = true;
 	bool isPlaying = false;
 
+	// Data models
 	LevelData level{};			   // Working copy for editing (Save/Load)
 	LevelData playStartSnapshot{}; // Snapshot captured at Play, restored on Stop
 };

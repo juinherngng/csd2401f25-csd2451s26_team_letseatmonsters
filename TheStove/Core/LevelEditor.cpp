@@ -12,28 +12,325 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Graphics/SceneManager.hpp"
-#include "../Graphics/ResourceManager.hpp"
-#include "LevelEditor.hpp"
-
-#include "imgui.h"
-#include "imgui_internal.h"
-
 #include <algorithm>
 #include <filesystem>
 #include <unordered_map>
 #include <iostream>
 
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "LevelEditor.hpp"
+
+#include "../Graphics/SceneManager.hpp"
+#include "../Graphics/ResourceManager.hpp"
+
 namespace fs = std::filesystem;
 
-// Windows (native) includes for file dialog
+// Windows (native) includes for file dialog on Windows
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <commdlg.h>
 #endif
 
-// Controls / Path
+// Forward declarations (internal helpers)
+static void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
+static void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
+
+// ----- Local helpers -----
+namespace {
+	// Small cache: instance-to-prefab linkage for propagate
+	static std::unordered_map<int, std::string> sPrefabLinkByID;
+
+	// OS file picker. Returns empty string if cancelled.
+	static std::string OpenFileDialog(const char* filter) {
+#ifdef _WIN32
+		char filePathBuffer[MAX_PATH] = { 0 };
+
+		OPENFILENAMEA ofn{};
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = nullptr;
+		ofn.lpstrFilter = filter;
+		ofn.nFilterIndex = 1;
+		ofn.lpstrFile = filePathBuffer;
+		ofn.nMaxFile = MAX_PATH;
+		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER;
+
+		if (GetOpenFileNameA(&ofn)) {
+			return std::string(filePathBuffer);
+		}
+#endif
+		return {};
+	}
+
+	// Copy src into destDir/<basename>.
+	static std::string CopyFileIntoProjectUnique(const std::string& sourcePath, const std::string& destinationDir) {
+		if (sourcePath.empty()) {
+			return {};
+		}
+
+		std::error_code ec;
+		fs::path src(sourcePath);
+
+		if (!fs::exists(src, ec)) {
+			return {};
+		}
+
+		fs::path dstDir(destinationDir);
+		if (!fs::exists(dstDir, ec)) {
+			fs::create_directories(dstDir, ec);
+			if (ec) {
+				return {};
+			}
+		}
+
+		fs::path baseName = src.filename();
+		fs::path dst = dstDir / baseName;
+
+		int suffix = 1;
+		while (fs::exists(dst, ec)) {
+			dst = dstDir / (baseName.stem().string() + " (" + std::to_string(suffix++) + ")" + baseName.extension().string());
+		}
+
+		fs::copy_file(src, dst, fs::copy_options::overwrite_existing, ec);
+		if (ec) {
+			return {};
+		}
+
+		// Normalize with forward slashes; keep project-relative
+		return (fs::path("..") / dst.lexically_normal().relative_path()).generic_string();
+	}
+
+	// Force-load a texture even if your ResourceManager caches by key.
+	static Texture* LoadTextureBypassingCache(const std::string& path) {
+		const uint64_t tick = static_cast<uint64_t>(ImGui::GetTime() * 1'000'000.0);
+		const std::string key = "sprite_" + path + "#v" + std::to_string(tick);
+		return ResourceManager::Instance().LoadTexture(key, path);
+	}
+
+	// Move file to sibling "trash" folder.
+	static bool MoveToTrash(const std::string& filePath) {
+		std::error_code ec;
+		fs::path src(filePath);
+
+		if (!fs::exists(src, ec)) {
+			return false;
+		}
+
+		fs::path trashDir = src.parent_path() / "trash";
+		if (!fs::exists(trashDir, ec)) {
+			fs::create_directories(trashDir, ec);
+		}
+
+		fs::path dst = trashDir / src.filename();
+		fs::rename(src, dst, ec);
+		return !ec;
+	}
+
+	// Enumerate .json files under a directory.
+	static std::vector<std::string> ListJsonFiles(const std::string& dir) {
+		std::vector<std::string> out;
+		std::error_code ec;
+
+		if (!fs::exists(dir, ec)) {
+			return out;
+		}
+
+		for (const auto& p : fs::directory_iterator(dir, ec)) {
+			if (p.is_regular_file()) {
+				const auto& path = p.path();
+				if (path.extension() == ".json") {
+					out.push_back(path.generic_string());
+				}
+			}
+		}
+
+		std::sort(out.begin(), out.end());
+		return out;
+	}
+
+	// Enumerate files by allowed extensions (case-insensitive).
+	static std::vector<std::string> ListAssetsWithExt(const std::string& dir, const std::vector<std::string>& exts) {
+		std::vector<std::string> out;
+		std::error_code ec;
+
+		if (!fs::exists(dir, ec)) {
+			return out;
+		}
+
+		for (const auto& p : fs::directory_iterator(dir, ec)) {
+			if (!p.is_regular_file()) {
+				continue;
+			}
+
+			auto ext = p.path().extension().string();
+			std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+			for (auto const& e : exts) {
+				if (ext == e) {
+					out.push_back(p.path().generic_string());
+					break;
+				}
+			}
+		}
+
+		std::sort(out.begin(), out.end());
+		return out;
+	}
+
+	// Save a single LevelObject into a prefab JSON path (ensures .json and parent dirs).
+	static bool SavePrefabToFile(std::string prefabPath, const LevelObject& src) {
+		\
+			if (fs::path(prefabPath).extension().empty()) {
+				prefabPath += ".json";
+			}
+
+		std::error_code ec;
+		fs::path dir = fs::path(prefabPath).parent_path();
+
+		if (!dir.empty() && !fs::exists(dir, ec)) {
+			fs::create_directories(dir, ec);
+			if (ec) {
+				return false;
+			}
+		}
+
+		LevelData one;
+		one.objects.clear();
+		one.objects.push_back(src);
+
+		return LevelSerializer::Save(prefabPath, one);
+	}
+
+	static bool LoadPrefabFromFile(const std::string& prefabPath, LevelObject& out) {
+		LevelData one;
+		if (!LevelSerializer::Load(prefabPath, one) || one.objects.empty()) {
+			return false;
+		}
+
+		out = one.objects.front();
+		return true;
+	}
+
+	// Apply prefab data to an existing object but keep its current position/z
+	static void ApplyPrefabToObjectKeepPosition(const LevelObject& prefab, Scene& scene, GameObject* obj) {
+		if (obj == nullptr) {
+			return;
+		}
+
+		const int id = obj->GetID();
+		glm::vec3 keepPos = obj->GetPositionGLM();
+
+		const float ww = prefab.w;
+		const float hh = prefab.h;
+
+		obj->SetScale(glm::vec3(ww, hh, 1.0f));
+		obj->SetColliderSize({ prefab.colWidth, prefab.colHeight });
+		obj->SetColliderOffset({ prefab.colOffsetX, prefab.colOffsetY });
+
+		scene.SetTransformFromLevel(id, obj->GetPositionGLM(), { ww, hh, 1.0f }, prefab.rotation);
+		scene.SetObjectTexturePath(id, prefab.texture);
+
+		if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + prefab.texture), prefab.texture)) {
+			obj->SetTexture(tex);
+		}
+
+		obj->SetPosition(keepPos);
+		scene.ClampToWalkArea(obj);
+	}
+
+	// // Scene picking/dragging inside the Scene image (respects game running).
+	static void HandleScenePickDrag(Scene& scene, int& selectedIndex, int& selectedObjectId) {
+		glm::vec2 mouseWorld;
+		if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {
+			return; // not over the Scene image
+		}
+
+		// Prove we're actually inside the Scene image (world coords)
+		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+			std::cout << "[LE] Click in Scene@(" << mouseWorld.x << "," << mouseWorld.y << ")\n";
+		}
+
+		static bool isDragging = false;
+		static int draggingId = -1;
+		static ImVec2 grabOffset = ImVec2(0.f, 0.f);
+
+		std::vector<GameObject*> list;
+		scene.CollectRenderablePointers(list);
+
+		// LMB press to pick (top-most)
+		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+			int picked = -1;
+
+			for (int i = (int)list.size() - 1; i >= 0; --i) {
+				GameObject* g = list[i];
+				if (!g) {
+					continue;
+				}
+
+				// Treat sprite as centered AABB in world pixels
+				const glm::vec3 pos = g->GetPositionGLM();
+				const glm::vec3 sz = g->GetScaleGLM();
+
+				const float hx = 0.5f * sz.x;
+				const float hy = 0.5f * sz.y;
+
+				const bool inside =
+					(mouseWorld.x >= pos.x - hx && mouseWorld.x <= pos.x + hx) &&
+					(mouseWorld.y >= pos.y - hy && mouseWorld.y <= pos.y + hy);
+
+				if (inside) {
+					picked = i;
+					break;
+				}
+			}
+
+			if (picked >= 0) {
+				selectedIndex = picked;
+				selectedObjectId = list[picked]->GetID();
+
+				const glm::vec3 p = list[picked]->GetPositionGLM();
+				grabOffset = ImVec2(mouseWorld.x - p.x, mouseWorld.y - p.y);
+
+				isDragging = true;
+				draggingId = selectedObjectId;
+			}
+			else {
+				isDragging = false;
+				draggingId = -1;
+			}
+		}
+
+		// While LMB held to drag
+		if (isDragging && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+			GameObject* g = scene.GetGameObjectByID(draggingId);
+			if (g) {
+				const float newX = mouseWorld.x - grabOffset.x;
+				const float newY = mouseWorld.y - grabOffset.y;
+
+				const glm::vec3 size = g->GetScaleGLM();
+				const float rotDeg = glm::degrees(g->GetRotationAngleZ());
+
+				scene.SetTransformFromLevel(
+					draggingId,
+					{ newX, newY, g->GetPositionGLM().z },
+					{ size.x, size.y, 1.f },
+					rotDeg
+				);
+
+				scene.ClampToWalkArea(g);
+			}
+		}
+
+		// Release to stop dragging
+		if (isDragging && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			isDragging = false;
+			draggingId = -1;
+		}
+	}
+}
+
+// ----- LevelEditor public methods -----
 bool LevelEditor::IsEnabled() const {
 	return isEnabled;
 }
@@ -46,288 +343,6 @@ void LevelEditor::SetPath(const std::string& path) {
 	levelPath = path;
 }
 
-// OS file picker. Returns empty string if cancelled.
-static std::string OpenFileDialog(const char* filter) {
-#ifdef _WIN32
-	char filePathBuffer[MAX_PATH] = { 0 };
-
-	OPENFILENAMEA ofn{};
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = nullptr;
-	ofn.lpstrFilter = filter;
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFile = filePathBuffer;
-	ofn.nMaxFile = MAX_PATH;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER;
-
-	if (GetOpenFileNameA(&ofn)) {
-		return std::string(filePathBuffer);
-	}
-#endif
-	return {};
-}
-
-// Copy src into destDir/<basename>.
-static std::string CopyFileIntoProjectUnique(const std::string& sourcePath, const std::string& destinationDir) {
-	if (sourcePath.empty()) {
-		return {};
-	}
-
-	std::error_code ec;
-	fs::path src(sourcePath);
-
-	if (!fs::exists(src, ec)) {
-		return {};
-	}
-
-	fs::path dstDir(destinationDir);
-	if (!fs::exists(dstDir, ec)) {
-		fs::create_directories(dstDir, ec);
-
-		if (ec) {
-			return {};
-		}
-	}
-
-	fs::path baseName = src.filename();
-	fs::path dst = dstDir / baseName;
-
-	int suffix = 1;
-
-	while (fs::exists(dst, ec)) {
-		dst = dstDir / (baseName.stem().string() + " (" + std::to_string(suffix++) + ")" + baseName.extension().string());
-	}
-
-	fs::copy_file(src, dst, fs::copy_options::overwrite_existing, ec);
-
-	if (ec) {
-		return {};
-	}
-
-	// Return normalized with forward slashes so the rest of the pipeline stays happy.
-	return (fs::path("..") / dst.lexically_normal().relative_path()).generic_string();
-}
-
-// Force-load a texture even if your ResourceManager caches by key.
-static Texture* LoadTextureBypassingCache(const std::string& path) {
-	const uint64_t tick = static_cast<uint64_t>(ImGui::GetTime() * 1'000'000.0);
-	const std::string key = "sprite_" + path + "#v" + std::to_string(tick);
-
-	return ResourceManager::Instance().LoadTexture(key, path);
-}
-
-// Move file to sibling "trash" folder.
-static bool MoveToTrash(const std::string& filePath) {
-	std::error_code ec;
-	fs::path src(filePath);
-
-	if (!fs::exists(src, ec)) {
-		return false;
-	}
-
-	fs::path trashDir = src.parent_path() / "trash";
-
-	if (!fs::exists(trashDir, ec)) {
-		fs::create_directories(trashDir, ec);
-	}
-
-	fs::path dst = trashDir / src.filename();
-	fs::rename(src, dst, ec);
-
-	return !ec;
-}
-
-// Prefab helpers
-static std::unordered_map<int, std::string> sPrefabLinkByID;
-
-static bool SavePrefabToFile(std::string prefabPath, const LevelObject& src) {
-	// Ensure extension
-	if (fs::path(prefabPath).extension().empty()) {
-		prefabPath += ".json";
-	}
-
-	// Ensure directory exists
-	std::error_code ec;
-	fs::path dir = fs::path(prefabPath).parent_path();
-
-	if (!dir.empty() && !fs::exists(dir, ec)) {
-		fs::create_directories(dir, ec);
-
-		if (ec) {
-			return false; // cannot create directory
-		}
-	}
-
-	LevelData one;
-	one.objects.clear();
-	one.objects.push_back(src);
-
-	return LevelSerializer::Save(prefabPath, one);
-}
-
-static bool LoadPrefabFromFile(const std::string& prefabPath, LevelObject& out) {
-	LevelData one;
-
-	if (!LevelSerializer::Load(prefabPath, one) || one.objects.empty()) {
-		return false;
-	}
-
-	out = one.objects.front();
-	return true;
-}
-
-// Apply prefab data to an existing object but keep its current position/z
-static void ApplyPrefabToObjectKeepPosition(const LevelObject& prefab, Scene& scene, GameObject* obj) {
-	if (obj == nullptr) {
-		return;
-	}
-
-	const int id = obj->GetID();
-	glm::vec3 keepPos = obj->GetPositionGLM();
-
-	const float ww = prefab.w;
-	const float hh = prefab.h;
-
-	obj->SetScale(glm::vec3(ww, hh, 1.0f));
-	obj->SetColliderSize({ prefab.colWidth, prefab.colHeight });
-	obj->SetColliderOffset({ prefab.colOffsetX, prefab.colOffsetY });
-
-	scene.SetTransformFromLevel(id, obj->GetPositionGLM(), { ww, hh, 1.0f }, prefab.rotation);
-
-	scene.SetObjectTexturePath(id, prefab.texture);
-
-	if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + prefab.texture), prefab.texture)) {
-		obj->SetTexture(tex);
-	}
-
-	obj->SetPosition(keepPos);
-	scene.ClampToWalkArea(obj);
-}
-
-// Point-in-AABB hit test for a sprite treated as a box centered at (pos.x, pos.y)
-static bool IsPointInsideObject(const ImVec2 pointPx, const GameObject* obj) {
-	if (obj == nullptr) {
-		return false;
-	}
-
-	const glm::vec3 pos = obj->GetPositionGLM();
-	const glm::vec3 size = obj->GetScaleGLM();
-
-	const float halfW = 0.5f * size.x;
-	const float halfH = 0.5f * size.y;
-
-	const float minX = pos.x - halfW;
-	const float maxX = pos.x + halfW;
-	const float minY = pos.y - halfH;
-	const float maxY = pos.y + halfH;
-
-	return (pointPx.x >= minX && pointPx.x <= maxX && pointPx.y >= minY && pointPx.y <= maxY);
-}
-
-// NOT WORKING
-// Scene picking / dragging (Scene viewport only; respects ImGui capture)
-static void HandleScenePickDrag(Scene& scene, int& selectedIndex, int& selectedObjectId) {
-	/*ImGuiIO& io = ImGui::GetIO();
-	if (io.WantCaptureMouse) {
-		return;
-	}*/
-
-	glm::vec2 mouseWorld;
-	if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {
-		return; // not over the Scene image
-	}
-	// Prove we're actually inside the Scene image (world coords)
-	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-		std::cout << "[LE] Click in Scene@(" << mouseWorld.x << "," << mouseWorld.y << ")\n";
-	}
-
-
-
-	static bool isDragging = false;
-	static int draggingId = -1;
-	static ImVec2 grabOffset = ImVec2(0.f, 0.f);
-
-	// Build a list of objects for hit testing
-	std::vector<GameObject*> list;
-	scene.CollectRenderablePointers(list);
-
-	// LMB press to pick (top-most)
-	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-		int picked = -1;
-
-		for (int i = (int)list.size() - 1; i >= 0; --i) {
-			GameObject* g = list[i];
-
-			if (!g) {
-				continue;
-			}
-
-			// Treat sprite as centered AABB in world pixels
-			const glm::vec3 pos = g->GetPositionGLM();
-			const glm::vec3 sz = g->GetScaleGLM();
-
-			const float hx = 0.5f * sz.x;
-			const float hy = 0.5f * sz.y;
-
-			const bool inside =
-				(mouseWorld.x >= pos.x - hx && mouseWorld.x <= pos.x + hx) &&
-				(mouseWorld.y >= pos.y - hy && mouseWorld.y <= pos.y + hy);
-
-			if (inside) {
-				picked = i;
-				break;
-			}
-		}
-
-		if (picked >= 0) {
-			selectedIndex = picked;
-			selectedObjectId = list[picked]->GetID();
-
-			const glm::vec3 p = list[picked]->GetPositionGLM();
-			grabOffset = ImVec2(mouseWorld.x - p.x, mouseWorld.y - p.y);
-
-			isDragging = true;
-			draggingId = selectedObjectId;
-		}
-		else {
-			isDragging = false;
-			draggingId = -1;
-		}
-	}
-
-	// While LMB held to drag
-	if (isDragging && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-		GameObject* g = scene.GetGameObjectByID(draggingId);
-
-		if (g) {
-			const float newX = mouseWorld.x - grabOffset.x;
-			const float newY = mouseWorld.y - grabOffset.y;
-
-			const glm::vec3 size = g->GetScaleGLM();
-			const float rotDeg = glm::degrees(g->GetRotationAngleZ());
-
-			scene.SetTransformFromLevel(
-				draggingId,
-				{ newX, newY, g->GetPositionGLM().z },
-				{ size.x, size.y, 1.f },
-				rotDeg
-			);
-
-			scene.ClampToWalkArea(g);
-		}
-	}
-
-	// Release to stop dragging
-	if (isDragging && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-		isDragging = false;
-		draggingId = -1;
-	}
-}
-
-static void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
-static void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
-
-// Public Methods
 bool LevelEditor::LoadIntoScene(Scene& scene) {
 	if (!LevelSerializer::Load(levelPath, level)) {
 		return false;
@@ -335,60 +350,6 @@ bool LevelEditor::LoadIntoScene(Scene& scene) {
 
 	SyncLevelToScene(level, scene);
 	return true;
-}
-
-// Enumerate .json filess
-static std::vector<std::string> ListJsonFiles(const std::string& dir) {
-	std::vector<std::string> out;
-
-	std::error_code ec;
-
-	if (!fs::exists(dir, ec)) {
-		return out;
-	}
-
-	for (const auto& p : fs::directory_iterator(dir, ec)) {
-		if (p.is_regular_file()) {
-			const auto& path = p.path();
-
-			if (path.extension() == ".json") {
-				out.push_back(path.generic_string()); // keep forward slashes
-			}
-		}
-	}
-
-	std::sort(out.begin(), out.end());
-	return out;
-}
-
-// Enumerate files with extensions.
-static std::vector<std::string> ListAssetsWithExt(const std::string& dir, const std::vector<std::string>& exts) {
-	std::vector<std::string> out;
-
-	std::error_code ec;
-
-	if (!fs::exists(dir, ec)) {
-		return out;
-	}
-
-	for (const auto& p : fs::directory_iterator(dir, ec)) {
-		if (!p.is_regular_file()) {
-			continue;
-		}
-
-		auto ext = p.path().extension().string();
-		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-		for (auto const& e : exts) {
-			if (ext == e) {
-				out.push_back(p.path().generic_string());
-				break;
-			}
-		}
-	}
-
-	std::sort(out.begin(), out.end());
-	return out;
 }
 
 // DrawUI
