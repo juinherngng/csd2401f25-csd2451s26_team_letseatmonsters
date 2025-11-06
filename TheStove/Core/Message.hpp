@@ -5,7 +5,7 @@ PROJECT NAME:		Project GAM200
 AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
 
 DESCRIPTION:		Message system for inter-component communication.
-					Supports both broadcast and publish/subscribe patterns.
+					Supports publish/subscribe patterns.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
