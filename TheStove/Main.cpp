@@ -16,61 +16,6 @@
 #define DBG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #define new DBG_NEW
 
-// Enable this to see which allocations are being suppressed
-// #define DEBUG_ALLOC_HOOK
-
-// Known third-party library allocation numbers to suppress
-// NOTE: These allocation numbers may vary between runs. Update as needed.
-static const long g_KnownLeakBlocks[] = {
-	// FMOD audio system allocations (typically around 824-837 range)
-	824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834, 835, 836, 837,
-	// GLAD OpenGL loader allocations (typically around 1801-1816 range) 
-	1801, 1802, 1803, 1804, 1805, 1806, 1807, 1808, 1809, 1810, 1811, 1812, 1813, 1814, 1815, 1816,
-	// ImGui input buffer (typically around 20218)
-	20218
-};
-static constexpr size_t g_NumKnownLeaks = sizeof(g_KnownLeakBlocks) / sizeof(g_KnownLeakBlocks[0]);
-
-// Helper to check if an allocation number is in the known leak list
-static bool IsKnownLeak(long allocNum)
-{
-	for (size_t i = 0; i < g_NumKnownLeaks; ++i)
-	{
-		if (allocNum == g_KnownLeakBlocks[i])
-			return true;
-	}
-	return false;
-}
-
-// Custom dump function that filters known leaks
-static void DumpLeaksFiltered(const _CrtMemState* startState)
-{
-	// Get current memory state
-	_CrtMemState endState;
-	_CrtMemCheckpoint(&endState);
-
-	// Get the difference
-	_CrtMemState diffState;
-	if (!_CrtMemDifference(&diffState, startState, &endState))
-	{
-		std::cout << "No memory leaks detected." << std::endl;
-		return;
-	}
-
-	std::cout << "Detected memory allocations (filtering known third-party leaks)..." << std::endl;
-	std::cout << "\nScanning for application memory leaks..." << std::endl;
-	std::cout << "(Suppressing " << g_NumKnownLeaks << " known third-party allocations)\n" << std::endl;
-
-	// Display memory statistics
-	std::cout << "Memory statistics:" << std::endl;
-	std::cout << "  Normal blocks: " << diffState.lCounts[_NORMAL_BLOCK] << std::endl;
-	std::cout << "  CRT blocks: " << diffState.lCounts[_CRT_BLOCK] << std::endl;
-	std::cout << "  Total bytes: " << diffState.lSizes[_NORMAL_BLOCK] << std::endl;
-
-	std::cout << "\nNote: Allocations 824-837 (FMOD), 1801-1816 (GLAD), and 20218 (ImGui)" << std::endl;
-	std::cout << "are known third-party library allocations and are safe to ignore." << std::endl;
-}
-
 #endif
 
 #include "Graphics/GraphicsEngine.hpp"
@@ -173,20 +118,14 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 int main() {
 
 #ifdef _DEBUG
-	// Enable memory leak detection but DISABLE automatic reporting at exit
-	// We'll do it manually so we can filter
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF);  // Track allocations but don't auto-dump
-
-	// Don't output automatically - we'll do it manually
+	// Enable full automatic memory leak detection
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	
+	// Output to stderr
 	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
 
-	// Create a memory state checkpoint at program start
-	_CrtMemState memStateStart;
-	_CrtMemCheckpoint(&memStateStart);
-
 	std::cout << "=== Memory leak detection enabled ===" << std::endl;
-	std::cout << "Will suppress " << g_NumKnownLeaks << " known third-party library allocations." << std::endl;
 #endif
 
 	// Create application state on the stack
@@ -254,7 +193,7 @@ int main() {
 			if (!file.is_open())
 			{
 				app.debugApp->LogError("Test Case : could not open file : " + filename);
-			}
+			 }
 			throw std::runtime_error("Unknown file could not be opened.");*/
 
 			//app.debugApp->RunDebuggerApp();
@@ -284,14 +223,9 @@ int main() {
 
 #ifdef _DEBUG
 	std::cout << "\n=== Memory Leak Report ===" << std::endl;
-
-	// Call our custom filtered dump
-	DumpLeaksFiltered(&memStateStart);
-
-	std::cout << "\n=== End of Memory Leak Report ===" << std::endl;
-
-	// NOTE: Since we disabled _CRTDBG_LEAK_CHECK_DF, there will be NO automatic
-	// leak dump when the program exits. This prevents the unfiltered leak report.
+	std::cout << "Checking for memory leaks..." << std::endl;
+	std::cout << "If no leaks are detected, no additional output will appear below." << std::endl;
+	std::cout << "=== End of Memory Leak Report ===" << std::endl;
 #endif
 
 	return 0;
