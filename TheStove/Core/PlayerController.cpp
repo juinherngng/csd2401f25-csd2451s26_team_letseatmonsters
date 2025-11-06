@@ -1,123 +1,154 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			PlayerController.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Implements PlayerController. Reads input, adjusts scale/rotation,
+					sets click-to-move targets (either physics-based or direct), and
+					updates sprite facing textures accordingly.
+
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include "PlayerController.hpp"
-#include <glm/gtc/constants.hpp>
-#include <iostream>
 
 void PlayerController::HandleInput(float deltaTime,
-    InputManager& inputManager,
-    EntityManager& entityManager,
-    MovementManager& movementManager,
-    PhysicsManager& physicsManager,
-    GraphicsEngine& graphicsEngine,
-    int playerID,
-    bool useForces) {
-    if (playerID < 0) return;
+	InputManager& inputManager,
+	EntityManager& entityManager,
+	MovementManager& movementManager,
+	PhysicsManager& physicsManager,
+	GraphicsEngine& graphicsEngine,
+	int playerID,
+	bool useForces) {
+	if (playerID < 0) {
+		return;
+	}
 
-    GameObject* sprite = entityManager.GetByID(playerID);
-    if (!sprite) return;
+	GameObject* sprite = entityManager.GetByID(playerID);
+	if (!sprite) {
+		return;
+	}
 
-    // Handle scale controls
-    HandleScaleInput(inputManager, sprite, deltaTime);
+	// Handle scale controls (Up/Down)
+	HandleScaleInput(inputManager, sprite, deltaTime);
 
-    // Handle rotation controls 
-    HandleRotationInput(inputManager, deltaTime);
-    sprite->SetRotation(rotation_, glm::vec3(0, 0, 1));
+	// Handle rotation controls (Left/Right)
+	HandleRotationInput(inputManager, deltaTime);
+	sprite->SetRotation(rotation_, glm::vec3(0, 0, 1));
 
-    // Handle click-to-move
-    HandleClickToMove(inputManager, entityManager, movementManager,
-        physicsManager, graphicsEngine, playerID, useForces);
+	// Handle click-to-move (Left mouse)
+	HandleClickToMove(inputManager, entityManager, movementManager,
+		physicsManager, graphicsEngine, playerID, useForces);
 }
 
 void PlayerController::HandleScaleInput(InputManager& inputManager, GameObject* sprite, float deltaTime) {
-    glm::vec3 scale = sprite->GetScaleGLM();
+	// Simple bounded uniform scaling
+	glm::vec3 scale = sprite->GetScaleGLM();
 
-    if (inputManager.IsKeyPressed(GLFW_KEY_UP)) {
-        scale *= 1.01f;
-        scale = glm::min(scale, glm::vec3(500.0f));
-        sprite->SetScale(scale);
-    }
+	if (inputManager.IsKeyPressed(GLFW_KEY_UP)) {
+		scale *= 1.01f;
+		scale = glm::min(scale, glm::vec3(500.0f));
+		sprite->SetScale(scale);
+	}
 
-    if (inputManager.IsKeyPressed(GLFW_KEY_DOWN)) {
-        scale *= 0.99f;
-        scale = glm::max(scale, glm::vec3(50.0f));
-        sprite->SetScale(scale);
-    }
+	if (inputManager.IsKeyPressed(GLFW_KEY_DOWN)) {
+		scale *= 0.99f;
+		scale = glm::max(scale, glm::vec3(50.0f));
+		sprite->SetScale(scale);
+	}
 }
 
 void PlayerController::HandleRotationInput(InputManager& inputManager, float deltaTime) {
-    const float rotationSpeed = 10.0f; // degrees per second
+	// Degrees per second
+	const float kRotationSpeed = 10.0f;
 
-    if (inputManager.IsKeyPressed(GLFW_KEY_RIGHT)) {
-        rotation_ += rotationSpeed * deltaTime;
-    }
+	if (inputManager.IsKeyPressed(GLFW_KEY_RIGHT)) {
+		rotation_ += kRotationSpeed * deltaTime;
+	}
 
-    if (inputManager.IsKeyPressed(GLFW_KEY_LEFT)) {
-        rotation_ -= rotationSpeed * deltaTime;
-    }
+	if (inputManager.IsKeyPressed(GLFW_KEY_LEFT)) {
+		rotation_ -= kRotationSpeed * deltaTime;
+	}
 
-    // Normalize rotation to [0, 360)
-    while (rotation_ >= 360.0f) rotation_ -= 360.0f;
-    while (rotation_ < 0.0f) rotation_ += 360.0f;
+	// Normalize rotation to [0, 360)
+	while (rotation_ >= 360.0f) {
+		rotation_ -= 360.0f;
+	}
+
+	while (rotation_ < 0.0f) {
+		rotation_ += 360.0f;
+	}
 }
 
 void PlayerController::HandleClickToMove(InputManager& inputManager,
-    EntityManager& entityManager,
-    MovementManager& movementManager,
-    PhysicsManager& physicsManager,
-    GraphicsEngine& graphicsEngine,
-    int playerID,
-    bool useForces) {
-    if (!inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-        return;
-    }
+	EntityManager& entityManager,
+	MovementManager& movementManager,
+	PhysicsManager& physicsManager,
+	GraphicsEngine& graphicsEngine,
+	int playerID,
+	bool useForces) {
+	// Only act on the initial press to set a target once.
+	if (!inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+		return;
+	}
 
-    GameObject* sprite = entityManager.GetByID(playerID);
-    if (!sprite) return;
+	GameObject* sprite = entityManager.GetByID(playerID);
+	if (!sprite) {
+		return;
+	}
 
-    glm::vec2 mouseWorld;
-    if (!graphicsEngine.GetMouseWorldInScene(mouseWorld)) {
-        return;
-    }
+	glm::vec2 mouseWorld = {};
+	if (!graphicsEngine.GetMouseWorldInScene(mouseWorld)) {
+		return;
+	}
 
-    // Set movement target based on active mode
-    if (useForces) {
-        physicsManager.SetSeekTarget(playerID, Math::Vector2D(mouseWorld.x, mouseWorld.y));
-    }
-    else {
-        movementManager.SetMoveTarget(playerID, mouseWorld);
-    }
+	// Choose movement mode (forces vs kinematic)
+	if (useForces) {
+		physicsManager.SetSeekTarget(playerID, Math::Vector2D(mouseWorld.x, mouseWorld.y));
+	}
+	else {
+		movementManager.SetMoveTarget(playerID, mouseWorld);
+	}
 
-    // Update sprite direction
-    glm::vec3 position = sprite->GetPositionGLM();
-    glm::vec2 toTarget = mouseWorld - glm::vec2(position.x, position.y);
-    UpdateSpriteDirection(toTarget, sprite);
+	// Update facing texture immediately based on target direction.
+	const glm::vec3 pos = sprite->GetPositionGLM();
+	const glm::vec2 toTarget = mouseWorld - glm::vec2(pos.x, pos.y);
+	UpdateSpriteDirection(toTarget, sprite);
 }
 
 void PlayerController::UpdateSpriteDirection(const glm::vec2& direction, GameObject* sprite) {
-    if (glm::length(direction) <= 0.001f) return;
+	// Small dead zone to avoid jitter when very close to target.
+	if (glm::length(direction) <= 0.001f) {
+		return;
+	}
 
-    float ax = std::abs(direction.x);
-    float ay = std::abs(direction.y);
+	const float absX = std::abs(direction.x);
+	const float absY = std::abs(direction.y);
 
-    if (ax > ay) {
-        // Horizontal movement dominant
-        if (direction.x > 0.0f) {
-            sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-                "../assets/mc_sprite_right.png", "../assets/mc_sprite_right.png"));
-        }
-        else {
-            sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-                "../assets/mc_sprite_left.png", "../assets/mc_sprite_left.png"));
-        }
-    }
-    else {
-        // Vertical movement dominant
-        if (direction.y > 0.0f) {
-            sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-                "../assets/mc_sprite_front.png", "../assets/mc_sprite_front.png"));
-        }
-        else {
-            sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-                "../assets/mc_sprite_back.png", "../assets/mc_sprite_back.png"));
-        }
-    }
+	// Dominant axis decides the facing
+	if (absX > absY) {
+		// Horizontal dominant
+		if (direction.x > 0.0f) {
+			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+				"../assets/mc_sprite_right.png", "../assets/mc_sprite_right.png"));
+		}
+		else {
+			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+				"../assets/mc_sprite_left.png", "../assets/mc_sprite_left.png"));
+		}
+	}
+	else {
+		// Vertical dominant
+		if (direction.y > 0.0f) {
+			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+				"../assets/mc_sprite_front.png", "../assets/mc_sprite_front.png"));
+		}
+		else {
+			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
+				"../assets/mc_sprite_back.png", "../assets/mc_sprite_back.png"));
+		}
+	}
 }

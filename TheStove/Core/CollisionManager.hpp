@@ -33,8 +33,6 @@ public:
 	collision::World& GetCollisionWorld() { return collisionWorld_; }
 	const collision::World& GetCollisionWorld() const { return collisionWorld_; }
 
-
-
 	// Build static walls from level geometry
 	void BuildWalls(const collision::WalkArea& walkArea,
 		const collision::WoodVertical& wood,

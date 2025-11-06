@@ -5,7 +5,6 @@
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
  DESCRIPTION:		Handles saving and loading of LevelData to and from JSON files.
-					Rotation values are stored in DEGREES for editor compatibility.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
