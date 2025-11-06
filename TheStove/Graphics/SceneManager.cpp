@@ -189,9 +189,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	logicManager.StartAll(*this);
 	logicManager.UpdateAll(deltaTime, *this, inputManager);
 		// Handle player input
-		playerController.HandleInput(deltaTime, inputManager, entityManager,
-			movementManager, physicsManager,
-			graphicsEngine, spriteID, useForces_);
+		//playerController.HandleInput(deltaTime, inputManager, entityManager,
+		//	movementManager, physicsManager,
+		//	graphicsEngine, spriteID, useForces_);
 
 		// Update movement system (kinematic or physics-based)
 		if (useForces_) {
@@ -243,7 +243,7 @@ void Scene::ClearAll() {
 
 void Scene::SetPlayerID(int id) {
 	spriteID = id;
-	movementManager.SetPlayerID(id);  // inform movement manager
+	//movementManager.SetPlayerID(id);  // inform movement manager
 }
 
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
@@ -700,4 +700,10 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 }
 
 
+GraphicsEngine& Scene::GetGraphicsEngine() {
+	return graphicsEngine;
+}
 
+const GraphicsEngine& Scene::GetGraphicsEngine() const {
+	return graphicsEngine;
+}
