@@ -22,7 +22,7 @@
 
 void NPCSystem::Update(float deltaTime, EntityManager& entityManager, CollisionManager& collisionManager, const collision::WalkArea& walkArea) {
     //UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
-    HandleNPCCollisions(entityManager);
+    //HandleNPCCollisions(entityManager);
     //UpdateGenericNPCs(deltaTime, entityManager, walkArea);
 }
 
