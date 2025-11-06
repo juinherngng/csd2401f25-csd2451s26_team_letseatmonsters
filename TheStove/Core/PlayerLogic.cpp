@@ -190,6 +190,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	if (input.IsKeyPressed(GLFW_KEY_S)) inputDir.y += 1.f;
 
 	if (inputDir.x != 0.f || inputDir.y != 0.f) {
+		hasMoveTarget = false;
 		float len = std::sqrt(inputDir.x * inputDir.x + inputDir.y * inputDir.y);
 		if (len > 0.0001f) {
 			inputDir.x /= len;
