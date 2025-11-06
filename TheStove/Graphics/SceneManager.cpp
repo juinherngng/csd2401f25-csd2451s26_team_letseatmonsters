@@ -554,9 +554,10 @@ void Scene::BuildLevelColliders() {
 
 	collisionManager.BuildWalls(walk, wood, gate);
 
-	//physicsManager.SetCollisionWorld(&collisionManager.GetWorld());
-	movementManager.SetCollisionWorld(&collisionManager.GetWorld());
+	movementManager.SetCollisionWorld(&collisionManager.GetCollisionWorld());
+
 	movementManager.SetNPCSystem(&npcSystem);
+
 	physicsManager.SetMovementManager(&movementManager);
 }
 

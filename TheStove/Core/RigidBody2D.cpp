@@ -5,18 +5,11 @@ PROJECT NAME:		Project GAM200
 AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
 CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
 
-DESCRIPTION:
-	Physics component representing a 2D rigid body with velocity.
-	Designed to work with a Transform to simulate simple motion.
+DESCRIPTION:		Implements RigidBody2D. Accumulates forces, integrates velocity with
+					exponential damping, optionally applies gravity/legacy acceleration,
+					and writes motion to the owner's Transform.
 
-	Responsibilities:
-	- Store and update linear velocity.
-	- Apply velocity to the attached Transform each frame (in Update).
-	- Provide simple physics behavior (e.g., movement, collision stubs).
-
-	Intended as a starting point for the engine�s physics system.
-
-All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -35,6 +28,7 @@ void RigidBody2D::Initialize() {
 	damping = 0.98f;
 	useGravity = false;
 	forceAccum = Math::Vector2D::ZERO;
+	registry = nullptr;
 }
 
 void RigidBody2D::Update(float dt) {
@@ -147,17 +141,16 @@ void RigidBody2D::SetForceRegistry(ForceRegistry* fr) {
 	registry = fr;
 }
 
-std::string RigidBody2D::ToString() const
-{
+// Utilities
+std::string RigidBody2D::ToString() const {
 	return "Rigidbody2D (vel: " + std::to_string(velocity.x) + "," + std::to_string(velocity.y) + ")";
 }
 
-GameComponent* RigidBody2D::Clone() const
-{
+GameComponent* RigidBody2D::Clone() const {
 	return new RigidBody2D(*this);
 }
 
-// Internal helpers
+// Internal
 void RigidBody2D::Integrate(float dt) {
 	// Infinite mass - static body
 	if (invMass <= 0.0f) {
