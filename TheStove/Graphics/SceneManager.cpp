@@ -161,6 +161,15 @@ void Scene::LoadScene(const std::string& sceneName) {
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
+
+	// Deferred Clear
+	if (pendingClear_) {
+		ClearAll();
+		RebuildColliders();
+		pendingClear_ = false;
+		return;  // Skip rest of update this frame
+	}
+
 	// Update input
 	inputManager.Update(window);
 
@@ -614,6 +623,10 @@ void Scene::GenerateStressTest(int objectCount) {
 	std::cout << "  - Random velocities\n";
 	std::cout << "  - Mixed textures (" << texturePaths.size() << " types)\n";
 	std::cout << "  - Scene total: " << entityManager.GetObjectCount() << " objects\n";
+}
+
+void Scene::RequestClearAll() {
+	pendingClear_ = true;
 }
 
 

@@ -160,6 +160,14 @@ namespace Debug
 				ImGui::InputInt("Object Count", &stressTestCount, 100, 500);
 				stressTestCount = glm::clamp(stressTestCount, 0, 10000);
 
+				// Check if scene has objects
+				bool hasObjects = (totalObjects > 0);
+
+				// Disable button if true
+				if (hasObjects) {
+					ImGui::BeginDisabled();
+				}
+
 				if (ImGui::Button("Generate Stress Test")) {
 					if (coreEngine) {
 						if (auto* audioMgr = coreEngine->GetSystem<AudioManager>()) {
@@ -169,6 +177,13 @@ namespace Debug
 					scene_->GenerateStressTest(stressTestCount);
 					scene_->SetSimulationActive(true);
 					AddDebugLine("Generated stress test with " + std::to_string(stressTestCount) + " objects\n");
+				}
+
+				// Re-enable UI if it was disabled
+				if (hasObjects) {
+					ImGui::EndDisabled();
+					ImGui::SameLine();
+					ImGui::TextDisabled("(Clear objects first)");
 				}
 
 				ImGui::SameLine();
@@ -183,6 +198,16 @@ namespace Debug
 					}
 					scene_->SetSimulationActive(simActive);
 					AddDebugLine(simActive ? "Simulation started\n" : "Simulation paused\n");
+				}
+				if (ImGui::Button("Clear All Objects")) {
+					if (coreEngine) {
+						if (auto* audioMgr = coreEngine->GetSystem<AudioManager>()) {
+							audioMgr->PlayUIClickSound();
+						}
+					}
+					scene_->RequestClearAll();
+					scene_->SetSimulationActive(false);
+					AddDebugLine("Cleared all objects from scene\n");
 				}
 			}
 			else {

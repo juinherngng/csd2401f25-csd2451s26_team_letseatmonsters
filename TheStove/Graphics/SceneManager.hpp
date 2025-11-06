@@ -205,6 +205,9 @@ public:
 
 	void MarkAnimated(int id, bool state);
 
+	// For deferred clearing
+	void RequestClearAll();
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -253,4 +256,6 @@ private:
 	int lastWidth_ = -1;
 	int lastHeight_ = -1;
 	bool resetBaseline_ = false;
+
+	bool pendingClear_ = false; // Flag for deferred clearing
 };
