@@ -33,13 +33,12 @@ public:
 	// ----- Lifecycle -----
 	GraphicsEngine();
 	// SystemInterface implementation
-	void Initialize() override;
+	void Initialize() override;			// Init renderer, FBO, default resources, ImGui
 	void Update(float dt) override;
 	std::string GetName() override { return "GraphicsEngine"; }
 
 	static GraphicsEngine& Instance();
 
-	void Initialize(); // Init renderer, FBO, default resources, ImGui
 	void Shutdown();   // Free GPU resources and shutdown ImGui
 
 	// ----- Per-frame workflow -----
