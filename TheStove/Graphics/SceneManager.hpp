@@ -44,7 +44,7 @@
   */
 class Scene {
 public:
-	// Core Lifecycle
+	// Core Lifecycle testing
 
 	/**
 	 * @brief Construct a new Scene object.
@@ -80,11 +80,11 @@ public:
 	 * @param rotation Rotation in degrees.
 	 * @return Pointer to spawned GameObject, or nullptr if failed.
 	 */
-	//GameObject* SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation = 0.0f);
+	 //GameObject* SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation = 0.0f);
 
-	/**
-	 * @brief Spawns a static sprite with a given texture and size.
-	 */
+	 /**
+	  * @brief Spawns a static sprite with a given texture and size.
+	  */
 	GameObject* SpawnStaticSprite(const std::string& texturePath, const glm::vec3 position,
 		const glm::vec2 size = glm::vec2(100.0f, 100.0f));
 
