@@ -466,31 +466,48 @@ namespace Debug
 		if (layoutInitialized) return;
 
 		ImGuiID dockspaceID = GraphicsEngine::Instance().GetMainDockspaceID();
-		if (dockspaceID == 0) return;  // Not ready yet
+		if (dockspaceID == 0) {
+			return;  // Not ready yet, try next frame
+		}
+
+		std::cout << "Setting up default ImGui layout...\n";
 
 		// Clear any existing layout
 		ImGui::DockBuilderRemoveNode(dockspaceID);
+
+		// Recreate the dockspace with proper sizing
+		ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
-		ImGui::DockBuilderSetNodeSize(dockspaceID, ImGui::GetMainViewport()->Size);
+		ImGui::DockBuilderSetNodeSize(dockspaceID, ImVec2(1184, 784));  // Your working size
+		ImGui::DockBuilderSetNodePos(dockspaceID, ImVec2(8, 8));
 
-		// Split the dockspace
-		ImGuiID dock_left, dock_right, dock_bottom_right;
+		// Split the dockspace to match your working layout
+		// Main horizontal split: top area (882 height) and bottom console (109 height)
+		ImGuiID dock_top, dock_bottom;
+		ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Down, 0.12f, &dock_bottom, &dock_top);
 
-		// Split horizontally: 70% right (scene), 30% left (debug info)
-		ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Left, 0.3f, &dock_left, &dock_right);
+		// Split top area: left sidebar (323 width) and right area (861 width)
+		ImGuiID dock_left, dock_right;
+		ImGui::DockBuilderSplitNode(dock_top, ImGuiDir_Left, 0.27f, &dock_left, &dock_right);
 
-		// Split right side vertically: 70% top (scene), 30% bottom (console)
-		ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Down, 0.3f, &dock_bottom_right, &dock_right);
+		// Split right area: center scene (561 width) and right panel (296 width)
+		ImGuiID dock_center, dock_right_panel;
+		ImGui::DockBuilderSplitNode(dock_right, ImGuiDir_Right, 0.35f, &dock_right_panel, &dock_center);
 
-		// Dock windows to their default positions
+		// Dock all windows to their positions
 		ImGui::DockBuilderDockWindow("Debug Information###DebugInfo", dock_left);
-		ImGui::DockBuilderDockWindow("Scene###SceneWindow", dock_right);
-		ImGui::DockBuilderDockWindow("Console Log###ConsoleLog", dock_bottom_right);
+		ImGui::DockBuilderDockWindow("Assets###LE_Assets", dock_left);
+		ImGui::DockBuilderDockWindow("Prefabs###LE_Prefabs", dock_left);
+		ImGui::DockBuilderDockWindow("Scene###SceneWindow", dock_center);
+		ImGui::DockBuilderDockWindow("Console Log###ConsoleLog", dock_bottom);
+		ImGui::DockBuilderDockWindow("Level###LE_Level", dock_right_panel);
 
 		ImGui::DockBuilderFinish(dockspaceID);
 
 		layoutInitialized = true;
+		std::cout << "Default ImGui layout initialized successfully!\n";
 	}
+
 }
 
 
