@@ -7,7 +7,7 @@
 
  DESCRIPTION:		Implements the InputManager class for handling keyboard and mouse input.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -27,12 +27,33 @@ InputManager& InputManager::Get() {
 	return sActive ? *sActive : fallback;
 }
 
+// SystemInterface implementation
+void InputManager::Initialize() {
+	// Nothing to initialize - window will be set externally
+}
+
+void InputManager::Update(float dt) {
+	(void)dt; // Suppress unused parameter warning	
+	
+	if (mWindow) {
+		UpdateInternal(mWindow);
+	}
+}
+
+std::string InputManager::GetName() {
+	return "InputManager";
+}
+
 // Frame Update / Focus Hints
 void InputManager::SetSceneViewportWantsGameMouse(bool enable) {
 	mSceneViewportWantsGameMouse = enable;
 }
 
-void InputManager::Update(GLFWwindow* window) {
+void InputManager::SetWindow(GLFWwindow* window) {
+	mWindow = window;
+}
+
+void InputManager::UpdateInternal(GLFWwindow* window) {
 	mPreviousKeyStates = mCurrentKeyStates;
 	mPrevMouseButtons = mMouseButtons;
 
