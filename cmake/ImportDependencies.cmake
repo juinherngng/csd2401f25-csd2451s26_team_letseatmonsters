@@ -197,6 +197,11 @@ macro(import_stb_image)
     endif()
 endmacro()
 
+# Macro to import freetype
+# macro(import_freetype)
+    # if (NOT TARGET freetype)
+# endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -224,6 +229,10 @@ macro(importDependencies)
     message(STATUS "Importing STB_IMAGE...")
     import_stb_image()
     message(STATUS "STB_IMAGE imported successfully.")
+
+    message(STATUS "Importing FREETYPE...")
+    # import_freetype()
+    message(STATUS "FREETYPE imported successfully.")
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()
