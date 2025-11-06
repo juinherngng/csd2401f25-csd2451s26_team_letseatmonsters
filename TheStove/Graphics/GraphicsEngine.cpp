@@ -68,6 +68,16 @@ void GraphicsEngine::Initialize() {
 	}
 }
 
+// SystemInterface Update - currently just tracks deltaTime for performance monitoring
+void GraphicsEngine::Update(float dt) {
+	// Store dt for performance tracking
+	lastDt = dt;
+	
+	// Note: Actual rendering is still called from main loop via BeginFrame/Render/EndFrame
+	// This Update is just for system integration and performance monitoring
+	(void)dt; // Suppress unused parameter warning if no other logic needed
+}
+
 void GraphicsEngine::DestroySceneFBO() {
 	if (mSceneDepth) { glDeleteRenderbuffers(1, &mSceneDepth);  mSceneDepth = 0; }
 	if (mSceneColor) { glDeleteTextures(1, &mSceneColor);      mSceneColor = 0; }
@@ -597,11 +607,5 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
 	}
 }
-
-
-
-
-
-
 
 

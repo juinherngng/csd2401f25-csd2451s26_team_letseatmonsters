@@ -16,6 +16,7 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 #include "DebugUI.hpp"
 #include "Core.hpp"
 #include "../Graphics/SceneManager.hpp"
+#include "../Graphics/GraphicsEngine.hpp"
 #include <algorithm>
 #include <unordered_set>
 
@@ -98,6 +99,17 @@ namespace Debug
 		if (coreEngine)
 		{
 			UpdateSystemTimes(coreEngine->GetDeltaTime());
+			
+			// Update render stats from GraphicsEngine system
+			if (auto* gfxEngine = coreEngine->GetSystem<GraphicsEngine>())
+			{
+				SetRenderStats(
+					gfxEngine->GetTotalObjects(),
+					gfxEngine->GetBatchCount(),
+					gfxEngine->GetInstancedObjectCount(),
+					gfxEngine->GetDrawCallCount()
+				);
+			}
 		}
 
 		if (!openedDebugger)

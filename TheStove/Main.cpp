@@ -88,7 +88,6 @@ static void DumpLeaksFiltered(const _CrtMemState* startState)
 struct ApplicationState
 {
 	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
-	std::unique_ptr<GraphicsEngine> graphicsEngine;
 	std::unique_ptr<Scene> currentScene;
 	std::unique_ptr<Debug::DebuggerApp> debugApp;
 	GLFWwindow* window = nullptr; // GLFW owns this, we just reference it
@@ -136,10 +135,12 @@ static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	// Safe to call now that GLAD is initialized
 	glViewport(0, 0, width, height);
 
-	// Keep both engines in sync
+	// Keep both engines in sync - get GraphicsEngine from CoreEngine
 	GraphicsEngine::Instance().Resize(width, height);
-	if (g_AppState && g_AppState->graphicsEngine) {
-		g_AppState->graphicsEngine->Resize(width, height);
+	if (g_AppState && g_AppState->coreEngine) {
+		if (auto* gfxEngine = g_AppState->coreEngine->GetSystem<GraphicsEngine>()) {
+			gfxEngine->Resize(width, height);
+		}
 	}
 }
 
@@ -394,11 +395,12 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 	// Add systems using unique_ptr with MessageBus reference
 	app.coreEngine->AddSystem(std::make_unique<InputManager>());
+	app.coreEngine->AddSystem(std::make_unique<GraphicsEngine>());		// Register GraphicsEngine as a system - CoreEngine takes ownership
 	app.coreEngine->AddSystem(std::make_unique<AudioManager>(app.coreEngine->GetMessageBus()));
 	app.coreEngine->AddSystem(std::make_unique<Framework::GameStateManager>(app.coreEngine->GetMessageBus()));
 	app.coreEngine->AddSystem(std::make_unique<AnimationManager>());
-	app.coreEngine->AddSystem(std::make_unique<PhysicsManager>());
 	app.coreEngine->AddSystem(std::make_unique<MovementManager>());
+	app.coreEngine->AddSystem(std::make_unique<PhysicsManager>());
 	app.coreEngine->AddSystem(std::make_unique<CollisionManager>());
 
 	app.coreEngine->Initialize();
@@ -428,10 +430,12 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		std::cerr << "Warning: AudioManager not found in CoreEngine for ResourceManager!" << std::endl;
 	}
 
-
-	// Create GraphicsEngine with smart pointer
-	app.graphicsEngine = std::make_unique<GraphicsEngine>();
-	app.graphicsEngine->Initialize();
+	// Get GraphicsEngine from CoreEngine
+	GraphicsEngine* graphicsEngine = app.coreEngine->GetSystem<GraphicsEngine>();
+	if (!graphicsEngine) {
+		std::cerr << "Failed to get GraphicsEngine from CoreEngine\n";
+		return false;
+	}
 
 	// Initialize once with the current framebuffer size (handles DPI scaling)
 	int fbw = 0, fbh = 0;
@@ -442,7 +446,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 	// Update BOTH the singleton (used by InputManager) and the instance (used by renderer)
 	GraphicsEngine::Instance().Resize(fbw, fbh);
-	app.graphicsEngine->Resize(fbw, fbh);
+	graphicsEngine->Resize(fbw, fbh);
 
 	// Get InputManager system for Scene
 	InputManager* inputMgr = app.coreEngine->GetSystem<InputManager>();
@@ -480,7 +484,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	}
 
 	// Create Scene with smart pointer, passing all manager references
-	app.currentScene = std::make_unique<Scene>(*app.graphicsEngine, *inputMgr, *animMgr, 
+	app.currentScene = std::make_unique<Scene>(*graphicsEngine, *inputMgr, *animMgr, 
 											   *movementMgr, *physicsMgr, *collisionMgr);
 	app.currentScene->LoadScene("LoadTest");
 
@@ -562,7 +566,14 @@ static void update(ApplicationState& app) {
 static void draw(ApplicationState& app) {
 	std::vector<GameObject*> drawList;
 
-	app.graphicsEngine->BeginFrame();
+	// Get GraphicsEngine from CoreEngine
+	auto* graphicsEngine = app.coreEngine->GetSystem<GraphicsEngine>();
+	if (!graphicsEngine) {
+		std::cerr << "GraphicsEngine not found in CoreEngine during draw!\n";
+		return;
+	}
+
+	graphicsEngine->BeginFrame();
 	app.currentScene->DrawUI();
 	drawList.clear();
 	app.currentScene->CollectRenderablePointers(drawList);
@@ -572,8 +583,8 @@ static void draw(ApplicationState& app) {
 		app.debugApp->RenderDebuggerApp();
 	}
 
-	//app.graphicsEngine->Render(drawList);
-	app.graphicsEngine->RenderBatched(drawList);
+	//graphicsEngine->Render(drawList);
+	graphicsEngine->RenderBatched(drawList);
 
 	glfwSwapBuffers(app.window);
 }
@@ -629,6 +640,7 @@ void cleanup(ApplicationState& app) {
 	// STEP 6.5: Unload all audio assets
 	std::cout << "Unloading audio assets..." << std::endl;
 	Audio::AudioCatalog::UnloadAllAudio();
+	
 	// STEP 4: Shutdown ImGui (must happen while OpenGL context is valid)
 	if (app.debugApp)
 	{
@@ -644,24 +656,14 @@ void cleanup(ApplicationState& app) {
 		app.currentScene.reset();
 	}
 
-	// STEP 6: Stop and shutdown audio
+	// STEP 7: Shutdown graphics engine (now managed by CoreEngine)
 	if (app.coreEngine)
 	{
-		if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
+		if (auto* gfxEngine = app.coreEngine->GetSystem<GraphicsEngine>())
 		{
-			std::cout << "Stopping all sounds..." << std::endl;
-			audioMgr->StopAllSounds();
-			std::cout << "Shutting down audio..." << std::endl;
-			audioMgr->Shutdown();
+			std::cout << "Shutting down graphics engine..." << std::endl;
+			gfxEngine->Shutdown();
 		}
-	}
-
-	// STEP 7: Shutdown graphics engine (clears background object)
-	if (app.graphicsEngine)
-	{
-		std::cout << "Shutting down graphics engine..." << std::endl;
-		app.graphicsEngine->Shutdown();
-		app.graphicsEngine.reset();
 	}
 
 	// STEP 8: Clear resource manager (while context still valid)
