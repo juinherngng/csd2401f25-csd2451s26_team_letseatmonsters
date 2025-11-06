@@ -314,6 +314,7 @@ namespace Debug
 					// Publish stop all message (empty string = stop all)
 					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("");
 					DebuggerApp::AddDebugLine("Stopping: all audio (via MessageBus)\n");
+					AddDebugLine("Published STOP_AUDIO message for ALL sounds\n");
 					
 					// Play UI click sound AFTER stopping all audio
 					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
