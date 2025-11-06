@@ -20,7 +20,34 @@
 
 #include "PhysicsManager.hpp"
 
-void PhysicsManager::Update(float deltaTime,
+// SystemInterface implementation
+
+void PhysicsManager::Initialize() {
+	std::cout << "PhysicsManager system initialized.\n";
+}
+
+void PhysicsManager::Update(float dt) {
+	if (!entityManager_ || !inputManager_) {
+		return;
+	}
+	UpdatePhysics(dt, *entityManager_, *inputManager_);
+}
+
+std::string PhysicsManager::GetName() {
+	return "PhysicsManager";
+}
+
+void PhysicsManager::SetEntityManager(EntityManager* entityMgr) {
+	entityManager_ = entityMgr;
+}
+
+void PhysicsManager::SetInputManager(InputManager* inputMgr) {
+	inputManager_ = inputMgr;
+}
+
+// Original physics update logic
+
+void PhysicsManager::UpdatePhysics(float deltaTime,
 	EntityManager& entityManager,
 	InputManager& inputManager) {
 	// Resolve to an internal physics time step.

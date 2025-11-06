@@ -7,7 +7,7 @@ AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
 DESCRIPTION:		Initializes rendering, loads default GPU resources, manages a fullscreen background,
 					and renders scene GameObjects with view/projection.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -17,6 +17,7 @@ DESCRIPTION:		Initializes rendering, loads default GPU resources, manages a full
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
 #include "GameObject.hpp"
+#include "../Core/System.hpp"
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
@@ -25,11 +26,15 @@ DESCRIPTION:		Initializes rendering, loads default GPU resources, manages a full
 #include <vector>
 #include <memory>
 
-class GraphicsEngine {
+class GraphicsEngine : public CoreFramework::SystemInterface {
 public:
 	GraphicsEngine();
 
-	void Initialize();
+	// SystemInterface implementation
+	void Initialize() override;
+	void Update(float dt) override;
+	std::string GetName() override { return "GraphicsEngine"; }
+
 	void BeginFrame();
 	// Non-owning draw of a list of scene-owned objects.
 	void Render(const std::vector<GameObject*>& objects);

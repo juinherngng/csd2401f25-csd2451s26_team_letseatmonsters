@@ -10,7 +10,7 @@
 					collisions within each subgroup and clamps positions to the
 					walkable area.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -21,9 +21,9 @@
 #include "NPCSystem.hpp"
 
 void NPCSystem::Update(float deltaTime, EntityManager& entityManager, CollisionManager& collisionManager, const collision::WalkArea& walkArea) {
-	UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
-	HandleNPCCollisions(entityManager);
-	UpdateGenericNPCs(deltaTime, entityManager, walkArea);
+    //UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
+    //HandleNPCCollisions(entityManager);
+    //UpdateGenericNPCs(deltaTime, entityManager, walkArea);
 }
 
 void NPCSystem::SetNPCVelocity(int npcID, const glm::vec2& velocity) {

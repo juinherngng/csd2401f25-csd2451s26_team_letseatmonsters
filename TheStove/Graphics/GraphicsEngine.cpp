@@ -7,7 +7,7 @@ AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
 DESCRIPTION:		Implements initialization, default resource loading, background handling,
 					and batched rendering of GameObjects with error checks.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -51,13 +51,31 @@ void GraphicsEngine::Initialize() {
 	if (!s_imguiInitialized) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+		// Bigger UI
+		io.FontGlobalScale = 1.35f;
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.ScaleAllSizes(1.35f);
+
 		ImGui::StyleColorsDark();
+
 		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
 		s_imguiInitialized = true;
 	}
+}
+
+// SystemInterface Update - currently just tracks deltaTime for performance monitoring
+void GraphicsEngine::Update(float dt) {
+	// Store dt for performance tracking
+	lastDt = dt;
+	
+	// Note: Actual rendering is still called from main loop via BeginFrame/Render/EndFrame
+	// This Update is just for system integration and performance monitoring
+	(void)dt; // Suppress unused parameter warning if no other logic needed
 }
 
 void GraphicsEngine::DestroySceneFBO() {
@@ -312,6 +330,13 @@ void GraphicsEngine::DrawSceneDockWindow() {
 			ImVec2(0, 1),   // uv0
 			ImVec2(1, 0)    // uv1
 		);
+
+		// Overlay an invisible hit proxy exactly matching the scene image.
+		// This makes ImGui "hover/active" states line up with the scene viewport.
+		if (sceneImageSize_.x > 1.0f && sceneImageSize_.y > 1.0f) {
+			ImGui::SetCursorScreenPos(sceneImagePos_);
+			ImGui::InvisibleButton("##SceneHitProxy", sceneImageSize_, ImGuiButtonFlags_MouseButtonLeft);
+		}
 	}
 
 	ImGui::End();
@@ -582,11 +607,5 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
 	}
 }
-
-
-
-
-
-
 
 
