@@ -1635,6 +1635,7 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 	}
 }
 
+// Sync helpers
 static void SyncSceneToLevel(Scene& scene, LevelData& levelOut) {
 	levelOut.objects.clear();
 
@@ -1648,35 +1649,41 @@ static void SyncSceneToLevel(Scene& scene, LevelData& levelOut) {
 
 		LevelObject obj{};
 
+		// Texture & animation flag
 		obj.texture = scene.GetObjectTexturePath(g->GetID());
-		obj.rotation = glm::degrees(g->GetRotationAngleZ());
-
-		glm::vec3 p = g->GetPositionGLM();
-		glm::vec3 s = g->GetScaleGLM();
-
-		obj.x = p.x;
-		obj.y = p.y;
-		obj.w = s.x;
-		obj.h = s.y;
-
-		obj.tag = "";
-
-		if (g->GetID() == scene.GetPlayerID()) {
-			obj.tag = "player";
-		}
-		else if (g->GetID() == scene.GetNPC1ID()) {
-			obj.tag = "npc1";
-		}
-		else if (g->GetID() == scene.GetNPC2ID()) {
-			obj.tag = "npc2";
-		}
-
 		obj.animated = scene.HasAnimations(g->GetID());
 
-		glm::vec2 v = scene.GetNPCVelocity(g->GetID());
+		// Transform
+		const glm::vec3 p = g->GetPositionGLM();
+		const glm::vec3 s = g->GetScaleGLM();
+		obj.x = p.x;
+		obj.y = p.y;
+		obj.z = p.z;                              // <--- PRESERVE Z (useful if you sort by z)
+		obj.w = s.x;
+		obj.h = s.y;
+		obj.rotation = glm::degrees(g->GetRotationAngleZ());
+
+		// Collider (this was missing before)
+		const auto csz = g->GetColliderSize();
+		const auto cof = g->GetColliderOffset();
+		obj.colWidth = csz.x;
+		obj.colHeight = csz.y;
+		obj.colOffsetX = cof.x;
+		obj.colOffsetY = cof.y;
+
+		// Tag / special IDs
+		obj.tag.clear();
+		if (g->GetID() == scene.GetPlayerID()) { obj.tag = "player"; }
+		else if (g->GetID() == scene.GetNPC1ID()) { obj.tag = "npc1"; }
+		else if (g->GetID() == scene.GetNPC2ID()) { obj.tag = "npc2"; }
+		else if (g->GetID() == scene.GetDinoID()) { obj.tag = "dino"; }
+
+		// Velocity
+		const glm::vec2 v = scene.GetNPCVelocity(g->GetID());
 		obj.speedX = v.x;
 		obj.speedY = v.y;
 
 		levelOut.objects.push_back(obj);
 	}
 }
+
