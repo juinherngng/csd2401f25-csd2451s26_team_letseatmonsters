@@ -165,7 +165,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	inputManager.Update(window);
 
 	// Process input commands (debug toggles, force toggle, etc.)
-	inputCommandHandler.ProcessCommands(inputManager, physicsManager,
+	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager,
 		spriteID, useForces_, showAuxDebug_);
 
 	// Level editor toggle

@@ -576,17 +576,48 @@ void LevelEditor::DrawUI(Scene& scene) {
 
 		if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200.0f))) {
 			for (int i = 0; i < (int)objectList.size(); ++i) {
-				if (!objectList[i]) {
-					continue;
+				GameObject* g = objectList[i];
+				if (!g) { continue; }
+
+				const int gid = g->GetID();
+
+				// Prefer the tag saved in Defaults (player, npc1, npc2, dino, etc.)
+				std::string niceName;
+				{
+					Scene::Defaults defs = scene.GetDefaults(gid);
+					if (!defs.tag.empty()) {
+						niceName = defs.tag;  // e.g., "player", "npc1", "dino"
+					}
+					else {
+						// Otherwise use texture filename (stem) as a readable name
+						std::string texPath = scene.GetObjectTexturePath(gid);
+						if (!texPath.empty()) {
+							try {
+								std::string stem = std::filesystem::path(texPath).stem().string();
+								if (!stem.empty()) niceName = stem; // e.g., "dino_red", "mc_sprite_front"
+							}
+							catch (...) {
+								// ignore path parse errors
+							}
+						}
+					}
 				}
 
-				std::string label = "ID " + std::to_string(objectList[i]->GetID());
+				// Final label: "<name> (ID X)" or just "ID X" if no name could be derived
+				std::string label;
+				if (!niceName.empty()) {
+					label = niceName + " (ID " + std::to_string(gid) + ")";
+				}
+				else {
+					label = "ID " + std::to_string(gid);
+				}
 
 				if (ImGui::Selectable(label.c_str(), selectedIndex == i)) {
 					selectedIndex = i;
-					selectedObjectId = objectList[i]->GetID();
+					selectedObjectId = gid;
 				}
 			}
+
 
 			ImGui::EndListBox();
 		}
@@ -609,7 +640,11 @@ void LevelEditor::DrawUI(Scene& scene) {
 			proto.h = 128.f;
 			proto.rotation = 0.f;
 
-			GameObject* obj = scene.SpawnStaticSprite(proto.texture, { proto.x, proto.y, proto.z }, { proto.w, proto.h });
+			GameObject* obj = scene.SpawnStaticSprite(
+				proto.texture,
+				{ proto.x, proto.y, proto.z },
+				{ proto.w, proto.h }
+			);
 
 			if (obj) {
 				obj->SetColliderSize({ proto.colWidth, proto.colHeight });
@@ -739,13 +774,39 @@ void LevelEditor::DrawUI(Scene& scene) {
 
 			// Compact 2-column layout
 			ImGui::Columns(2, nullptr, false);
-			ImGui::SetColumnWidth(0, 120.0f);
+
+			// Make the label column wide enough for the longest label we use here.
+			// Pick a long one to measure (you can add more if you like).
+			ImGuiStyle& style = ImGui::GetStyle();
+			float longestLabel = 0.0f;
+			longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position (x,y)").x);
+			longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Size (w,h)").x);
+			longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation (deg)").x);
+			longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Collider (w,h)").x);
+			longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Collider offset").x);
+			longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Velocity (x,y)").x);
+			longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Start animation").x);
+			longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Texture").x);
+			longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Tag").x);
+
+			// Add some padding so text never clips
+			float labelColWidth = longestLabel + style.ItemInnerSpacing.x * 2.0f + 12.0f;
+			ImGui::SetColumnWidth(0, labelColWidth);
+
+			// From here on, make every input use the full remaining width of the right column:
+			auto FullWidthNextItem = []() {
+				ImGui::SetNextItemWidth(-FLT_MIN);   // -FLT_MIN = fill current column
+				};
+
+
+			//float inputWidth = ImGui::GetContentRegionAvail().x - 10.0f;
 
 			// Texture
 			ImGui::Text("Texture");
 			ImGui::NextColumn();
 
-			ImGui::SetNextItemWidth(140.0f);
+			//ImGui::SetNextItemWidth(inputWidth);
+			FullWidthNextItem();
 
 			if (ImGui::InputText("##TexturePath", textureBuf, IM_ARRAYSIZE(textureBuf))) {
 				scene.SetObjectTexturePath(id, textureBuf);
@@ -807,7 +868,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 			ImGui::Text("Tag");
 			ImGui::NextColumn();
 
-			ImGui::SetNextItemWidth(140.0f);
+			FullWidthNextItem();
 			ImGui::InputText("##Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
 
 			ImGui::NextColumn();
@@ -816,7 +877,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 			ImGui::Text("Position (x,y)");
 			ImGui::NextColumn();
 
-			ImGui::SetNextItemWidth(140.0f);
+			FullWidthNextItem();
 
 			DragVec2WithReset("##pos", &position.x, ImVec2(defaults.pos.x, defaults.pos.y), 1.0f, [&](bool) {
 				obj->SetRotation(glm::radians(rotationDeg), { 0,0,1 });
@@ -837,7 +898,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 			ImGui::Text("Size (w,h)");
 			ImGui::NextColumn();
 
-			ImGui::SetNextItemWidth(140.0f);
+			FullWidthNextItem();
 
 			DragVec2WithReset("##size", &size.x, ImVec2(defaults.size.x, defaults.size.y), 1.0f, [&](bool) {
 				obj->SetRotation(glm::radians(rotationDeg), { 0,0,1 });
@@ -858,7 +919,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 			ImGui::Text("Rotation (deg)");
 			ImGui::NextColumn();
 
-			ImGui::SetNextItemWidth(140.0f);
+			FullWidthNextItem();
 
 			DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.25f, [&](bool) {
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
@@ -877,7 +938,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 			ImGui::Text("Collider (w,h)");
 			ImGui::NextColumn();
 
-			ImGui::SetNextItemWidth(140.0f);
+			FullWidthNextItem();
 
 			DragVec2WithReset("##colsz", &colliderSize.x, ImVec2(defaults.colSize.x, defaults.colSize.y), 1.0f, [&](bool) {
 				obj->SetColliderSize({ colliderSize.x, colliderSize.y });
@@ -890,7 +951,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 			ImGui::Text("Collider offset");
 			ImGui::NextColumn();
 
-			ImGui::SetNextItemWidth(140.0f);
+			FullWidthNextItem();
 
 			DragVec2WithReset("##coloff", &colliderOff.x, ImVec2(defaults.colOff.x, defaults.colOff.y), 1.0f, [&](bool) {
 				obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
@@ -903,7 +964,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 			ImGui::Text("Velocity (x,y)");
 			ImGui::NextColumn();
 
-			ImGui::SetNextItemWidth(140.0f);
+			FullWidthNextItem();
 
 			DragVec2WithReset("##vel", &velocity.x, ImVec2(defaults.vel.x, defaults.vel.y), 1.0f, [&](bool) {
 				scene.SetNPCVelocity(id, velocity.x, velocity.y);
@@ -927,7 +988,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 				ImGui::Text("Start animation");
 				ImGui::NextColumn();
 
-				ImGui::SetNextItemWidth(140.0f);
+				FullWidthNextItem();
 
 				if (ImGui::BeginCombo("##animCombo", currentAnim.empty() ? "(none)" : currentAnim.c_str())) {
 					for (int i = 0; i < (int)animationNames.size(); ++i) {
