@@ -4,6 +4,7 @@ FILE NAME:			DebugUI.cpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
 CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+					Seah Wang Hua, wanghua.seah"digipen.edu
 
 DESCRIPTION:		The definitions of functions for the debugger window.
 
@@ -117,7 +118,8 @@ namespace Debug
 			return; // If any exception occurs, don't render
 		}
 
-		SetupDefaultLayout();
+		//Not sure if this even works
+		//SetupDefaultLayout(); 
 
 		// Create my window
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
@@ -188,8 +190,6 @@ namespace Debug
 					ImGui::SameLine();
 					ImGui::TextDisabled("(Clear objects first)");
 				}
-
-				ImGui::SameLine();
 
 				// Simulation toggle
 				bool simActive = scene_->IsSimulationActive();
