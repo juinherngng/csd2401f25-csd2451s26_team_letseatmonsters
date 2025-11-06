@@ -30,9 +30,8 @@
 #include "../Core/PlayerController.hpp"
 #include "../Core/NPCSystem.hpp"
 #include "../Core/DebugVisualizer.hpp"
-#include "../Core/LogicManager.hpp"
-#include "../Core/PlayerLogic.hpp"
-#include "../Core/SimpleNpcLogic.hpp"
+
+
 
 
 #include <string>
@@ -206,10 +205,6 @@ public:
 
 	void MarkAnimated(int id, bool state);
 
-	LogicManager& GetLogicManager() { return logicManager; }
-	// new helper:
-	void AttachLogicForTag(int id, const std::string& tag);
-
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -219,7 +214,6 @@ private:
 	MovementManager movementManager;
 	CollisionManager collisionManager;
 	PhysicsManager physicsManager;
-	LogicManager logicManager;
 
 	// Systems
 	InputCommandHandler inputCommandHandler;
