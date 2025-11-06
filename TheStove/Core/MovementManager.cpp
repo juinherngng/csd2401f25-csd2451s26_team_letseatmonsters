@@ -1,13 +1,30 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:         MovementManager.cpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:       Implements MovementManager. Updates player WASD and click-to-move, NPC patrols,
+					and passive velocity-based motion. Uses world trimming to resolve step movement
+					against walls and updates sprite facing based on effective direction.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
+#include <cmath>
+#include <iostream>
+#include <vector>
+
 #include "MovementManager.hpp"
+#include "NPCSystem.hpp"
+
 #include "../Graphics/EntityManager.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Core/InputManager.hpp"
-#include "NPCSystem.hpp"
-#include <iostream>
-#include <cmath>
 
-// ===== Core Functionality =====
-
+ // Core Functionality
 void MovementManager::Update(float deltaTime, EntityManager& entityManager, InputManager& inputManager) {
 	// Update player movement (WASD + click-to-move)
 	if (playerID_ >= 0) {
@@ -17,7 +34,9 @@ void MovementManager::Update(float deltaTime, EntityManager& entityManager, Inpu
 
 	// Update all objects with click-to-move or patrol
 	for (auto& [objID, data] : movementData_) {
-		if (objID == playerID_) continue;  // Already handled
+		if (objID == playerID_) {
+			continue;  // Already handled
+		}
 
 		if (data.patrolEnabled) {
 			UpdateNPCPatrol(objID, data, deltaTime, entityManager);
@@ -26,6 +45,8 @@ void MovementManager::Update(float deltaTime, EntityManager& entityManager, Inpu
 			UpdateClickToMove(objID, data, deltaTime, entityManager);
 		}
 	}
+
+	// Objects that just have a velocity are updated here (bouncy bounds)
 	UpdateVelocityBasedMovement(deltaTime, entityManager);
 }
 
@@ -34,8 +55,7 @@ void MovementManager::Clear() {
 	playerID_ = -1;
 }
 
-// ===== Player Setup =====
-
+// Player Setup
 void MovementManager::SetPlayerID(int playerID) {
 	playerID_ = playerID;
 
@@ -46,26 +66,25 @@ void MovementManager::SetPlayerID(int playerID) {
 	}
 }
 
-// ===== Movement Control =====
-
+// Movement Control
 void MovementManager::SetMoveSpeed(int objectID, float speed) {
 	movementData_[objectID].moveSpeed = speed;
 }
 
 float MovementManager::GetMoveSpeed(int objectID) const {
 	auto it = movementData_.find(objectID);
-	return (it != movementData_.end()) ? it->second.moveSpeed : 200.0f;
+	if (it != movementData_.end()) {
+		return it->second.moveSpeed;
+	}
+
+	return 200.0f;
 }
 
 void MovementManager::SetMoveTarget(int objectID, const glm::vec2& target) {
-	std::cout << "SetMoveTarget called for objectID: " << objectID << " to (" << target.x << ", " << target.y << ")" << std::endl;
-
-	movementData_[objectID].hasTarget = true;
-	movementData_[objectID].moveTarget = target;
-
-	std::cout << "After setting: hasTarget = " << movementData_[objectID].hasTarget << std::endl;
+	auto& md = movementData_[objectID];
+	md.hasTarget = true;
+	md.moveTarget = target;
 }
-
 
 void MovementManager::ClearMoveTarget(int objectID) {
 	auto it = movementData_.find(objectID);
@@ -82,11 +101,14 @@ bool MovementManager::HasMoveTarget(int objectID) const {
 
 glm::vec2 MovementManager::GetMoveTarget(int objectID) const {
 	auto it = movementData_.find(objectID);
-	return (it != movementData_.end()) ? it->second.moveTarget : glm::vec2(0.f);
+	if (it != movementData_.end()) {
+		return it->second.moveTarget;
+	}
+
+	return glm::vec2(0.f);
 }
 
-// ===== NPC Patrol =====
-
+// NPC Patrol
 void MovementManager::SetPatrolPath(int objectID, const std::vector<glm::vec2>& waypoints, bool loop) {
 	auto& data = movementData_[objectID];
 	data.patrolPath = waypoints;
@@ -98,11 +120,12 @@ void MovementManager::EnablePatrol(int objectID, bool enable) {
 	movementData_[objectID].patrolEnabled = enable;
 }
 
-// ===== Query =====
-
+// Query
 bool MovementManager::IsMoving(int objectID) const {
 	auto it = movementData_.find(objectID);
-	if (it == movementData_.end()) return false;
+	if (it == movementData_.end()) {
+		return false;
+	}
 
 	const glm::vec2& vel = it->second.velocity;
 	return (vel.x != 0.f || vel.y != 0.f);
@@ -110,55 +133,64 @@ bool MovementManager::IsMoving(int objectID) const {
 
 glm::vec2 MovementManager::GetVelocity(int objectID) const {
 	auto it = movementData_.find(objectID);
-	return (it != movementData_.end()) ? it->second.velocity : glm::vec2(0.f);
+	if (it != movementData_.end()) {
+		return it->second.velocity;
+	}
+
+	return glm::vec2(0.f);
 }
 
-
+// Internals
 void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager) {
 	GameObject* player = entityManager.GetByID(playerID_);
-	if (!player) return;
+	if (player == nullptr) {
+		return;
+	}
 
 	auto& data = movementData_[playerID_];
-	//std::cout << "Player found. hasTarget: " << data.hasTarget << std::endl;
 
 	// WASD movement (cancels click-to-move)
 	glm::vec2 desiredMove(0.f, 0.f);
 	bool pressingWASD = false;
 
-	if (inputManager.IsKeyPressed(GLFW_KEY_W)) { desiredMove.y = -1.f; pressingWASD = true; }
-	if (inputManager.IsKeyPressed(GLFW_KEY_S)) { desiredMove.y = 1.f; pressingWASD = true; }
-	if (inputManager.IsKeyPressed(GLFW_KEY_A)) { desiredMove.x = -1.f; pressingWASD = true; }
-	if (inputManager.IsKeyPressed(GLFW_KEY_D)) { desiredMove.x = 1.f; pressingWASD = true; }
-
-	//std::cout << "pressingWASD: " << pressingWASD << std::endl;
+	if (inputManager.IsKeyPressed(GLFW_KEY_W)) {
+		desiredMove.y = -1.f; pressingWASD = true;
+	}
+	if (inputManager.IsKeyPressed(GLFW_KEY_S)) {
+		desiredMove.y = 1.f; pressingWASD = true;
+	}
+	if (inputManager.IsKeyPressed(GLFW_KEY_A)) {
+		desiredMove.x = -1.f; pressingWASD = true;
+	}
+	if (inputManager.IsKeyPressed(GLFW_KEY_D)) {
+		desiredMove.x = 1.f; pressingWASD = true;
+	}
 
 	if (pressingWASD) {
-		//std::cout << "WASD pressed - cancelling click-to-move" << std::endl;
-		// WASD pressed - cancel click-to-move and use keyboard input
+		// Cancel click-to-move and use keyboard input
 		data.hasTarget = false;
 
 		// Normalize diagonal movement
-		float length = std::sqrt(desiredMove.x * desiredMove.x + desiredMove.y * desiredMove.y);
-		if (length > 0.f) {
-			desiredMove /= length;
+		const float lenSq = desiredMove.x * desiredMove.x + desiredMove.y * desiredMove.y;
+		if (lenSq > 0.f) {
+			const float invLen = 1.0f / std::sqrt(lenSq);
+			desiredMove *= invLen;
 		}
 
-		// record facing intent
-		data.hasFacingHint = (length > 0.f);
-		data.facingHint = (length > 0.f) ? desiredMove : glm::vec2(0.f);
+		// Record facing intent
+		data.hasFacingHint = (lenSq > 0.f);
+		data.facingHint = (lenSq > 0.f) ? desiredMove : glm::vec2(0.f);
 
 		data.velocity = desiredMove * data.moveSpeed;
-
 	}
 	else if (data.hasTarget) {
-		std::cout << "Processing click-to-move to (" << data.moveTarget.x << ", " << data.moveTarget.y << ")" << std::endl;
 		// Click-to-move (only if not pressing WASD)
-		glm::vec3 pos3D = player->GetPositionGLM();
-		glm::vec2 pos(pos3D.x, pos3D.y);
+		const glm::vec3 pos3D = player->GetPositionGLM();
+		const glm::vec2 pos(pos3D.x, pos3D.y);
 
-		// Calculate direction to target
-		glm::vec2 toTarget = data.moveTarget - pos;
-		float distance = std::sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y);
+		// Direction to target
+		const glm::vec2 toTarget = data.moveTarget - pos;
+		const float distance = std::sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y);
 
 		// Arrival threshold
 		if (distance < 5.0f) {
@@ -166,16 +198,14 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
 			data.velocity = { 0.f, 0.f };
 		}
 		else {
-			// Move towards target
-			glm::vec2 direction = toTarget / distance;
+			const glm::vec2 direction = toTarget / distance;
 
-			// record facing intent
+			// Record facing intent
 			data.hasFacingHint = true;
 			data.facingHint = direction;
 
 			data.velocity = direction * data.moveSpeed;
 		}
-
 	}
 	else {
 		// No input, stop moving
@@ -184,21 +214,21 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
 		data.facingHint = { 0.f, 0.f };
 	}
 
-	// if a wall trims our step, stop & clear click target
+	// If a wall trims our step, stop & clear click target
 	glm::vec3 pos = player->GetPositionGLM();
 
-	// desired movement this frame from current velocity
-	glm::vec2 desiredDelta2D = data.velocity * deltaTime;
+	// Desired movement this frame from current velocity
+	const glm::vec2 desiredDelta2D = data.velocity * deltaTime;
 	glm::vec2 allowedDelta2D = desiredDelta2D;
 
-	// detect if trimmed by resolver
+	// Detect if trimmed by resolver
 	auto impacted = [](const glm::vec2& d, const glm::vec2& a) {
 		const float eps = 1e-4f;
 		return (std::fabs(d.x - a.x) > eps) || (std::fabs(d.y - a.y) > eps);
 		};
 
-	if (world_) {
-		// Build current AABB from collider (same math you use in DebugVisualizer)
+	if (world_ != nullptr) {
+		// Build current AABB from collider
 		const auto colSize = player->GetColliderSize();
 		const auto colOff = player->GetColliderOffset();
 
@@ -207,51 +237,50 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
 
 		collision::AABB start = collision::World::makeAABBFromCenter(center, scale);
 
-		// resolve desired step
-		Math::Vector2D desiredDelta(desiredDelta2D.x, desiredDelta2D.y);
-		Math::Vector2D allowedDelta = world_->resolve(start, desiredDelta);
+		// Resolve desired step
+		const Math::Vector2D desiredDelta(desiredDelta2D.x, desiredDelta2D.y);
+		const Math::Vector2D allowedDelta = world_->resolve(start, desiredDelta);
 
 		allowedDelta2D = { allowedDelta.x, allowedDelta.y };
 
-		// If trimmed: keep the allowed slide, only cancel click target if we're really blocked.
+		// If trimmed: keep the allowed slide, only cancel click target if we're really blocked
 		if (impacted(desiredDelta2D, allowedDelta2D)) {
-			// consider "blocked" if the allowed motion this frame is tiny
 			const float allowedLen = std::sqrt(allowedDelta2D.x * allowedDelta2D.x +
 				allowedDelta2D.y * allowedDelta2D.y);
-			// tune threshold as needed (in pixels per frame)
+
+			// Tune threshold as needed (in pixels per frame)
 			if (data.hasTarget && allowedLen < 0.50f) {
-				data.hasTarget = false;  // hide the green line when we truly can't advance
+				data.hasTarget = false;  // hide the green path when we truly can't advance
 			}
 		}
 	}
 
-	// apply the allowed movement (or raw if no world_)
+	// Apply the allowed movement
 	pos.x += allowedDelta2D.x;
 	pos.y += allowedDelta2D.y;
 	player->SetPosition(pos);
 
-	// IMPORTANT: update velocity to the actually-allowed motion so WASD can slide
+	// Update velocity to the actually-allowed motion so WASD can slide
 	if (deltaTime > 0.0f) {
 		data.velocity = allowedDelta2D / deltaTime;
 	}
 	else {
 		data.velocity = { 0.f, 0.f };
 	}
-
-
 }
-
 
 void MovementManager::UpdateClickToMove(int objectID, MovementData& data, float deltaTime, EntityManager& entityManager) {
 	GameObject* obj = entityManager.GetByID(objectID);
-	if (!obj || !data.hasTarget) return;
+	if (obj == nullptr || !data.hasTarget) {
+		return;
+	}
 
 	glm::vec3 pos3D = obj->GetPositionGLM();
 	glm::vec2 pos(pos3D.x, pos3D.y);
 
-	// Calculate direction to target
-	glm::vec2 toTarget = data.moveTarget - pos;
-	float distance = std::sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y);
+	// Direction to target
+	const glm::vec2 toTarget = data.moveTarget - pos;
+	const float distance = std::sqrt(toTarget.x * toTarget.x + toTarget.y * toTarget.y);
 
 	// Arrival threshold
 	if (distance < 5.0f) {
@@ -261,7 +290,7 @@ void MovementManager::UpdateClickToMove(int objectID, MovementData& data, float 
 	}
 
 	// Move towards target
-	glm::vec2 direction = toTarget / distance;
+	const glm::vec2 direction = toTarget / distance;
 	data.velocity = direction * data.moveSpeed;
 
 	pos3D.x += data.velocity.x * deltaTime;
@@ -270,15 +299,19 @@ void MovementManager::UpdateClickToMove(int objectID, MovementData& data, float 
 }
 
 void MovementManager::UpdateNPCPatrol(int objectID, MovementData& data, float deltaTime, EntityManager& entityManager) {
-	if (data.patrolPath.empty()) return;
+	if (data.patrolPath.empty()) {
+		return;
+	}
 
 	GameObject* obj = entityManager.GetByID(objectID);
-	if (!obj) return;
+	if (obj == nullptr) {
+		return;
+	}
 
 	glm::vec3 pos3D = obj->GetPositionGLM();
 	glm::vec2 pos(pos3D.x, pos3D.y);
 
-	// Get current waypoint
+	// Current waypoint
 	glm::vec2 waypoint = data.patrolPath[data.currentWaypoint];
 	glm::vec2 toWaypoint = waypoint - pos;
 	float distance = std::sqrt(toWaypoint.x * toWaypoint.x + toWaypoint.y * toWaypoint.y);
@@ -299,14 +332,14 @@ void MovementManager::UpdateNPCPatrol(int objectID, MovementData& data, float de
 			}
 		}
 
-		// Get next waypoint
+		// Next waypoint
 		waypoint = data.patrolPath[data.currentWaypoint];
 		toWaypoint = waypoint - pos;
 		distance = std::sqrt(toWaypoint.x * toWaypoint.x + toWaypoint.y * toWaypoint.y);
 	}
 
 	// Move towards waypoint
-	glm::vec2 direction = toWaypoint / distance;
+	const glm::vec2 direction = toWaypoint / std::max(distance, 1e-6f);
 	data.velocity = direction * data.moveSpeed;
 
 	pos3D.x += data.velocity.x * deltaTime;
@@ -316,49 +349,54 @@ void MovementManager::UpdateNPCPatrol(int objectID, MovementData& data, float de
 
 void MovementManager::UpdateSpriteDirection(int entityID, EntityManager& entityManager) {
 	auto it = movementData_.find(entityID);
-	if (it == movementData_.end()) return;
+	if (it == movementData_.end()) {
+		return;
+	}
 
 	GameObject* sprite = entityManager.GetByID(entityID);
-	if (!sprite) return;
+	if (sprite == nullptr) {
+		return;
+	}
 
-	const MovementData& data = it->second;
+	MovementData& data = it->second;
 
-	// base on actual motion
+	// Base on actual motion
 	glm::vec2 basis = data.velocity;
-	float speed = std::sqrt(basis.x * basis.x + basis.y * basis.y);
+	const float speed = std::sqrt(basis.x * basis.x + basis.y * basis.y);
 
-	// if velocity is tiny or one axis got clipped, use intent hint
+	// If velocity is tiny or one axis got clipped, use intent hint
 	if (data.hasFacingHint) {
 		if (speed < 0.001f) {
 			basis = data.facingHint;
 		}
 		else {
-			// if we intended vertical but Y got clamped (top/bottom wall)
+			// If we intended vertical but Y got clamped (top/bottom wall)
 			if (std::abs(basis.y) < 0.1f && std::abs(data.facingHint.y) > std::abs(data.facingHint.x)) {
 				basis = data.facingHint;
 			}
-			// if we intended horizontal but X got clamped (side wall)
+			// If we intended horizontal but X got clamped (side wall)
 			else if (std::abs(basis.x) < 0.1f && std::abs(data.facingHint.x) > std::abs(data.facingHint.y)) {
 				basis = data.facingHint;
 			}
 		}
 	}
 
-	// Remember the chosen facing if it needed
+	// Remember the chosen facing if it’s meaningful
 	if (std::fabs(basis.x) > 0.01f || std::fabs(basis.y) > 0.01f) {
-		it->second.lastFacing = basis;
+		data.lastFacing = basis;
 	}
 	else {
 		// If stopped completely, keep using the previous lastFacing
-		basis = it->second.lastFacing;
+		basis = data.lastFacing;
 	}
-	float ax = std::abs(basis.x);
-	float ay = std::abs(basis.y);
+
+	const float ax = std::abs(basis.x);
+	const float ay = std::abs(basis.y);
 
 	// Smooth facing selection
-	glm::vec2 prev = it->second.lastFacing;
-	float prevAx = std::abs(prev.x);
-	float prevAy = std::abs(prev.y);
+	const glm::vec2 prev = data.lastFacing;
+	const float prevAx = std::abs(prev.x);
+	const float prevAy = std::abs(prev.y);
 
 	// Small bias to keep same orientation unless direction clearly changes
 	const float switchBias = 1.2f; // larger = more stickiness to previous facing
@@ -377,36 +415,37 @@ void MovementManager::UpdateSpriteDirection(int entityID, EntityManager& entityM
 		if (basis.x > 0.0f) {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
 				"../assets/mc_sprite_right.png", "../assets/mc_sprite_right.png"));
-			it->second.lastFacing = { 1.f, 0.f };
+			data.lastFacing = { 1.f, 0.f };
 		}
 		else {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
 				"../assets/mc_sprite_left.png", "../assets/mc_sprite_left.png"));
-			it->second.lastFacing = { -1.f, 0.f };
+			data.lastFacing = { -1.f, 0.f };
 		}
 	}
 	else {
 		if (basis.y > 0.0f) {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
 				"../assets/mc_sprite_front.png", "../assets/mc_sprite_front.png"));
-			it->second.lastFacing = { 0.f, 1.f };
+			data.lastFacing = { 0.f, 1.f };
 		}
 		else {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
 				"../assets/mc_sprite_back.png", "../assets/mc_sprite_back.png"));
-			it->second.lastFacing = { 0.f, -1.f };
+			data.lastFacing = { 0.f, -1.f };
 		}
 	}
-
 }
 
 void MovementManager::UpdateVelocityBasedMovement(float deltaTime, EntityManager& entityManager) {
 	std::vector<GameObject*> allObjects = entityManager.GetAllObjects();
 
 	for (GameObject* obj : allObjects) {
-		if (!obj) continue;
+		if (obj == nullptr) {
+			continue;
+		}
 
-		int objID = obj->GetID();
+		const int objID = obj->GetID();
 
 		// Skip managed objects
 		auto it = movementData_.find(objID);
@@ -424,7 +463,7 @@ void MovementManager::UpdateVelocityBasedMovement(float deltaTime, EntityManager
 			continue;
 		}
 
-		// Get velocity
+		// Passive velocity update
 		Math::Vector2D velocity = obj->GetVelocity();
 		if (velocity.x == 0.0f && velocity.y == 0.0f) {
 			continue; // No velocity, skip
@@ -436,16 +475,16 @@ void MovementManager::UpdateVelocityBasedMovement(float deltaTime, EntityManager
 		pos.y += velocity.y * deltaTime;
 
 		// Bounce off screen edges
-		const float worldW = 1150.0f;
-		const float worldH = 750.0f;
+		const float kWorldWidth = 1150.0f;
+		const float kWorldHeight = 750.0f;
 
 		if (pos.x < 0.0f) {
 			pos.x = 0.0f;
 			velocity.x = -velocity.x; // Reverse X
 			obj->SetVelocity(velocity);
 		}
-		if (pos.x > worldW) {
-			pos.x = worldW;
+		if (pos.x > kWorldWidth) {
+			pos.x = kWorldWidth;
 			velocity.x = -velocity.x; // Reverse X
 			obj->SetVelocity(velocity);
 		}
@@ -454,8 +493,8 @@ void MovementManager::UpdateVelocityBasedMovement(float deltaTime, EntityManager
 			velocity.y = -velocity.y; // Reverse Y
 			obj->SetVelocity(velocity);
 		}
-		if (pos.y > worldH) {
-			pos.y = worldH;
+		if (pos.y > kWorldHeight) {
+			pos.y = kWorldHeight;
 			velocity.y = -velocity.y; // Reverse Y
 			obj->SetVelocity(velocity);
 		}
@@ -463,6 +502,3 @@ void MovementManager::UpdateVelocityBasedMovement(float deltaTime, EntityManager
 		obj->SetPosition(pos);
 	}
 }
-
-
-
