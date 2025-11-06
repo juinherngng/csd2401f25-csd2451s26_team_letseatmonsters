@@ -1644,6 +1644,7 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		defs.tag = obj.tag;
 
 		scene.SetDefaults(g->GetID(), defs);
+		scene.AttachLogicForTag(g->GetID(), obj.tag);
 
 		// Clamp to walk area once after spawn
 		scene.ClampToWalkArea(g);
