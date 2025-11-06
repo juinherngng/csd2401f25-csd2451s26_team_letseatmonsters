@@ -82,6 +82,7 @@ static void DumpLeaksFiltered(const _CrtMemState* startState)
 #include "Core/AudioLoading.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/TileMap.hpp"
+#include "Core/MovementManager.hpp"
 
 // Application state structure - eliminates static variables
 struct ApplicationState
@@ -392,10 +393,26 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	app.coreEngine = std::make_unique<CoreFramework::CoreEngine>();
 
 	// Add systems using unique_ptr with MessageBus reference
+	app.coreEngine->AddSystem(std::make_unique<InputManager>());
 	app.coreEngine->AddSystem(std::make_unique<AudioManager>(app.coreEngine->GetMessageBus()));
 	app.coreEngine->AddSystem(std::make_unique<Framework::GameStateManager>(app.coreEngine->GetMessageBus()));
+	app.coreEngine->AddSystem(std::make_unique<AnimationManager>());
+	app.coreEngine->AddSystem(std::make_unique<PhysicsManager>());
+	app.coreEngine->AddSystem(std::make_unique<MovementManager>());
+	app.coreEngine->AddSystem(std::make_unique<CollisionManager>());
 
 	app.coreEngine->Initialize();
+
+	// Set window for InputManager system
+	if (auto* inputMgr = app.coreEngine->GetSystem<InputManager>())
+	{
+		inputMgr->SetWindow(app.window);
+		std::cout << "InputManager system initialized.\n";
+	}
+	else
+	{
+		std::cerr << "Warning: InputManager not found in CoreEngine!\n";
+	}
 
 	// Initialize ResourceManager with AudioManager
 	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
@@ -427,9 +444,70 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	GraphicsEngine::Instance().Resize(fbw, fbh);
 	app.graphicsEngine->Resize(fbw, fbh);
 
-	// Create Scene with smart pointer
-	app.currentScene = std::make_unique<Scene>(*app.graphicsEngine);
+	// Get InputManager system for Scene
+	InputManager* inputMgr = app.coreEngine->GetSystem<InputManager>();
+	if (!inputMgr) {
+		std::cerr << "Failed to get InputManager from CoreEngine\n";
+		return false;
+	}
+
+	// Get AnimationManager system for Scene
+	AnimationManager* animMgr = app.coreEngine->GetSystem<AnimationManager>();
+	if (!animMgr) {
+		std::cerr << "Failed to get AnimationManager from CoreEngine\n";
+		return false;
+	}
+
+	// Get PhysicsManager system
+	PhysicsManager* physicsMgr = app.coreEngine->GetSystem<PhysicsManager>();
+	if (!physicsMgr) {
+		std::cerr << "Failed to get PhysicsManager from CoreEngine\n";
+		return false;
+	}
+
+	// Get MovementManager system
+	MovementManager* movementMgr = app.coreEngine->GetSystem<MovementManager>();
+	if (!movementMgr) {
+		std::cerr << "Failed to get MovementManager from CoreEngine\n";
+		return false;
+	}
+
+	// Get CollisionManager system
+	CollisionManager* collisionMgr = app.coreEngine->GetSystem<CollisionManager>();
+	if (!collisionMgr) {
+		std::cerr << "Failed to get CollisionManager from CoreEngine\n";
+		return false;
+	}
+
+	// Create Scene with smart pointer, passing all manager references
+	app.currentScene = std::make_unique<Scene>(*app.graphicsEngine, *inputMgr, *animMgr, 
+											   *movementMgr, *physicsMgr, *collisionMgr);
 	app.currentScene->LoadScene("LoadTest");
+
+	// Set the EntityManager reference in AnimationManager
+	animMgr->SetEntityManager(&app.currentScene->GetEntityManager());
+
+	std::cout << "AnimationManager system connected to Scene and EntityManager.\n";
+
+	// Set the EntityManager and InputManager references in PhysicsManager
+	physicsMgr->SetEntityManager(&app.currentScene->GetEntityManager());
+	physicsMgr->SetInputManager(inputMgr);
+
+	std::cout << "PhysicsManager system connected to EntityManager and InputManager.\n";
+
+	// Set the EntityManager and InputManager references in MovementManager
+	movementMgr->SetEntityManager(&app.currentScene->GetEntityManager());
+	movementMgr->SetInputManager(inputMgr);
+
+	std::cout << "MovementManager system connected to EntityManager and InputManager.\n";
+
+	// Set the EntityManager reference in CollisionManager
+	collisionMgr->SetEntityManager(&app.currentScene->GetEntityManager());
+
+	std::cout << "CollisionManager system connected to EntityManager.\n";
+
+	// Scene is now constructed with MovementManager reference - no need for SetMovementManager
+	std::cout << "Scene connected to MovementManager system.\n";
 
 	// Create DebuggerApp with smart pointer
 	app.debugApp = std::make_unique<Debug::DebuggerApp>();

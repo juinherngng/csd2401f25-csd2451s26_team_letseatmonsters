@@ -50,8 +50,14 @@ public:
 	/**
 	 * @brief Construct a new Scene object.
 	 * @param engine Reference to the graphics engine used for rendering.
+	 * @param inputMgr Reference to the input manager system.
+	 * @param animMgr Reference to the animation manager system.
+	 * @param moveMgr Reference to the movement manager system.
+	 * @param physicsMgr Reference to the physics manager system.
+	 * @param collisionMgr Reference to the collision manager system.
 	 */
-	Scene(GraphicsEngine& engine);
+	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr, 
+		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
 	/**
 	 * @brief Load a scene by name (dispatches to test scene for now).
@@ -211,30 +217,32 @@ public:
 	// new helper:
 	void AttachLogicForTag(int id, const std::string& tag);
 
+	// Expose EntityManager for systems that need it
+	EntityManager& GetEntityManager() { return entityManager; }
+
 private:
-	// Engine/input
-	GraphicsEngine& graphicsEngine;
-	InputManager inputManager;
-	EntityManager entityManager;
-	AnimationManager animationManager;
-	MovementManager movementManager;
-	CollisionManager collisionManager;
-	PhysicsManager physicsManager;
-	LogicManager logicManager;
-
-	// Systems
-	InputCommandHandler inputCommandHandler;
-	PlayerController playerController;
-	NPCSystem npcSystem;
-	DebugVisualizer debugVisualizer;
-
-
 	// Helper Methods
 	void HandlePlayerCollisions(float deltaTime, EntityManager& entityManager);
 	void ApplyFinalConstraints(EntityManager& entityManager);
 
 	// World/collision
 	void BuildLevelColliders();
+
+	// Engine/input
+	GraphicsEngine& graphicsEngine;
+	EntityManager entityManager;
+	LogicManager logicManager;
+	InputManager& inputManager;				// Changed from owned instance to reference
+	AnimationManager& animationManager;		// Changed from owned instance to reference
+	MovementManager& movementManager;		// Changed from owned instance to reference
+	CollisionManager& collisionManager;		// Changed from owned instance to reference
+	PhysicsManager& physicsManager;			// Changed from owned instance to reference
+
+	// Systems
+	InputCommandHandler inputCommandHandler;
+	PlayerController playerController;
+	NPCSystem npcSystem;
+	DebugVisualizer debugVisualizer;
 
 	// Step-by-step controller
 	physics::StepController physicsStep_;

@@ -16,6 +16,8 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 #include "DebugUI.hpp"
 #include "Core.hpp"
 #include "../Graphics/SceneManager.hpp"
+#include <algorithm>
+#include <unordered_set>
 
 namespace Debug
 {
@@ -88,13 +90,16 @@ namespace Debug
 			openedDebugger = !openedDebugger;
 			std::cout << "CLOSING DEBUGGER" << std::endl;
 		}
-
-		// update system performance %tages
-		UpdateSystemTimes(coreEngine->GetDeltaTime());
 	}
 
 	void DebuggerApp::RenderDebuggerApp()
 	{
+		// Always update system performance, even if window is closed
+		if (coreEngine)
+		{
+			UpdateSystemTimes(coreEngine->GetDeltaTime());
+		}
+
 		if (!openedDebugger)
 		{
 			return;
@@ -150,11 +155,151 @@ namespace Debug
 			}
 
 			ImGui::Text("----System Usage Infomation----");
-			for (auto& performance : sysPerformance)
+			
+			// Add option to show detailed stats
+			static bool showDetailedStats = false;
+			ImGui::Checkbox("Show Detailed Stats", &showDetailedStats);
+			
+			// Add display mode toggle
+			ImGui::SameLine();
+			static bool showFramePercentage = false;
+			ImGui::Checkbox("Show Frame %", &showFramePercentage);
+			if (ImGui::IsItemHovered())
 			{
-				ImGui::Text("%s: %1.f%%", performance.name.c_str(), performance.percentageOf);
+				ImGui::SetTooltip("Toggle between relative system distribution (default)\nand absolute frame time usage");
+			}
+			
+			// Add reset button for peak values
+			ImGui::SameLine();
+			if (ImGui::Button("Reset Peaks"))
+			{
+				if (coreEngine)
+				{
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
+						audioMgr->PlayUIClickSound();
+					}
+				}
+				for (auto& performance : sysPerformance)
+				{
+					performance.peakPercentage = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
+					performance.avgPercentage = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
+					performance.sampleCount = 1;
+				}
 			}
 
+			ImGui::Separator();
+
+			// Display mode explanation
+			if (showFramePercentage)
+			{
+				ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.0f, 1.0f), "Showing %% of frame time (can exceed 100%% total)");
+			}
+			else
+			{
+				ImGui::TextColored(ImVec4(0.0f, 0.7f, 0.0f, 1.0f), "Showing relative distribution (total = 100%%)");
+			}
+
+			// Display each system with a colored progress bar
+			// Also calculate total time from CURRENT data while displaying
+			float totalSystemTimeMs = 0.0f;
+			for (auto& performance : sysPerformance)
+			{
+				// Accumulate total time from current frame's data
+				totalSystemTimeMs += performance.lastTimeMs;
+				
+				// Choose which percentage to display
+				float displayPercent = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
+				
+				// Determine color based on performance percentage
+				ImVec4 barColor;
+				if (showFramePercentage)
+				{
+					// For frame percentage, use different thresholds
+					if (displayPercent < 10.0f)
+						barColor = ImVec4(0.0f, 1.0f, 0.0f, 1.0f); // Green - Good
+					else if (displayPercent < 30.0f)
+						barColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow - Warning
+					else
+						barColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f); // Red - Critical
+				}
+				else
+				{
+					// For relative percentage, use system time thresholds
+					if (displayPercent < 20.0f)
+						barColor = ImVec4(0.0f, 1.0f, 0.0f, 1.0f); // Green - Good
+					else if (displayPercent < 40.0f)
+						barColor = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow - Warning
+					else
+						barColor = ImVec4(1.0f, 0.0f, 0.0f, 1.0f); // Red - Critical
+				}
+
+				// Draw system name and percentage
+				ImGui::Text("%s:", performance.name.c_str());
+				ImGui::SameLine(200.0f); // Align the percentage values
+				ImGui::Text("%.2f%% (%.3f ms)", displayPercent, performance.lastTimeMs);
+
+				// Show detailed stats if enabled
+				if (showDetailedStats)
+				{
+					ImGui::Indent(20.0f);
+					ImGui::TextColored(ImVec4(0.5f, 0.5f, 1.0f, 1.0f), "Avg: %.2f%% | Peak: %.2f%%", 
+						performance.avgPercentage, performance.peakPercentage);
+					if (showFramePercentage)
+					{
+						// Also show the relative distribution
+						ImGui::TextColored(ImVec4(0.5f, 0.5f, 1.0f, 1.0f), "Relative: %.2f%%", performance.percentageOf);
+					}
+					else
+					{
+						// Also show the frame percentage
+						ImGui::TextColored(ImVec4(0.5f, 0.5f, 1.0f, 1.0f), "Frame %%: %.2f%%", performance.percentageOfFrame);
+					}
+					ImGui::Unindent(20.0f);
+				}
+
+				// Draw progress bar (clamp at 100% for display purposes)
+				float barValue = showFramePercentage ? 
+					std::min(displayPercent / 100.0f, 1.0f) : 
+					displayPercent / 100.0f;
+				
+				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
+				ImGui::ProgressBar(barValue, ImVec2(-1.0f, 0.0f), "");
+				ImGui::PopStyleColor();
+			}
+
+			// Display total system usage
+			ImGui::Separator();
+			if (showFramePercentage)
+			{
+				// Protect against division by zero
+				float safeFrameTime = (msperFrame > 0.0f) ? msperFrame : 0.001f;
+				
+				// Calculate total frame percentage based on actual time vs frame budget
+				float totalFramePercent = (totalSystemTimeMs / safeFrameTime) * 100.0f;
+				ImGui::Text("Total Frame Usage: %.2f%% (%.3f ms / %.3f ms)", 
+					totalFramePercent, totalSystemTimeMs, msperFrame);
+				
+				// Overall performance bar for frame usage
+				ImVec4 totalBarColor = totalFramePercent < 60.0f ? 
+					ImVec4(0.0f, 1.0f, 0.0f, 1.0f) : 
+					(totalFramePercent < 80.0f ? ImVec4(1.0f, 1.0f, 0.0f, 1.0f) : ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, totalBarColor);
+				ImGui::ProgressBar(std::min(totalFramePercent / 100.0f, 1.0f), ImVec2(-1.0f, 0.0f), "");
+				ImGui::PopStyleColor();
+			}
+			else
+			{
+				// For relative mode, show total time and confirm percentages sum to 100%
+				ImGui::Text("Total System Time: %.3f ms (100%% distribution)", totalSystemTimeMs);
+				
+				// Overall performance bar - should always be at 100% in relative mode
+				ImVec4 totalBarColor = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, totalBarColor);
+				ImGui::ProgressBar(1.0f, ImVec2(-1.0f, 0.0f), "");
+				ImGui::PopStyleColor();
+			}
+			
 			if (scene_) {
 				static int stressTestCount = 2500;
 				ImGui::InputInt("Object Count", &stressTestCount, 100, 500);
@@ -366,21 +511,96 @@ namespace Debug
 
 
 	// Updates all system times in the systems manager
-	void DebuggerApp::UpdateSystemTimes(float totalDt)
+	void DebuggerApp::UpdateSystemTimes(float frameDt)
 	{
-		sysPerformance.clear();
-
 		// Access systems from the stored CoreEngine pointer
 		if (!coreEngine) return;
 
 		const auto& systems = coreEngine->GetSystems();
-
-		// For each system found in systems, record down their name and %tage usage of the current engine
+		
+		// Calculate the total time spent in all systems
+		float totalSystemTime = 0.0f;
 		for (auto const& sys : systems)
 		{
-			float percent = (totalDt > 0.0f) ? (sys->lastDt / totalDt) * 100.0f : 0.0f;
-			sysPerformance.push_back({ sys->GetName(), percent });
+			totalSystemTime += sys->lastDt;
 		}
+
+		// Prevent division by zero
+		if (totalSystemTime <= 0.0f)
+		{
+			totalSystemTime = 0.001f; // Use a small epsilon value
+		}
+
+		// Prevent division by zero for frame time
+		float safeFrameDt = (frameDt > 0.0f) ? frameDt : 0.001f;
+
+		// Build a set of current system names for cleanup detection
+		std::unordered_set<std::string> currentSystemNames;
+		for (auto const& sys : systems)
+		{
+			currentSystemNames.insert(sys->GetName());
+		}
+
+		// Update existing systems or add new ones
+		for (auto const& sys : systems)
+		{
+			// Calculate percentage based on total system time (relative distribution)
+			float percentOfSystems = (sys->lastDt / totalSystemTime) * 100.0f;
+			
+			// Calculate percentage based on frame time (absolute usage)
+			float percentOfFrame = (sys->lastDt / safeFrameDt) * 100.0f;
+			
+			float timeMs = sys->lastDt * 1000.0f; // Convert to milliseconds
+			
+			// Find existing performance entry or create new one
+			auto it = std::find_if(sysPerformance.begin(), sysPerformance.end(),
+				[&](const SystemPerformance& perf) { return perf.name == sys->GetName(); });
+
+			if (it != sysPerformance.end())
+			{
+				// Update existing entry
+				it->percentageOf = percentOfSystems;
+				it->percentageOfFrame = percentOfFrame;
+				it->lastTimeMs = timeMs;
+				
+				// Update peak (using frame percentage for peak tracking)
+				if (percentOfFrame > it->peakPercentage)
+					it->peakPercentage = percentOfFrame;
+				
+				// Update running average (using frame percentage)
+				it->sampleCount++;
+				it->avgPercentage = ((it->avgPercentage * (it->sampleCount - 1)) + percentOfFrame) / it->sampleCount;
+				
+				// Reset average every 1000 samples to prevent overflow and keep it current
+				if (it->sampleCount > 1000)
+				{
+					it->sampleCount = 1;
+					it->avgPercentage = percentOfFrame;
+				}
+			}
+			else
+			{
+				// Add new entry
+				SystemPerformance newPerf;
+				newPerf.name = sys->GetName();
+				newPerf.percentageOf = percentOfSystems;
+				newPerf.percentageOfFrame = percentOfFrame;
+				newPerf.lastTimeMs = timeMs;
+				newPerf.peakPercentage = percentOfFrame;
+				newPerf.avgPercentage = percentOfFrame;
+				newPerf.sampleCount = 1;
+				sysPerformance.push_back(newPerf);
+			}
+		}
+
+		// Remove entries for systems that no longer exist
+		sysPerformance.erase(
+			std::remove_if(sysPerformance.begin(), sysPerformance.end(),
+				[&currentSystemNames](const SystemPerformance& perf) {
+					return currentSystemNames.find(perf.name) == currentSystemNames.end();
+				}),
+			sysPerformance.end()
+		);
 	}
 
 	// Adds line passed in to the debug log ImGui window
