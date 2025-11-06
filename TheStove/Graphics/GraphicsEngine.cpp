@@ -51,9 +51,17 @@ void GraphicsEngine::Initialize() {
 	if (!s_imguiInitialized) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
+
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+		// Bigger UI
+		io.FontGlobalScale = 1.35f;
+		ImGuiStyle& style = ImGui::GetStyle();
+		style.ScaleAllSizes(1.35f);
+
 		ImGui::StyleColorsDark();
+
 		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
 		s_imguiInitialized = true;
@@ -312,6 +320,13 @@ void GraphicsEngine::DrawSceneDockWindow() {
 			ImVec2(0, 1),   // uv0
 			ImVec2(1, 0)    // uv1
 		);
+
+		// Overlay an invisible hit proxy exactly matching the scene image.
+		// This makes ImGui "hover/active" states line up with the scene viewport.
+		if (sceneImageSize_.x > 1.0f && sceneImageSize_.y > 1.0f) {
+			ImGui::SetCursorScreenPos(sceneImagePos_);
+			ImGui::InvisibleButton("##SceneHitProxy", sceneImageSize_, ImGuiButtonFlags_MouseButtonLeft);
+		}
 	}
 
 	ImGui::End();
