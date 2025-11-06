@@ -205,6 +205,8 @@ public:
 
 	void MarkAnimated(int id, bool state);
 
+	void ResolveInitialStaticOverlaps();
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
