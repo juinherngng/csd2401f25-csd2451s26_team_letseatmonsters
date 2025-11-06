@@ -57,7 +57,7 @@ void GraphicsEngine::Initialize() {
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 		// Slightly larger UI for readability
-		io.FontGlobalScale = 1.2f;
+		io.FontGlobalScale = 1.0f;
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.ScaleAllSizes(1.2f);
 		ImGui::StyleColorsDark();
