@@ -182,7 +182,12 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Update collision system
 	collisionManager.Update(entityManager);
 
-	if (simulationActive) {
+
+	if (simulationActive)
+	{
+	// NEW: run all scripts
+	logicManager.StartAll(*this);
+	logicManager.UpdateAll(deltaTime, *this, inputManager);
 		// Handle player input
 		playerController.HandleInput(deltaTime, inputManager, entityManager,
 			movementManager, physicsManager,
@@ -199,6 +204,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		// Update NPC AI
 		const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
 		npcSystem.Update(physicsDt, entityManager, collisionManager, walk);
+
 
 		// Handle player-NPC collisions
 		HandlePlayerCollisions(physicsDt, entityManager);
@@ -223,7 +229,7 @@ void Scene::DrawUI() {
 }
 
 void Scene::ClearAll() {
-
+	logicManager.Clear(*this);  // <-- clear scripts first
 	entityManager.Clear();
 	animationManager.Clear();
 	movementManager.Clear();
@@ -682,6 +688,16 @@ void Scene::GenerateStressTest(int objectCount) {
 }
 
 
+void Scene::AttachLogicForTag(int id, const std::string& tag) {
+	if (tag == "player") {
+		logicManager.AddLogic<PlayerLogic>(id);
+		spriteID = id; // keep existing usage
+	}
+	else if (tag == "npc1" || tag == "npc2") {
+		logicManager.AddLogic<SimpleNpcLogic>(id);
+	}
+	// you can extend with more tags later
+}
 
 
 
