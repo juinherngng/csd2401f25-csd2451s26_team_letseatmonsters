@@ -7,7 +7,7 @@ AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
 DESCRIPTION:		Implements initialization, default resource loading, background handling,
 					and batched rendering of GameObjects with error checks.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

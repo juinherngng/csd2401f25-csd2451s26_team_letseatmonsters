@@ -8,7 +8,7 @@
  DESCRIPTION:		Declares the Scene class responsible for managing game objects,
 					animations, and scene updates.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -30,9 +30,8 @@
 #include "../Core/PlayerController.hpp"
 #include "../Core/NPCSystem.hpp"
 #include "../Core/DebugVisualizer.hpp"
-#include "../Core/LogicManager.hpp"
-#include "../Core/PlayerLogic.hpp"
-#include "../Core/SimpleNpcLogic.hpp"
+
+
 
 
 #include <string>
@@ -206,9 +205,7 @@ public:
 
 	void MarkAnimated(int id, bool state);
 
-	LogicManager& GetLogicManager() { return logicManager; }
-	// new helper:
-	void AttachLogicForTag(int id, const std::string& tag);
+	void ResolveInitialStaticOverlaps();
 
 private:
 	// Engine/input
@@ -219,7 +216,6 @@ private:
 	MovementManager movementManager;
 	CollisionManager collisionManager;
 	PhysicsManager physicsManager;
-	LogicManager logicManager;
 
 	// Systems
 	InputCommandHandler inputCommandHandler;

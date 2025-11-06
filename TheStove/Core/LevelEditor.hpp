@@ -10,7 +10,7 @@
 					- Drag/drop textures & prefabs
 					- Play/Stop snapshot restore
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

@@ -8,7 +8,7 @@
 					- JSON/Editor store rotation in DEGREES.
 					- GameObject setters should receive RADIANS (convert at call-site).
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -538,7 +538,10 @@ void LevelEditor::DrawUI(Scene& scene) {
 				scene.ClearAll();
 
 				SyncLevelToScene(playStartSnapshot, scene);
+
 				scene.RebuildColliders();
+
+				scene.ResolveInitialStaticOverlaps();
 			}
 		}
 
@@ -871,6 +874,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 
 			DragVec2WithReset("##colsz", &colliderSize.x, ImVec2(defaults.colSize.x, defaults.colSize.y), 1.0f, [&](bool) {
 				obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+				scene.RebuildColliders();
 				});
 
 			ImGui::NextColumn();
@@ -883,6 +887,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 
 			DragVec2WithReset("##coloff", &colliderOff.x, ImVec2(defaults.colOff.x, defaults.colOff.y), 1.0f, [&](bool) {
 				obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
+				scene.RebuildColliders();
 				});
 
 			ImGui::NextColumn();
@@ -959,6 +964,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 			obj->SetColliderSize({ colliderSize.x, colliderSize.y });
 			obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
 			scene.SetNPCVelocity(id, velocity.x, velocity.y);
+			scene.RebuildColliders();
 
 			// Update special IDs if tag changed
 			std::string newTag = tagBuf;
@@ -1589,6 +1595,12 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		g->SetColliderSize({ obj.colWidth, obj.colHeight });
 		g->SetColliderOffset({ obj.colOffsetX, obj.colOffsetY });
 
+		if (obj.colWidth <= 0.f || obj.colHeight <= 0.f) {
+			const glm::vec3 s = g->GetScaleGLM();
+			g->SetColliderSize({ s.x, s.y });
+			g->SetColliderOffset({ 0.f, 0.f });
+		}
+
 		// Track texture path for save/inspector
 		scene.SetObjectTexturePath(g->GetID(), obj.texture);
 
@@ -1603,6 +1615,9 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		else if (obj.tag == "npc2") {
 			scene.SetNPC2ID(g->GetID());
 			scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
+		}
+		else {
+			// scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedYImGui::Text("Collider offset");
 		}
 
 		// This sets velocity for all objects 
@@ -1629,7 +1644,6 @@ static void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		defs.tag = obj.tag;
 
 		scene.SetDefaults(g->GetID(), defs);
-		scene.AttachLogicForTag(g->GetID(), obj.tag);
 
 		// Clamp to walk area once after spawn
 		scene.ClampToWalkArea(g);

@@ -57,6 +57,7 @@ namespace {
 	GLuint vboLines = 0;
 	GLuint vaoPoints = 0;
 	GLuint vboPoints = 0;
+
 	bool isEnabled = true;
 }
 
@@ -64,6 +65,7 @@ namespace {
 void DebugRenderer::Init() {
 	glGenVertexArrays(1, &vaoLines);
 	glGenBuffers(1, &vboLines);
+
 	glGenVertexArrays(1, &vaoPoints);
 	glGenBuffers(1, &vboPoints);
 }
@@ -71,6 +73,7 @@ void DebugRenderer::Init() {
 void DebugRenderer::Shutdown() {
 	glDeleteBuffers(1, &vboLines);
 	glDeleteVertexArrays(1, &vaoLines);
+
 	glDeleteBuffers(1, &vboPoints);
 	glDeleteVertexArrays(1, &vaoPoints);
 }
@@ -143,7 +146,10 @@ void DebugRenderer::Flush(const glm::mat4& viewMatrix, const glm::mat4& projecti
 		}
 
 		shader->SetColorTint(batch.color);
-		glBufferData(GL_ARRAY_BUFFER, batch.vertices.size() * sizeof(glm::vec3), batch.vertices.data(), GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER,
+			batch.vertices.size() * sizeof(glm::vec3),
+			batch.vertices.data(),
+			GL_DYNAMIC_DRAW);
 		glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(batch.vertices.size()));
 	}
 
