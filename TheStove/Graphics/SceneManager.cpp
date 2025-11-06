@@ -165,7 +165,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	inputManager.Update(window);
 
 	// Process input commands (debug toggles, force toggle, etc.)
-	inputCommandHandler.ProcessCommands(inputManager, physicsManager,
+	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager,
 		spriteID, useForces_, showAuxDebug_);
 
 	// Level editor toggle
@@ -185,9 +185,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	if (simulationActive)
 	{
-	// NEW: run all scripts
-	logicManager.StartAll(*this);
-	logicManager.UpdateAll(deltaTime, *this, inputManager);
+		// NEW: run all scripts
+		logicManager.StartAll(*this);
+		logicManager.UpdateAll(deltaTime, *this, inputManager);
 		// Handle player input
 		//playerController.HandleInput(deltaTime, inputManager, entityManager,
 		//	movementManager, physicsManager,

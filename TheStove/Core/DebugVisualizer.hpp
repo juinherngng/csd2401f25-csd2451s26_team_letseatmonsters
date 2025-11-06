@@ -50,4 +50,11 @@ public:
 
 	// Highlights nearby collision candidates fetched from the spatial grid.
 	static void DrawCandidates(GameObject* player, CollisionManager& collisionManager);
+
+	// Allow other systems to enable/disable the click-to-move path line.
+	static void SetDrawPathLine(bool enable);
+
+private:
+	// Internal toggle for the click-to-move line
+	static bool sDrawPathLine;
 };

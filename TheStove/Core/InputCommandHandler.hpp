@@ -17,6 +17,8 @@
 
 #include "InputManager.hpp"
 #include "PhysicsManager.hpp"
+#include "DebugVisualizer.hpp"
+#include "MovementManager.hpp"
 
 #include "../Graphics/DebugRenderer.hpp"
 #include "../Graphics/EntityManager.hpp"
@@ -38,6 +40,7 @@ public:
 	// Entry point to process per-frame command inputs.
 	void ProcessCommands(InputManager& inputManager,
 		PhysicsManager& physicsManager,
+		MovementManager& movementManager,
 		int playerID,
 		bool& useForces,
 		bool& showAuxDebug);
@@ -49,6 +52,7 @@ private:
 	// Handles the physics mode toggle(F) and updates the player's physics component.
 	void HandleForceToggle(InputManager& inputManager,
 		PhysicsManager& physicsManager,
+		MovementManager& movementManager,
 		int playerID,
 		bool& useForces);
 };

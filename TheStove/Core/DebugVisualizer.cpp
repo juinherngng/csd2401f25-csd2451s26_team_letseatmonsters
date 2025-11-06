@@ -17,6 +17,8 @@ DESCRIPTION:		Implements the DebugVisualizer static helper used to draw
 
 #include "DebugVisualizer.hpp"
 
+bool DebugVisualizer::sDrawPathLine = true;
+
 // Frame Debug Pass
 void DebugVisualizer::DrawDebugInfo(EntityManager& entityManager,
 	CollisionManager& collisionManager,
@@ -73,14 +75,18 @@ void DebugVisualizer::DrawAllColliders(const std::vector<GameObject*>& objects) 
 	}
 }
 
+void DebugVisualizer::SetDrawPathLine(bool enable) {
+	sDrawPathLine = enable;
+}
+
 // Player-Focused Overlays
 void DebugVisualizer::DrawPlayerDebug(GameObject* player,
 	MovementManager& movementManager,
 	int playerID) {
 	const glm::vec3 pos = player->GetPositionGLM();
 
-	// Draw path line from player to current target
-	if (movementManager.HasMoveTarget(playerID)) {
+	// Draw path line from player to current target (only when enabled)
+	if (sDrawPathLine && movementManager.HasMoveTarget(playerID)) {
 		glm::vec2 target = movementManager.GetMoveTarget(playerID);
 		DebugRenderer::DrawLine(
 			glm::vec3(pos.x, pos.y, 0.0f),
