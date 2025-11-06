@@ -25,6 +25,7 @@
 #include "MovementManager.hpp"
 #include "Math.hpp"
 #include "Forces.hpp"
+#include "System.hpp"
 
 #include "../Graphics/EntityManager.hpp"
 
@@ -37,13 +38,22 @@
   * using CollisionManager::resolve(); on impact, the active seek is cleared and
   * velocity is zeroed (hard stop).
   */
-class PhysicsManager {
+class PhysicsManager : public CoreFramework::SystemInterface {
 public:
 	PhysicsManager() = default;
-	~PhysicsManager() = default;
+	~PhysicsManager() override = default;
 
-	// Core update
-	void Update(float deltaTime,
+	// SystemInterface implementation
+	void Initialize() override;
+	void Update(float dt) override;
+	std::string GetName() override;
+
+	// Set EntityManager and InputManager references (must be called after construction)
+	void SetEntityManager(EntityManager* entityMgr);
+	void SetInputManager(InputManager* inputMgr);
+
+	// Core physics update (original signature - now called internally)
+	void UpdatePhysics(float deltaTime,
 		EntityManager& entityManager,
 		InputManager& inputManager);
 
@@ -98,6 +108,8 @@ private:
 	// External systems
 	const collision::World* world_ = nullptr;
 	MovementManager* movement_ = nullptr;
+	EntityManager* entityManager_ = nullptr;
+	InputManager* inputManager_ = nullptr;
 
 	// Constants
 	static constexpr float SEEK_MAX_ACCEL = 600.0f;

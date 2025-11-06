@@ -28,8 +28,13 @@ class Scene;
 
 struct SystemPerformance
 {
-	std::string name; // Name of the system
-	float percentageOf; // The %tage of the total game loop
+	std::string name;				// Name of the system
+	float percentageOf;				// The %tage of the total system time (relative distribution)
+	float percentageOfFrame;		// The %tage of the frame time (absolute usage)
+	float peakPercentage = 0.0f;	// Peak percentage recorded
+	float avgPercentage = 0.0f;		// Average percentage
+	int sampleCount = 0;			// Number of samples for averaging
+	float lastTimeMs = 0.0f;		// Last frame time in milliseconds
 };
 
 enum class FPSMode
