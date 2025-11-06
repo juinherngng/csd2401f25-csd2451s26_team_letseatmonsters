@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Animator.hpp"  // This includes Animator2D
-#include "../Core/System.hpp"  // For SystemInterface
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -15,20 +14,13 @@ class EntityManager;  // Forward declaration
  * Handles animation registration, playback, and frame updates.
  * Works with EntityManager to apply animations to GameObjects.
  */
-class AnimationManager : public CoreFramework::SystemInterface {
+class AnimationManager {
 public:
     AnimationManager() = default;
     ~AnimationManager() = default;
 
-    // SystemInterface implementation
-    void Initialize() override;
-    void Update(float deltaTime) override;
-    std::string GetName() override;
-
-    // Set the EntityManager reference (must be called after construction)
-    void SetEntityManager(EntityManager* entityMgr);
-
     // Core functionality
+    void Update(float deltaTime, EntityManager& entityManager);
     void Clear();
 
     // Play/Pause control
@@ -50,9 +42,6 @@ public:
     bool HasAnimator(int objectID) const;
 
 private:
-    // Reference to EntityManager (set externally)
-    EntityManager* entityManager_ = nullptr;
-
     // Animator storage - each object has ONE animator with multiple named animation sets
     std::unordered_map<int, Animator2D> animators_;  // objectID -> Animator2D
 
@@ -67,7 +56,7 @@ private:
     };
     std::unordered_map<int, std::unordered_map<std::string, AnimationSet>> animationSets_;
 
-    bool isPlaying = false;  // Start paused by default
+    bool isPlaying= false;  // Start paused by default
 
     // Helper: Create standard frame sequences
     std::vector<glm::vec4> CreateFrameSequence(int startFrame, int endFrame, int totalFrames);

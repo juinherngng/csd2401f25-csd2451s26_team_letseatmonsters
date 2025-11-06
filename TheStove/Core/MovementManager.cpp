@@ -24,31 +24,8 @@
 #include "../Graphics/GameObject.hpp"
 #include "../Core/InputManager.hpp"
 
-// ----- SystemInterface implementation -----
-void MovementManager::Initialize() {
-	std::cout << "MovementManager initialized" << std::endl;
-}
-
-void MovementManager::Update(float deltaTime) {
-	if (entityManager_ && inputManager_) {
-		UpdateMovement(deltaTime, *entityManager_, *inputManager_);
-	}
-}
-
-std::string MovementManager::GetName() {
-	return "MovementManager";
-}
-
-void MovementManager::SetEntityManager(EntityManager* entityMgr) {
-	entityManager_ = entityMgr;
-}
-
-void MovementManager::SetInputManager(InputManager* inputMgr) {
-	inputManager_ = inputMgr;
-}
-
  // Core Functionality
-void MovementManager::UpdateMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager) {
+void MovementManager::Update(float deltaTime, EntityManager& entityManager, InputManager& inputManager) {
 	// Update player movement (WASD + click-to-move)
 	if (playerID_ >= 0) {
 		UpdatePlayerMovement(deltaTime, entityManager, inputManager);

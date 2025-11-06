@@ -20,30 +20,8 @@ CollisionManager::CollisionManager(float cellSize)
 	: spatialGrid_(cellSize) {
 }
 
-// SystemInterface implementation
-void CollisionManager::Initialize() {
-	// No special initialization needed
-}
-
-void CollisionManager::Update(float deltaTime) {
-	(void)deltaTime; // Suppress unused parameter warning
-	
-	// Update collisions using the EntityManager reference
-	if (entityManager_) {
-		UpdateCollisions(*entityManager_);
-	}
-}
-
-std::string CollisionManager::GetName() {
-	return "CollisionManager";
-}
-
-void CollisionManager::SetEntityManager(EntityManager* entityMgr) {
-	entityManager_ = entityMgr;
-}
-
 // Per-frame rebuild
-void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
+void CollisionManager::Update(EntityManager& entityManager) {
 	// Clear spatial grid from previous frame
 	spatialGrid_.Clear();
 

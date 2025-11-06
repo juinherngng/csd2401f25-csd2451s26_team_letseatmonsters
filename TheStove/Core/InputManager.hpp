@@ -9,7 +9,7 @@
 					- Polls GLFW each frame and mirrors common key/mouse states.
 					- Respects ImGui IO capture flags to avoid consuming UI input.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -21,7 +21,6 @@
 #include <glm/glm.hpp>
 
 #include "imgui.h"
-#include "System.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 
  /**
@@ -31,20 +30,15 @@
   * Provides per-frame input update, state tracking, and query functions
   * for detecting presses, releases, and edge transitions.
   */
-class InputManager : public CoreFramework::SystemInterface {
+class InputManager {
 public:
 	// Lifetime / Access
 	InputManager();
 	static InputManager& Get();
 
-	// SystemInterface implementation
-	void Initialize() override;
-	void Update(float dt) override;
-	std::string GetName() override;
-
 	// Frame Update / Focus Hints
 	void SetSceneViewportWantsGameMouse(bool enable);
-	void SetWindow(GLFWwindow* window);
+	void Update(GLFWwindow* window);
 
 	// Keyboard Queries
 	bool IsKeyPressed(int key) const;
@@ -60,13 +54,9 @@ public:
 	glm::vec3 ScreenToWorld(float mouseX, float mouseY) const;
 
 private:
-	// Internal update method that takes window
-	void UpdateInternal(GLFWwindow* window);
-
 	// Data Members
 	static InputManager* sActive;
 	bool mSceneViewportWantsGameMouse = false;
-	GLFWwindow* mWindow = nullptr;
 
 	// Current/previous keyboard states (by GLFW key code)
 	std::unordered_map<int, bool> mCurrentKeyStates;

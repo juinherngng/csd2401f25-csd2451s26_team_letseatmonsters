@@ -3,23 +3,14 @@
 #include "GameObject.hpp"
 #include <iostream>
 
-// ===== SystemInterface Implementation =====
+// ===== Core Functionality =====
 
-void AnimationManager::Initialize() {
-    std::cout << "[AnimationManager] Initialized as system" << std::endl;
-}
-
-void AnimationManager::Update(float deltaTime) {
-    if (!entityManager_) {
-        std::cerr << "[AnimationManager] Warning: EntityManager not set!" << std::endl;
-        return;
-    }
-
+void AnimationManager::Update(float deltaTime, EntityManager& entityManager) {
     // Only update animations if playing
     if (!isPlaying) {
         // Still apply current frame even when paused (so sprites show correct frame)
         for (auto& [objID, animator] : animators_) {
-            GameObject* obj = entityManager_->GetByID(objID);
+            GameObject* obj = entityManager.GetByID(objID);
             if (obj) {
                 glm::vec4 uvRect = animator.GetCurrentFrameUV();
                 obj->SetUVRect(uvRect);
@@ -32,7 +23,7 @@ void AnimationManager::Update(float deltaTime) {
     for (auto& [objID, animator] : animators_) {
         animator.Update(deltaTime);
 
-        GameObject* obj = entityManager_->GetByID(objID);
+        GameObject* obj = entityManager.GetByID(objID);
         if (obj) {
             glm::vec4 uvRect = animator.GetCurrentFrameUV();
             obj->SetUVRect(uvRect);
@@ -40,16 +31,6 @@ void AnimationManager::Update(float deltaTime) {
     }
 }
 
-std::string AnimationManager::GetName() {
-    return "AnimationManager";
-}
-
-void AnimationManager::SetEntityManager(EntityManager* entityMgr) {
-    entityManager_ = entityMgr;
-    std::cout << "[AnimationManager] EntityManager reference set" << std::endl;
-}
-
-// ===== Core Functionality =====
 
 void AnimationManager::Clear() {
     animators_.clear();

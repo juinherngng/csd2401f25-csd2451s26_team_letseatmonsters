@@ -26,30 +26,21 @@
 #include "Math.hpp"
 
 #include "../Graphics/EntityManager.hpp"
-#include "System.hpp"
 
-/**
- * @class CollisionManager
- * @brief Broad-phase grid + world collision owner. Rebuilt every frame from EntityManager,
- *        supports movement trimming via resolve(), and simple spatial queries.
- */
-class CollisionManager : public CoreFramework::SystemInterface {
+ /**
+  * @class CollisionManager
+  * @brief Broad-phase grid + world collision owner. Rebuilt every frame from EntityManager,
+  *        supports movement trimming via resolve(), and simple spatial queries.
+  */
+class CollisionManager {
 public:
 	explicit CollisionManager(float cellSize = 100.0f);
 
-	// SystemInterface implementation
-	void Initialize() override;
-	void Update(float deltaTime) override;
-	std::string GetName() override;
+	// Rebuild spatial grid from current objects each frame.
+	void Update(EntityManager& entityManager);
 
-	// Set the EntityManager reference (must be called after construction)
-	void SetEntityManager(EntityManager* entityMgr);
-
-	/**
-	 * @brief Rebuild spatial grid from current objects each frame.
-	 * @param entityManager Reference to entity manager with all game objects.
-	 */
-	void UpdateCollisions(EntityManager& entityManager);
+	// Clear both the grid and the world geometry.
+	void Clear();
 
 	// Build static world geometry from authoring structs.
 	void BuildWalls(const collision::WalkArea& walkArea,
@@ -59,28 +50,18 @@ public:
 	// Query grid for objects overlapping an AABB.
 	std::vector<GameObject*> QueryNearby(const collision::AABB& queryBox) const;
 
-	/**
-	 * @brief Query grid for objects overlapping a point.
-	 * @param point 2D point to query.
-	 * @return Vector of GameObject pointers that contain the point.
-	 */
+	// Query grid for objects near a point.
 	std::vector<GameObject*> QueryPoint(const Math::Vector2D& point) const;
-
-	/**
-	 * @brief Collision world access
-	 */
-	collision::World& GetCollisionWorld() { return collisionWorld_; }
-	const collision::World& GetCollisionWorld() const { return collisionWorld_; }
 
 	// Spatial grid access
 	SpatialGrid& GetSpatialGrid() { return spatialGrid_; }
 	const SpatialGrid& GetSpatialGrid() const { return spatialGrid_; }
 
-	// Clear both the grid and the world geometry.
-	void Clear();
+	// Collision world access
+	collision::World& GetCollisionWorld() { return collisionWorld_; }
+	const collision::World& GetCollisionWorld() const { return collisionWorld_; }
 
 private:
-	EntityManager* entityManager_ = nullptr;	// Reference to EntityManager (set externally)
-	SpatialGrid spatialGrid_;					// Broad-phase acceleration structure
-	collision::World collisionWorld_;			// Static world used for trimming
+	SpatialGrid spatialGrid_;		  // Broad-phase acceleration structure
+	collision::World collisionWorld_; // Static world used for trimming
 };

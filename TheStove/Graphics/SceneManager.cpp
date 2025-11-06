@@ -142,14 +142,7 @@ float Scene::ToRefY(float currentY) const {
 }
 
 // Core Lifecycle
-Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
-			 MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
-	: graphicsEngine(engine), inputManager(inputMgr), animationManager(animMgr),
-	  movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr)
-{
-	// Set the EntityManager reference in AnimationManager
-	animationManager.SetEntityManager(&entityManager);
-}
+Scene::Scene(GraphicsEngine& engine) : graphicsEngine(engine) {}
 
 void Scene::LoadScene(const std::string& sceneName) {
 	(void)sceneName;
@@ -168,13 +161,13 @@ void Scene::LoadScene(const std::string& sceneName) {
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
-	// Input is now updated by CoreEngine's system, no need to call Update here
-	// inputManager.Update(window); // REMOVED - handled by CoreEngine
+	// Update input
+	inputManager.Update(window);
 
 	// Process input commands (debug toggles, force toggle, etc.)
 	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager,
 		spriteID, useForces_, showAuxDebug_);
-	
+
 	// Level editor toggle
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
 		mLevelEditor.Toggle();
@@ -183,11 +176,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Resolve physics timestep
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
 
-	// Update animations - now handled by CoreEngine's AnimationManager system
-	// animationManager.Update(deltaTime, entityManager); // REMOVED
+	// Update animations
+	animationManager.Update(deltaTime, entityManager);
 
-	// Update collision system - now handled by CoreEngine's CollisionManager system
-	// collisionManager.Update(entityManager); // REMOVED
+	// Update collision system
+	collisionManager.Update(entityManager);
 
 
 	if (simulationActive)
@@ -201,11 +194,12 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			graphicsEngine, spriteID, useForces_);
 
 		// Update movement system (kinematic or physics-based)
-		// Movement is now handled by CoreEngine's MovementManager system
 		if (useForces_) {
-			physicsManager.UpdatePhysics(physicsDt, entityManager, inputManager);
+			physicsManager.Update(physicsDt, entityManager, inputManager);
 		}
-		// else: MovementManager.Update() is called by CoreEngine automatically
+		else {
+			movementManager.Update(physicsDt, entityManager, inputManager);
+		}
 
 		// Update NPC AI
 		const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
@@ -378,161 +372,137 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 	std::vector<GameObject*> candidates;
 	collisionManager.GetSpatialGrid().Query(pBox, candidates);
 
-		// Desired movement from movement system
-		Math::Vector2D desiredMoveM{ 0.0f, 0.0f };
+	// Desired movement from movement system
+	Math::Vector2D desiredMoveM{ 0.0f, 0.0f };
 
-		for (GameObject* other : candidates) {
-			if (other == nullptr || other == sprite) {
-				continue;
-			}
-
-			const Math::Vector2D gSize = other->GetColliderSize();
-			if (gSize.x <= 0.0f || gSize.y <= 0.0f) {
-				continue;
-			}
-
-			const int otherID = other->GetID();
-			if (npcSystem.IsLaneNPC(otherID)) {
-				continue; // lane NPCs ignore player collision
-			}
-
-			// Current positions (M-space)
-			Math::Vector3D playerPosM(position.x, position.y, position.z);
-			Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
-
-			// Build AABBs at those positions
-			const collision::AABB pBox = physics::MakeColliderBox(sprite, playerPosM);
-			const collision::AABB oBox = physics::MakeColliderBox(other, otherPosM);
-
-			// Minimum translation vector to separate player from goat
-			Math::Vector2D mtv;
-			if (!collision::overlapMTV(pBox, oBox, mtv)) {
-				continue;
-			}
-
-			// --- World-aware push: try to move the goat, clamped by walls ---
-			constexpr float kGoatShare = 0.50f; // you can tune 0.25f..0.50f
-			const Math::Vector2D desiredOtherDelta(-mtv.x * kGoatShare, -mtv.y * kGoatShare);
-
-			// Clamp goat movement against static walls
-			Math::Vector2D allowedOtherDelta = collisionManager.GetCollisionWorld().resolve(oBox, desiredOtherDelta);
-
-			// Move goat by the allowed portion (could be zero if pinned)
-			otherPosM.x += allowedOtherDelta.x;
-			otherPosM.y += allowedOtherDelta.y;
-
-			// Player receives the remainder so relative separation equals MTV
-			Math::Vector2D playerDelta(mtv.x, mtv.y);
-			playerDelta.x += allowedOtherDelta.x; // note: allowedOtherDelta is opposite-signed to MTV
-			playerDelta.y += allowedOtherDelta.y;
-
-			// Apply small bias to avoid re-penetration next frame
-			constexpr float kEps = 0.5f;
-			if (playerDelta.x > 0.0f) { playerPosM.x += kEps; }
-			if (playerDelta.x < 0.0f) { playerPosM.x -= kEps; }
-			if (playerDelta.y > 0.0f) { playerPosM.y += kEps; }
-			if (playerDelta.y < 0.0f) { playerPosM.y -= kEps; }
-
-			// Apply the separation
-			playerPosM.x += playerDelta.x;
-			playerPosM.y += playerDelta.y;
-
-			// ---------------------------
-			// Smooth SLIDE when goat is pinned
-			// ---------------------------
-			// If the goat barely moved (pinned) and we were trying to move into it,
-			// remove our inward component, keep tangent (glide along goat/wall).
-			{
-				// Intent this frame from movement system
-				glm::vec2 v = movementManager.GetVelocity(spriteID);
-				const float vLen = std::sqrt(v.x * v.x + v.y * v.y);
-
-				// Contact normal is MTV normalized (player must move by +MTV to exit),
-				// so "into" the goat means our velocity is opposite the MTV direction.
-				const float mtvLen = std::sqrt(mtv.x * mtv.x + mtv.y * mtv.y);
-
-				// How much goat actually moved vs we wanted it to move
-				const float desiredLen = std::sqrt(desiredOtherDelta.x * desiredOtherDelta.x +
-					desiredOtherDelta.y * desiredOtherDelta.y);
-				const float allowedLen = std::sqrt(allowedOtherDelta.x * allowedOtherDelta.x +
-					allowedOtherDelta.y * allowedOtherDelta.y);
-				const bool goatPinned = (desiredLen > 0.0f) && (allowedLen < 0.1f * desiredLen);
-
-				if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f && physicsDt > 0.0f) {
-					// Normal pointing from goat to player (same dir as MTV applied to player)
-					const glm::vec2 n = glm::vec2(mtv.x / mtvLen, mtv.y / mtvLen);
-
-					// Inward component of our desired displacement this frame
-					const glm::vec2 desiredDelta = v * physicsDt;               // what we wanted to move
-					const float into = desiredDelta.x * n.x + desiredDelta.y * n.y;
-
-					if (into > 0.0f) {
-						// Remove inward component; keep tangential part (slide)
-						const glm::vec2 tangential = desiredDelta - into * n;
-
-						// Clamp slide against world (so we don't scrape into walls)
-						const Math::Vector2D csz = sprite->GetColliderSize();
-						const collision::AABB pAfterSep =
-							collision::World::makeAABBFromCenter(
-								playerPosM,
-								Math::Vector3D(csz.x, csz.y, 1.0f));
-
-						const Math::Vector2D slideDesired(tangential.x, tangential.y);
-						const Math::Vector2D slideAllowed =
-							collisionManager.GetCollisionWorld().resolve(pAfterSep, slideDesired);
-
-						// Apply the allowed slide
-						playerPosM.x += slideAllowed.x;
-						playerPosM.y += slideAllowed.y;
-
-						// We *don't* clear the click target here; player is gliding along nicely.
-					}
-					else {
-						// We're not pushing into the goat (moving away or parallel) – no special handling.
-					}
-				}
-				else if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f) {
-					// If we cannot compute a valid slide (e.g., physicsDt==0), at least
-					// stop the long click-run to prevent jitter.
-					const float dotInto = (mtv.x / mtvLen) * (v.x / (vLen + 1e-6f))
-						+ (mtv.y / mtvLen) * (v.y / (vLen + 1e-6f));
-					if (dotInto > 0.1f) {
-						movementManager.ClearMoveTarget(spriteID);
-					}
-				}
-			}
-
-			// Write back
-			sprite->SetPosition(toG(playerPosM));
-			other->SetPosition(toG(otherPosM));
+	for (GameObject* other : candidates) {
+		if (other == nullptr || other == sprite) {
+			continue;
 		}
 
+		const Math::Vector2D gSize = other->GetColliderSize();
+		if (gSize.x <= 0.0f || gSize.y <= 0.0f) {
+			continue;
+		}
+
+		const int otherID = other->GetID();
+		if (npcSystem.IsLaneNPC(otherID)) {
+			continue; // lane NPCs ignore player collision
+		}
+
+		// Current positions (M-space)
+		Math::Vector3D playerPosM(position.x, position.y, position.z);
+		Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
+
+		// Build AABBs at those positions
+		const collision::AABB pBox = physics::MakeColliderBox(sprite, playerPosM);
+		const collision::AABB oBox = physics::MakeColliderBox(other, otherPosM);
+
+		// Minimum translation vector to separate player from goat
+		Math::Vector2D mtv;
+		if (!collision::overlapMTV(pBox, oBox, mtv)) {
+			continue;
+		}
+
+		// --- World-aware push: try to move the goat, clamped by walls ---
+		constexpr float kGoatShare = 0.50f; // you can tune 0.25f..0.50f
+		const Math::Vector2D desiredOtherDelta(-mtv.x * kGoatShare, -mtv.y * kGoatShare);
+
+		// Clamp goat movement against static walls
+		Math::Vector2D allowedOtherDelta = collisionManager.GetCollisionWorld().resolve(oBox, desiredOtherDelta);
+
+		// Move goat by the allowed portion (could be zero if pinned)
+		otherPosM.x += allowedOtherDelta.x;
+		otherPosM.y += allowedOtherDelta.y;
+
+		// Player receives the remainder so relative separation equals MTV
+		Math::Vector2D playerDelta(mtv.x, mtv.y);
+		playerDelta.x += allowedOtherDelta.x; // note: allowedOtherDelta is opposite-signed to MTV
+		playerDelta.y += allowedOtherDelta.y;
+
+		// Apply small bias to avoid re-penetration next frame
+		constexpr float kEps = 0.5f;
+		if (playerDelta.x > 0.0f) { playerPosM.x += kEps; }
+		if (playerDelta.x < 0.0f) { playerPosM.x -= kEps; }
+		if (playerDelta.y > 0.0f) { playerPosM.y += kEps; }
+		if (playerDelta.y < 0.0f) { playerPosM.y -= kEps; }
+
+		// Apply the separation
+		playerPosM.x += playerDelta.x;
+		playerPosM.y += playerDelta.y;
+
+		// ---------------------------
+		// Smooth SLIDE when goat is pinned
+		// ---------------------------
+		// If the goat barely moved (pinned) and we were trying to move into it,
+		// remove our inward component, keep tangent (glide along goat/wall).
+		{
+			// Intent this frame from movement system
+			const glm::vec2 v = movementManager.GetVelocity(spriteID);
+			const float vLen = std::sqrt(v.x * v.x + v.y * v.y);
+
+			// Contact normal is MTV normalized (player must move by +MTV to exit),
+			// so "into" the goat means our velocity is opposite the MTV direction.
+			const float mtvLen = std::sqrt(mtv.x * mtv.x + mtv.y * mtv.y);
+
+			// How much goat actually moved vs we wanted it to move
+			const float desiredLen = std::sqrt(desiredOtherDelta.x * desiredOtherDelta.x +
+				desiredOtherDelta.y * desiredOtherDelta.y);
+			const float allowedLen = std::sqrt(allowedOtherDelta.x * allowedOtherDelta.x +
+				allowedOtherDelta.y * allowedOtherDelta.y);
+			const bool goatPinned = (desiredLen > 0.0f) && (allowedLen < 0.1f * desiredLen);
+
+			if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f && physicsDt > 0.0f) {
+				// Normal pointing from goat to player (same dir as MTV applied to player)
+				const glm::vec2 n = glm::vec2(mtv.x / mtvLen, mtv.y / mtvLen);
+
+				// Inward component of our desired displacement this frame
+				const glm::vec2 desiredDelta = v * physicsDt;               // what we wanted to move
+				const float into = desiredDelta.x * n.x + desiredDelta.y * n.y;
+
+				if (into > 0.0f) {
+					// Remove inward component; keep tangential part (slide)
+					const glm::vec2 tangential = desiredDelta - into * n;
+
+					// Clamp slide against world (so we don’t scrape into walls)
+					const Math::Vector2D csz = sprite->GetColliderSize();
+					const collision::AABB pAfterSep =
+						collision::World::makeAABBFromCenter(
+							playerPosM,
+							Math::Vector3D(csz.x, csz.y, 1.0f));
+
+					const Math::Vector2D slideDesired(tangential.x, tangential.y);
+					const Math::Vector2D slideAllowed =
+						collisionManager.GetCollisionWorld().resolve(pAfterSep, slideDesired);
+
+					// Apply the allowed slide
+					playerPosM.x += slideAllowed.x;
+					playerPosM.y += slideAllowed.y;
+
+					// We *don’t* clear the click target here; player is gliding along nicely.
+				}
+				else {
+					// We’re not pushing into the goat (moving away or parallel) – no special handling.
+				}
+			}
+			else if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f) {
+				// If we cannot compute a valid slide (e.g., physicsDt==0), at least
+				// stop the long click-run to prevent jitter.
+				const float dotInto = (mtv.x / mtvLen) * (v.x / (vLen + 1e-6f))
+					+ (mtv.y / mtvLen) * (v.y / (vLen + 1e-6f));
+				if (dotInto > 0.1f) {
+					movementManager.ClearMoveTarget(spriteID);
+				}
+			}
+		}
+
+		// Write back
+		sprite->SetPosition(toG(playerPosM));
+		other->SetPosition(toG(otherPosM));
+	}
+
 }
 
-void Scene::BuildLevelColliders() {
-	collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
-
-	collision::WoodVertical wood{
-	  kWoodX0, kWoodX1,
-	  kWoodTopMinY, kWoodTopMaxY,
-	  kWoodGapMinY, kWoodGapMaxY,
-	  kWoodBotMinY, kWoodBotMaxY
-	};
-
-	collision::StageEndGateVertical gate{
-	  kEndVX0, kEndVX1,
-	  kEndVTopMinY, kEndVTopMaxY,
-	  kEndVGapMinY, kEndVGapMaxY,
-	  kEndVBotMinY, kEndVBotMaxY
-	};
-
-	collisionManager.BuildWalls(walk, wood, gate);
-
-	movementManager.SetCollisionWorld(&collisionManager.GetCollisionWorld());
-	movementManager.SetNPCSystem(&npcSystem);
-
-	physicsManager.SetMovementManager(&movementManager);
-}
 
 void Scene::ApplyFinalConstraints(EntityManager& entityManager) {
 	if (spriteID < 0) return;
@@ -590,7 +560,7 @@ void Scene::ResolveInitialStaticOverlaps() {
 	const float topY0 = kWoodTopMinY, topY1 = kWoodTopMaxY;
 	const float botY0 = kWoodBotMinY, botY1 = kWoodBotMaxY;
 
-	// Walkable frame (outer walls) – we'll clamp to this too.
+	// Walkable frame (outer walls) – we’ll clamp to this too.
 	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
 
 	std::vector<GameObject*> objs = entityManager.GetAllObjects();
@@ -628,9 +598,37 @@ void Scene::ResolveInitialStaticOverlaps() {
 	RebuildColliders();
 }
 
+
 void Scene::RebuildColliders() {
 	collisionManager.Clear();
 	BuildLevelColliders();
+}
+
+// World / Collision
+void Scene::BuildLevelColliders() {
+	collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+
+	collision::WoodVertical wood{
+	  kWoodX0, kWoodX1,
+	  kWoodTopMinY, kWoodTopMaxY,
+	  kWoodGapMinY, kWoodGapMaxY,
+	  kWoodBotMinY, kWoodBotMaxY
+	};
+
+	collision::StageEndGateVertical gate{
+	  kEndVX0, kEndVX1,
+	  kEndVTopMinY, kEndVTopMaxY,
+	  kEndVGapMinY, kEndVGapMaxY,
+	  kEndVBotMinY, kEndVBotMaxY
+	};
+
+	collisionManager.BuildWalls(walk, wood, gate);
+
+	movementManager.SetCollisionWorld(&collisionManager.GetCollisionWorld());
+
+	movementManager.SetNPCSystem(&npcSystem);
+
+	physicsManager.SetMovementManager(&movementManager);
 }
 
 void Scene::GenerateStressTest(int objectCount) {
@@ -689,6 +687,7 @@ void Scene::GenerateStressTest(int objectCount) {
 	std::cout << "  - Scene total: " << entityManager.GetObjectCount() << " objects\n";
 }
 
+
 void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	if (tag == "player") {
 		logicManager.AddLogic<PlayerLogic>(id);
@@ -699,4 +698,6 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	}
 	// you can extend with more tags later
 }
+
+
 
