@@ -104,7 +104,10 @@ namespace {
 			}
 			else if (obj.tag == "dino") {
 				scene.SetDinoID(g->GetID());
+				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
 			}
+
+			// scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
 
 			// Store transform and defaults
 			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, 0.0f }, { obj.w, obj.h, 1.0f }, obj.rotation);
