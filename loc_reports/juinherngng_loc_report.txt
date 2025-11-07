@@ -3,87 +3,157 @@ Lines of Code Report
 ==========================================
 Author: juinherngng
 Since: 2025-10-13
-Generated: Fri Nov  7 10:51:38 +08 2025
+Generated: Fri Nov  7 14:19:10 +08 2025
 ==========================================
 
-Files Modified: 35 unique files
+Files Modified: 51 unique files
 
-Files Still Exist: 31 files
+Files Still Exist: 47 files
 
 ==========================================
 CODE ANALYSIS - SUMMARY
 Excludes: Comments and Blank Lines
 ==========================================
 
-      31 text files.
-classified 31 files      31 unique files.                              
-       0 files ignored.
+      47 text files.
+classified 47 files      47 unique files.                              
+       7 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.42 s (73.8 files/s, 18040.8 lines/s)
+github.com/AlDanial/cloc v 1.90  T=0.65 s (61.3 files/s, 13580.9 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C++                             15            954            742           3428
-C/C++ Header                    16            395           1061            999
+C++                             19           1096            852           3912
+C/C++ Header                    17            405           1084           1020
+Bourne Shell                     4             75             39            384
 -------------------------------------------------------------------------------
-SUM:                            31           1349           1803           4427
+SUM:                            40           1576           1975           5316
 -------------------------------------------------------------------------------
 
 ==========================================
-CODE ANALYSIS - PER FILE
+CODE ANALYSIS - PER FILE (Current State)
 ==========================================
 
-      31 text files.
-classified 31 files      31 unique files.                              
-       0 files ignored.
+      47 text files.
+classified 47 files      47 unique files.                              
+       7 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.45 s (68.9 files/s, 16837.4 lines/s)
+github.com/AlDanial/cloc v 1.90  T=0.69 s (57.6 files/s, 12771.2 lines/s)
 -----------------------------------------------------------------------------------------
 File                                                  blank        comment           code
 -----------------------------------------------------------------------------------------
-TheStove/Core/DebugUI.cpp                               112             98            538
-TheStove/Graphics/GraphicsEngine.cpp                    124             82            495
-TheStove/Graphics/SceneManager.cpp                      158            122            485
+TheStove/Core/DebugUI.cpp                               112             99            537
+TheStove/Graphics/SceneManager.cpp                      167            125            509
+TheStove/Graphics/GraphicsEngine.cpp                    124             83            495
 TheStove/Main.cpp                                       122             85            436
-TheStove/Core/MovementManager.cpp                        92             65            370
-TheStove/Core/AudioManager.cpp                           87             64            297
+TheStove/Core/MovementManager.cpp                        92             66            370
+TheStove/Core/AudioManager.cpp                           88             63            301
 TheStove/Core/Message.hpp                                31             98            156
-TheStove/Graphics/SceneManager.hpp                       56             87            154
-TheStove/Graphics/AnimationManager.cpp                   42             21            134
-TheStove/Core/PhysicsManager.cpp                         40             37            125
+TheStove/Graphics/SceneManager.hpp                       57             89            155
+count_loc_all_authors.sh                                 34             13            154
+TheStove/Graphics/AnimationManager.cpp                   48             33            147
+TheStove/Core/PhysicsManager.cpp                         40             38            125
+TheStove/Graphics/EntityManager.cpp                      35             21            125
+TheStove/Core/NpcSystem.cpp                              37             28            121
 TheStove/Graphics/ResourceManager.cpp                    31             15            120
-TheStove/Core/InputManager.cpp                           40             24            100
+TheStove/Core/PlayerController.cpp                       25             25            106
+TheStove/Core/InputManager.cpp                           40             25            100
+count_loc.sh                                             16              9             99
 TheStove/Core/AudioLoading.cpp                           34             37             98
-TheStove/Graphics/GraphicsEngine.hpp                     32             32             96
+TheStove/Graphics/GraphicsEngine.hpp                     32             33             96
+TheStove/Graphics/GameObject.cpp                         29             16             92
 TheStove/Core/MessageBus.hpp                             20             93             80
 TheStove/Core/Core.cpp                                   22             26             79
 TheStove/Core/AudioManager.hpp                           31            273             71
-TheStove/Core/DebugUI.hpp                                33             22             70
+TheStove/Core/DebugUI.hpp                                33             23             70
 TheStove/Core/GameStateManager.cpp                       16             22             69
-TheStove/Core/MovementManager.hpp                        46             58             62
-TheStove/Core/CollisionManager.cpp                       21             25             55
-TheStove/Core/PhysicsManager.hpp                         28             41             51
+TheStove/count_loc_v2.sh                                 12              7             68
+TheStove/count_loc.sh                                    13             10             63
+TheStove/Core/MovementManager.hpp                        46             59             62
+TheStove/Core/CollisionManager.cpp                       21             26             55
+TheStove/Core/PhysicsManager.hpp                         28             42             51
 TheStove/Core/Core.hpp                                   21            116             50
-TheStove/Graphics/AnimationManager.hpp                   16             18             40
+TheStove/Graphics/AnimationManager.hpp                   19             30             41
 TheStove/Graphics/ResourceManager.hpp                    17             18             38
-TheStove/Core/InputManager.hpp                           16             30             35
+TheStove/Core/InputManager.hpp                           16             31             35
 TheStove/Core/GameStateManager.hpp                       11             36             32
-TheStove/Core/CollisionManager.hpp                       17             38             31
+TheStove/Core/CollisionManager.hpp                       17             39             31
 TheStove/Core/LevelEditor.cpp                            13             19             27
 TheStove/Core/AudioLoading.hpp                           10             63             19
+TheStove/Core/GameObjectLogic.hpp                         6              3             19
 TheStove/Core/System.hpp                                 10             38             14
 -----------------------------------------------------------------------------------------
-SUM:                                                   1349           1803           4427
+SUM:                                                   1576           1975           5316
 -----------------------------------------------------------------------------------------
 
 ==========================================
-GIT COMMIT STATISTICS
+GIT CHANGES PER FILE
 ==========================================
 
-Lines Added:    4001
-Lines Deleted:  2393
-Net Change:     1608
-Total Commits:  21
+File                                                                        Added    Deleted        Net
+--------------------------------------------------------------------------------------------
+TheStove/Main.cpp                                                             797        502        295
+TheStove/Core/DebugUI.cpp                                                     667        362        305
+TheStove/Graphics/SceneManager.cpp                                            498        493          5
+TheStove/Core/Message.hpp                                                     214         45        169
+loc_reports/y_chunwee_loc_report.txt                                          193          0        193
+TheStove/Core/MessageBus.hpp                                                  193          0        193
+count_loc_all_authors.sh                                                      186          0        186
+loc_reports/Wang_Hua_loc_report.txt                                           175          0        175
+TheStove/Core/AudioManager.cpp                                                175         74        101
+TheStove/Core/AudioLoading.cpp                                                169          0        169
+loc_reports/Yat_Chun_Wee_loc_report.txt                                       151          0        151
+TheStove/Docs/AudioIntegrationGuide.txt                                       132        132          0
+loc_reports/juinherngng_loc_report.txt                                        126          0        126
+count_loc.sh                                                                  108          0        108
+TheStove/Core/AudioLoading.hpp                                                 92          0         92
+TheStove/Core/AudioManager.hpp                                                 89         31         58
+TheStove/count_loc_v2.sh                                                       87          0         87
+TheStove/Core/CollisionManager.hpp                                             87         67         20
+TheStove/count_loc.sh                                                          86          0         86
+loc_reports/chuuniby_loc_report.txt                                            82          0         82
+loc_reports/CookieWasTaken_loc_report.txt                                      70          0         70
+TheStove/Core/ImGuiDebugger.cpp                                                70         30         40
+TheStove/Core/Core.hpp                                                         68         71         -3
+TheStove/Graphics/AnimationManager.cpp                                         65         31         34
+TheStove/Graphics/SceneManager.hpp                                             60         52          8
+TheStove/Graphics/ResourceManager.cpp                                          59         99        -40
+TheStove/Core/PhysicsManager.cpp                                               58         30         28
+TheStove/Examples/AudioLoadingExample.cpp                                      55         55          0
+TheStove/Core/Core.cpp                                                         55         39         16
+TheStove/Core/MovementManager.cpp                                              50         26         24
+TheStove/Core/InputManager.cpp                                                 49         27         22
+TheStove/Core/CollisionManager.cpp                                             48         25         23
+TheStove/Graphics/AnimationManager.hpp                                         46         20         26
+TheStove/Core/MovementManager.hpp                                              38         23         15
+TheStove/Core/PhysicsManager.hpp                                               37         24         13
+TheStove/Graphics/GraphicsEngine.cpp                                           33         28          5
+TheStove/Core/InputManager.hpp                                                 30         19         11
+TheStove/Core/System.hpp                                                       28         40        -12
+TheStove/Core/GameStateManager.hpp                                             28          2         26
+TheStove/Core/GameStateManager.cpp                                             22         11         11
+TheStove/Core/DebugUI.hpp                                                      19         13          6
+TheStove/Graphics/GraphicsEngine.hpp                                           17         12          5
+loc_reports/00_SUMMARY.txt                                                     15          0         15
+TheStove/Graphics/ResourceManager.hpp                                          14         32        -18
+TheStove/Core/LevelEditor.cpp                                                   7          0          7
+TheStove/Core/ImGuiDebugger.hpp                                                 6          3          3
+TheStove/Core/GameObjectLogic.hpp                                               5          4          1
+TheStove/Core/NpcSystem.cpp                                                     4          0          4
+TheStove/Graphics/GameObject.cpp                                                3          0          3
+TheStove/Graphics/EntityManager.cpp                                             3          0          3
+TheStove/Core/PlayerController.cpp                                              2          0          2
+                                                                                0          0          0
+--------------------------------------------------------------------------------------------
+
+==========================================
+GIT COMMIT STATISTICS - TOTAL
+==========================================
+
+Lines Added:    5371
+Lines Deleted:  2422
+Net Change:     2949
+Total Commits:  26
 
 ==========================================
 FILES MODIFIED
@@ -99,6 +169,7 @@ TheStove/Core/Core.cpp
 TheStove/Core/Core.hpp
 TheStove/Core/DebugUI.cpp
 TheStove/Core/DebugUI.hpp
+TheStove/Core/GameObjectLogic.hpp
 TheStove/Core/GameStateManager.cpp
 TheStove/Core/GameStateManager.hpp
 TheStove/Core/ImGuiDebugger.cpp
@@ -110,13 +181,17 @@ TheStove/Core/Message.hpp
 TheStove/Core/MessageBus.hpp
 TheStove/Core/MovementManager.cpp
 TheStove/Core/MovementManager.hpp
+TheStove/Core/NpcSystem.cpp
 TheStove/Core/PhysicsManager.cpp
 TheStove/Core/PhysicsManager.hpp
+TheStove/Core/PlayerController.cpp
 TheStove/Core/System.hpp
 TheStove/Docs/AudioIntegrationGuide.txt
 TheStove/Examples/AudioLoadingExample.cpp
 TheStove/Graphics/AnimationManager.cpp
 TheStove/Graphics/AnimationManager.hpp
+TheStove/Graphics/EntityManager.cpp
+TheStove/Graphics/GameObject.cpp
 TheStove/Graphics/GraphicsEngine.cpp
 TheStove/Graphics/GraphicsEngine.hpp
 TheStove/Graphics/ResourceManager.cpp
@@ -124,3 +199,14 @@ TheStove/Graphics/ResourceManager.hpp
 TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
 TheStove/Main.cpp
+TheStove/count_loc.sh
+TheStove/count_loc_v2.sh
+count_loc.sh
+count_loc_all_authors.sh
+loc_reports/00_SUMMARY.txt
+loc_reports/CookieWasTaken_loc_report.txt
+loc_reports/Wang_Hua_loc_report.txt
+loc_reports/Yat_Chun_Wee_loc_report.txt
+loc_reports/chuuniby_loc_report.txt
+loc_reports/juinherngng_loc_report.txt
+loc_reports/y_chunwee_loc_report.txt

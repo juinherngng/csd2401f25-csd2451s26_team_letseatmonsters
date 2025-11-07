@@ -82,7 +82,7 @@ while IFS= read -r AUTHOR; do
                     cloc $EXISTING_FILES
                     echo ""
                     echo "=========================================="
-                    echo "CODE ANALYSIS - PER FILE"
+                    echo "CODE ANALYSIS - PER FILE (Current State)"
                     echo "=========================================="
                     echo ""
                     cloc --by-file $EXISTING_FILES
@@ -111,7 +111,22 @@ while IFS= read -r AUTHOR; do
             
             echo ""
             echo "=========================================="
-            echo "GIT COMMIT STATISTICS"
+            echo "GIT CHANGES PER FILE"
+            echo "=========================================="
+            echo ""
+            printf "%-70s %10s %10s %10s\n" "File" "Added" "Deleted" "Net"
+            echo "--------------------------------------------------------------------------------------------"
+            
+            # Get git stats per file
+            git log --author="$AUTHOR" --since="$SINCE_DATE" --pretty=format: --numstat | \
+                awk '{file[$3]+=$1; file_del[$3]+=$2} END {for (f in file) printf "%-70s %10s %10s %10s\n", f, file[f], file_del[f], file[f]-file_del[f]}' | \
+                sort -t' ' -k4 -nr
+            
+            echo "--------------------------------------------------------------------------------------------"
+            
+            echo ""
+            echo "=========================================="
+            echo "GIT COMMIT STATISTICS - TOTAL"
             echo "=========================================="
             echo ""
             
