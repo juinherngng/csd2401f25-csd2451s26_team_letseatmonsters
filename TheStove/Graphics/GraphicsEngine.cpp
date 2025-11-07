@@ -17,12 +17,50 @@ DESCRIPTION:		Implements initialization, default resource loading, background ha
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <filesystem>
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
 
 // File-scoped state
 static bool _imguiInitialized = false;
+
+// Helper function to resolve shader paths across different build configurations
+namespace {
+	std::string ResolveShaderPath(const std::string& relativePathFromProjectRoot) {
+		// Print working directory only once
+		static bool printedCwd = false;
+		if (!printedCwd) {
+			std::cout << "[ShaderPath] Current working directory: " << std::filesystem::current_path() << std::endl;
+			printedCwd = true;
+		}
+		
+		// Extract just the filename from the path
+		std::string filename = std::filesystem::path(relativePathFromProjectRoot).filename().string();
+		
+		// Try multiple possible locations, prioritizing build/shaders since it exists
+		std::vector<std::string> possiblePaths = {
+			"shaders/" + filename,                                  // From build directory (build/shaders/)
+			"../shaders/" + filename,                               // From build/Debug or build/Release
+			relativePathFromProjectRoot,                            // Original path (e.g., "../shaders/shader.vert")
+			"../../TheStove/Graphics/shaders/" + filename,          // From build/Release to source
+			"../TheStove/Graphics/shaders/" + filename,             // From build to source
+			"Graphics/shaders/" + filename                          // Alternative structure
+		};
+
+		for (const auto& path : possiblePaths) {
+			if (std::filesystem::exists(path)) {
+				std::cout << "[ShaderPath] Found '" << filename << "' at: " << path << std::endl;
+				return path;
+			}
+		}
+
+		// If not found, return original path and let error handling catch it
+		std::cerr << "[ShaderPath] ERROR: Shader '" << filename << "' not found in any expected location!" << std::endl;
+		std::cerr << "[ShaderPath] Tried paths relative to: " << std::filesystem::current_path() << std::endl;
+		return relativePathFromProjectRoot;
+	}
+}
 
 GraphicsEngine& GraphicsEngine::Instance() {
 	static GraphicsEngine instance;
@@ -198,38 +236,38 @@ void GraphicsEngine::ApplyViewport() const {
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
-		"../shaders/shader.vert",
-		"../shaders/shader.frag");
+		ResolveShaderPath("../shaders/shader.vert"),
+		ResolveShaderPath("../shaders/shader.frag"));
 
 	// Load texture shader
 	resourceManager.LoadShader("texture",
-		"../shaders/texture.vert",
-		"../shaders/texture.frag");
+		ResolveShaderPath("../shaders/texture.vert"),
+		ResolveShaderPath("../shaders/texture.frag"));
 
 	// Load sprite shader
 	resourceManager.LoadShader("sprite",
-		"../shaders/sprite.vert",
-		"../shaders/sprite.frag");
+		ResolveShaderPath("../shaders/sprite.vert"),
+		ResolveShaderPath("../shaders/sprite.frag"));
 
 	// Load static sprite shader
 	resourceManager.LoadShader("staticsprite",
-		"../shaders/staticsprite.vert",
-		"../shaders/staticsprite.frag");
+		ResolveShaderPath("../shaders/staticsprite.vert"),
+		ResolveShaderPath("../shaders/staticsprite.frag"));
 
 	// Load animated sprite shader
 	resourceManager.LoadShader("animatedsprite",
-		"../shaders/animatedsprite.vert",
-		"../shaders/animatedsprite.frag");
+		ResolveShaderPath("../shaders/animatedsprite.vert"),
+		ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load instanced static sprite shader
 	resourceManager.LoadShader("staticsprite_instanced",
-		"../shaders/staticsprite_instanced.vert",
-		"../shaders/staticsprite_instanced.frag");
+		ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
+		ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
 
 	// Load instanced animated sprite shader
 	resourceManager.LoadShader("animatedsprite_instanced",
-		"../shaders/animatedsprite_instanced.vert",
-		"../shaders/animatedsprite.frag");
+		ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
+		ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load triangle mesh
 	std::vector<float> vertices;

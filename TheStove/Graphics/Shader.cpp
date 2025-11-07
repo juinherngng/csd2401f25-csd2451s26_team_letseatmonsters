@@ -17,6 +17,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <filesystem>
 
 Shader::Shader(const std::string & vertexFile, const std::string & fragmentFile) {
     std::string vertexSource = ReadFile(vertexFile);
@@ -40,15 +41,27 @@ Shader::~Shader() {
 std::string Shader::ReadFile(const std::string& filepath) {
     std::ifstream file(filepath);
     if (!file.is_open()) {
-        std::cerr << "Failed to open shader file: " << filepath << std::endl;
+        std::cerr << "[Shader] ERROR: Failed to open shader file: " << filepath << std::endl;
+        std::cerr << "[Shader] Current working directory: " << std::filesystem::current_path() << std::endl;
         return "";
     }
     std::stringstream buffer;
     buffer << file.rdbuf();
-    return buffer.str();
+    std::string content = buffer.str();
+    
+    if (content.empty()) {
+        std::cerr << "[Shader] WARNING: Shader file is empty: " << filepath << std::endl;
+    }
+    
+    return content;
 }
 
 GLuint Shader::CompileShader(GLenum type, const std::string& source) {
+    if (source.empty()) {
+        std::cerr << "[Shader] ERROR: Attempting to compile empty shader source!" << std::endl;
+        std::cerr << "[Shader] Shader type: " << (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") << std::endl;
+    }
+    
     GLuint shader = glCreateShader(type);
     const char* src = source.c_str();
     glShaderSource(shader, 1, &src, nullptr);
@@ -59,7 +72,7 @@ GLuint Shader::CompileShader(GLenum type, const std::string& source) {
     if (!success) {
         char infoLog[512];
         glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-        std::cerr << "Error compiling shader: " << infoLog << std::endl;
+        std::cerr << "[Shader] ERROR compiling shader (" << (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") << "): " << infoLog << std::endl;
     }
     return shader;
 }
