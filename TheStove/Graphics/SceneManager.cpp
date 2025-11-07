@@ -170,8 +170,9 @@ void Scene::LoadScene(const std::string& sceneName) {
 void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Input is now updated by CoreEngine's system, no need to call Update here
-	// inputManager.Update(deltaTime); // REMOVED - handled by CoreEngine
+	 inputManager.Update(deltaTime); // REMOVED - handled by CoreEngine
 
+	 UpdateAnimationControls();
 	// Deferred Clear
 	if (pendingClear_) {
 		ClearAll();
@@ -766,4 +767,38 @@ void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
 	// Register object ID with chosen layer (creates if missing)
 	layers[newLayer].AddObject(id);
 	defaults_[id].layer = newLayer; // For UI/metadata
+}
+
+
+void Scene::UpdateAnimationControls()
+{
+	// Do nothing when simulation is paused
+	if (!simulationActive) return;
+
+	// If UI is capturing keyboard, do not change gameplay animation state
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureKeyboard) return;
+
+	// Edge detection for single key presses
+	const bool k1 = inputManager.IsKeyJustPressed(GLFW_KEY_1);
+	const bool k2 = inputManager.IsKeyJustPressed(GLFW_KEY_2);
+	const bool k3 = inputManager.IsKeyJustPressed(GLFW_KEY_3);
+	if (!k1 && !k2 && !k3) return;
+
+	const std::string anim = k1 ? "IDLE" : (k2 ? "WALK" : "ATTACK");
+
+	// Make these known dino IDs use the chosen animation (skip missing objects)
+	const int dinoIDs[] = { 1, 2, 3 };
+	for (int id : dinoIDs) {
+		GameObject* obj = GetGameObjectByID(id);
+		if (!obj) continue; // not present in scene
+
+		// Ensure animator is attached
+		if (!animationManager.HasAnimator(id)) {
+			animationManager.AttachDinoAnimations(id);
+		}
+
+		animationManager.SetAnimation(id, anim);
+		std::cout << "[Scene] Playing animation " << anim << " for dino id=" << id << "\n";
+	}
 }
