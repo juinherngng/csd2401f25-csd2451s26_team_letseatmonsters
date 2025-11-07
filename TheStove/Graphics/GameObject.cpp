@@ -5,8 +5,8 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Represents a renderable game object with mesh, shader, texture,
-					transform, and collider. Provides draw routines and debug bounding box.
+ DESCRIPTION:		Implements the GameObject class, which encapsulates the state, transform, and
+					rendering details for every entity that appears in the scene.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

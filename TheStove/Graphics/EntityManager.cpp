@@ -1,4 +1,17 @@
-﻿
+﻿/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			EntityManager.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+
+DESCRIPTION:		This file implements the EntityManager class's core logic for creation and
+					lifecycle management of GameObjects.
+
+		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
+
 #include "EntityManager.hpp"
 #include "ResourceManager.hpp"
 #include <algorithm>
@@ -6,7 +19,7 @@
 
 int EntityManager::AcquireID() {
 	if (!freeIDs_.empty()) {
-		// Always re-use the LOWEST free ID
+		// Always re-use the lowest free ID
 		auto it = std::min_element(freeIDs_.begin(), freeIDs_.end());
 		int id = *it;
 		freeIDs_.erase(it);

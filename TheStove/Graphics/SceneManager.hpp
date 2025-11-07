@@ -5,8 +5,10 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Declares the Scene class responsible for managing game objects,
-					animations, and scene updates.
+ DESCRIPTION:		Declares the SceneManager (Scene) class, which orchestrates the lifecycle and
+					high-level coordination of all major systems within a game scene. This includes:
+					entity creation and management, event handling, physics and collision simulation,
+					animation control, input processing, and rendering pipeline integration.
 
 		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

@@ -1,3 +1,16 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			EntityManager.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+
+DESCRIPTION:		This file declares the EntityManager class, a core engine system responsible for
+					creating, storing, and managing all GameObjects in a level or scene.
+
+		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #pragma once
 
 #include "GameObject.hpp"
@@ -25,7 +38,7 @@ public:
 		float frameDuration,
 		bool loop);
 
-	// Lookup
+	// Lookup GameObject pointer by its unique ID.
 	GameObject* GetByID(int id);
 	std::vector<GameObject*> GetAllObjects();
 	size_t GetObjectCount() const { return sceneObjects_.size(); }
@@ -52,7 +65,7 @@ private:
 	std::vector<int> freeIDs_;
 	int nextID_ = 0;
 
-	// Transform maps (same as your Scene class)
+	// Transform maps 
 	std::unordered_map<int, glm::vec3> spritePositions_;
 	std::unordered_map<int, glm::vec3> spriteScales_;
 	std::unordered_map<int, float> spriteRotations_;

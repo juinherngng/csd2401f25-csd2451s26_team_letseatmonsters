@@ -5,8 +5,9 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Implements the Scene class, handling object spawning,
-					animation, collisions, and per-frame updates.
+ DESCRIPTION:		Implements the SceneManager class, which is responsible for the high-level
+					management, coordination, and per-frame updating of all entities, systems,
+					and game logic within a scene.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

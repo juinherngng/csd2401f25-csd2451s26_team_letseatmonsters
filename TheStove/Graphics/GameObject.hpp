@@ -5,7 +5,10 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Represents a renderable game object with mesh, shader, texture, transform, and collider.
+ DESCRIPTION:		Defines the GameObject class, representing any renderable or interactable
+					entity in the game world. Every GameObject contains references to mesh, shader,
+					and texture resources for rendering, and encapsulates its position, scale,
+					rotation, velocity, and collider data for gameplay systems.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
