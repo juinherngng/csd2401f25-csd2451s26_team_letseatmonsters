@@ -555,20 +555,12 @@ namespace LEPANELLEVEL {
 			FullWidthNext();
 
 			if (id != -1) {
-				bool hasAnimator = scene.HasAnimations(id); // Scene wraps AnimationManager::HasAnimator
-
-				// Toggle animation
-				if (ImGui::Checkbox("Animated", &hasAnimator)) {
-					scene.MarkAnimated(id, hasAnimator); // scene handles adding/removing animator
-					if (hasAnimator) {
-						const std::string tex = scene.GetObjectTexturePath(id);
-						if (tex.find("dino") != std::string::npos)
-						{
-							scene.AttachDinoAnimations(id);
-							scene.SetAnimation(id, "IDLE");
-						}
-					}
-				}
+				bool hasAnimator = scene.HasAnimations(id); // auto-detected from scene
+				ImGui::BeginDisabled();                     // make the checkbox read-only
+				ImGui::Checkbox("Animated", &hasAnimator);
+				ImGui::EndDisabled();
+				ImGui::SameLine();
+				ImGui::TextDisabled("(auto-detected)");
 
 				if (hasAnimator) {
 					std::vector<std::string> animList = scene.GetAnimationList(id);
