@@ -757,6 +757,8 @@ collision::World& Scene::GetCollisionWorld() {
 
 const collision::World& Scene::GetCollisionWorld() const {
 	return collisionManager.GetCollisionWorld();
+}
+
 void Scene::AddLayer(const std::string& name) {
 	layers.try_emplace(name, name); // Only add if missing
 }
