@@ -5,8 +5,8 @@ PROJECT NAME:		Project GAM200
 AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
 CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
 
-DESCRIPTION:		Implements initialization, default resource loading, background handling,
-					and batched rendering of GameObjects with error checks.
+DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
+					and batched instanced rendering of GameObjects.
 
 		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -457,65 +457,70 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	return true;
 }
 
-// Simple render path (background, objects, debug, UI)
-void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
-	// Background
+void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::mat4& view, const glm::mat4& projection) {
+	// Draw background first
 	if (backgroundObject) {
 		glDisable(GL_DEPTH_TEST);
-		backgroundObject->Draw(view, projection);
+		Shader* shader = backgroundObject->GetShader();
+		if (shader) {
+			shader->Use();
+			shader->SetModelMatrix(backgroundObject->GetModelMatrix());
+			shader->SetViewMatrix(view);
+			shader->SetProjectionMatrix(projection);
+		}
+		Texture* tex = backgroundObject->GetTexture();
+		if (tex) {
+			tex->Bind(0);
+			shader->SetTexture("u_Texture", 0);
+		}
+		Mesh* mesh = backgroundObject->GetMesh();
+		if (mesh) {
+			mesh->Draw();
+		}
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	// Scene objects
+	// Render all scene objects
 	for (const auto* obj : objects) {
-		if (!obj) {
-			continue;
+		if (!obj) continue;
+
+		Shader* shader = obj->GetShader();
+		if (!shader) continue;
+
+		shader->Use();
+		shader->SetModelMatrix(obj->GetModelMatrix());
+		shader->SetViewMatrix(view);
+		shader->SetProjectionMatrix(projection);
+
+		Texture* tex = obj->GetTexture();
+		if (tex) {
+			tex->Bind(0);
+			shader->SetTexture("u_Texture", 0);
 		}
 
-		obj->Draw(view, projection);
+		Mesh* mesh = obj->GetMesh();
+		if (mesh) {
+			mesh->Draw();
+		}
 
-		// Draw bounding boxes only when debug is enabled (R)
 		if (DebugRenderer::IsEnabled()) {
 			glDisable(GL_DEPTH_TEST);
-			obj->DrawBoundingBox(view, projection, { 1.0f, 0.0f, 0.0f });
+			obj->DrawBoundingBox(view, projection, glm::vec3{ 1.0f, 0.0f, 0.0f });
 			glEnable(GL_DEPTH_TEST);
 		}
-	}
-
-	// Debug lines/points flush (R/T)
-	if (DebugRenderer::IsEnabled()) {
-		glDisable(GL_DEPTH_TEST);
-		DebugRenderer::Flush(view, projection);
-		glEnable(GL_DEPTH_TEST);
 	}
 
 	EndSceneRender();
 	DrawSceneDockWindow();
 	EndImGuiFrame();
 
-	// GL error check
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
 		std::cerr << "OpenGL error after draw call: " << error << std::endl;
 	}
 }
 
-// Free resources and shutdown ImGui
-void GraphicsEngine::Shutdown() {
-	backgroundObject.reset();
-	DebugRenderer::Shutdown();
-	resourceManager.Clear();
-
-	// ImGui cleanup
-	if (_imguiInitialized) {
-		ImGui_ImplOpenGL3_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-		ImGui::DestroyContext();
-		_imguiInitialized = false;
-	}
-}
-
-// Batched/instanced render path for static sprites; direct draw for animated
+// Batched/instanced render path for static sprites; direct draw for animated (instanced animated not implemented yet)
 void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Reset stats
 	renderStats = RenderStats();
@@ -524,9 +529,25 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Draw background first
 	if (backgroundObject) {
 		glDisable(GL_DEPTH_TEST);
-		backgroundObject->Draw(view, projection);
+		Shader* shader = backgroundObject->GetShader();
+		if (shader) {
+			shader->Use();
+			shader->SetModelMatrix(backgroundObject->GetModelMatrix());
+			shader->SetViewMatrix(view);
+			shader->SetProjectionMatrix(projection);
+		}
+		Texture* tex = backgroundObject->GetTexture();
+		if (tex) {
+			tex->Bind(0);
+			shader->SetTexture("u_Texture", 0);
+		}
+		Mesh* mesh = backgroundObject->GetMesh();
+		if (mesh) {
+			mesh->Draw();
+		}
 		glEnable(GL_DEPTH_TEST);
 	}
+
 
 	if (objects.empty()) {
 		EndSceneRender();
@@ -659,6 +680,21 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
 		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
+	}
+}
+
+// Free resources and shutdown ImGui
+void GraphicsEngine::Shutdown() {
+	backgroundObject.reset();
+	DebugRenderer::Shutdown();
+	resourceManager.Clear();
+
+	// ImGui cleanup
+	if (_imguiInitialized) {
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+		_imguiInitialized = false;
 	}
 }
 

@@ -115,8 +115,6 @@ public:
 	float GetRotationAngleZ() const;
 	float GetRotation() const { return rotation_; }
 
-	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const;
-
 	/**
 	 * @brief Draw the colliders bounding box for debugging.
 	 * @param view  Camera view matrix.
