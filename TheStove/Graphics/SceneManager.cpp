@@ -60,7 +60,7 @@ namespace {
 	inline glm::vec3 toG(const Math::Vector3D& v) { return glm::vec3(v.x, v.y, v.z); }
 
 	// Debug helpers for drawing grid cells
-	static void DebugDrawCellRect(float cellSize, int cx, int cy) {
+	[[maybe_unused]] static void DebugDrawCellRect(float cellSize, int cx, int cy) {
 		const float x0 = cx * cellSize;
 		const float y0 = cy * cellSize;
 		const float x1 = x0 + cellSize;
@@ -73,7 +73,7 @@ namespace {
 		DebugRenderer::DrawLine({ x0, y1, 0 }, { x0, y0, 0 }, { 0, 1, 0 }); // left
 	}
 
-	static void DebugDrawNeighborhood(const collision::AABB& box, float cellSize) {
+	[[maybe_unused]] static void DebugDrawNeighborhood(const collision::AABB& box, float cellSize) {
 		const int minCx = static_cast<int>(std::floor(box.min.x / cellSize)) - 1;
 		const int maxCx = static_cast<int>(std::floor(box.max.x / cellSize)) + 1;
 		const int minCy = static_cast<int>(std::floor(box.min.y / cellSize)) - 1;

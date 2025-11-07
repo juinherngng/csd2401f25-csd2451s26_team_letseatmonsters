@@ -458,7 +458,7 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	return true;
 }
 
-void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::mat4& view, const glm::mat4& projection) {
+void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
 	// Draw background first
 	if (backgroundObject) {
 		glDisable(GL_DEPTH_TEST);
@@ -466,8 +466,8 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		if (shader) {
 			shader->Use();
 			shader->SetModelMatrix(backgroundObject->GetModelMatrix());
-			shader->SetViewMatrix(view);
-			shader->SetProjectionMatrix(projection);
+			shader->SetViewMatrix(viewMatrix);
+			shader->SetProjectionMatrix(projectionMatrix);
 		}
 		Texture* tex = backgroundObject->GetTexture();
 		if (tex) {
@@ -490,8 +490,8 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 
 		shader->Use();
 		shader->SetModelMatrix(obj->GetModelMatrix());
-		shader->SetViewMatrix(view);
-		shader->SetProjectionMatrix(projection);
+		shader->SetViewMatrix(viewMatrix);
+		shader->SetProjectionMatrix(projectionMatrix);
 
 		Texture* tex = obj->GetTexture();
 		if (tex) {
@@ -506,7 +506,7 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 
 		if (DebugRenderer::IsEnabled()) {
 			glDisable(GL_DEPTH_TEST);
-			obj->DrawBoundingBox(view, projection, glm::vec3{ 1.0f, 0.0f, 0.0f });
+			obj->DrawBoundingBox(viewMatrix, projectionMatrix, glm::vec3{ 1.0f, 0.0f, 0.0f });
 			glEnable(GL_DEPTH_TEST);
 		}
 	}

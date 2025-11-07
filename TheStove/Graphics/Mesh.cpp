@@ -88,13 +88,13 @@ void Mesh::SetupInstanceBuffer(const std::vector<glm::mat4>& modelMatrices) {
     vao.Bind();
 
     // Set up mat4 as 4 vec4 attributes (locations 2, 3, 4, 5)
-    GLsizei vec4Size = sizeof(glm::vec4);
+    const GLsizei vec4Size = sizeof(glm::vec4);
 
     for (int i = 0; i < 4; i++) {
         glEnableVertexAttribArray(2 + i);
         glVertexAttribPointer(2 + i, 4, GL_FLOAT, GL_FALSE,
             4 * vec4Size,
-            (void*)(i * vec4Size));
+            reinterpret_cast<void*>(static_cast<size_t>(i * vec4Size)));
         glVertexAttribDivisor(2 + i, 1); // Advance once per instance
     }
 

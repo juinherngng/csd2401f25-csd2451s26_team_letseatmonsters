@@ -121,8 +121,8 @@ void RigidBody2D::SetAcceleration(const Math::Vector2D& newAcceleration) {
 	acceleration = newAcceleration;
 }
 
-void RigidBody2D::SetUseGravity(const bool enabled) {
-	useGravity = enabled;
+void RigidBody2D::SetUseGravity(const bool enable) {
+	useGravity = enable;
 }
 
 void RigidBody2D::Stop() {

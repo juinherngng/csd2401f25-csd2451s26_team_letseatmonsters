@@ -80,7 +80,7 @@ public:
 	const glm::mat4& GetView() const;
 
 	// ----- Rendering paths -----
-	void Render(const std::vector<GameObject*>& objects, const glm::mat4& view, const glm::mat4& projection);
+	void Render(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void RenderBatched(const std::vector<GameObject*>& objects);
 
 	// ----- Render statistics -----
