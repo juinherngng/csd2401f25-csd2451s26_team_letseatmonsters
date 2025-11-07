@@ -65,6 +65,14 @@ add_custom_command(TARGET LetsEatMonsters POST_BUILD
     COMMENT "Copying shader files to build directory"
 )
 
+# Copy level files to the build directory for run.bat
+add_custom_command(TARGET LetsEatMonsters POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/levels"
+    "${CMAKE_BINARY_DIR}/levels"
+    COMMENT "Copying shader files to build directory"
+)
+
 # Add compiler warnings and flags based on compiler
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(TheStove PRIVATE -Wall)
