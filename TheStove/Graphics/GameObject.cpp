@@ -99,32 +99,6 @@ void GameObject::UpdateModelMatrix() {
 		* glm::scale(glm::mat4(1.0f), m_Scale);
 }
 
-void GameObject::Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const {
-	if (!m_Shader || !m_Mesh) {
-		std::cerr << "GameObject: Missing shader or mesh!" << std::endl;
-		return;
-	}
-
-	m_Shader->Use();
-
-	const glm::vec4 uv = GetUVRect();
-	m_Shader->SetUVOffset(glm::vec2(uv.x, uv.y));
-	m_Shader->SetUVScale(glm::vec2(uv.z, uv.w));
-
-	// Set matrices efficiently
-	m_Shader->SetModelMatrix(m_ModelMatrix);
-	m_Shader->SetViewMatrix(viewMatrix);
-	m_Shader->SetProjectionMatrix(projectionMatrix);
-
-	// Bind texture if available
-	if (m_Texture) {
-		m_Texture->Bind(0);
-		m_Shader->SetTexture("u_Texture", 0);
-	}
-
-	m_Mesh->Draw();
-}
-
 // Debug purposes for collision
 void GameObject::DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color) const {
 	// Center = sprite position + offset
