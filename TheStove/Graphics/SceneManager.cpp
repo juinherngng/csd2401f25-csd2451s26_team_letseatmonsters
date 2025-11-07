@@ -384,23 +384,23 @@ void Scene::MarkAnimated(int id, bool state) {
 	}
 }
 
-void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager) {
+void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 	if (spriteID < 0) return;
 
-	GameObject* sprite = entityManager.GetByID(spriteID);
+	GameObject* sprite = entityMgr.GetByID(spriteID);
 	if (!sprite) return;
 
 	const glm::vec3 position = sprite->GetPositionGLM();
 
-	// Build player's current AABB
-	const collision::AABB pBox = physics::MakeColliderBox(
+	// Build player's current AABB for spatial query
+	const collision::AABB queryBox = physics::MakeColliderBox(
 		sprite,
 		Math::Vector3D(position.x, position.y, position.z)
 	);
 
 	// Query spatial grid for nearby candidates
 	std::vector<GameObject*> candidates;
-	collisionManager.GetSpatialGrid().Query(pBox, candidates);
+	collisionManager.GetSpatialGrid().Query(queryBox, candidates);
 
 	// Desired movement from movement system
 	Math::Vector2D desiredMoveM{ 0.0f, 0.0f };
@@ -415,8 +415,8 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 			continue;
 		}
 
-		const int otherID = other->GetID();
-		if (npcSystem.IsLaneNPC(otherID)) {
+		const int currentOtherID = other->GetID();
+		if (npcSystem.IsLaneNPC(currentOtherID)) {
 			continue; // lane NPCs ignore player collision
 		}
 
@@ -425,12 +425,12 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 		Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
 
 		// Build AABBs at those positions
-		const collision::AABB pBox = physics::MakeColliderBox(sprite, playerPosM);
-		const collision::AABB oBox = physics::MakeColliderBox(other, otherPosM);
+		const collision::AABB playerBox = physics::MakeColliderBox(sprite, playerPosM);
+		const collision::AABB otherBox = physics::MakeColliderBox(other, otherPosM);
 
 		// Minimum translation vector to separate player from goat
 		Math::Vector2D mtv;
-		if (!collision::overlapMTV(pBox, oBox, mtv)) {
+		if (!collision::overlapMTV(playerBox, otherBox, mtv)) {
 			continue;
 		}
 
@@ -439,7 +439,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 		const Math::Vector2D desiredOtherDelta(-mtv.x * kGoatShare, -mtv.y * kGoatShare);
 
 		// Clamp goat movement against static walls
-		Math::Vector2D allowedOtherDelta = collisionManager.GetCollisionWorld().resolve(oBox, desiredOtherDelta);
+		Math::Vector2D allowedOtherDelta = collisionManager.GetCollisionWorld().resolve(otherBox, desiredOtherDelta);
 
 		// Move goat by the allowed portion (could be zero if pinned)
 		otherPosM.x += allowedOtherDelta.x;
@@ -558,10 +558,10 @@ void Scene::BuildLevelColliders() {
 	physicsManager.SetMovementManager(&movementManager);
 }
 
-void Scene::ApplyFinalConstraints(EntityManager& entityManager) {
+void Scene::ApplyFinalConstraints(EntityManager& entityMgr) {
 	if (spriteID < 0) return;
 
-	GameObject* sprite = entityManager.GetByID(spriteID);
+	GameObject* sprite = entityMgr.GetByID(spriteID);
 	if (!sprite) return;
 
 	glm::vec3 position = sprite->GetPositionGLM();

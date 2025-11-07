@@ -246,8 +246,8 @@ public:
 
 private:
 	// Helper Methods
-	void HandlePlayerCollisions(float deltaTime, EntityManager& entityManager);
-	void ApplyFinalConstraints(EntityManager& entityManager);
+	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
+	void ApplyFinalConstraints(EntityManager& entityMgr);
 
 	// World/collision
 	void BuildLevelColliders();
