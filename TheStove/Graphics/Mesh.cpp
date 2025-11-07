@@ -67,3 +67,51 @@ void Mesh::Draw(const Texture* texture) const {
 
     vao.Unbind();
 }
+
+void Mesh::SetupInstanceBuffer(const std::vector<glm::mat4>& modelMatrices) {
+    if (modelMatrices.empty()) return;
+
+    // Create instance buffer if not already created
+    if (!instanceBufferInitialized) {
+        glGenBuffers(1, &instanceVBO);
+        instanceBufferInitialized = true;
+    }
+
+    // Upload model matrices to GPU
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER,
+        modelMatrices.size() * sizeof(glm::mat4),
+        &modelMatrices[0],
+        GL_DYNAMIC_DRAW);
+
+    // Bind VAO to set up instanced attributes
+    vao.Bind();
+
+    // Set up mat4 as 4 vec4 attributes (locations 2, 3, 4, 5)
+    const GLsizei vec4Size = sizeof(glm::vec4);
+
+    for (int i = 0; i < 4; i++) {
+        glEnableVertexAttribArray(2 + i);
+        glVertexAttribPointer(2 + i, 4, GL_FLOAT, GL_FALSE,
+            4 * vec4Size,
+            reinterpret_cast<void*>(static_cast<size_t>(i * vec4Size)));
+        glVertexAttribDivisor(2 + i, 1); // Advance once per instance
+    }
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void Mesh::DrawInstanced(Texture* texture, size_t instanceCount) {
+    if (instanceCount == 0) return;
+
+    // Bind texture if provided
+    if (texture) {
+        texture->Bind(0);
+    }
+
+    // Bind VAO and draw instanced
+    vao.Bind();
+    glDrawArraysInstanced(GL_TRIANGLES, 0, vertexCount, static_cast<GLsizei>(instanceCount));
+    glBindVertexArray(0);
+}

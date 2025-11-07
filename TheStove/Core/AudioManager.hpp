@@ -21,6 +21,7 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 #include <vector>
 
 #include "System.hpp"
+#include "MessageBus.hpp"
 #include "ConfigManager.hpp"
 
 class AudioManager : public CoreFramework::SystemInterface
@@ -47,15 +48,6 @@ public:
     /************************************************************************/
     /*!
     \brief
-    Handles messages sent to the audio system.
-    \param message
-    Pointer to the message object.
-    */
-    /************************************************************************/
-    void SendMessage(CoreFramework::Message* message) override;
-    /************************************************************************/
-    /*!
-    \brief
     Returns the name of the system.
     \return
     The system name as a string.
@@ -69,9 +61,11 @@ public:
     /*!
     \brief
     Constructs the AudioManager and initializes member variables.
+    \param bus
+    Reference to the MessageBus for pub/sub messaging.
     */
     /************************************************************************/
-    AudioManager();
+    AudioManager(CoreFramework::MessageBus& bus);
     /************************************************************************/
     /*!
     \brief
@@ -104,36 +98,77 @@ public:
     /************************************************************************/
     /*!
     \brief
-	Loads a sound file from ResourceManager into the audio system.
+    Loads a sound file into the audio system.
     \param name
     The name to reference the sound.
     \param filepath
     The file path to the sound file.
     \param loop
     Whether the sound should loop.
-	\param stream
-	Whether to stream the sound from disk (true) or load it fully into memory (false).
+    \param stream
+    Whether to stream the sound from disk (true) or load it fully into memory (false).
     \return
-    True if the sound was loaded successfully, false otherwise.
+    Pointer to the loaded FMOD::Sound, or nullptr if loading failed.
     */
     /************************************************************************/
-    bool LoadSound(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
+    FMOD::Sound* LoadSound(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
     /************************************************************************/
     /*!
     \brief
-	Calls ResourceManager::Instance().UnloadAudio(name) to unload a sound.
+    Gets a previously loaded sound by name.
+    \param name
+    The name of the sound to retrieve.
+    \return
+    Pointer to the FMOD::Sound, or nullptr if not found.
+    */
+    /************************************************************************/
+    FMOD::Sound* GetSound(std::string const& name) const;
+    /************************************************************************/
+    /*!
+    \brief
+    Unloads a sound and releases its resources.
     \param name
     The name of the sound to unload.
     */
     /************************************************************************/
     void UnloadSound(std::string const& name);
+    /************************************************************************/
+    /*!
+    \brief
+    Checks if a sound has been loaded.
+    \param name
+    The name of the sound to check.
+    \return
+    True if the sound exists, false otherwise.
+    */
+    /************************************************************************/
+    bool HasSound(std::string const& name) const;
+    /************************************************************************/
+    /*!
+    \brief
+    Retrieves information about a loaded sound.
+    \param name
+    The name of the sound.
+    \param lengthMs
+    Output: length of the sound in milliseconds.
+    \param outChannels
+    Output: number of audio channels.
+    \param outBits
+    Output: bits per sample.
+    \param freq
+    Output: default frequency in Hz.
+    \return
+    True if info was retrieved successfully, false otherwise.
+    */
+    /************************************************************************/
+    bool GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& outChannels, int& outBits, float& freq) const;
 
     // Playback Control
 
     /************************************************************************/
     /*!
     \brief
-	Plays a loaded sound from ResourceManager.
+    Plays a loaded sound.
     \param name
     The name of the sound to play.
     \param volume
@@ -229,14 +264,14 @@ public:
     /************************************************************************/
     void ApplySettings(ConfigManager::Settings const& settings);
 
-    /************************************************************************/
-    /*!
-    \brief
+	/************************************************************************/
+	/*!
+	\brief
 	Gets the underlying FMOD system instance.
     \return
 	Pointer to the FMOD::System instance.
-    */
-    /************************************************************************/
+	*/
+	/************************************************************************/
 	FMOD::System* GetSystem() const { return system; }
 
 	/************************************************************************/
@@ -248,7 +283,7 @@ public:
 	centralizing FMOD interaction on the audio thread/update. The request list
 	is flushed at the start of Update().
 	\param name
-	Logical name of the sound (as loaded in ResourceManager).
+	Logical name of the sound (as loaded in AudioManager).
 	\param volume
 	Initial playback volume (0.f to 1.f).
 	\param paused
@@ -275,18 +310,36 @@ public:
 	/************************************************************************/
 	void FadeChannel(std::string const& name, float toVolume, float duration);
 
+    // UI Sound Effects
+
+    /************************************************************************/
+    /*!
+    \brief
+    Plays the UI click sound effect.
+    \details
+    Convenience method for playing button click sounds with appropriate volume.
+    Uses VFX volume scaled down to 50% for subtle UI feedback.
+    */
+    /************************************************************************/
+    void PlayUIClickSound();
+
 private:
     /************************************************************************/
     /*!
     \brief
-	Error handling for FMOD operations.
-	\param result
-	The FMOD_RESULT to check.
-	\param context
-	Contextual information for the error.
+    Error handling for FMOD operations.
+    \param result
+    The FMOD_RESULT to check.
+    \param context
+    Contextual information for the error.
     */
     /************************************************************************/
     void CheckError(FMOD_RESULT result, std::string const& context);
+
+    // Message handlers
+    void OnToggleDebugInfo(const CoreFramework::Message& msg);
+    void OnPlayAudio(const CoreFramework::Message& msg);
+    void OnStopAudio(const CoreFramework::Message& msg);
 
     // FMOD System and resources
     FMOD::System*                         system;
@@ -314,4 +367,9 @@ private:
 	std::vector<PendingPlay> pendingPlays;                      // queued play requests
 	std::unordered_map<std::string, VolumeFade> activeFades;    // per-sound active fades
 
+    // Pub/sub
+    CoreFramework::MessageBus& messageBus;
+    CoreFramework::SubscriberId debugInfoSubId;
+    CoreFramework::SubscriberId playAudioSubId;
+    CoreFramework::SubscriberId stopAudioSubId;
 };

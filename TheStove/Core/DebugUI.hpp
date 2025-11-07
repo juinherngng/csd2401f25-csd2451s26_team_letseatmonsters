@@ -1,12 +1,13 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			ImGuiDebugger.hpp
+FILE NAME:			DebugUI.hpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
+CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
 
 DESCRIPTION:		The declarations of functions for the debugger window.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -20,13 +21,21 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 #include <string>
 
 #include "Precompiled.hpp"
-#include "Core.hpp"
 #include "AudioManager.hpp"
+#include "../Graphics/GraphicsEngine.hpp"
+
+namespace CoreFramework { class CoreEngine; }
+class Scene;
 
 struct SystemPerformance
 {
-	std::string name; // Name of the system
-	float percentageOf; // The %tage of the total game loop
+	std::string name;				// Name of the system
+	float percentageOf = 0.0f;		// The %tage of the total system time (relative distribution)
+	float percentageOfFrame = 0.0f;	// The %tage of the frame time (absolute usage)
+	float peakPercentage = 0.0f;	// Peak percentage recorded
+	float avgPercentage = 0.0f;		// Average percentage
+	int sampleCount = 0;			// Number of samples for averaging
+	float lastTimeMs = 0.0f;		// Last frame time in milliseconds
 };
 
 enum class FPSMode
@@ -50,8 +59,8 @@ namespace Debug
 		//Shutdown
 		void Shutdown();
 
-		// Initializes the debugger app
-		bool InitializeDebuggerApp(GLFWwindow* externalWindow);
+		// Initializes the debugger app - now takes CoreEngine pointer
+		bool InitializeDebuggerApp(GLFWwindow* externalWindow, CoreFramework::CoreEngine* coreEnginePtr);
 
 		// Updates debugger state (logic, hotkeys, toggles)
 		void UpdateDebuggerApp();
@@ -76,6 +85,12 @@ namespace Debug
 
 		void ShowDebugLog();
 
+		void SetRenderStats(int objects, int batches, int instanced, int draws);
+
+		void SetScene(Scene* scenePtr) { scene_ = scenePtr; }
+
+		void SetupDefaultLayout();
+
 	public:
 		float fps = 0; // FPS 
 		float msperFrame = 0; // MS/frame
@@ -90,6 +105,7 @@ namespace Debug
 		std::vector<std::string> debuglines;
 	private:
 		GLFWwindow* debugWindow; // The host window
+		CoreFramework::CoreEngine* coreEngine; // Pointer to CoreEngine (not owned)
 		bool isInitialised; // Shows if the debugger was initialised or not
 
 		// Crash logging
@@ -97,5 +113,14 @@ namespace Debug
 
 		// Audio Values
 		float bgm = 0.0f, vfx = 0.0f;
+
+		int totalObjects = 0;
+		int totalBatches = 0;
+		int instancedObjects = 0;
+		int drawCalls = 0;
+
+		Scene* scene_ = nullptr;
+
 	};
+	extern DebuggerApp gDebugger;
 }

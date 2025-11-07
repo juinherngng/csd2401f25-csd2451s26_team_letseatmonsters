@@ -5,20 +5,38 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Declares the Scene class responsible for managing game objects,
-					animations, and scene updates.
+ DESCRIPTION:		Declares the SceneManager (Scene) class, which orchestrates the lifecycle and
+					high-level coordination of all major systems within a game scene. This includes:
+					entity creation and management, event handling, physics and collision simulation,
+					animation control, input processing, and rendering pipeline integration.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
 #pragma once
 
 #include "GraphicsEngine.hpp"
-#include "../Core/InputManager.hpp"
 #include "Animator.hpp"
-#include "Collision.hpp"
+#include "EntityManager.hpp"
+#include "AnimationManager.hpp"
+#include "Layer.hpp"
+
+#include "../Core/CollisionManager.hpp"
+#include "../Core/MovementManager.hpp" 
+#include "../Core/InputManager.hpp"
+#include "../Core/PhysicsManager.hpp"
 #include "../Core/Physics.hpp"
+#include "../Core/Math.hpp"
+#include "../Core/LevelEditor.hpp"
+#include "../Core/InputCommandHandler.hpp"
+#include "../Core/PlayerController.hpp"
+#include "../Core/NPCSystem.hpp"
+#include "../Core/DebugVisualizer.hpp"
+#include "../Core/LogicManager.hpp"
+#include "../Core/PlayerLogic.hpp"
+#include "../Core/SimpleNpcLogic.hpp"
+
 
 #include <string>
 #include <vector>
@@ -30,11 +48,22 @@
   */
 class Scene {
 public:
+	// Core Lifecycle testing
+
+	GraphicsEngine& GetGraphicsEngine();
+	const GraphicsEngine& GetGraphicsEngine() const;
+
 	/**
 	 * @brief Construct a new Scene object.
 	 * @param engine Reference to the graphics engine used for rendering.
+	 * @param inputMgr Reference to the input manager system.
+	 * @param animMgr Reference to the animation manager system.
+	 * @param moveMgr Reference to the movement manager system.
+	 * @param physicsMgr Reference to the physics manager system.
+	 * @param collisionMgr Reference to the collision manager system.
 	 */
-	Scene(GraphicsEngine& engine);
+	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr, 
+		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
 	/**
 	 * @brief Load a scene by name (dispatches to test scene for now).
@@ -49,6 +78,14 @@ public:
 	 */
 	void Update(float deltaTime, GLFWwindow* window);
 
+	// Stress Test Generation
+	void GenerateStressTest(int objectCount = 2500);
+
+	void DrawUI();
+	void ClearAll();
+
+	// Spawning / Object Management
+
 	/**
 	 * @brief Spawns a triangle mesh object.
 	 * @param position Position in world space.
@@ -56,13 +93,15 @@ public:
 	 * @param rotation Rotation in degrees.
 	 * @return Pointer to spawned GameObject, or nullptr if failed.
 	 */
-	GameObject* SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation = 0.0f);
+	 //GameObject* SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation = 0.0f);
 
-	/**
-	 * @brief Spawns a static sprite with a given texture and size.
-	 */
-	GameObject* SpawnStaticSprite(const std::string& texturePath, const glm::vec3 position,
-		const glm::vec2 size = glm::vec2(100.0f, 100.0f));
+	 /**
+	  * @brief Spawns a static sprite with a given texture and size.
+	  */
+	GameObject* SpawnStaticSprite(const std::string& texturePath,
+								  const glm::vec3 position,
+								  const glm::vec2 size = glm::vec2(100.0f, 100.0f),
+								  const std::string& layer = "Not set in JSON");
 
 	/**
 	 * @brief Spawns an animated sprite with frames and timing.
@@ -72,17 +111,14 @@ public:
 		const glm::vec3 position,
 		const glm::vec2 size,
 		const std::vector<glm::vec4> frames,
-		float frameDuration, bool loop);
-
-	/**
-	 * @brief Set the background texture for the scene.
-	 */
-	void SetSceneBackground(const std::string& texturePath);
+		float frameDuration, bool loop,
+		const std::string& layer);
 
 	/**
 	 * @brief Retrieve a game object by its ID.
 	 */
 	GameObject* GetGameObjectByID(int targetID);
+	std::vector<GameObject*> GetAllObjectsRaw();
 
 	/**
 	 * @brief Remove a game object by its ID, including its animations.
@@ -90,60 +126,176 @@ public:
 	void DespawnByID(int targetID);
 
 	/**
+	 * @brief Collect raw pointers to all renderable game objects.
+	 */
+	void CollectRenderablePointers(std::vector<GameObject*>& out);
+
+	// Scene / Transform Utilities
+
+	/**
+	 * @brief Set the background texture for the scene.
+	 */
+	void SetSceneBackground(const std::string& texturePath);
+
+	// Set initial transform into the scene maps and the GameObject
+	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
+	void ClampToWalkArea(GameObject* obj);
+	const std::string& GetObjectTexturePath(int id) const;
+	void SetObjectTexturePath(int id, const std::string& path);
+
+	// Animation
+	bool HasAnimations(int id) const;
+	std::vector<std::string> GetAnimationList(int id) const;
+	std::string GetCurrentAnimationName(int id) const;
+
+	/**
 	 * @brief Change the active animation of an object by ID.
 	 */
 	void SetAnimation(int objID, const std::string& newAnim);
+	void AttachDinoAnimations(int objID);
 
-	/**
-	 * @brief Collect raw pointers to all renderable game objects.
-	 */
-	void CollectRenderablePointers(std::vector<GameObject*>& out) const;
+	// ID Accessors
+	void SetPlayerID(int id);
+	void SetNPC1ID(int id) {
+		otherID = id;
+		if (id >= 0) {
+			npcSystem.RegisterLaneNPC(id, 1000.0f); // Only this npc1 gets lane behavior
+		}
+	}
 
-	// void ClearAllObjects();
+	void SetNPC2ID(int id) {
+		otherID2 = id;
+		if (id >= 0) {
+			npcSystem.RegisterLaneNPC(id, 1000.0f); //Only this npc2 gets lane behavior
+		}
+	}
+	void SetDinoID(int id) { dinoID = id; }
+
+	int GetPlayerID() const { return spriteID; }
+	int GetNPC1ID() const { return otherID; }
+	int GetNPC2ID() const { return otherID2; }
+	int GetDinoID() const { return dinoID; }
+
+	// NPC System
+	void SetNPCVelocity(int id, float vx, float vy) {
+		npcSystem.SetNPCVelocity(id, glm::vec2(vx, vy));
+	}
+	glm::vec2 GetNPCVelocity(int id) const {
+		return npcSystem.GetNPCVelocity(id);
+	}
+	void RegisterLaneNPC(int id, float laneX) {
+		npcSystem.RegisterLaneNPC(id, laneX);
+	}
+
+	// Defaults Struct
+	struct Defaults {
+		glm::vec3 pos{ 0,0,0 };
+		glm::vec2 size{ 128,128 };
+		float rot{ 0.f };
+		glm::vec2 colSize{ 64,128 };
+		glm::vec2 colOff{ 0,0 };
+		glm::vec2 vel{ 0,0 };
+		std::string texture;
+		std::string tag;
+		std::string layer;
+	};
+
+	void SetDefaults(int id, const Defaults& d) { defaults_[id] = d; }
+	Defaults GetDefaults(int id) const {
+		auto it = defaults_.find(id);
+		return (it != defaults_.end()) ? it->second : Defaults{};
+	}
+
+	float ScaleXToCurrent(float referenceX) const;
+	float ScaleYToCurrent(float referenceY) const;
+
+	float ToRefX(float currentX) const;
+	float ToRefY(float currentY) const;
+
+	// Rebuild world/static colliders after level reload or editor reset
+	void RebuildColliders();
+
+	void SetSimulationActive(bool active);
+	bool IsSimulationActive() const;
+
+	void ResetResizeBaseline();
+
+	void MarkAnimated(int id, bool state);
+
+	// For deferred clearing
+	void RequestClearAll();
+	void ResolveInitialStaticOverlaps();
+
+	LogicManager& GetLogicManager() { return logicManager; }
+	// new helper:
+	void AttachLogicForTag(int id, const std::string& tag);
+
+	// Expose EntityManager for systems that need it
+	EntityManager& GetEntityManager() { return entityManager; }
+	
+	// Layer management
+	void AddLayer(const std::string& name);
+	Layer* GetLayer(const std::string& name);
+	const std::unordered_map<std::string, Layer>& GetAllLayers() const;
+	std::string GetObjectLayer(int objectID) const;
+	// Registers or moves an object to a new layer, updating both the layer map and the object's metadata.
+	void AssignObjectToLayer(int id, const std::string& newLayer);
+
+	void UpdateAnimationControls();
+
 
 private:
-	// Engine/input
-	GraphicsEngine& graphicsEngine;
-	InputManager inputManager;
+	// Helper Methods
+	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
+	void ApplyFinalConstraints(EntityManager& entityMgr);
 
 	// World/collision
 	void BuildLevelColliders();
-	collision::World mCollision;
+
+	// Engine/input
+	GraphicsEngine& graphicsEngine;
+	EntityManager entityManager;
+	LogicManager logicManager;
+	InputManager& inputManager;				// Changed from owned instance to reference
+	AnimationManager& animationManager;		// Changed from owned instance to reference
+	MovementManager& movementManager;		// Changed from owned instance to reference
+	CollisionManager& collisionManager;		// Changed from owned instance to reference
+	PhysicsManager& physicsManager;			// Changed from owned instance to reference
+
+	// Systems
+	InputCommandHandler inputCommandHandler;
+	PlayerController playerController;
+	NPCSystem npcSystem;
+	DebugVisualizer debugVisualizer;
 
 	// Step-by-step controller
 	physics::StepController physicsStep_;
 
 	// Scene objects
-	std::vector<std::unique_ptr<GameObject>> sceneObjects;
-	int nextID = 1;	   // ID counter for sceneObjects
 	int spriteID = -1; // default invalid ID
 	int dinoID = -1;   // for testing
 	int otherID = -1;
 	int otherID2 = -1;
 
-	// Per-object transforms
-	std::unordered_map<int, glm::vec3> spriteScales;
-	std::unordered_map<int, glm::vec3> spritePositions;
-	std::unordered_map<int, float> spriteRotations;
-	std::unordered_map<int, Animator2D> animators; // map GameObject ID to Animator2D
+	bool simulationActive = false;
+	bool useForces_ = false;
 
-	// Map from GameObject ID to map of animation name to Animator2D
-	std::unordered_map<int, std::unordered_map<std::string, Animator2D>> objectAnimations;
+	// Debug / Editor
+	bool showAuxDebug_ = true;
+	LevelEditor mLevelEditor;
+	std::unordered_map<int, std::string> mTexturePathByID;
 
-	// Current animation name for each object
-	std::unordered_map<int, std::string> currentAnimation;
+	// Defaults data
+	std::unordered_map<int, Defaults> defaults_;
 
-	// Scene content
-	void LoadTest();
 
-	// Click-to-move
-	bool hasClickTarget = false;
-	glm::vec2 clickTarget{ 0.0f, 0.0f };
+	// Layer data
+	std::unordered_map<std::string, Layer> layers;
 
-	bool playerSelected = false;
-	float playerSpeed = 260.0f;
+	// Resize tracking
+	int lastWidth_ = -1;
+	int lastHeight_ = -1;
+	bool resetBaseline_ = false;
 
-	// Stuck detection (cancel click move if not progressing)
-	int stuckFrames = 0;
-	static constexpr int kStuckFramesToCancel = 12;
+	bool pendingClear_ = false; // Flag for deferred clearing
 };

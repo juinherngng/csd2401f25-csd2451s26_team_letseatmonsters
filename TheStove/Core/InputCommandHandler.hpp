@@ -1,0 +1,58 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:         InputCommandHandler.hpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:       Declares InputCommandHandler, which translates high-level keyboard inputs
+					into debug toggles and physics-mode switches (forces vs. kinematic).
+					It does not own any state; it simply reads input and calls other systems.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
+#pragma once
+
+#include "InputManager.hpp"
+#include "PhysicsManager.hpp"
+#include "DebugVisualizer.hpp"
+#include "MovementManager.hpp"
+
+#include "../Graphics/DebugRenderer.hpp"
+#include "../Graphics/EntityManager.hpp"
+
+ /**
+  * @class InputCommandHandler
+  * @brief Small utility that maps keys to engine/debug actions.
+  *
+  * Controls:
+  *  - R: toggle collider DebugRenderer visibility.
+  *  - T: toggle auxiliary debug visuals flag (provided by caller).
+  *  - F: toggle "use forces" mode and enable/disable physics on the player.
+  */
+class InputCommandHandler {
+public:
+	InputCommandHandler() = default;
+	~InputCommandHandler() = default;
+
+	// Entry point to process per-frame command inputs.
+	void ProcessCommands(InputManager& inputManager,
+		PhysicsManager& physicsManager,
+		MovementManager& movementManager,
+		int playerID,
+		bool& useForces,
+		bool& showAuxDebug);
+
+private:
+	// Handles keys that toggle debug state (R, T).
+	void HandleDebugToggles(InputManager& inputManager, bool& showAuxDebug);
+
+	// Handles the physics mode toggle(F) and updates the player's physics component.
+	void HandleForceToggle(InputManager& inputManager,
+		PhysicsManager& physicsManager,
+		MovementManager& movementManager,
+		int playerID,
+		bool& useForces);
+};

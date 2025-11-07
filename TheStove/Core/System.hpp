@@ -12,39 +12,7 @@ DESCRIPTION:		System interface for game engine systems.
 
 #pragma once
 
-#include "Message.hpp"
-
 #include <iostream>
-
-/*
-	How to create a new system class:
-	1) Create a new class in your header that inherits from SystemInterface.
-	2) Implement the required methods: Update(float dt), SendMessage(Message*), GetName().
-	3) (Optional) Override Initialize() for setup logic.
-	4) Add the new system to the CoreEngine using AddSystem().
-
-	Example:
-
-	class MySystem : public CoreFramework::SystemInterface 
-	{
-    public:
-       void Initialize() override {  setup code  }
-       void Update(float dt) override {  per-frame logic  }
-       void SendMessage(CoreFramework::Message* msg) override { handle messages }
-       std::string GetName() override { return "MySystem"; }
-    };
-
-	In Main.cpp:
-		// create a static instance of your system at the top of the file
-		static MySystem mySystem;
-		...
-		int main(){
-		...
-			coreEngine.AddSystem(&mySystem);
-		...
-		}
-
-*/
 
 namespace CoreFramework
 {
@@ -52,20 +20,40 @@ namespace CoreFramework
 	{
 	public:
 
-		///Systems can receive all message send to the Core. 
-		///See Message.h for details.
-		virtual void SendMessage(Message* message) { (message); };
-
-		///All systems are updated every game frame.
+		/************************************************************************/
+		/*!
+		\brief
+			All systems are updated every game frame.
+		\param dt
+			Delta time in seconds since last frame.
+		*/
+		/************************************************************************/
 		virtual void Update(float dt) = 0;
 
-		///All systems provide a string name for debugging.
+		/************************************************************************/
+		/*!
+		\brief
+			All systems provide a string name for debugging.
+		\return
+			Name of the system.
+		*/
+		/************************************************************************/
 		virtual std::string GetName() = 0;
 
-		///Initialize the system.
+		/************************************************************************/
+		/*!
+		\brief
+			Initialize the system.
+		*/
+		/************************************************************************/
 		virtual void Initialize() {};
 
-		///All systems need a virtual destructor to have their destructor called 
+		/************************************************************************/
+		/*!
+		\brief
+			All systems need a virtual destructor to have their destructor called.
+		*/
+		/************************************************************************/
 		virtual ~SystemInterface() {}
 
 		// For performance tracking

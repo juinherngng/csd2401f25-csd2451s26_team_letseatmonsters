@@ -1,0 +1,21 @@
+{
+  "objects": [
+    {
+      "animated": false,
+      "col_h": 128.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "col_w": 64.0,
+      "h": 128.0,
+      "rotation": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0,
+      "tag": "",
+      "texture": "../assets/goat_sprite_front.png",
+      "w": 128.0,
+      "x": 262.0,
+      "y": 634.0,
+      "z": 0.0
+    }
+  ]
+}

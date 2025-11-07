@@ -4,20 +4,26 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
- DESCRIPTION:		Declares the InputManager class responsible for handling keyboard
-					and mouse input using GLFW.
+ DESCRIPTION:		Centralized keyboard/mouse input state tracker with edge detection.
+					- Polls GLFW each frame and mirrors common key/mouse states.
+					- Respects ImGui IO capture flags to avoid consuming UI input.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
 #pragma once
 
 #include <unordered_map>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
+#include "imgui.h"
+#include "System.hpp"
+#include "../Graphics/GraphicsEngine.hpp"
 
  /**
   * @class InputManager
@@ -26,57 +32,51 @@
   * Provides per-frame input update, state tracking, and query functions
   * for detecting presses, releases, and edge transitions.
   */
-class InputManager {
+class InputManager : public CoreFramework::SystemInterface {
 public:
-	/**
-	 * @brief Update the internal state of keys and mouse buttons.
-	 * @param window Pointer to the active GLFW window for input polling.
-	 */
-	void Update(GLFWwindow* window);
+	// Lifetime / Access
+	InputManager();
+	static InputManager& Get();
 
-	/**
-	 * @brief Check if a key is currently held down.
-	 * @param key GLFW key code.
-	 * @return True if pressed, false otherwise.
-	 */
+	// SystemInterface implementation
+	void Initialize() override;
+	void Update(float dt) override;
+	std::string GetName() override;
+
+	// Frame Update / Focus Hints
+	void SetSceneViewportWantsGameMouse(bool enable);
+	void SetWindow(GLFWwindow* window);
+
+	// Keyboard Queries
 	bool IsKeyPressed(int key) const;
-
-	/**
-	 * @brief Check if a key transitioned from released to pressed this frame.
-	 * @param key GLFW key code.
-	 * @return True if just pressed, false otherwise.
-	 */
 	bool IsKeyJustPressed(int key) const;
 
-	/**
-	 * @brief Check if a mouse button is currently held down.
-	 * @param button GLFW mouse button code.
-	 * @return True if pressed, false otherwise.
-	 */
+	// Mouse Queries
 	bool IsMouseButtonPressed(int button) const;
-
-	/**
-	 * @brief Check if a mouse button was pressed this frame.
-	 * @param button GLFW mouse button code.
-	 * @return True if just pressed, false otherwise.
-	 */
 	bool IsMouseButtonJustPressed(int button) const;
-
-	/**
-	 * @brief Get the current mouse cursor position in window coordinates.
-	 * @return glm::dvec2 representing (x,y) position.
-	 */
+	bool IsMouseButtonJustReleased(int button) const;
 	glm::dvec2 GetMousePosition() const;
 
+	// Coordinate Conversion
+	glm::vec3 ScreenToWorld(float mouseX, float mouseY) const;
+
 private:
-	// Keyboard state tracking
+	// Internal update method that takes window
+	void UpdateInternal(GLFWwindow* window);
+
+	// Data Members
+	static InputManager* sActive;
+	bool mSceneViewportWantsGameMouse = false;
+	GLFWwindow* mWindow = nullptr;
+
+	// Current/previous keyboard states (by GLFW key code)
 	std::unordered_map<int, bool> mCurrentKeyStates;
 	std::unordered_map<int, bool> mPreviousKeyStates;
 
-	// Mouse button tracking
+	// Current/previous mouse button states (by GLFW button code)
 	std::unordered_map<int, bool> mMouseButtons;
 	std::unordered_map<int, bool> mPrevMouseButtons;
 
-	// Current mouse position in window coordinates
+	// Mouse position in window coordinates (pixels)
 	glm::dvec2 mMousePos{ 0.0, 0.0 };
 };
