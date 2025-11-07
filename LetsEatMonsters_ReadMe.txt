@@ -1,0 +1,2 @@
+[Game Concept]
+Welcome to Myoonchi Diner. You play as Myool, a dungeon-bound slime under the guise of a cook, hoping to serve and befriend adventurers looking for a meal. Juggle between progressively weirder recipes, cooking environments and customers as you delve further into this fantasy dungeon.
