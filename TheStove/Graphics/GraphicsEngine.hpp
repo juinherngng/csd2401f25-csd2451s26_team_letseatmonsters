@@ -4,6 +4,7 @@ FILE NAME:			GraphicsEngine.hpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
 CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
 DESCRIPTION:		Declares the GraphicsEngine responsible for initialization, off-screen scene FBO,
 					ImGui dockspace, background handling, and batched rendering.

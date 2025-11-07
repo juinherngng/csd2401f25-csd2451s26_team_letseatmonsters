@@ -62,7 +62,6 @@ void AudioManager::Initialize()
 
 void AudioManager::Update(float dt)
 {
-	// uncomment to check update calls
 	//std::cout << "AudioManager system updating with dt: " << dt << std::endl;
 
 	if (!system) return;

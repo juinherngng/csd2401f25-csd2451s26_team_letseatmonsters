@@ -3,6 +3,7 @@
 FILE NAME:			DebugUI.hpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
+CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
 
 DESCRIPTION:		The declarations of functions for the debugger window.
 

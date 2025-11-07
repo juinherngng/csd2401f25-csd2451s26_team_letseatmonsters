@@ -1,3 +1,18 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			AnimationManager.hpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+
+DESCRIPTION:	    Declares AnimationManager, which manages 2D sprite animations for game objects,
+					updating frame UVs based on Animator2D components. Supports play/pause control
+					and registering animation sets for different entity types.
+
+        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #pragma once
 
 #include "Animator.hpp"  // This includes Animator2D
