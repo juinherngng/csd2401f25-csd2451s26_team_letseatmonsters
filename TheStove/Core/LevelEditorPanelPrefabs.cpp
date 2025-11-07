@@ -10,7 +10,7 @@
 					- Instantiate a new object from a prefab
 					- Propagate prefab changes to all linked instances
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -118,7 +118,7 @@ namespace LEPANELPREFABS {
 					// Texture path
 					out.texture = scene.GetObjectTexturePath(selectedObjectId);
 
-					// Transform (position/scale) — store rotation in DEGREES for JSON
+					// Transform (position/scale) ï¿½ store rotation in DEGREES for JSON
 					const glm::vec3 p = gSel->GetPositionGLM();
 					const glm::vec3 s = gSel->GetScaleGLM();
 
@@ -191,7 +191,8 @@ namespace LEPANELPREFABS {
 						{ data.w, data.h },
 						uvs,
 						0.25f,
-						true
+						true,
+						data.layer
 					);
 
 					// Optional: project-specific animation attach
@@ -204,7 +205,8 @@ namespace LEPANELPREFABS {
 					g = scene.SpawnStaticSprite(
 						data.texture,
 						{ data.x, data.y, data.z },
-						{ data.w, data.h }
+						{ data.w, data.h },
+						data.layer
 					);
 				}
 

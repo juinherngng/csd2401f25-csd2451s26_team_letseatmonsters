@@ -19,6 +19,7 @@
 #include "Animator.hpp"
 #include "EntityManager.hpp"
 #include "AnimationManager.hpp"
+#include "Layer.hpp"
 
 #include "../Core/CollisionManager.hpp"
 #include "../Core/MovementManager.hpp" 
@@ -63,8 +64,14 @@ public:
 	/**
 	 * @brief Construct a new Scene object.
 	 * @param engine Reference to the graphics engine used for rendering.
+	 * @param inputMgr Reference to the input manager system.
+	 * @param animMgr Reference to the animation manager system.
+	 * @param moveMgr Reference to the movement manager system.
+	 * @param physicsMgr Reference to the physics manager system.
+	 * @param collisionMgr Reference to the collision manager system.
 	 */
-	Scene(GraphicsEngine& engine);
+	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr, 
+		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
 	/**
 	 * @brief Load a scene by name (dispatches to test scene for now).
@@ -99,8 +106,10 @@ public:
 	 /**
 	  * @brief Spawns a static sprite with a given texture and size.
 	  */
-	GameObject* SpawnStaticSprite(const std::string& texturePath, const glm::vec3 position,
-		const glm::vec2 size = glm::vec2(100.0f, 100.0f));
+	GameObject* SpawnStaticSprite(const std::string& texturePath,
+								  const glm::vec3 position,
+								  const glm::vec2 size = glm::vec2(100.0f, 100.0f),
+								  const std::string& layer = "Not set in JSON");
 
 	/**
 	 * @brief Spawns an animated sprite with frames and timing.
@@ -110,7 +119,8 @@ public:
 		const glm::vec3 position,
 		const glm::vec2 size,
 		const std::vector<glm::vec4> frames,
-		float frameDuration, bool loop);
+		float frameDuration, bool loop,
+		const std::string& layer);
 
 	/**
 	 * @brief Retrieve a game object by its ID.
@@ -195,6 +205,7 @@ public:
 		glm::vec2 vel{ 0,0 };
 		std::string texture;
 		std::string tag;
+		std::string layer;
 	};
 
 	void SetDefaults(int id, const Defaults& d) { defaults_[id] = d; }
@@ -219,35 +230,49 @@ public:
 
 	void MarkAnimated(int id, bool state);
 
+	// For deferred clearing
+	void RequestClearAll();
 	void ResolveInitialStaticOverlaps();
+
 	LogicManager& GetLogicManager() { return logicManager; }
 	// new helper:
 	void AttachLogicForTag(int id, const std::string& tag);
 
+	// Expose EntityManager for systems that need it
+	EntityManager& GetEntityManager() { return entityManager; }
+	
+	// Layer management
+	void AddLayer(const std::string& name);
+	Layer* GetLayer(const std::string& name);
+	const std::unordered_map<std::string, Layer>& GetAllLayers() const;
+	std::string GetObjectLayer(int objectID) const;
+	// Registers or moves an object to a new layer, updating both the layer map and the object's metadata.
+	void AssignObjectToLayer(int id, const std::string& newLayer);
+
+
 private:
-	// Engine/input
-	GraphicsEngine& graphicsEngine;
-	InputManager inputManager;
-	EntityManager entityManager;
-	AnimationManager animationManager;
-	MovementManager movementManager;
-	CollisionManager collisionManager;
-	PhysicsManager physicsManager;
-	LogicManager logicManager;
-
-	// Systems
-	InputCommandHandler inputCommandHandler;
-	PlayerController playerController;
-	NPCSystem npcSystem;
-	DebugVisualizer debugVisualizer;
-
-
 	// Helper Methods
 	void HandlePlayerCollisions(float deltaTime, EntityManager& entityManager);
 	void ApplyFinalConstraints(EntityManager& entityManager);
 
 	// World/collision
 	void BuildLevelColliders();
+
+	// Engine/input
+	GraphicsEngine& graphicsEngine;
+	EntityManager entityManager;
+	LogicManager logicManager;
+	InputManager& inputManager;				// Changed from owned instance to reference
+	AnimationManager& animationManager;		// Changed from owned instance to reference
+	MovementManager& movementManager;		// Changed from owned instance to reference
+	CollisionManager& collisionManager;		// Changed from owned instance to reference
+	PhysicsManager& physicsManager;			// Changed from owned instance to reference
+
+	// Systems
+	InputCommandHandler inputCommandHandler;
+	PlayerController playerController;
+	NPCSystem npcSystem;
+	DebugVisualizer debugVisualizer;
 
 	// Step-by-step controller
 	physics::StepController physicsStep_;
@@ -269,8 +294,14 @@ private:
 	// Defaults data
 	std::unordered_map<int, Defaults> defaults_;
 
+
+	// Layer data
+	std::unordered_map<std::string, Layer> layers;
+
 	// Resize tracking
 	int lastWidth_ = -1;
 	int lastHeight_ = -1;
 	bool resetBaseline_ = false;
+
+	bool pendingClear_ = false; // Flag for deferred clearing
 };

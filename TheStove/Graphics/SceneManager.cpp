@@ -143,7 +143,14 @@ float Scene::ToRefY(float currentY) const {
 }
 
 // Core Lifecycle
-Scene::Scene(GraphicsEngine& engine) : graphicsEngine(engine) {}
+Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
+	MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
+	: graphicsEngine(engine), inputManager(inputMgr), animationManager(animMgr),
+	movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr)
+{
+	// Set the EntityManager reference in AnimationManager
+	animationManager.SetEntityManager(&entityManager);
+}
 
 void Scene::LoadScene(const std::string& sceneName) {
 	(void)sceneName;
@@ -162,8 +169,17 @@ void Scene::LoadScene(const std::string& sceneName) {
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
-	// Update input
-	inputManager.Update(window);
+
+	// Input is now updated by CoreEngine's system, no need to call Update here
+	// inputManager.Update(deltaTime); // REMOVED - handled by CoreEngine
+
+	// Deferred Clear
+	if (pendingClear_) {
+		ClearAll();
+		RebuildColliders();
+		pendingClear_ = false;
+		return;  // Skip rest of update this frame
+	}
 
 	// Process input commands (debug toggles, force toggle, etc.)
 	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager,
@@ -177,16 +193,16 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Resolve physics timestep
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
 
-	// Update animations
-	animationManager.Update(deltaTime, entityManager);
+	// Update animations - now handled by CoreEngine's AnimationManager system
+	// animationManager.Update(deltaTime, entityManager); // REMOVED
 
-	// Update collision system
-	collisionManager.Update(entityManager);
+	// Update collision system - now handled by CoreEngine's CollisionManager system
+	// collisionManager.Update(entityManager); // REMOVED
 
 
 	if (simulationActive)
 	{
-		// NEW: run all scripts
+		// run all scripts
 		logicManager.StartAll(*this);
 		logicManager.UpdateAll(deltaTime, *this, inputManager);
 		// Handle player input
@@ -195,12 +211,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		//	graphicsEngine, spriteID, useForces_);
 
 		// Update movement system (kinematic or physics-based)
+		// Movement is now handled by CoreEngine's MovementManager system
 		if (useForces_) {
-			physicsManager.Update(physicsDt, entityManager, inputManager);
+			physicsManager.UpdatePhysics(physicsDt, entityManager, inputManager);
 		}
-		else {
-			movementManager.Update(physicsDt, entityManager, inputManager);
-		}
+		// else: MovementManager.Update() is called by CoreEngine automatically
 
 		// Update NPC AI
 		const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
@@ -249,8 +264,15 @@ void Scene::SetPlayerID(int id) {
 
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	const glm::vec3 position,
-	const glm::vec2 size) {
-	return entityManager.SpawnStaticSprite(texturePath, position, size);
+	const glm::vec2 size,
+	const std::string& layer)
+{
+	GameObject* obj = entityManager.SpawnStaticSprite(texturePath, position, size);
+	if (obj) {
+		int id = obj->GetID();
+		AssignObjectToLayer(id, layer);
+	}
+	return obj;
 }
 
 GameObject* Scene::SpawnAnimatedSprite(
@@ -258,9 +280,15 @@ GameObject* Scene::SpawnAnimatedSprite(
 	const glm::vec3 position,
 	const glm::vec2 size,
 	const std::vector<glm::vec4> frames,
-	float frameDuration, bool loop)
+	float frameDuration, bool loop,
+	const std::string& layer)
 {
-	return entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
+	GameObject* obj = entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
+	if (obj) {
+		int id = obj->GetID();
+		AssignObjectToLayer(id, layer);
+	}
+	return obj;
 }
 
 GameObject* Scene::GetGameObjectByID(int targetID) {
@@ -439,7 +467,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 		// remove our inward component, keep tangent (glide along goat/wall).
 		{
 			// Intent this frame from movement system
-			const glm::vec2 v = movementManager.GetVelocity(spriteID);
+			glm::vec2 v = movementManager.GetVelocity(spriteID);
 			const float vLen = std::sqrt(v.x * v.x + v.y * v.y);
 
 			// Contact normal is MTV normalized (player must move by +MTV to exit),
@@ -465,7 +493,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 					// Remove inward component; keep tangential part (slide)
 					const glm::vec2 tangential = desiredDelta - into * n;
 
-					// Clamp slide against world (so we don’t scrape into walls)
+					// Clamp slide against world (so we don't scrape into walls)
 					const Math::Vector2D csz = sprite->GetColliderSize();
 					const collision::AABB pAfterSep =
 						collision::World::makeAABBFromCenter(
@@ -480,10 +508,10 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 					playerPosM.x += slideAllowed.x;
 					playerPosM.y += slideAllowed.y;
 
-					// We *don’t* clear the click target here; player is gliding along nicely.
+					// We *don't* clear the click target here; player is gliding along nicely.
 				}
 				else {
-					// We’re not pushing into the goat (moving away or parallel) – no special handling.
+					// We're not pushing into the goat (moving away or parallel) – no special handling.
 				}
 			}
 			else if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f) {
@@ -504,6 +532,30 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager
 
 }
 
+void Scene::BuildLevelColliders() {
+	collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+
+	collision::WoodVertical wood{
+	  kWoodX0, kWoodX1,
+	  kWoodTopMinY, kWoodTopMaxY,
+	  kWoodGapMinY, kWoodGapMaxY,
+	  kWoodBotMinY, kWoodBotMaxY
+	};
+
+	collision::StageEndGateVertical gate{
+	  kEndVX0, kEndVX1,
+	  kEndVTopMinY, kEndVTopMaxY,
+	  kEndVGapMinY, kEndVGapMaxY,
+	  kEndVBotMinY, kEndVBotMaxY
+	};
+
+	collisionManager.BuildWalls(walk, wood, gate);
+
+	movementManager.SetCollisionWorld(&collisionManager.GetCollisionWorld());
+	movementManager.SetNPCSystem(&npcSystem);
+
+	physicsManager.SetMovementManager(&movementManager);
+}
 
 void Scene::ApplyFinalConstraints(EntityManager& entityManager) {
 	if (spriteID < 0) return;
@@ -561,7 +613,7 @@ void Scene::ResolveInitialStaticOverlaps() {
 	const float topY0 = kWoodTopMinY, topY1 = kWoodTopMaxY;
 	const float botY0 = kWoodBotMinY, botY1 = kWoodBotMaxY;
 
-	// Walkable frame (outer walls) – we’ll clamp to this too.
+	// Walkable frame (outer walls) – we'll clamp to this too.
 	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
 
 	std::vector<GameObject*> objs = entityManager.GetAllObjects();
@@ -599,37 +651,9 @@ void Scene::ResolveInitialStaticOverlaps() {
 	RebuildColliders();
 }
 
-
 void Scene::RebuildColliders() {
 	collisionManager.Clear();
 	BuildLevelColliders();
-}
-
-// World / Collision
-void Scene::BuildLevelColliders() {
-	collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
-
-	collision::WoodVertical wood{
-	  kWoodX0, kWoodX1,
-	  kWoodTopMinY, kWoodTopMaxY,
-	  kWoodGapMinY, kWoodGapMaxY,
-	  kWoodBotMinY, kWoodBotMaxY
-	};
-
-	collision::StageEndGateVertical gate{
-	  kEndVX0, kEndVX1,
-	  kEndVTopMinY, kEndVTopMaxY,
-	  kEndVGapMinY, kEndVGapMaxY,
-	  kEndVBotMinY, kEndVBotMaxY
-	};
-
-	collisionManager.BuildWalls(walk, wood, gate);
-
-	movementManager.SetCollisionWorld(&collisionManager.GetCollisionWorld());
-
-	movementManager.SetNPCSystem(&npcSystem);
-
-	physicsManager.SetMovementManager(&movementManager);
 }
 
 void Scene::GenerateStressTest(int objectCount) {
@@ -680,14 +704,12 @@ void Scene::GenerateStressTest(int objectCount) {
 		}
 	}
 
-	std::cout << "[Scene] Stress test complete:\n";
-	std::cout << "  - Total objects: " << objectCount << "\n";
-	std::cout << "  - Random positions\n";
-	std::cout << "  - Random velocities\n";
-	std::cout << "  - Mixed textures (" << texturePaths.size() << " types)\n";
-	std::cout << "  - Scene total: " << entityManager.GetObjectCount() << " objects\n";
+	std::cout << "[Scene] Stress test loaded\n";
 }
 
+void Scene::RequestClearAll() {
+	pendingClear_ = true;
+}
 
 void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	if (tag == "player") {
@@ -696,6 +718,10 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	}
 	else if (tag == "npc1" || tag == "npc2") {
 		logicManager.AddLogic<SimpleNpcLogic>(id);
+	}
+	else if (tag == "dino") {
+		logicManager.AddLogic<SimpleNpcLogic>(id);
+		dinoID = id; // preserve your special ID if you rely on it elsewhere
 	}
 	// you can extend with more tags later
 }
@@ -731,4 +757,32 @@ collision::World& Scene::GetCollisionWorld() {
 
 const collision::World& Scene::GetCollisionWorld() const {
 	return collisionManager.GetCollisionWorld();
+void Scene::AddLayer(const std::string& name) {
+	layers.try_emplace(name, name); // Only add if missing
+}
+
+Layer* Scene::GetLayer(const std::string& name) {
+	auto it = layers.find(name);
+	return it != layers.end() ? &(it->second) : nullptr;
+}
+
+const std::unordered_map<std::string, Layer>& Scene::GetAllLayers() const {
+	return layers;
+}
+
+std::string Scene::GetObjectLayer(int objectID) const {
+	auto it = defaults_.find(objectID);
+	if (it != defaults_.end()) {
+		return it->second.layer;
+	}
+	return "";
+}
+
+void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
+	// Remove object from all layers' ID lists
+	for (auto& pair : layers)
+		pair.second.RemoveObject(id);
+	// Register object ID with chosen layer (creates if missing)
+	layers[newLayer].AddObject(id);
+	defaults_[id].layer = newLayer; // For UI/metadata
 }

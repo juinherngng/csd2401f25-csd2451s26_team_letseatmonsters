@@ -23,6 +23,7 @@
 #include "Math.hpp"
 #include "InputManager.hpp"
 #include "NpcSystem.hpp"
+#include "System.hpp"
 
 #include "../Graphics/EntityManager.hpp"
 
@@ -33,18 +34,27 @@
   *        - NPC patrol paths (loop or stop)
   *        - Passive velocity-based movement for objects not otherwise managed
   */
-class MovementManager {
+class MovementManager : public CoreFramework::SystemInterface {
 public:
 	MovementManager() = default;
-	~MovementManager() = default;
+	~MovementManager() override = default;
+
+	// ----- SystemInterface implementation -----
+	void Initialize() override;
+	void Update(float deltaTime) override;
+	std::string GetName() override;
 
 	// ----- Core update & lifecycle -----
 
 	// Per-frame update for player, click-to-move, patrol, and passive-velocity objects.
-	void Update(float deltaTime, EntityManager& entityManager, InputManager& inputManager);
+	void UpdateMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager);
 
 	// Clear all runtime movement state.
 	void Clear();
+
+	// ----- Entity Manager Reference -----
+	void SetEntityManager(EntityManager* entityMgr);
+	void SetInputManager(InputManager* inputMgr);
 
 	// ----- Player setup -----
 
@@ -149,4 +159,8 @@ private:
 	// External systems
 	const collision::World* world_ = nullptr;
 	const NPCSystem* npcSystem_ = nullptr;
+
+	// References to other managers (set externally)
+	EntityManager* entityManager_ = nullptr;
+	InputManager* inputManager_ = nullptr;
 };

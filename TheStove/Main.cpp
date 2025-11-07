@@ -16,61 +16,6 @@
 #define DBG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #define new DBG_NEW
 
-// Enable this to see which allocations are being suppressed
-// #define DEBUG_ALLOC_HOOK
-
-// Known third-party library allocation numbers to suppress
-// NOTE: These allocation numbers may vary between runs. Update as needed.
-static const long g_KnownLeakBlocks[] = {
-	// FMOD audio system allocations (typically around 824-837 range)
-	824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834, 835, 836, 837,
-	// GLAD OpenGL loader allocations (typically around 1801-1816 range) 
-	1801, 1802, 1803, 1804, 1805, 1806, 1807, 1808, 1809, 1810, 1811, 1812, 1813, 1814, 1815, 1816,
-	// ImGui input buffer (typically around 20218)
-	20218
-};
-static constexpr size_t g_NumKnownLeaks = sizeof(g_KnownLeakBlocks) / sizeof(g_KnownLeakBlocks[0]);
-
-// Helper to check if an allocation number is in the known leak list
-static bool IsKnownLeak(long allocNum)
-{
-	for (size_t i = 0; i < g_NumKnownLeaks; ++i)
-	{
-		if (allocNum == g_KnownLeakBlocks[i])
-			return true;
-	}
-	return false;
-}
-
-// Custom dump function that filters known leaks
-static void DumpLeaksFiltered(const _CrtMemState* startState)
-{
-	// Get current memory state
-	_CrtMemState endState;
-	_CrtMemCheckpoint(&endState);
-
-	// Get the difference
-	_CrtMemState diffState;
-	if (!_CrtMemDifference(&diffState, startState, &endState))
-	{
-		std::cout << "No memory leaks detected." << std::endl;
-		return;
-	}
-
-	std::cout << "Detected memory allocations (filtering known third-party leaks)..." << std::endl;
-	std::cout << "\nScanning for application memory leaks..." << std::endl;
-	std::cout << "(Suppressing " << g_NumKnownLeaks << " known third-party allocations)\n" << std::endl;
-
-	// Display memory statistics
-	std::cout << "Memory statistics:" << std::endl;
-	std::cout << "  Normal blocks: " << diffState.lCounts[_NORMAL_BLOCK] << std::endl;
-	std::cout << "  CRT blocks: " << diffState.lCounts[_CRT_BLOCK] << std::endl;
-	std::cout << "  Total bytes: " << diffState.lSizes[_NORMAL_BLOCK] << std::endl;
-
-	std::cout << "\nNote: Allocations 824-837 (FMOD), 1801-1816 (GLAD), and 20218 (ImGui)" << std::endl;
-	std::cout << "are known third-party library allocations and are safe to ignore." << std::endl;
-}
-
 #endif
 
 #include "Graphics/GraphicsEngine.hpp"
@@ -82,12 +27,12 @@ static void DumpLeaksFiltered(const _CrtMemState* startState)
 #include "Core/AudioLoading.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/TileMap.hpp"
+#include "Core/MovementManager.hpp"
 
 // Application state structure - eliminates static variables
 struct ApplicationState
 {
 	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
-	std::unique_ptr<GraphicsEngine> graphicsEngine;
 	std::unique_ptr<Scene> currentScene;
 	std::unique_ptr<Debug::DebuggerApp> debugApp;
 	GLFWwindow* window = nullptr; // GLFW owns this, we just reference it
@@ -135,10 +80,12 @@ static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	// Safe to call now that GLAD is initialized
 	glViewport(0, 0, width, height);
 
-	// Keep both engines in sync
+	// Keep both engines in sync - get GraphicsEngine from CoreEngine
 	GraphicsEngine::Instance().Resize(width, height);
-	if (g_AppState && g_AppState->graphicsEngine) {
-		g_AppState->graphicsEngine->Resize(width, height);
+	if (g_AppState && g_AppState->coreEngine) {
+		if (auto* gfxEngine = g_AppState->coreEngine->GetSystem<GraphicsEngine>()) {
+			gfxEngine->Resize(width, height);
+		}
 	}
 }
 
@@ -171,20 +118,14 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 int main() {
 
 #ifdef _DEBUG
-	// Enable memory leak detection but DISABLE automatic reporting at exit
-	// We'll do it manually so we can filter
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF);  // Track allocations but don't auto-dump
-
-	// Don't output automatically - we'll do it manually
+	// Enable full automatic memory leak detection
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	
+	// Output to stderr
 	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
 
-	// Create a memory state checkpoint at program start
-	_CrtMemState memStateStart;
-	_CrtMemCheckpoint(&memStateStart);
-
 	std::cout << "=== Memory leak detection enabled ===" << std::endl;
-	std::cout << "Will suppress " << g_NumKnownLeaks << " known third-party library allocations." << std::endl;
 #endif
 
 	// Create application state on the stack
@@ -252,7 +193,7 @@ int main() {
 			if (!file.is_open())
 			{
 				app.debugApp->LogError("Test Case : could not open file : " + filename);
-			}
+			 }
 			throw std::runtime_error("Unknown file could not be opened.");*/
 
 			//app.debugApp->RunDebuggerApp();
@@ -282,14 +223,9 @@ int main() {
 
 #ifdef _DEBUG
 	std::cout << "\n=== Memory Leak Report ===" << std::endl;
-
-	// Call our custom filtered dump
-	DumpLeaksFiltered(&memStateStart);
-
-	std::cout << "\n=== End of Memory Leak Report ===" << std::endl;
-
-	// NOTE: Since we disabled _CRTDBG_LEAK_CHECK_DF, there will be NO automatic
-	// leak dump when the program exits. This prevents the unfiltered leak report.
+	std::cout << "Checking for memory leaks..." << std::endl;
+	std::cout << "If no leaks are detected, no additional output will appear below." << std::endl;
+	std::cout << "=== End of Memory Leak Report ===" << std::endl;
 #endif
 
 	return 0;
@@ -392,10 +328,27 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	app.coreEngine = std::make_unique<CoreFramework::CoreEngine>();
 
 	// Add systems using unique_ptr with MessageBus reference
+	app.coreEngine->AddSystem(std::make_unique<InputManager>());
+	app.coreEngine->AddSystem(std::make_unique<GraphicsEngine>());		// Register GraphicsEngine as a system - CoreEngine takes ownership
 	app.coreEngine->AddSystem(std::make_unique<AudioManager>(app.coreEngine->GetMessageBus()));
 	app.coreEngine->AddSystem(std::make_unique<Framework::GameStateManager>(app.coreEngine->GetMessageBus()));
+	app.coreEngine->AddSystem(std::make_unique<AnimationManager>());
+	app.coreEngine->AddSystem(std::make_unique<MovementManager>());
+	app.coreEngine->AddSystem(std::make_unique<PhysicsManager>());
+	app.coreEngine->AddSystem(std::make_unique<CollisionManager>());
 
 	app.coreEngine->Initialize();
+
+	// Set window for InputManager system
+	if (auto* inputMgr = app.coreEngine->GetSystem<InputManager>())
+	{
+		inputMgr->SetWindow(app.window);
+		std::cout << "InputManager system initialized.\n";
+	}
+	else
+	{
+		std::cerr << "Warning: InputManager not found in CoreEngine!\n";
+	}
 
 	// Initialize ResourceManager with AudioManager
 	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
@@ -411,10 +364,12 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		std::cerr << "Warning: AudioManager not found in CoreEngine for ResourceManager!" << std::endl;
 	}
 
-
-	// Create GraphicsEngine with smart pointer
-	app.graphicsEngine = std::make_unique<GraphicsEngine>();
-	app.graphicsEngine->Initialize();
+	// Get GraphicsEngine from CoreEngine
+	GraphicsEngine* graphicsEngine = app.coreEngine->GetSystem<GraphicsEngine>();
+	if (!graphicsEngine) {
+		std::cerr << "Failed to get GraphicsEngine from CoreEngine\n";
+		return false;
+	}
 
 	// Initialize once with the current framebuffer size (handles DPI scaling)
 	int fbw = 0, fbh = 0;
@@ -425,11 +380,72 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 	// Update BOTH the singleton (used by InputManager) and the instance (used by renderer)
 	GraphicsEngine::Instance().Resize(fbw, fbh);
-	app.graphicsEngine->Resize(fbw, fbh);
+	graphicsEngine->Resize(fbw, fbh);
 
-	// Create Scene with smart pointer
-	app.currentScene = std::make_unique<Scene>(*app.graphicsEngine);
+	// Get InputManager system for Scene
+	InputManager* inputMgr = app.coreEngine->GetSystem<InputManager>();
+	if (!inputMgr) {
+		std::cerr << "Failed to get InputManager from CoreEngine\n";
+		return false;
+	}
+
+	// Get AnimationManager system for Scene
+	AnimationManager* animMgr = app.coreEngine->GetSystem<AnimationManager>();
+	if (!animMgr) {
+		std::cerr << "Failed to get AnimationManager from CoreEngine\n";
+		return false;
+	}
+
+	// Get PhysicsManager system
+	PhysicsManager* physicsMgr = app.coreEngine->GetSystem<PhysicsManager>();
+	if (!physicsMgr) {
+		std::cerr << "Failed to get PhysicsManager from CoreEngine\n";
+		return false;
+	}
+
+	// Get MovementManager system
+	MovementManager* movementMgr = app.coreEngine->GetSystem<MovementManager>();
+	if (!movementMgr) {
+		std::cerr << "Failed to get MovementManager from CoreEngine\n";
+		return false;
+	}
+
+	// Get CollisionManager system
+	CollisionManager* collisionMgr = app.coreEngine->GetSystem<CollisionManager>();
+	if (!collisionMgr) {
+		std::cerr << "Failed to get CollisionManager from CoreEngine\n";
+		return false;
+	}
+
+	// Create Scene with smart pointer, passing all manager references
+	app.currentScene = std::make_unique<Scene>(*graphicsEngine, *inputMgr, *animMgr, 
+											   *movementMgr, *physicsMgr, *collisionMgr);
 	app.currentScene->LoadScene("LoadTest");
+
+	// Set the EntityManager reference in AnimationManager
+	animMgr->SetEntityManager(&app.currentScene->GetEntityManager());
+
+	std::cout << "AnimationManager system connected to Scene and EntityManager.\n";
+
+	// Set the EntityManager and InputManager references in PhysicsManager
+	physicsMgr->SetEntityManager(&app.currentScene->GetEntityManager());
+	physicsMgr->SetInputManager(inputMgr);
+
+	std::cout << "PhysicsManager system connected to EntityManager and InputManager.\n";
+
+	// Set the EntityManager and InputManager references in MovementManager
+	movementMgr->SetEntityManager(&app.currentScene->GetEntityManager());
+	movementMgr->SetInputManager(inputMgr);
+
+	std::cout << "MovementManager system connected to EntityManager and InputManager.\n";
+
+	// Set the EntityManager reference in CollisionManager
+	collisionMgr->SetEntityManager(&app.currentScene->GetEntityManager());
+
+	std::cout << "CollisionManager system connected to EntityManager.\n";
+
+	// Scene is now constructed with MovementManager reference - no need for SetMovementManager
+	std::cout << "Scene connected to MovementManager system.\n";
 
 	// Create DebuggerApp with smart pointer
 	app.debugApp = std::make_unique<Debug::DebuggerApp>();
@@ -484,7 +500,14 @@ static void update(ApplicationState& app) {
 static void draw(ApplicationState& app) {
 	std::vector<GameObject*> drawList;
 
-	app.graphicsEngine->BeginFrame();
+	// Get GraphicsEngine from CoreEngine
+	auto* graphicsEngine = app.coreEngine->GetSystem<GraphicsEngine>();
+	if (!graphicsEngine) {
+		std::cerr << "GraphicsEngine not found in CoreEngine during draw!\n";
+		return;
+	}
+
+	graphicsEngine->BeginFrame();
 	app.currentScene->DrawUI();
 	drawList.clear();
 	app.currentScene->CollectRenderablePointers(drawList);
@@ -494,8 +517,15 @@ static void draw(ApplicationState& app) {
 		app.debugApp->RenderDebuggerApp();
 	}
 
-	//app.graphicsEngine->Render(drawList);
-	app.graphicsEngine->RenderBatched(drawList);
+	//graphicsEngine->Render(drawList);
+	graphicsEngine->RenderBatched(drawList);
+
+	app.debugApp->SetRenderStats(
+		graphicsEngine->GetTotalObjects(),
+		graphicsEngine->GetBatchCount(),
+		graphicsEngine->GetInstancedObjectCount(),
+		graphicsEngine->GetDrawCallCount()
+	);
 
 	glfwSwapBuffers(app.window);
 }
@@ -551,6 +581,7 @@ void cleanup(ApplicationState& app) {
 	// STEP 6.5: Unload all audio assets
 	std::cout << "Unloading audio assets..." << std::endl;
 	Audio::AudioCatalog::UnloadAllAudio();
+	
 	// STEP 4: Shutdown ImGui (must happen while OpenGL context is valid)
 	if (app.debugApp)
 	{
@@ -566,24 +597,14 @@ void cleanup(ApplicationState& app) {
 		app.currentScene.reset();
 	}
 
-	// STEP 6: Stop and shutdown audio
+	// STEP 7: Shutdown graphics engine (now managed by CoreEngine)
 	if (app.coreEngine)
 	{
-		if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
+		if (auto* gfxEngine = app.coreEngine->GetSystem<GraphicsEngine>())
 		{
-			std::cout << "Stopping all sounds..." << std::endl;
-			audioMgr->StopAllSounds();
-			std::cout << "Shutting down audio..." << std::endl;
-			audioMgr->Shutdown();
+			std::cout << "Shutting down graphics engine..." << std::endl;
+			gfxEngine->Shutdown();
 		}
-	}
-
-	// STEP 7: Shutdown graphics engine (clears background object)
-	if (app.graphicsEngine)
-	{
-		std::cout << "Shutting down graphics engine..." << std::endl;
-		app.graphicsEngine->Shutdown();
-		app.graphicsEngine.reset();
 	}
 
 	// STEP 8: Clear resource manager (while context still valid)

@@ -22,18 +22,23 @@ DESCRIPTION:		Declares the GraphicsEngine responsible for initialization, off-sc
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
 #include "GameObject.hpp"
+#include "../Core/System.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
-class GraphicsEngine {
+class GraphicsEngine : public CoreFramework::SystemInterface {
 public:
 	// ----- Lifecycle -----
 	GraphicsEngine();
+	// SystemInterface implementation
+	void Initialize() override;			// Init renderer, FBO, default resources, ImGui
+	void Update(float dt) override;
+	std::string GetName() override { return "GraphicsEngine"; }
+
 	static GraphicsEngine& Instance();
 
-	void Initialize(); // Init renderer, FBO, default resources, ImGui
 	void Shutdown();   // Free GPU resources and shutdown ImGui
 
 	// ----- Per-frame workflow -----
@@ -151,5 +156,5 @@ private:
 	} renderStats;
 
 	// Instancing threshold
-	static constexpr int INSTANCING_THRESHOLD = 2;
+	static constexpr int INSTANCING_THRESHOLD = 10;
 };
