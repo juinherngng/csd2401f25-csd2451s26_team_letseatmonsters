@@ -1,0 +1,82 @@
+==========================================
+Lines of Code Report
+==========================================
+Author: chuuniby
+Since: 2025-10-13
+Generated: Fri Nov  7 10:51:37 +08 2025
+==========================================
+
+Files Modified: 11 unique files
+
+Files Still Exist: 11 files
+
+==========================================
+CODE ANALYSIS - SUMMARY
+Excludes: Comments and Blank Lines
+==========================================
+
+      11 text files.
+classified 11 files      11 unique files.                              
+       0 files ignored.
+
+github.com/AlDanial/cloc v 1.90  T=0.16 s (70.2 files/s, 11234.1 lines/s)
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+C++                              6            266            205            835
+C/C++ Header                     5             86            100            268
+-------------------------------------------------------------------------------
+SUM:                            11            352            305           1103
+-------------------------------------------------------------------------------
+
+==========================================
+CODE ANALYSIS - PER FILE
+==========================================
+
+      11 text files.
+classified 11 files      11 unique files.                              
+       0 files ignored.
+
+github.com/AlDanial/cloc v 1.90  T=0.15 s (71.3 files/s, 11402.0 lines/s)
+-------------------------------------------------------------------------------------
+File                                              blank        comment           code
+-------------------------------------------------------------------------------------
+TheStove/Graphics/SceneManager.cpp                  158            122            485
+TheStove/Graphics/SceneManager.hpp                   56             87            154
+TheStove/Core/PlayerLogic.cpp                        44             22            153
+TheStove/Core/NpcSystem.cpp                          37             28            117
+TheStove/Core/LogicManager.hpp                        8              1             53
+TheStove/Core/SimpleNpcLogic.cpp                     13             13             48
+TheStove/Core/LevelEditor.cpp                        13             19             27
+TheStove/Core/PlayerLogic.hpp                        10              9             26
+TheStove/Core/GameObjectLogic.hpp                     6              2             19
+TheStove/Core/SimpleNpcLogic.hpp                      6              1             16
+TheStove/Core/GameObjectLogic.cpp                     1              1              5
+-------------------------------------------------------------------------------------
+SUM:                                                352            305           1103
+-------------------------------------------------------------------------------------
+
+==========================================
+GIT COMMIT STATISTICS
+==========================================
+
+Lines Added:    1073
+Lines Deleted:  585
+Net Change:     488
+Total Commits:  17
+
+==========================================
+FILES MODIFIED
+==========================================
+
+TheStove/Core/GameObjectLogic.cpp
+TheStove/Core/GameObjectLogic.hpp
+TheStove/Core/LevelEditor.cpp
+TheStove/Core/LogicManager.hpp
+TheStove/Core/NpcSystem.cpp
+TheStove/Core/PlayerLogic.cpp
+TheStove/Core/PlayerLogic.hpp
+TheStove/Core/SimpleNpcLogic.cpp
+TheStove/Core/SimpleNpcLogic.hpp
+TheStove/Graphics/SceneManager.cpp
+TheStove/Graphics/SceneManager.hpp

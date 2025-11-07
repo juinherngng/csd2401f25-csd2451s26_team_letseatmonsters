@@ -281,7 +281,7 @@ bool AudioManager::HasSound(std::string const& name) const
 	return sounds.find(name) != sounds.end();
 }
 
-bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const
+bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& outChannels, int& outBits, float& freq) const
 {
 	auto it = sounds.find(name);
 	if (it == sounds.end() || !it->second) 
@@ -299,11 +299,16 @@ bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs,
 	// Get format info
 	FMOD_SOUND_TYPE type;
 	FMOD_SOUND_FORMAT format;
-	// bits and channels are output parameters
-	if (snd->getFormat(&type, &format, &channels, &bits) != FMOD_OK) return false;
+	int numChannels = 0;
+	int numBits = 0;
+	// outBits and outChannels are output parameters
+	if (snd->getFormat(&type, &format, &numChannels, &numBits) != FMOD_OK) return false;
 
 	// Get default frequency
 	if (snd->getDefaults(&freq, nullptr) != FMOD_OK) freq = 0;
+
+	outChannels = numChannels;
+	outBits = numBits;
 
 	return true;
 }

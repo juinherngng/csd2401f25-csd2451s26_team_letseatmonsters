@@ -709,7 +709,7 @@ namespace Debug
 		ImGui::DockBuilderRemoveNode(dockspaceID);
 
 		// Recreate the dockspace with proper sizing
-		ImGuiViewport* viewport = ImGui::GetMainViewport();
+		// ImGuiViewport* viewport = ImGui::GetMainViewport();	// suppressed unused variable warning
 		ImGui::DockBuilderAddNode(dockspaceID, ImGuiDockNodeFlags_DockSpace);
 		ImGui::DockBuilderSetNodeSize(dockspaceID, ImVec2(1184, 784));  // Your working size
 		ImGui::DockBuilderSetNodePos(dockspaceID, ImVec2(8, 8));

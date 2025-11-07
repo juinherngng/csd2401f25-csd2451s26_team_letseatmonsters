@@ -120,6 +120,9 @@ void GameObject::DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, c
 		{ box.max.x, box.max.y, 0.0f },
 		color
 	);
+
+	(void)proj;
+	(void)view;
 }
 
 glm::vec3 GameObject::GetScaleGLM() const {

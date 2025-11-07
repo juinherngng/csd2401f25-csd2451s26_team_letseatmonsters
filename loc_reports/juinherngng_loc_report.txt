@@ -1,0 +1,126 @@
+==========================================
+Lines of Code Report
+==========================================
+Author: juinherngng
+Since: 2025-10-13
+Generated: Fri Nov  7 10:51:38 +08 2025
+==========================================
+
+Files Modified: 35 unique files
+
+Files Still Exist: 31 files
+
+==========================================
+CODE ANALYSIS - SUMMARY
+Excludes: Comments and Blank Lines
+==========================================
+
+      31 text files.
+classified 31 files      31 unique files.                              
+       0 files ignored.
+
+github.com/AlDanial/cloc v 1.90  T=0.42 s (73.8 files/s, 18040.8 lines/s)
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+C++                             15            954            742           3428
+C/C++ Header                    16            395           1061            999
+-------------------------------------------------------------------------------
+SUM:                            31           1349           1803           4427
+-------------------------------------------------------------------------------
+
+==========================================
+CODE ANALYSIS - PER FILE
+==========================================
+
+      31 text files.
+classified 31 files      31 unique files.                              
+       0 files ignored.
+
+github.com/AlDanial/cloc v 1.90  T=0.45 s (68.9 files/s, 16837.4 lines/s)
+-----------------------------------------------------------------------------------------
+File                                                  blank        comment           code
+-----------------------------------------------------------------------------------------
+TheStove/Core/DebugUI.cpp                               112             98            538
+TheStove/Graphics/GraphicsEngine.cpp                    124             82            495
+TheStove/Graphics/SceneManager.cpp                      158            122            485
+TheStove/Main.cpp                                       122             85            436
+TheStove/Core/MovementManager.cpp                        92             65            370
+TheStove/Core/AudioManager.cpp                           87             64            297
+TheStove/Core/Message.hpp                                31             98            156
+TheStove/Graphics/SceneManager.hpp                       56             87            154
+TheStove/Graphics/AnimationManager.cpp                   42             21            134
+TheStove/Core/PhysicsManager.cpp                         40             37            125
+TheStove/Graphics/ResourceManager.cpp                    31             15            120
+TheStove/Core/InputManager.cpp                           40             24            100
+TheStove/Core/AudioLoading.cpp                           34             37             98
+TheStove/Graphics/GraphicsEngine.hpp                     32             32             96
+TheStove/Core/MessageBus.hpp                             20             93             80
+TheStove/Core/Core.cpp                                   22             26             79
+TheStove/Core/AudioManager.hpp                           31            273             71
+TheStove/Core/DebugUI.hpp                                33             22             70
+TheStove/Core/GameStateManager.cpp                       16             22             69
+TheStove/Core/MovementManager.hpp                        46             58             62
+TheStove/Core/CollisionManager.cpp                       21             25             55
+TheStove/Core/PhysicsManager.hpp                         28             41             51
+TheStove/Core/Core.hpp                                   21            116             50
+TheStove/Graphics/AnimationManager.hpp                   16             18             40
+TheStove/Graphics/ResourceManager.hpp                    17             18             38
+TheStove/Core/InputManager.hpp                           16             30             35
+TheStove/Core/GameStateManager.hpp                       11             36             32
+TheStove/Core/CollisionManager.hpp                       17             38             31
+TheStove/Core/LevelEditor.cpp                            13             19             27
+TheStove/Core/AudioLoading.hpp                           10             63             19
+TheStove/Core/System.hpp                                 10             38             14
+-----------------------------------------------------------------------------------------
+SUM:                                                   1349           1803           4427
+-----------------------------------------------------------------------------------------
+
+==========================================
+GIT COMMIT STATISTICS
+==========================================
+
+Lines Added:    4001
+Lines Deleted:  2393
+Net Change:     1608
+Total Commits:  21
+
+==========================================
+FILES MODIFIED
+==========================================
+
+TheStove/Core/AudioLoading.cpp
+TheStove/Core/AudioLoading.hpp
+TheStove/Core/AudioManager.cpp
+TheStove/Core/AudioManager.hpp
+TheStove/Core/CollisionManager.cpp
+TheStove/Core/CollisionManager.hpp
+TheStove/Core/Core.cpp
+TheStove/Core/Core.hpp
+TheStove/Core/DebugUI.cpp
+TheStove/Core/DebugUI.hpp
+TheStove/Core/GameStateManager.cpp
+TheStove/Core/GameStateManager.hpp
+TheStove/Core/ImGuiDebugger.cpp
+TheStove/Core/ImGuiDebugger.hpp
+TheStove/Core/InputManager.cpp
+TheStove/Core/InputManager.hpp
+TheStove/Core/LevelEditor.cpp
+TheStove/Core/Message.hpp
+TheStove/Core/MessageBus.hpp
+TheStove/Core/MovementManager.cpp
+TheStove/Core/MovementManager.hpp
+TheStove/Core/PhysicsManager.cpp
+TheStove/Core/PhysicsManager.hpp
+TheStove/Core/System.hpp
+TheStove/Docs/AudioIntegrationGuide.txt
+TheStove/Examples/AudioLoadingExample.cpp
+TheStove/Graphics/AnimationManager.cpp
+TheStove/Graphics/AnimationManager.hpp
+TheStove/Graphics/GraphicsEngine.cpp
+TheStove/Graphics/GraphicsEngine.hpp
+TheStove/Graphics/ResourceManager.cpp
+TheStove/Graphics/ResourceManager.hpp
+TheStove/Graphics/SceneManager.cpp
+TheStove/Graphics/SceneManager.hpp
+TheStove/Main.cpp

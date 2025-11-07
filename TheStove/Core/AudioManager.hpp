@@ -151,9 +151,9 @@ public:
     The name of the sound.
     \param lengthMs
     Output: length of the sound in milliseconds.
-    \param channels
+    \param outChannels
     Output: number of audio channels.
-    \param bits
+    \param outBits
     Output: bits per sample.
     \param freq
     Output: default frequency in Hz.
@@ -161,7 +161,7 @@ public:
     True if info was retrieved successfully, false otherwise.
     */
     /************************************************************************/
-    bool GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const;
+    bool GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& outChannels, int& outBits, float& freq) const;
 
     // Playback Control
 

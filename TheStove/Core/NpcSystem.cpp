@@ -24,6 +24,10 @@ void NPCSystem::Update(float deltaTime, EntityManager& entityManager, CollisionM
     //UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
     //HandleNPCCollisions(entityManager);
     //UpdateGenericNPCs(deltaTime, entityManager, walkArea);
+	(void)deltaTime;
+	(void)entityManager;
+	(void)collisionManager;
+	(void)walkArea;
 }
 
 void NPCSystem::SetNPCVelocity(int npcID, const glm::vec2& velocity) {

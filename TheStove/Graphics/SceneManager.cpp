@@ -231,6 +231,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Debug visualization
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager,
 		movementManager, spriteID, showAuxDebug_);
+
+	(void)window;
 }
 
 void Scene::ResetResizeBaseline() {
@@ -352,6 +354,8 @@ bool Scene::HasAnimations(int id) const {
 std::vector<std::string> Scene::GetAnimationList(int id) const {
 	// AnimationManager doesn't expose animation lists yet
 	// Return empty for now - can extend AnimationManager later if needed
+	(void)id;
+
 	return {};
 }
 

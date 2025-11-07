@@ -98,6 +98,9 @@ GameObject* EntityManager::SpawnAnimatedSprite(const std::string& texturePath,
 
 	// Note: Animation frames are handled by Scene/AnimationManager
 
+	(void)frameDuration;
+	(void)loop;
+
 	return ptr;
 }
 

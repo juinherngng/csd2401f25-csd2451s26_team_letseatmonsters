@@ -1,0 +1,175 @@
+==========================================
+Lines of Code Report
+==========================================
+Author: Wang Hua
+Since: 2025-10-13
+Generated: Fri Nov  7 10:51:31 +08 2025
+==========================================
+
+Files Modified: 56 unique files
+
+Files Still Exist: 56 files
+
+==========================================
+CODE ANALYSIS - SUMMARY
+Excludes: Comments and Blank Lines
+==========================================
+
+      56 text files.
+classified 56 files      56 unique files.                              
+       0 files ignored.
+
+github.com/AlDanial/cloc v 1.90  T=0.79 s (70.8 files/s, 12658.9 lines/s)
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+C++                             26           1354            973           4928
+C/C++ Header                    23            499            707           1065
+JSON                             3              1              0            372
+INI                              1             10              0             53
+GLSL                             3             18              3             35
+-------------------------------------------------------------------------------
+SUM:                            56           1882           1683           6453
+-------------------------------------------------------------------------------
+
+==========================================
+CODE ANALYSIS - PER FILE
+==========================================
+
+      56 text files.
+classified 56 files      56 unique files.                              
+       0 files ignored.
+
+github.com/AlDanial/cloc v 1.90  T=0.80 s (70.0 files/s, 12530.7 lines/s)
+----------------------------------------------------------------------------------------------------------
+File                                                                   blank        comment           code
+----------------------------------------------------------------------------------------------------------
+TheStove/Core/DebugUI.cpp                                                112             98            538
+TheStove/Core/LevelEditorPanelLevel.cpp                                  121             59            510
+TheStove/Graphics/GraphicsEngine.cpp                                     124             82            495
+TheStove/Graphics/SceneManager.cpp                                       158            122            485
+TheStove/Main.cpp                                                        122             85            436
+TheStove/Core/MovementManager.cpp                                         92             65            370
+TheStove/Core/LevelEditorPanelPrefabs.cpp                                 52             37            193
+TheStove/Core/Physics.cpp                                                 47             36            178
+TheStove/Graphics/SceneManager.hpp                                        56             87            154
+levels/kitchen02test.json                                                  1              0            148
+TheStove/Core/DebugVisualizer.cpp                                         37             28            140
+TheStove/Graphics/AnimationManager.cpp                                    42             21            134
+TheStove/Core/PhysicsManager.cpp                                          40             37            125
+TheStove/Graphics/EntityManager.cpp                                       31             11            123
+TheStove/Graphics/ResourceManager.cpp                                     31             15            120
+TheStove/Core/NpcSystem.cpp                                               37             28            117
+TheStove/Core/RigidBody2D.cpp                                             37             31            115
+levels/kitchen01.json                                                      0              0            112
+levels/kitchen02.json                                                      0              0            112
+TheStove/Graphics/Shader.cpp                                              31             20            109
+TheStove/Core/PlayerController.cpp                                        24             25            105
+TheStove/Core/InputManager.cpp                                            40             24            100
+TheStove/Graphics/GraphicsEngine.hpp                                      32             32             96
+TheStove/Core/Forces.cpp                                                  27             23             91
+TheStove/Graphics/GameObject.cpp                                          28             16             90
+TheStove/Core/SpatialGrid.cpp                                             24             13             83
+TheStove/Core/LevelSerializer.cpp                                         25             15             73
+TheStove/Graphics/Mesh.cpp                                                25             21             71
+TheStove/Core/DebugUI.hpp                                                 33             22             70
+TheStove/Core/MovementManager.hpp                                         46             58             62
+TheStove/Graphics/GameObject.hpp                                          31             58             60
+TheStove/Core/CollisionManager.cpp                                        21             25             55
+assets/imgui.ini                                                          10              0             53
+TheStove/Core/PhysicsManager.hpp                                          28             41             51
+TheStove/Core/Forces.hpp                                                  23             36             50
+TheStove/Core/RigidBody2D.hpp                                             36             51             46
+TheStove/Core/InputCommandHandler.cpp                                     13             17             45
+TheStove/Graphics/EntityManager.hpp                                       12              6             45
+TheStove/Graphics/AnimationManager.hpp                                    16             18             40
+TheStove/Core/Collision.hpp                                               18             24             39
+TheStove/Core/Physics.hpp                                                 12             16             38
+TheStove/Core/PlayerController.hpp                                        14             23             36
+TheStove/Core/InputManager.hpp                                            16             30             35
+TheStove/Core/NpcSystem.hpp                                               18             29             34
+TheStove/Core/CollisionManager.hpp                                        17             38             31
+TheStove/Core/SpatialGrid.hpp                                             14             21             31
+TheStove/Core/LevelEditor.hpp                                             14             29             30
+TheStove/Core/LevelSerializer.hpp                                         12             19             28
+TheStove/Core/LevelEditor.cpp                                             13             19             27
+TheStove/Core/InputCommandHandler.hpp                                      9             24             25
+TheStove/Graphics/Mesh.hpp                                                13             10             25
+TheStove/Core/DebugVisualizer.hpp                                         14             24             22
+TheStove/Graphics/Layer.hpp                                               15             11             17
+TheStove/Graphics/shaders/animatedsprite_instanced.vert                    6              1             13
+TheStove/Graphics/shaders/staticsprite_instanced.frag                      7              1             11
+TheStove/Graphics/shaders/staticsprite_instanced.vert                      5              1             11
+----------------------------------------------------------------------------------------------------------
+SUM:                                                                    1882           1683           6453
+----------------------------------------------------------------------------------------------------------
+
+==========================================
+GIT COMMIT STATISTICS
+==========================================
+
+Lines Added:    3359
+Lines Deleted:  1464
+Net Change:     1895
+Total Commits:  18
+
+==========================================
+FILES MODIFIED
+==========================================
+
+TheStove/Core/Collision.hpp
+TheStove/Core/CollisionManager.cpp
+TheStove/Core/CollisionManager.hpp
+TheStove/Core/DebugUI.cpp
+TheStove/Core/DebugUI.hpp
+TheStove/Core/DebugVisualizer.cpp
+TheStove/Core/DebugVisualizer.hpp
+TheStove/Core/Forces.cpp
+TheStove/Core/Forces.hpp
+TheStove/Core/InputCommandHandler.cpp
+TheStove/Core/InputCommandHandler.hpp
+TheStove/Core/InputManager.cpp
+TheStove/Core/InputManager.hpp
+TheStove/Core/LevelEditor.cpp
+TheStove/Core/LevelEditor.hpp
+TheStove/Core/LevelEditorPanelLevel.cpp
+TheStove/Core/LevelEditorPanelPrefabs.cpp
+TheStove/Core/LevelSerializer.cpp
+TheStove/Core/LevelSerializer.hpp
+TheStove/Core/MovementManager.cpp
+TheStove/Core/MovementManager.hpp
+TheStove/Core/NpcSystem.cpp
+TheStove/Core/NpcSystem.hpp
+TheStove/Core/Physics.cpp
+TheStove/Core/Physics.hpp
+TheStove/Core/PhysicsManager.cpp
+TheStove/Core/PhysicsManager.hpp
+TheStove/Core/PlayerController.cpp
+TheStove/Core/PlayerController.hpp
+TheStove/Core/RigidBody2D.cpp
+TheStove/Core/RigidBody2D.hpp
+TheStove/Core/SpatialGrid.cpp
+TheStove/Core/SpatialGrid.hpp
+TheStove/Graphics/AnimationManager.cpp
+TheStove/Graphics/AnimationManager.hpp
+TheStove/Graphics/EntityManager.cpp
+TheStove/Graphics/EntityManager.hpp
+TheStove/Graphics/GameObject.cpp
+TheStove/Graphics/GameObject.hpp
+TheStove/Graphics/GraphicsEngine.cpp
+TheStove/Graphics/GraphicsEngine.hpp
+TheStove/Graphics/Layer.hpp
+TheStove/Graphics/Mesh.cpp
+TheStove/Graphics/Mesh.hpp
+TheStove/Graphics/ResourceManager.cpp
+TheStove/Graphics/SceneManager.cpp
+TheStove/Graphics/SceneManager.hpp
+TheStove/Graphics/Shader.cpp
+TheStove/Graphics/shaders/animatedsprite_instanced.vert
+TheStove/Graphics/shaders/staticsprite_instanced.frag
+TheStove/Graphics/shaders/staticsprite_instanced.vert
+TheStove/Main.cpp
+assets/imgui.ini
+levels/kitchen01.json
+levels/kitchen02.json
+levels/kitchen02test.json

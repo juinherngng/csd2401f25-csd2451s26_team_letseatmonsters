@@ -59,6 +59,8 @@ void PlayerController::HandleScaleInput(InputManager& inputManager, GameObject* 
 		scale = glm::max(scale, glm::vec3(50.0f));
 		sprite->SetScale(scale);
 	}
+
+	(void)deltaTime;
 }
 
 void PlayerController::HandleRotationInput(InputManager& inputManager, float deltaTime) {
