@@ -232,9 +232,53 @@ void PlayerLogic::Drop(Scene& scene) {
 	carriedItemID = -1;
 }
 
+void PlayerLogic::HandleScaleInput(GameObject* player, InputManager& input, float dt)
+{
+	(void)dt;
+	if (!player) return;
+
+	glm::vec3 scale = player->GetScaleGLM();
+
+	if (input.IsKeyPressed(GLFW_KEY_UP)) {
+		scale *= 1.01f;
+		scale = glm::min(scale, glm::vec3(500.0f));
+		player->SetScale(scale);
+	}
+
+	if (input.IsKeyPressed(GLFW_KEY_DOWN)) {
+		scale *= 0.99f;
+		scale = glm::max(scale, glm::vec3(50.0f));
+		player->SetScale(scale);
+	}
+}
+
+void PlayerLogic::HandleRotationInput(GameObject* player, InputManager& input, float dt)
+{
+	if (!player) return;
+
+	const float kRotationSpeed = 10.0f; // degrees per second
+
+	if (input.IsKeyPressed(GLFW_KEY_RIGHT)) {
+		rotation_ += kRotationSpeed * dt;
+	}
+	if (input.IsKeyPressed(GLFW_KEY_LEFT)) {
+		rotation_ -= kRotationSpeed * dt;
+	}
+
+	// Normalize to [0, 360)
+	while (rotation_ >= 360.0f) rotation_ -= 360.0f;
+	while (rotation_ < 0.0f)   rotation_ += 360.0f;
+
+	player->SetRotation(rotation_, glm::vec3(0, 0, 1));
+}
+
+
 void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
+
+	HandleScaleInput(player, input, dt);
+	HandleRotationInput(player, input, dt);
 
 	glm::vec3 pos3 = player->GetPositionGLM();
 	glm::vec2 inputDir(0.f, 0.f);

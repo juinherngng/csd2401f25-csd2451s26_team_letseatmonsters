@@ -41,6 +41,10 @@ private:
     glm::vec2 moveTarget{ 0.f, 0.f };
     bool  hasMoveTarget{ false };
     float moveSpeed{ 200.f };  // pixels/sec – tune later
+    float rotation_ = 0.0f;   // for arrow-key rotation
+
+    void HandleScaleInput(GameObject* player, InputManager& input, float dt);
+    void HandleRotationInput(GameObject* player, InputManager& input, float dt);
 
     // Facing / sprite state
     enum class FacingDir { Front, Back, Left, Right };
