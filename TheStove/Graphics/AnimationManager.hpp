@@ -32,58 +32,59 @@ class EntityManager;  // Forward declaration
  */
 class AnimationManager : public CoreFramework::SystemInterface {
 public:
-    AnimationManager() = default;
-    ~AnimationManager() = default;
+	AnimationManager() = default;
+	~AnimationManager() = default;
 
-    // SystemInterface implementation
-    void Initialize() override;
-    void Update(float deltaTime) override;
-    std::string GetName() override;
+	// SystemInterface implementation
+	void Initialize() override;
+	void Update(float deltaTime) override;
+	std::string GetName() override;
 
-    // Set the EntityManager reference (must be called after construction)
-    void SetEntityManager(EntityManager* entityMgr);
+	// Set the EntityManager reference (must be called after construction)
+	void SetEntityManager(EntityManager* entityMgr);
 
-    // Core functionality
-    void Clear();
+	// Core functionality
+	void Clear();
 
-    // Play/Pause control
-    void Play();
-    void Pause();
-    void Stop();
-    bool IsPlaying() const { return isPlaying; }
+	// Play/Pause control
+	void Play();
+	void Pause();
+	void Stop();
+	bool IsPlaying() const { return isPlaying; }
 
-    // Animation registration for specific entity types
-    void AttachDinoAnimations(int objectID);
-    void AttachPlayerAnimations(int objectID);
-    void AttachNPCAnimations(int objectID);
+	// Animation registration for specific entity types
+	void AttachDinoAnimations(int objectID);
+	void AttachPlayerAnimations(int objectID);
+	void AttachNPCAnimations(int objectID);
 
-    // Animation control
-    void SetAnimation(int objectID, const std::string& animName);
-    std::string GetCurrentAnimation(int objectID) const;
+	// Animation control
+	void SetAnimation(int objectID, const std::string& animName);
+	std::string GetCurrentAnimation(int objectID) const;
+	std::vector<std::string> GetAnimationNames(int objectID) const;
 
-    // Query
-    bool HasAnimator(int objectID) const;
+	// Query
+	bool HasAnimator(int objectID) const;
 
 private:
-    // Reference to EntityManager (set externally)
-    EntityManager* entityManager_ = nullptr;
+	// Reference to EntityManager (set externally)
+	EntityManager* entityManager_ = nullptr;
 
-    // Animator storage - each object has ONE animator with multiple named animation sets
-    std::unordered_map<int, Animator2D> animators_;  // objectID -> Animator2D
+	// Animator storage - each object has ONE animator with multiple named animation sets
+	std::unordered_map<int, Animator2D> animators_;  // objectID -> Animator2D
 
-    // Track which animation is active for each object
-    std::unordered_map<int, std::string> currentAnimations_;
+	// Track which animation is active for each object
+	std::unordered_map<int, std::string> currentAnimations_;
 
-    // Store all animation sets for each object
-    struct AnimationSet {
-        std::vector<glm::vec4> frames;
-        float frameDuration;
-        bool loop;
-    };
-    std::unordered_map<int, std::unordered_map<std::string, AnimationSet>> animationSets_;
+	// Store all animation sets for each object
+	struct AnimationSet {
+		std::vector<glm::vec4> frames;
+		float frameDuration;
+		bool loop;
+	};
+	std::unordered_map<int, std::unordered_map<std::string, AnimationSet>> animationSets_;
 
-    bool isPlaying = false;  // Start paused by default
+	bool isPlaying = false;  // Start paused by default
 
-    // Helper: Create standard frame sequences
-    std::vector<glm::vec4> CreateFrameSequence(int startFrame, int endFrame, int totalFrames);
+	// Helper: Create standard frame sequences
+	std::vector<glm::vec4> CreateFrameSequence(int startFrame, int endFrame, int totalFrames);
 };

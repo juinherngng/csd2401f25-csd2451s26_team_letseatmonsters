@@ -43,6 +43,7 @@ struct LevelObject {
 
 	// Animation flag
 	bool animated{ false };
+	std::string animName;
 };
 
 struct LevelData {

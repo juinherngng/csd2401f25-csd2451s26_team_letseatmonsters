@@ -170,9 +170,9 @@ void Scene::LoadScene(const std::string& sceneName) {
 void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Input is now updated by CoreEngine's system, no need to call Update here
-	 inputManager.Update(deltaTime); // REMOVED - handled by CoreEngine
+	inputManager.Update(deltaTime); // REMOVED - handled by CoreEngine
 
-	 UpdateAnimationControls();
+	UpdateAnimationControls();
 	// Deferred Clear
 	if (pendingClear_) {
 		ClearAll();
@@ -353,11 +353,7 @@ bool Scene::HasAnimations(int id) const {
 }
 
 std::vector<std::string> Scene::GetAnimationList(int id) const {
-	// AnimationManager doesn't expose animation lists yet
-	// Return empty for now - can extend AnimationManager later if needed
-	(void)id;
-
-	return {};
+	return animationManager.GetAnimationNames(id);
 }
 
 std::string Scene::GetCurrentAnimationName(int id) const {

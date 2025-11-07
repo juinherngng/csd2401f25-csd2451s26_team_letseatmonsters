@@ -62,7 +62,9 @@ namespace {
 
 				if (obj.texture.find("dino") != std::string::npos) {
 					scene.AttachDinoAnimations(g->GetID());
-					scene.SetAnimation(g->GetID(), "IDLE");
+
+					const std::string clip = obj.animName.empty() ? "IDLE" : obj.animName;
+					scene.SetAnimation(g->GetID(), clip);
 				}
 			}
 			else {
@@ -145,6 +147,7 @@ namespace {
 			LevelObject out{};
 			out.texture = scene.GetObjectTexturePath(g->GetID());
 			out.animated = scene.HasAnimations(g->GetID());
+			out.animName = scene.GetCurrentAnimationName(g->GetID());
 			out.layer = scene.GetObjectLayer(g->GetID());
 
 			const glm::vec3 p = g->GetPositionGLM();
@@ -543,6 +546,58 @@ namespace LEPANELLEVEL {
 				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
 				scene.ClampToWalkArea(obj);
 				});
+			ImGui::NextColumn();
+
+			// Animation
+			ImGui::Separator();
+			ImGui::Text("Animation");
+			ImGui::NextColumn();
+			FullWidthNext();
+
+			if (id != -1) {
+				bool hasAnimator = scene.HasAnimations(id); // Scene wraps AnimationManager::HasAnimator
+
+				// Toggle animation
+				if (ImGui::Checkbox("Animated", &hasAnimator)) {
+					scene.MarkAnimated(id, hasAnimator); // scene handles adding/removing animator
+					if (hasAnimator) {
+						const std::string tex = scene.GetObjectTexturePath(id);
+						if (tex.find("dino") != std::string::npos)
+						{
+							scene.AttachDinoAnimations(id);
+							scene.SetAnimation(id, "IDLE");
+						}
+					}
+				}
+
+				if (hasAnimator) {
+					std::vector<std::string> animList = scene.GetAnimationList(id);
+					std::string current = scene.GetCurrentAnimationName(id);
+
+					if (animList.empty()) {
+						ImGui::TextDisabled("No clips found");
+					}
+					else {
+						const char* preview = current.c_str();
+						if (ImGui::BeginCombo("Current", preview)) {
+							for (const std::string& name : animList) {
+								bool selected = (current == name);
+
+								if (ImGui::Selectable(name.c_str(), selected)) {
+									scene.SetAnimation(id, name.c_str());
+								}
+
+								if (selected) {
+									ImGui::SetItemDefaultFocus();
+								}
+							}
+
+							ImGui::EndCombo();
+						}
+					}
+				}
+			}
+
 			ImGui::NextColumn();
 
 			// Rotation
