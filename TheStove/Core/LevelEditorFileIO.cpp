@@ -245,7 +245,7 @@ namespace LEFILEIO {
 	// Useful for forcing a re-import of modified assets at runtime.
 	Texture* LoadTextureBypassingCache(const std::string& path) {
 		const std::uint64_t tick = static_cast<std::uint64_t>(ImGui::GetTime() * 1'000'000.0);
-		const std::string   key = "sprite_" + path + "#v" + std::to_string(tick);
+		const std::string key = "sprite_" + path + "#v" + std::to_string(tick);
 
 		return ResourceManager::Instance().LoadTexture(key, path);
 	}
