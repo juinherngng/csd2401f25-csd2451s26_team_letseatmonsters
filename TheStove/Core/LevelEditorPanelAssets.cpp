@@ -28,11 +28,9 @@
 #include <imgui.h>
 
 #include <algorithm>
-#include <filesystem>
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <cstdint>
 
 using namespace LEFILEIO;
 

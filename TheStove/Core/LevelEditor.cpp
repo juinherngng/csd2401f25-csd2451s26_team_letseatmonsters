@@ -30,6 +30,12 @@
 
  // DrawUI
 void LevelEditor::DrawUI(Scene& scene) {
+	ImGuiStyle& st = ImGui::GetStyle();
+	st.FrameRounding = 4;
+	st.FramePadding = ImVec2(6, 4);
+	st.ItemSpacing = ImVec2(6, 6);
+	st.WindowPadding = ImVec2(10, 10);
+
 	// Panels maintain these between frames; static matches your existing behavior
 	static int selectedIndex = -1;  // index in hierarchy list
 	static int selectedObjectId = -1;  // engine object ID

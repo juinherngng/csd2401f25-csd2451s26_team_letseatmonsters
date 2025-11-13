@@ -358,9 +358,9 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 			int la = parseLayerNumber(laName);
 			int lb = parseLayerNumber(lbName);
 
-			// Different layers → smaller layer number drawn first
+			// Different layers: smaller layer number drawn first
 			if (la != lb) {
-				return la < lb;
+				return la > lb;
 			}
 
 			// Same layer - higher Y drawn first (lower on screen appears in front)
@@ -372,7 +372,6 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 std::vector<GameObject*> Scene::GetAllObjectsRaw() {
 	return entityManager.GetAllObjects();
 }
-
 
 // Scene / Transform Utilities
 void Scene::SetSceneBackground(const std::string& texturePath) {

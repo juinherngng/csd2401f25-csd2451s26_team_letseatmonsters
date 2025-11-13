@@ -332,6 +332,8 @@ namespace LEPANELLEVEL {
 			return;
 		}
 
+		ImGui::SeparatorText("Level Management");
+
 		// Level path row
 		static char levelPathBuf[256] = "../levels/kitchen01.json";
 		if (editor.levelPath.empty()) {
@@ -452,7 +454,7 @@ namespace LEPANELLEVEL {
 
 		DrawLayerManager(scene, selectedObjectId);
 
-		ImGui::Separator();
+		ImGui::SeparatorText("Hierarchy");
 
 		// Object Hierarchy – stable order independent of movement
 		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
@@ -558,9 +560,10 @@ namespace LEPANELLEVEL {
 			proto.tag = "npc";
 			proto.x = 300.f; proto.y = 300.f; proto.z = 0.f;
 			proto.w = 128.f; proto.h = 128.f;
+			proto.layer = "1";
 			proto.rotation = 0.f;
 
-			if (GameObject* obj = scene.SpawnStaticSprite(proto.texture, { proto.x, proto.y, proto.z }, { proto.w, proto.h }, "1")) {
+			if (GameObject* obj = scene.SpawnStaticSprite(proto.texture, { proto.x, proto.y, proto.z }, { proto.w, proto.h }, proto.layer)) {
 				obj->SetColliderSize({ proto.colWidth, proto.colHeight });
 				obj->SetColliderOffset({ proto.colOffsetX, proto.colOffsetY });
 
@@ -576,6 +579,7 @@ namespace LEPANELLEVEL {
 				defs.vel = { proto.speedX, proto.speedY };
 				defs.texture = proto.texture;
 				defs.tag = proto.tag;
+				defs.layer = proto.layer;
 				scene.SetDefaults(obj->GetID(), defs);
 
 				scene.ClampToWalkArea(obj);
@@ -608,8 +612,8 @@ namespace LEPANELLEVEL {
 			GameObject* obj = objectList[selectedIndex];
 			const int id = obj->GetID();
 
-			ImGui::Separator();
-			ImGui::Text("Properties (ID %d)", id);
+			ImGui::SeparatorText("Properties Inspector");
+			ImGui::TextDisabled("Selected ID: %d", id);
 
 			// Gather current values
 			char textureBuf[256];

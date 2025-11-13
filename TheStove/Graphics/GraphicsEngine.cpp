@@ -615,25 +615,58 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 	}
 
-	// Render static sprites with batching and instancing
+	// Render static sprites with batching and instancing,
+	// while preserving the original order from the Scene (layer + Y sorting).
 	if (!staticSprites.empty()) {
-		std::map<RenderKey, std::vector<GameObject*>> batches;
 
-		for (auto* obj : staticSprites) {
-			RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
-			batches[key].push_back(obj);
-		}
+		auto sameRenderKey = [](const RenderKey& a, const RenderKey& b) {
+			return a.mesh == b.mesh && a.shader == b.shader && a.texture == b.texture;
+			};
 
-		renderStats.totalBatches += static_cast<int>(batches.size());
+		std::size_t i = 0;
+		while (i < staticSprites.size()) {
+			GameObject* first = staticSprites[i];
+			if (!first || !first->GetMesh() || !first->GetShader()) {
+				++i;
+				continue;
+			}
 
-		for (auto& [key, batch] : batches) {
-			if (batch.size() >= INSTANCING_THRESHOLD) {
-				// Instanced path
-				renderStats.instancedObjects += static_cast<int>(batch.size());
+			RenderKey key{ first->GetMesh(), first->GetShader(), first->GetTexture() };
+
+			// Collect a contiguous run of objects that share this RenderKey
+			std::vector<GameObject*> run;
+			run.push_back(first);
+			++i;
+
+			while (i < staticSprites.size()) {
+				GameObject* next = staticSprites[i];
+				if (!next || !next->GetMesh() || !next->GetShader()) {
+					++i;
+					continue;
+				}
+
+				RenderKey nextKey{ next->GetMesh(), next->GetShader(), next->GetTexture() };
+				if (!sameRenderKey(key, nextKey)) {
+					break; // different material to end of this batch
+				}
+
+				run.push_back(next);
+				++i;
+			}
+
+			if (run.empty()) {
+				continue;
+			}
+
+			renderStats.totalBatches++;
+
+			if (run.size() >= INSTANCING_THRESHOLD) {
+				// Instanced path (same logic as before, but using "run" instead of "batch")
+				renderStats.instancedObjects += static_cast<int>(run.size());
 
 				std::vector<glm::mat4> modelMatrices;
-				modelMatrices.reserve(batch.size());
-				for (const auto* obj : batch) {
+				modelMatrices.reserve(run.size());
+				for (const auto* obj : run) {
 					modelMatrices.push_back(obj->GetModelMatrix());
 				}
 
@@ -651,11 +684,11 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 					instancedShader->SetTexture("u_Texture", 0);
 				}
 
-				key.mesh->DrawInstanced(key.texture, batch.size());
+				key.mesh->DrawInstanced(key.texture, run.size());
 				renderStats.drawCalls++;
 			}
 			else {
-				// Non-instanced path
+				// Non-instanced path (same as before, but keep order in "run")
 				key.shader->Use();
 				key.shader->SetViewMatrix(view);
 				key.shader->SetProjectionMatrix(projection);
@@ -664,7 +697,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 					key.shader->SetTexture("u_Texture", 0);
 				}
 
-				for (const auto* obj : batch) {
+				for (const auto* obj : run) {
 					key.shader->SetModelMatrix(obj->GetModelMatrix());
 					key.mesh->Draw();
 					renderStats.drawCalls++;
