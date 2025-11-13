@@ -31,6 +31,8 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <cstdint>
 
 using namespace LEFILEIO;
 
@@ -56,6 +58,9 @@ namespace LEPANELASSETS {
 
 		static std::vector<std::string> sPrefabs =
 			ListAssetsWithExt("../prefabs", { ".json" });
+
+		// Cache to avoid reloading preview textures every frame
+		static std::unordered_map<std::string, Texture*> sTexturePreviewCache;
 
 		// Import row
 		if (ImGui::Button("Import Texture...")) {
@@ -138,8 +143,35 @@ namespace LEPANELASSETS {
 			for (const auto& path : sTextures) {
 				ImGui::PushID(path.c_str());
 
-				// Show list entry
-				ImGui::Selectable(path.c_str(), false);
+				// Fetch or load preview texture for this path
+				Texture* previewTex = nullptr;
+				auto it = sTexturePreviewCache.find(path);
+				if (it != sTexturePreviewCache.end()) {
+					previewTex = it->second;
+				}
+				else {
+					// Use your existing loader
+					previewTex = LoadTextureBypassingCache(path);
+					sTexturePreviewCache[path] = previewTex;
+				}
+
+				const float iconSize = 32.0f;
+
+				// If we have a texture, draw its image first
+				if (previewTex) {
+					ImTextureID texID = (ImTextureID)(intptr_t)previewTex->GetID();
+
+					// Draw the thumbnail (UVs flipped vertically for OpenGL)
+					ImGui::Image(texID,
+						ImVec2(iconSize, iconSize),
+						ImVec2(0, 1),
+						ImVec2(1, 0));
+
+					ImGui::SameLine();
+				}
+
+				// Make the selectable at least as tall as the icon so they line up nicely
+				ImGui::Selectable(path.c_str(), false, 0, ImVec2(0.0f, iconSize));
 
 				// Double-click to apply to current selection
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
