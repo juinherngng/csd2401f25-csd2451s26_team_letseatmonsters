@@ -16,6 +16,7 @@
  */
 
 #include "LevelEditorPickDrag.hpp"
+#include "LevelEditorPanelLevel.hpp"
 
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/SceneManager.hpp"
@@ -28,7 +29,10 @@
 #include <vector>
 
 namespace LEPICKDRAG {
-	void HandleScenePickDrag(Scene& scene, int& selectedIndex, int& selectedObjectId) {
+	void HandleScenePickDrag(LevelEditor& editor,
+		Scene& scene,
+		int& selectedIndex,
+		int& selectedObjectId) {
 		// Convert mouse coordinates into world space inside the Scene image
 		glm::vec2 mouseWorld{};
 		if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {
@@ -77,6 +81,8 @@ namespace LEPICKDRAG {
 				selectedIndex = picked;
 				selectedObjectId = list[picked]->GetID();
 
+				LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
+
 				const glm::vec3 p = list[picked]->GetPositionGLM();
 				grabOffset = ImVec2(mouseWorld.x - p.x, mouseWorld.y - p.y);
 
@@ -120,6 +126,8 @@ namespace LEPICKDRAG {
 			selectedObjectId >= 0 &&
 			ImGui::IsKeyPressed(ImGuiKey_Delete))
 		{
+			LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
+
 			// Remove the object from the scene
 			scene.DespawnByID(selectedObjectId);
 

@@ -30,4 +30,7 @@ namespace LEPANELLEVEL {
 		Scene& scene,
 		int& selectedIndex,
 		int& selectedObjectId);
+
+	// Allow other modules(pick / drag) to push an undo snapshot
+	void RecordUndoSnapshot(LevelEditor& editor, Scene& scene);
 }

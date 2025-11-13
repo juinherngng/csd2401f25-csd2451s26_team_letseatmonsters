@@ -243,6 +243,10 @@ public:
 
 	void UpdateAnimationControls();
 
+	// Editor selection gizmo support
+	void SetEditorSelectedID(int id) { editorSelectedId = id; }
+	int  GetEditorSelectedID() const { return editorSelectedId; }
+
 
 private:
 	// Helper Methods
@@ -298,4 +302,6 @@ private:
 	bool resetBaseline_ = false;
 
 	bool pendingClear_ = false; // Flag for deferred clearing
+
+	int editorSelectedId = -1;   // ID of object to draw gizmos for
 };

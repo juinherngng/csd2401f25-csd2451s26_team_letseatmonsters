@@ -54,6 +54,6 @@ void LevelEditor::DrawUI(Scene& scene) {
 
 	// Disable editor picking/dragging while the game is running
 	if (!isPlaying) {
-		LEPICKDRAG::HandleScenePickDrag(scene, selectedIndex, selectedObjectId);
+		LEPICKDRAG::HandleScenePickDrag(*this, scene, selectedIndex, selectedObjectId);
 	}
 }

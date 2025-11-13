@@ -48,6 +48,45 @@ using namespace LEFILEIO;
 
 namespace {
 	// Internal helpers for Level <-> Scene synchronization
+	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
+	void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
+
+	static constexpr int MAX_UNDO = 50;
+	static std::vector<LevelData> sUndoStack;
+
+	// Take a snapshot of the current Scene into LevelData and push onto the stack.
+	static void PushUndoSnapshot(LevelEditor& editor, Scene& scene) {
+		LevelData snap{};
+		SyncSceneToLevel(scene, snap);
+
+		sUndoStack.push_back(snap);
+		if (sUndoStack.size() > MAX_UNDO) {
+			sUndoStack.erase(sUndoStack.begin());
+		}
+
+		// Keep the editor's working LevelData in sync with the scene
+		editor.MutableLevel() = snap;
+	}
+
+	// Pop last snapshot and restore it into the Scene.
+	static bool PerformUndo(LevelEditor& editor, Scene& scene) {
+		if (sUndoStack.empty()) {
+			return false;
+		}
+
+		LevelData snap = sUndoStack.back();
+		sUndoStack.pop_back();
+
+		scene.ClearAll();
+		SyncLevelToScene(snap, scene);
+		scene.RebuildColliders();
+		scene.SetSimulationActive(false);
+
+		editor.SetPlaying(false);
+		editor.MutableLevel() = snap;
+
+		return true;
+	}
 
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
@@ -262,6 +301,29 @@ namespace LEPANELLEVEL {
 
 		ImGui::SameLine();
 
+		// Undo
+		if (ImGui::Button("Undo")) {
+			if (PerformUndo(editor, scene)) {
+				selectedIndex = -1;
+				selectedObjectId = -1;
+			}
+		}
+
+		// Ctrl+Z keyboard shortcut for Undo (same as button)
+		ImGuiIO& io = ImGui::GetIO();
+		if (!editor.IsPlaying() &&
+			!io.WantCaptureKeyboard && 
+			(io.KeyCtrl || io.KeySuper) &&
+			ImGui::IsKeyPressed(ImGuiKey_Z))
+		{
+			if (PerformUndo(editor, scene)) {
+				selectedIndex = -1;
+				selectedObjectId = -1;
+			}
+		}
+
+		ImGui::SameLine();
+
 		// Play
 		if (ImGui::Button(editor.IsPlaying() ? "Playing..." : "Play")) {
 			if (!editor.IsPlaying()) {
@@ -348,6 +410,9 @@ namespace LEPANELLEVEL {
 
 		// Add
 		if (ImGui::Button("Add Object")) {
+			// Snapshot BEFORE adding
+			PushUndoSnapshot(editor, scene);
+
 			LevelObject proto{};
 			proto.texture = "../assets/goat_sprite_front.png";
 			proto.tag = "npc";
@@ -382,6 +447,9 @@ namespace LEPANELLEVEL {
 		// Remove
 		if (ImGui::Button("Remove Selected") &&
 			selectedIndex >= 0 && selectedIndex < static_cast<int>(objectList.size()) && objectList[selectedIndex]) {
+			// Snapshot BEFORE removing
+			PushUndoSnapshot(editor, scene);
+
 			scene.DespawnByID(objectList[selectedIndex]->GetID());
 			selectedIndex = -1;
 			selectedObjectId = -1;
@@ -437,8 +505,20 @@ namespace LEPANELLEVEL {
 			// Helpers with right-click reset
 			auto DragVec2WithReset = [&](const char* label, float* v, ImVec2 d, float speed, auto apply) {
 				bool changed = ImGui::DragFloat2(label, v, speed);
+
+				// First frame user starts dragging this control to capture pre-edit state
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+
 				if (ImGui::BeginPopupContextItem((std::string(label) + "_ctx").c_str())) {
-					if (ImGui::MenuItem("Reset to default")) { v[0] = d.x; v[1] = d.y; apply(true); }
+					if (ImGui::MenuItem("Reset to default")) {
+						PushUndoSnapshot(editor, scene); // snapshot before reset
+						v[0] = d.x;
+						v[1] = d.y;
+						apply(true);
+					}
+
 					ImGui::EndPopup();
 				}
 
@@ -453,9 +533,16 @@ namespace LEPANELLEVEL {
 
 			auto DragFloatWithReset = [&](const char* label, float* v, float d, float speed, auto apply) {
 				bool changed = ImGui::DragFloat(label, v, speed);
+
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+
 				if (ImGui::BeginPopupContextItem((std::string(label) + "_ctx").c_str())) {
 					if (ImGui::MenuItem("Reset to default")) {
-						*v = d; apply(true);
+						PushUndoSnapshot(editor, scene); // snapshot before reset
+						*v = d;
+						apply(true);
 					}
 
 					ImGui::EndPopup();
@@ -492,7 +579,14 @@ namespace LEPANELLEVEL {
 			// Texture
 			ImGui::Text("Texture"); ImGui::NextColumn();
 			FullWidthNext();
-			if (ImGui::InputText("##TexturePath", textureBuf, IM_ARRAYSIZE(textureBuf))) {
+			bool texEdited = ImGui::InputText("##TexturePath", textureBuf, IM_ARRAYSIZE(textureBuf));
+
+			// When user first clicks into the texture field, snapshot current state
+			if (ImGui::IsItemActivated()) {
+				PushUndoSnapshot(editor, scene);
+			}
+
+			if (texEdited) {
 				std::string newPath(textureBuf);
 				scene.SetObjectTexturePath(id, newPath);
 				if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + newPath), newPath)) {
@@ -514,7 +608,13 @@ namespace LEPANELLEVEL {
 			// Tag
 			ImGui::Text("Tag"); ImGui::NextColumn();
 			FullWidthNext();
-			ImGui::InputText("##Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
+			bool tagEdited = ImGui::InputText("##Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
+
+			// Snapshot when user starts editing the tag
+			if (ImGui::IsItemActivated()) {
+				PushUndoSnapshot(editor, scene);
+			}
+
 			ImGui::NextColumn();
 
 			// Layer
@@ -689,6 +789,9 @@ namespace LEPANELLEVEL {
 
 				LevelObject data{};
 				if (LEFILEIO::LoadPrefabFromFile(dropped, data)) {
+					// Snapshot BEFORE creating instance from prefab
+					PushUndoSnapshot(editor, scene);
+
 					GameObject* g = scene.SpawnStaticSprite(
 						data.texture, { data.x, data.y, data.z }, { data.w, data.h });
 
@@ -718,12 +821,28 @@ namespace LEPANELLEVEL {
 					selectedIndex >= 0 &&
 					selectedIndex < static_cast<int>(objectListForViewport.size()) &&
 					objectListForViewport[selectedIndex]) {
+					// Snapshot BEFORE applying new texture
+					PushUndoSnapshot(editor, scene);
+
 					GameObject* o = objectListForViewport[selectedIndex];
 					const int id2 = o->GetID();
 
+					// Store path in scene metadata
 					scene.SetObjectTexturePath(id2, dropped);
 					if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + dropped), dropped)) {
 						o->SetTexture(tex);
+
+						// If this is one of your animated dino sprites, wire up animation
+						if (dropped.find("dino_") != std::string::npos) {
+							scene.AttachDinoAnimations(id2);
+							scene.SetAnimation(id2, "IDLE");
+							scene.MarkAnimated(id2, true);
+						}
+						else {
+							// Non-animated: reset to full-frame UV and mark as static
+							o->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
+							scene.MarkAnimated(id2, false);
+						}
 					}
 				}
 			}
@@ -734,4 +853,7 @@ namespace LEPANELLEVEL {
 		ImGui::End();
 	}
 
+	void RecordUndoSnapshot(LevelEditor& editor, Scene& scene) {
+		PushUndoSnapshot(editor, scene);
+	}
 }
