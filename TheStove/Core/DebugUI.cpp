@@ -135,25 +135,20 @@ namespace Debug
 			return; // If any exception occurs, don't render
 		}
 
+		//Not sure if this even works
+		//SetupDefaultLayout(); 
+
 		// Create my window
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
 			ImGuiCond_FirstUseEver);
-
-		// Minimal, clean padding for this window
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f));
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 6.0f));
-
 		ImGui::Begin("Debug Information###DebugInfo", &openedDebugger);
 		{
 			static int selectedfpsMode = 0;
 			const char* fpsModes[] = { "Vsync", "Unlimited" };
 			int fpsmodeCount = IM_ARRAYSIZE(fpsModes);
 
-			ImGui::SeparatorText("Frame Information");
-			ImGui::Text("FPS: %.1f  (%.1f ms / frame)", fps, msperFrame);
-
-			ImGui::SetNextItemWidth(140.0f);
+			ImGui::Text("----Frame Infomation----");
+			ImGui::Text("[Current FPS : %.1f FPS ] [ms/frame : %.1f ms]", fps, msperFrame);
 			if (ImGui::Combo("FPS Modes", &selectedfpsMode, fpsModes, fpsmodeCount))
 			{
 				if (coreEngine)
@@ -176,28 +171,34 @@ namespace Debug
 				}
 			}
 
-			ImGui::SeparatorText("System Usage");
-
-			// Display options row
+			ImGui::Text("----System Usage Infomation----");
+			
+			// Add option to show detailed stats
 			static bool showDetailedStats = false;
+			ImGui::Checkbox("Show Detailed Stats", &showDetailedStats);
+			
+			// Add display mode toggle
+			ImGui::SameLine();
 			static bool showFramePercentage = false;
-
-			ImGui::Checkbox("Details", &showDetailedStats);
-			ImGui::SameLine();
-			ImGui::Checkbox("Show frame %", &showFramePercentage);
-			if (ImGui::IsItemHovered()) {
-				ImGui::SetTooltip("Toggle between relative system distribution (default)\nand absolute frame-time usage");
+			ImGui::Checkbox("Show Frame %", &showFramePercentage);
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Toggle between relative system distribution (default)\nand absolute frame time usage");
 			}
-
+			
+			// Add reset button for peak values
 			ImGui::SameLine();
-			if (ImGui::Button("Reset peaks")) {
-				if (coreEngine) {
-					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>()) {
+			if (ImGui::Button("Reset Peaks"))
+			{
+				if (coreEngine)
+				{
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
+					{
 						audioMgr->PlayUIClickSound();
 					}
 				}
-
-				for (auto& performance : sysPerformance) {
+				for (auto& performance : sysPerformance)
+				{
 					performance.peakPercentage = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
 					performance.avgPercentage = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
 					performance.sampleCount = 1;
@@ -373,15 +374,16 @@ namespace Debug
 				ImGui::TextDisabled("(Scene not connected)");
 			}
 
+
 			ImGui::Separator();
-			ImGui::SeparatorText("Render");
+			ImGui::Text("----Render Infomation----");
 			ImGui::Text("Total Objects: %d", totalObjects);
 			ImGui::Text("Total Batches: %d", totalBatches);
 			ImGui::Text("Instanced Objects: %d", instancedObjects);
 			ImGui::Text("Draw Calls: %d", drawCalls);
 			
 			ImGui::Separator();
-			ImGui::SeparatorText("Audio");
+			ImGui::Text("---- Audio ----");
 			if (ImGui::Button("Play: boiling sound"))
 			{
 				if (coreEngine)
@@ -509,8 +511,6 @@ namespace Debug
 		}
 
 		ImGui::End();
-
-		ImGui::PopStyleVar(3);
 
 		// Show the debug log infomation window
 		// Only show debug log if we can safely call ImGui

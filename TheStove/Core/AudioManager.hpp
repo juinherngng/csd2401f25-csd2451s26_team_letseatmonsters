@@ -323,6 +323,9 @@ public:
     /************************************************************************/
     void PlayUIClickSound();
 
+    void PauseAll();   // pause all currently playing sounds/music
+    void ResumeAll();  // resume everything that was paused
+
 private:
     /************************************************************************/
     /*!

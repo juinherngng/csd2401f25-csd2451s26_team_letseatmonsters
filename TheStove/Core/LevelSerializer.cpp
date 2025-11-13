@@ -13,8 +13,8 @@
 
 #include <fstream>
 
-#include "LevelSerializer.hpp"
 #include "JSONInclude.hpp"
+#include "LevelSerializer.hpp"
 
 using nlohmann::json;
 

@@ -43,21 +43,37 @@ class Scene;
 class LevelEditor {
 public:
 	// ----- Visibility -----
-	bool IsEnabled() const { return isEnabled; }
-	void Toggle() { isEnabled = !isEnabled; }
+	bool IsEnabled() const {
+		return isEnabled;
+	}
+	void Toggle() {
+		isEnabled = !isEnabled;
+	}
 
 	// ----- Level path control (kept public for existing panel code) -----
-	void SetPath(const std::string& path) { levelPath = path; }
-	const std::string& GetPath() const { return levelPath; }
+	void SetPath(const std::string& path) {
+		levelPath = path;
+	}
+	const std::string& GetPath() const {
+		return levelPath;
+	}
 	std::string levelPath{}; // public on purpose to preserve existing panel access
 
 	// ----- Runtime / Playback -----
-	bool IsPlaying() const { return isPlaying; }
-	void SetPlaying(bool on) { isPlaying = on; }
+	bool IsPlaying() const {
+		return isPlaying;
+	}
+	void SetPlaying(bool on) {
+		isPlaying = on;
+	}
 
 	// Expose working LevelData and Play snapshot for panels
-	LevelData& MutableLevel() { return level; }
-	LevelData& MutablePlaySnapshot() { return playStartSnapshot; }
+	LevelData& MutableLevel() {
+		return level;
+	}
+	LevelData& MutablePlaySnapshot() {
+		return playStartSnapshot;
+	}
 
 	// ----- UI Entrypoint -----
 	void DrawUI(Scene& scene);

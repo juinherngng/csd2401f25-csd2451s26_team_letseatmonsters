@@ -323,8 +323,7 @@ namespace {
 // Public ImGui Level Panel Implementation
 namespace LEPANELLEVEL {
 	void DrawLevelPanel(LevelEditor& editor, Scene& scene,
-		int& selectedIndex, int& selectedObjectId)
-	{
+		int& selectedIndex, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 
 		if (!ImGui::Begin("Level###LE_Level")) {
@@ -409,10 +408,9 @@ namespace LEPANELLEVEL {
 		// Ctrl+Z keyboard shortcut for Undo (same as button)
 		ImGuiIO& io = ImGui::GetIO();
 		if (!editor.IsPlaying() &&
-			!io.WantCaptureKeyboard && 
+			!io.WantCaptureKeyboard &&
 			(io.KeyCtrl || io.KeySuper) &&
-			ImGui::IsKeyPressed(ImGuiKey_Z))
-		{
+			ImGui::IsKeyPressed(ImGuiKey_Z)) {
 			if (PerformUndo(editor, scene)) {
 				selectedIndex = -1;
 				selectedObjectId = -1;
@@ -505,7 +503,7 @@ namespace LEPANELLEVEL {
 					continue;
 				}
 
-				const int gid = g->GetID();	
+				const int gid = g->GetID();
 				std::string niceName;
 
 				// Prefer tag; fall back to texture stem
@@ -516,8 +514,11 @@ namespace LEPANELLEVEL {
 				else {
 					std::string texPath = scene.GetObjectTexturePath(gid);
 					if (!texPath.empty()) {
-						try { niceName = fs::path(texPath).stem().string(); }
-						catch (...) {}
+						try {
+							niceName = fs::path(texPath).stem().string();
+						}
+						catch (...) {
+						}
 					}
 				}
 

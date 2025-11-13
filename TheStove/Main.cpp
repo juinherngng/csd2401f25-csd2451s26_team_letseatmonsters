@@ -1,12 +1,12 @@
 #include "Core/DebugUI.hpp"
 #include "Core/Precompiled.hpp"
 
-#include <iostream>
 #include <algorithm>
-#include <csignal>
-#include <string>
 #include <cctype>
+#include <csignal>
+#include <iostream>
 #include <sstream>
+#include <string>
 
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
@@ -30,8 +30,7 @@
 #include "Core/MovementManager.hpp"
 
 // Application state structure - eliminates static variables
-struct ApplicationState
-{
+struct ApplicationState {
 	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
 	std::unique_ptr<Scene> currentScene;
 	std::unique_ptr<Debug::DebuggerApp> debugApp;
@@ -44,6 +43,9 @@ struct ApplicationState
 	double lastMouseX = 0.0;
 	double lastMouseY = 0.0;
 	bool mouseInitialized = false;
+
+	bool pausedByOSFocus = false;       // true while we're paused due to focus/iconify
+	bool simActiveBeforePause = false;  // remember if simulation was running
 };
 
 // Global app state pointer for signal handlers and callbacks
@@ -69,6 +71,8 @@ static void signalHandler(int signal) {
 	}
 }
 
+static void HandlePauseResume(bool pause);
+
 static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	(void)window;
 
@@ -89,6 +93,64 @@ static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	}
 }
 
+static void HandlePauseResume(bool pause) {
+	if (!g_AppState || !g_AppState->coreEngine) {
+		return;
+	}
+
+	auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>();
+	auto* inputMgr = g_AppState->coreEngine->GetSystem<InputManager>();
+	Scene* scene = g_AppState->currentScene.get();
+
+	if (pause) {
+		if (g_AppState->pausedByOSFocus) {
+			return; // already paused
+		}
+
+		g_AppState->pausedByOSFocus = true;
+
+		// Remember and stop simulation (gameplay/physics)
+		if (scene) {
+			g_AppState->simActiveBeforePause = scene->IsSimulationActive();
+			scene->SetSimulationActive(false);
+		}
+
+		// Pause all audio
+		if (audioMgr) {
+			audioMgr->PauseAll();
+		}
+
+		// Clear input so keys/mouse don't get stuck
+		if (inputMgr) {
+			inputMgr->ClearState();
+		}
+	}
+	else {
+		if (!g_AppState->pausedByOSFocus) {
+			return; // not paused by OS
+		}
+
+		g_AppState->pausedByOSFocus = false;
+
+		// Avoid a huge dt spike when we come back
+		g_AppState->lastFrame = static_cast<float>(glfwGetTime());
+
+		// Restore simulation to whatever it was before pause
+		if (scene) {
+			scene->SetSimulationActive(g_AppState->simActiveBeforePause);
+		}
+
+		// Resume audio
+		if (audioMgr) {
+			audioMgr->ResumeAll();
+		}
+
+		// Clear any weird lingering input states
+		if (inputMgr) {
+			inputMgr->ClearState();
+		}
+	}
+}
 
 #ifdef _WIN32
 #include <windows.h>
@@ -120,7 +182,7 @@ int main() {
 #ifdef _DEBUG
 	// Enable full automatic memory leak detection
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	
+
 	// Output to stderr
 	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
@@ -152,15 +214,13 @@ int main() {
 		return -1;
 	}
 
-	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
-	{
+	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>()) {
 		audioMgr->ApplySettings(settings);
 		float bgm = audioMgr->GetBgmVolume();
 		float vfx = audioMgr->GetVfxVolume();
 		std::cout << "AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx << "\n";
 	}
-	else
-	{
+	else {
 		std::cerr << "AudioManager system not found in CoreEngine\n";
 	}
 
@@ -180,8 +240,7 @@ int main() {
 
 	while (!glfwWindowShouldClose(app.window) && !app.shouldExit) {
 
-		try
-		{
+		try {
 			// ---- TEST CASES FOR PRINTING TO CRASH_LOG.TXT ----
 			// Uncomment one at a time to test
 			// throw std::runtime_error("Test crash_log");
@@ -198,8 +257,7 @@ int main() {
 
 			//app.debugApp->RunDebuggerApp();
 		}
-		catch (const std::exception& e)
-		{
+		catch (const std::exception& e) {
 			app.debugApp->LogError(std::string("Unhandled exception: ") + e.what());
 			std::cerr << "Error: " << e.what() << std::endl;
 			cleanup(app);
@@ -244,8 +302,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	}
 
 	GLFWmonitor* monitor = nullptr;
-	if (fullscreen)
-	{
+	if (fullscreen) {
 		monitor = glfwGetPrimaryMonitor();
 	}
 
@@ -268,53 +325,69 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		});
 
 	// Message callbacks to post input events to CoreEngine
-	glfwSetCharCallback(app.window, [](GLFWwindow* win, unsigned int c)
-		{
-			(void)win;   // suppress unused parameter warning
-			if (g_AppState && g_AppState->coreEngine)
-				g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
+	glfwSetCharCallback(app.window, [](GLFWwindow* win, unsigned int c) {
+		(void)win;   // suppress unused parameter warning
+		if (g_AppState && g_AppState->coreEngine)
+			g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
 		});
 
-	glfwSetMouseButtonCallback(app.window, [](GLFWwindow* win, int button, int action, int mods)
-		{
-			(void)mods, (void)win;    // suppress unused parameter warning
-			if (g_AppState && g_AppState->coreEngine)
-			{
-				double x, y;
-				glfwGetCursorPos(g_AppState->window, &x, &y);
-				g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::MouseButtonMessage>(button, action == GLFW_PRESS, x, y);
-			}
+	glfwSetMouseButtonCallback(app.window, [](GLFWwindow* win, int button, int action, int mods) {
+		(void)mods, (void)win;    // suppress unused parameter warning
+		if (g_AppState && g_AppState->coreEngine) {
+			double x, y;
+			glfwGetCursorPos(g_AppState->window, &x, &y);
+			g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::MouseButtonMessage>(button, action == GLFW_PRESS, x, y);
+		}
 		});
 
-	glfwSetCursorPosCallback(app.window, [](GLFWwindow* win, double xpos, double ypos)
-		{
-			(void)win; // suppress unused parameter warning
+	glfwSetCursorPosCallback(app.window, [](GLFWwindow* win, double xpos, double ypos) {
+		(void)win; // suppress unused parameter warning
 
-			if (g_AppState && g_AppState->coreEngine)
-			{
-				double dx = 0.0;
-				double dy = 0.0;
+		if (g_AppState && g_AppState->coreEngine) {
+			double dx = 0.0;
+			double dy = 0.0;
 
-				if (g_AppState->mouseInitialized)
-				{
-					dx = xpos - g_AppState->lastMouseX;
-					dy = ypos - g_AppState->lastMouseY;
-				}
-				else
-				{
-					g_AppState->mouseInitialized = true;
-				}
-
-				g_AppState->lastMouseX = xpos;
-				g_AppState->lastMouseY = ypos;
-
-				g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::MouseMoveMessage>(xpos, ypos, dx, dy);
+			if (g_AppState->mouseInitialized) {
+				dx = xpos - g_AppState->lastMouseX;
+				dy = ypos - g_AppState->lastMouseY;
 			}
+			else {
+				g_AppState->mouseInitialized = true;
+			}
+
+			g_AppState->lastMouseX = xpos;
+			g_AppState->lastMouseY = ypos;
+
+			g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::MouseMoveMessage>(xpos, ypos, dx, dy);
+		}
 		});
 
 	// Ensure we don't have any other callbacks set
 	glfwSetKeyCallback(app.window, nullptr);
 	glfwSetScrollCallback(app.window, nullptr);
+
+	// When we lose focus (ALT-TAB, CTRL-ALT-DEL, clicking another window),
+	// explicitly minimize our game window so it matches the cert requirement.
+	glfwSetWindowFocusCallback(app.window, [](GLFWwindow* win, int focused) {
+		if (focused == GLFW_FALSE) {
+			// Force the game window to minimize
+			glfwIconifyWindow(win);
+
+			// Pause gameplay, physics, audio, and clear input
+			HandlePauseResume(true);
+		}
+		else {
+			// We regained focus (coming back from taskbar / ALT-TAB)
+			HandlePauseResume(false);
+		}
+		});
+
+	// Iconify callback is kept just to keep pause/resume in sync
+	glfwSetWindowIconifyCallback(app.window, [](GLFWwindow* win, int iconified) {
+		(void)win;
+		HandlePauseResume(iconified == GLFW_TRUE);
+		});
+
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cerr << "Failed to initialize GLAD\n";
@@ -340,27 +413,23 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	app.coreEngine->Initialize();
 
 	// Set window for InputManager system
-	if (auto* inputMgr = app.coreEngine->GetSystem<InputManager>())
-	{
+	if (auto* inputMgr = app.coreEngine->GetSystem<InputManager>()) {
 		inputMgr->SetWindow(app.window);
 		std::cout << "InputManager system initialized.\n";
 	}
-	else
-	{
+	else {
 		std::cerr << "Warning: InputManager not found in CoreEngine!\n";
 	}
 
 	// Initialize ResourceManager with AudioManager
-	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
-	{
+	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>()) {
 		ResourceManager::Instance().SetAudioManager(audioMgr);
 		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
 
 		// Load all audio assets centrally using AudioCatalog
 		Audio::AudioCatalog::LoadAllAudio();
 	}
-	else
-	{
+	else {
 		std::cerr << "Warning: AudioManager not found in CoreEngine for ResourceManager!" << std::endl;
 	}
 
@@ -418,8 +487,8 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	}
 
 	// Create Scene with smart pointer, passing all manager references
-	app.currentScene = std::make_unique<Scene>(*graphicsEngine, *inputMgr, *animMgr, 
-											   *movementMgr, *physicsMgr, *collisionMgr);
+	app.currentScene = std::make_unique<Scene>(*graphicsEngine, *inputMgr, *animMgr,
+		*movementMgr, *physicsMgr, *collisionMgr);
 	app.currentScene->LoadScene("LoadTest");
 
 	// Set the EntityManager reference in AnimationManager
@@ -449,13 +518,11 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 	// Create DebuggerApp with smart pointer
 	app.debugApp = std::make_unique<Debug::DebuggerApp>();
-	if (!app.debugApp->InitializeDebuggerApp(app.window, app.coreEngine.get()))
-	{
+	if (!app.debugApp->InitializeDebuggerApp(app.window, app.coreEngine.get())) {
 		std::cerr << "Failed to initialize DebuggerApp\n";
 		return false;
 	}
-	else
-	{
+	else {
 		app.debugApp->AddDebugLine("DebuggerApp initialized successfully\n");
 	}
 
@@ -472,6 +539,20 @@ static void update(ApplicationState& app) {
 	app.lastFrame = currentFrame;
 
 	glfwPollEvents();
+
+	if (app.pausedByOSFocus) {
+		// You can still keep FPS stats if you like, or set them to 0
+		app.smoothedDt = (app.smoothedDt == 0.0f) ? deltaTime
+			: (0.96f * app.smoothedDt) + (0.04f * deltaTime);
+
+		if (app.debugApp) {
+			app.debugApp->fps = 0.0f;
+			app.debugApp->msperFrame = 0.0f;
+		}
+
+		// Do NOT update scene or core engine while paused
+		return;
+	}
 
 	// engine.BeginImGuiFrame();
 
@@ -512,8 +593,7 @@ static void draw(ApplicationState& app) {
 	drawList.clear();
 	app.currentScene->CollectRenderablePointers(drawList);
 
-	if (app.debugApp->IsActive())
-	{
+	if (app.debugApp->IsActive()) {
 		app.debugApp->RenderDebuggerApp();
 	}
 
@@ -542,14 +622,16 @@ void cleanup(ApplicationState& app) {
 	std::cout << "Starting cleanup..." << std::endl;
 
 	// STEP 1: Clear all GLFW callbacks FIRST to prevent dangling references
-	if (app.window)
-	{
+	if (app.window) {
 		std::cout << "Clearing GLFW callbacks..." << std::endl;
 		glfwSetWindowCloseCallback(app.window, nullptr);
 		glfwSetCharCallback(app.window, nullptr);
 		glfwSetMouseButtonCallback(app.window, nullptr);
 		glfwSetCursorPosCallback(app.window, nullptr);
 		glfwSetKeyCallback(app.window, nullptr);
+		glfwSetScrollCallback(app.window, nullptr);
+		glfwSetWindowFocusCallback(app.window, nullptr);
+		glfwSetWindowIconifyCallback(app.window, nullptr);
 		glfwSetErrorCallback(nullptr);
 
 		// Poll events one last time to clear any pending callbacks
@@ -560,17 +642,14 @@ void cleanup(ApplicationState& app) {
 	g_AppState = nullptr;
 
 	// STEP 3: Flush CoreEngine messages to prevent orphaned messages
-	if (app.coreEngine)
-	{
+	if (app.coreEngine) {
 		std::cout << "Flushing remaining messages..." << std::endl;
 		app.coreEngine->GetMessageBus().ClearQueue();
 	}
 
 	// STEP 6: Stop and shutdown audio
-	if (app.coreEngine)
-	{
-		if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>())
-		{
+	if (app.coreEngine) {
+		if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>()) {
 			std::cout << "Stopping all sounds..." << std::endl;
 			audioMgr->StopAllSounds();
 			std::cout << "Shutting down audio..." << std::endl;
@@ -581,27 +660,23 @@ void cleanup(ApplicationState& app) {
 	// STEP 6.5: Unload all audio assets
 	std::cout << "Unloading audio assets..." << std::endl;
 	Audio::AudioCatalog::UnloadAllAudio();
-	
+
 	// STEP 4: Shutdown ImGui (must happen while OpenGL context is valid)
-	if (app.debugApp)
-	{
+	if (app.debugApp) {
 		std::cout << "Shutting down debugger..." << std::endl;
 		app.debugApp->Shutdown();
 		app.debugApp.reset();
 	}
 
 	// STEP 5: Clean up scene objects
-	if (app.currentScene)
-	{
+	if (app.currentScene) {
 		std::cout << "Deleting scene..." << std::endl;
 		app.currentScene.reset();
 	}
 
 	// STEP 7: Shutdown graphics engine (now managed by CoreEngine)
-	if (app.coreEngine)
-	{
-		if (auto* gfxEngine = app.coreEngine->GetSystem<GraphicsEngine>())
-		{
+	if (app.coreEngine) {
+		if (auto* gfxEngine = app.coreEngine->GetSystem<GraphicsEngine>()) {
 			std::cout << "Shutting down graphics engine..." << std::endl;
 			gfxEngine->Shutdown();
 		}
@@ -612,21 +687,18 @@ void cleanup(ApplicationState& app) {
 	ResourceManager::Instance().Clear();
 
 	// STEP 9: Destroy CoreEngine and all systems
-	if (app.coreEngine)
-	{
+	if (app.coreEngine) {
 		std::cout << "Destroying core engine..." << std::endl;
 		app.coreEngine.reset();
 	}
 
 	// STEP 10: Make the context non-current before destroying window
-	if (app.window)
-	{
+	if (app.window) {
 		glfwMakeContextCurrent(nullptr);
 	}
 
 	// STEP 11: Destroy window
-	if (app.window)
-	{
+	if (app.window) {
 		std::cout << "Destroying window..." << std::endl;
 		glfwDestroyWindow(app.window);
 		app.window = nullptr;

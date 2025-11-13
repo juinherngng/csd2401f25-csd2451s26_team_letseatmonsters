@@ -13,11 +13,11 @@ DESCRIPTION:		Implements initialization, default resource loading, background ha
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <iostream>
+#include <filesystem>
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <filesystem>
+#include <iostream>
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
@@ -34,10 +34,10 @@ namespace {
 			std::cout << "[ShaderPath] Current working directory: " << std::filesystem::current_path() << std::endl;
 			printedCwd = true;
 		}
-		
+
 		// Extract just the filename from the path
 		std::string filename = std::filesystem::path(relativePathFromProjectRoot).filename().string();
-		
+
 		// Try multiple possible locations, prioritizing build/shaders since it exists
 		std::vector<std::string> possiblePaths = {
 			"shaders/" + filename,                                  // From build directory (build/shaders/)
@@ -71,8 +71,7 @@ GraphicsEngine& GraphicsEngine::Instance() {
 GraphicsEngine::GraphicsEngine()
 	: resourceManager(ResourceManager::Instance()),
 	projection(1.0f),
-	view(1.0f)
-{
+	view(1.0f) {
 }
 
 // Initialize core renderer, FBO, default resources, and ImGui
@@ -111,7 +110,7 @@ void GraphicsEngine::Initialize() {
 void GraphicsEngine::Update(float dt) {
 	// Store dt for performance tracking
 	lastDt = dt;
-	
+
 	// Note: Actual rendering is still called from main loop via BeginFrame/Render/EndFrame
 	// This Update is just for system integration and performance monitoring
 	(void)dt; // Suppress unused parameter warning if no other logic needed
@@ -186,9 +185,15 @@ void GraphicsEngine::EndSceneRender() {
 }
 
 // Getters
-const glm::mat4& GraphicsEngine::GetProjection() const { return projection; }
-const glm::mat4& GraphicsEngine::GetView() const { return view; }
-ImGuiID GraphicsEngine::GetMainDockspaceID() const { return mMainDockspaceId; }
+const glm::mat4& GraphicsEngine::GetProjection() const {
+	return projection;
+}
+const glm::mat4& GraphicsEngine::GetView() const {
+	return view;
+}
+ImGuiID GraphicsEngine::GetMainDockspaceID() const {
+	return mMainDockspaceId;
+}
 
 // Handle window resize: update letterboxed viewport and background placement
 void GraphicsEngine::Resize(int width, int height) {

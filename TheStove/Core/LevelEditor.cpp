@@ -18,15 +18,15 @@
 
 #include <imgui.h>
 
-#include "LevelEditorPickDrag.hpp"
+#include "LevelEditorPanelAssets.hpp"
 #include "LevelEditorPanelLevel.hpp"
 #include "LevelEditorPanelPrefabs.hpp"
-#include "LevelEditorPanelAssets.hpp"
+#include "LevelEditorPickDrag.hpp"
 
 #include "InputManager.hpp"
 
-#include "../Graphics/SceneManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
+#include "../Graphics/SceneManager.hpp"
 
  // DrawUI
 void LevelEditor::DrawUI(Scene& scene) {
@@ -37,8 +37,8 @@ void LevelEditor::DrawUI(Scene& scene) {
 	st.WindowPadding = ImVec2(10, 10);
 
 	// Panels maintain these between frames; static matches your existing behavior
-	static int selectedIndex = -1;  // index in hierarchy list
-	static int selectedObjectId = -1;  // engine object ID
+	static int selectedIndex = -1;    // index in hierarchy list
+	static int selectedObjectId = -1; // engine object ID
 
 	// The scene viewport should not capture game mouse by default while drawing editor UI
 	InputManager::Get().SetSceneViewportWantsGameMouse(false);

@@ -21,14 +21,14 @@
 #include "LevelEditorPrefabLinks.hpp"
 #include "LevelSerializer.hpp"
 
+#include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
-#include "../Graphics/GameObject.hpp"
 
-#include <imgui.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
 
 #include <algorithm>
 #include <cstdio>

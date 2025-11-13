@@ -364,6 +364,20 @@ void AudioManager::StopAllSounds()
 	channels.clear();
 }
 
+// Temporarily pause all audio without destroying it
+void AudioManager::PauseAll() {
+	if (masterGroup) {
+		masterGroup->setPaused(true);
+	}
+}
+
+// Resume audio after PauseAll()
+void AudioManager::ResumeAll() {
+	if (masterGroup) {
+		masterGroup->setPaused(false);
+	}
+}
+
 void AudioManager::SetBgmVolume(float volume)
 {
 	// Clamp volume between 0.0 and 1.0

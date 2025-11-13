@@ -16,18 +16,18 @@ DESCRIPTION:		Declares the GraphicsEngine responsible for initialization, off-sc
 #pragma once
 
 #include <glm/glm.hpp>
-#include <vector>
 #include <memory>
+#include <vector>
 
-#include "DebugRenderer.hpp"
-#include "Renderer.hpp"
-#include "ResourceManager.hpp"
-#include "GameObject.hpp"
 #include "../Core/System.hpp"
-#include "imgui.h"
-#include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+#include "DebugRenderer.hpp"
+#include "GameObject.hpp"
+#include "imgui.h"
+#include "imgui_internal.h"
+#include "Renderer.hpp"
+#include "ResourceManager.hpp"
 
 class GraphicsEngine : public CoreFramework::SystemInterface {
 public:
@@ -36,7 +36,9 @@ public:
 	// SystemInterface implementation
 	void Initialize() override;			// Init renderer, FBO, default resources, ImGui
 	void Update(float dt) override;
-	std::string GetName() override { return "GraphicsEngine"; }
+	std::string GetName() override {
+		return "GraphicsEngine";
+	}
 
 	static GraphicsEngine& Instance();
 
@@ -53,22 +55,42 @@ public:
 
 	// ----- Window / Viewport -----
 	void Resize(int width, int height);  // Recompute letterboxed viewport, keep background aligned
-	int GetWidth() const { return screenWidth; }
-	int GetHeight() const { return screenHeight; }
+	int GetWidth() const {
+		return screenWidth;
+	}
+	int GetHeight() const {
+		return screenHeight;
+	}
 
-	int GetViewportX() const { return viewportX_; }
-	int GetViewportY() const { return viewportY_; }
-	int GetViewportW() const { return viewportW_; }
-	int GetViewportH() const { return viewportH_; }
-	float GetViewportScale() const { return viewportScale_; }
+	int GetViewportX() const {
+		return viewportX_;
+	}
+	int GetViewportY() const {
+		return viewportY_;
+	}
+	int GetViewportW() const {
+		return viewportW_;
+	}
+	int GetViewportH() const {
+		return viewportH_;
+	}
+	float GetViewportScale() const {
+		return viewportScale_;
+	}
 	void ApplyViewport() const;
 
 	// ----- Scene FBO (off-screen Scene window target) -----
 	void BeginSceneRender();
 	void EndSceneRender();
-	unsigned int GetSceneColorTexture() const { return mSceneColor; } // for ImGui::Image
-	int GetSceneWidth() const { return mSceneWidth; }
-	int GetSceneHeight() const { return mSceneHeight; }
+	unsigned int GetSceneColorTexture() const {
+		return mSceneColor;
+	} // for ImGui::Image
+	int GetSceneWidth() const {
+		return mSceneWidth;
+	}
+	int GetSceneHeight() const {
+		return mSceneHeight;
+	}
 
 	// ----- ImGui Windows / Picking -----
 	void DrawSceneDockWindow();                           // Draws Scene window with FBO image
@@ -84,10 +106,18 @@ public:
 	void RenderBatched(const std::vector<GameObject*>& objects);
 
 	// ----- Render statistics -----
-	int GetTotalObjects() const { return renderStats.totalObjects; }
-	int GetDrawCallCount() const { return renderStats.drawCalls; }
-	int GetBatchCount() const { return renderStats.totalBatches; }
-	int GetInstancedObjectCount() const { return renderStats.instancedObjects; }
+	int GetTotalObjects() const {
+		return renderStats.totalObjects;
+	}
+	int GetDrawCallCount() const {
+		return renderStats.drawCalls;
+	}
+	int GetBatchCount() const {
+		return renderStats.totalBatches;
+	}
+	int GetInstancedObjectCount() const {
+		return renderStats.instancedObjects;
+	}
 
 	// Reference render size
 	static constexpr int kRefW = 1200;

@@ -15,17 +15,16 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "LevelEditorPickDrag.hpp"
 #include "LevelEditorPanelLevel.hpp"
+#include "LevelEditorPickDrag.hpp"
 
+#include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/SceneManager.hpp"
-#include "../Graphics/GameObject.hpp"
 
-
-#include <imgui.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
 #include <vector>
 
 namespace LEPICKDRAG {
@@ -121,8 +120,7 @@ namespace LEPICKDRAG {
 
 		if (!io.WantCaptureKeyboard &&
 			selectedObjectId >= 0 &&
-			ImGui::IsKeyPressed(ImGuiKey_Delete))
-		{
+			ImGui::IsKeyPressed(ImGuiKey_Delete)) {
 			LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
 
 			// Remove the object from the scene

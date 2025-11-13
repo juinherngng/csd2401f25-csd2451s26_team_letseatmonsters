@@ -20,17 +20,17 @@
 #include "LevelEditor.hpp"
 #include "LevelEditorFileIO.hpp"
 
-#include "../Graphics/SceneManager.hpp"
 #include "../Graphics/GameObject.hpp"
-#include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
+#include "../Graphics/ResourceManager.hpp"
+#include "../Graphics/SceneManager.hpp"
 
 #include <imgui.h>
 
 #include <algorithm>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 using namespace LEFILEIO;
 
