@@ -768,7 +768,7 @@ namespace LEPANELLEVEL {
 			// Current layer name (fallback to "Default" if empty)
 			std::string currentLayer = scene.GetObjectLayer(id);
 			if (currentLayer.empty()) {
-				currentLayer = "Default";
+				currentLayer = "1";
 			}
 
 			// Build a sorted list of layer names (always include "Default")
@@ -971,7 +971,7 @@ namespace LEPANELLEVEL {
 					// Snapshot BEFORE creating instance from prefab
 					PushUndoSnapshot(editor, scene);
 
-					std::string prefabLayer = data.layer.empty() ? "Default" : data.layer;
+					std::string prefabLayer = data.layer.empty() ? "1" : data.layer;
 					GameObject* g = scene.SpawnStaticSprite(
 						data.texture,
 						{ data.x, data.y, data.z },
