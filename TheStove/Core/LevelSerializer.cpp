@@ -65,7 +65,8 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "col_offy", obj.colOffsetY },
 		{ "speed_x", obj.speedX },
 		{ "speed_y", obj.speedY },
-		{ "animated", obj.animated }
+		{ "animated", obj.animated },
+		{ "layer", obj.layer }
 	};
 
 	return jsonData;

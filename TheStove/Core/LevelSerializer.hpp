@@ -18,7 +18,7 @@
 
  // Types
 struct LevelObject {
-	// Texture / tagging
+	// Texture / tagging / layer
 	std::string texture;
 	std::string tag;
 	std::string layer;

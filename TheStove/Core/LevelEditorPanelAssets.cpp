@@ -119,7 +119,7 @@ namespace LEPANELASSETS {
 
 				if (!projPath.empty()) {
 					// Refresh list after copy
-					sPrefabs = ListAssetsWithExt("./prefabs", { ".json" });
+					sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
 
 					// Invalidate prefab preview thumbnails so they reload
 					sPrefabPreviewCache.clear();
@@ -228,7 +228,7 @@ namespace LEPANELASSETS {
 		// Prefabs section
 		if (ImGui::CollapsingHeader("Prefabs", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##pf")) {
-				sPrefabs = ListAssetsWithExt("./prefabs", { ".json" });
+				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
 				sPrefabPreviewCache.clear();
 			}
 
@@ -295,11 +295,10 @@ namespace LEPANELASSETS {
 			}
 
 			if (refreshPrefabs) {
-				sPrefabs = ListAssetsWithExt("./prefabs", { ".json" });
+				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
 				sPrefabPreviewCache.clear();
 			}
 		}
-
 
 		ImGui::EndChild();
 		ImGui::End();

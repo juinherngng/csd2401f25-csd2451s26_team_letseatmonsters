@@ -157,6 +157,9 @@ namespace LEPANELPREFABS {
 					// Animation flag
 					out.animated = scene.HasAnimations(selectedObjectId);
 
+					// Layer
+					out.layer = scene.GetObjectLayer(selectedObjectId);
+
 					// Save and refresh list
 					std::string savePath = prefabPath;
 					if (SavePrefabToFile(savePath, out)) {
