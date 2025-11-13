@@ -936,8 +936,8 @@ namespace LEPANELLEVEL {
 		}
 
 		// Scene viewport area: DROP-ZONE ONLY (picking/dragging happens on the Scene tab)
-		ImGui::Separator();
-		ImGui::TextDisabled("Drop prefab to instantiate,\nor texture to apply to selected");
+		ImGui::Spacing();
+		ImGui::TextDisabled("Drag & drop prefabs or textures here.");
 
 		ImVec2 viewportSize = ImGui::GetContentRegionAvail();
 		if (viewportSize.y < 64.f) {

@@ -45,8 +45,7 @@ namespace LEPANELASSETS {
 			return;
 		}
 
-		ImGui::Text("Assets");
-		ImGui::Spacing();
+		ImGui::SeparatorText("Assets");
 
 		ImGui::BeginChild("##AssetsBox", ImVec2(0, 0), true);
 
@@ -59,6 +58,9 @@ namespace LEPANELASSETS {
 
 		// Cache to avoid reloading preview textures every frame
 		static std::unordered_map<std::string, Texture*> sTexturePreviewCache;
+
+		// Cache for prefab thumbnails (keyed by prefab JSON path)
+		static std::unordered_map<std::string, Texture*> sPrefabPreviewCache;
 
 		// Import row
 		if (ImGui::Button("Import Texture...")) {
@@ -117,7 +119,10 @@ namespace LEPANELASSETS {
 
 				if (!projPath.empty()) {
 					// Refresh list after copy
-					sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+					sPrefabs = ListAssetsWithExt("./prefabs", { ".json" });
+
+					// Invalidate prefab preview thumbnails so they reload
+					sPrefabPreviewCache.clear();
 				}
 			}
 		}
@@ -222,15 +227,48 @@ namespace LEPANELASSETS {
 
 		// Prefabs section
 		if (ImGui::CollapsingHeader("Prefabs", ImGuiTreeNodeFlags_DefaultOpen)) {
-			if (ImGui::Button("Refresh##pf"))
-				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+			if (ImGui::Button("Refresh##pf")) {
+				sPrefabs = ListAssetsWithExt("./prefabs", { ".json" });
+				sPrefabPreviewCache.clear();
+			}
 
 			bool refreshPrefabs = false;
 
 			for (const auto& path : sPrefabs) {
 				ImGui::PushID(path.c_str());
 
-				ImGui::Selectable(path.c_str(), false);
+				// Fetch or build a thumbnail for this prefab
+				Texture* previewTex = nullptr;
+				auto it = sPrefabPreviewCache.find(path);
+				if (it != sPrefabPreviewCache.end()) {
+					previewTex = it->second;
+				}
+				else {
+					LevelObject data{};
+					if (LoadPrefabFromFile(path, data) && !data.texture.empty()) {
+						// Reuse the same texture loader as the texture list
+						previewTex = LoadTextureBypassingCache(data.texture);
+					}
+
+					// Cache even nullptr so we don’t keep trying failed loads
+					sPrefabPreviewCache[path] = previewTex;
+				}
+
+				const float iconSize = 32.0f;
+
+				// Draw prefab sprite thumbnail (if any), then the file name
+				if (previewTex) {
+					ImTextureID texID = (ImTextureID)(intptr_t)previewTex->GetID();
+					ImGui::Image(
+						texID,
+						ImVec2(iconSize, iconSize),
+						ImVec2(0, 1),
+						ImVec2(1, 0)
+					);
+					ImGui::SameLine();
+				}
+
+				ImGui::Selectable(path.c_str(), false, 0, ImVec2(0.0f, iconSize));
 
 				// Drag source (instantiate/apply in Level panel targets)
 				if (ImGui::BeginDragDropSource()) {
@@ -245,6 +283,8 @@ namespace LEPANELASSETS {
 					if (ImGui::MenuItem("Delete")) {
 						if (MoveToTrash(path)) {
 							refreshPrefabs = true;
+							// Also drop the cached thumbnail for this prefab
+							sPrefabPreviewCache.erase(path);
 						}
 					}
 
@@ -255,9 +295,11 @@ namespace LEPANELASSETS {
 			}
 
 			if (refreshPrefabs) {
-				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+				sPrefabs = ListAssetsWithExt("./prefabs", { ".json" });
+				sPrefabPreviewCache.clear();
 			}
 		}
+
 
 		ImGui::EndChild();
 		ImGui::End();

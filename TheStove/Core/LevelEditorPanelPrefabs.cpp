@@ -62,8 +62,7 @@ namespace LEPANELPREFABS {
 			return;
 		}
 
-		ImGui::Text("Prefabs / Archetypes");
-		ImGui::Spacing();
+		ImGui::SeparatorText("Prefabs / Archetypes");
 
 		// Prefab path row (combo + input + refresh)
 		static char prefabPathBuf[256] = "../prefabs/my_goat.json";
