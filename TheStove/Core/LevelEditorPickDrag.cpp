@@ -35,6 +35,9 @@ namespace LEPICKDRAG {
 			return;
 		}
 
+		// ImGui IO for keyboard checks (used later for Delete key)
+		ImGuiIO& io = ImGui::GetIO();
+
 		// Function-scoped statics follow your naming rule: camelCase with leading underscore.
 		static bool isDragging = false;
 		static int draggingId = -1;
@@ -109,6 +112,20 @@ namespace LEPICKDRAG {
 
 		// LMB release: stop dragging
 		if (isDragging && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			isDragging = false;
+			draggingId = -1;
+		}
+
+		if (!io.WantCaptureKeyboard &&
+			selectedObjectId >= 0 &&
+			ImGui::IsKeyPressed(ImGuiKey_Delete))
+		{
+			// Remove the object from the scene
+			scene.DespawnByID(selectedObjectId);
+
+			// Clear selection and drag state so inspector & editor are clean
+			selectedObjectId = -1;
+			selectedIndex = -1;
 			isDragging = false;
 			draggingId = -1;
 		}
