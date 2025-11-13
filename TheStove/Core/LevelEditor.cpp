@@ -50,7 +50,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 	// ----- Panels -----
 	LEPANELLEVEL::DrawLevelPanel(*this, scene, selectedIndex, selectedObjectId);
 	LEPANELPREFABS::DrawPrefabsPanel(*this, scene, selectedObjectId);
-	LEPANELASSETS::DrawAssetsPanel(*this, scene, selectedIndex);
+	LEPANELASSETS::DrawAssetsPanel(*this, scene, selectedIndex, selectedObjectId);
 
 	// Disable editor picking/dragging while the game is running
 	if (!isPlaying) {

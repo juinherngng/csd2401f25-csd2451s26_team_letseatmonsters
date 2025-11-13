@@ -38,7 +38,7 @@ using namespace LEFILEIO;
 
 namespace LEPANELASSETS {
 	// Draw the Assets docked window
-	void DrawAssetsPanel(LevelEditor& editor, Scene& scene, int& selectedIndex) {
+	void DrawAssetsPanel(LevelEditor& editor, Scene& scene, int& selectedIndex, int selectedObjectId) {
 		// Dock into the main dockspace on first use (safe no-op otherwise)
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 
@@ -81,14 +81,9 @@ namespace LEPANELASSETS {
 						|| ImGui::IsKeyDown(ImGuiKey_LeftCtrl)
 						|| ImGui::IsKeyDown(ImGuiKey_RightCtrl);
 
-					if (!skipAutoApply) {
-						std::vector<GameObject*> objectList;
-						scene.CollectRenderablePointers(objectList);
-
-						if (selectedIndex >= 0 &&
-							selectedIndex < static_cast<int>(objectList.size()) &&
-							objectList[selectedIndex] != nullptr) {
-							GameObject* obj = objectList[selectedIndex];
+					if (!skipAutoApply && selectedObjectId != -1) {
+						GameObject* obj = scene.GetGameObjectByID(selectedObjectId);
+						if (obj) {
 							const int id = obj->GetID();
 
 							scene.SetObjectTexturePath(id, projectPath);
@@ -96,7 +91,6 @@ namespace LEPANELASSETS {
 							if (Texture* tex = LoadTextureBypassingCache(projectPath)) {
 								obj->SetTexture(tex);
 
-								// Optional: project-specific animation tagging
 								if (projectPath.find("dino_") != std::string::npos) {
 									scene.AttachDinoAnimations(id);
 									scene.SetAnimation(id, "IDLE");
@@ -177,26 +171,25 @@ namespace LEPANELASSETS {
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
 					ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
 
-					std::vector<GameObject*> objs;
-					scene.CollectRenderablePointers(objs);
+					if (selectedObjectId != -1) {
+						GameObject* o = scene.GetGameObjectByID(selectedObjectId);
+						if (o) {
+							const int id2 = o->GetID();
 
-					if (selectedIndex >= 0 && selectedIndex < static_cast<int>(objs.size()) && objs[selectedIndex]) {
-						GameObject* o = objs[selectedIndex];
-						const int id2 = o->GetID();
+							scene.SetObjectTexturePath(id2, path);
 
-						scene.SetObjectTexturePath(id2, path);
+							if (auto* tex = LoadTextureBypassingCache(path)) {
+								o->SetTexture(tex);
 
-						if (auto* tex = LoadTextureBypassingCache(path)) {
-							o->SetTexture(tex);
-
-							if (path.find("dino_") != std::string::npos) {
-								scene.AttachDinoAnimations(id2);
-								scene.SetAnimation(id2, "IDLE");
-								scene.MarkAnimated(id2, true);
-							}
-							else {
-								o->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
-								scene.MarkAnimated(id2, false);
+								if (path.find("dino_") != std::string::npos) {
+									scene.AttachDinoAnimations(id2);
+									scene.SetAnimation(id2, "IDLE");
+									scene.MarkAnimated(id2, true);
+								}
+								else {
+									o->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
+									scene.MarkAnimated(id2, false);
+								}
 							}
 						}
 					}

@@ -238,15 +238,12 @@ public:
 	Layer* GetLayer(const std::string& name);
 	const std::unordered_map<std::string, Layer>& GetAllLayers() const;
 	std::string GetObjectLayer(int objectID) const;
+
 	// Registers or moves an object to a new layer, updating both the layer map and the object's metadata.
 	void AssignObjectToLayer(int id, const std::string& newLayer);
+	void RemoveLayer(const std::string& name);
 
 	void UpdateAnimationControls();
-
-	// Editor selection gizmo support
-	void SetEditorSelectedID(int id) { editorSelectedId = id; }
-	int  GetEditorSelectedID() const { return editorSelectedId; }
-
 
 private:
 	// Helper Methods
@@ -291,7 +288,6 @@ private:
 
 	// Defaults data
 	std::unordered_map<int, Defaults> defaults_;
-
 
 	// Layer data
 	std::unordered_map<std::string, Layer> layers;

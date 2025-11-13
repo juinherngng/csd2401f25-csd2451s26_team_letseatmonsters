@@ -16,6 +16,7 @@
 
 #include <vector>
 #include <string>
+#include <algorithm>
 
 class Layer {
 public:
@@ -24,20 +25,34 @@ public:
 
     Layer(const std::string& name) : name(name) {}
 
-    void AddObject(int id) { objectIDs.push_back(id); }
+    void AddObject(int id) {
+        if (std::find(objectIDs.begin(), objectIDs.end(), id) == objectIDs.end()) {
+            objectIDs.push_back(id);
+        }
+    }
 
     void RemoveObject(int id) {
-        objectIDs.erase(std::remove(objectIDs.begin(), objectIDs.end(), id), objectIDs.end());
+        objectIDs.erase(
+            std::remove(objectIDs.begin(), objectIDs.end(), id),
+            objectIDs.end());
     }
 
     const std::vector<int>& GetObjects() const { return objectIDs; }
 
     std::string GetName() const { return name; }
+    void SetName(const std::string& newName) { name = newName; }
+
+    bool IsVisible() const { return visible; }
+    void SetVisible(bool v) { visible = v; }
+
+    bool IsCollidable() const { return collidable; }
+    void SetCollidable(bool c) { collidable = c; }
 
 private:
     std::string name;
     std::vector<int> objectIDs;
+
+    bool visible = true;
+    bool collidable = true;
+
 };
-
-
-

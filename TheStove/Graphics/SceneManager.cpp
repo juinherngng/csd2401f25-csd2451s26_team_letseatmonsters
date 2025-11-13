@@ -16,6 +16,7 @@
 #include <iostream>
 #include <algorithm>
 #include <random>
+#include <cctype>
 #include <glm/ext/matrix_clip_space.hpp>
 
 #include "SceneManager.hpp"
@@ -150,6 +151,9 @@ Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& a
 {
 	// Set the EntityManager reference in AnimationManager
 	animationManager.SetEntityManager(&entityManager);
+
+	// Basic default layer used when no explicit layer name is given
+	AddLayer("1");
 }
 
 void Scene::LoadScene(const std::string& sceneName) {
@@ -306,9 +310,64 @@ void Scene::DespawnByID(int targetID) {
 
 
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
-	out = entityManager.GetAllObjects();
-}
+	out.clear();
 
+	std::vector<GameObject*> all = entityManager.GetAllObjects();
+	out.reserve(all.size());
+
+	for (GameObject* g : all) {
+		if (!g) {
+			continue;
+		}
+
+		// Check the layer's visibility flag
+		const std::string layerName = GetObjectLayer(g->GetID());
+		Layer* layer = GetLayer(layerName);
+		if (layer && !layer->IsVisible()) {
+			// Hidden layer → not shown in editor hierarchy / gizmos
+			continue;
+		}
+
+		out.push_back(g);
+	}
+
+	auto parseLayerNumber = [](const std::string& s) -> int {
+		if (s.empty()) {
+			return 1;   // base layer
+		}
+
+		int result = 0;
+		for (char c : s) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				// Any non-numeric layer name behaves like a very "high" layer
+				// so that it draws on top of numeric layers.
+				return 1000000;
+			}
+			result = result * 10 + (c - '0');
+		}
+		return result;
+		};
+
+	std::sort(
+		out.begin(),
+		out.end(),
+		[&](GameObject* a, GameObject* b) {
+			const std::string laName = GetObjectLayer(a->GetID());
+			const std::string lbName = GetObjectLayer(b->GetID());
+
+			int la = parseLayerNumber(laName);
+			int lb = parseLayerNumber(lbName);
+
+			// Different layers → smaller layer number drawn first
+			if (la != lb) {
+				return la < lb;
+			}
+
+			// Same layer - higher Y drawn first (lower on screen appears in front)
+			return a->GetPosition().y > b->GetPosition().y;
+		}
+	);
+}
 
 std::vector<GameObject*> Scene::GetAllObjectsRaw() {
 	return entityManager.GetAllObjects();
@@ -390,6 +449,15 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 	GameObject* sprite = entityMgr.GetByID(spriteID);
 	if (!sprite) return;
 
+	// If the player's layer is non-collidable, skip all player–object collisions.
+	{
+		std::string playerLayer = GetObjectLayer(spriteID);
+		Layer* pl = GetLayer(playerLayer);
+		if (pl && !pl->IsCollidable()) {
+			return;
+		}
+	}
+
 	const glm::vec3 position = sprite->GetPositionGLM();
 
 	// Build player's current AABB for spatial query
@@ -408,6 +476,15 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 	for (GameObject* other : candidates) {
 		if (other == nullptr || other == sprite) {
 			continue;
+		}
+
+		// Skip objects whose layer has collisions turned off
+		{
+			std::string otherLayer = GetObjectLayer(other->GetID());
+			Layer* ol = GetLayer(otherLayer);
+			if (ol && !ol->IsCollidable()) {
+				continue;
+			}
 		}
 
 		const Math::Vector2D gSize = other->GetColliderSize();
@@ -758,14 +835,32 @@ std::string Scene::GetObjectLayer(int objectID) const {
 }
 
 void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
+	std::string layerName = newLayer;
+	if (layerName.empty()) layerName = "1";
+
 	// Remove object from all layers' ID lists
-	for (auto& pair : layers)
+	for (auto& pair : layers) {
 		pair.second.RemoveObject(id);
+	}
+
 	// Register object ID with chosen layer (creates if missing)
-	layers[newLayer].AddObject(id);
-	defaults_[id].layer = newLayer; // For UI/metadata
+	Layer& layer = layers[layerName];
+	if (layer.GetName().empty()) {
+		layer.SetName(layerName);
+	}
+
+	layer.AddObject(id);
+
+	// Store on metadata used by the editor + JSON
+	defaults_[id].layer = layerName;
 }
 
+void Scene::RemoveLayer(const std::string& name) {
+	auto it = layers.find(name);
+	if (it != layers.end()) {
+		layers.erase(it);
+	}
+}
 
 void Scene::UpdateAnimationControls()
 {

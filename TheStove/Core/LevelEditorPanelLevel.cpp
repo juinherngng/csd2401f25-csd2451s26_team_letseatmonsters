@@ -29,6 +29,7 @@
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
+#include "../Graphics/Layer.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -93,11 +94,14 @@ namespace {
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
 
+			// Use "Default" when the saved layer name is empty
+			std::string layerName = obj.layer.empty() ? "1" : obj.layer;
+
 			// Spawn animated or static
 			if (obj.animated) {
 				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h },
-					fullFrame, 0.25f, true, obj.layer);
+					fullFrame, 0.25f, true, layerName);
 
 				if (obj.texture.find("dino") != std::string::npos) {
 					scene.AttachDinoAnimations(g->GetID());
@@ -107,7 +111,7 @@ namespace {
 				}
 			}
 			else {
-				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, obj.layer);
+				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
 			}
 
 			if (!g) {
@@ -175,8 +179,7 @@ namespace {
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut) {
 		levelOut.objects.clear();
 
-		std::vector<GameObject*> list;
-		scene.CollectRenderablePointers(list);
+		std::vector<GameObject*> list = scene.GetAllObjectsRaw();
 
 		for (GameObject* g : list) {
 			if (!g) {
@@ -221,6 +224,98 @@ namespace {
 			out.speedX = v.x; out.speedY = v.y;
 
 			levelOut.objects.push_back(out);
+		}
+	}
+
+	// Draws the advanced Layering System UI
+	static void DrawLayerManager(Scene& scene, int selectedObjectId) {
+		if (!ImGui::CollapsingHeader("Layering System", ImGuiTreeNodeFlags_DefaultOpen)) {
+			return;
+		}
+
+		// New layer creation
+		ImGui::TextUnformatted("Create a new layer:");
+		static char newLayerBuf[64] = "";
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5f);
+		ImGui::InputText("##NewLayerName", newLayerBuf, IM_ARRAYSIZE(newLayerBuf));
+		ImGui::SameLine();
+
+		if (ImGui::Button("Add Layer") && newLayerBuf[0] != '\0') {
+			scene.AddLayer(newLayerBuf);
+			newLayerBuf[0] = '\0';
+		}
+
+		ImGui::Separator();
+		ImGui::TextUnformatted("Existing layers:");
+		ImGui::Separator();
+
+		const auto& layerMap = scene.GetAllLayers();
+		if (layerMap.empty()) {
+			ImGui::TextDisabled("No layers yet. Objects fall back to \"Default\".");
+			return;
+		}
+
+		// Copy & sort by name for stable display
+		std::vector<std::pair<std::string, const Layer*>> sorted;
+		sorted.reserve(layerMap.size());
+		for (const auto& pair : layerMap) {
+			sorted.emplace_back(pair.first, &pair.second);
+		}
+
+		for (const auto& entry : sorted) {
+			const std::string& layerName = entry.first;
+			Layer* layer = scene.GetLayer(layerName);
+			if (!layer) {
+				continue;
+			}
+
+			ImGui::PushID(layerName.c_str());
+
+			bool visible = layer->IsVisible();
+			bool collidable = layer->IsCollidable();
+			const int count = static_cast<int>(layer->GetObjects().size());
+
+			// Layer name
+			ImGui::TextUnformatted(layerName.c_str());
+			ImGui::SameLine(180.0f);
+
+			// Visible checkbox
+			if (ImGui::Checkbox("Visible", &visible)) {
+				layer->SetVisible(visible);
+			}
+
+			ImGui::SameLine();
+
+			// Collisions checkbox
+			if (ImGui::Checkbox("Collisions", &collidable)) {
+				layer->SetCollidable(collidable);
+			}
+
+			ImGui::SameLine();
+			ImGui::TextDisabled("(%d objects)", count);
+
+			// Assign + Delete buttons
+			if (selectedObjectId != -1) {
+				ImGui::SameLine();
+				if (ImGui::Button("Assign selected")) {
+					scene.AssignObjectToLayer(selectedObjectId, layerName);
+				}
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Delete")) {
+				// Optional: don't allow deleting base layer "1"
+				if (layerName != "1") {
+					// Move all objects on this layer back to layer 1
+					for (int objID : layer->GetObjects()) {
+						scene.AssignObjectToLayer(objID, "1");
+					}
+
+					scene.RemoveLayer(layerName);
+				}
+			}
+
+			ImGui::PopID();
 		}
 	}
 }
@@ -355,12 +450,52 @@ namespace LEPANELLEVEL {
 			}
 		}
 
+		DrawLayerManager(scene, selectedObjectId);
+
 		ImGui::Separator();
 
-		// Object Hierarchy
-		std::vector<GameObject*> objectList;
-		scene.CollectRenderablePointers(objectList);
+		// Object Hierarchy – stable order independent of movement
+		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
 
+		// Remove objects whose layer is currently hidden
+		objectList.erase(
+			std::remove_if(objectList.begin(), objectList.end(),
+				[&](GameObject* g) {
+					if (!g) {
+						return true;
+					}
+					std::string layerName = scene.GetObjectLayer(g->GetID());
+					Layer* layer = scene.GetLayer(layerName);
+					return (layer && !layer->IsVisible());
+				}),
+			objectList.end());
+
+		// Sort by ID so list doesn’t reshuffle when objects move
+		std::sort(objectList.begin(), objectList.end(),
+			[](GameObject* a, GameObject* b) {
+				return a->GetID() < b->GetID();
+			});
+
+		// Keep hierarchy row in sync with selection by ID (click in Scene)
+		if (selectedObjectId != -1) {
+			int foundIndex = -1;
+			for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
+				GameObject* g = objectList[i];
+				if (g && g->GetID() == selectedObjectId) {
+					foundIndex = i;
+					break;
+				}
+			}
+
+			selectedIndex = foundIndex;
+
+			// If the object was deleted or is on a hidden layer, clear selection
+			if (selectedIndex == -1) {
+				selectedObjectId = -1;
+			}
+		}
+
+		// Hierarchy
 		if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200.0f))) {
 			for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
 				GameObject* g = objectList[i];
@@ -368,7 +503,7 @@ namespace LEPANELLEVEL {
 					continue;
 				}
 
-				const int gid = g->GetID();
+				const int gid = g->GetID();	
 				std::string niceName;
 
 				// Prefer tag; fall back to texture stem
@@ -389,16 +524,21 @@ namespace LEPANELLEVEL {
 					? ("ID " + std::to_string(gid) + " [Layer: " + layer + "]")
 					: (niceName + " (ID " + std::to_string(gid) + ") [Layer: " + layer + "]");
 
+				ImGui::PushID(gid);
+				bool isSelected = (selectedObjectId == gid);
+
 				// When playing, draw items but DO NOT allow selection to change
 				if (editor.IsPlaying()) {
-					ImGui::Selectable(label.c_str(), selectedIndex == i, ImGuiSelectableFlags_Disabled);
+					ImGui::Selectable(label.c_str(), isSelected, ImGuiSelectableFlags_Disabled);
 				}
 				else {
-					if (ImGui::Selectable(label.c_str(), selectedIndex == i)) {
+					if (ImGui::Selectable(label.c_str(), isSelected)) {
 						selectedIndex = i;
 						selectedObjectId = gid;
 					}
 				}
+
+				ImGui::PopID();
 			}
 
 			ImGui::EndListBox();
@@ -420,7 +560,7 @@ namespace LEPANELLEVEL {
 			proto.w = 128.f; proto.h = 128.f;
 			proto.rotation = 0.f;
 
-			if (GameObject* obj = scene.SpawnStaticSprite(proto.texture, { proto.x, proto.y, proto.z }, { proto.w, proto.h })) {
+			if (GameObject* obj = scene.SpawnStaticSprite(proto.texture, { proto.x, proto.y, proto.z }, { proto.w, proto.h }, "1")) {
 				obj->SetColliderSize({ proto.colWidth, proto.colHeight });
 				obj->SetColliderOffset({ proto.colOffsetX, proto.colOffsetY });
 
@@ -621,11 +761,46 @@ namespace LEPANELLEVEL {
 			ImGui::Text("Layer"); ImGui::NextColumn();
 			FullWidthNext();
 
-			char layerBuf[64] = "";
-			std::string layerName = scene.GetObjectLayer(id);
-			std::snprintf(layerBuf, sizeof(layerBuf), "%s", layerName.c_str());
+			// Current layer name (fallback to "Default" if empty)
+			std::string currentLayer = scene.GetObjectLayer(id);
+			if (currentLayer.empty()) {
+				currentLayer = "Default";
+			}
 
-			ImGui::InputText("##Layer", layerBuf, IM_ARRAYSIZE(layerBuf), ImGuiInputTextFlags_ReadOnly);
+			// Build a sorted list of layer names (always include "Default")
+			std::vector<std::string> layerNames;
+			layerNames.reserve(scene.GetAllLayers().size() + 1);
+			layerNames.push_back("1");
+
+			const auto& allLayers = scene.GetAllLayers();
+			for (const auto& pair : allLayers) {
+				const std::string& name = pair.first;
+				if (name.empty()) {
+					continue;
+				}
+				if (std::find(layerNames.begin(), layerNames.end(), name) == layerNames.end()) {
+					layerNames.push_back(name);
+				}
+			}
+
+			std::sort(layerNames.begin(), layerNames.end());
+
+			const char* previewLayer = currentLayer.c_str();
+			if (ImGui::BeginCombo("##Layer", previewLayer)) {
+				for (const std::string& name : layerNames) {
+					bool isSelected = (currentLayer == name);
+					if (ImGui::Selectable(name.c_str(), isSelected)) {
+						// Snapshot before changing the layer
+						PushUndoSnapshot(editor, scene);
+						scene.AssignObjectToLayer(id, name);
+						currentLayer = name;
+					}
+					if (isSelected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
 			ImGui::NextColumn();
 
 			// Position
@@ -792,8 +967,12 @@ namespace LEPANELLEVEL {
 					// Snapshot BEFORE creating instance from prefab
 					PushUndoSnapshot(editor, scene);
 
+					std::string prefabLayer = data.layer.empty() ? "Default" : data.layer;
 					GameObject* g = scene.SpawnStaticSprite(
-						data.texture, { data.x, data.y, data.z }, { data.w, data.h });
+						data.texture,
+						{ data.x, data.y, data.z },
+						{ data.w, data.h },
+						prefabLayer);
 
 					if (g) {
 						// link prefab to instance for propagation
@@ -817,31 +996,39 @@ namespace LEPANELLEVEL {
 				const char* droppedCStr = static_cast<const char*>(tp->Data);
 				const std::string dropped = droppedCStr ? std::string(droppedCStr) : std::string();
 
-				if (!objectListForViewport.empty() &&
-					selectedIndex >= 0 &&
-					selectedIndex < static_cast<int>(objectListForViewport.size()) &&
-					objectListForViewport[selectedIndex]) {
-					// Snapshot BEFORE applying new texture
-					PushUndoSnapshot(editor, scene);
-
-					GameObject* o = objectListForViewport[selectedIndex];
-					const int id2 = o->GetID();
-
-					// Store path in scene metadata
-					scene.SetObjectTexturePath(id2, dropped);
-					if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + dropped), dropped)) {
-						o->SetTexture(tex);
-
-						// If this is one of your animated dino sprites, wire up animation
-						if (dropped.find("dino_") != std::string::npos) {
-							scene.AttachDinoAnimations(id2);
-							scene.SetAnimation(id2, "IDLE");
-							scene.MarkAnimated(id2, true);
+				if (selectedObjectId != -1) {
+					// Find the selected object by ID in the render-sorted list
+					GameObject* o = nullptr;
+					for (GameObject* cand : objectListForViewport) {
+						if (cand && cand->GetID() == selectedObjectId) {
+							o = cand;
+							break;
 						}
-						else {
-							// Non-animated: reset to full-frame UV and mark as static
-							o->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
-							scene.MarkAnimated(id2, false);
+					}
+
+					if (o) {
+						// Snapshot BEFORE applying new texture
+						PushUndoSnapshot(editor, scene);
+
+						// GameObject* o = objectListForViewport[selectedIndex];
+						const int id2 = o->GetID();
+
+						// Store path in scene metadata
+						scene.SetObjectTexturePath(id2, dropped);
+						if (auto* tex = ResourceManager::Instance().LoadTexture(("sprite_" + dropped), dropped)) {
+							o->SetTexture(tex);
+
+							// If this is one of your animated dino sprites, wire up animation
+							if (dropped.find("dino_") != std::string::npos) {
+								scene.AttachDinoAnimations(id2);
+								scene.SetAnimation(id2, "IDLE");
+								scene.MarkAnimated(id2, true);
+							}
+							else {
+								// Non-animated: reset to full-frame UV and mark as static
+								o->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
+								scene.MarkAnimated(id2, false);
+							}
 						}
 					}
 				}

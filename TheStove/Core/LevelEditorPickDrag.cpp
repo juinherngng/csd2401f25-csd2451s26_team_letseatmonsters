@@ -78,8 +78,9 @@ namespace LEPICKDRAG {
 			}
 
 			if (picked >= 0) {
-				selectedIndex = picked;
+				// Drive selection by object ID
 				selectedObjectId = list[picked]->GetID();
+				selectedIndex = -1;   // will be recomputed in the Level panel
 
 				LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
 
@@ -88,10 +89,6 @@ namespace LEPICKDRAG {
 
 				isDragging = true;
 				draggingId = selectedObjectId;
-			}
-			else {
-				isDragging = false;
-				draggingId = -1;
 			}
 		}
 
