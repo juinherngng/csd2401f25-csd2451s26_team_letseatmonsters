@@ -28,9 +28,13 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <cctype>
+#include <filesystem>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 using namespace LEFILEIO;
 
@@ -49,6 +53,26 @@ namespace LEPANELASSETS {
 
 		ImGui::BeginChild("##AssetsBox", ImVec2(0, 0), true);
 
+		// Helper to gather audio from both ../assets and ../assets/Audio
+		auto BuildAudioList = []() {
+			std::vector<std::string> all;
+
+			{
+				auto root = ListAssetsWithExt("../assets", { ".wav" });
+				all.insert(all.end(), root.begin(), root.end());
+			}
+			{
+				auto sub = ListAssetsWithExt("../assets/Audio", { ".wav" });
+				all.insert(all.end(), sub.begin(), sub.end());
+			}
+
+			// Sort + dedupe for stable ordering
+			std::sort(all.begin(), all.end());
+			all.erase(std::unique(all.begin(), all.end()), all.end());
+
+			return all;
+			};
+
 		// Static caches for file lists (refresh when importing or on demand)
 		static std::vector<std::string> sTextures =
 			ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
@@ -56,11 +80,22 @@ namespace LEPANELASSETS {
 		static std::vector<std::string> sPrefabs =
 			ListAssetsWithExt("../prefabs", { ".json" });
 
+		// Audio (.wav) across assets + assets/Audio
+		static std::vector<std::string> sAudio = BuildAudioList();
+
 		// Cache to avoid reloading preview textures every frame
 		static std::unordered_map<std::string, Texture*> sTexturePreviewCache;
 
 		// Cache for prefab thumbnails (keyed by prefab JSON path)
 		static std::unordered_map<std::string, Texture*> sPrefabPreviewCache;
+
+		// Audio icon for audio assets
+		static Texture* sAudioIcon = nullptr;
+
+		// State for audio import error popup
+		static bool sAudioErrorPending = false;
+		static bool sAudioPopupOpen = true;
+		static std::string sAudioErrorMessage;
 
 		// Import row
 		if (ImGui::Button("Import Texture...")) {
@@ -125,6 +160,76 @@ namespace LEPANELASSETS {
 					sPrefabPreviewCache.clear();
 				}
 			}
+		}
+
+		ImGui::SameLine();
+
+		// Import Audio (.wav only)
+		if (ImGui::Button("Import Audio...")) {
+			const std::string picked =
+				OpenFileDialog("All files\0*.*\0");
+
+			if (!picked.empty()) {
+				// Extract extension from picked path
+				std::string ext;
+				const size_t dot = picked.find_last_of('.');
+				if (dot != std::string::npos) {
+					ext = picked.substr(dot);
+				}
+
+				std::transform(ext.begin(), ext.end(), ext.begin(),
+					[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+				// Our engine/editor only supports .wav; anything else is blocked
+				if (ext != ".wav") {
+					sAudioErrorMessage =
+						"Unsupported audio file type: \"" + ext +
+						"\".\n\nOnly .wav audio files are supported by this editor.";
+					sAudioErrorPending = true;
+				}
+				else {
+					// Copy into project audio folder
+					const std::string projPath =
+						CopyFileIntoProjectUnique(picked, "../assets/Audio");
+
+					if (!projPath.empty()) {
+						// Refresh audio list after copy
+						sAudio = BuildAudioList();
+					}
+				}
+			}
+		}
+
+		// Audio import error popup (standalone, centered)
+		if (sAudioErrorPending) {
+			ImGui::OpenPopup("Audio Import Error");
+			sAudioPopupOpen = true;
+			sAudioErrorPending = false;
+		}
+
+		if (ImGui::BeginPopupModal(
+			"Audio Import Error",
+			&sAudioPopupOpen,
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+			// Center the popup on first appear
+			const ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+			ImGui::SetWindowPos(center, ImGuiCond_Appearing);
+
+			ImGui::TextWrapped("%s", sAudioErrorMessage.c_str());
+			ImGui::Spacing();
+			ImGui::Separator();
+			ImGui::Spacing();
+
+			// Center the OK button
+			ImGui::SetCursorPosX(
+				ImGui::GetCursorPosX() +
+				(ImGui::GetContentRegionAvail().x - 120.0f) * 0.5f);
+
+			if (ImGui::Button("OK", ImVec2(120.0f, 0.0f))) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
 		}
 
 		ImGui::Separator();
@@ -297,6 +402,65 @@ namespace LEPANELASSETS {
 			if (refreshPrefabs) {
 				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
 				sPrefabPreviewCache.clear();
+			}
+		}
+
+		// Audio section
+		if (ImGui::CollapsingHeader("Audio", ImGuiTreeNodeFlags_DefaultOpen)) {
+			if (ImGui::Button("Refresh##audio")) {
+				sAudio = BuildAudioList();
+			}
+
+			// Lazy-load a generic icon once (placeholder)
+			if (!sAudioIcon) {
+				sAudioIcon = LoadTextureBypassingCache("../assets/mc_sprite_front.png");
+			}
+
+			bool refreshAudio = false;
+			const float iconSize = 32.0f;
+
+			for (const auto& path : sAudio) {
+				ImGui::PushID(path.c_str());
+
+				// Draw icon, same style as textures/prefabs
+				if (sAudioIcon) {
+					ImTextureID texID = (ImTextureID)(intptr_t)sAudioIcon->GetID();
+					ImGui::Image(
+						texID,
+						ImVec2(iconSize, iconSize),
+						ImVec2(0, 1),
+						ImVec2(1, 0));
+					ImGui::SameLine();
+				}
+
+				// Make the selectable at least as tall as the icon
+				ImGui::Selectable(path.c_str(), false, 0, ImVec2(0.0f, iconSize));
+
+				// Drag source so other panels can receive audio
+				if (ImGui::BeginDragDropSource()) {
+					ImGui::SetDragDropPayload("AUDIO_PATH", path.c_str(), path.size() + 1);
+					ImGui::TextUnformatted("Audio");
+					ImGui::TextWrapped("%s", path.c_str());
+					ImGui::EndDragDropSource();
+				}
+
+				// Right-click context menu: soft delete
+				if (ImGui::BeginPopupContextItem(
+					(std::string("ctx_audio##") + path).c_str())) {
+					if (ImGui::MenuItem("Delete")) {
+						if (MoveToTrash(path)) {
+							refreshAudio = true;
+						}
+					}
+
+					ImGui::EndPopup();
+				}
+
+				ImGui::PopID();
+			}
+
+			if (refreshAudio) {
+				sAudio = BuildAudioList();
 			}
 		}
 
