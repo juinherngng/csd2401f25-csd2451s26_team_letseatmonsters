@@ -13,11 +13,11 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <iostream>
 #include <algorithm>
-#include <random>
 #include <cctype>
 #include <glm/ext/matrix_clip_space.hpp>
+#include <iostream>
+#include <random>
 
 #include "SceneManager.hpp"
 
@@ -55,10 +55,18 @@ static constexpr float kEndVBotMinY = 500.0f;
 static constexpr float kEndVBotMaxY = 700.0f;
 
 namespace {
-	inline Math::Vector2D toM(const glm::vec2& v) { return Math::Vector2D(v.x, v.y); }
-	inline Math::Vector3D toM(const glm::vec3& v) { return Math::Vector3D(v.x, v.y, v.z); }
-	inline glm::vec2 toG(const Math::Vector2D& v) { return glm::vec2(v.x, v.y); }
-	inline glm::vec3 toG(const Math::Vector3D& v) { return glm::vec3(v.x, v.y, v.z); }
+	inline Math::Vector2D toM(const glm::vec2& v) {
+		return Math::Vector2D(v.x, v.y);
+	}
+	inline Math::Vector3D toM(const glm::vec3& v) {
+		return Math::Vector3D(v.x, v.y, v.z);
+	}
+	inline glm::vec2 toG(const Math::Vector2D& v) {
+		return glm::vec2(v.x, v.y);
+	}
+	inline glm::vec3 toG(const Math::Vector3D& v) {
+		return glm::vec3(v.x, v.y, v.z);
+	}
 
 	// Debug helpers for drawing grid cells
 	[[maybe_unused]] static void DebugDrawCellRect(float cellSize, int cx, int cy) {
@@ -113,7 +121,9 @@ void Scene::SetSimulationActive(bool active) {
 	}
 }
 
-bool Scene::IsSimulationActive() const { return simulationActive; }
+bool Scene::IsSimulationActive() const {
+	return simulationActive;
+}
 
 const std::string& Scene::GetObjectTexturePath(int id) const {
 	return entityManager.GetTexturePath(id);
@@ -147,8 +157,7 @@ float Scene::ToRefY(float currentY) const {
 Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
 	MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
 	: graphicsEngine(engine), inputManager(inputMgr), animationManager(animMgr),
-	movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr)
-{
+	movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr) {
 	// Set the EntityManager reference in AnimationManager
 	animationManager.SetEntityManager(&entityManager);
 
@@ -204,9 +213,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Update collision system - now handled by CoreEngine's CollisionManager system
 	// collisionManager.Update(entityManager); // REMOVED
 
-
-	if (simulationActive)
-	{
+	if (simulationActive) {
 		// run all scripts
 		logicManager.StartAll(*this);
 		logicManager.UpdateAll(deltaTime, *this, inputManager);
@@ -272,8 +279,7 @@ void Scene::SetPlayerID(int id) {
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	const glm::vec3 position,
 	const glm::vec2 size,
-	const std::string& layer)
-{
+	const std::string& layer) {
 	GameObject* obj = entityManager.SpawnStaticSprite(texturePath, position, size);
 	if (obj) {
 		int id = obj->GetID();
@@ -288,8 +294,7 @@ GameObject* Scene::SpawnAnimatedSprite(
 	const glm::vec2 size,
 	const std::vector<glm::vec4> frames,
 	float frameDuration, bool loop,
-	const std::string& layer)
-{
+	const std::string& layer) {
 	GameObject* obj = entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
 	if (obj) {
 		int id = obj->GetID();
@@ -307,7 +312,6 @@ void Scene::DespawnByID(int targetID) {
 	// Remove from entity manager (handles transforms too)
 	entityManager.DespawnByID(targetID);
 }
-
 
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	out.clear();
@@ -390,7 +394,6 @@ void Scene::SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3&
 		obj->SetRotation(rotation, glm::vec3(0, 0, 1));
 	}
 }
-
 
 void Scene::ClampToWalkArea(GameObject* obj) {
 	if (obj == nullptr) {
@@ -528,10 +531,18 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 
 		// Apply small bias to avoid re-penetration next frame
 		constexpr float kEps = 0.5f;
-		if (playerDelta.x > 0.0f) { playerPosM.x += kEps; }
-		if (playerDelta.x < 0.0f) { playerPosM.x -= kEps; }
-		if (playerDelta.y > 0.0f) { playerPosM.y += kEps; }
-		if (playerDelta.y < 0.0f) { playerPosM.y -= kEps; }
+		if (playerDelta.x > 0.0f) {
+			playerPosM.x += kEps;
+		}
+		if (playerDelta.x < 0.0f) {
+			playerPosM.x -= kEps;
+		}
+		if (playerDelta.y > 0.0f) {
+			playerPosM.y += kEps;
+		}
+		if (playerDelta.y < 0.0f) {
+			playerPosM.y -= kEps;
+		}
 
 		// Apply the separation
 		playerPosM.x += playerDelta.x;
@@ -677,8 +688,12 @@ static void SnapHorizontallyOutOfBand(const collision::AABB& box, float bandX0, 
 	// Move by the smallest magnitude either to the left or right so the AABB clears the band.
 	const float moveLeft = bandX0 - box.max.x - 0.5f; // small epsilon
 	const float moveRight = bandX1 - box.min.x + 0.5f;
-	if (std::abs(moveLeft) < std::abs(moveRight)) { posM.x += moveLeft; }
-	else { posM.x += moveRight; }
+	if (std::abs(moveLeft) < std::abs(moveRight)) {
+		posM.x += moveLeft;
+	}
+	else {
+		posM.x += moveRight;
+	}
 }
 
 void Scene::ResolveInitialStaticOverlaps() {
@@ -803,7 +818,6 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	// you can extend with more tags later
 }
 
-
 GraphicsEngine& Scene::GetGraphicsEngine() {
 	return graphicsEngine;
 }
@@ -861,8 +875,7 @@ void Scene::RemoveLayer(const std::string& name) {
 	}
 }
 
-void Scene::UpdateAnimationControls()
-{
+void Scene::UpdateAnimationControls() {
 	// Do nothing when simulation is paused
 	if (!simulationActive) return;
 

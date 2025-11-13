@@ -13,10 +13,10 @@
 
 #pragma once
 
-#include "Collision.hpp"
-#include "Math.hpp"
-#include "InputManager.hpp"
 #include "../Graphics/GameObject.hpp"
+#include "Collision.hpp"
+#include "InputManager.hpp"
+#include "Math.hpp"
 
 namespace physics {
 	// Colliders / Clamp

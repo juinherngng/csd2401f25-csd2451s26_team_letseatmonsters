@@ -29,11 +29,11 @@
 #include "../Graphics/EntityManager.hpp"
 #include "System.hpp"
 
-/**
- * @class CollisionManager
- * @brief Broad-phase grid + world collision owner. Rebuilt every frame from EntityManager,
- *        supports movement trimming via resolve(), and simple spatial queries.
- */
+ /**
+  * @class CollisionManager
+  * @brief Broad-phase grid + world collision owner. Rebuilt every frame from EntityManager,
+  *        supports movement trimming via resolve(), and simple spatial queries.
+  */
 class CollisionManager : public CoreFramework::SystemInterface {
 public:
 	explicit CollisionManager(float cellSize = 100.0f);
@@ -70,12 +70,20 @@ public:
 	/**
 	 * @brief Collision world access
 	 */
-	collision::World& GetCollisionWorld() { return collisionWorld_; }
-	const collision::World& GetCollisionWorld() const { return collisionWorld_; }
+	collision::World& GetCollisionWorld() {
+		return collisionWorld_;
+	}
+	const collision::World& GetCollisionWorld() const {
+		return collisionWorld_;
+	}
 
 	// Spatial grid access
-	SpatialGrid& GetSpatialGrid() { return spatialGrid_; }
-	const SpatialGrid& GetSpatialGrid() const { return spatialGrid_; }
+	SpatialGrid& GetSpatialGrid() {
+		return spatialGrid_;
+	}
+	const SpatialGrid& GetSpatialGrid() const {
+		return spatialGrid_;
+	}
 
 	// Clear both the grid and the world geometry.
 	void Clear();

@@ -16,31 +16,30 @@
 
 #pragma once
 
-#include "GraphicsEngine.hpp"
+#include "AnimationManager.hpp"
 #include "Animator.hpp"
 #include "EntityManager.hpp"
-#include "AnimationManager.hpp"
+#include "GraphicsEngine.hpp"
 #include "Layer.hpp"
 
 #include "../Core/CollisionManager.hpp"
-#include "../Core/MovementManager.hpp" 
-#include "../Core/InputManager.hpp"
-#include "../Core/PhysicsManager.hpp"
-#include "../Core/Physics.hpp"
-#include "../Core/Math.hpp"
-#include "../Core/LevelEditor.hpp"
-#include "../Core/InputCommandHandler.hpp"
-#include "../Core/PlayerController.hpp"
-#include "../Core/NPCSystem.hpp"
 #include "../Core/DebugVisualizer.hpp"
+#include "../Core/InputCommandHandler.hpp"
+#include "../Core/InputManager.hpp"
+#include "../Core/LevelEditor.hpp"
 #include "../Core/LogicManager.hpp"
+#include "../Core/Math.hpp"
+#include "../Core/MovementManager.hpp" 
+#include "../Core/NPCSystem.hpp"
+#include "../Core/Physics.hpp"
+#include "../Core/PhysicsManager.hpp"
+#include "../Core/PlayerController.hpp"
 #include "../Core/PlayerLogic.hpp"
 #include "../Core/SimpleNpcLogic.hpp"
 
-
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
  /**
   * @class Scene
@@ -62,8 +61,8 @@ public:
 	 * @param physicsMgr Reference to the physics manager system.
 	 * @param collisionMgr Reference to the collision manager system.
 	 */
-	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr, 
-		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
+	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
+		MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
 	/**
 	 * @brief Load a scene by name (dispatches to test scene for now).
@@ -99,9 +98,9 @@ public:
 	  * @brief Spawns a static sprite with a given texture and size.
 	  */
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
-								  const glm::vec3 position,
-								  const glm::vec2 size = glm::vec2(100.0f, 100.0f),
-								  const std::string& layer = "Not set in JSON");
+		const glm::vec3 position,
+		const glm::vec2 size = glm::vec2(100.0f, 100.0f),
+		const std::string& layer = "Not set in JSON");
 
 	/**
 	 * @brief Spawns an animated sprite with frames and timing.
@@ -169,12 +168,22 @@ public:
 			npcSystem.RegisterLaneNPC(id, 1000.0f); //Only this npc2 gets lane behavior
 		}
 	}
-	void SetDinoID(int id) { dinoID = id; }
+	void SetDinoID(int id) {
+		dinoID = id;
+	}
 
-	int GetPlayerID() const { return spriteID; }
-	int GetNPC1ID() const { return otherID; }
-	int GetNPC2ID() const { return otherID2; }
-	int GetDinoID() const { return dinoID; }
+	int GetPlayerID() const {
+		return spriteID;
+	}
+	int GetNPC1ID() const {
+		return otherID;
+	}
+	int GetNPC2ID() const {
+		return otherID2;
+	}
+	int GetDinoID() const {
+		return dinoID;
+	}
 
 	// NPC System
 	void SetNPCVelocity(int id, float vx, float vy) {
@@ -200,7 +209,9 @@ public:
 		std::string layer;
 	};
 
-	void SetDefaults(int id, const Defaults& d) { defaults_[id] = d; }
+	void SetDefaults(int id, const Defaults& d) {
+		defaults_[id] = d;
+	}
 	Defaults GetDefaults(int id) const {
 		auto it = defaults_.find(id);
 		return (it != defaults_.end()) ? it->second : Defaults{};
@@ -226,13 +237,17 @@ public:
 	void RequestClearAll();
 	void ResolveInitialStaticOverlaps();
 
-	LogicManager& GetLogicManager() { return logicManager; }
+	LogicManager& GetLogicManager() {
+		return logicManager;
+	}
 	// new helper:
 	void AttachLogicForTag(int id, const std::string& tag);
 
 	// Expose EntityManager for systems that need it
-	EntityManager& GetEntityManager() { return entityManager; }
-	
+	EntityManager& GetEntityManager() {
+		return entityManager;
+	}
+
 	// Layer management
 	void AddLayer(const std::string& name);
 	Layer* GetLayer(const std::string& name);

@@ -10,8 +10,8 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #include "SpatialGrid.hpp"
 

@@ -21,8 +21,8 @@
 #include <vector>
 
 #include "Collision.hpp"
-#include "Math.hpp"
 #include "InputManager.hpp"
+#include "Math.hpp"
 #include "NpcSystem.hpp"
 #include "System.hpp"
 
@@ -62,7 +62,9 @@ public:
 	// Set the entity ID that represents the player.
 	void SetPlayerID(int playerID);
 
-	int GetPlayerID() const { return playerID_; }
+	int GetPlayerID() const {
+		return playerID_;
+	}
 
 	// ----- Movement control (generic) -----
 
@@ -103,10 +105,14 @@ public:
 	// ----- Wiring to other systems -----
 
 	// Provide access to world resolver used for wall trimming.
-	void SetCollisionWorld(const collision::World* w) { world_ = w; }
+	void SetCollisionWorld(const collision::World* w) {
+		world_ = w;
+	}
 
 	// Provide the NPC system to skip “lane NPCs” from passive updates.
-	void SetNPCSystem(const NPCSystem* npcSys) { npcSystem_ = npcSys; }
+	void SetNPCSystem(const NPCSystem* npcSys) {
+		npcSystem_ = npcSys;
+	}
 
 private:
 	// ----- Internal data types -----

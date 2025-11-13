@@ -28,7 +28,7 @@ void CollisionManager::Initialize() {
 
 void CollisionManager::Update(float deltaTime) {
 	(void)deltaTime; // Suppress unused parameter warning
-	
+
 	// Update collisions using the EntityManager reference
 	if (entityManager_) {
 		UpdateCollisions(*entityManager_);

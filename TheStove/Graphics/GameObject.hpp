@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include "Mesh.hpp"
-#include "Texture.hpp"
-#include "Shader.hpp"
-#include "DebugRenderer.hpp"
 #include "../Core/Math.hpp"
+#include "DebugRenderer.hpp"
+#include "Mesh.hpp"
+#include "Shader.hpp"
+#include "Texture.hpp"
 #include <glm/glm.hpp>
 
  /**
@@ -94,12 +94,22 @@ public:
 	/** @brief Recompute the model matrix based on position/rotation/scale. */
 	void UpdateModelMatrix();
 
-	void SetTexture(Texture* tex) { m_Texture = tex; }
+	void SetTexture(Texture* tex) {
+		m_Texture = tex;
+	}
 
-	Shader* GetShader() const { return m_Shader; }
-	Mesh* GetMesh() const { return m_Mesh; }
-	glm::mat4 GetModelMatrix() const { return m_ModelMatrix; }
-	Texture* GetTexture() const { return m_Texture; }
+	Shader* GetShader() const {
+		return m_Shader;
+	}
+	Mesh* GetMesh() const {
+		return m_Mesh;
+	}
+	glm::mat4 GetModelMatrix() const {
+		return m_ModelMatrix;
+	}
+	Texture* GetTexture() const {
+		return m_Texture;
+	}
 
 	// Collider handling
 	/** @brief Set the colliders full size (width/height). */
@@ -116,7 +126,9 @@ public:
 
 	glm::vec3 GetScaleGLM() const;
 	float GetRotationAngleZ() const;
-	float GetRotation() const { return rotation_; }
+	float GetRotation() const {
+		return rotation_;
+	}
 
 	/**
 	 * @brief Draw the colliders bounding box for debugging.
@@ -126,8 +138,12 @@ public:
 	 */
 	void DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color) const;
 
-	void SetUVRect(const glm::vec4& r) { m_uvRect = r; }
-	glm::vec4 GetUVRect() const { return m_uvRect; }
+	void SetUVRect(const glm::vec4& r) {
+		m_uvRect = r;
+	}
+	glm::vec4 GetUVRect() const {
+		return m_uvRect;
+	}
 
 private:
 	Mesh* m_Mesh;

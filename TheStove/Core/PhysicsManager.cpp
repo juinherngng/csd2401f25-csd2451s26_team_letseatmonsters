@@ -16,12 +16,12 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <iostream>
 #include <cmath>
+#include <iostream>
 
 #include "PhysicsManager.hpp"
 
-// SystemInterface implementation
+ // SystemInterface implementation
 
 void PhysicsManager::Initialize() {
 	std::cout << "PhysicsManager system initialized.\n";

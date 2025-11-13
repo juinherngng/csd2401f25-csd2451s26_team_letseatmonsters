@@ -15,10 +15,10 @@
 
 #pragma once
 
-#include "InputManager.hpp"
-#include "PhysicsManager.hpp"
 #include "DebugVisualizer.hpp"
+#include "InputManager.hpp"
 #include "MovementManager.hpp"
+#include "PhysicsManager.hpp"
 
 #include "../Graphics/DebugRenderer.hpp"
 #include "../Graphics/EntityManager.hpp"

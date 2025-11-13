@@ -21,8 +21,8 @@ DESCRIPTION:		Declares the DebugVisualizer utility (static-only) used to render
 #include "CollisionManager.hpp"
 #include "MovementManager.hpp"
 
-#include "../Graphics/EntityManager.hpp"
 #include "../Graphics/DebugRenderer.hpp"
+#include "../Graphics/EntityManager.hpp"
 
 /**
  * @class DebugVisualizer

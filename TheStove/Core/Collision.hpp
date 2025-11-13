@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include <vector>
 #include <cfloat>
+#include <vector>
 
 #include "Math.hpp"
 

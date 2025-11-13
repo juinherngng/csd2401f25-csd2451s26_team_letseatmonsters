@@ -77,13 +77,19 @@ public:
 	void Clear();
 
 	// Access to step controller
-	physics::StepController& GetStepController() { return physicsStep_; }
+	physics::StepController& GetStepController() {
+		return physicsStep_;
+	}
 
 	// World collision/trim resolver used to clamp movement each step.
-	void SetCollisionWorld(const collision::World* w) { world_ = w; }
+	void SetCollisionWorld(const collision::World* w) {
+		world_ = w;
+	}
 
 	// Movement system (used to clear click-to-move targets on impact).
-	void SetMovementManager(MovementManager* m) { movement_ = m; }
+	void SetMovementManager(MovementManager* m) {
+		movement_ = m;
+	}
 
 private:
 	// Internal state & constants

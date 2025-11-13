@@ -32,8 +32,12 @@ namespace {
 	inline std::uint32_t PackColor(const glm::vec4& color) {
 		auto toByte = [](float f) -> std::uint32_t {
 			int v = static_cast<int>(std::lround(f * 255.0f));
-			if (v < 0) { v = 0; }
-			else if (v > 255) { v = 255; }
+			if (v < 0) {
+				v = 0;
+			}
+			else if (v > 255) {
+				v = 255;
+			}
 			return static_cast<std::uint32_t>(v);
 			};
 
