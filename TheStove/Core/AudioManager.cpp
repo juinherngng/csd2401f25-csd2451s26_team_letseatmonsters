@@ -11,6 +11,7 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 */
 
 #include <algorithm>
+#include <filesystem> // For checking file existence
 
 #include "AudioManager.hpp"
 
@@ -225,6 +226,28 @@ FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const&
 		std::cout << "Audio '" << name << "' already loaded, returning existing." << std::endl;
 		return it->second;
 	}
+
+	// Debug: Print the path we're trying to load
+	std::cout << "[AudioManager] Attempting to load: " << name << std::endl;
+	std::cout << "  Relative path: " << filePath << std::endl;
+	
+	// Check if file exists
+	if (!std::filesystem::exists(filePath)) {
+		std::cerr << "[AudioManager] File does not exist at path: " << filePath << std::endl;
+		
+		// Try to get absolute path for debugging
+		try {
+			std::filesystem::path absPath = std::filesystem::absolute(filePath);
+			std::cerr << "  Absolute path would be: " << absPath.string() << std::endl;
+			std::cerr << "  Current working directory: " << std::filesystem::current_path().string() << std::endl;
+		} catch (...) {
+			std::cerr << "  Could not determine absolute path" << std::endl;
+		}
+		
+		return nullptr;
+	}
+
+	std::cout << "  File exists, proceeding with FMOD load..." << std::endl;
 
 	// Set FMOD mode flags
 	FMOD_MODE mode = FMOD_DEFAULT | (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) | 

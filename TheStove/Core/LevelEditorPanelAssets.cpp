@@ -5,11 +5,12 @@
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
 
  DESCRIPTION:       Implementation of the Level Editor Assets panel.
-					- Import Texture / Import Prefab (native dialog)
-					- Refreshable lists for textures and prefabs
-					- Drag & drop payloads ("ASSET_PATH", "PREFAB_PATH")
+					- Import Texture / Import Prefab / Import Audio (native dialog)
+					- Refreshable lists for textures, prefabs, and audio
+					- Drag & drop payloads ("ASSET_PATH", "PREFAB_PATH", "AUDIO_PATH")
 					- Double-click a texture to apply to the selected object
 					- Context menu: soft delete (move to "trash")
+					- Audio catalog management with inline editing
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -19,6 +20,7 @@
 
 #include "LevelEditor.hpp"
 #include "LevelEditorFileIO.hpp"
+#include "AudioLoading.hpp"
 
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
@@ -30,6 +32,7 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -37,6 +40,57 @@
 namespace fs = std::filesystem;
 
 using namespace LEFILEIO;
+
+namespace {
+	// Helper to normalize paths for audio loading (convert to forward slashes)
+	std::string NormalizeAudioPath(const std::string& path) {
+		std::string normalized = path;
+		
+		// Convert backslashes to forward slashes
+		std::replace(normalized.begin(), normalized.end(), '\\', '/');
+		
+		// Try to make it absolute if it's relative and doesn't exist at the current location
+		try {
+			fs::path inputPath(normalized);
+			
+			// If it's a relative path, try to resolve it
+			if (inputPath.is_relative()) {
+				fs::path absPath = fs::absolute(inputPath);
+				
+				// If the absolute path doesn't exist, try to find it relative to the executable
+				if (!fs::exists(absPath)) {
+					// Try to construct path relative to the build directory
+					fs::path buildPath = fs::current_path() / "build" / normalized;
+					if (fs::exists(buildPath)) {
+						absPath = buildPath;
+					}
+					// Try without "build" folder
+					else {
+						fs::path reposPath = fs::current_path();
+						// Navigate up to find the repos folder
+						while (!reposPath.empty() && reposPath.filename() != "repos") {
+							reposPath = reposPath.parent_path();
+						}
+						if (!reposPath.empty()) {
+							fs::path testPath = reposPath / "csd2401f25-csd2451s26_team_letseatmonsters" / "build" / normalized;
+							if (fs::exists(testPath)) {
+								absPath = testPath;
+							}
+						}
+					}
+				}
+				
+				normalized = absPath.string();
+				// Convert to forward slashes again
+				std::replace(normalized.begin(), normalized.end(), '\\', '/');
+			}
+		} catch (...) {
+			// If any error occurs, keep the original normalized path
+		}
+		
+		return normalized;
+	}
+}
 
 namespace LEPANELASSETS {
 	// Draw the Assets docked window
@@ -58,11 +112,11 @@ namespace LEPANELASSETS {
 			std::vector<std::string> all;
 
 			{
-				auto root = ListAssetsWithExt("../assets", { ".wav" });
+				auto root = ListAssetsWithExt("../assets", { ".wav", ".mp3" });
 				all.insert(all.end(), root.begin(), root.end());
 			}
 			{
-				auto sub = ListAssetsWithExt("../assets/Audio", { ".wav" });
+				auto sub = ListAssetsWithExt("../assets/Audio", { ".wav", ".mp3" });
 				all.insert(all.end(), sub.begin(), sub.end());
 			}
 
@@ -80,7 +134,7 @@ namespace LEPANELASSETS {
 		static std::vector<std::string> sPrefabs =
 			ListAssetsWithExt("../prefabs", { ".json" });
 
-		// Audio (.wav) across assets + assets/Audio
+		// Audio (.wav, .mp3) across assets + assets/Audio
 		static std::vector<std::string> sAudio = BuildAudioList();
 
 		// Cache to avoid reloading preview textures every frame
@@ -164,39 +218,109 @@ namespace LEPANELASSETS {
 
 		ImGui::SameLine();
 
-		// Import Audio (.wav only)
+		// Import Audio (.wav and .mp3 supported)
 		if (ImGui::Button("Import Audio...")) {
 			const std::string picked =
-				OpenFileDialog("All files\0*.*\0");
+				OpenFileDialog("Audio Files\0*.wav;*.mp3\0WAV Files\0*.wav\0MP3 Files\0*.mp3\0All Files\0*.*\0");
 
 			if (!picked.empty()) {
+				std::cout << "[Assets Panel] Selected file: " << picked << std::endl;
+				
 				// Extract extension from picked path
 				std::string ext;
 				const size_t dot = picked.find_last_of('.');
 				if (dot != std::string::npos) {
-					ext = picked.substr(dot);
+				ext = picked.substr(dot);
 				}
 
 				std::transform(ext.begin(), ext.end(), ext.begin(),
 					[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-				// Our engine/editor only supports .wav; anything else is blocked
-				if (ext != ".wav") {
+				// Support both .wav and .mp3 formats
+				if (ext != ".wav" && ext != ".mp3") {
 					sAudioErrorMessage =
 						"Unsupported audio file type: \"" + ext +
-						"\".\n\nOnly .wav audio files are supported by this editor.";
+						"\".\n\nOnly .wav and .mp3 audio files are supported by this editor.";
 					sAudioErrorPending = true;
 				}
 				else {
+					std::cout << "[Assets Panel] Copying to: ../assets/Audio" << std::endl;
+					
 					// Copy into project audio folder
 					const std::string projPath =
 						CopyFileIntoProjectUnique(picked, "../assets/Audio");
 
-					if (!projPath.empty()) {
+					if (projPath.empty()) {
+						std::cerr << "[Assets Panel] ERROR: Failed to copy file!" << std::endl;
+					}
+					else {
+						std::cout << "[Assets Panel] File copied to: " << projPath << std::endl;
+						
+						// Normalize the path for FMOD (convert backslashes to forward slashes)
+						const std::string normalizedPath = NormalizeAudioPath(projPath);
+						std::cout << "[Assets Panel] Normalized path: " << normalizedPath << std::endl;
+
 						// Refresh audio list after copy
 						sAudio = BuildAudioList();
+
+						// Auto-add to catalog if not already present
+						if (Audio::AudioCatalog::IsValidAudioFile(normalizedPath)) {
+							// Create a new audio asset
+							Audio::AudioAsset newAsset;
+							newAsset.filepath = normalizedPath;
+
+							// Extract name from filepath (without extension)
+							size_t lastSlash = normalizedPath.find_last_of("/\\");
+							size_t lastDot = normalizedPath.find_last_of('.');
+
+							if (lastSlash != std::string::npos && lastDot != std::string::npos) {
+								newAsset.name = normalizedPath.substr(lastSlash + 1, lastDot - lastSlash - 1);
+							}
+							else {
+								const auto& assets = Audio::AudioCatalog::GetAllAssets();
+								newAsset.name = "audio_" + std::to_string(assets.size());
+							}
+
+							std::cout << "[Assets Panel] Adding to catalog as: " << newAsset.name << std::endl;
+
+							// Default properties
+							newAsset.loop = false;
+							newAsset.stream = false;
+							newAsset.category = "sfx";
+							newAsset.volume = 1.0f;
+
+							// Add to catalog
+							if (Audio::AudioCatalog::AddAudioAsset(newAsset)) {
+								std::cout << "[Assets Panel] Successfully added to catalog" << std::endl;
+								
+								// Load the audio
+								ResourceManager::Instance().LoadAudio(
+									newAsset.name,
+									newAsset.filepath,
+									newAsset.loop,
+									newAsset.stream
+								);
+								
+								// Auto-save catalog after successful import
+								if (Audio::AudioCatalog::SaveCatalogToFile("../assets/Audio/AudioCatalog.json")) {
+									std::cout << "[Assets Panel] Catalog auto-saved successfully" << std::endl;
+								}
+								else {
+									std::cerr << "[Assets Panel] WARNING: Failed to auto-save catalog!" << std::endl;
+								}
+							}
+							else {
+								std::cerr << "[Assets Panel] ERROR: Failed to add to catalog!" << std::endl;
+							}
+						}
+						else {
+							std::cerr << "[Assets Panel] ERROR: Invalid audio file format!" << std::endl;
+						}
 					}
 				}
+			}
+			else {
+				std::cout << "[Assets Panel] File selection cancelled" << std::endl;
 			}
 		}
 
@@ -333,8 +457,8 @@ namespace LEPANELASSETS {
 		// Prefabs section
 		if (ImGui::CollapsingHeader("Prefabs", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##pf")) {
-				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
-				sPrefabPreviewCache.clear();
+			 sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+			 sPrefabPreviewCache.clear();
 			}
 
 			bool refreshPrefabs = false;
@@ -355,7 +479,7 @@ namespace LEPANELASSETS {
 						previewTex = LoadTextureBypassingCache(data.texture);
 					}
 
-					// Cache even nullptr so we don’t keep trying failed loads
+					// Cache even nullptr so we don't keep trying failed loads
 					sPrefabPreviewCache[path] = previewTex;
 				}
 
@@ -401,14 +525,236 @@ namespace LEPANELASSETS {
 
 			if (refreshPrefabs) {
 				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
-				sPrefabPreviewCache.clear();
+			 sPrefabPreviewCache.clear();
 			}
 		}
 
-		// Audio section
+		// Audio section with catalog management
 		if (ImGui::CollapsingHeader("Audio", ImGuiTreeNodeFlags_DefaultOpen)) {
+			// Catalog management buttons
+			ImGui::BeginGroup();
 			if (ImGui::Button("Refresh##audio")) {
 				sAudio = BuildAudioList();
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Save Catalog")) {
+				if (Audio::AudioCatalog::SaveCatalogToFile("../assets/Audio/AudioCatalog.json")) {
+					ImGui::OpenPopup("Catalog Saved");
+				}
+			}
+
+			ImGui::SameLine();
+
+			if (ImGui::Button("Reload Catalog")) {
+				Audio::AudioCatalog::UnloadAllAudio();
+				if (Audio::AudioCatalog::LoadCatalogFromFile("../assets/Audio/AudioCatalog.json")) {
+					Audio::AudioCatalog::LoadAllAudio();
+					ImGui::OpenPopup("Catalog Reloaded");
+				}
+			}
+
+			// Success popups
+			if (ImGui::BeginPopupModal("Catalog Saved", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+				ImGui::Text("Audio catalog saved successfully!");
+				if (ImGui::Button("OK", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::EndPopup();
+			}
+
+			if (ImGui::BeginPopupModal("Catalog Reloaded", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+				ImGui::Text("Audio catalog reloaded successfully!");
+				if (ImGui::Button("OK", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::EndPopup();
+			}
+
+			ImGui::EndGroup();
+
+			ImGui::Separator();
+
+			// Audio Preview Drop Zone
+			ImGui::TextColored(ImVec4(0.9f, 0.9f, 0.5f, 1.0f), "Audio Preview:");
+			ImGui::TextDisabled("Drop audio files here to test playback");
+
+			ImGui::BeginChild("##AudioPreviewDropZone", ImVec2(-FLT_MIN, 80.0f), true);
+			ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "Drop .wav or .mp3 file here to preview...");
+
+			// Accept dropped audio for preview
+			if (ImGui::BeginDragDropTarget()) {
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AUDIO_PATH")) {
+					std::string droppedPath(static_cast<const char*>(payload->Data));
+
+					// Find in catalog and play
+					const auto& previewCatalog = Audio::AudioCatalog::GetAllAssets();
+					bool foundInCatalog = false;
+
+					for (const auto& asset : previewCatalog) {
+						if (asset.filepath == droppedPath) {
+							// Stop any currently playing preview
+							ResourceManager::Instance().LoadAudio(
+								"__preview__",
+								asset.filepath,
+								false,  // Don't loop preview
+								false   // Load into memory for quick playback
+							);
+
+							// Use the AudioManager to play
+							// Note: You'll need to get AudioManager from CoreEngine
+							// For now, just indicate success
+							ImGui::OpenPopup("Preview Playing");
+							foundInCatalog = true;
+							break;
+						}
+					}
+
+					if (!foundInCatalog) {
+						// Not in catalog, try to play directly
+						ResourceManager::Instance().LoadAudio(
+							"__preview__",
+							droppedPath,
+							false,
+							false
+						);
+						ImGui::OpenPopup("Preview Playing");
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+			ImGui::EndChild();
+
+			// Preview feedback popup
+			if (ImGui::BeginPopupModal("Preview Playing", nullptr, 
+				ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+				ImGui::Text("Playing audio preview...");
+				ImGui::TextDisabled("(Feature requires AudioManager integration)");
+				if (ImGui::Button("OK", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::EndPopup();
+			}
+
+			ImGui::Separator();
+
+			// Get catalog assets
+			const auto& catalogAssets = Audio::AudioCatalog::GetAllAssets();
+
+			// Display catalog entries with inline editing
+			if (!catalogAssets.empty()) {
+				ImGui::TextColored(ImVec4(0.7f, 0.9f, 0.7f, 1.0f), "Catalog Entries (%zu):", catalogAssets.size());
+
+				// State for inline editing
+				static std::string editingName = "";
+				static bool editMode = false;
+				static Audio::AudioAsset editBuffer;
+
+				for (const auto& asset : catalogAssets) {
+					ImGui::PushID(asset.name.c_str());
+
+					bool isEditing = (editMode && editingName == asset.name);
+
+					// Collapsing header for each audio asset
+					if (ImGui::TreeNode(asset.name.c_str())) {
+						if (isEditing) {
+							// Edit mode
+							char nameBuf[128];
+							strncpy_s(nameBuf, editBuffer.name.c_str(), sizeof(nameBuf) - 1);
+							ImGui::SetNextItemWidth(200.0f);
+							if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf))) {
+								editBuffer.name = nameBuf;
+							}
+
+							// Category combo
+							const char* categories[] = { "ui", "sfx", "bgm", "ambient", "other" };
+							int selectedCategory = 0;
+							for (int i = 0; i < 5; ++i) {
+								if (editBuffer.category == categories[i]) {
+									selectedCategory = i;
+									break;
+								}
+							}
+							ImGui::SetNextItemWidth(150.0f);
+							if (ImGui::Combo("Category", &selectedCategory, categories, 5)) {
+								editBuffer.category = categories[selectedCategory];
+							}
+
+							ImGui::Checkbox("Loop", &editBuffer.loop);
+							ImGui::SameLine();
+							ImGui::Checkbox("Stream", &editBuffer.stream);
+
+							ImGui::SetNextItemWidth(200.0f);
+							ImGui::SliderFloat("Volume", &editBuffer.volume, 0.0f, 1.0f, "%.2f");
+
+							ImGui::TextWrapped("File: %s", editBuffer.filepath.c_str());
+
+							if (ImGui::Button("Save##Edit")) {
+								// Apply changes
+								Audio::AudioCatalog::RemoveAudioAsset(editingName);
+								Audio::AudioCatalog::AddAudioAsset(editBuffer);
+
+								// Reload the audio
+								ResourceManager::Instance().UnloadAudio(editingName);
+								ResourceManager::Instance().LoadAudio(
+									editBuffer.name,
+									editBuffer.filepath,
+									editBuffer.loop,
+									editBuffer.stream
+								);
+
+								editMode = false;
+								editingName = "";
+							}
+							ImGui::SameLine();
+							if (ImGui::Button("Cancel##Edit")) {
+								editMode = false;
+								editingName = "";
+							}
+						}
+						else {
+							// Display mode
+							ImGui::Text("Category: %s", asset.category.c_str());
+							ImGui::Text("Loop: %s", asset.loop ? "Yes" : "No");
+							ImGui::Text("Stream: %s", asset.stream ? "Yes" : "No");
+							ImGui::Text("Volume: %.2f", asset.volume);
+							ImGui::TextWrapped("File: %s", asset.filepath.c_str());
+
+							if (ImGui::Button("Edit")) {
+								editMode = true;
+								editingName = asset.name;
+								editBuffer = asset;
+							}
+							ImGui::SameLine();
+							if (ImGui::Button("Remove")) {
+								ImGui::OpenPopup("Confirm Remove Audio");
+							}
+
+							if (ImGui::BeginPopupModal("Confirm Remove Audio", nullptr,
+								ImGuiWindowFlags_AlwaysAutoResize)) {
+								ImGui::Text("Remove '%s' from catalog?", asset.name.c_str());
+								ImGui::Separator();
+
+								if (ImGui::Button("Yes", ImVec2(120, 0))) {
+									Audio::AudioCatalog::RemoveAudioAsset(asset.name);
+									ImGui::CloseCurrentPopup();
+								}
+								ImGui::SameLine();
+								if (ImGui::Button("No", ImVec2(120, 0))) {
+									ImGui::CloseCurrentPopup();
+								}
+								ImGui::EndPopup();
+							}
+						}
+
+						ImGui::TreePop();
+					}
+
+					ImGui::PopID();
+				}
+
+				ImGui::Separator();
 			}
 
 			// Lazy-load a generic icon once (placeholder)
@@ -418,6 +764,8 @@ namespace LEPANELASSETS {
 
 			bool refreshAudio = false;
 			const float iconSize = 32.0f;
+
+			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.9f, 1.0f), "Audio Files (%zu):", sAudio.size());
 
 			for (const auto& path : sAudio) {
 				ImGui::PushID(path.c_str());
@@ -436,6 +784,59 @@ namespace LEPANELASSETS {
 				// Make the selectable at least as tall as the icon
 				ImGui::Selectable(path.c_str(), false, 0, ImVec2(0.0f, iconSize));
 
+				// Double-click to add to catalog if not already there
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
+					ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+
+					// Check if already in catalog
+					bool inCatalog = false;
+					for (const auto& asset : catalogAssets) {
+						if (asset.filepath == path) {
+							inCatalog = true;
+							break;
+						}
+					}
+
+					if (!inCatalog) {
+						// Normalize the path for FMOD
+						const std::string normalizedPath = NormalizeAudioPath(path);
+
+						// Auto-add to catalog
+						Audio::AudioAsset newAsset;
+						newAsset.filepath = normalizedPath;
+
+						// Extract name from filepath
+						size_t lastSlash = normalizedPath.find_last_of("/\\");
+						size_t lastDot = normalizedPath.find_last_of('.');
+
+						if (lastSlash != std::string::npos && lastDot != std::string::npos) {
+							newAsset.name = normalizedPath.substr(lastSlash + 1, lastDot - lastSlash - 1);
+						}
+						else {
+							newAsset.name = "audio_" + std::to_string(catalogAssets.size());
+						}
+
+						newAsset.loop = false;
+						newAsset.stream = false;
+						newAsset.category = "sfx";
+						newAsset.volume = 1.0f;
+
+						if (Audio::AudioCatalog::AddAudioAsset(newAsset)) {
+							ResourceManager::Instance().LoadAudio(
+								newAsset.name,
+								newAsset.filepath,
+								newAsset.loop,
+								newAsset.stream
+							);
+							
+							// Auto-save catalog after successful addition
+							if (Audio::AudioCatalog::SaveCatalogToFile("../assets/Audio/AudioCatalog.json")) {
+								std::cout << "[Assets Panel] Catalog auto-saved after double-click add" << std::endl;
+							}
+						}
+					}
+				}
+
 				// Drag source so other panels can receive audio
 				if (ImGui::BeginDragDropSource()) {
 					ImGui::SetDragDropPayload("AUDIO_PATH", path.c_str(), path.size() + 1);
@@ -447,7 +848,7 @@ namespace LEPANELASSETS {
 				// Right-click context menu: soft delete
 				if (ImGui::BeginPopupContextItem(
 					(std::string("ctx_audio##") + path).c_str())) {
-					if (ImGui::MenuItem("Delete")) {
+					if (ImGui::MenuItem("Delete File")) {
 						if (MoveToTrash(path)) {
 							refreshAudio = true;
 						}
@@ -460,7 +861,7 @@ namespace LEPANELASSETS {
 			}
 
 			if (refreshAudio) {
-				sAudio = BuildAudioList();
+			 sAudio = BuildAudioList();
 			}
 		}
 

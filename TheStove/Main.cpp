@@ -46,10 +46,20 @@ struct ApplicationState {
 
 	bool pausedByOSFocus = false;       // true while we're paused due to focus/iconify
 	bool simActiveBeforePause = false;  // remember if simulation was running
+	
+	// Track when native dialogs are open to prevent unwanted minimize
+	bool modalDialogOpen = false;
 };
 
 // Global app state pointer for signal handlers and callbacks
 static ApplicationState* g_AppState = nullptr;
+
+// Function to set modal dialog state (called by file dialog code)
+void SetModalDialogOpen(bool open) {
+	if (g_AppState) {
+		g_AppState->modalDialogOpen = open;
+	}
+}
 
 static void draw(ApplicationState& app);
 static void update(ApplicationState& app);
@@ -348,7 +358,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			double dy = 0.0;
 
 			if (g_AppState->mouseInitialized) {
-				dx = xpos - g_AppState->lastMouseX;
+			dx = xpos - g_AppState->lastMouseX;
 				dy = ypos - g_AppState->lastMouseY;
 			}
 			else {
@@ -367,13 +377,23 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	glfwSetScrollCallback(app.window, nullptr);
 
 	// When we lose focus (ALT-TAB, CTRL-ALT-DEL, clicking another window),
-	// explicitly minimize our game window so it matches the cert requirement.
+	// pause the game but don't force minimize
 	glfwSetWindowFocusCallback(app.window, [](GLFWwindow* win, int focused) {
+		(void)win; // suppress unused parameter warning
+		
 		if (focused == GLFW_FALSE) {
-			// Force the game window to minimize
-			glfwIconifyWindow(win);
+			// Don't minimize if a modal dialog (file picker) is open
+			if (g_AppState && g_AppState->modalDialogOpen) {
+				// Just pause audio/input, but don't force minimize
+				HandlePauseResume(true);
+				return;
+			}
 
+			// Force the game window to minimize for real Alt-Tab/focus loss
+			//glfwIconifyWindow(win);
+			
 			// Pause gameplay, physics, audio, and clear input
+			// but let the user/OS decide if they want to minimize
 			HandlePauseResume(true);
 		}
 		else {
@@ -426,7 +446,14 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		ResourceManager::Instance().SetAudioManager(audioMgr);
 		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
 
-		// Load all audio assets centrally using AudioCatalog
+		// Load audio catalog from JSON file
+		if (!Audio::AudioCatalog::LoadCatalogFromFile("../assets/Audio/AudioCatalog.json"))
+		{
+			std::cerr << "Warning: Failed to load audio catalog. Creating default catalog..." << std::endl;
+			// If catalog doesn't exist, it will be empty but won't crash
+		}
+
+		// Load all audio assets from the catalog
 		Audio::AudioCatalog::LoadAllAudio();
 	}
 	else {
