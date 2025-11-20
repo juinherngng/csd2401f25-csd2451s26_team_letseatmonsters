@@ -46,9 +46,16 @@ struct ApplicationState {
 
 	bool pausedByOSFocus = false;       // true while we're paused due to focus/iconify
 	bool simActiveBeforePause = false;  // remember if simulation was running
-	
-	// Track when native dialogs are open to prevent unwanted minimize
-	bool modalDialogOpen = false;
+	bool modalDialogOpen = false;		// Track when native dialogs are open to prevent unwanted minimize
+
+	// Add these for fullscreen toggling
+	bool isFullscreen = false;
+	int windowedPosX = 100;
+	int windowedPosY = 100;
+	int windowedWidth = 1200;
+	int windowedHeight = 800;
+
+	bool f11WasDown = false; // for edge-detecting the f11 key
 };
 
 // Global app state pointer for signal handlers and callbacks
@@ -82,6 +89,7 @@ static void signalHandler(int signal) {
 }
 
 static void HandlePauseResume(bool pause);
+static void ToggleFullscreen(ApplicationState& app);
 
 static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	(void)window;
@@ -158,6 +166,59 @@ static void HandlePauseResume(bool pause) {
 		// Clear any weird lingering input states
 		if (inputMgr) {
 			inputMgr->ClearState();
+		}
+	}
+}
+
+static void ToggleFullscreen(ApplicationState& app) {
+	if (!app.window) {
+		return;
+	}
+
+	// If we’re going from windowed to fullscreen
+	if (!app.isFullscreen) {
+		// Save current windowed position and size
+		glfwGetWindowPos(app.window, &app.windowedPosX, &app.windowedPosY);
+		glfwGetWindowSize(app.window, &app.windowedWidth, &app.windowedHeight);
+
+		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+		// Switch to fullscreen on the primary monitor
+		glfwSetWindowMonitor(
+			app.window,
+			monitor,
+			0, 0,
+			mode->width,
+			mode->height,
+			mode->refreshRate
+		);
+
+		app.isFullscreen = true;
+	}
+	else { // fullscreen to windowed
+		glfwSetWindowMonitor(
+			app.window,
+			nullptr,
+			app.windowedPosX,
+			app.windowedPosY,
+			app.windowedWidth,
+			app.windowedHeight,
+			0 // refresh rate ignored for windowed
+		);
+
+		app.isFullscreen = false;
+	}
+
+	// Update viewport and graphics engine after the switch
+	int fbw = 0, fbh = 0;
+	glfwGetFramebufferSize(app.window, &fbw, &fbh);
+	glViewport(0, 0, fbw, fbh);
+
+	GraphicsEngine::Instance().Resize(fbw, fbh);
+	if (app.coreEngine) {
+		if (auto* gfx = app.coreEngine->GetSystem<GraphicsEngine>()) {
+			gfx->Resize(fbw, fbh);
 		}
 	}
 }
@@ -311,18 +372,29 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		return false;
 	}
 
-	GLFWmonitor* monitor = nullptr;
+	// Decide between windowed and fullscreen
 	if (fullscreen) {
-		monitor = glfwGetPrimaryMonitor();
+		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+		const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+		// Use the monitor's native resolution for true fullscreen
+		width = mode->width;
+		height = mode->height;
+
+		app.window = glfwCreateWindow(width, height, title.c_str(), monitor, nullptr);
+	}
+	else {
+		// Normal windowed mode
+		app.window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
 	}
 
-	app.window = glfwCreateWindow(width, height, title.c_str(), monitor, nullptr);
 	if (!app.window) {
 		std::cerr << "Failed to create window" << std::endl;
 		glfwTerminate();
 		app.window = nullptr;
 		return false;
 	}
+
 	glfwMakeContextCurrent(app.window);
 
 	// Add window close callback to trigger cleanup
@@ -358,7 +430,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			double dy = 0.0;
 
 			if (g_AppState->mouseInitialized) {
-			dx = xpos - g_AppState->lastMouseX;
+				dx = xpos - g_AppState->lastMouseX;
 				dy = ypos - g_AppState->lastMouseY;
 			}
 			else {
@@ -380,7 +452,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// pause the game but don't force minimize
 	glfwSetWindowFocusCallback(app.window, [](GLFWwindow* win, int focused) {
 		(void)win; // suppress unused parameter warning
-		
+
 		if (focused == GLFW_FALSE) {
 			// Don't minimize if a modal dialog (file picker) is open
 			if (g_AppState && g_AppState->modalDialogOpen) {
@@ -391,7 +463,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 			// Force the game window to minimize for real Alt-Tab/focus loss
 			//glfwIconifyWindow(win);
-			
+
 			// Pause gameplay, physics, audio, and clear input
 			// but let the user/OS decide if they want to minimize
 			HandlePauseResume(true);
@@ -447,8 +519,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
 
 		// Load audio catalog from JSON file
-		if (!Audio::AudioCatalog::LoadCatalogFromFile("../assets/Audio/AudioCatalog.json"))
-		{
+		if (!Audio::AudioCatalog::LoadCatalogFromFile("../assets/Audio/AudioCatalog.json")) {
 			std::cerr << "Warning: Failed to load audio catalog. Creating default catalog..." << std::endl;
 			// If catalog doesn't exist, it will be empty but won't crash
 		}
@@ -559,13 +630,23 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 }
 
 static void update(ApplicationState& app) {
-
 	// Calculate delta time
 	float currentFrame = static_cast<float>(glfwGetTime());
 	float deltaTime = currentFrame - app.lastFrame;
 	app.lastFrame = currentFrame;
 
 	glfwPollEvents();
+
+	// Handle F11 for fullscreen toggle (global hotkey)
+	int f11State = glfwGetKey(app.window, GLFW_KEY_F11);
+	bool f11Down = (f11State == GLFW_PRESS || f11State == GLFW_REPEAT);
+
+	// Edge detect: only toggle when key transitions from up to down
+	if (f11Down && !app.f11WasDown) {
+		ToggleFullscreen(app);
+	}
+
+	app.f11WasDown = f11Down;
 
 	if (app.pausedByOSFocus) {
 		// You can still keep FPS stats if you like, or set them to 0
