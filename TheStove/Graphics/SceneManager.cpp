@@ -5,17 +5,19 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Implements the Scene class, handling object spawning,
-					animation, collisions, and per-frame updates.
+ DESCRIPTION:		Implements the SceneManager class, which is responsible for the high-level
+					management, coordination, and per-frame updating of all entities, systems,
+					and game logic within a scene.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <iostream>
 #include <algorithm>
-#include <random>
+#include <cctype>
 #include <glm/ext/matrix_clip_space.hpp>
+#include <iostream>
+#include <random>
 
 #include "SceneManager.hpp"
 
@@ -53,36 +55,17 @@ static constexpr float kEndVBotMinY = 500.0f;
 static constexpr float kEndVBotMaxY = 700.0f;
 
 namespace {
-	inline Math::Vector2D toM(const glm::vec2& v) { return Math::Vector2D(v.x, v.y); }
-	inline Math::Vector3D toM(const glm::vec3& v) { return Math::Vector3D(v.x, v.y, v.z); }
-	inline glm::vec2 toG(const Math::Vector2D& v) { return glm::vec2(v.x, v.y); }
-	inline glm::vec3 toG(const Math::Vector3D& v) { return glm::vec3(v.x, v.y, v.z); }
-
-	// Debug helpers for drawing grid cells
-	static void DebugDrawCellRect(float cellSize, int cx, int cy) {
-		const float x0 = cx * cellSize;
-		const float y0 = cy * cellSize;
-		const float x1 = x0 + cellSize;
-		const float y1 = y0 + cellSize;
-
-		// outline rectangle using four lines
-		DebugRenderer::DrawLine({ x0, y0, 0 }, { x1, y0, 0 }, { 0, 1, 0 }); // bottom
-		DebugRenderer::DrawLine({ x1, y0, 0 }, { x1, y1, 0 }, { 0, 1, 0 }); // right
-		DebugRenderer::DrawLine({ x1, y1, 0 }, { x0, y1, 0 }, { 0, 1, 0 }); // top
-		DebugRenderer::DrawLine({ x0, y1, 0 }, { x0, y0, 0 }, { 0, 1, 0 }); // left
+	inline Math::Vector2D toM(const glm::vec2& v) {
+		return Math::Vector2D(v.x, v.y);
 	}
-
-	static void DebugDrawNeighborhood(const collision::AABB& box, float cellSize) {
-		const int minCx = static_cast<int>(std::floor(box.min.x / cellSize)) - 1;
-		const int maxCx = static_cast<int>(std::floor(box.max.x / cellSize)) + 1;
-		const int minCy = static_cast<int>(std::floor(box.min.y / cellSize)) - 1;
-		const int maxCy = static_cast<int>(std::floor(box.max.y / cellSize)) + 1;
-
-		for (int cy = minCy; cy <= maxCy; ++cy) {
-			for (int cx = minCx; cx <= maxCx; ++cx) {
-				DebugDrawCellRect(cellSize, cx, cy);
-			}
-		}
+	inline Math::Vector3D toM(const glm::vec3& v) {
+		return Math::Vector3D(v.x, v.y, v.z);
+	}
+	inline glm::vec2 toG(const Math::Vector2D& v) {
+		return glm::vec2(v.x, v.y);
+	}
+	inline glm::vec3 toG(const Math::Vector3D& v) {
+		return glm::vec3(v.x, v.y, v.z);
 	}
 
 	// Utility function to generate UV frames for a sprite sheet
@@ -111,7 +94,9 @@ void Scene::SetSimulationActive(bool active) {
 	}
 }
 
-bool Scene::IsSimulationActive() const { return simulationActive; }
+bool Scene::IsSimulationActive() const {
+	return simulationActive;
+}
 
 const std::string& Scene::GetObjectTexturePath(int id) const {
 	return entityManager.GetTexturePath(id);
@@ -120,6 +105,7 @@ const std::string& Scene::GetObjectTexturePath(int id) const {
 void Scene::SetObjectTexturePath(int id, const std::string& path) {
 	entityManager.SetTexturePath(id, path);
 }
+
 // Converts reference (kRefW/kRefH) X coordinate to current framebuffer X
 float Scene::ScaleXToCurrent(float referenceX) const {
 	const float worldWidth = static_cast<float>(graphicsEngine.GetWidth());
@@ -136,6 +122,7 @@ float Scene::ToRefX(float currentX) const {
 	const float worldW = static_cast<float>(graphicsEngine.GetWidth());
 	return currentX * (kRefW / worldW);
 }
+
 float Scene::ToRefY(float currentY) const {
 	const float worldH = static_cast<float>(graphicsEngine.GetHeight());
 	return currentY * (kRefH / worldH);
@@ -143,12 +130,14 @@ float Scene::ToRefY(float currentY) const {
 
 // Core Lifecycle
 Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
-			 MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
+	MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
 	: graphicsEngine(engine), inputManager(inputMgr), animationManager(animMgr),
-	  movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr)
-{
+	movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr) {
 	// Set the EntityManager reference in AnimationManager
 	animationManager.SetEntityManager(&entityManager);
+
+	// Basic default layer used when no explicit layer name is given
+	AddLayer("1");
 }
 
 void Scene::LoadScene(const std::string& sceneName) {
@@ -162,19 +151,24 @@ void Scene::LoadScene(const std::string& sceneName) {
 
 	// You can keep a background even with an empty level (or move this into JSON later)
 	SetSceneBackground("../assets/Background.png");
-
-	//GenerateStressTest(2500);
-	//SetSimulationActive(true);
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Input is now updated by CoreEngine's system, no need to call Update here
-	// inputManager.Update(window); // REMOVED - handled by CoreEngine
+	inputManager.Update(deltaTime); // REMOVED - handled by CoreEngine
+
+	UpdateAnimationControls();
+	// Deferred Clear
+	if (pendingClear_) {
+		ClearAll();
+		RebuildColliders();
+		pendingClear_ = false;
+		return;  // Skip rest of update this frame
+	}
 
 	// Process input commands (debug toggles, force toggle, etc.)
-	inputCommandHandler.ProcessCommands(inputManager, physicsManager,
-		spriteID, useForces_, showAuxDebug_);
-	
+	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager, spriteID, useForces_, showAuxDebug_);
+
 	// Level editor toggle
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
 		mLevelEditor.Toggle();
@@ -183,34 +177,18 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Resolve physics timestep
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
 
-	// Update animations - now handled by CoreEngine's AnimationManager system
-	// animationManager.Update(deltaTime, entityManager); // REMOVED
+	if (simulationActive) {
+		// Run all scripts
+		logicManager.StartAll(*this);
+		logicManager.UpdateAll(deltaTime, *this, inputManager);
 
-	// Update collision system - now handled by CoreEngine's CollisionManager system
-	// collisionManager.Update(entityManager); // REMOVED
-
-
-	if (simulationActive)
-	{
-	// NEW: run all scripts
-	logicManager.StartAll(*this);
-	logicManager.UpdateAll(deltaTime, *this, inputManager);
-		// Handle player input
-		playerController.HandleInput(deltaTime, inputManager, entityManager,
-			movementManager, physicsManager,
-			graphicsEngine, spriteID, useForces_);
-
-		// Update movement system (kinematic or physics-based)
-		// Movement is now handled by CoreEngine's MovementManager system
 		if (useForces_) {
 			physicsManager.UpdatePhysics(physicsDt, entityManager, inputManager);
 		}
-		// else: MovementManager.Update() is called by CoreEngine automatically
 
 		// Update NPC AI
 		const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
 		npcSystem.Update(physicsDt, entityManager, collisionManager, walk);
-
 
 		// Handle player-NPC collisions
 		HandlePlayerCollisions(physicsDt, entityManager);
@@ -220,8 +198,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Debug visualization
-	debugVisualizer.DrawDebugInfo(entityManager, collisionManager,
-		movementManager, spriteID, showAuxDebug_);
+	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
+
+	(void)window;
 }
 
 void Scene::ResetResizeBaseline() {
@@ -249,13 +228,20 @@ void Scene::ClearAll() {
 
 void Scene::SetPlayerID(int id) {
 	spriteID = id;
-	movementManager.SetPlayerID(id);  // inform movement manager
 }
 
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	const glm::vec3 position,
-	const glm::vec2 size) {
-	return entityManager.SpawnStaticSprite(texturePath, position, size);
+	const glm::vec2 size,
+	const std::string& layer) {
+	GameObject* obj = entityManager.SpawnStaticSprite(texturePath, position, size);
+
+	if (obj) {
+		int id = obj->GetID();
+		AssignObjectToLayer(id, layer);
+	}
+
+	return obj;
 }
 
 GameObject* Scene::SpawnAnimatedSprite(
@@ -263,9 +249,16 @@ GameObject* Scene::SpawnAnimatedSprite(
 	const glm::vec3 position,
 	const glm::vec2 size,
 	const std::vector<glm::vec4> frames,
-	float frameDuration, bool loop)
-{
-	return entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
+	float frameDuration, bool loop,
+	const std::string& layer) {
+	GameObject* obj = entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
+
+	if (obj) {
+		int id = obj->GetID();
+		AssignObjectToLayer(id, layer);
+	}
+
+	return obj;
 }
 
 GameObject* Scene::GetGameObjectByID(int targetID) {
@@ -278,16 +271,70 @@ void Scene::DespawnByID(int targetID) {
 	entityManager.DespawnByID(targetID);
 }
 
-
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
-	out = entityManager.GetAllObjects();
-}
+	out.clear();
 
+	std::vector<GameObject*> all = entityManager.GetAllObjects();
+	out.reserve(all.size());
+
+	for (GameObject* g : all) {
+		if (!g) {
+			continue;
+		}
+
+		// Check the layer's visibility flag
+		const std::string layerName = GetObjectLayer(g->GetID());
+		Layer* layer = GetLayer(layerName);
+		if (layer && !layer->IsVisible()) {
+			continue;
+		}
+
+		out.push_back(g);
+	}
+
+	auto parseLayerNumber = [](const std::string& s) -> int {
+		if (s.empty()) {
+			return 1; // base layer
+		}
+
+		int result = 0;
+		for (char c : s) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				// Any non-numeric layer name behaves like a very "high" layer
+				// so that it draws on top of numeric layers.
+				return 1000000;
+			}
+
+			result = result * 10 + (c - '0');
+		}
+
+		return result;
+		};
+
+	std::sort(
+		out.begin(),
+		out.end(),
+		[&](GameObject* a, GameObject* b) {
+			const std::string laName = GetObjectLayer(a->GetID());
+			const std::string lbName = GetObjectLayer(b->GetID());
+
+			int la = parseLayerNumber(laName);
+			int lb = parseLayerNumber(lbName);
+
+			// Different layers: smaller layer number drawn first
+			if (la != lb) {
+				return la > lb;
+			}
+
+			// Same layer - higher Y drawn first (lower on screen appears in front)
+			return a->GetPosition().y > b->GetPosition().y;
+		}
+	);
+}
 
 std::vector<GameObject*> Scene::GetAllObjectsRaw() {
 	return entityManager.GetAllObjects();
 }
-
 
 // Scene / Transform Utilities
 void Scene::SetSceneBackground(const std::string& texturePath) {
@@ -306,7 +353,6 @@ void Scene::SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3&
 		obj->SetRotation(rotation, glm::vec3(0, 0, 1));
 	}
 }
-
 
 void Scene::ClampToWalkArea(GameObject* obj) {
 	if (obj == nullptr) {
@@ -328,9 +374,7 @@ bool Scene::HasAnimations(int id) const {
 }
 
 std::vector<std::string> Scene::GetAnimationList(int id) const {
-	// AnimationManager doesn't expose animation lists yet
-	// Return empty for now - can extend AnimationManager later if needed
-	return {};
+	return animationManager.GetAnimationNames(id);
 }
 
 std::string Scene::GetCurrentAnimationName(int id) const {
@@ -348,7 +392,6 @@ void Scene::AttachDinoAnimations(int objID) {
 void Scene::MarkAnimated(int id, bool state) {
 	if (!state) {
 		// Turning OFF animation: remove any per-object animation state
-
 		if (GameObject* obj = GetGameObjectByID(id)) {
 			// Ensure it renders the full texture as a static sprite
 			obj->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
@@ -360,153 +403,164 @@ void Scene::MarkAnimated(int id, bool state) {
 	}
 }
 
-void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityManager) {
-	if (spriteID < 0) return;
+void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
+	if (spriteID < 0) {
+		return;
+	}
 
-	GameObject* sprite = entityManager.GetByID(spriteID);
-	if (!sprite) return;
+	GameObject* sprite = entityMgr.GetByID(spriteID);
+	if (!sprite) {
+		return;
+	}
+
+	// If the player's layer is non-collidable, skip all player–object collisions.
+	{
+		std::string playerLayer = GetObjectLayer(spriteID);
+		Layer* pl = GetLayer(playerLayer);
+		if (pl && !pl->IsCollidable()) {
+			return;
+		}
+	}
 
 	const glm::vec3 position = sprite->GetPositionGLM();
 
-	// Build player's current AABB
-	const collision::AABB pBox = physics::MakeColliderBox(
+	// Build player's current AABB for spatial query
+	const collision::AABB queryBox = physics::MakeColliderBox(
 		sprite,
 		Math::Vector3D(position.x, position.y, position.z)
 	);
 
 	// Query spatial grid for nearby candidates
 	std::vector<GameObject*> candidates;
-	collisionManager.GetSpatialGrid().Query(pBox, candidates);
+	collisionManager.GetSpatialGrid().Query(queryBox, candidates);
 
-		// Desired movement from movement system
-		Math::Vector2D desiredMoveM{ 0.0f, 0.0f };
+	// Desired movement from movement system
+	Math::Vector2D desiredMoveM{ 0.0f, 0.0f };
 
-		for (GameObject* other : candidates) {
-			if (other == nullptr || other == sprite) {
-				continue;
-			}
-
-			const Math::Vector2D gSize = other->GetColliderSize();
-			if (gSize.x <= 0.0f || gSize.y <= 0.0f) {
-				continue;
-			}
-
-			const int otherID = other->GetID();
-			if (npcSystem.IsLaneNPC(otherID)) {
-				continue; // lane NPCs ignore player collision
-			}
-
-			// Current positions (M-space)
-			Math::Vector3D playerPosM(position.x, position.y, position.z);
-			Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
-
-			// Build AABBs at those positions
-			const collision::AABB pBox = physics::MakeColliderBox(sprite, playerPosM);
-			const collision::AABB oBox = physics::MakeColliderBox(other, otherPosM);
-
-			// Minimum translation vector to separate player from goat
-			Math::Vector2D mtv;
-			if (!collision::overlapMTV(pBox, oBox, mtv)) {
-				continue;
-			}
-
-			// --- World-aware push: try to move the goat, clamped by walls ---
-			constexpr float kGoatShare = 0.50f; // you can tune 0.25f..0.50f
-			const Math::Vector2D desiredOtherDelta(-mtv.x * kGoatShare, -mtv.y * kGoatShare);
-
-			// Clamp goat movement against static walls
-			Math::Vector2D allowedOtherDelta = collisionManager.GetCollisionWorld().resolve(oBox, desiredOtherDelta);
-
-			// Move goat by the allowed portion (could be zero if pinned)
-			otherPosM.x += allowedOtherDelta.x;
-			otherPosM.y += allowedOtherDelta.y;
-
-			// Player receives the remainder so relative separation equals MTV
-			Math::Vector2D playerDelta(mtv.x, mtv.y);
-			playerDelta.x += allowedOtherDelta.x; // note: allowedOtherDelta is opposite-signed to MTV
-			playerDelta.y += allowedOtherDelta.y;
-
-			// Apply small bias to avoid re-penetration next frame
-			constexpr float kEps = 0.5f;
-			if (playerDelta.x > 0.0f) { playerPosM.x += kEps; }
-			if (playerDelta.x < 0.0f) { playerPosM.x -= kEps; }
-			if (playerDelta.y > 0.0f) { playerPosM.y += kEps; }
-			if (playerDelta.y < 0.0f) { playerPosM.y -= kEps; }
-
-			// Apply the separation
-			playerPosM.x += playerDelta.x;
-			playerPosM.y += playerDelta.y;
-
-			// ---------------------------
-			// Smooth SLIDE when goat is pinned
-			// ---------------------------
-			// If the goat barely moved (pinned) and we were trying to move into it,
-			// remove our inward component, keep tangent (glide along goat/wall).
-			{
-				// Intent this frame from movement system
-				glm::vec2 v = movementManager.GetVelocity(spriteID);
-				const float vLen = std::sqrt(v.x * v.x + v.y * v.y);
-
-				// Contact normal is MTV normalized (player must move by +MTV to exit),
-				// so "into" the goat means our velocity is opposite the MTV direction.
-				const float mtvLen = std::sqrt(mtv.x * mtv.x + mtv.y * mtv.y);
-
-				// How much goat actually moved vs we wanted it to move
-				const float desiredLen = std::sqrt(desiredOtherDelta.x * desiredOtherDelta.x +
-					desiredOtherDelta.y * desiredOtherDelta.y);
-				const float allowedLen = std::sqrt(allowedOtherDelta.x * allowedOtherDelta.x +
-					allowedOtherDelta.y * allowedOtherDelta.y);
-				const bool goatPinned = (desiredLen > 0.0f) && (allowedLen < 0.1f * desiredLen);
-
-				if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f && physicsDt > 0.0f) {
-					// Normal pointing from goat to player (same dir as MTV applied to player)
-					const glm::vec2 n = glm::vec2(mtv.x / mtvLen, mtv.y / mtvLen);
-
-					// Inward component of our desired displacement this frame
-					const glm::vec2 desiredDelta = v * physicsDt;               // what we wanted to move
-					const float into = desiredDelta.x * n.x + desiredDelta.y * n.y;
-
-					if (into > 0.0f) {
-						// Remove inward component; keep tangential part (slide)
-						const glm::vec2 tangential = desiredDelta - into * n;
-
-						// Clamp slide against world (so we don't scrape into walls)
-						const Math::Vector2D csz = sprite->GetColliderSize();
-						const collision::AABB pAfterSep =
-							collision::World::makeAABBFromCenter(
-								playerPosM,
-								Math::Vector3D(csz.x, csz.y, 1.0f));
-
-						const Math::Vector2D slideDesired(tangential.x, tangential.y);
-						const Math::Vector2D slideAllowed =
-							collisionManager.GetCollisionWorld().resolve(pAfterSep, slideDesired);
-
-						// Apply the allowed slide
-						playerPosM.x += slideAllowed.x;
-						playerPosM.y += slideAllowed.y;
-
-						// We *don't* clear the click target here; player is gliding along nicely.
-					}
-					else {
-						// We're not pushing into the goat (moving away or parallel) – no special handling.
-					}
-				}
-				else if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f) {
-					// If we cannot compute a valid slide (e.g., physicsDt==0), at least
-					// stop the long click-run to prevent jitter.
-					const float dotInto = (mtv.x / mtvLen) * (v.x / (vLen + 1e-6f))
-						+ (mtv.y / mtvLen) * (v.y / (vLen + 1e-6f));
-					if (dotInto > 0.1f) {
-						movementManager.ClearMoveTarget(spriteID);
-					}
-				}
-			}
-
-			// Write back
-			sprite->SetPosition(toG(playerPosM));
-			other->SetPosition(toG(otherPosM));
+	for (GameObject* other : candidates) {
+		if (other == nullptr || other == sprite) {
+			continue;
 		}
 
+		// Skip objects whose layer has collisions turned off
+		{
+			std::string otherLayer = GetObjectLayer(other->GetID());
+			Layer* ol = GetLayer(otherLayer);
+			if (ol && !ol->IsCollidable()) {
+				continue;
+			}
+		}
+
+		const Math::Vector2D gSize = other->GetColliderSize();
+		if (gSize.x <= 0.0f || gSize.y <= 0.0f) {
+			continue;
+		}
+
+		const int currentOtherID = other->GetID();
+		if (npcSystem.IsLaneNPC(currentOtherID)) {
+			continue; // lane NPCs ignore player collision
+		}
+
+		// Current positions (M-space)
+		Math::Vector3D playerPosM(position.x, position.y, position.z);
+		Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
+
+		// Build AABBs at those positions
+		const collision::AABB playerBox = physics::MakeColliderBox(sprite, playerPosM);
+		const collision::AABB otherBox = physics::MakeColliderBox(other, otherPosM);
+
+		// Minimum translation vector to separate player from goat
+		Math::Vector2D mtv;
+		if (!collision::overlapMTV(playerBox, otherBox, mtv)) {
+			continue;
+		}
+
+		// World-aware push: try to move the goat, clamped by walls
+		constexpr float kGoatShare = 0.50f; // you can tune 0.25f..0.50f
+		const Math::Vector2D desiredOtherDelta(-mtv.x * kGoatShare, -mtv.y * kGoatShare);
+
+		// Clamp goat movement against static walls
+		Math::Vector2D allowedOtherDelta = collisionManager.GetCollisionWorld().resolve(otherBox, desiredOtherDelta);
+
+		// Move goat by the allowed portion (could be zero if pinned)
+		otherPosM.x += allowedOtherDelta.x;
+		otherPosM.y += allowedOtherDelta.y;
+
+		// Player receives the remainder so relative separation equals MTV
+		Math::Vector2D playerDelta(mtv.x, mtv.y);
+		playerDelta.x += allowedOtherDelta.x; // note: allowedOtherDelta is opposite-signed to MTV
+		playerDelta.y += allowedOtherDelta.y;
+
+		// Apply small bias to avoid re-penetration next frame
+		constexpr float kEps = 0.5f;
+		if (playerDelta.x > 0.0f) {
+			playerPosM.x += kEps;
+		}
+		if (playerDelta.x < 0.0f) {
+			playerPosM.x -= kEps;
+		}
+		if (playerDelta.y > 0.0f) {
+			playerPosM.y += kEps;
+		}
+		if (playerDelta.y < 0.0f) {
+			playerPosM.y -= kEps;
+		}
+
+		// Apply the separation
+		playerPosM.x += playerDelta.x;
+		playerPosM.y += playerDelta.y;
+
+		// If the goat barely moved (pinned) and we were trying to move into it,
+		// remove our inward component, keep tangent (glide along goat/wall).
+		{
+			// Intent this frame from movement system
+			glm::vec2 v = movementManager.GetVelocity(spriteID);
+			const float vLen = std::sqrt(v.x * v.x + v.y * v.y);
+			const float mtvLen = std::sqrt(mtv.x * mtv.x + mtv.y * mtv.y);
+
+			// How much goat actually moved vs we wanted it to move
+			const float desiredLen = std::sqrt(desiredOtherDelta.x * desiredOtherDelta.x + desiredOtherDelta.y * desiredOtherDelta.y);
+			const float allowedLen = std::sqrt(allowedOtherDelta.x * allowedOtherDelta.x + allowedOtherDelta.y * allowedOtherDelta.y);
+			const bool goatPinned = (desiredLen > 0.0f) && (allowedLen < 0.1f * desiredLen);
+
+			if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f && physicsDt > 0.0f) {
+				// Normal pointing from goat to player (same dir as MTV applied to player)
+				const glm::vec2 n = glm::vec2(mtv.x / mtvLen, mtv.y / mtvLen);
+
+				// Inward component of our desired displacement this frame
+				const glm::vec2 desiredDelta = v * physicsDt;
+				const float into = desiredDelta.x * n.x + desiredDelta.y * n.y;
+
+				if (into > 0.0f) {
+					// Remove inward component; keep tangential part (slide)
+					const glm::vec2 tangential = desiredDelta - into * n;
+
+					// Clamp slide against world (so we don't scrape into walls)
+					const Math::Vector2D csz = sprite->GetColliderSize();
+					const collision::AABB pAfterSep = collision::World::makeAABBFromCenter(playerPosM, Math::Vector3D(csz.x, csz.y, 1.0f));
+
+					const Math::Vector2D slideDesired(tangential.x, tangential.y);
+					const Math::Vector2D slideAllowed = collisionManager.GetCollisionWorld().resolve(pAfterSep, slideDesired);
+
+					// Apply the allowed slide
+					playerPosM.x += slideAllowed.x;
+					playerPosM.y += slideAllowed.y;
+				}
+				else {
+				}
+			}
+			else if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f) {
+				const float dotInto = (mtv.x / mtvLen) * (v.x / (vLen + 1e-6f)) + (mtv.y / mtvLen) * (v.y / (vLen + 1e-6f));
+				if (dotInto > 0.1f) {
+					movementManager.ClearMoveTarget(spriteID);
+				}
+			}
+		}
+
+		// Write back
+		sprite->SetPosition(toG(playerPosM));
+		other->SetPosition(toG(otherPosM));
+	}
 }
 
 void Scene::BuildLevelColliders() {
@@ -527,18 +581,20 @@ void Scene::BuildLevelColliders() {
 	};
 
 	collisionManager.BuildWalls(walk, wood, gate);
-
 	movementManager.SetCollisionWorld(&collisionManager.GetCollisionWorld());
 	movementManager.SetNPCSystem(&npcSystem);
-
 	physicsManager.SetMovementManager(&movementManager);
 }
 
-void Scene::ApplyFinalConstraints(EntityManager& entityManager) {
-	if (spriteID < 0) return;
+void Scene::ApplyFinalConstraints(EntityManager& entityMgr) {
+	if (spriteID < 0) {
+		return;
+	}
 
-	GameObject* sprite = entityManager.GetByID(spriteID);
-	if (!sprite) return;
+	GameObject* sprite = entityMgr.GetByID(spriteID);
+	if (!sprite) {
+		return;
+	}
 
 	glm::vec3 position = sprite->GetPositionGLM();
 
@@ -577,8 +633,12 @@ static void SnapHorizontallyOutOfBand(const collision::AABB& box, float bandX0, 
 	// Move by the smallest magnitude either to the left or right so the AABB clears the band.
 	const float moveLeft = bandX0 - box.max.x - 0.5f; // small epsilon
 	const float moveRight = bandX1 - box.min.x + 0.5f;
-	if (std::abs(moveLeft) < std::abs(moveRight)) { posM.x += moveLeft; }
-	else { posM.x += moveRight; }
+	if (std::abs(moveLeft) < std::abs(moveRight)) {
+		posM.x += moveLeft;
+	}
+	else {
+		posM.x += moveRight;
+	}
 }
 
 void Scene::ResolveInitialStaticOverlaps() {
@@ -680,13 +740,11 @@ void Scene::GenerateStressTest(int objectCount) {
 			obj->SetVelocity(randomVel);
 		}
 	}
+	std::cout << "[Scene] Stress test loaded\n";
+}
 
-	std::cout << "[Scene] Stress test complete:\n";
-	std::cout << "  - Total objects: " << objectCount << "\n";
-	std::cout << "  - Random positions\n";
-	std::cout << "  - Random velocities\n";
-	std::cout << "  - Mixed textures (" << texturePaths.size() << " types)\n";
-	std::cout << "  - Scene total: " << entityManager.GetObjectCount() << " objects\n";
+void Scene::RequestClearAll() {
+	pendingClear_ = true;
 }
 
 void Scene::AttachLogicForTag(int id, const std::string& tag) {
@@ -697,6 +755,99 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	else if (tag == "npc1" || tag == "npc2") {
 		logicManager.AddLogic<SimpleNpcLogic>(id);
 	}
+	else if (tag == "dino") {
+		logicManager.AddLogic<SimpleNpcLogic>(id);
+		dinoID = id; // preserve your special ID if you rely on it elsewhere
+	}
 	// you can extend with more tags later
 }
 
+GraphicsEngine& Scene::GetGraphicsEngine() {
+	return graphicsEngine;
+}
+
+const GraphicsEngine& Scene::GetGraphicsEngine() const {
+	return graphicsEngine;
+}
+
+void Scene::AddLayer(const std::string& name) {
+	layers.try_emplace(name, name); // Only add if missing
+}
+
+Layer* Scene::GetLayer(const std::string& name) {
+	auto it = layers.find(name);
+	return it != layers.end() ? &(it->second) : nullptr;
+}
+
+const std::unordered_map<std::string, Layer>& Scene::GetAllLayers() const {
+	return layers;
+}
+
+std::string Scene::GetObjectLayer(int objectID) const {
+	auto it = defaults_.find(objectID);
+	if (it != defaults_.end()) {
+		return it->second.layer;
+	}
+
+	return "";
+}
+
+void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
+	std::string layerName = newLayer;
+	if (layerName.empty()) layerName = "1";
+
+	// Remove object from all layers' ID lists
+	for (auto& pair : layers) {
+		pair.second.RemoveObject(id);
+	}
+
+	// Register object ID with chosen layer (creates if missing)
+	Layer& layer = layers[layerName];
+	if (layer.GetName().empty()) {
+		layer.SetName(layerName);
+	}
+
+	layer.AddObject(id);
+
+	// Store on metadata used by the editor + JSON
+	defaults_[id].layer = layerName;
+}
+
+void Scene::RemoveLayer(const std::string& name) {
+	auto it = layers.find(name);
+	if (it != layers.end()) {
+		layers.erase(it);
+	}
+}
+
+void Scene::UpdateAnimationControls() {
+	// Do nothing when simulation is paused
+	if (!simulationActive) return;
+
+	// If UI is capturing keyboard, do not change gameplay animation state
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.WantCaptureKeyboard) return;
+
+	// Edge detection for single key presses
+	const bool k1 = inputManager.IsKeyJustPressed(GLFW_KEY_1);
+	const bool k2 = inputManager.IsKeyJustPressed(GLFW_KEY_2);
+	const bool k3 = inputManager.IsKeyJustPressed(GLFW_KEY_3);
+	if (!k1 && !k2 && !k3) return;
+
+	const std::string anim = k1 ? "IDLE" : (k2 ? "WALK" : "ATTACK");
+
+	// Make these known dino IDs use the chosen animation (skip missing objects)
+	const int dinoIDs[] = { 1, 2, 3 };
+	for (int id : dinoIDs) {
+		GameObject* obj = GetGameObjectByID(id);
+		if (!obj) continue; // not present in scene
+
+		// Ensure animator is attached
+		if (!animationManager.HasAnimator(id)) {
+			animationManager.AttachDinoAnimations(id);
+		}
+
+		animationManager.SetAnimation(id, anim);
+		std::cout << "[Scene] Playing animation " << anim << " for dino id=" << id << "\n";
+	}
+}

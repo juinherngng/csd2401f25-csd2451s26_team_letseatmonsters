@@ -21,8 +21,8 @@ DESCRIPTION:		Declares the DebugVisualizer utility (static-only) used to render
 #include "CollisionManager.hpp"
 #include "MovementManager.hpp"
 
-#include "../Graphics/EntityManager.hpp"
 #include "../Graphics/DebugRenderer.hpp"
+#include "../Graphics/EntityManager.hpp"
 
 /**
  * @class DebugVisualizer
@@ -50,4 +50,11 @@ public:
 
 	// Highlights nearby collision candidates fetched from the spatial grid.
 	static void DrawCandidates(GameObject* player, CollisionManager& collisionManager);
+
+	// Allow other systems to enable/disable the click-to-move path line.
+	static void SetDrawPathLine(bool enable);
+
+private:
+	// Internal toggle for the click-to-move line
+	static bool sDrawPathLine;
 };

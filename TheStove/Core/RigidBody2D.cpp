@@ -15,10 +15,10 @@ All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserve
 
 #include <cmath>
 
-#include "RigidBody2D.hpp"
-#include "GOC.hpp"
-#include "Transform.hpp"
 #include "Forces.hpp"
+#include "GOC.hpp"
+#include "RigidBody2D.hpp"
+#include "Transform.hpp"
 
 // Lifecycle
 void RigidBody2D::Initialize() {
@@ -78,18 +78,15 @@ void RigidBody2D::AddImpulse(const Math::Vector2D& impulse) {
 }
 
 // Queries
-Math::Vector2D const RigidBody2D::GetVelocity() const
-{
+Math::Vector2D const RigidBody2D::GetVelocity() const {
 	return velocity;
 }
 
-Math::Vector2D const RigidBody2D::GetAcceleration() const
-{
+Math::Vector2D const RigidBody2D::GetAcceleration() const {
 	return acceleration;
 }
 
-bool const RigidBody2D::GetUseGravity() const
-{
+bool const RigidBody2D::GetUseGravity() const {
 	return useGravity;
 }
 
@@ -121,8 +118,8 @@ void RigidBody2D::SetAcceleration(const Math::Vector2D& newAcceleration) {
 	acceleration = newAcceleration;
 }
 
-void RigidBody2D::SetUseGravity(const bool enabled) {
-	useGravity = enabled;
+void RigidBody2D::SetUseGravity(const bool enable) {
+	useGravity = enable;
 }
 
 void RigidBody2D::Stop() {

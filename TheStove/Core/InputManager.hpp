@@ -4,6 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:		Centralized keyboard/mouse input state tracker with edge detection.
 					- Polls GLFW each frame and mirrors common key/mouse states.
@@ -15,14 +16,14 @@
 
 #pragma once
 
-#include <unordered_map>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <unordered_map>
 
+#include "../Graphics/GraphicsEngine.hpp"
 #include "imgui.h"
 #include "System.hpp"
-#include "../Graphics/GraphicsEngine.hpp"
 
  /**
   * @class InputManager
@@ -58,6 +59,9 @@ public:
 
 	// Coordinate Conversion
 	glm::vec3 ScreenToWorld(float mouseX, float mouseY) const;
+
+	// Clear all key/mouse state (used when losing/regaining focus)
+	void ClearState();
 
 private:
 	// Internal update method that takes window

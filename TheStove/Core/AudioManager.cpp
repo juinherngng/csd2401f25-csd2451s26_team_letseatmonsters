@@ -11,6 +11,7 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 */
 
 #include <algorithm>
+#include <filesystem> // For checking file existence
 
 #include "AudioManager.hpp"
 
@@ -62,7 +63,6 @@ void AudioManager::Initialize()
 
 void AudioManager::Update(float dt)
 {
-	// uncomment to check update calls
 	//std::cout << "AudioManager system updating with dt: " << dt << std::endl;
 
 	if (!system) return;
@@ -227,6 +227,28 @@ FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const&
 		return it->second;
 	}
 
+	// Debug: Print the path we're trying to load
+	std::cout << "[AudioManager] Attempting to load: " << name << std::endl;
+	std::cout << "  Relative path: " << filePath << std::endl;
+	
+	// Check if file exists
+	if (!std::filesystem::exists(filePath)) {
+		std::cerr << "[AudioManager] File does not exist at path: " << filePath << std::endl;
+		
+		// Try to get absolute path for debugging
+		try {
+			std::filesystem::path absPath = std::filesystem::absolute(filePath);
+			std::cerr << "  Absolute path would be: " << absPath.string() << std::endl;
+			std::cerr << "  Current working directory: " << std::filesystem::current_path().string() << std::endl;
+		} catch (...) {
+			std::cerr << "  Could not determine absolute path" << std::endl;
+		}
+		
+		return nullptr;
+	}
+
+	std::cout << "  File exists, proceeding with FMOD load..." << std::endl;
+
 	// Set FMOD mode flags
 	FMOD_MODE mode = FMOD_DEFAULT | (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) | 
 									(stream ? FMOD_CREATESTREAM : FMOD_CREATESAMPLE);
@@ -281,7 +303,7 @@ bool AudioManager::HasSound(std::string const& name) const
 	return sounds.find(name) != sounds.end();
 }
 
-bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const
+bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& outChannels, int& outBits, float& freq) const
 {
 	auto it = sounds.find(name);
 	if (it == sounds.end() || !it->second) 
@@ -299,11 +321,16 @@ bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs,
 	// Get format info
 	FMOD_SOUND_TYPE type;
 	FMOD_SOUND_FORMAT format;
-	// bits and channels are output parameters
-	if (snd->getFormat(&type, &format, &channels, &bits) != FMOD_OK) return false;
+	int numChannels = 0;
+	int numBits = 0;
+	// outBits and outChannels are output parameters
+	if (snd->getFormat(&type, &format, &numChannels, &numBits) != FMOD_OK) return false;
 
 	// Get default frequency
 	if (snd->getDefaults(&freq, nullptr) != FMOD_OK) freq = 0;
+
+	outChannels = numChannels;
+	outBits = numBits;
 
 	return true;
 }
@@ -358,6 +385,20 @@ void AudioManager::StopAllSounds()
 		masterGroup->stop();
 
 	channels.clear();
+}
+
+// Temporarily pause all audio without destroying it
+void AudioManager::PauseAll() {
+	if (masterGroup) {
+		masterGroup->setPaused(true);
+	}
+}
+
+// Resume audio after PauseAll()
+void AudioManager::ResumeAll() {
+	if (masterGroup) {
+		masterGroup->setPaused(false);
+	}
 }
 
 void AudioManager::SetBgmVolume(float volume)

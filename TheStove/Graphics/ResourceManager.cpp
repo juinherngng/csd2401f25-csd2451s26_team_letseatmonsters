@@ -27,11 +27,11 @@ void ResourceManager::SetAudioManager(AudioManager* audioMgr)
 Shader* ResourceManager::LoadShader(const std::string& name, const std::string& vertexPath, const std::string& fragmentPath) {
     auto it = shaders.find(name);
     if (it != shaders.end()) {
-        //std::cout << "Shader '" << name << "' already loaded, returning existing." << std::endl;
+        std::cout << "[ResourceManager] Shader '" << name << "' already loaded, returning cached version." << std::endl;
         return it->second.get();
     }
 
-    std::cout << "Loading shader '" << name << "' from:" << std::endl;
+    std::cout << "[ResourceManager] Loading NEW shader '" << name << "' from:" << std::endl;
     std::cout << "  Vertex: " << vertexPath << std::endl;
     std::cout << "  Fragment: " << fragmentPath << std::endl;
 
@@ -39,7 +39,7 @@ Shader* ResourceManager::LoadShader(const std::string& name, const std::string& 
     Shader* shaderPtr = shader.get();
     shaders[name] = std::move(shader);
 
-    std::cout << "Loaded shader: " << name << std::endl;
+    std::cout << "[ResourceManager] Successfully loaded shader: " << name << std::endl;
     return shaderPtr;
 }
 

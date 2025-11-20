@@ -4,6 +4,7 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:       Implements PhysicsManager. Integrates simple force-based movement
 					(seek/arrive + drag), applies damping, and trims movement against
@@ -15,12 +16,12 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <iostream>
 #include <cmath>
+#include <iostream>
 
 #include "PhysicsManager.hpp"
 
-// SystemInterface implementation
+ // SystemInterface implementation
 
 void PhysicsManager::Initialize() {
 	std::cout << "PhysicsManager system initialized.\n";

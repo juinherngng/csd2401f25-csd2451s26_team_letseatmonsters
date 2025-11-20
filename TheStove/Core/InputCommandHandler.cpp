@@ -18,11 +18,12 @@
 
 void InputCommandHandler::ProcessCommands(InputManager& inputManager,
 	PhysicsManager& physicsManager,
+	MovementManager& movementManager,
 	int playerID,
 	bool& useForces,
 	bool& showAuxDebug) {
 	HandleDebugToggles(inputManager, showAuxDebug);
-	HandleForceToggle(inputManager, physicsManager, playerID, useForces);
+	HandleForceToggle(inputManager, physicsManager, movementManager, playerID, useForces);
 }
 
 void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& showAuxDebug) {
@@ -47,20 +48,27 @@ void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& s
 
 void InputCommandHandler::HandleForceToggle(InputManager& inputManager,
 	PhysicsManager& physicsManager,
+	MovementManager& movementManager,
 	int playerID,
 	bool& useForces) {
 	// Toggle physics forces vs. kinematic
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_F)) {
 		useForces = !useForces;
-
 		std::cout << "[Forces] " << (useForces ? "ON" : "OFF") << std::endl;
+
+		// Hide click-to-move path line while force mode is ON
+		DebugVisualizer::SetDrawPathLine(!useForces);
 
 		if (playerID >= 0) {
 			if (useForces) {
 				physicsManager.EnablePhysics(playerID, 1.0f);
+
+				// >>> NEW: cancel click-to-move so the line disappears immediately
+				movementManager.ClearMoveTarget(playerID);
 			}
 			else {
 				physicsManager.DisablePhysics(playerID);
+				// (no need to do anything to click target here)
 			}
 		}
 	}

@@ -4,6 +4,7 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:       Implements CollisionManager. Rebuilds a spatial grid of scene objects each frame,
 					builds/owns world collision geometry, resolves step trimming, and exposes broad-
@@ -27,7 +28,7 @@ void CollisionManager::Initialize() {
 
 void CollisionManager::Update(float deltaTime) {
 	(void)deltaTime; // Suppress unused parameter warning
-	
+
 	// Update collisions using the EntityManager reference
 	if (entityManager_) {
 		UpdateCollisions(*entityManager_);

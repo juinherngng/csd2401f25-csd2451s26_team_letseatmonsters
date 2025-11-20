@@ -14,16 +14,20 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <vector>
 #include <cmath>
 #include <iostream>
+#include <vector>
 
 #include "NPCSystem.hpp"
 
 void NPCSystem::Update(float deltaTime, EntityManager& entityManager, CollisionManager& collisionManager, const collision::WalkArea& walkArea) {
-    //UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
-    //HandleNPCCollisions(entityManager);
-    //UpdateGenericNPCs(deltaTime, entityManager, walkArea);
+	//UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
+	//HandleNPCCollisions(entityManager);
+	//UpdateGenericNPCs(deltaTime, entityManager, walkArea);
+	(void)deltaTime;
+	(void)entityManager;
+	(void)collisionManager;
+	(void)walkArea;
 }
 
 void NPCSystem::SetNPCVelocity(int npcID, const glm::vec2& velocity) {

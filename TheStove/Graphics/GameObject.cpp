@@ -5,8 +5,8 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Represents a renderable game object with mesh, shader, texture,
-					transform, and collider. Provides draw routines and debug bounding box.
+ DESCRIPTION:		Implements the GameObject class, which encapsulates the state, transform, and
+					rendering details for every entity that appears in the scene.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -15,8 +15,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-#include "GameObject.hpp"
 #include "../Core/Collision.hpp"
+#include "GameObject.hpp"
 #include "ResourceManager.hpp"
 
 GameObject::GameObject(Mesh* mesh, Shader* shader)
@@ -99,32 +99,6 @@ void GameObject::UpdateModelMatrix() {
 		* glm::scale(glm::mat4(1.0f), m_Scale);
 }
 
-void GameObject::Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const {
-	if (!m_Shader || !m_Mesh) {
-		std::cerr << "GameObject: Missing shader or mesh!" << std::endl;
-		return;
-	}
-
-	m_Shader->Use();
-
-	const glm::vec4 uv = GetUVRect();
-	m_Shader->SetUVOffset(glm::vec2(uv.x, uv.y));
-	m_Shader->SetUVScale(glm::vec2(uv.z, uv.w));
-
-	// Set matrices efficiently
-	m_Shader->SetModelMatrix(m_ModelMatrix);
-	m_Shader->SetViewMatrix(viewMatrix);
-	m_Shader->SetProjectionMatrix(projectionMatrix);
-
-	// Bind texture if available
-	if (m_Texture) {
-		m_Texture->Bind(0);
-		m_Shader->SetTexture("u_Texture", 0);
-	}
-
-	m_Mesh->Draw();
-}
-
 // Debug purposes for collision
 void GameObject::DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color) const {
 	// Center = sprite position + offset
@@ -146,6 +120,9 @@ void GameObject::DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, c
 		{ box.max.x, box.max.y, 0.0f },
 		color
 	);
+
+	(void)proj;
+	(void)view;
 }
 
 glm::vec3 GameObject::GetScaleGLM() const {

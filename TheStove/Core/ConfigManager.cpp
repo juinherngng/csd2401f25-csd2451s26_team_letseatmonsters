@@ -13,12 +13,12 @@
 
 #include "ConfigManager.hpp"
 
-#include <fstream>
-#include <sstream>
 #include <algorithm>
 #include <cctype>
-#include <windows.h>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <windows.h>
 
 namespace fs = std::filesystem;
 

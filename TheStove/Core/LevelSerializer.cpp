@@ -3,17 +3,18 @@
  FILE NAME:			LevelSerializer.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu
 
  DESCRIPTION:		Handles saving and loading of LevelData to and from JSON files.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
 #include <fstream>
 
-#include "LevelSerializer.hpp"
 #include "JSONInclude.hpp"
+#include "LevelSerializer.hpp"
 
 using nlohmann::json;
 
@@ -23,6 +24,7 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 
 	obj.texture = jsonObj.value("texture", "");
 	obj.tag = jsonObj.value("tag", "");
+	obj.layer = jsonObj.value("layer", "");
 
 	obj.x = jsonObj.value("x", 0.0f);
 	obj.y = jsonObj.value("y", 0.0f);
@@ -63,7 +65,8 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "col_offy", obj.colOffsetY },
 		{ "speed_x", obj.speedX },
 		{ "speed_y", obj.speedY },
-		{ "animated", obj.animated }
+		{ "animated", obj.animated },
+		{ "layer", obj.layer }
 	};
 
 	return jsonData;

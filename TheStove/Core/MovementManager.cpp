@@ -4,6 +4,7 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:       Implements MovementManager. Updates player WASD and click-to-move, NPC patrols,
 					and passive velocity-based motion. Uses world trimming to resolve step movement
@@ -20,11 +21,11 @@
 #include "MovementManager.hpp"
 #include "NPCSystem.hpp"
 
+#include "../Core/InputManager.hpp"
 #include "../Graphics/EntityManager.hpp"
 #include "../Graphics/GameObject.hpp"
-#include "../Core/InputManager.hpp"
 
-// ----- SystemInterface implementation -----
+ // ----- SystemInterface implementation -----
 void MovementManager::Initialize() {
 	std::cout << "MovementManager initialized" << std::endl;
 }
@@ -47,7 +48,7 @@ void MovementManager::SetInputManager(InputManager* inputMgr) {
 	inputManager_ = inputMgr;
 }
 
- // Core Functionality
+// Core Functionality
 void MovementManager::UpdateMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager) {
 	// Update player movement (WASD + click-to-move)
 	if (playerID_ >= 0) {

@@ -9,21 +9,21 @@
 					- Query() returns unique candidates overlapping the query AABB (+ 1-cell neighbors).
 					- QueryPoint() returns candidates in the cell containing a point.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
 #pragma once
 
 #include <cstdint>
-#include <vector>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
-#include <functional>
+#include <vector>
 
-#include "Math.hpp"
-#include "Collision.hpp"
 #include "../Graphics/GameObject.hpp"
+#include "Collision.hpp"
+#include "Math.hpp"
 
  /**
   * @brief Spatial hash grid for broad-phase collision / picking.

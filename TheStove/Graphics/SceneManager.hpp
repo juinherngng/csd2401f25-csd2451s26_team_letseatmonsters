@@ -5,8 +5,10 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Declares the Scene class responsible for managing game objects,
-					animations, and scene updates.
+ DESCRIPTION:		Declares the SceneManager (Scene) class, which orchestrates the lifecycle and
+					high-level coordination of all major systems within a game scene. This includes:
+					entity creation and management, event handling, physics and collision simulation,
+					animation control, input processing, and rendering pipeline integration.
 
 		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -14,30 +16,30 @@
 
 #pragma once
 
-#include "GraphicsEngine.hpp"
+#include "AnimationManager.hpp"
 #include "Animator.hpp"
 #include "EntityManager.hpp"
-#include "AnimationManager.hpp"
+#include "GraphicsEngine.hpp"
+#include "Layer.hpp"
 
 #include "../Core/CollisionManager.hpp"
-#include "../Core/MovementManager.hpp" 
-#include "../Core/InputManager.hpp"
-#include "../Core/PhysicsManager.hpp"
-#include "../Core/Physics.hpp"
-#include "../Core/Math.hpp"
-#include "../Core/LevelEditor.hpp"
-#include "../Core/InputCommandHandler.hpp"
-#include "../Core/PlayerController.hpp"
-#include "../Core/NPCSystem.hpp"
 #include "../Core/DebugVisualizer.hpp"
+#include "../Core/InputCommandHandler.hpp"
+#include "../Core/InputManager.hpp"
+#include "../Core/LevelEditor.hpp"
 #include "../Core/LogicManager.hpp"
+#include "../Core/Math.hpp"
+#include "../Core/MovementManager.hpp" 
+#include "../Core/NPCSystem.hpp"
+#include "../Core/Physics.hpp"
+#include "../Core/PhysicsManager.hpp"
+#include "../Core/PlayerController.hpp"
 #include "../Core/PlayerLogic.hpp"
 #include "../Core/SimpleNpcLogic.hpp"
 
-
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
  /**
   * @class Scene
@@ -46,6 +48,9 @@
 class Scene {
 public:
 	// Core Lifecycle testing
+
+	GraphicsEngine& GetGraphicsEngine();
+	const GraphicsEngine& GetGraphicsEngine() const;
 
 	/**
 	 * @brief Construct a new Scene object.
@@ -56,8 +61,8 @@ public:
 	 * @param physicsMgr Reference to the physics manager system.
 	 * @param collisionMgr Reference to the collision manager system.
 	 */
-	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr, 
-		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
+	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
+		MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
 	/**
 	 * @brief Load a scene by name (dispatches to test scene for now).
@@ -92,8 +97,10 @@ public:
 	 /**
 	  * @brief Spawns a static sprite with a given texture and size.
 	  */
-	GameObject* SpawnStaticSprite(const std::string& texturePath, const glm::vec3 position,
-		const glm::vec2 size = glm::vec2(100.0f, 100.0f));
+	GameObject* SpawnStaticSprite(const std::string& texturePath,
+		const glm::vec3 position,
+		const glm::vec2 size = glm::vec2(100.0f, 100.0f),
+		const std::string& layer = "Not set in JSON");
 
 	/**
 	 * @brief Spawns an animated sprite with frames and timing.
@@ -103,7 +110,8 @@ public:
 		const glm::vec3 position,
 		const glm::vec2 size,
 		const std::vector<glm::vec4> frames,
-		float frameDuration, bool loop);
+		float frameDuration, bool loop,
+		const std::string& layer);
 
 	/**
 	 * @brief Retrieve a game object by its ID.
@@ -160,12 +168,22 @@ public:
 			npcSystem.RegisterLaneNPC(id, 1000.0f); //Only this npc2 gets lane behavior
 		}
 	}
-	void SetDinoID(int id) { dinoID = id; }
+	void SetDinoID(int id) {
+		dinoID = id;
+	}
 
-	int GetPlayerID() const { return spriteID; }
-	int GetNPC1ID() const { return otherID; }
-	int GetNPC2ID() const { return otherID2; }
-	int GetDinoID() const { return dinoID; }
+	int GetPlayerID() const {
+		return spriteID;
+	}
+	int GetNPC1ID() const {
+		return otherID;
+	}
+	int GetNPC2ID() const {
+		return otherID2;
+	}
+	int GetDinoID() const {
+		return dinoID;
+	}
 
 	// NPC System
 	void SetNPCVelocity(int id, float vx, float vy) {
@@ -188,9 +206,12 @@ public:
 		glm::vec2 vel{ 0,0 };
 		std::string texture;
 		std::string tag;
+		std::string layer;
 	};
 
-	void SetDefaults(int id, const Defaults& d) { defaults_[id] = d; }
+	void SetDefaults(int id, const Defaults& d) {
+		defaults_[id] = d;
+	}
 	Defaults GetDefaults(int id) const {
 		auto it = defaults_.find(id);
 		return (it != defaults_.end()) ? it->second : Defaults{};
@@ -212,18 +233,37 @@ public:
 
 	void MarkAnimated(int id, bool state);
 
+	// For deferred clearing
+	void RequestClearAll();
 	void ResolveInitialStaticOverlaps();
-	LogicManager& GetLogicManager() { return logicManager; }
+
+	LogicManager& GetLogicManager() {
+		return logicManager;
+	}
 	// new helper:
 	void AttachLogicForTag(int id, const std::string& tag);
 
 	// Expose EntityManager for systems that need it
-	EntityManager& GetEntityManager() { return entityManager; }
+	EntityManager& GetEntityManager() {
+		return entityManager;
+	}
+
+	// Layer management
+	void AddLayer(const std::string& name);
+	Layer* GetLayer(const std::string& name);
+	const std::unordered_map<std::string, Layer>& GetAllLayers() const;
+	std::string GetObjectLayer(int objectID) const;
+
+	// Registers or moves an object to a new layer, updating both the layer map and the object's metadata.
+	void AssignObjectToLayer(int id, const std::string& newLayer);
+	void RemoveLayer(const std::string& name);
+
+	void UpdateAnimationControls();
 
 private:
 	// Helper Methods
-	void HandlePlayerCollisions(float deltaTime, EntityManager& entityManager);
-	void ApplyFinalConstraints(EntityManager& entityManager);
+	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
+	void ApplyFinalConstraints(EntityManager& entityMgr);
 
 	// World/collision
 	void BuildLevelColliders();
@@ -264,8 +304,15 @@ private:
 	// Defaults data
 	std::unordered_map<int, Defaults> defaults_;
 
+	// Layer data
+	std::unordered_map<std::string, Layer> layers;
+
 	// Resize tracking
 	int lastWidth_ = -1;
 	int lastHeight_ = -1;
 	bool resetBaseline_ = false;
+
+	bool pendingClear_ = false; // Flag for deferred clearing
+
+	int editorSelectedId = -1;   // ID of object to draw gizmos for
 };

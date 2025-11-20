@@ -15,15 +15,15 @@
 
 #pragma once
 
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
-#include <cmath>
 #include <iostream>
 
 #include "InputManager.hpp"
+#include "Math.hpp"
 #include "MovementManager.hpp"
 #include "PhysicsManager.hpp"
-#include "Math.hpp"
 
 #include "../Graphics/EntityManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
@@ -47,7 +47,9 @@ public:
 		int playerID,
 		bool useForces);
 
-	float GetRotation() const { return rotation_; }
+	float GetRotation() const {
+		return rotation_;
+	}
 
 private:
 	// Handles up/down key scaling with clamped bounds.

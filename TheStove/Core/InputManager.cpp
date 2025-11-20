@@ -4,6 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:		Implements the InputManager class for handling keyboard and mouse input.
 
@@ -34,7 +35,7 @@ void InputManager::Initialize() {
 
 void InputManager::Update(float dt) {
 	(void)dt; // Suppress unused parameter warning	
-	
+
 	if (mWindow) {
 		UpdateInternal(mWindow);
 	}
@@ -92,6 +93,13 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	glfwGetCursorPos(window, &mMousePos.x, &mMousePos.y);
 }
 
+void InputManager::ClearState() {
+	mCurrentKeyStates.clear();
+	mPreviousKeyStates.clear();
+	mMouseButtons.clear();
+	mPrevMouseButtons.clear();
+	mMousePos = glm::dvec2(0.0, 0.0);
+}
 
 // Keyboard Queries
 bool InputManager::IsKeyPressed(int key) const {
@@ -125,7 +133,7 @@ bool InputManager::IsMouseButtonJustPressed(int button) const {
 	bool curr = (itC != mMouseButtons.end()) && itC->second;
 	bool prev = (itP != mPrevMouseButtons.end()) && itP->second;
 
-	return curr && !prev;  
+	return curr && !prev;
 }
 
 bool InputManager::IsMouseButtonJustReleased(int button) const {
@@ -135,7 +143,7 @@ bool InputManager::IsMouseButtonJustReleased(int button) const {
 	bool curr = (itC != mMouseButtons.end()) && itC->second;
 	bool prev = (itP != mPrevMouseButtons.end()) && itP->second;
 
-	return !curr && prev;  
+	return !curr && prev;
 }
 
 glm::dvec2 InputManager::GetMousePosition() const {

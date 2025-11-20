@@ -34,10 +34,10 @@ class ForceRegistry;
  *  - Optionally apply gravity or externally supplied acceleration.
  *  - Write motion to the owner's Transform (if present).
  */
-class RigidBody2D : public GameComponent
-{
+class RigidBody2D : public GameComponent {
 public:
-	RigidBody2D() : velocity(Math::Vector2D::ZERO), acceleration(Math::Vector2D::ZERO)/*, mass(0.0f)*/, useGravity(false) {};
+	RigidBody2D() : velocity(Math::Vector2D::ZERO), acceleration(Math::Vector2D::ZERO)/*, mass(0.0f)*/, useGravity(false) {
+	};
 
 	// ----- Lifecycle -----
 
@@ -104,8 +104,7 @@ public:
 	// Clone this component (kept to match engine conventions).
 	GameComponent* Clone() const override;
 
-	~RigidBody2D() override
-	{
+	~RigidBody2D() override {
 		std::cout << "Deleting RigidBody2D's component " << "\n";
 	}
 private:

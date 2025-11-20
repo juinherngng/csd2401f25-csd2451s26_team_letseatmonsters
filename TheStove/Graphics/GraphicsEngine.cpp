@@ -3,68 +3,106 @@
 FILE NAME:			GraphicsEngine.cpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
+CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Implements initialization, default resource loading, background handling,
-					and batched rendering of GameObjects with error checks.
+DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
+					and batched instanced rendering of GameObjects.
 
 		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <iostream>
+#include <filesystem>
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
 
-static bool s_imguiInitialized = false;
+// File-scoped state
+static bool _imguiInitialized = false;
+
+// Helper function to resolve shader paths across different build configurations
+namespace {
+	std::string ResolveShaderPath(const std::string& relativePathFromProjectRoot) {
+		// Print working directory only once
+		static bool printedCwd = false;
+		if (!printedCwd) {
+			std::cout << "[ShaderPath] Current working directory: " << std::filesystem::current_path() << std::endl;
+			printedCwd = true;
+		}
+
+		// Extract just the filename from the path
+		std::string filename = std::filesystem::path(relativePathFromProjectRoot).filename().string();
+
+		// Try multiple possible locations, prioritizing build/shaders since it exists
+		std::vector<std::string> possiblePaths = {
+			"shaders/" + filename,                                  // From build directory (build/shaders/)
+			"../shaders/" + filename,                               // From build/Debug or build/Release
+			relativePathFromProjectRoot,                            // Original path (e.g., "../shaders/shader.vert")
+			"../../TheStove/Graphics/shaders/" + filename,          // From build/Release to source
+			"../TheStove/Graphics/shaders/" + filename,             // From build to source
+			"Graphics/shaders/" + filename                          // Alternative structure
+		};
+
+		for (const auto& path : possiblePaths) {
+			if (std::filesystem::exists(path)) {
+				std::cout << "[ShaderPath] Found '" << filename << "' at: " << path << std::endl;
+				return path;
+			}
+		}
+
+		// If not found, return original path and let error handling catch it
+		std::cerr << "[ShaderPath] ERROR: Shader '" << filename << "' not found in any expected location!" << std::endl;
+		std::cerr << "[ShaderPath] Tried paths relative to: " << std::filesystem::current_path() << std::endl;
+		return relativePathFromProjectRoot;
+	}
+}
 
 GraphicsEngine& GraphicsEngine::Instance() {
 	static GraphicsEngine instance;
 	return instance;
 }
 
-// Constructor: Initializes references and identity matrices for view/projection.
+// Constructor: Initializes references and identity matrices for view/projection
 GraphicsEngine::GraphicsEngine()
 	: resourceManager(ResourceManager::Instance()),
 	projection(1.0f),
-	view(1.0f)
-{
+	view(1.0f) {
 }
 
-// Initialize renderer state and default camera/projection.
+// Initialize core renderer, FBO, default resources, and ImGui
 void GraphicsEngine::Initialize() {
 	renderer.Initialize();
 	renderer.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+
 	CreateSceneFBO(kRefW, kRefH);
-	// Resize(kRefW, kRefH);
 	view = glm::mat4(1.0f);
 
-	// Load default resources
 	LoadDefaultResources();
 
 	DebugRenderer::Init();
 	DebugRenderer::SetEnabled(false);
 
-	if (!s_imguiInitialized) {
+	if (!_imguiInitialized) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-		// Bigger UI
-		io.FontGlobalScale = 1.35f;
+		// Slightly larger UI for readability
+		io.FontGlobalScale = 1.0f;
 		ImGuiStyle& style = ImGui::GetStyle();
-		style.ScaleAllSizes(1.35f);
-
+		style.ScaleAllSizes(1.2f);
 		ImGui::StyleColorsDark();
 
 		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
-		s_imguiInitialized = true;
+		_imguiInitialized = true;
 	}
 }
 
@@ -72,18 +110,31 @@ void GraphicsEngine::Initialize() {
 void GraphicsEngine::Update(float dt) {
 	// Store dt for performance tracking
 	lastDt = dt;
-	
+
 	// Note: Actual rendering is still called from main loop via BeginFrame/Render/EndFrame
 	// This Update is just for system integration and performance monitoring
 	(void)dt; // Suppress unused parameter warning if no other logic needed
 }
 
+// Destroy the current scene FBO (safe to call repeatedly)
 void GraphicsEngine::DestroySceneFBO() {
-	if (mSceneDepth) { glDeleteRenderbuffers(1, &mSceneDepth);  mSceneDepth = 0; }
-	if (mSceneColor) { glDeleteTextures(1, &mSceneColor);      mSceneColor = 0; }
-	if (mSceneFBO) { glDeleteFramebuffers(1, &mSceneFBO);    mSceneFBO = 0; }
+	if (mSceneDepth) {
+		glDeleteRenderbuffers(1, &mSceneDepth);
+		mSceneDepth = 0;
+	}
+
+	if (mSceneColor) {
+		glDeleteTextures(1, &mSceneColor);
+		mSceneColor = 0;
+	}
+
+	if (mSceneFBO) {
+		glDeleteFramebuffers(1, &mSceneFBO);
+		mSceneFBO = 0;
+	}
 }
 
+// Create a color and depth FBO for the scene at the given size
 void GraphicsEngine::CreateSceneFBO(int w, int h) {
 	DestroySceneFBO();
 
@@ -103,18 +154,24 @@ void GraphicsEngine::CreateSceneFBO(int w, int h) {
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mSceneDepth);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		// handle/log error as you prefer
+		// std::cerr << "[GraphicsEngine] Scene FBO incomplete\n";
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	mSceneWidth = w; mSceneHeight = h;
+	mSceneWidth = w;
+	mSceneHeight = h;
 }
 
+// Resize (recreate) the scene FBO if size is valid
 void GraphicsEngine::ResizeSceneFBO(int w, int h) {
-	if (w <= 0 || h <= 0) return;
+	if (w <= 0 || h <= 0) {
+		return;
+	}
+
 	CreateSceneFBO(w, h);
 }
 
+// Bind scene FBO and clear
 void GraphicsEngine::BeginSceneRender() {
 	glBindFramebuffer(GL_FRAMEBUFFER, mSceneFBO);
 	glViewport(0, 0, mSceneWidth, mSceneHeight);
@@ -122,21 +179,23 @@ void GraphicsEngine::BeginSceneRender() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
+// Unbind scene FBO
 void GraphicsEngine::EndSceneRender() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-
+// Getters
 const glm::mat4& GraphicsEngine::GetProjection() const {
 	return projection;
 }
-
 const glm::mat4& GraphicsEngine::GetView() const {
 	return view;
 }
+ImGuiID GraphicsEngine::GetMainDockspaceID() const {
+	return mMainDockspaceId;
+}
 
-ImGuiID GraphicsEngine::GetMainDockspaceID() const { return mMainDockspaceId; }
-
+// Handle window resize: update letterboxed viewport and background placement
 void GraphicsEngine::Resize(int width, int height) {
 	if (width <= 0 || height <= 0) {
 		return;
@@ -145,15 +204,14 @@ void GraphicsEngine::Resize(int width, int height) {
 	screenWidth = width;
 	screenHeight = height;
 
-	// Keep the *projection* fixed to reference pixels so sprites don't scale
-	// (0,0) top-left, (kRefW,kRefH) bottom-right
+	// Fixed pixel-space ortho (origin top-left)
 	projection = glm::ortho(
 		0.0f, static_cast<float>(kRefW),
 		static_cast<float>(kRefH), 0.0f,
 		-1.0f, 1.0f
 	);
 
-	// Compute letterboxed viewport centered in the window
+	// Compute centered letterboxed viewport
 	const float sx = static_cast<float>(width) / static_cast<float>(kRefW);
 	const float sy = static_cast<float>(height) / static_cast<float>(kRefH);
 	viewportScale_ = std::min(sx, sy);
@@ -166,7 +224,7 @@ void GraphicsEngine::Resize(int width, int height) {
 	// Apply the viewport now
 	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
 
-	// Background should match the reference canvas (it renders in world pixels)
+	// Keep background quad aligned to the reference canvas
 	if (backgroundObject) {
 		backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
 		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
@@ -174,48 +232,47 @@ void GraphicsEngine::Resize(int width, int height) {
 	}
 }
 
+// Apply the current letterboxed viewport (use before world rendering)
 void GraphicsEngine::ApplyViewport() const {
-	// Centered letterbox area where the game actually renders
 	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
 }
 
-
-// Internal helper to preload common shaders and meshes.
+// Load core shaders and meshes used by engine/editor
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
-		"../TheStove/Graphics/shaders/shader.vert",
-		"../TheStove/Graphics/shaders/shader.frag");
+		ResolveShaderPath("../shaders/shader.vert"),
+		ResolveShaderPath("../shaders/shader.frag"));
 
 	// Load texture shader
 	resourceManager.LoadShader("texture",
-		"../TheStove/Graphics/shaders/texture.vert",
-		"../TheStove/Graphics/shaders/texture.frag");
+		ResolveShaderPath("../shaders/texture.vert"),
+		ResolveShaderPath("../shaders/texture.frag"));
 
 	// Load sprite shader
 	resourceManager.LoadShader("sprite",
-		"../TheStove/Graphics/shaders/sprite.vert",
-		"../TheStove/Graphics/shaders/sprite.frag");
+		ResolveShaderPath("../shaders/sprite.vert"),
+		ResolveShaderPath("../shaders/sprite.frag"));
 
 	// Load static sprite shader
 	resourceManager.LoadShader("staticsprite",
-		"../TheStove/Graphics/shaders/staticsprite.vert",
-		"../TheStove/Graphics/shaders/staticsprite.frag");
+		ResolveShaderPath("../shaders/staticsprite.vert"),
+		ResolveShaderPath("../shaders/staticsprite.frag"));
 
 	// Load animated sprite shader
 	resourceManager.LoadShader("animatedsprite",
-		"../TheStove/Graphics/shaders/animatedsprite.vert",
-		"../TheStove/Graphics/shaders/animatedsprite.frag");
+		ResolveShaderPath("../shaders/animatedsprite.vert"),
+		ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load instanced static sprite shader
 	resourceManager.LoadShader("staticsprite_instanced",
-		"../TheStove/Graphics/shaders/staticsprite_instanced.vert",
-		"../TheStove/Graphics/shaders/staticsprite_instanced.frag");
+		ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
+		ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
 
 	// Load instanced animated sprite shader
 	resourceManager.LoadShader("animatedsprite_instanced",
-		"../TheStove/Graphics/shaders/animatedsprite_instanced.vert",
-		"../TheStove/Graphics/shaders/animatedsprite.frag");
+		ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
+		ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load triangle mesh
 	std::vector<float> vertices;
@@ -227,13 +284,12 @@ void GraphicsEngine::LoadDefaultResources() {
 	MeshLoader::LoadSprite(vertices, vertexCount, vertexSize);
 	resourceManager.LoadMesh("sprite", vertices, vertexCount, vertexSize);
 
-
 	// Load fullscreen quad mesh
 	MeshLoader::LoadFullscreenQuad(vertices, vertexCount, vertexSize);
 	resourceManager.LoadMesh("fullscreen_quad", vertices, vertexCount, vertexSize);
 }
 
-//Sets and update a fullscreen background texture and ensure a background quad exists.
+// Set/ensure a fullscreen background quad using the given texture path
 void GraphicsEngine::SetBackground(const std::string& texturePath) {
 	// Load background texture
 	Texture* bgTexture = resourceManager.LoadTexture("background", texturePath);
@@ -265,20 +321,13 @@ void GraphicsEngine::ClearBackground() {
 	backgroundObject.reset();
 }
 
+// Start a new ImGui frame and host a global DockSpace
 void GraphicsEngine::BeginImGuiFrame() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
-	ImGuiViewport* vp = ImGui::GetMainViewport();
 
-	/*ImGui::DockSpaceOverViewport(
-		vp->ID,
-		vp,
-		ImGuiDockNodeFlags_PassthruCentralNode |
-		ImGuiDockNodeFlags_NoDockingInCentralNode
-	);*/
-
-	// DockSpace host (lets all editor windows dock/undock)
+	// Dockspace host window (full work area)
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
 	ImGui::SetNextWindowSize(viewport->WorkSize);
@@ -303,95 +352,145 @@ void GraphicsEngine::BeginImGuiFrame() {
 	ImGui::PopStyleVar(2);
 }
 
+// Draw the Scene window and present the scene FBO texture inside it
 void GraphicsEngine::DrawSceneDockWindow() {
 	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
 		ImGuiCond_FirstUseEver);
+
 	if (ImGui::Begin("Scene###SceneWindow")) {
 		ImVec2 avail = ImGui::GetContentRegionAvail();
 		const float targetAspect = float(kRefW) / float(kRefH);
 		float w = avail.x, h = avail.y;
 		float r = w / h;
-		if (r > targetAspect) { w = h * targetAspect; }
-		else { h = w / targetAspect; }
+		if (r > targetAspect) {
+			w = h * targetAspect;
+		}
+		else {
+			h = w / targetAspect;
+		}
 
 		// Center the image in the window
 		ImVec2 cursor = ImGui::GetCursorPos();
 		ImGui::SetCursorPos(ImVec2(cursor.x + (avail.x - w) * 0.5f,
 			cursor.y + (avail.y - h) * 0.5f));
 
-		// Record absolute (screen) rectangle for picking
+		// Absolute rect for picking
 		sceneImagePos_ = ImGui::GetCursorScreenPos();
 		sceneImageSize_ = ImVec2(w, h);
 
-		// Draw the texture (flip vertically)
+		// Draw the FBO texture (v-flipped)
 		ImGui::Image(
 			(ImTextureID)(intptr_t)mSceneColor,
 			ImVec2(w, h),
-			ImVec2(0, 1),   // uv0
-			ImVec2(1, 0)    // uv1
+			ImVec2(0, 1), // uv0
+			ImVec2(1, 0)  // uv1
 		);
 
-		// Overlay an invisible hit proxy exactly matching the scene image.
-		// This makes ImGui "hover/active" states line up with the scene viewport.
+		// Invisible proxy for hover/click that exactly matches the scene image
 		if (sceneImageSize_.x > 1.0f && sceneImageSize_.y > 1.0f) {
 			ImGui::SetCursorScreenPos(sceneImagePos_);
-			ImGui::InvisibleButton("##SceneHitProxy", sceneImageSize_, ImGuiButtonFlags_MouseButtonLeft);
+			const bool pressed = ImGui::ImageButton(
+				"##SceneImageBtn",
+				(ImTextureID)(intptr_t)mSceneColor,
+				ImVec2(sceneImageSize_.x, sceneImageSize_.y),
+				ImVec2(0, 1),
+				ImVec2(1, 0)
+			);
+
+			if (pressed || ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+				std::cout << "[Scene] LMB click inside Scene image\n";
+			}
 		}
 	}
 
 	ImGui::End();
 }
 
+// Finish the current ImGui frame and render it
 void GraphicsEngine::EndImGuiFrame() {
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
+// Frame begin: clear backbuffer, set viewport, bind scene FBO, begin ImGui
 void GraphicsEngine::BeginFrame() {
-	// Clear the entire backbuffer first (black bars included)
 	glViewport(0, 0, screenWidth, screenHeight);
 	renderer.Clear();
 
-	// Then restrict rendering to the centered game area
 	ApplyViewport();
-
 	BeginSceneRender();
-
 	BeginImGuiFrame();
 }
 
+// Convert current mouse (screen) into scene world coords if within image
 bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
-	// If Scene window hasn't drawn yet this frame
-	if (sceneImageSize_.x <= 1.0f || sceneImageSize_.y <= 1.0f) {
+	ImVec2 imgPos = sceneImagePos_;
+	ImVec2 imgSize = sceneImageSize_;
+
+	// If the Scene window hasn't drawn this frame, reconstruct its rect
+	if (imgSize.x <= 1.0f || imgSize.y <= 1.0f) {
+		ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
+		if (sceneWin) {
+			const ImRect c = sceneWin->InnerRect;  // screen-space
+			const float availW = c.GetWidth();
+			const float availH = c.GetHeight();
+
+			const float targetAspect = float(kRefW) / float(kRefH);
+			float w = availW, h = availH, r = w / h;
+			if (r > targetAspect) {
+				w = h * targetAspect;
+			}
+			else {
+				h = w / targetAspect;
+			}
+
+			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f, c.Min.y + (availH - h) * 0.5f);
+			imgSize = ImVec2(w, h);
+		}
+		else {
+			ImGuiViewport* vp = ImGui::GetMainViewport();
+			const float availW = vp->WorkSize.x;
+			const float availH = vp->WorkSize.y;
+
+			const float targetAspect = float(kRefW) / float(kRefH);
+			float w = availW, h = availH, r = w / h;
+			if (r > targetAspect) {
+				w = h * targetAspect;
+			}
+			else {
+				h = w / targetAspect;
+			}
+
+			imgPos = ImVec2(vp->WorkPos.x + (availW - w) * 0.5f, vp->WorkPos.y + (availH - h) * 0.5f);
+			imgSize = ImVec2(w, h);
+		}
+	}
+
+	// Mouse (absolute)
+	const ImVec2 mouse = ImGui::GetMousePos();
+
+	// Early-out if outside image rect
+	if (mouse.x < imgPos.x || mouse.y < imgPos.y ||
+		mouse.x > imgPos.x + imgSize.x || mouse.y > imgPos.y + imgSize.y) {
 		return false;
 	}
 
-	// Mouse in absolute screen coordinates
-	ImVec2 mouse = ImGui::GetMousePos();
+	// Local coordinates (0..size)
+	const float localX = mouse.x - imgPos.x;
+	const float localY = mouse.y - imgPos.y;
 
-	// Early out if outside the image rect
-	if (mouse.x < sceneImagePos_.x || mouse.y < sceneImagePos_.y ||
-		mouse.x > sceneImagePos_.x + sceneImageSize_.x ||
-		mouse.y > sceneImagePos_.y + sceneImageSize_.y) {
-		return false;
-	}
+	// UV (0..1)
+	const float u = localX / imgSize.x;
+	const float v = localY / imgSize.y;
 
-	// Local position (0..size) within the image
-	const float localX = mouse.x - sceneImagePos_.x;
-	const float localY = mouse.y - sceneImagePos_.y;
-
-	// UV inside the image (0..1)
-	const float u = localX / sceneImageSize_.x;
-	const float v = localY / sceneImageSize_.y;
-
+	// Pixel in reference space
 	const float px = u * float(kRefW);
 	const float py = v * float(kRefH);
 
-	// Convert FBO pixel (px,py) -> world using inverse(View * Projection)
-	// First go from pixels to NDC:
+	// Transform through inverse(V*P)
 	glm::vec4 clip;
-	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;   // [-1,1]
-	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;   // [-1,1] (top->+1)
+	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;
+	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;
 	clip.z = 0.0f;
 	clip.w = 1.0f;
 
@@ -402,67 +501,70 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	return true;
 }
 
-
-// Render the background and then all provided GameObjects
-void GraphicsEngine::Render(const std::vector<GameObject*>& objects) {
-	// Background first
+void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+	// Draw background first
 	if (backgroundObject) {
 		glDisable(GL_DEPTH_TEST);
-		backgroundObject->Draw(view, projection);
+		Shader* shader = backgroundObject->GetShader();
+		if (shader) {
+			shader->Use();
+			shader->SetModelMatrix(backgroundObject->GetModelMatrix());
+			shader->SetViewMatrix(viewMatrix);
+			shader->SetProjectionMatrix(projectionMatrix);
+		}
+		Texture* tex = backgroundObject->GetTexture();
+		if (tex) {
+			tex->Bind(0);
+			shader->SetTexture("u_Texture", 0);
+		}
+		Mesh* mesh = backgroundObject->GetMesh();
+		if (mesh) {
+			mesh->Draw();
+		}
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	// Scene objects
+	// Render all scene objects
 	for (const auto* obj : objects) {
-		if (!obj) { continue; }
+		if (!obj) continue;
 
-		obj->Draw(view, projection);
+		Shader* shader = obj->GetShader();
+		if (!shader) continue;
 
-		// Draw bounding boxes only when debug is enabled (R)
+		shader->Use();
+		shader->SetModelMatrix(obj->GetModelMatrix());
+		shader->SetViewMatrix(viewMatrix);
+		shader->SetProjectionMatrix(projectionMatrix);
+
+		Texture* tex = obj->GetTexture();
+		if (tex) {
+			tex->Bind(0);
+			shader->SetTexture("u_Texture", 0);
+		}
+
+		Mesh* mesh = obj->GetMesh();
+		if (mesh) {
+			mesh->Draw();
+		}
+
 		if (DebugRenderer::IsEnabled()) {
 			glDisable(GL_DEPTH_TEST);
-			obj->DrawBoundingBox(view, projection, { 1.0f, 0.0f, 0.0f });
+			obj->DrawBoundingBox(viewMatrix, projectionMatrix, glm::vec3{ 1.0f, 0.0f, 0.0f });
 			glEnable(GL_DEPTH_TEST);
 		}
 	}
 
-	// Debug lines/points flush (R/T)
-	if (DebugRenderer::IsEnabled()) {
-		glDisable(GL_DEPTH_TEST);
-		DebugRenderer::Flush(view, projection);
-		glEnable(GL_DEPTH_TEST);
-	}
-
 	EndSceneRender();
-
 	DrawSceneDockWindow();
-
-	// ImGui on top
 	EndImGuiFrame();
 
-	// GL error check
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
 		std::cerr << "OpenGL error after draw call: " << error << std::endl;
 	}
 }
 
-// Destroy background and clear ResourceManager caches
-void GraphicsEngine::Shutdown() {
-
-	backgroundObject.reset();
-	DebugRenderer::Shutdown();
-	resourceManager.Clear();
-
-	// ImGui cleanup
-	if (s_imguiInitialized) {
-		ImGui_ImplOpenGL3_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-		ImGui::DestroyContext();
-		s_imguiInitialized = false;
-	}
-}
-
+// Batched/instanced render path for static sprites; direct draw for animated (instanced animated not implemented yet)
 void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Reset stats
 	renderStats = RenderStats();
@@ -471,9 +573,25 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Draw background first
 	if (backgroundObject) {
 		glDisable(GL_DEPTH_TEST);
-		backgroundObject->Draw(view, projection);
+		Shader* shader = backgroundObject->GetShader();
+		if (shader) {
+			shader->Use();
+			shader->SetModelMatrix(backgroundObject->GetModelMatrix());
+			shader->SetViewMatrix(view);
+			shader->SetProjectionMatrix(projection);
+		}
+		Texture* tex = backgroundObject->GetTexture();
+		if (tex) {
+			tex->Bind(0);
+			shader->SetTexture("u_Texture", 0);
+		}
+		Mesh* mesh = backgroundObject->GetMesh();
+		if (mesh) {
+			mesh->Draw();
+		}
 		glEnable(GL_DEPTH_TEST);
 	}
+
 
 	if (objects.empty()) {
 		EndSceneRender();
@@ -482,7 +600,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		return;
 	}
 
-	// Separate static and animated sprites
+	// Separate by shader type
 	std::vector<GameObject*> staticSprites;
 	std::vector<GameObject*> animatedSprites;
 
@@ -490,36 +608,70 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	Shader* animShader = resourceManager.GetShader("animatedsprite");
 
 	for (auto* obj : objects) {
-		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
+		if (!obj || !obj->GetMesh() || !obj->GetShader()) {
+			continue;
+		}
 
-		//	 Categorize based on shader type
 		if (obj->GetShader() == animShader) {
-			animatedSprites.push_back(obj);  // Animated sprite
+			animatedSprites.push_back(obj); // animated
 		}
 		else {
-			staticSprites.push_back(obj);     // Static sprite
+			staticSprites.push_back(obj); // static
 		}
 	}
 
-	// Render static sprites with batching and instancing
+	// Render static sprites with batching and instancing,
+	// while preserving the original order from the Scene (layer + Y sorting).
 	if (!staticSprites.empty()) {
-		std::map<RenderKey, std::vector<GameObject*>> batches;
 
-		for (auto* obj : staticSprites) {
-			RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
-			batches[key].push_back(obj);
-		}
+		auto sameRenderKey = [](const RenderKey& a, const RenderKey& b) {
+			return a.mesh == b.mesh && a.shader == b.shader && a.texture == b.texture;
+			};
 
-		renderStats.totalBatches += static_cast<int>(batches.size());
+		std::size_t i = 0;
+		while (i < staticSprites.size()) {
+			GameObject* first = staticSprites[i];
+			if (!first || !first->GetMesh() || !first->GetShader()) {
+				++i;
+				continue;
+			}
 
-		for (auto& [key, batch] : batches) {
-			if (batch.size() >= INSTANCING_THRESHOLD) {
-				// Use instanced rendering if >= threshold
-				renderStats.instancedObjects += static_cast<int>(batch.size());
+			RenderKey key{ first->GetMesh(), first->GetShader(), first->GetTexture() };
+
+			// Collect a contiguous run of objects that share this RenderKey
+			std::vector<GameObject*> run;
+			run.push_back(first);
+			++i;
+
+			while (i < staticSprites.size()) {
+				GameObject* next = staticSprites[i];
+				if (!next || !next->GetMesh() || !next->GetShader()) {
+					++i;
+					continue;
+				}
+
+				RenderKey nextKey{ next->GetMesh(), next->GetShader(), next->GetTexture() };
+				if (!sameRenderKey(key, nextKey)) {
+					break; // different material to end of this batch
+				}
+
+				run.push_back(next);
+				++i;
+			}
+
+			if (run.empty()) {
+				continue;
+			}
+
+			renderStats.totalBatches++;
+
+			if (run.size() >= INSTANCING_THRESHOLD) {
+				// Instanced path (same logic as before, but using "run" instead of "batch")
+				renderStats.instancedObjects += static_cast<int>(run.size());
 
 				std::vector<glm::mat4> modelMatrices;
-				modelMatrices.reserve(batch.size());
-				for (const auto* obj : batch) {
+				modelMatrices.reserve(run.size());
+				for (const auto* obj : run) {
 					modelMatrices.push_back(obj->GetModelMatrix());
 				}
 
@@ -537,11 +689,11 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 					instancedShader->SetTexture("u_Texture", 0);
 				}
 
-				key.mesh->DrawInstanced(key.texture, batch.size());
+				key.mesh->DrawInstanced(key.texture, run.size());
 				renderStats.drawCalls++;
 			}
 			else {
-				// Use noramal rendering if < threshold
+				// Non-instanced path (same as before, but keep order in "run")
 				key.shader->Use();
 				key.shader->SetViewMatrix(view);
 				key.shader->SetProjectionMatrix(projection);
@@ -550,7 +702,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 					key.shader->SetTexture("u_Texture", 0);
 				}
 
-				for (const auto* obj : batch) {
+				for (const auto* obj : run) {
 					key.shader->SetModelMatrix(obj->GetModelMatrix());
 					key.mesh->Draw();
 					renderStats.drawCalls++;
@@ -596,15 +748,30 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	// Imgui frame end
+	// End-of-frame UI
 	EndSceneRender();
 	DrawSceneDockWindow();
 	EndImGuiFrame();
 
-	//Error Check
+	// GL error check
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
 		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
+	}
+}
+
+// Free resources and shutdown ImGui
+void GraphicsEngine::Shutdown() {
+	backgroundObject.reset();
+	DebugRenderer::Shutdown();
+	resourceManager.Clear();
+
+	// ImGui cleanup
+	if (_imguiInitialized) {
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+		_imguiInitialized = false;
 	}
 }
 

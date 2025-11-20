@@ -13,10 +13,10 @@
 
 #pragma once
 
-#include <glm/glm.hpp>
-#include <vector>
 #include <cmath>
+#include <glm/glm.hpp>
 #include <map>
+#include <vector>
 
 #include "ResourceManager.hpp"
 #include "Shader.hpp"

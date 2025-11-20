@@ -4,6 +4,7 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:       Declares PhysicsManager, a lightweight force-based integrator that updates
 					per-entity velocity/position, supports seek/arrive targets, simple drag, and
@@ -76,13 +77,19 @@ public:
 	void Clear();
 
 	// Access to step controller
-	physics::StepController& GetStepController() { return physicsStep_; }
+	physics::StepController& GetStepController() {
+		return physicsStep_;
+	}
 
 	// World collision/trim resolver used to clamp movement each step.
-	void SetCollisionWorld(const collision::World* w) { world_ = w; }
+	void SetCollisionWorld(const collision::World* w) {
+		world_ = w;
+	}
 
 	// Movement system (used to clear click-to-move targets on impact).
-	void SetMovementManager(MovementManager* m) { movement_ = m; }
+	void SetMovementManager(MovementManager* m) {
+		movement_ = m;
+	}
 
 private:
 	// Internal state & constants

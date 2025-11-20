@@ -51,8 +51,7 @@ namespace physics {
 
 	void ClampInsideWalkWithGate(const collision::WalkArea& walk,
 		const collision::StageEndGateVertical& gate,
-		GameObject* obj, Math::Vector3D& pos)
-	{
+		GameObject* obj, Math::Vector3D& pos) {
 		const Math::Vector2D half = obj->GetColliderSize() * 0.5f;
 		const Math::Vector2D off = obj->GetColliderOffset();
 
@@ -131,8 +130,7 @@ namespace physics {
 		GameObject* player, GameObject* other,
 		Math::Vector3D& playerPos, Math::Vector3D& otherPos,
 		Math::Vector2D& desiredMove, bool& hasClickTarget,
-		float splitPlayer)
-	{
+		float splitPlayer) {
 		const collision::AABB pBox = MakeColliderBox(player, playerPos);
 		const collision::AABB oBox = MakeColliderBox(other, otherPos);
 
@@ -184,8 +182,7 @@ namespace physics {
 	void MoveYLaneWithBounce(
 		collision::World& world,
 		GameObject* gameObj, Math::Vector3D& pos, Math::Vector2D& vel,
-		float laneX, float physicsDt)
-	{
+		float laneX, float physicsDt) {
 		// Constrain to lane (fixed X).
 		pos.x = laneX;
 
@@ -207,8 +204,7 @@ namespace physics {
 	void ElasticBounceEqualMass(
 		GameObject* firstObj, GameObject* secondObj,
 		Math::Vector3D& firstPos, Math::Vector3D& secondPos,
-		Math::Vector2D& firstVel, Math::Vector2D& secondVel)
-	{
+		Math::Vector2D& firstVel, Math::Vector2D& secondVel) {
 		collision::AABB firstBox = MakeColliderBox(firstObj, firstPos);
 		collision::AABB secondBox = MakeColliderBox(secondObj, secondPos);
 
