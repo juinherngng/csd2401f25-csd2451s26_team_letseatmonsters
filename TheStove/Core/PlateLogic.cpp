@@ -1,0 +1,149 @@
+#include "PlateLogic.hpp"
+#include "../Graphics/SceneManager.hpp"
+
+PlateLogic::PlateLogic(int ownerID) : GameObjectLogic(ownerID), dishPrepared_(false), dishType_(DishType::PoopDish) // default
+{
+}
+
+void PlateLogic::Start(Scene& /*scene*/)
+{
+	ingredients_.clear();
+	dishPrepared_ = false;
+	dishType_ = DishType::PoopDish;
+}
+
+void PlateLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/)
+{
+	// No per-frame logic needed yet.
+}
+
+bool PlateLogic::CanAcceptIngredientType(IngredientType type) const
+{
+	if (dishPrepared_)
+		return false;
+
+	// Only allow refined ingredients
+	switch (type)
+	{
+	case IngredientType::Refined_Veg:
+	case IngredientType::Refined_Meat:
+	case IngredientType::Refined_Shroom:
+		break;
+	default:
+		return false;
+	}
+
+	// Limit to two ingredients (like your Unity script).
+	if (ingredients_.size() >= 2)
+		return false;
+
+	return true;
+}
+
+void PlateLogic::AddIngredientType(IngredientType type)
+{
+	ingredients_.push_back(type);
+}
+
+void PlateLogic::ClearIngredients()
+{
+	ingredients_.clear();
+}
+
+// ----- Dish assembly -----
+
+bool PlateLogic::TryAssembleDish(DishType& outDishType,
+	std::vector<IngredientType>& outConsumedIngredients)
+{
+	if (dishPrepared_)
+	{
+		// Already have a dish; do not assemble again.
+		return false;
+	}
+
+	if (ingredients_.size() < 2)
+	{
+		// Need at least two ingredients to assemble a dish.
+		return false;
+	}
+
+	// For simplicity, we only look at the first two ingredients,
+	// mirroring your Unity example (ingredient1 and ingredient2).
+	IngredientType a = ingredients_[0];
+	IngredientType b = ingredients_[1];
+
+	DishType result = ComputeDishFromPair(a, b);
+
+	// Mark internal state
+	dishPrepared_ = true;
+	dishType_ = result;
+
+	// Report results to caller
+	outDishType = result;
+	outConsumedIngredients = ingredients_;
+
+	return true;
+}
+
+void PlateLogic::ClearPreparedDish()
+{
+	dishPrepared_ = false;
+	dishType_ = DishType::PoopDish;
+	ingredients_.clear();
+}
+
+// Helper: map two refined ingredient types to a dish type.
+DishType PlateLogic::ComputeDishFromPair(IngredientType a, IngredientType b) const
+{
+	const bool aMeat = (a == IngredientType::Refined_Meat);
+	const bool bMeat = (b == IngredientType::Refined_Meat);
+	const bool aVeg = (a == IngredientType::Refined_Veg);
+	const bool bVeg = (b == IngredientType::Refined_Veg);
+	const bool aShroom = (a == IngredientType::Refined_Shroom);
+	const bool bShroom = (b == IngredientType::Refined_Shroom);
+
+	// Meat + Veg (any order) => MeatDish
+	if ((aMeat && bVeg) || (aVeg && bMeat))
+	{
+		return DishType::MeatDish;
+	}
+
+	// Shroom + Meat (any order) => SoupDish
+	if ((aShroom && bMeat) || (aMeat && bShroom))
+	{
+		return DishType::SoupDish;
+	}
+
+	// Veg + Veg => VegDish
+	if ((aVeg && bVeg))
+	{
+		return DishType::VegDish;
+	}
+
+	// Anything else => PoopDish
+	return DishType::PoopDish;
+}
+
+bool PlateLogic::TryAddIngredient(const IngredientLogic& ingredient, bool& outConsumedNow)
+{
+	outConsumedNow = false;
+
+	// Only allow processed (refined) ingredients on the plate.
+	if (!ingredient.IsProcessed())
+		return false;
+
+	IngredientType type = ingredient.GetType();
+
+	if (!CanAcceptIngredientType(type))
+		return false;
+
+	AddIngredientType(type);
+
+	// We *do not* automatically assemble here; assembly is a separate action.
+	// So the ingredient is logically "placed" on the plate as a type, but
+	// nobody is destroyed/spawned yet.
+	//
+	// Later, Player or some interaction code can call TryAssembleDish(...) to
+	// actually decide what dish is created and which ingredients are consumed.
+	return true;
+}

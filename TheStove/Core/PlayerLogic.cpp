@@ -16,6 +16,9 @@ DESCRIPTION:		Implements player control logic, including movement, sprite update
 #include "../Core/InputManager.hpp"
 #include "../Core/InputControls.hpp"
 #include "../Core/DebugUI.hpp"        // for DebuggerApp
+#include "TableLogic.hpp"
+#include "WorkTableLogic.hpp"
+#include "CustomerTableLogic.hpp"
 #include <iostream>
 
 void PlayerLogic::Start(Scene& scene)
@@ -336,3 +339,86 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		std::cout << "[PlayerLogic] P pressed\n";
 	}
 }
+
+void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
+{
+	GameObject* player = GetOwner(scene);
+	if (!player)
+		return;
+
+	// Get table logic for the clicked/selected GameObject
+	LogicManager& logicMgr = scene.GetLogicManager();
+	TableLogic* table = logicMgr.GetLogicForObject<TableLogic>(tableObjectID);
+	if (!table)
+		return;
+
+	const bool playerHolding = (carriedItemID >= 0);
+	const bool tableHasItem = table->HasItem();
+
+	// -------------------------------------------------------
+	// CASE 1: Player empty-handed, table has an item -> pick up
+	// -------------------------------------------------------
+	if (!playerHolding && tableHasItem)
+	{
+		int itemID = table->TakeItem(scene);
+		if (itemID >= 0)
+		{
+			// Reuse existing pickup behaviour (snap under player, etc.)
+			PickUp(scene, itemID);
+		}
+		return;
+	}
+
+	// -------------------------------------------------------
+	// CASE 2: Player holding something, table is empty -> drop onto table
+	// -------------------------------------------------------
+	if (playerHolding && !tableHasItem)
+	{
+		// Let the table decide if it can accept this item.
+		if (table->CanAcceptItem(scene, carriedItemID))
+		{
+			// TableLogic::PlaceItem will position it on the table top.
+			if (table->PlaceItem(scene, carriedItemID))
+			{
+				carriedItemID = -1; // player no longer holds it
+			}
+		}
+		return;
+	}
+
+	// -------------------------------------------------------
+	// CASE 3: Player holding something, table already has an item
+	//   -> typical case: table has a Plate, player has an Ingredient
+	// -------------------------------------------------------
+	if (playerHolding && tableHasItem)
+	{
+		const int tableItemID = table->GetHeldItemID();
+
+		// Try to interpret table item as a Plate and carried item as Ingredient.
+		PlateLogic* plate = logicMgr.GetLogicForObject<PlateLogic>(tableItemID);
+		IngredientLogic* ingr = logicMgr.GetLogicForObject<IngredientLogic>(carriedItemID);
+
+		if (plate && ingr)
+		{
+			bool consumedNow = false;
+			if (plate->TryAddIngredient(*ingr, consumedNow))
+			{
+				// For now, purely logical: the plate knows it has this ingredient type.
+				// We treat the ingredient as "no longer in the player's hand".
+				carriedItemID = -1;
+
+				// Later, you can:
+				//  - Reposition ingredient GameObject onto the plate
+				//  - Or destroy ingredient objects once a dish is assembled
+			}
+			return;
+		}
+
+		// In the future, you can add more branches here, for example:
+		//  - player holding a Plate, table holding something else
+		//  - assembling dish explicitly by calling plate->TryAssembleDish(...)
+	}
+
+	// If none of the above cases matched, do nothing for now.
+}
+

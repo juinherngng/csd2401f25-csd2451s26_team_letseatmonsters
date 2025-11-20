@@ -23,6 +23,16 @@ public:
     void Update(float dt, Scene& scene, InputManager& input) override;
     std::string GetName() const override { return "PlayerLogic"; }
 
+    // --- Carry state helpers ---
+    bool IsHolding() const { return carriedItemID >= 0; }
+    int  GetCarriedItemID() const { return carriedItemID; }
+
+    // --- High-level interaction ---
+    // Called when we want the player to interact with a particular table GameObject.
+    // (For example: you can call this when the player presses a key near a table.)
+    void InteractWithTable(Scene& scene, int tableObjectID);
+
+
     // Unity: Move(Vector3 dest)
     void MoveTo(Scene& scene, const glm::vec2& dest);
 
@@ -35,6 +45,8 @@ public:
 
     // Unity: Drop(Vector3 dropPos) – for now just “drop near player”
     void Drop(Scene& scene);
+
+    void InteractWithTable(Scene& scene, int tableObjectID);
 
 private:
     // Movement state

@@ -68,6 +68,41 @@ public:
         started = false;
     }
 
+    // Get the first logic component of type T attached to the GameObject with ID ownerID.
+// Returns nullptr if none is found.
+    template<typename T>
+    T* GetLogicForObject(int ownerID)
+    {
+        auto it = logicMap.find(ownerID);
+        if (it == logicMap.end())
+            return nullptr;
+
+        auto& list = it->second;
+        for (auto& logicPtr : list)
+        {
+            if (auto* casted = dynamic_cast<T*>(logicPtr.get()))
+                return casted;
+        }
+        return nullptr;
+    }
+
+    template<typename T>
+    const T* GetLogicForObject(int ownerID) const
+    {
+        auto it = logicMap.find(ownerID);
+        if (it == logicMap.end())
+            return nullptr;
+
+        const auto& list = it->second;
+        for (const auto& logicPtr : list)
+        {
+            if (auto* casted = dynamic_cast<const T*>(logicPtr.get()))
+                return casted;
+        }
+        return nullptr;
+    }
+
+
 private:
     std::unordered_map<int, std::vector<std::unique_ptr<GameObjectLogic>>> logicMap;
     bool started{ false };

@@ -31,11 +31,65 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
     GameObject* npc = GetOwner(scene);
     if (!npc) return;
 
+    glm::vec3 pos = npc->GetPositionGLM();
+
+    // ===================== CASE 1: HAS CUSTOMER TABLE =====================
+    if (hasCustomerTarget_) {
+        // Move directly toward the assigned seat position.
+        Math::Vector2D curPos(pos.x, pos.y);
+        Math::Vector2D target = customerSeatTarget_;
+
+        float dx = target.x - curPos.x;
+        float dy = target.y - curPos.y;
+        float distSq = dx * dx + dy * dy;
+        float thresholdSq = arriveThreshold_ * arriveThreshold_;
+
+        if (distSq <= thresholdSq) {
+            // Considered "arrived": snap to target, stop moving.
+            curPos = target;
+            pos.x = curPos.x;
+            pos.y = curPos.y;
+            npc->SetPosition(pos);
+
+            // Once arrived, we can keep them there. If later you want them to
+            // go back to patrol, you can call ClearCustomerTableTarget().
+            return;
+        }
+        else {
+            float dist = std::sqrt(distSq);
+            if (dist > 0.0001f) {
+                float maxStep = speed * dt;
+                float step = (maxStep < dist) ? maxStep : dist;
+
+                // Normalized direction * step
+                curPos.x += dx * (step / dist);
+                curPos.y += dy * (step / dist);
+
+                pos.x = curPos.x;
+                pos.y = curPos.y;
+                npc->SetPosition(pos);
+
+                // Optional: still clamp to walk area gates.
+                glm::vec3 beforeClamp = pos;
+                scene.ClampToWalkArea(npc);
+                glm::vec3 afterClamp = npc->GetPositionGLM();
+                (void)beforeClamp;
+                (void)afterClamp;
+
+                return; // skip patrol logic
+            }
+        }
+
+        // Fallback: if something weird happens, don't fall through, just return.
+        return;
+    }
+
+    // ===================== CASE 2: NORMAL PATROL ==========================
     timer += dt;
 
     // Velocity as authored in the editor / level file
     glm::vec2 vel = scene.GetNPCVelocity(npc->GetID());
-    glm::vec3 pos = npc->GetPositionGLM();
+    pos = npc->GetPositionGLM();
 
     // Step 1: compute desired movement based on state
     switch (state) {
@@ -61,7 +115,6 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
     npc->SetPosition(pos);
 
     // Step 3: clamp to existing walk area / gates
-    // This uses your existing world collision logic.
     glm::vec3 beforeClamp = pos;
     scene.ClampToWalkArea(npc);
     glm::vec3 afterClamp = npc->GetPositionGLM();
@@ -82,4 +135,90 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
         state = State::Idle;
         timer = 0.0f;
     }
+
+    UpdateCustomerLogic(dt);
+}
+
+void SimpleNpcLogic::AssignCustomerTable(int tableObjectID)
+{
+    customerTableID_ = tableObjectID;
+
+    // If currently idle as a customer, start looking for the table.
+    if (behaviourState_ == BehaviourState::Idle) {
+        behaviourState_ = BehaviourState::FindingTable;
+    }
+}
+
+void SimpleNpcLogic::OnSeatedAtTable(Scene& /*scene*/)
+{
+    // When NPC reaches its assigned table, it should start ordering.
+    if (behaviourState_ == BehaviourState::FindingTable ||
+        behaviourState_ == BehaviourState::WalkingToTable)
+    {
+        behaviourState_ = BehaviourState::Ordering;
+    }
+}
+
+void SimpleNpcLogic::TakeOrder(Scene& /*scene*/)
+{
+    // Only meaningful if in ORDERING state.
+    if (behaviourState_ != BehaviourState::Ordering)
+        return;
+
+    orderTaken_ = true;
+    behaviourState_ = BehaviourState::WaitingForFood;
+}
+
+void SimpleNpcLogic::OnDishServed(Scene& /*scene*/, DishType dishType)
+{
+    // Only meaningful if actually waiting for food.
+    if (behaviourState_ != BehaviourState::WaitingForFood)
+        return;
+
+    dishServed_ = true;
+    servedDishType_ = dishType;
+
+    behaviourState_ = BehaviourState::Eating;
+    eatTimer_ = 0.0f;
+}
+
+void SimpleNpcLogic::TakePayment(Scene& /*scene*/)
+{
+    // Only meaningful if currently paying.
+    if (behaviourState_ != BehaviourState::Paying)
+        return;
+
+    hasPaid_ = true;
+    behaviourState_ = BehaviourState::Leaving;
+}
+
+void SimpleNpcLogic::UpdateCustomerLogic(float dt)
+{
+    if (behaviourState_ == BehaviourState::Eating) {
+        eatTimer_ += dt;
+        if (eatTimer_ >= eatDuration_) {
+            eatTimer_ = eatDuration_;
+            finishedDish_ = true;
+
+            // Once done eating, NPC is ready to pay.
+            behaviourState_ = BehaviourState::Paying;
+        }
+    }
+
+    // Other behaviour transitions (e.g. auto-leave after paying)
+    // can be added here later if you want.
+}
+
+void SimpleNpcLogic::SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos)
+{
+    customerTableID_ = tableObjectID;
+    customerSeatTarget_ = seatWorldPos;
+    hasCustomerTarget_ = true;
+}
+
+void SimpleNpcLogic::ClearCustomerTableTarget()
+{
+    hasCustomerTarget_ = false;
+    customerTableID_ = kInvalidID;
+    customerSeatTarget_ = Math::Vector2D(0.0f, 0.0f);
 }
