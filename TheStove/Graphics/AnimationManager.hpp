@@ -9,7 +9,7 @@ DESCRIPTION:	    Declares AnimationManager, which manages 2D sprite animations f
 					updating frame UVs based on Animator2D components. Supports play/pause control
 					and registering animation sets for different entity types.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+        All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -87,4 +87,5 @@ private:
 
 	// Helper: Create standard frame sequences
 	std::vector<glm::vec4> CreateFrameSequence(int startFrame, int endFrame, int totalFrames);
+	std::vector<glm::vec4> CreateFrameSequenceRow(int row, int startCol, int endCol, int totalRows, int totalCols);
 };

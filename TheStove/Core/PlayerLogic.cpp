@@ -32,25 +32,21 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	if (absX > absY) {
 		// Horizontal dominant
 		if (direction.x > 0.0f) {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_right.png", "../assets/mc_sprite_right.png"));
+			scene.SetAnimation(player->GetID(), "WALK_LEFT");
 		}
 		else {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_left.png", "../assets/mc_sprite_left.png"));
+			scene.SetAnimation(player->GetID(), "WALK_RIGHT");
 		}
 	}
 	else {
 		// Vertical dominant
 		if (direction.y > 0.0f) {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_front.png", "../assets/mc_sprite_front.png"));
+			scene.SetAnimation(player->GetID(), "WALK_BACK");
 		}
 		else {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_back.png", "../assets/mc_sprite_back.png"));
+			scene.SetAnimation(player->GetID(), "WALK_FRONT");
 		}
-	}
+	}	
 }
 
 // Unity: Move(Vector3 dest)
@@ -137,14 +133,14 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 }
 
 // Unity: OnArrived()
-// For now it’s a stub; later you can branch by what we clicked (tables, spawners, etc.)
+// For now itï¿½s a stub; later you can branch by what we clicked (tables, spawners, etc.)
 void PlayerLogic::OnArrived(Scene& scene) {
 	(void)scene;
 	// Example debug:
 	 std::cout << "[PlayerLogic] Arrived at destination\n";
 }
 
-// Unity: PickUp(GameObject item) – here by engine ID
+// Unity: PickUp(GameObject item) ï¿½ here by engine ID
 void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	GameObject* item = scene.GetGameObjectByID(itemID);
 	GameObject* player = GetOwner(scene);
@@ -154,12 +150,12 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	carriedItemID = itemID;
 
 	// For now, just snap the item near the player.
-	// Later you can add proper “holdingPoint” + offsets like Unity.
+	// Later you can add proper ï¿½holdingPointï¿½ + offsets like Unity.
 	glm::vec3 p = player->GetPositionGLM();
-	item->SetPosition(glm::vec3(p.x, p.y - 32.f, p.z)); // crude “front” offset
+	item->SetPosition(glm::vec3(p.x, p.y - 32.f, p.z)); // crude ï¿½frontï¿½ offset
 }
 
-// Unity: Drop(Vector3 dropPos) – here: drop slightly in front of player
+// Unity: Drop(Vector3 dropPos) ï¿½ here: drop slightly in front of player
 void PlayerLogic::Drop(Scene& scene) {
 	if (carriedItemID < 0)
 		return;
@@ -172,7 +168,7 @@ void PlayerLogic::Drop(Scene& scene) {
 	}
 
 	glm::vec3 p = player->GetPositionGLM();
-	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple “in front” drop
+	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple ï¿½in frontï¿½ drop
 	carriedItemID = -1;
 }
 
