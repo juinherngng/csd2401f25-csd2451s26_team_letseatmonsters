@@ -78,8 +78,8 @@ private:
 	// Store all animation sets for each object
 	struct AnimationSet {
 		std::vector<glm::vec4> frames;
-		float frameDuration;
-		bool loop;
+		float frameDuration = 0.0f;
+		bool loop = false;
 	};
 	std::unordered_map<int, std::unordered_map<std::string, AnimationSet>> animationSets_;
 
