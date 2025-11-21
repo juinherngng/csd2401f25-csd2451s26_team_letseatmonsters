@@ -85,6 +85,8 @@ public:
 		return spatialGrid_;
 	}
 
+	void AddStaticRects(const std::vector<collision::AABB>& rects);
+
 	// Clear both the grid and the world geometry.
 	void Clear();
 

@@ -24,34 +24,35 @@
  // Level constants
 static constexpr float kRefW = 1200.0f;
 static constexpr float kRefH = 900.0f;
+static constexpr float kTile = 50.0f;
 
 // Walkable inner rectangle (match to background art)
 static constexpr float kWalkL = 180.0f;  // left
-static constexpr float kWalkR = 1080.0f; // right
-static constexpr float kWalkT = 180.0f;  // top
-static constexpr float kWalkB = 760.0f;  // bottom
+static constexpr float kWalkR = 1180.0f; // right
+static constexpr float kWalkT = 110.0f;  // top
+static constexpr float kWalkB = 820.0f;  // bottom
 
 // Thickness of our blocking bars (thin = precise, easy to tune)
 static constexpr float kEdgeThick = 3.0f;
 
-// Wooden divider (vertical split)
-static constexpr float kWoodX0 = 562.0f;
+// Middle divider (vertical split)
+static constexpr float kWoodX0 = 500.0f;
 static constexpr float kWoodX1 = 590.0f;
 static constexpr float kWoodTopMinY = 100.0f;
-static constexpr float kWoodTopMaxY = 300.0f;
-static constexpr float kWoodGapMinY = 300.0f;
-static constexpr float kWoodGapMaxY = 500.0f;
-static constexpr float kWoodBotMinY = 500.0f;
+static constexpr float kWoodTopMaxY = 320.0f;
+static constexpr float kWoodGapMinY = 320.0f;
+static constexpr float kWoodGapMaxY = 570.0f;
+static constexpr float kWoodBotMinY = 570.0f;
 static constexpr float kWoodBotMaxY = 700.0f;
 
 // End-of-stage vertical gate
-static constexpr float kEndVX0 = 1100.0f;
+static constexpr float kEndVX0 = 1080.0f;
 static constexpr float kEndVX1 = 1200.0f;
 static constexpr float kEndVTopMinY = 100.0f;
-static constexpr float kEndVTopMaxY = 300.0f;
-static constexpr float kEndVGapMinY = 300.0f;
-static constexpr float kEndVGapMaxY = 500.0f;
-static constexpr float kEndVBotMinY = 500.0f;
+static constexpr float kEndVTopMaxY = 320.0f;
+static constexpr float kEndVGapMinY = 320.0f;
+static constexpr float kEndVGapMaxY = 570.0f;
+static constexpr float kEndVBotMinY = 570.0f;
 static constexpr float kEndVBotMaxY = 700.0f;
 
 namespace {
@@ -603,6 +604,41 @@ void Scene::BuildLevelColliders() {
 
 	// Build all static walls (outer frame + wood + gate)
 	collisionManager.BuildWalls(walk, wood, gate);
+
+	// Benches
+	std::vector<collision::AABB> benchRects = {
+		// Top-middle bench
+		{{700.0f, 170.0f}, {760.0f, 250.0f}},
+		// Top-right bench
+		{{950.0f, 170.0f}, {1010.0f, 250.0f}},
+		// Bottom-middle bench
+		{{700.0f, 670.0f}, {760.0f, 750.0f}},
+		// Bottom-right bench
+		{{950.0f, 670.0f}, {1010.0f, 750.0f}},
+	};
+
+	collisionManager.AddStaticRects(benchRects);
+
+	// Extra static colliders: ingredient counter + bottom grills/door frame
+	std::vector<collision::AABB> extraRects;
+
+	// Ingredient counter row (top kitchen)
+	{
+		collision::AABB ingredientCounter{};
+		ingredientCounter.min = { kTile * 4.0f,  kTile * 2.0f };
+		ingredientCounter.max = { kTile * 11.0f, kTile * 3.0f };
+		extraRects.push_back(ingredientCounter);
+	}
+
+	// Bottom solid area: grills + green + both wooden posts (no pathway)
+	{
+		collision::AABB bottomSolid{};
+		bottomSolid.min = { kTile * 4.0f,  kTile * 14.8f };
+		bottomSolid.max = { kTile * 11.0f, kTile * 16.0f };
+		extraRects.push_back(bottomSolid);
+	}
+
+	collisionManager.AddStaticRects(extraRects);
 
 	// Get a pointer to the shared collision world
 	collision::World* world = &collisionManager.GetCollisionWorld();

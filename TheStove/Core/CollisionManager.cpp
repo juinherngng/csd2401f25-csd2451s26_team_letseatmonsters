@@ -100,3 +100,9 @@ std::vector<GameObject*> CollisionManager::QueryPoint(const Math::Vector2D& poin
 
 	return candidates;
 }
+
+void CollisionManager::AddStaticRects(const std::vector<collision::AABB>& rects) {
+	for (const auto& r : rects) {
+		collisionWorld_.addWall(r);
+	}
+}
