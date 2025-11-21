@@ -24,10 +24,7 @@
 
 #include "SceneManager.hpp"
 
-#include "../Core/JSONInclude.hpp"
-using nlohmann::json;
-
-// Level constants
+ // Level constants
 static constexpr float kRefW = 1200.0f; // 24 tiles
 static constexpr float kRefH = 900.0f;  // 18 tiles
 static constexpr float kTile = 50.0f;
@@ -143,55 +140,6 @@ namespace {
 			// Bottom solid area: grills + green + both posts
 			{ 4.0f,  14.8f, 11.0f, 16.0f }
 		} };
-
-	// Load extra static colliders from a level JSON file, if present.
-	// Returns AABBs in pixel space built from tile-space coords.
-	static std::vector<collision::AABB> LoadStaticRectsFromJson(
-		const std::string& levelPath) {
-		std::vector<collision::AABB> rects;
-
-		if (levelPath.empty()) {
-			return rects;
-		}
-
-		std::ifstream file(levelPath);
-		if (!file.is_open()) {
-			std::cerr << "[Scene] Could not open level JSON for collision: "
-				<< levelPath << "\n";
-			return rects;
-		}
-
-		json j;
-		try {
-			file >> j;
-		}
-		catch (const std::exception& e) {
-			std::cerr << "[Scene] JSON parse error in collision section: "
-				<< e.what() << "\n";
-			return rects;
-		}
-
-		if (!j.contains("collision")) {
-			// No collision block – caller can decide to use defaults.
-			return rects;
-		}
-
-		const json& col = j["collision"];
-		if (!col.contains("static_colliders") || !col["static_colliders"].is_array()) {
-			return rects;
-		}
-
-		for (const auto& r : col["static_colliders"]) {
-			const float tx0 = r.value("tx0", 0.0f);
-			const float ty0 = r.value("ty0", 0.0f);
-			const float tx1 = r.value("tx1", 0.0f);
-			const float ty1 = r.value("ty1", 0.0f);
-
-			rects.push_back(MakeTileRect(tx0, ty0, tx1, ty1));
-		}
-
-		return rects;
-	}
 }
 
 void Scene::SetSimulationActive(bool active) {
@@ -718,16 +666,11 @@ void Scene::BuildLevelColliders() {
 	// Build all static walls (outer frame + wood + gate)
 	collisionManager.BuildWalls(walk, wood, gate);
 
-	// Try to load from the current level JSON
-	std::vector<collision::AABB> staticRects =
-		LoadStaticRectsFromJson(currentLevelPath_);
-
-	// Fallback: if JSON has no collision section, use the hardcoded table
-	if (staticRects.empty()) {
-		staticRects.reserve(kStaticRectDefs.size());
-		for (const auto& def : kStaticRectDefs) {
-			staticRects.push_back(MakeTileRect(def.tx0, def.ty0, def.tx1, def.ty1));
-		}
+	// Benches + counters + bottom strip
+	std::vector<collision::AABB> staticRects;
+	staticRects.reserve(kStaticRectDefs.size());
+	for (const auto& def : kStaticRectDefs) {
+		staticRects.push_back(MakeTileRect(def.tx0, def.ty0, def.tx1, def.ty1));
 	}
 
 	collisionManager.AddStaticRects(staticRects);
