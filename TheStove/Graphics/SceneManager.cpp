@@ -128,17 +128,17 @@ namespace {
 	// Benches + ingredient counter + bottom strip, all in tiles
 	static constexpr std::array<StaticRectDef, 6> kStaticRectDefs{ {
 			// top-middle bench
-			{ 13.9f,  3.4f, 15.2f,  5.0f },
+			{ 13.9f, 3.4f, 15.2f, 5.0f },
 			// top-right bench
-			{ 19.0f,  3.4f, 20.3f,  5.0f },
+			{ 19.0f, 3.4f, 20.3f, 5.0f },
 			// bottom-middle bench
 			{ 13.9f, 13.3f, 15.2f, 15.0f },
 			// bottom-right bench
 			{ 19.0f, 13.3f, 20.3f, 15.0f },
 			// Ingredient counter row (top kitchen)
-			{ 4.0f,   2.0f, 11.0f,  3.0f },
+			{ 4.0f, 2.0f, 11.0f, 3.5f },
 			// Bottom solid area: grills + green + both posts
-			{ 4.0f,  14.8f, 11.0f, 16.0f }
+			{ 4.0f, 14.8f, 11.0f, 16.0f }
 		} };
 }
 
