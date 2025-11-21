@@ -5,7 +5,7 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Implements the SceneManager class, which is responsible for the high-level
+ DESCRIPTION:		Implements the Scene class, which is responsible for the high-level
 					management, coordination, and per-frame updating of all entities, systems,
 					and game logic within a scene.
 
@@ -24,22 +24,7 @@
 
 #include "SceneManager.hpp"
 
-namespace {
-	// Utility function to generate UV frames for a sprite sheet
-	std::vector<glm::vec4> GenerateFrames(int startFrame, int frameCount, int totalCols, float frameWidth, float frameHeight) {
-		(void)totalCols; // Suppress unused parameter warning
-
-		std::vector<glm::vec4> frames;
-		for (int i = 0; i < frameCount; ++i) {
-			int col = startFrame + i;
-			float offsetX = col * frameWidth;
-			float offsetY = 1.0f - frameHeight; // single row, so just - frameHeight for Y offset
-			frames.emplace_back(offsetX, offsetY, frameWidth, frameHeight);
-		}
-		return frames;
-	}
-}
-
+ // Simulation control
 void Scene::SetSimulationActive(bool active) {
 	simulationActive = active;
 
@@ -55,6 +40,7 @@ bool Scene::IsSimulationActive() const {
 	return simulationActive;
 }
 
+// Texture metadata helpers
 const std::string& Scene::GetObjectTexturePath(int id) const {
 	return entityManager.GetTexturePath(id);
 }
@@ -63,12 +49,12 @@ void Scene::SetObjectTexturePath(int id, const std::string& path) {
 	entityManager.SetTexturePath(id, path);
 }
 
-// Core Lifecycle
+// Construction / core lifecycle
 Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
 			 MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
 	: graphicsEngine(engine), inputManager(inputMgr), animationManager(animMgr),
 	movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr) {
-	// Set the EntityManager reference in AnimationManager
+	// Allow AnimationManager to find objects
 	animationManager.SetEntityManager(&entityManager);
 
 	// Basic default layer used when no explicit layer name is given
@@ -92,6 +78,7 @@ void Scene::LoadScene(const std::string& sceneName) {
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
+	// Debug-only animation controls (implemented in separate debug file)
 	UpdateAnimationControls();
 
 	// Deferred Clear
@@ -99,7 +86,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		ClearAll();
 		RebuildColliders();
 		pendingClear_ = false;
-		return;  // Skip rest of update this frame
+		return; // Skip rest of update this frame
 	}
 
 	// Process input commands (debug toggles, force toggle, etc.)
@@ -151,7 +138,8 @@ void Scene::DrawUI() {
 }
 
 void Scene::ClearAll() {
-	logicManager.Clear(*this);  // <-- clear scripts first
+	// Clear scripts first so they no longer reference objects
+	logicManager.Clear(*this);
 	entityManager.Clear();
 	animationManager.Clear();
 	movementManager.Clear();
@@ -163,6 +151,20 @@ void Scene::ClearAll() {
 	otherID2 = -1;
 }
 
+void Scene::RequestClearAll() {
+	pendingClear_ = true;
+}
+
+// Engine accessors
+GraphicsEngine& Scene::GetGraphicsEngine() {
+	return graphicsEngine;
+}
+
+const GraphicsEngine& Scene::GetGraphicsEngine() const {
+	return graphicsEngine;
+}
+
+// Spawning / object management
 void Scene::SetPlayerID(int id) {
 	spriteID = id;
 }
@@ -181,13 +183,12 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	return obj;
 }
 
-GameObject* Scene::SpawnAnimatedSprite(
-	const std::string& texturePath,
-	const glm::vec3 position,
-	const glm::vec2 size,
-	const std::vector<glm::vec4> frames,
-	float frameDuration, bool loop,
-	const std::string& layer) {
+GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
+									   const glm::vec3 position,
+									   const glm::vec2 size,
+									   const std::vector<glm::vec4> frames,
+									   float frameDuration, bool loop,
+									   const std::string& layer) {
 	GameObject* obj = entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
 
 	if (obj) {
@@ -200,6 +201,10 @@ GameObject* Scene::SpawnAnimatedSprite(
 
 GameObject* Scene::GetGameObjectByID(int targetID) {
 	return entityManager.GetByID(targetID);
+}
+
+std::vector<GameObject*> Scene::GetAllObjectsRaw() {
+	return entityManager.GetAllObjects();
 }
 
 void Scene::DespawnByID(int targetID) {
@@ -228,6 +233,7 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		out.push_back(g);
 	}
 
+	// Helper to convert layer name to sort key
 	auto parseLayerNumber = [](const std::string& s) -> int {
 		if (s.empty()) {
 			return 1; // base layer
@@ -268,10 +274,6 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	);
 }
 
-std::vector<GameObject*> Scene::GetAllObjectsRaw() {
-	return entityManager.GetAllObjects();
-}
-
 // Scene / Transform Utilities
 void Scene::SetSceneBackground(const std::string& texturePath) {
 	graphicsEngine.SetBackground(texturePath);
@@ -290,7 +292,7 @@ void Scene::SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3&
 	}
 }
 
-// Animation
+// Animation helpers
 bool Scene::HasAnimations(int id) const {
 	return animationManager.HasAnimator(id);
 }
@@ -325,10 +327,7 @@ void Scene::MarkAnimated(int id, bool state) {
 	}
 }
 
-void Scene::RequestClearAll() {
-	pendingClear_ = true;
-}
-
+// Tag-based logic helpers
 void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	if (tag == "player") {
 		logicManager.AddLogic<PlayerLogic>(id);
@@ -341,17 +340,10 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 		logicManager.AddLogic<SimpleNpcLogic>(id);
 		dinoID = id; // preserve your special ID if you rely on it elsewhere
 	}
-	// you can extend with more tags later
+	// Extend with more tags as needed
 }
 
-GraphicsEngine& Scene::GetGraphicsEngine() {
-	return graphicsEngine;
-}
-
-const GraphicsEngine& Scene::GetGraphicsEngine() const {
-	return graphicsEngine;
-}
-
+// Layer management
 void Scene::AddLayer(const std::string& name) {
 	layers.try_emplace(name, name); // Only add if missing
 }

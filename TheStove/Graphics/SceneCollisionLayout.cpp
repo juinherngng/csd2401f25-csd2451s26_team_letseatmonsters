@@ -1,15 +1,15 @@
 /*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:          SceneCollisionLayout.cpp
- PROJECT NAME:       Project GAM200
- AUTHOR:             Yat Chun Wee, y.chunwee@digipen.edu
+ FILE NAME:         SceneCollisionLayout.cpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:        Implements Scene methods and helpers related to:
-						- Level reference resolution (ref <-> framebuffer)
-						- Static level geometry (kitchen tiles / benches / gate)
-						- Collision-world construction for this level
-						- Initial static overlap resolution
-						- Final movement constraints and player–NPC collision push
+ DESCRIPTION:       Implements Scene methods and helpers related to:
+					- Level reference resolution (ref <-> framebuffer)
+					- Static level geometry (kitchen tiles / benches / gate)
+					- Collision-world construction for this level
+					- Initial static overlap resolution
+					- Final movement constraints and player–NPC collision push
 
 	 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
