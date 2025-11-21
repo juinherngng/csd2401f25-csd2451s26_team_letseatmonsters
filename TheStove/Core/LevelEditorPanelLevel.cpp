@@ -753,7 +753,7 @@ namespace LEPANELLEVEL {
 			// Tag
 			ImGui::Text("Tag"); ImGui::NextColumn();
 			FullWidthNext();
-			ImGui::InputText("##Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
+			bool tagEdited = ImGui::InputText("##Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
 
 			// Snapshot when user starts editing the tag
 			if (ImGui::IsItemActivated()) {
