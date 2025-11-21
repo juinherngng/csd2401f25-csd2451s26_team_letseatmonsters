@@ -16,26 +16,24 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "LevelEditorPanelAssets.hpp"
-
-#include "AudioLoading.hpp"
-#include "LevelEditor.hpp"
-#include "LevelEditorFileIO.hpp"
+#include <algorithm>
+#include <cctype>
+#include <filesystem>
+#include <imgui.h>
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 
-#include <imgui.h>
-
-#include <algorithm>
-#include <cctype>
-#include <filesystem>
-#include <iostream>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include "AudioLoading.hpp"
+#include "LevelEditor.hpp"
+#include "LevelEditorFileIO.hpp"
+#include "LevelEditorPanelAssets.hpp"
 
 namespace fs = std::filesystem;
 
@@ -126,7 +124,7 @@ namespace LEPANELASSETS {
 			all.erase(std::unique(all.begin(), all.end()), all.end());
 
 			return all;
-			};
+		};
 
 		// Static caches for file lists (refresh when importing or on demand)
 		static std::vector<std::string> sTextures =
@@ -235,7 +233,7 @@ namespace LEPANELASSETS {
 				}
 
 				std::transform(ext.begin(), ext.end(), ext.begin(),
-					[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+							   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
 				// Support both .wav and .mp3 formats
 				if (ext != ".wav" && ext != ".mp3") {
@@ -390,9 +388,9 @@ namespace LEPANELASSETS {
 
 					// Draw the thumbnail (UVs flipped vertically for OpenGL)
 					ImGui::Image(texID,
-						ImVec2(iconSize, iconSize),
-						ImVec2(0, 1),
-						ImVec2(1, 0));
+								 ImVec2(iconSize, iconSize),
+								 ImVec2(0, 1),
+								 ImVec2(1, 0));
 
 					ImGui::SameLine();
 				}
@@ -629,7 +627,7 @@ namespace LEPANELASSETS {
 
 			// Preview feedback popup
 			if (ImGui::BeginPopupModal("Preview Playing", nullptr,
-				ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+									   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
 				ImGui::Text("Playing audio preview...");
 				ImGui::TextDisabled("(Feature requires AudioManager integration)");
 				if (ImGui::Button("OK", ImVec2(120, 0))) {
@@ -717,8 +715,8 @@ namespace LEPANELASSETS {
 						else {
 							// Display mode
 							ImGui::Text("Category: %s", asset.category.c_str());
-							ImGui::Text("Loop: %s", asset.loop ? "Yes" : "No");
-							ImGui::Text("Stream: %s", asset.stream ? "Yes" : "No");
+							ImGui::Text("Loop: %s", asset.loop?"Yes":"No");
+							ImGui::Text("Stream: %s", asset.stream?"Yes":"No");
 							ImGui::Text("Volume: %.2f", asset.volume);
 							ImGui::TextWrapped("File: %s", asset.filepath.c_str());
 
@@ -733,7 +731,7 @@ namespace LEPANELASSETS {
 							}
 
 							if (ImGui::BeginPopupModal("Confirm Remove Audio", nullptr,
-								ImGuiWindowFlags_AlwaysAutoResize)) {
+													   ImGuiWindowFlags_AlwaysAutoResize)) {
 								ImGui::Text("Remove '%s' from catalog?", asset.name.c_str());
 								ImGui::Separator();
 

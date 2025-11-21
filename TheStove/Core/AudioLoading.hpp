@@ -1,12 +1,12 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			AudioLoading.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			AudioLoading.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Audio catalog with JSON-based serialization for dynamic audio loading.
+ DESCRIPTION:		Audio catalog with JSON-based serialization for dynamic audio loading.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -15,8 +15,7 @@ DESCRIPTION:		Audio catalog with JSON-based serialization for dynamic audio load
 #include <string>
 #include <vector>
 
-namespace Audio
-{
+namespace Audio {
 	/************************************************************************/
 	/*!
 	\struct AudioAsset
@@ -24,8 +23,7 @@ namespace Audio
 		Represents a single audio asset with all its properties.
 	*/
 	/************************************************************************/
-	struct AudioAsset
-	{
+	struct AudioAsset {
 		std::string name;       // Logical name for referencing the audio
 		std::string filepath;   // Path to the audio file
 		bool loop;              // Whether the sound should loop
@@ -34,8 +32,8 @@ namespace Audio
 		float volume;           // Default volume (0.0 to 1.0)
 
 		AudioAsset()
-			: name(""), filepath(""), loop(false), stream(false), category(""), volume(1.0f)
-		{}
+			: name(""), filepath(""), loop(false), stream(false), category(""), volume(1.0f) {
+		}
 	};
 
 	/************************************************************************/
@@ -46,8 +44,7 @@ namespace Audio
 		Provides serialization/deserialization and dynamic loading without C++ code changes.
 	*/
 	/************************************************************************/
-	class AudioCatalog
-	{
+	class AudioCatalog {
 	public:
 		/************************************************************************/
 		/*!

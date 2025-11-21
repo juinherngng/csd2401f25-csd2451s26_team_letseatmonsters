@@ -189,7 +189,7 @@ float Scene::ToRefY(float currentY) const {
 
 // Core Lifecycle
 Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
-	MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
+			 MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
 	: graphicsEngine(engine), inputManager(inputMgr), animationManager(animMgr),
 	movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr) {
 	// Set the EntityManager reference in AnimationManager
@@ -216,10 +216,8 @@ void Scene::LoadScene(const std::string& sceneName) {
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
-	// Input is now updated by CoreEngine's system, no need to call Update here
-	inputManager.Update(deltaTime); // REMOVED - handled by CoreEngine
-
 	UpdateAnimationControls();
+
 	// Deferred Clear
 	if (pendingClear_) {
 		ClearAll();
@@ -238,6 +236,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Resolve physics timestep
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
+	lastPhysicsDt_ = physicsDt;
 
 	if (simulationActive) {
 		// Run all scripts
@@ -293,9 +292,9 @@ void Scene::SetPlayerID(int id) {
 }
 
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
-	const glm::vec3 position,
-	const glm::vec2 size,
-	const std::string& layer) {
+									 const glm::vec3 position,
+									 const glm::vec2 size,
+									 const std::string& layer) {
 	GameObject* obj = entityManager.SpawnStaticSprite(texturePath, position, size);
 
 	if (obj) {
@@ -360,7 +359,7 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		}
 
 		int result = 0;
-		for (char c : s) {
+		for (char c:s) {
 			if (!std::isdigit(static_cast<unsigned char>(c))) {
 				// Any non-numeric layer name behaves like a very "high" layer
 				// so that it draws on top of numeric layers.
@@ -371,26 +370,26 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		}
 
 		return result;
-		};
+	};
 
 	std::sort(
 		out.begin(),
 		out.end(),
 		[&](GameObject* a, GameObject* b) {
-			const std::string laName = GetObjectLayer(a->GetID());
-			const std::string lbName = GetObjectLayer(b->GetID());
+		const std::string laName = GetObjectLayer(a->GetID());
+		const std::string lbName = GetObjectLayer(b->GetID());
 
-			int la = parseLayerNumber(laName);
-			int lb = parseLayerNumber(lbName);
+		int la = parseLayerNumber(laName);
+		int lb = parseLayerNumber(lbName);
 
-			// Different layers: smaller layer number drawn first
-			if (la != lb) {
-				return la > lb;
-			}
-
-			// Same layer - higher Y drawn first (lower on screen appears in front)
-			return a->GetPosition().y > b->GetPosition().y;
+		// Different layers: smaller layer number drawn first
+		if (la != lb) {
+			return la > lb;
 		}
+
+		// Same layer - higher Y drawn first (lower on screen appears in front)
+		return a->GetPosition().y > b->GetPosition().y;
+	}
 	);
 }
 
@@ -743,8 +742,8 @@ static void SnapHorizontallyOutOfBand(const collision::AABB& box, float bandX0, 
 
 // Snap a dynamic object vertically out of a horizontal band it overlaps (minimal move).
 static void SnapVerticallyOutOfBand(const collision::AABB& box,
-	float bandY0, float bandY1,
-	Math::Vector3D& posM) {
+									float bandY0, float bandY1,
+									Math::Vector3D& posM) {
 	const float moveUp = bandY0 - box.max.y - 0.5f; // small epsilon
 	const float moveDown = bandY1 - box.min.y + 0.5f;
 
@@ -787,8 +786,8 @@ void Scene::ResolveInitialStaticOverlaps() {
 
 		// Work in M-space (your math structs)
 		Math::Vector3D pM(g->GetPositionGLM().x,
-			g->GetPositionGLM().y,
-			g->GetPositionGLM().z);
+						  g->GetPositionGLM().y,
+						  g->GetPositionGLM().z);
 
 		// Keep inside big walk rect (outer boundary)
 		physics::ClampInsideWalk(walk, g, pM);
@@ -931,7 +930,7 @@ void Scene::AddLayer(const std::string& name) {
 
 Layer* Scene::GetLayer(const std::string& name) {
 	auto it = layers.find(name);
-	return it != layers.end() ? &(it->second) : nullptr;
+	return it != layers.end()?&(it->second):nullptr;
 }
 
 const std::unordered_map<std::string, Layer>& Scene::GetAllLayers() const {
@@ -989,11 +988,11 @@ void Scene::UpdateAnimationControls() {
 	const bool k3 = inputManager.IsKeyJustPressed(GLFW_KEY_3);
 	if (!k1 && !k2 && !k3) return;
 
-	const std::string anim = k1 ? "IDLE" : (k2 ? "WALK" : "ATTACK");
+	const std::string anim = k1?"IDLE":(k2?"WALK":"ATTACK");
 
 	// Make these known dino IDs use the chosen animation (skip missing objects)
 	const int dinoIDs[] = { 1, 2, 3 };
-	for (int id : dinoIDs) {
+	for (int id:dinoIDs) {
 		GameObject* obj = GetGameObjectByID(id);
 		if (!obj) continue; // not present in scene
 

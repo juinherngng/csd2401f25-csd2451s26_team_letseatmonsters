@@ -19,14 +19,14 @@
 
 #pragma once
 
-#include <vector>
 #include <unordered_map>
-
-#include "SpatialGrid.hpp"
-#include "Collision.hpp"
-#include "Math.hpp"
+#include <vector>
 
 #include "../Graphics/EntityManager.hpp"
+
+#include "Collision.hpp"
+#include "Math.hpp"
+#include "SpatialGrid.hpp"
 #include "System.hpp"
 
  /**
@@ -54,8 +54,8 @@ public:
 
 	// Build static world geometry from authoring structs.
 	void BuildWalls(const collision::WalkArea& walkArea,
-		const collision::WoodVertical& wood,
-		const collision::StageEndGateVertical& endGate);
+					const collision::WoodVertical& wood,
+					const collision::StageEndGateVertical& endGate);
 
 	// Query grid for objects overlapping an AABB.
 	std::vector<GameObject*> QueryNearby(const collision::AABB& queryBox) const;

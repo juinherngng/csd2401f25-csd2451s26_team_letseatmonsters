@@ -11,14 +11,14 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "ConfigManager.hpp"
-
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <windows.h>
+
+#include "ConfigManager.hpp"
 
 namespace fs = std::filesystem;
 
@@ -204,7 +204,7 @@ namespace ConfigManager {
 
 		ofs << "window_width=" << s.resolution.width << "\n";
 		ofs << "window_height=" << s.resolution.height << "\n";
-		ofs << "fullscreen=" << (s.fullscreen ? "true" : "false") << "\n";
+		ofs << "fullscreen=" << (s.fullscreen?"true":"false") << "\n";
 		ofs << "bgm_volume=" << s.bgmVolume << "\n";
 		ofs << "vfx_volume=" << s.vfxVolume << "\n";
 		ofs.flush();
@@ -213,7 +213,7 @@ namespace ConfigManager {
 	}
 
 	bool LoadFromAssets(Settings& out, const char* filename) {
-		const char* fname = filename ? filename : "config.txt";
+		const char* fname = filename?filename:"config.txt";
 
 		char exePath[MAX_PATH]{};
 		if (!GetModuleFileNameA(nullptr, exePath, MAX_PATH)) {

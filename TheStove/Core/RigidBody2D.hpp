@@ -1,16 +1,16 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			RigidBody2D.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
-CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+ FILE NAME:			RigidBody2D.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
-DESCRIPTION:		Declares a lightweight 2D rigid body component that stores linear state
+ DESCRIPTION:		Declares a lightweight 2D rigid body component that stores linear state
 					(velocity, mass, damping), accumulates forces/impulses, integrates motion,
 					and writes back to an attached Transform. Designed to be used with a
 					ForceRegistry and simple steering forces (seek, drag, gravity).
 
-All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

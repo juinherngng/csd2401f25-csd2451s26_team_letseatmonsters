@@ -16,11 +16,9 @@
 
 #pragma once
 
-#include "AnimationManager.hpp"
-#include "Animator.hpp"
-#include "EntityManager.hpp"
-#include "GraphicsEngine.hpp"
-#include "Layer.hpp"
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "../Core/CollisionManager.hpp"
 #include "../Core/DebugVisualizer.hpp"
@@ -37,9 +35,11 @@
 #include "../Core/PlayerLogic.hpp"
 #include "../Core/SimpleNpcLogic.hpp"
 
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include "AnimationManager.hpp"
+#include "Animator.hpp"
+#include "EntityManager.hpp"
+#include "GraphicsEngine.hpp"
+#include "Layer.hpp"
 
  /**
   * @class Scene
@@ -62,7 +62,7 @@ public:
 	 * @param collisionMgr Reference to the collision manager system.
 	 */
 	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
-		MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
+		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
 	/**
 	 * @brief Load a scene by name (dispatches to test scene for now).
@@ -98,9 +98,9 @@ public:
 	  * @brief Spawns a static sprite with a given texture and size.
 	  */
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
-		const glm::vec3 position,
-		const glm::vec2 size = glm::vec2(100.0f, 100.0f),
-		const std::string& layer = "Not set in JSON");
+								  const glm::vec3 position,
+								  const glm::vec2 size = glm::vec2(100.0f, 100.0f),
+								  const std::string& layer = "Not set in JSON");
 
 	/**
 	 * @brief Spawns an animated sprite with frames and timing.
@@ -217,7 +217,7 @@ public:
 	}
 	Defaults GetDefaults(int id) const {
 		auto it = defaults_.find(id);
-		return (it != defaults_.end()) ? it->second : Defaults{};
+		return (it != defaults_.end())?it->second:Defaults{};
 	}
 
 	float ScaleXToCurrent(float referenceX) const;
@@ -263,6 +263,14 @@ public:
 
 	void UpdateAnimationControls();
 
+	// Physics step info for scripts (PlayerLogic, NPC logic, etc.)
+	float GetLastPhysicsDt() const {
+		return lastPhysicsDt_;
+	}
+	const physics::StepController& GetStepController() const {
+		return physicsStep_;
+	}
+
 private:
 	// Helper Methods
 	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
@@ -289,6 +297,7 @@ private:
 
 	// Step-by-step controller
 	physics::StepController physicsStep_;
+	float lastPhysicsDt_ = 0.0f;
 
 	// Scene objects
 	int spriteID = -1; // default invalid ID

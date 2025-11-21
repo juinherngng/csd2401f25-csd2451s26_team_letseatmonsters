@@ -15,23 +15,23 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "LevelEditorPanelLevel.hpp"
-#include "LevelEditorPickDrag.hpp"
-
-#include "../Graphics/GameObject.hpp"
-#include "../Graphics/GraphicsEngine.hpp"
-#include "../Graphics/SceneManager.hpp"
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 #include <vector>
 
+#include "../Graphics/GameObject.hpp"
+#include "../Graphics/GraphicsEngine.hpp"
+#include "../Graphics/SceneManager.hpp"
+
+#include "LevelEditorPanelLevel.hpp"
+#include "LevelEditorPickDrag.hpp"
+
 namespace LEPICKDRAG {
 	void HandleScenePickDrag(LevelEditor& editor,
-		Scene& scene,
-		int& selectedIndex,
-		int& selectedObjectId) {
+							 Scene& scene,
+							 int& selectedIndex,
+							 int& selectedObjectId) {
 		// Convert mouse coordinates into world space inside the Scene image
 		glm::vec2 mouseWorld{};
 		if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {

@@ -20,13 +20,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../Graphics/EntityManager.hpp"
+
 #include "Collision.hpp"
 #include "InputManager.hpp"
 #include "Math.hpp"
 #include "NpcSystem.hpp"
 #include "System.hpp"
-
-#include "../Graphics/EntityManager.hpp"
 
  /**
   * @class MovementManager

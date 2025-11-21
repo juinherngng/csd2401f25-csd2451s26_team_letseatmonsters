@@ -1,21 +1,20 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			Math.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			Math.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Math library providing basic vector and matrix operations and other
+ DESCRIPTION:		Math library providing basic vector and matrix operations and other
 					utility functions.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 #pragma once
 
 #include <cstddef>
 
-namespace Math
-{
+namespace Math {
 	/************************************************************************/
 	/*!
 	\class Vector2D
@@ -145,7 +144,9 @@ namespace Math
 		The x component.
 		*/
 		/************************************************************************/
-		float GetX() const { return x; }
+		float GetX() const {
+			return x;
+		}
 		/************************************************************************/
 		/*!
 		\brief
@@ -154,7 +155,9 @@ namespace Math
 		The y component.
 		*/
 		/************************************************************************/
-		float GetY() const { return y; }
+		float GetY() const {
+			return y;
+		}
 
 		// setter
 
@@ -166,7 +169,9 @@ namespace Math
 		The new x component value.
 		*/
 		/************************************************************************/
-		void SetX(float value) { x = value; }
+		void SetX(float value) {
+			x = value;
+		}
 		/************************************************************************/
 		/*!
 		\brief
@@ -175,7 +180,9 @@ namespace Math
 		The new y component value.
 		*/
 		/************************************************************************/
-		void SetY(float value) { y = value; }
+		void SetY(float value) {
+			y = value;
+		}
 	};
 
 	/************************************************************************/

@@ -14,19 +14,17 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "LevelEditor.hpp"
-
 #include <imgui.h>
 
+#include "../Graphics/ResourceManager.hpp"
+#include "../Graphics/SceneManager.hpp"
+
+#include "InputManager.hpp"
+#include "LevelEditor.hpp"
 #include "LevelEditorPanelAssets.hpp"
 #include "LevelEditorPanelLevel.hpp"
 #include "LevelEditorPanelPrefabs.hpp"
 #include "LevelEditorPickDrag.hpp"
-
-#include "InputManager.hpp"
-
-#include "../Graphics/ResourceManager.hpp"
-#include "../Graphics/SceneManager.hpp"
 
  // DrawUI
 void LevelEditor::DrawUI(Scene& scene) {

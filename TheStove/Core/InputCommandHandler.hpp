@@ -15,13 +15,13 @@
 
 #pragma once
 
+#include "../Graphics/DebugRenderer.hpp"
+#include "../Graphics/EntityManager.hpp"
+
 #include "DebugVisualizer.hpp"
 #include "InputManager.hpp"
 #include "MovementManager.hpp"
 #include "PhysicsManager.hpp"
-
-#include "../Graphics/DebugRenderer.hpp"
-#include "../Graphics/EntityManager.hpp"
 
  /**
   * @class InputCommandHandler
@@ -39,11 +39,11 @@ public:
 
 	// Entry point to process per-frame command inputs.
 	void ProcessCommands(InputManager& inputManager,
-		PhysicsManager& physicsManager,
-		MovementManager& movementManager,
-		int playerID,
-		bool& useForces,
-		bool& showAuxDebug);
+						 PhysicsManager& physicsManager,
+						 MovementManager& movementManager,
+						 int playerID,
+						 bool& useForces,
+						 bool& showAuxDebug);
 
 private:
 	// Handles keys that toggle debug state (R, T).
@@ -51,8 +51,8 @@ private:
 
 	// Handles the physics mode toggle(F) and updates the player's physics component.
 	void HandleForceToggle(InputManager& inputManager,
-		PhysicsManager& physicsManager,
-		MovementManager& movementManager,
-		int playerID,
-		bool& useForces);
+						   PhysicsManager& physicsManager,
+						   MovementManager& movementManager,
+						   int playerID,
+						   bool& useForces);
 };

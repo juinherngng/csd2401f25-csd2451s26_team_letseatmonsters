@@ -14,6 +14,7 @@
 #pragma once
 
 #include "../Graphics/GameObject.hpp"
+
 #include "Collision.hpp"
 #include "InputManager.hpp"
 #include "Math.hpp"

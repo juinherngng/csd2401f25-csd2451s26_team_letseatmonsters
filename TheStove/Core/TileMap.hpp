@@ -1,16 +1,17 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			TileMap.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Darren Toh, darren.toh@digipen.edu
+ FILE NAME:			TileMap.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Darren Toh, darren.toh@digipen.edu
 
-DESCRIPTION:		Header file with member function declaration to construct and read from class MapData
+ DESCRIPTION:		Header file with member function declaration to construct and read from class MapData
 					containing a 2D vector of Int, which serves
 					as a tile map for level environment and logic
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
+
 #include <iostream>
 #include <vector>
 
@@ -28,7 +29,8 @@ private:
 
 public:
 	//Constructor
-	MapData(int x, int y) : width(x), height(y), tiles(y, std::vector<int>(x, 0)){}
+	MapData(int x, int y) : width(x), height(y), tiles(y, std::vector<int>(x, 0)) {
+	}
 
 	//Modifiable Access
 	void setTile(int x, int y, int value);

@@ -28,10 +28,7 @@ void PhysicsManager::Initialize() {
 }
 
 void PhysicsManager::Update(float dt) {
-	if (!entityManager_ || !inputManager_) {
-		return;
-	}
-	UpdatePhysics(dt, *entityManager_, *inputManager_);
+	(void)dt;
 }
 
 std::string PhysicsManager::GetName() {
@@ -52,11 +49,12 @@ void PhysicsManager::SetCollisionWorld(collision::World* world) {
 
 // Original physics update logic
 
-void PhysicsManager::UpdatePhysics(float deltaTime,
-	EntityManager& entityManager,
-	InputManager& inputManager) {
-	// Resolve to an internal physics time step.
-	float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
+void PhysicsManager::UpdatePhysics(float physicsDt,
+								   EntityManager& entityManager,
+								   InputManager& inputManager) {
+	(void)inputManager; // currently unused; kept for signature compatibility
+
+	// Scene already decided if physics runs this frame via physicsDt.
 	if (physicsDt <= 0.0f) {
 		return;
 	}
@@ -69,7 +67,7 @@ void PhysicsManager::UpdatePhysics(float deltaTime,
 
 void PhysicsManager::EnablePhysics(int entityID, float mass) {
 	PhysicsState state;
-	state.invMass = (mass > 0.0f) ? (1.0f / mass) : 0.0f;
+	state.invMass = (mass > 0.0f)?(1.0f / mass):0.0f;
 	state.damping = 0.98f;
 	state.velocity = { 0.0f, 0.0f };
 	state.forceAccum = { 0.0f, 0.0f };
@@ -131,7 +129,7 @@ void PhysicsManager::IntegrateEntity(int entityID, float dt, EntityManager& enti
 		else if (distance > 1e-4f) {
 			// Apply capped acceleration in the target direction
 			Math::Vector2D direction = toTarget * (1.0f / distance);
-			float mass = (state.invMass > 0.0f) ? (1.0f / state.invMass) : 1.0f;
+			float mass = (state.invMass > 0.0f)?(1.0f / state.invMass):1.0f;
 			state.forceAccum = state.forceAccum + (direction * (SEEK_MAX_ACCEL * mass));
 		}
 	}
@@ -176,7 +174,7 @@ void PhysicsManager::IntegrateEntity(int entityID, float dt, EntityManager& enti
 			const auto impacted = [](const Math::Vector2D& d, const Math::Vector2D& a) {
 				constexpr float EPS = 1e-4f;
 				return (std::fabs(d.x - a.x) > EPS) || (std::fabs(d.y - a.y) > EPS);
-				};
+			};
 
 			if (impacted(desiredDelta, allowedDelta)) {
 				// Clear physics seek target

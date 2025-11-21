@@ -1,5 +1,19 @@
-#include "Core/DebugUI.hpp"
-#include "Core/Precompiled.hpp"
+/*
+----------------------------------------------------------------------------------------------------
+ FILE NAME:			Main.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+					Seah Wang Hua, wanghua.seah@digipen.edu
+
+ DESCRIPTION:		Entry point of the application. Initializes GLFW, creates the CoreEngine and all
+					engine systems, loads the active Scene, and runs the main update/draw loop.
+					Handles window creation, fullscreen toggling, OS-focus pause/resume behaviour,
+					signal handling, and overall application shutdown and cleanup.
+
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
 
 #include <algorithm>
 #include <cctype>
@@ -7,6 +21,19 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+
+#include "Core/AudioLoading.hpp"
+#include "Core/AudioManager.hpp"
+#include "Core/ConfigManager.hpp"
+#include "Core/Core.hpp"
+#include "Core/DebugUI.hpp"
+#include "Core/GameStateManager.hpp"
+#include "Core/MovementManager.hpp"
+#include "Core/Precompiled.hpp"
+#include "Core/TileMap.hpp"
+#include "Graphics/GraphicsEngine.hpp"
+#include "Graphics/ResourceManager.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
@@ -16,17 +43,6 @@
 #define DBG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #define new DBG_NEW
 #endif
-
-#include "Graphics/GraphicsEngine.hpp"
-#include "Graphics/SceneManager.hpp"
-#include "Graphics/ResourceManager.hpp"
-#include "Core/Core.hpp"
-#include "Core/ConfigManager.hpp"
-#include "Core/AudioManager.hpp"
-#include "Core/AudioLoading.hpp"
-#include "Core/GameStateManager.hpp"
-#include "Core/TileMap.hpp"
-#include "Core/MovementManager.hpp"
 
 // Application state structure - eliminates static variables
 struct ApplicationState {
@@ -229,11 +245,11 @@ static void ToggleFullscreen(ApplicationState& app) {
 // Windows console event handler
 BOOL WINAPI ConsoleHandler(DWORD signal) {
 	switch (signal) {
-	case CTRL_C_EVENT:
-	case CTRL_BREAK_EVENT:
-	case CTRL_CLOSE_EVENT:
-	case CTRL_LOGOFF_EVENT:
-	case CTRL_SHUTDOWN_EVENT:
+		case CTRL_C_EVENT:
+		case CTRL_BREAK_EVENT:
+		case CTRL_CLOSE_EVENT:
+		case CTRL_LOGOFF_EVENT:
+		case CTRL_SHUTDOWN_EVENT:
 		std::cout << "Console event detected, cleaning up..." << std::endl;
 		if (g_AppState) {
 			g_AppState->shouldExit = true;
@@ -242,7 +258,7 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 			}
 		}
 		return TRUE;
-	default:
+		default:
 		return FALSE;
 	}
 }
@@ -381,7 +397,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Set GLFW error callback
 	glfwSetErrorCallback([](int error, const char* description) {
 		std::cerr << "GLFW Error " << error << ": " << description << std::endl;
-		});
+	});
 
 	// Initialize GLFW
 	if (!glfwInit()) {
@@ -430,14 +446,14 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		if (g_AppState) {
 			g_AppState->shouldExit = true;
 		}
-		});
+	});
 
 	// Message callbacks to post input events to CoreEngine
 	glfwSetCharCallback(app.window, [](GLFWwindow* win, unsigned int c) {
 		(void)win;   // suppress unused parameter warning
 		if (g_AppState && g_AppState->coreEngine)
 			g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
-		});
+	});
 
 	// Mouse button to message bus
 	glfwSetMouseButtonCallback(app.window, [](GLFWwindow* win, int button, int action, int mods) {
@@ -447,7 +463,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			glfwGetCursorPos(g_AppState->window, &x, &y);
 			g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::MouseButtonMessage>(button, action == GLFW_PRESS, x, y);
 		}
-		});
+	});
 
 	// Mouse move to message bus (with delta)
 	glfwSetCursorPosCallback(app.window, [](GLFWwindow* win, double xpos, double ypos) {
@@ -470,7 +486,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 			g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::MouseMoveMessage>(xpos, ypos, dx, dy);
 		}
-		});
+	});
 
 	// Ensure we don't have any other callbacks set
 	glfwSetKeyCallback(app.window, nullptr);
@@ -496,13 +512,13 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			// We regained focus (coming back from taskbar / ALT-TAB)
 			HandlePauseResume(false);
 		}
-		});
+	});
 
 	// Iconify callback is kept just to keep pause/resume in sync
 	glfwSetWindowIconifyCallback(app.window, [](GLFWwindow* win, int iconified) {
 		(void)win;
 		HandlePauseResume(iconified == GLFW_TRUE);
-		});
+	});
 
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -610,7 +626,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 	// Create Scene with smart pointer, passing all manager references
 	app.currentScene = std::make_unique<Scene>(*graphicsEngine, *inputMgr, *animMgr,
-		*movementMgr, *physicsMgr, *collisionMgr);
+											   *movementMgr, *physicsMgr, *collisionMgr);
 	app.currentScene->LoadScene("LoadTest");
 
 	// Set the EntityManager reference in AnimationManager
@@ -676,8 +692,8 @@ static void update(ApplicationState& app) {
 	if (app.pausedByOSFocus) {
 		// You can still keep FPS stats if you like, or set them to 0
 		app.smoothedDt = (app.smoothedDt == 0.0f)
-			? deltaTime
-			: (0.96f * app.smoothedDt) + (0.04f * deltaTime);
+			?deltaTime
+			:(0.96f * app.smoothedDt) + (0.04f * deltaTime);
 
 		if (app.debugApp) {
 			app.debugApp->fps = 0.0f;
@@ -698,10 +714,10 @@ static void update(ApplicationState& app) {
 	// This controls how fast the fps counter reacts to changes
 	// (higher value = smoother fps) else 
 	// (lower value = faster fps change response but more jittery)
-	app.smoothedDt = (app.smoothedDt == 0.0f) ? deltaTime : (0.96f * app.smoothedDt) + (0.04f * deltaTime);
+	app.smoothedDt = (app.smoothedDt == 0.0f)?deltaTime:(0.96f * app.smoothedDt) + (0.04f * deltaTime);
 
 	// Update FPS display variables for DebuggerApp
-	app.debugApp->fps = (app.smoothedDt > 0.f) ? (1.f / app.smoothedDt + 0.5f) : 0.f;
+	app.debugApp->fps = (app.smoothedDt > 0.f)?(1.f / app.smoothedDt + 0.5f):0.f;
 	app.debugApp->msperFrame = (app.smoothedDt * 1000.0f);
 
 	app.coreEngine->GameLoop();

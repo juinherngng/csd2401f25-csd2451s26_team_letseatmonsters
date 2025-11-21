@@ -11,11 +11,11 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "Physics.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+
+#include "Physics.hpp"
 
 namespace {
 	// Safe normalize (returns 0,0 if tiny)
@@ -50,8 +50,8 @@ namespace physics {
 	}
 
 	void ClampInsideWalkWithGate(const collision::WalkArea& walk,
-		const collision::StageEndGateVertical& gate,
-		GameObject* obj, Math::Vector3D& pos) {
+								 const collision::StageEndGateVertical& gate,
+								 GameObject* obj, Math::Vector3D& pos) {
 		const Math::Vector2D half = obj->GetColliderSize() * 0.5f;
 		const Math::Vector2D off = obj->GetColliderOffset();
 
@@ -70,38 +70,32 @@ namespace physics {
 
 	// Step Controller
 	float StepController::resolveDt(::InputManager& input, float deltaTime) {
-		const bool pNow = input.IsKeyPressed(GLFW_KEY_P);
-		const bool wNow = input.IsKeyPressed(GLFW_KEY_W);
-		const bool aNow = input.IsKeyPressed(GLFW_KEY_A);
-		const bool sNow = input.IsKeyPressed(GLFW_KEY_S);
-		const bool dNow = input.IsKeyPressed(GLFW_KEY_D);
-
-		// Toggle step mode on P edge.
-		if (pNow && !prevToggle) {
+		// Toggle step mode with P (edge)
+		if (input.IsKeyJustPressed(GLFW_KEY_P)) {
 			enabled = !enabled;
-			std::cout << "[Physics] Step mode " << (enabled ? "ON" : "OFF") << "\n";
+			std::cout << "[Physics] Step mode " << (enabled?"ON":"OFF") << "\n";
 		}
 
-		// Queue a step on left-click edge while in step mode.
-		if (enabled && input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-			++stepsQueued;
-		}
-
-		// Queue one step on any WASD edge while in step mode.
+		// While in step mode, queue steps on input edges
 		if (enabled) {
-			const bool anyEdge = (wNow && !prevW) || (aNow && !prevA) || (sNow && !prevS) || (dNow && !prevD);
+			// Left click in step mode = one physics step
+			if (input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+				++stepsQueued;
+			}
+
+			// Any WASD key *edge* in step mode = one physics step
+			const bool anyEdge =
+				input.IsKeyJustPressed(GLFW_KEY_W) ||
+				input.IsKeyJustPressed(GLFW_KEY_A) ||
+				input.IsKeyJustPressed(GLFW_KEY_S) ||
+				input.IsKeyJustPressed(GLFW_KEY_D);
+
 			if (anyEdge) {
 				++stepsQueued;
 			}
 		}
 
-		// Update edge trackers.
-		prevToggle = pNow;
-		prevW = wNow; prevA = aNow; prevS = sNow; prevD = dNow;
-
-		// Determine physics dt:
-		// - Step mode: run fixed step only when a step is queued; else 0.
-		// - Real-time: pass-through.
+		// Decide physics dt
 		if (enabled) {
 			// Step mode: fixed slice only when a step is queued
 			if (stepsQueued > 0) {
@@ -111,16 +105,15 @@ namespace physics {
 			return 0.0f;
 		}
 		else {
-			// Real-time mode: accumulate render dt and release fixed-size steps at 60 Hz
-			// Clamp absurdly large pauses to avoid huge catch-ups
+			// Real-time mode: fixed timestep at 60 Hz using accumulator
 			deltaTime = std::min(deltaTime, static_cast<float>(maxCarry));
 			runtimeAccum += deltaTime;
 
 			if (runtimeAccum >= fixedDt) {
 				runtimeAccum -= fixedDt;
-				return fixedDt; // one fixed step this frame
+				return fixedDt;
 			}
-			return 0.0f; // no step this frame
+			return 0.0f;
 		}
 	}
 
@@ -172,7 +165,7 @@ namespace physics {
 		// Tiny nudge if still overlapping (robustness for coincident edges).
 		Math::Vector2D mtv{};
 		if (collision::overlapMTV(MakeColliderBox(player, playerPos),
-			MakeColliderBox(other, otherPos), mtv)) {
+								  MakeColliderBox(other, otherPos), mtv)) {
 			playerPos.x += mtv.x * 1.001f;
 			playerPos.y += mtv.y * 1.001f;
 			player->SetPosition(playerPos);
@@ -226,7 +219,7 @@ namespace physics {
 		Math::Vector2D colNormal = SafeNormalize(mtv);
 		if (colNormal.Length() < 1e-6f) {
 			Math::Vector2D rel(firstPos.x - secondPos.x,
-				firstPos.y - secondPos.y);
+							   firstPos.y - secondPos.y);
 			colNormal = SafeNormalize(rel);
 			if (colNormal.Length() < 1e-6f) colNormal = Math::Vector2D(1.f, 0.f);
 		}

@@ -39,7 +39,7 @@ namespace {
 				v = 255;
 			}
 			return static_cast<std::uint32_t>(v);
-			};
+		};
 
 		const std::uint32_t r = toByte(color.r);
 		const std::uint32_t g = toByte(color.g);
@@ -151,9 +151,9 @@ void DebugRenderer::Flush(const glm::mat4& viewMatrix, const glm::mat4& projecti
 
 		shader->SetColorTint(batch.color);
 		glBufferData(GL_ARRAY_BUFFER,
-			batch.vertices.size() * sizeof(glm::vec3),
-			batch.vertices.data(),
-			GL_DYNAMIC_DRAW);
+					 batch.vertices.size() * sizeof(glm::vec3),
+					 batch.vertices.data(),
+					 GL_DYNAMIC_DRAW);
 		glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(batch.vertices.size()));
 	}
 
