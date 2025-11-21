@@ -32,7 +32,7 @@ static constexpr float kTile = 50.0f;
 // Tile-space definitions
 // Walkable inner rectangle (match to background art) in tiles
 static constexpr float kWalkL_T = 180.0f / kTile;  // 3.6
-static constexpr float kWalkR_T = 1180.0f / kTile; // 23.6
+static constexpr float kWalkR_T = 1150.0f / kTile; // 23.0
 static constexpr float kWalkT_T = 110.0f / kTile;  // 2.2
 static constexpr float kWalkB_T = 825.0f / kTile;  // 16.5
 
@@ -741,16 +741,43 @@ static void SnapHorizontallyOutOfBand(const collision::AABB& box, float bandX0, 
 	}
 }
 
+// Snap a dynamic object vertically out of a horizontal band it overlaps (minimal move).
+static void SnapVerticallyOutOfBand(const collision::AABB& box,
+	float bandY0, float bandY1,
+	Math::Vector3D& posM) {
+	const float moveUp = bandY0 - box.max.y - 0.5f; // small epsilon
+	const float moveDown = bandY1 - box.min.y + 0.5f;
+
+	if (std::abs(moveUp) < std::abs(moveDown)) {
+		posM.y += moveUp;
+	}
+	else {
+		posM.y += moveDown;
+	}
+}
+
 void Scene::ResolveInitialStaticOverlaps() {
-	// World rectangles (same constants you use to build the wood)
+	// Wood (middle divider) in pixels
 	const float woodX0 = kWoodX0;
 	const float woodX1 = kWoodX1;
+	const float woodTopY0 = kWoodTopMinY, woodTopY1 = kWoodTopMaxY;
+	const float woodBotY0 = kWoodBotMinY, woodBotY1 = kWoodBotMaxY;
 
-	// Two solid vertical segments (top and bottom). The gap is between them.
-	const float topY0 = kWoodTopMinY, topY1 = kWoodTopMaxY;
-	const float botY0 = kWoodBotMinY, botY1 = kWoodBotMaxY;
+	// End-of-stage gate in pixels (same shape used by BuildWalls)
+	const float gateX0 = kEndVX0;
+	const float gateX1 = kEndVX1;
+	const float gateTopY0 = kEndVTopMinY, gateTopY1 = kEndVTopMaxY;
+	const float gateBotY0 = kEndVBotMinY, gateBotY1 = kEndVBotMaxY;
+	// (We intentionally ignore the gap region kEndVGap* – that is walkable.)
 
-	// Walkable frame (outer walls) – we'll clamp to this too.
+	// Benches + counters + bottom strip: pre-build their AABBs in pixel space.
+	std::array<collision::AABB, kStaticRectDefs.size()> benchRects{};
+	for (size_t i = 0; i < kStaticRectDefs.size(); ++i) {
+		const auto& def = kStaticRectDefs[i];
+		benchRects[i] = MakeTileRect(def.tx0, def.ty0, def.tx1, def.ty1);
+	}
+
+	// Walkable outer frame – clamp into this first.
 	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
 
 	std::vector<GameObject*> objs = entityManager.GetAllObjects();
@@ -759,32 +786,60 @@ void Scene::ResolveInitialStaticOverlaps() {
 		if (!g) continue;
 
 		// Work in M-space (your math structs)
-		Math::Vector3D pM(g->GetPositionGLM().x, g->GetPositionGLM().y, g->GetPositionGLM().z);
+		Math::Vector3D pM(g->GetPositionGLM().x,
+			g->GetPositionGLM().y,
+			g->GetPositionGLM().z);
 
-		// First, keep inside the big walk rect (matches your art frame)
+		// Keep inside big walk rect (outer boundary)
 		physics::ClampInsideWalk(walk, g, pM);
 
 		// Build the object's collider AABB at this tentative position
 		collision::AABB box = physics::MakeColliderBox(g, pM);
 
-		// If overlapping TOP wood plank, nudge horizontally to nearest side.
-		if (OverlapsRect(box, woodX0, woodX1, topY0, topY1)) {
+		// Wood divider: snap horizontally out of the top/bottom vertical planks
+		if (OverlapsRect(box, woodX0, woodX1, woodTopY0, woodTopY1)) {
 			SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
-			// Rebuild AABB after moving
 			box = physics::MakeColliderBox(g, pM);
 		}
-
-		// If overlapping BOTTOM wood plank, nudge horizontally to nearest side.
-		if (OverlapsRect(box, woodX0, woodX1, botY0, botY1)) {
+		if (OverlapsRect(box, woodX0, woodX1, woodBotY0, woodBotY1)) {
 			SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
 			box = physics::MakeColliderBox(g, pM);
 		}
 
-		// Done. Commit the corrected position.
+		// Gate: same idea as wood (vertical band, top/bottom solid segments)
+		if (OverlapsRect(box, gateX0, gateX1, gateTopY0, gateTopY1)) {
+			SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
+			box = physics::MakeColliderBox(g, pM);
+		}
+		if (OverlapsRect(box, gateX0, gateX1, gateBotY0, gateBotY1)) {
+			SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
+			box = physics::MakeColliderBox(g, pM);
+		}
+
+		// Benches + ingredient counter + bottom strip: snap vertically out.
+		for (size_t i = 0; i < benchRects.size(); ++i) {
+			const auto& r = benchRects[i];
+
+			if (!OverlapsRect(box, r.min.x, r.max.x, r.min.y, r.max.y)) {
+				continue;
+			}
+
+			if (i <= 3) {
+				SnapHorizontallyOutOfBand(box, r.min.x, r.max.x, pM);
+			}
+			else {
+				SnapVerticallyOutOfBand(box, r.min.y, r.max.y, pM);
+			}
+
+			// Rebuild after the snap so subsequent checks use the new position
+			box = physics::MakeColliderBox(g, pM);
+		}
+
+		// Commit corrected position
 		g->SetPosition(glm::vec3(pM.x, pM.y, pM.z));
 	}
 
-	// Optional: if any objects moved significantly, update world structures once.
+	// Rebuild collision world once with the final positions.
 	RebuildColliders();
 }
 
