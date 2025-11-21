@@ -61,8 +61,8 @@ public:
 	 * @param physicsMgr Reference to the physics manager system.
 	 * @param collisionMgr Reference to the collision manager system.
 	 */
-	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
-		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
+	Scene(GraphicsEngine& engine,InputManager& inputMgr,AnimationManager& animMgr,
+		  MovementManager& moveMgr,PhysicsManager& physicsMgr,CollisionManager& collisionMgr);
 
 	/**
 	 * @brief Load a scene by name (dispatches to test scene for now).
@@ -75,7 +75,7 @@ public:
 	 * @param deltaTime Time step for this frame.
 	 * @param window Active GLFW window for input.
 	 */
-	void Update(float deltaTime, GLFWwindow* window);
+	void Update(float deltaTime,GLFWwindow* window);
 
 	// Stress Test Generation
 	void GenerateStressTest(int objectCount = 2500);
@@ -99,7 +99,7 @@ public:
 	  */
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
 								  const glm::vec3 position,
-								  const glm::vec2 size = glm::vec2(100.0f, 100.0f),
+								  const glm::vec2 size = glm::vec2(100.0f,100.0f),
 								  const std::string& layer = "Not set in JSON");
 
 	/**
@@ -110,7 +110,7 @@ public:
 		const glm::vec3 position,
 		const glm::vec2 size,
 		const std::vector<glm::vec4> frames,
-		float frameDuration, bool loop,
+		float frameDuration,bool loop,
 		const std::string& layer);
 
 	/**
@@ -137,13 +137,13 @@ public:
 	void SetSceneBackground(const std::string& texturePath);
 
 	// Set initial transform into the scene maps and the GameObject
-	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
+	void SetTransformFromLevel(int id,const glm::vec3& pos,const glm::vec3& scale,float rotation);
 	void ClampToWalkArea(GameObject* obj);
 	const std::string& GetObjectTexturePath(int id) const;
-	void SetObjectTexturePath(int id, const std::string& path);
+	void SetObjectTexturePath(int id,const std::string& path);
 
 	// Returns the allowed movement after trimming against static walls (walk area, wood, gate)
-	glm::vec2 ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta);
+	glm::vec2 ResolveWorldStep(GameObject* obj,const glm::vec2& desiredDelta);
 
 	// Animation
 	bool HasAnimations(int id) const;
@@ -153,7 +153,7 @@ public:
 	/**
 	 * @brief Change the active animation of an object by ID.
 	 */
-	void SetAnimation(int objID, const std::string& newAnim);
+	void SetAnimation(int objID,const std::string& newAnim);
 	void AttachDinoAnimations(int objID);
 
 	// ID Accessors
@@ -161,14 +161,14 @@ public:
 	void SetNPC1ID(int id) {
 		otherID = id;
 		if (id >= 0) {
-			npcSystem.RegisterLaneNPC(id, 1000.0f); // Only this npc1 gets lane behavior
+			npcSystem.RegisterLaneNPC(id,1000.0f); // Only this npc1 gets lane behavior
 		}
 	}
 
 	void SetNPC2ID(int id) {
 		otherID2 = id;
 		if (id >= 0) {
-			npcSystem.RegisterLaneNPC(id, 1000.0f); //Only this npc2 gets lane behavior
+			npcSystem.RegisterLaneNPC(id,1000.0f); //Only this npc2 gets lane behavior
 		}
 	}
 	void SetDinoID(int id) {
@@ -189,14 +189,14 @@ public:
 	}
 
 	// NPC System
-	void SetNPCVelocity(int id, float vx, float vy) {
-		npcSystem.SetNPCVelocity(id, glm::vec2(vx, vy));
+	void SetNPCVelocity(int id,float vx,float vy) {
+		npcSystem.SetNPCVelocity(id,glm::vec2(vx,vy));
 	}
 	glm::vec2 GetNPCVelocity(int id) const {
 		return npcSystem.GetNPCVelocity(id);
 	}
-	void RegisterLaneNPC(int id, float laneX) {
-		npcSystem.RegisterLaneNPC(id, laneX);
+	void RegisterLaneNPC(int id,float laneX) {
+		npcSystem.RegisterLaneNPC(id,laneX);
 	}
 
 	// Defaults Struct
@@ -212,7 +212,7 @@ public:
 		std::string layer;
 	};
 
-	void SetDefaults(int id, const Defaults& d) {
+	void SetDefaults(int id,const Defaults& d) {
 		defaults_[id] = d;
 	}
 	Defaults GetDefaults(int id) const {
@@ -234,7 +234,7 @@ public:
 
 	void ResetResizeBaseline();
 
-	void MarkAnimated(int id, bool state);
+	void MarkAnimated(int id,bool state);
 
 	// For deferred clearing
 	void RequestClearAll();
@@ -244,7 +244,7 @@ public:
 		return logicManager;
 	}
 	// new helper:
-	void AttachLogicForTag(int id, const std::string& tag);
+	void AttachLogicForTag(int id,const std::string& tag);
 
 	// Expose EntityManager for systems that need it
 	EntityManager& GetEntityManager() {
@@ -254,11 +254,11 @@ public:
 	// Layer management
 	void AddLayer(const std::string& name);
 	Layer* GetLayer(const std::string& name);
-	const std::unordered_map<std::string, Layer>& GetAllLayers() const;
+	const std::unordered_map<std::string,Layer>& GetAllLayers() const;
 	std::string GetObjectLayer(int objectID) const;
 
 	// Registers or moves an object to a new layer, updating both the layer map and the object's metadata.
-	void AssignObjectToLayer(int id, const std::string& newLayer);
+	void AssignObjectToLayer(int id,const std::string& newLayer);
 	void RemoveLayer(const std::string& name);
 
 	void UpdateAnimationControls();
@@ -273,8 +273,11 @@ public:
 
 private:
 	// Helper Methods
-	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
+	void HandlePlayerCollisions(float deltaTime,EntityManager& entityMgr);
 	void ApplyFinalConstraints(EntityManager& entityMgr);
+
+	// Returns the global walkable area for this level.
+	collision::WalkArea GetWalkArea() const;
 
 	// World/collision
 	void BuildLevelColliders();
@@ -311,13 +314,13 @@ private:
 	// Debug / Editor
 	bool showAuxDebug_ = true;
 	LevelEditor mLevelEditor;
-	std::unordered_map<int, std::string> mTexturePathByID;
+	std::unordered_map<int,std::string> mTexturePathByID;
 
 	// Defaults data
-	std::unordered_map<int, Defaults> defaults_;
+	std::unordered_map<int,Defaults> defaults_;
 
 	// Layer data
-	std::unordered_map<std::string, Layer> layers;
+	std::unordered_map<std::string,Layer> layers;
 
 	// Resize tracking
 	int lastWidth_ = -1;
