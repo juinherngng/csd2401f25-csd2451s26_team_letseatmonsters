@@ -23,13 +23,13 @@
 
  // Level constants
 static constexpr float kRefW = 1200.0f;
-static constexpr float kRefH = 800.0f;
+static constexpr float kRefH = 900.0f;
 
 // Walkable inner rectangle (match to background art)
-static constexpr float kWalkL = 150.0f;  // left
-static constexpr float kWalkR = 1100.0f; // right
-static constexpr float kWalkT = 80.0f;   // top
-static constexpr float kWalkB = 733.0f;  // bottom
+static constexpr float kWalkL = 180.0f;  // left
+static constexpr float kWalkR = 1080.0f; // right
+static constexpr float kWalkT = 180.0f;  // top
+static constexpr float kWalkB = 760.0f;  // bottom
 
 // Thickness of our blocking bars (thin = precise, easy to tune)
 static constexpr float kEdgeThick = 3.0f;
@@ -150,7 +150,7 @@ void Scene::LoadScene(const std::string& sceneName) {
 	ClearAll();
 
 	// You can keep a background even with an empty level (or move this into JSON later)
-	SetSceneBackground("../assets/Background.png");
+	SetSceneBackground("../assets/Background_Full.png");
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
@@ -368,6 +368,27 @@ void Scene::ClampToWalkArea(GameObject* obj) {
 
 }
 
+glm::vec2 Scene::ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta) {
+	if (!obj) {
+		return desiredDelta;
+	}
+
+	// Use the same collision world that MovementManager / PhysicsManager use
+	collision::World& world = collisionManager.GetCollisionWorld();
+
+	// Build start AABB from current position + collider
+	const glm::vec3 posG = obj->GetPositionGLM();
+	Math::Vector3D posM(posG.x, posG.y, posG.z);
+
+	const collision::AABB start = physics::MakeColliderBox(obj, posM);
+
+	// Ask world how much of desiredDelta we’re allowed to move
+	Math::Vector2D desired(desiredDelta.x, desiredDelta.y);
+	Math::Vector2D allowed = world.resolve(start, desired);
+
+	return glm::vec2(allowed.x, allowed.y);
+}
+
 // Animation
 bool Scene::HasAnimations(int id) const {
 	return animationManager.HasAnimator(id);
@@ -580,10 +601,18 @@ void Scene::BuildLevelColliders() {
 	  kEndVBotMinY, kEndVBotMaxY
 	};
 
+	// Build all static walls (outer frame + wood + gate)
 	collisionManager.BuildWalls(walk, wood, gate);
-	movementManager.SetCollisionWorld(&collisionManager.GetCollisionWorld());
+
+	// Get a pointer to the shared collision world
+	collision::World* world = &collisionManager.GetCollisionWorld();
+
+	// Give that world to movement + NPC + physics
+	movementManager.SetCollisionWorld(world);
 	movementManager.SetNPCSystem(&npcSystem);
+
 	physicsManager.SetMovementManager(&movementManager);
+	physicsManager.SetCollisionWorld(world);
 }
 
 void Scene::ApplyFinalConstraints(EntityManager& entityMgr) {

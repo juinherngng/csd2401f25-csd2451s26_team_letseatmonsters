@@ -30,7 +30,6 @@
 
 #include "../Graphics/EntityManager.hpp"
 
-
  /**
   * @brief Lightweight force-based physics for entities.
   *
@@ -52,6 +51,9 @@ public:
 	// Set EntityManager and InputManager references (must be called after construction)
 	void SetEntityManager(EntityManager* entityMgr);
 	void SetInputManager(InputManager* inputMgr);
+
+	// World collision/trim resolver used to clamp movement each step.
+	void SetCollisionWorld(collision::World* world);
 
 	// Core physics update (original signature - now called internally)
 	void UpdatePhysics(float deltaTime,
@@ -79,11 +81,6 @@ public:
 	// Access to step controller
 	physics::StepController& GetStepController() {
 		return physicsStep_;
-	}
-
-	// World collision/trim resolver used to clamp movement each step.
-	void SetCollisionWorld(const collision::World* w) {
-		world_ = w;
 	}
 
 	// Movement system (used to clear click-to-move targets on impact).

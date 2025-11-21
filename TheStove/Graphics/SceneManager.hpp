@@ -142,6 +142,9 @@ public:
 	const std::string& GetObjectTexturePath(int id) const;
 	void SetObjectTexturePath(int id, const std::string& path);
 
+	// Returns the allowed movement after trimming against static walls (walk area, wood, gate)
+	glm::vec2 ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta);
+
 	// Animation
 	bool HasAnimations(int id) const;
 	std::vector<std::string> GetAnimationList(int id) const;

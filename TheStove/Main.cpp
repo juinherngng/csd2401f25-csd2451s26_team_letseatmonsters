@@ -15,7 +15,6 @@
 
 #define DBG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #define new DBG_NEW
-
 #endif
 
 #include "Graphics/GraphicsEngine.hpp"
@@ -34,6 +33,7 @@ struct ApplicationState {
 	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
 	std::unique_ptr<Scene> currentScene;
 	std::unique_ptr<Debug::DebuggerApp> debugApp;
+
 	GLFWwindow* window = nullptr; // GLFW owns this, we just reference it
 	float lastFrame = 0.0f;
 	float smoothedDt = 0.0f;
@@ -44,35 +44,38 @@ struct ApplicationState {
 	double lastMouseY = 0.0;
 	bool mouseInitialized = false;
 
-	bool pausedByOSFocus = false;       // true while we're paused due to focus/iconify
-	bool simActiveBeforePause = false;  // remember if simulation was running
-	bool modalDialogOpen = false;		// Track when native dialogs are open to prevent unwanted minimize
+	// Pause / OS focus handling
+	bool pausedByOSFocus = false;
+	bool simActiveBeforePause = false;
+	bool modalDialogOpen = false;
 
-	// Add these for fullscreen toggling
+	// Fullscreen toggling (F11)
 	bool isFullscreen = false;
 	int windowedPosX = 100;
 	int windowedPosY = 100;
 	int windowedWidth = 1200;
 	int windowedHeight = 800;
-
-	bool f11WasDown = false; // for edge-detecting the f11 key
+	bool f11WasDown = false;
 };
 
 // Global app state pointer for signal handlers and callbacks
 static ApplicationState* g_AppState = nullptr;
 
-// Function to set modal dialog state (called by file dialog code)
-void SetModalDialogOpen(bool open) {
-	if (g_AppState) {
-		g_AppState->modalDialogOpen = open;
-	}
-}
-
+// Forward Declarations
 static void draw(ApplicationState& app);
 static void update(ApplicationState& app);
 static bool init(ApplicationState& app, GLint width, GLint height, std::string title, bool fullscreen);
 static void cleanup(ApplicationState& app);
 static void signalHandler(int signal);
+static void HandlePauseResume(bool pause);
+static void ToggleFullscreen(ApplicationState& app);
+
+// Exposed for file-dialog code
+void SetModalDialogOpen(bool open) {
+	if (g_AppState) {
+		g_AppState->modalDialogOpen = open;
+	}
+}
 
 // Signal handler for Ctrl+C, Ctrl+Break, and console close
 static void signalHandler(int signal) {
@@ -87,9 +90,6 @@ static void signalHandler(int signal) {
 		}
 	}
 }
-
-static void HandlePauseResume(bool pause);
-static void ToggleFullscreen(ApplicationState& app);
 
 static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	(void)window;
@@ -248,6 +248,7 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 }
 #endif
 
+// Main
 int main() {
 
 #ifdef _DEBUG
@@ -360,7 +361,17 @@ int main() {
 	return 0;
 }
 
+// Initialization / Shutdown
 static bool init(ApplicationState& app, GLint width, GLint height, std::string title, bool fullscreen) {
+	// Save desired windowed size from config (used when toggling out of fullscreen)
+	app.windowedWidth = width;
+	app.windowedHeight = height;
+	app.windowedPosX = 100;
+	app.windowedPosY = 100;
+
+	// Start fullscreen state according to config
+	app.isFullscreen = fullscreen;
+
 	// Set GLFW error callback
 	glfwSetErrorCallback([](int error, const char* description) {
 		std::cerr << "GLFW Error " << error << ": " << description << std::endl;
@@ -395,6 +406,12 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		return false;
 	}
 
+	// If we started in windowed mode, remember its actual pos/size
+	if (!app.isFullscreen) {
+		glfwGetWindowPos(app.window, &app.windowedPosX, &app.windowedPosY);
+		glfwGetWindowSize(app.window, &app.windowedWidth, &app.windowedHeight);
+	}
+
 	glfwMakeContextCurrent(app.window);
 
 	// Add window close callback to trigger cleanup
@@ -413,6 +430,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
 		});
 
+	// Mouse button to message bus
 	glfwSetMouseButtonCallback(app.window, [](GLFWwindow* win, int button, int action, int mods) {
 		(void)mods, (void)win;    // suppress unused parameter warning
 		if (g_AppState && g_AppState->coreEngine) {
@@ -422,6 +440,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		}
 		});
 
+	// Mouse move to message bus (with delta)
 	glfwSetCursorPosCallback(app.window, [](GLFWwindow* win, double xpos, double ypos) {
 		(void)win; // suppress unused parameter warning
 
@@ -461,11 +480,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 				return;
 			}
 
-			// Force the game window to minimize for real Alt-Tab/focus loss
-			//glfwIconifyWindow(win);
-
 			// Pause gameplay, physics, audio, and clear input
-			// but let the user/OS decide if they want to minimize
 			HandlePauseResume(true);
 		}
 		else {
@@ -629,6 +644,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	return true;
 }
 
+// Update / Draw
 static void update(ApplicationState& app) {
 	// Calculate delta time
 	float currentFrame = static_cast<float>(glfwGetTime());
@@ -650,7 +666,8 @@ static void update(ApplicationState& app) {
 
 	if (app.pausedByOSFocus) {
 		// You can still keep FPS stats if you like, or set them to 0
-		app.smoothedDt = (app.smoothedDt == 0.0f) ? deltaTime
+		app.smoothedDt = (app.smoothedDt == 0.0f) 
+			? deltaTime
 			: (0.96f * app.smoothedDt) + (0.04f * deltaTime);
 
 		if (app.debugApp) {
@@ -697,7 +714,10 @@ static void draw(ApplicationState& app) {
 	}
 
 	graphicsEngine->BeginFrame();
+
+	// UI first
 	app.currentScene->DrawUI();
+
 	drawList.clear();
 	app.currentScene->CollectRenderablePointers(drawList);
 
@@ -725,11 +745,12 @@ void cleanup(ApplicationState& app) {
 	if (cleanupCalled) {
 		return;
 	}
+
 	cleanupCalled = true;
 
 	std::cout << "Starting cleanup..." << std::endl;
 
-	// STEP 1: Clear all GLFW callbacks FIRST to prevent dangling references
+	// Clear all GLFW callbacks FIRST to prevent dangling references
 	if (app.window) {
 		std::cout << "Clearing GLFW callbacks..." << std::endl;
 		glfwSetWindowCloseCallback(app.window, nullptr);
@@ -746,16 +767,16 @@ void cleanup(ApplicationState& app) {
 		glfwPollEvents();
 	}
 
-	// STEP 2: Clear global app state pointer to prevent callback access
+	// Clear global app state pointer to prevent callback access
 	g_AppState = nullptr;
 
-	// STEP 3: Flush CoreEngine messages to prevent orphaned messages
+	// Flush CoreEngine messages to prevent orphaned messages
 	if (app.coreEngine) {
 		std::cout << "Flushing remaining messages..." << std::endl;
 		app.coreEngine->GetMessageBus().ClearQueue();
 	}
 
-	// STEP 6: Stop and shutdown audio
+	// Stop and shutdown audio
 	if (app.coreEngine) {
 		if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>()) {
 			std::cout << "Stopping all sounds..." << std::endl;
@@ -765,24 +786,24 @@ void cleanup(ApplicationState& app) {
 		}
 	}
 
-	// STEP 6.5: Unload all audio assets
+	// Unload all audio assets
 	std::cout << "Unloading audio assets..." << std::endl;
 	Audio::AudioCatalog::UnloadAllAudio();
 
-	// STEP 4: Shutdown ImGui (must happen while OpenGL context is valid)
+	// Shutdown ImGui (must happen while OpenGL context is valid)
 	if (app.debugApp) {
 		std::cout << "Shutting down debugger..." << std::endl;
 		app.debugApp->Shutdown();
 		app.debugApp.reset();
 	}
 
-	// STEP 5: Clean up scene objects
+	// Clean up scene objects
 	if (app.currentScene) {
 		std::cout << "Deleting scene..." << std::endl;
 		app.currentScene.reset();
 	}
 
-	// STEP 7: Shutdown graphics engine (now managed by CoreEngine)
+	// Shutdown graphics engine (now managed by CoreEngine)
 	if (app.coreEngine) {
 		if (auto* gfxEngine = app.coreEngine->GetSystem<GraphicsEngine>()) {
 			std::cout << "Shutting down graphics engine..." << std::endl;
@@ -790,32 +811,32 @@ void cleanup(ApplicationState& app) {
 		}
 	}
 
-	// STEP 8: Clear resource manager (while context still valid)
+	// Clear resource manager (while context still valid)
 	std::cout << "Clearing resource manager..." << std::endl;
 	ResourceManager::Instance().Clear();
 
-	// STEP 9: Destroy CoreEngine and all systems
+	// Destroy CoreEngine and all systems
 	if (app.coreEngine) {
 		std::cout << "Destroying core engine..." << std::endl;
 		app.coreEngine.reset();
 	}
 
-	// STEP 10: Make the context non-current before destroying window
+	// Make the context non-current before destroying window
 	if (app.window) {
 		glfwMakeContextCurrent(nullptr);
 	}
 
-	// STEP 11: Destroy window
+	// Destroy window
 	if (app.window) {
 		std::cout << "Destroying window..." << std::endl;
 		glfwDestroyWindow(app.window);
 		app.window = nullptr;
 	}
 
-	// STEP 12: Poll events one final time to process window destruction
+	// Poll events one final time to process window destruction
 	glfwPollEvents();
 
-	// STEP 13: Terminate GLFW
+	// Terminate GLFW
 	std::cout << "Terminating GLFW..." << std::endl;
 	glfwTerminate();
 

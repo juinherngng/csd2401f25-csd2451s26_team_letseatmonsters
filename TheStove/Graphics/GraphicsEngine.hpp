@@ -121,7 +121,7 @@ public:
 
 	// Reference render size
 	static constexpr int kRefW = 1200;
-	static constexpr int kRefH = 800;
+	static constexpr int kRefH = 900;
 
 private:
 	// Core state
@@ -129,7 +129,7 @@ private:
 	ResourceManager& resourceManager;
 
 	int screenWidth = 1200;
-	int screenHeight = 800;
+	int screenHeight = 900;
 
 	// Background rendering
 	std::unique_ptr<GameObject> backgroundObject;

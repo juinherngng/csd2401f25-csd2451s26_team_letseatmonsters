@@ -126,14 +126,17 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	if (step > dist)
 		step = dist;
 
-	pos.x += dir.x * step;
-	pos.y += dir.y * step;
+	// Desired movement for this frame
+	glm::vec2 desiredDelta(dir.x * step, dir.y * step);
+
+	// Trim against static world (outer frame + wood + gate)
+	glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+
+	pos.x += allowedDelta.x;
+	pos.y += allowedDelta.y;
 
 	player->SetPosition(glm::vec3(pos.x, pos.y, pos3.z));
 	scene.ClampToWalkArea(player);
-
-	// Update sprite based on movement direction
-	UpdateSprite(scene, player, dir);
 }
 
 // Unity: OnArrived()
@@ -191,24 +194,33 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	if (inputDir.x != 0.f || inputDir.y != 0.f) {
 		hasMoveTarget = false;
+
 		float len = std::sqrt(inputDir.x * inputDir.x + inputDir.y * inputDir.y);
 		if (len > 0.0001f) {
 			inputDir.x /= len;
 			inputDir.y /= len;
 		}
 
-		pos3.x += inputDir.x * speed * dt;
-		pos3.y += inputDir.y * speed * dt;
+		// Desired movement this frame
+		glm::vec2 desiredDelta(inputDir.x * speed * dt,
+			inputDir.y * speed * dt);
+
+		// Trim against static world (outer frame + wood + gate)
+		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+
+		pos3.x += allowedDelta.x;
+		pos3.y += allowedDelta.y;
 
 		player->SetPosition(pos3);
+
+		// Optional: still clamp to overall walk rectangle if you want a hard outer bound
 		scene.ClampToWalkArea(player);
+
 		// Update sprite based on keyboard movement
 		UpdateSprite(scene, player, inputDir);
 	}
 
-
 	HandleClickInput(scene, input);
-
 
 	UpdateMovement(dt, scene);
 

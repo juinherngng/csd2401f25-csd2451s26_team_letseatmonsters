@@ -46,6 +46,10 @@ void PhysicsManager::SetInputManager(InputManager* inputMgr) {
 	inputManager_ = inputMgr;
 }
 
+void PhysicsManager::SetCollisionWorld(collision::World* world) {
+	world_ = world;
+}
+
 // Original physics update logic
 
 void PhysicsManager::UpdatePhysics(float deltaTime,
