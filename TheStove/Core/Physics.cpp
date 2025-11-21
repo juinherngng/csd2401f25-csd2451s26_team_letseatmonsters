@@ -4,8 +4,13 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Definitions for physics helpers: collider construction, clamping, step control,
-					separation responses, lane motion with bounce, and equal-mass elastic collisions.
+ DESCRIPTION:		Definitions for physics helpers:
+						- Collider construction
+						- World clamping (with and without gate)
+						- Fixed-timestep / step-mode controller
+						- Separation responses (player vs other)
+						- Lane motion with bounce
+						- Equal-mass elastic collisions
 
 		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -27,7 +32,6 @@ namespace {
 
 		return Math::Vector2D(0.f, 0.f);
 	}
-
 }
 
 namespace physics {

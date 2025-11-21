@@ -35,6 +35,7 @@ std::string PhysicsManager::GetName() {
 	return "PhysicsManager";
 }
 
+// Wiring / dependencies
 void PhysicsManager::SetEntityManager(EntityManager* entityMgr) {
 	entityManager_ = entityMgr;
 }
@@ -47,8 +48,7 @@ void PhysicsManager::SetCollisionWorld(collision::World* world) {
 	world_ = world;
 }
 
-// Original physics update logic
-
+// Top-level physics update
 void PhysicsManager::UpdatePhysics(float physicsDt,
 								   EntityManager& entityManager,
 								   InputManager& inputManager) {
@@ -65,6 +65,7 @@ void PhysicsManager::UpdatePhysics(float physicsDt,
 	}
 }
 
+// Public control API
 void PhysicsManager::EnablePhysics(int entityID, float mass) {
 	PhysicsState state;
 	state.invMass = (mass > 0.0f)?(1.0f / mass):0.0f;
@@ -102,6 +103,7 @@ void PhysicsManager::ClearSeekTarget(int entityID) {
 	}
 }
 
+// Core integration for a single entity
 void PhysicsManager::IntegrateEntity(int entityID, float dt, EntityManager& entityManager) {
 	GameObject* obj = entityManager.GetByID(entityID);
 	if (!obj) {

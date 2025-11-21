@@ -6,12 +6,9 @@
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
 					Ng Juin Herng, juinherng.ng@digipen.edu
 
- DESCRIPTION:       Declares CollisionManager, which maintains a spatial grid of scene objects for
-					broad-phase queries and owns the world collision geometry. Provides helpers to:
-					- rebuild broad-phase per frame,
-					- resolve intended movement (step trimming),
-					- query nearby objects or a point,
-					- build static walls/walk areas.
+ DESCRIPTION:       Declares CollisionManager. Owns a static collision::World and a dynamic
+					spatial grid of GameObjects, rebuilds broad-phase data every frame, and
+					exposes helper queries for nearby/point lookups used by gameplay code.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

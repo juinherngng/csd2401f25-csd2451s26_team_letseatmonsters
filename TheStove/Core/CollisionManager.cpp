@@ -39,6 +39,7 @@ std::string CollisionManager::GetName() {
 	return "CollisionManager";
 }
 
+// Engine integration
 void CollisionManager::SetEntityManager(EntityManager* entityMgr) {
 	entityManager_ = entityMgr;
 }
@@ -86,6 +87,12 @@ void CollisionManager::BuildWalls(const collision::WalkArea& walkArea,
 	collisionWorld_.build(walkArea, wood, endGate);
 }
 
+void CollisionManager::AddStaticRects(const std::vector<collision::AABB>& rects) {
+	for (const auto& r : rects) {
+		collisionWorld_.addWall(r);
+	}
+}
+
 // Queries
 std::vector<GameObject*> CollisionManager::QueryNearby(const collision::AABB& queryBox) const {
 	std::vector<GameObject*> candidates;
@@ -99,10 +106,4 @@ std::vector<GameObject*> CollisionManager::QueryPoint(const Math::Vector2D& poin
 	spatialGrid_.QueryPoint(point, candidates);
 
 	return candidates;
-}
-
-void CollisionManager::AddStaticRects(const std::vector<collision::AABB>& rects) {
-	for (const auto& r : rects) {
-		collisionWorld_.addWall(r);
-	}
 }
