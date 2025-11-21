@@ -281,9 +281,15 @@ int main() {
 	auto settings = ConfigManager::LoadFromAssetsOrDefaults();
 	ConfigManager::Validate(settings);
 
-	if (!init(app, settings.resolution.width, settings.resolution.height, "TheStove", settings.fullscreen)) {
+	bool startFullscreen = settings.fullscreen;
+
+	if (!init(app, settings.resolution.width, settings.resolution.height, "TheStove", false)) {
 		cleanup(app);
 		return -1;
+	}
+
+	if (startFullscreen) {
+		ToggleFullscreen(app);
 	}
 
 	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>()) {
@@ -666,7 +672,7 @@ static void update(ApplicationState& app) {
 
 	if (app.pausedByOSFocus) {
 		// You can still keep FPS stats if you like, or set them to 0
-		app.smoothedDt = (app.smoothedDt == 0.0f) 
+		app.smoothedDt = (app.smoothedDt == 0.0f)
 			? deltaTime
 			: (0.96f * app.smoothedDt) + (0.04f * deltaTime);
 
