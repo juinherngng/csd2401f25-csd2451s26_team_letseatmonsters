@@ -318,4 +318,6 @@ private:
 	bool pendingClear_ = false; // Flag for deferred clearing
 
 	int editorSelectedId = -1;   // ID of object to draw gizmos for
+
+	std::string currentLevelPath_;
 };

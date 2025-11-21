@@ -18,9 +18,9 @@
 
 #include "LevelEditorPanelAssets.hpp"
 
+#include "AudioLoading.hpp"
 #include "LevelEditor.hpp"
 #include "LevelEditorFileIO.hpp"
-#include "AudioLoading.hpp"
 
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
@@ -45,18 +45,18 @@ namespace {
 	// Helper to normalize paths for audio loading (convert to forward slashes)
 	std::string NormalizeAudioPath(const std::string& path) {
 		std::string normalized = path;
-		
+
 		// Convert backslashes to forward slashes
 		std::replace(normalized.begin(), normalized.end(), '\\', '/');
-		
+
 		// Try to make it absolute if it's relative and doesn't exist at the current location
 		try {
 			fs::path inputPath(normalized);
-			
+
 			// If it's a relative path, try to resolve it
 			if (inputPath.is_relative()) {
 				fs::path absPath = fs::absolute(inputPath);
-				
+
 				// If the absolute path doesn't exist, try to find it relative to the executable
 				if (!fs::exists(absPath)) {
 					// Try to construct path relative to the build directory
@@ -79,15 +79,16 @@ namespace {
 						}
 					}
 				}
-				
+
 				normalized = absPath.string();
 				// Convert to forward slashes again
 				std::replace(normalized.begin(), normalized.end(), '\\', '/');
 			}
-		} catch (...) {
+		}
+		catch (...) {
 			// If any error occurs, keep the original normalized path
 		}
-		
+
 		return normalized;
 	}
 }
@@ -225,12 +226,12 @@ namespace LEPANELASSETS {
 
 			if (!picked.empty()) {
 				std::cout << "[Assets Panel] Selected file: " << picked << std::endl;
-				
+
 				// Extract extension from picked path
 				std::string ext;
 				const size_t dot = picked.find_last_of('.');
 				if (dot != std::string::npos) {
-				ext = picked.substr(dot);
+					ext = picked.substr(dot);
 				}
 
 				std::transform(ext.begin(), ext.end(), ext.begin(),
@@ -245,7 +246,7 @@ namespace LEPANELASSETS {
 				}
 				else {
 					std::cout << "[Assets Panel] Copying to: ../assets/Audio" << std::endl;
-					
+
 					// Copy into project audio folder
 					const std::string projPath =
 						CopyFileIntoProjectUnique(picked, "../assets/Audio");
@@ -255,7 +256,7 @@ namespace LEPANELASSETS {
 					}
 					else {
 						std::cout << "[Assets Panel] File copied to: " << projPath << std::endl;
-						
+
 						// Normalize the path for FMOD (convert backslashes to forward slashes)
 						const std::string normalizedPath = NormalizeAudioPath(projPath);
 						std::cout << "[Assets Panel] Normalized path: " << normalizedPath << std::endl;
@@ -292,7 +293,7 @@ namespace LEPANELASSETS {
 							// Add to catalog
 							if (Audio::AudioCatalog::AddAudioAsset(newAsset)) {
 								std::cout << "[Assets Panel] Successfully added to catalog" << std::endl;
-								
+
 								// Load the audio
 								ResourceManager::Instance().LoadAudio(
 									newAsset.name,
@@ -300,7 +301,7 @@ namespace LEPANELASSETS {
 									newAsset.loop,
 									newAsset.stream
 								);
-								
+
 								// Auto-save catalog after successful import
 								if (Audio::AudioCatalog::SaveCatalogToFile("../assets/Audio/AudioCatalog.json")) {
 									std::cout << "[Assets Panel] Catalog auto-saved successfully" << std::endl;
@@ -457,8 +458,8 @@ namespace LEPANELASSETS {
 		// Prefabs section
 		if (ImGui::CollapsingHeader("Prefabs", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##pf")) {
-			 sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
-			 sPrefabPreviewCache.clear();
+				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+				sPrefabPreviewCache.clear();
 			}
 
 			bool refreshPrefabs = false;
@@ -525,7 +526,7 @@ namespace LEPANELASSETS {
 
 			if (refreshPrefabs) {
 				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
-			 sPrefabPreviewCache.clear();
+				sPrefabPreviewCache.clear();
 			}
 		}
 
@@ -627,7 +628,7 @@ namespace LEPANELASSETS {
 			ImGui::EndChild();
 
 			// Preview feedback popup
-			if (ImGui::BeginPopupModal("Preview Playing", nullptr, 
+			if (ImGui::BeginPopupModal("Preview Playing", nullptr,
 				ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
 				ImGui::Text("Playing audio preview...");
 				ImGui::TextDisabled("(Feature requires AudioManager integration)");
@@ -828,7 +829,7 @@ namespace LEPANELASSETS {
 								newAsset.loop,
 								newAsset.stream
 							);
-							
+
 							// Auto-save catalog after successful addition
 							if (Audio::AudioCatalog::SaveCatalogToFile("../assets/Audio/AudioCatalog.json")) {
 								std::cout << "[Assets Panel] Catalog auto-saved after double-click add" << std::endl;
@@ -861,12 +862,13 @@ namespace LEPANELASSETS {
 			}
 
 			if (refreshAudio) {
-			 sAudio = BuildAudioList();
+				sAudio = BuildAudioList();
 			}
 		}
 
 		ImGui::EndChild();
 		ImGui::End();
-		(void)editor; // currently unused in this panel; keep parameter for future hooks
+		(void)editor;		 // currently unused in this panel; keep parameter for future hooks
+		(void)selectedIndex; // currently unused in this panel; keep parameter for future hooks
 	}
 }
