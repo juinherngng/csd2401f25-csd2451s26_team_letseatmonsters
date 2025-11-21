@@ -134,9 +134,7 @@ namespace {
 	}
 
 	// Snap a dynamic object horizontally out of the vertical wood segment it overlaps (minimal move).
-	void SnapHorizontallyOutOfBand(const collision::AABB& box,
-								   float bandX0, float bandX1,
-								   Math::Vector3D& posM) {
+	void SnapHorizontallyOutOfBand(const collision::AABB& box, float bandX0, float bandX1, Math::Vector3D& posM) {
 		const float moveLeft = bandX0 - box.max.x - 0.5f; // small epsilon
 		const float moveRight = bandX1 - box.min.x + 0.5f;
 
@@ -149,9 +147,7 @@ namespace {
 	}
 
 	// Snap a dynamic object vertically out of a horizontal band it overlaps (minimal move).
-	void SnapVerticallyOutOfBand(const collision::AABB& box,
-								 float bandY0, float bandY1,
-								 Math::Vector3D& posM) {
+	void SnapVerticallyOutOfBand(const collision::AABB& box, float bandY0, float bandY1, Math::Vector3D& posM) {
 		const float moveUp = bandY0 - box.max.y - 0.5f; // small epsilon
 		const float moveDown = bandY1 - box.min.y + 0.5f;
 
@@ -192,9 +188,7 @@ void Scene::ClampToWalkArea(GameObject* obj) {
 	}
 
 	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
-	Math::Vector3D p(obj->GetPosition().x,
-					 obj->GetPosition().y,
-					 obj->GetPosition().z);
+	Math::Vector3D p(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
 
 	physics::ClampInsideWalk(walk, obj, p);
 
@@ -340,9 +334,7 @@ void Scene::ResolveInitialStaticOverlaps() {
 		}
 
 		// Work in M-space (your math structs)
-		Math::Vector3D pM(g->GetPositionGLM().x,
-						  g->GetPositionGLM().y,
-						  g->GetPositionGLM().z);
+		Math::Vector3D pM(g->GetPositionGLM().x, g->GetPositionGLM().y, g->GetPositionGLM().z);
 
 		// Keep inside big walk rect (outer boundary)
 		physics::ClampInsideWalk(walk, g, pM);
@@ -427,9 +419,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 	const glm::vec3 position = sprite->GetPositionGLM();
 
 	// Build player's current AABB for spatial query
-	const collision::AABB queryBox = physics::MakeColliderBox(
-		sprite,
-		Math::Vector3D(position.x, position.y, position.z));
+	const collision::AABB queryBox = physics::MakeColliderBox(sprite, Math::Vector3D(position.x, position.y, position.z));
 
 	// Query spatial grid for nearby candidates
 	std::vector<GameObject*> candidates;
@@ -461,9 +451,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 
 		// Current positions (M-space)
 		Math::Vector3D playerPosM(position.x, position.y, position.z);
-		Math::Vector3D otherPosM(other->GetPosition().x,
-								 other->GetPosition().y,
-								 other->GetPosition().z);
+		Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
 
 		// Build AABBs at those positions
 		const collision::AABB playerBox = physics::MakeColliderBox(sprite, playerPosM);
@@ -477,12 +465,10 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 
 		// World-aware push: try to move the goat, clamped by walls
 		constexpr float kGoatShare = 0.50f; // you can tune 0.25f..0.50f
-		const Math::Vector2D desiredOtherDelta(-mtv.x * kGoatShare,
-											   -mtv.y * kGoatShare);
+		const Math::Vector2D desiredOtherDelta(-mtv.x * kGoatShare, -mtv.y * kGoatShare);
 
 		// Clamp goat movement against static walls
-		Math::Vector2D allowedOtherDelta =
-			collisionManager.GetCollisionWorld().resolve(otherBox, desiredOtherDelta);
+		Math::Vector2D allowedOtherDelta = collisionManager.GetCollisionWorld().resolve(otherBox, desiredOtherDelta);
 
 		// Move goat by the allowed portion (could be zero if pinned)
 		otherPosM.x += allowedOtherDelta.x;
@@ -518,12 +504,10 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 			const float vLen = std::sqrt(v.x * v.x + v.y * v.y);
 			const float mtvLen = std::sqrt(mtv.x * mtv.x + mtv.y * mtv.y);
 
-			const float desiredLen = std::sqrt(desiredOtherDelta.x * desiredOtherDelta.x +
-											   desiredOtherDelta.y * desiredOtherDelta.y);
-			const float allowedLen = std::sqrt(allowedOtherDelta.x * allowedOtherDelta.x +
-											   allowedOtherDelta.y * allowedOtherDelta.y);
-			const bool goatPinned =
-				(desiredLen > 0.0f) && (allowedLen < 0.1f * desiredLen);
+			const float desiredLen = std::sqrt(desiredOtherDelta.x * desiredOtherDelta.x + desiredOtherDelta.y * desiredOtherDelta.y);
+			const float allowedLen = std::sqrt(allowedOtherDelta.x * allowedOtherDelta.x + allowedOtherDelta.y * allowedOtherDelta.y);
+
+			const bool goatPinned = (desiredLen > 0.0f) && (allowedLen < 0.1f * desiredLen);
 
 			if (goatPinned && vLen > 0.0001f && mtvLen > 0.0001f && physicsDt > 0.0f) {
 				// Normal pointing from goat to player (same dir as MTV applied to player)
@@ -538,14 +522,10 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 					const glm::vec2 tangential = desiredDelta - into * n;
 
 					const Math::Vector2D csz = sprite->GetColliderSize();
-					const collision::AABB pAfterSep =
-						collision::World::makeAABBFromCenter(
-							playerPosM, Math::Vector3D(csz.x, csz.y, 1.0f));
+					const collision::AABB pAfterSep = collision::World::makeAABBFromCenter(playerPosM, Math::Vector3D(csz.x, csz.y, 1.0f));
 
 					const Math::Vector2D slideDesired(tangential.x, tangential.y);
-					const Math::Vector2D slideAllowed =
-						collisionManager.GetCollisionWorld().resolve(pAfterSep,
-																	 slideDesired);
+					const Math::Vector2D slideAllowed = collisionManager.GetCollisionWorld().resolve(pAfterSep, slideDesired);
 
 					// Apply the allowed slide
 					playerPosM.x += slideAllowed.x;
@@ -556,6 +536,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 				const float dotInto =
 					(mtv.x / mtvLen) * (v.x / (vLen + 1e-6f)) +
 					(mtv.y / mtvLen) * (v.y / (vLen + 1e-6f));
+
 				if (dotInto > 0.1f) {
 					movementManager.ClearMoveTarget(spriteID);
 				}
