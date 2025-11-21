@@ -14,6 +14,7 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <iostream>
@@ -22,38 +23,65 @@
 #include "SceneManager.hpp"
 
  // Level constants
-static constexpr float kRefW = 1200.0f;
-static constexpr float kRefH = 900.0f;
+static constexpr float kRefW = 1200.0f; // 24 tiles
+static constexpr float kRefH = 900.0f;  // 18 tiles
 static constexpr float kTile = 50.0f;
 
-// Walkable inner rectangle (match to background art)
-static constexpr float kWalkL = 180.0f;  // left
-static constexpr float kWalkR = 1180.0f; // right
-static constexpr float kWalkT = 110.0f;  // top
-static constexpr float kWalkB = 820.0f;  // bottom
+// Tile-space definitions
+// Walkable inner rectangle (match to background art) in tiles
+static constexpr float kWalkL_T = 180.0f / kTile;  // 3.6
+static constexpr float kWalkR_T = 1180.0f / kTile; // 23.6
+static constexpr float kWalkT_T = 110.0f / kTile;  // 2.2
+static constexpr float kWalkB_T = 825.0f / kTile;  // 16.5
+
+// Middle divider (vertical split) in tiles
+static constexpr float kWoodX0_T = 500.0f / kTile; // 10.0
+static constexpr float kWoodX1_T = 590.0f / kTile; // 11.8
+static constexpr float kWoodTopMinY_T = 100.0f / kTile; // 2.0
+static constexpr float kWoodTopMaxY_T = 320.0f / kTile; // 6.4
+static constexpr float kWoodGapMinY_T = 320.0f / kTile; // 6.4
+static constexpr float kWoodGapMaxY_T = 570.0f / kTile; // 11.4
+static constexpr float kWoodBotMinY_T = 570.0f / kTile; // 11.4
+static constexpr float kWoodBotMaxY_T = 700.0f / kTile; // 14.0
+
+// End-of-stage vertical gate in tiles
+static constexpr float kEndVX0_T = 1080.0f / kTile; // 21.6
+static constexpr float kEndVX1_T = 1200.0f / kTile; // 24.0
+static constexpr float kEndVTopMinY_T = 100.0f / kTile; // 2.0
+static constexpr float kEndVTopMaxY_T = 320.0f / kTile; // 6.4
+static constexpr float kEndVGapMinY_T = 320.0f / kTile; // 6.4
+static constexpr float kEndVGapMaxY_T = 570.0f / kTile; // 11.4
+static constexpr float kEndVBotMinY_T = 570.0f / kTile; // 11.4
+static constexpr float kEndVBotMaxY_T = 700.0f / kTile; // 14.0
+
+// Pixel-space versions derived from tiles (used by physics/collision)
+static constexpr float kWalkL = kWalkL_T * kTile;
+static constexpr float kWalkR = kWalkR_T * kTile;
+static constexpr float kWalkT = kWalkT_T * kTile;
+static constexpr float kWalkB = kWalkB_T * kTile;
 
 // Thickness of our blocking bars (thin = precise, easy to tune)
 static constexpr float kEdgeThick = 3.0f;
 
-// Middle divider (vertical split)
-static constexpr float kWoodX0 = 500.0f;
-static constexpr float kWoodX1 = 590.0f;
-static constexpr float kWoodTopMinY = 100.0f;
-static constexpr float kWoodTopMaxY = 320.0f;
-static constexpr float kWoodGapMinY = 320.0f;
-static constexpr float kWoodGapMaxY = 570.0f;
-static constexpr float kWoodBotMinY = 570.0f;
-static constexpr float kWoodBotMaxY = 700.0f;
+// Middle divider (pixels)
+static constexpr float kWoodX0 = kWoodX0_T * kTile;
+static constexpr float kWoodX1 = kWoodX1_T * kTile;
+static constexpr float kWoodTopMinY = kWoodTopMinY_T * kTile;
+static constexpr float kWoodTopMaxY = kWoodTopMaxY_T * kTile;
+static constexpr float kWoodGapMinY = kWoodGapMinY_T * kTile;
+static constexpr float kWoodGapMaxY = kWoodGapMaxY_T * kTile;
+static constexpr float kWoodBotMinY = kWoodBotMinY_T * kTile;
+static constexpr float kWoodBotMaxY = kWoodBotMaxY_T * kTile;
 
-// End-of-stage vertical gate
-static constexpr float kEndVX0 = 1080.0f;
-static constexpr float kEndVX1 = 1200.0f;
-static constexpr float kEndVTopMinY = 100.0f;
-static constexpr float kEndVTopMaxY = 320.0f;
-static constexpr float kEndVGapMinY = 320.0f;
-static constexpr float kEndVGapMaxY = 570.0f;
-static constexpr float kEndVBotMinY = 570.0f;
-static constexpr float kEndVBotMaxY = 700.0f;
+// End-of-stage gate (pixels)
+static constexpr float kEndVX0 = kEndVX0_T * kTile;
+static constexpr float kEndVX1 = kEndVX1_T * kTile;
+static constexpr float kEndVTopMinY = kEndVTopMinY_T * kTile;
+static constexpr float kEndVTopMaxY = kEndVTopMaxY_T * kTile;
+static constexpr float kEndVGapMinY = kEndVGapMinY_T * kTile;
+static constexpr float kEndVGapMaxY = kEndVGapMaxY_T * kTile;
+static constexpr float kEndVBotMinY = kEndVBotMinY_T * kTile;
+static constexpr float kEndVBotMaxY = kEndVBotMaxY_T * kTile;
 
 namespace {
 	inline Math::Vector2D toM(const glm::vec2& v) {
@@ -82,6 +110,34 @@ namespace {
 		}
 		return frames;
 	}
+
+	// Build an AABB in world/reference space from tile coordinates.
+	static collision::AABB MakeTileRect(float tx0, float ty0, float tx1, float ty1) {
+		collision::AABB r{};
+		r.min = { tx0 * kTile, ty0 * kTile };
+		r.max = { tx1 * kTile, ty1 * kTile };
+		return r;
+	}
+
+	struct StaticRectDef {
+		float tx0, ty0, tx1, ty1; // tile-space coordinates
+	};
+
+	// Benches + ingredient counter + bottom strip, all in tiles
+	static constexpr std::array<StaticRectDef, 6> kStaticRectDefs{ {
+			// top-middle bench
+			{ 13.9f,  3.4f, 15.2f,  5.0f },
+			// top-right bench
+			{ 19.0f,  3.4f, 20.3f,  5.0f },
+			// bottom-middle bench
+			{ 13.9f, 13.3f, 15.2f, 15.0f },
+			// bottom-right bench
+			{ 19.0f, 13.3f, 20.3f, 15.0f },
+			// Ingredient counter row (top kitchen)
+			{ 4.0f,   2.0f, 11.0f,  3.0f },
+			// Bottom solid area: grills + green + both posts
+			{ 4.0f,  14.8f, 11.0f, 16.0f }
+		} };
 }
 
 void Scene::SetSimulationActive(bool active) {
@@ -605,40 +661,15 @@ void Scene::BuildLevelColliders() {
 	// Build all static walls (outer frame + wood + gate)
 	collisionManager.BuildWalls(walk, wood, gate);
 
-	// Benches
-	std::vector<collision::AABB> benchRects = {
-		// Top-middle bench
-		{{700.0f, 170.0f}, {760.0f, 250.0f}},
-		// Top-right bench
-		{{950.0f, 170.0f}, {1010.0f, 250.0f}},
-		// Bottom-middle bench
-		{{700.0f, 670.0f}, {760.0f, 750.0f}},
-		// Bottom-right bench
-		{{950.0f, 670.0f}, {1010.0f, 750.0f}},
-	};
+	// Extra static geometry from constexpr tile table
+	std::vector<collision::AABB> staticRects;
+	staticRects.reserve(kStaticRectDefs.size());
 
-	collisionManager.AddStaticRects(benchRects);
-
-	// Extra static colliders: ingredient counter + bottom grills/door frame
-	std::vector<collision::AABB> extraRects;
-
-	// Ingredient counter row (top kitchen)
-	{
-		collision::AABB ingredientCounter{};
-		ingredientCounter.min = { kTile * 4.0f,  kTile * 2.0f };
-		ingredientCounter.max = { kTile * 11.0f, kTile * 3.0f };
-		extraRects.push_back(ingredientCounter);
+	for (const auto& def : kStaticRectDefs) {
+		staticRects.push_back(MakeTileRect(def.tx0, def.ty0, def.tx1, def.ty1));
 	}
 
-	// Bottom solid area: grills + green + both wooden posts (no pathway)
-	{
-		collision::AABB bottomSolid{};
-		bottomSolid.min = { kTile * 4.0f,  kTile * 14.8f };
-		bottomSolid.max = { kTile * 11.0f, kTile * 16.0f };
-		extraRects.push_back(bottomSolid);
-	}
-
-	collisionManager.AddStaticRects(extraRects);
+	collisionManager.AddStaticRects(staticRects);
 
 	// Get a pointer to the shared collision world
 	collision::World* world = &collisionManager.GetCollisionWorld();
