@@ -389,6 +389,9 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		return false;
 	}
 
+	// Make the window non-resizable
+	// glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
 	// Decide between windowed and fullscreen
 	if (fullscreen) {
 		GLFWmonitor* monitor = glfwGetPrimaryMonitor();
