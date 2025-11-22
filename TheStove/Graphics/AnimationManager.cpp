@@ -102,15 +102,15 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 	Animator2D& anim = animators_[objectID];
 
 	// Player sprite sheets: 8 columns x 14 rows
-	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(0, 0, 7, 14, 8);	// row 0 = front
-	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(1, 0, 7, 14, 8);		// row 1 = back
-	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(2, 0, 7, 14, 8);		// row 2 = left
-	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(3, 0, 7, 14, 8);	// row 3 = right
+	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(13, 0, 7, 14, 8);		
+	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(12, 0, 7, 14, 8);			
+	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(11, 0, 7, 14, 8);		
+	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(10, 0, 7, 14, 8);	
 
-	std::vector<glm::vec4> frontWalkFrames = CreateFrameSequenceRow(4, 0, 7, 14, 8);
-	std::vector<glm::vec4> backWalkFrames = CreateFrameSequenceRow(5, 0, 7, 14, 8);
-	std::vector<glm::vec4> leftWalkFrames = CreateFrameSequenceRow(6, 0, 7, 14, 8);
-	std::vector<glm::vec4> rightWalkFrames = CreateFrameSequenceRow(7, 0, 7, 14, 8);
+	std::vector<glm::vec4> backWalkFrames = CreateFrameSequenceRow(9, 0, 7, 14, 8);
+	std::vector<glm::vec4> frontWalkFrames = CreateFrameSequenceRow(8, 0, 7, 14, 8);
+	std::vector<glm::vec4> leftWalkFrames = CreateFrameSequenceRow(7, 0, 7, 14, 8);
+	std::vector<glm::vec4> rightWalkFrames = CreateFrameSequenceRow(6, 0, 7, 14, 8);
 
 	animationSets_[objectID]["IDLE_FRONT"] = AnimationSet{ frontIdleFrames, 0.15f, true };
 	animationSets_[objectID]["IDLE_BACK"] = AnimationSet{ backIdleFrames, 0.15f, true };

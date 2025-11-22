@@ -19,34 +19,49 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	(void)scene;
 	if (!player) return;
 
-	glm::vec2 direction = moveDirRaw;
+	const float moveThreshold = 0.01f;
+	std::string desiredAnimation;
 
-	// Small dead zone to avoid jitter when very close / tiny input
-	if (glm::length(direction) <= 0.001f) {
-		return;
-	}
+	float absX = std::abs(moveDirRaw.x);
+	float absY = std::abs(moveDirRaw.y);
 
-	float absX = std::abs(direction.x);
-	float absY = std::abs(direction.y);
-
-	if (absX > absY) {
-		// Horizontal dominant
-		if (direction.x > 0.0f) {
-			scene.SetAnimation(player->GetID(), "WALK_LEFT");
-		}
-		else {
-			scene.SetAnimation(player->GetID(), "WALK_RIGHT");
+	// Detect idle/no movement
+	if (glm::length(moveDirRaw) < moveThreshold) {
+		switch (facingDir) {
+		case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
+		case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
+		case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
+		case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
 		}
 	}
 	else {
-		// Vertical dominant
-		if (direction.y > 0.0f) {
-			scene.SetAnimation(player->GetID(), "WALK_BACK");
+		if (absX > absY) {
+			if (moveDirRaw.x > 0.0f) {
+				desiredAnimation = "WALK_RIGHT";
+				facingDir = FacingDir::Right;
+			}
+			else {
+				desiredAnimation = "WALK_LEFT";
+				facingDir = FacingDir::Left;
+			}
 		}
 		else {
-			scene.SetAnimation(player->GetID(), "WALK_FRONT");
+			if (moveDirRaw.y > 0.0f) {
+				desiredAnimation = "WALK_FRONT";
+				facingDir = FacingDir::Front;
+			}
+			else {
+				desiredAnimation = "WALK_BACK";
+				facingDir = FacingDir::Back;
+			}
 		}
-	}	
+	}
+
+	// Query the currently playing animation (to prevent animation resets due to the same input pressed)
+	std::string currentAnimation = scene.GetCurrentAnimationName(player->GetID());
+	if (desiredAnimation != currentAnimation) {
+		scene.SetAnimation(player->GetID(), desiredAnimation);
+	}
 }
 
 // Unity: Move(Vector3 dest)
@@ -180,11 +195,13 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	glm::vec2 inputDir(0.f, 0.f);
 	float speed = 200.0f;
 
+	// Get keyboard input
 	if (input.IsKeyPressed(GLFW_KEY_A)) inputDir.x -= 1.f;
 	if (input.IsKeyPressed(GLFW_KEY_D)) inputDir.x += 1.f;
 	if (input.IsKeyPressed(GLFW_KEY_W)) inputDir.y -= 1.f;
 	if (input.IsKeyPressed(GLFW_KEY_S)) inputDir.y += 1.f;
 
+	// Main keyboard movement
 	if (inputDir.x != 0.f || inputDir.y != 0.f) {
 		hasMoveTarget = false;
 		float len = std::sqrt(inputDir.x * inputDir.x + inputDir.y * inputDir.y);
@@ -201,10 +218,20 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		// Update sprite based on keyboard movement
 		UpdateSprite(scene, player, inputDir);
 	}
-
+	// If has click-to-move target, follow that
+	else if (hasMoveTarget) {
+		glm::vec2 pos(pos3.x, pos3.y);
+		glm::vec2 moveDir = moveTarget - pos; 
+		// Move player toward target
+		// Set animation based on moveDir
+		UpdateSprite(scene, player, moveDir); // Pass click-move vector 
+	}
+	else {
+		// Idle: pass zero movement vector
+		UpdateSprite(scene, player, glm::vec2(0.f, 0.f));
+	}
 
 	HandleClickInput(scene, input);
-
 
 	UpdateMovement(dt, scene);
 
