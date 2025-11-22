@@ -1,10 +1,10 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			MessageBus.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			MessageBus.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Publish/Subscribe message bus for inter-component communication.
+ DESCRIPTION:		Publish/Subscribe message bus for inter-component communication.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -12,16 +12,15 @@ DESCRIPTION:		Publish/Subscribe message bus for inter-component communication.
 
 #pragma once
 
-#include "Message.hpp"
-
+#include <deque>
 #include <functional>
+#include <memory>
 #include <unordered_map>
 #include <vector>
-#include <memory>
-#include <deque>
 
-namespace CoreFramework
-{
+#include "Message.hpp"
+
+namespace CoreFramework {
 	// Subscriber callback type: takes a const Message reference
 	using MessageCallback = std::function<void(const Message&)>;
 
@@ -36,10 +35,10 @@ namespace CoreFramework
 		and publishes messages to all interested subscribers.
 	*/
 	/************************************************************************/
-	class MessageBus
-	{
+	class MessageBus {
 	public:
-		MessageBus() : nextSubscriberId(1) {}
+		MessageBus() : nextSubscriberId(1) {
+		}
 
 		/************************************************************************/
 		/*!
@@ -53,10 +52,9 @@ namespace CoreFramework
 			Unique subscriber ID that can be used to unsubscribe.
 		*/
 		/************************************************************************/
-		SubscriberId Subscribe(MessageType messageType, MessageCallback callback)
-		{
+		SubscriberId Subscribe(MessageType messageType, MessageCallback callback) {
 			SubscriberId id = nextSubscriberId++;
-			subscribers[messageType].push_back({id, std::move(callback)});
+			subscribers[messageType].push_back({ id, std::move(callback) });
 			return id;
 		}
 
@@ -72,17 +70,14 @@ namespace CoreFramework
 			True if successfully unsubscribed, false if not found.
 		*/
 		/************************************************************************/
-		bool Unsubscribe(MessageType messageType, SubscriberId subscriberId)
-		{
+		bool Unsubscribe(MessageType messageType, SubscriberId subscriberId) {
 			auto it = subscribers.find(messageType);
 			if (it == subscribers.end())
 				return false;
 
 			auto& callbacks = it->second;
-			for (auto callbackIt = callbacks.begin(); callbackIt != callbacks.end(); ++callbackIt)
-			{
-				if (callbackIt->first == subscriberId)
-				{
+			for (auto callbackIt = callbacks.begin(); callbackIt != callbacks.end(); ++callbackIt) {
+				if (callbackIt->first == subscriberId) {
 					callbacks.erase(callbackIt);
 					return true;
 				}
@@ -98,13 +93,10 @@ namespace CoreFramework
 			The message to publish (will be passed by const reference to callbacks).
 		*/
 		/************************************************************************/
-		void Publish(const Message& message)
-		{
+		void Publish(const Message& message) {
 			auto it = subscribers.find(message.MessageId);
-			if (it != subscribers.end())
-			{
-				for (auto& [id, callback] : it->second)
-				{
+			if (it != subscribers.end()) {
+				for (auto& [id, callback] : it->second) {
 					callback(message);
 				}
 			}
@@ -121,8 +113,7 @@ namespace CoreFramework
 		*/
 		/************************************************************************/
 		template<typename T, typename... Args>
-		void Post(Args&&... args)
-		{
+		void Post(Args&&... args) {
 			messageQueue.emplace_back(std::make_unique<T>(std::forward<Args>(args)...));
 		}
 
@@ -133,10 +124,8 @@ namespace CoreFramework
 			and then clearing the queue.
 		*/
 		/************************************************************************/
-		void ProcessQueue()
-		{
-			while (!messageQueue.empty())
-			{
+		void ProcessQueue() {
+			while (!messageQueue.empty()) {
 				Publish(*messageQueue.front());
 				messageQueue.pop_front();
 			}
@@ -148,8 +137,7 @@ namespace CoreFramework
 			Clears all queued messages without publishing them.
 		*/
 		/************************************************************************/
-		void ClearQueue()
-		{
+		void ClearQueue() {
 			messageQueue.clear();
 		}
 
@@ -159,8 +147,7 @@ namespace CoreFramework
 			Removes all subscribers for all message types.
 		*/
 		/************************************************************************/
-		void ClearAllSubscribers()
-		{
+		void ClearAllSubscribers() {
 			subscribers.clear();
 		}
 
@@ -174,19 +161,18 @@ namespace CoreFramework
 			Number of active subscribers.
 		*/
 		/************************************************************************/
-		size_t GetSubscriberCount(MessageType messageType) const
-		{
+		size_t GetSubscriberCount(MessageType messageType) const {
 			auto it = subscribers.find(messageType);
-			return (it != subscribers.end()) ? it->second.size() : 0;
+			return (it != subscribers.end())?it->second.size():0;
 		}
 
 	private:
 		// Map of message type -> list of (subscriberId, callback)
 		std::unordered_map<MessageType, std::vector<std::pair<SubscriberId, MessageCallback>>> subscribers;
-		
+
 		// Queue for deferred message processing
 		std::deque<std::unique_ptr<Message>> messageQueue;
-		
+
 		// Counter for generating unique subscriber IDs
 		SubscriberId nextSubscriberId;
 	};

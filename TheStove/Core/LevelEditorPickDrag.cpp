@@ -15,25 +15,31 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "LevelEditorPickDrag.hpp"
-
-#include "../Graphics/GraphicsEngine.hpp"
-#include "../Graphics/SceneManager.hpp"
-#include "../Graphics/GameObject.hpp"
-
-
-#include <imgui.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
 #include <vector>
 
+#include "../Graphics/GameObject.hpp"
+#include "../Graphics/GraphicsEngine.hpp"
+#include "../Graphics/SceneManager.hpp"
+
+#include "LevelEditorPanelLevel.hpp"
+#include "LevelEditorPickDrag.hpp"
+
 namespace LEPICKDRAG {
-	void HandleScenePickDrag(Scene& scene, int& selectedIndex, int& selectedObjectId) {
+	void HandleScenePickDrag(LevelEditor& editor,
+							 Scene& scene,
+							 int& selectedIndex,
+							 int& selectedObjectId) {
 		// Convert mouse coordinates into world space inside the Scene image
 		glm::vec2 mouseWorld{};
 		if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {
 			return;
 		}
+
+		// ImGui IO for keyboard checks (used later for Delete key)
+		ImGuiIO& io = ImGui::GetIO();
 
 		// Function-scoped statics follow your naming rule: camelCase with leading underscore.
 		static bool isDragging = false;
@@ -71,18 +77,17 @@ namespace LEPICKDRAG {
 			}
 
 			if (picked >= 0) {
-				selectedIndex = picked;
+				// Drive selection by object ID
 				selectedObjectId = list[picked]->GetID();
+				selectedIndex = -1;   // will be recomputed in the Level panel
+
+				LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
 
 				const glm::vec3 p = list[picked]->GetPositionGLM();
 				grabOffset = ImVec2(mouseWorld.x - p.x, mouseWorld.y - p.y);
 
 				isDragging = true;
 				draggingId = selectedObjectId;
-			}
-			else {
-				isDragging = false;
-				draggingId = -1;
 			}
 		}
 
@@ -109,6 +114,21 @@ namespace LEPICKDRAG {
 
 		// LMB release: stop dragging
 		if (isDragging && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			isDragging = false;
+			draggingId = -1;
+		}
+
+		if (!io.WantCaptureKeyboard &&
+			selectedObjectId >= 0 &&
+			ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+			LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
+
+			// Remove the object from the scene
+			scene.DespawnByID(selectedObjectId);
+
+			// Clear selection and drag state so inspector & editor are clean
+			selectedObjectId = -1;
+			selectedIndex = -1;
 			isDragging = false;
 			draggingId = -1;
 		}

@@ -1,11 +1,11 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			AnimationManager.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
-CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			AnimationManager.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:	    Implements AnimationManager. Manages 2D sprite animations for game objects,
+ DESCRIPTION:	    Implements AnimationManager. Manages 2D sprite animations for game objects,
 					updating frame UVs based on Animator2D components. Supports play/pause
 					control and registering animation sets for different entity types.
 
@@ -13,12 +13,13 @@ DESCRIPTION:	    Implements AnimationManager. Manages 2D sprite animations for g
 ----------------------------------------------------------------------------------------------------
 */
 
+#include <iostream>
+#include <string>
+#include <vector>
+
 #include "AnimationManager.hpp"
 #include "EntityManager.hpp"
 #include "GameObject.hpp"
-#include <iostream>
-#include <vector>
-#include <string>
 
 // ===== SystemInterface Implementation =====
 

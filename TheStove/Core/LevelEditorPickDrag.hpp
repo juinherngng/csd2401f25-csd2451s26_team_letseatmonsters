@@ -17,6 +17,7 @@
 #pragma once
 
 class Scene;
+class LevelEditor;
 
 /**
  * @namespace LEPICKDRAG
@@ -24,5 +25,8 @@ class Scene;
  */
 namespace LEPICKDRAG {
 	// Handle scene picking and dragging inside the Scene viewport.
-	void HandleScenePickDrag(Scene& scene, int& selectedIndex, int& selectedObjectId);
+	void HandleScenePickDrag(LevelEditor& editor,
+							 Scene& scene,
+							 int& selectedIndex,
+							 int& selectedObjectId);
 }

@@ -17,11 +17,11 @@
 #include "InputCommandHandler.hpp"
 
 void InputCommandHandler::ProcessCommands(InputManager& inputManager,
-	PhysicsManager& physicsManager,
-	MovementManager& movementManager,
-	int playerID,
-	bool& useForces,
-	bool& showAuxDebug) {
+										  PhysicsManager& physicsManager,
+										  MovementManager& movementManager,
+										  int playerID,
+										  bool& useForces,
+										  bool& showAuxDebug) {
 	HandleDebugToggles(inputManager, showAuxDebug);
 	HandleForceToggle(inputManager, physicsManager, movementManager, playerID, useForces);
 }
@@ -32,7 +32,7 @@ void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& s
 		DebugRenderer::SetEnabled(!DebugRenderer::IsEnabled());
 
 		std::cout << "[DebugRenderer] Collider visibility: "
-			<< (DebugRenderer::IsEnabled() ? "ON" : "OFF")
+			<< (DebugRenderer::IsEnabled()?"ON":"OFF")
 			<< std::endl;
 	}
 
@@ -41,20 +41,20 @@ void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& s
 		showAuxDebug = !showAuxDebug;
 
 		std::cout << "[Debug] Auxiliary visuals: "
-			<< (showAuxDebug ? "ON" : "OFF")
+			<< (showAuxDebug?"ON":"OFF")
 			<< std::endl;
 	}
 }
 
 void InputCommandHandler::HandleForceToggle(InputManager& inputManager,
-	PhysicsManager& physicsManager,
-	MovementManager& movementManager,
-	int playerID,
-	bool& useForces) {
+											PhysicsManager& physicsManager,
+											MovementManager& movementManager,
+											int playerID,
+											bool& useForces) {
 	// Toggle physics forces vs. kinematic
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_F)) {
 		useForces = !useForces;
-		std::cout << "[Forces] " << (useForces ? "ON" : "OFF") << std::endl;
+		std::cout << "[Forces] " << (useForces?"ON":"OFF") << std::endl;
 
 		// Hide click-to-move path line while force mode is ON
 		DebugVisualizer::SetDrawPathLine(!useForces);

@@ -17,8 +17,6 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "LevelEditorFileIO.hpp"
-
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
@@ -26,16 +24,16 @@
 #include <system_error>
 #include <vector>
 #include <string>
-
 #include <imgui.h>
 #include <glm/glm.hpp>
-
-#include "LevelSerializer.hpp"
 
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
+
+#include "LevelEditorFileIO.hpp"
+#include "LevelSerializer.hpp"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -162,7 +160,7 @@ namespace LEFILEIO {
 
 			std::string ext = p.path().extension().string();
 			std::transform(ext.begin(), ext.end(), ext.begin(),
-				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+						   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
 			for (const auto& e : extensions) {
 				if (ext == e) {
@@ -245,7 +243,7 @@ namespace LEFILEIO {
 	// Useful for forcing a re-import of modified assets at runtime.
 	Texture* LoadTextureBypassingCache(const std::string& path) {
 		const std::uint64_t tick = static_cast<std::uint64_t>(ImGui::GetTime() * 1'000'000.0);
-		const std::string   key = "sprite_" + path + "#v" + std::to_string(tick);
+		const std::string key = "sprite_" + path + "#v" + std::to_string(tick);
 
 		return ResourceManager::Instance().LoadTexture(key, path);
 	}

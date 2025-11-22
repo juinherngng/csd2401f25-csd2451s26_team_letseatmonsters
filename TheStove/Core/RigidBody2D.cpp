@@ -1,24 +1,24 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			RigidBody2D.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
-CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+ FILE NAME:			RigidBody2D.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
-DESCRIPTION:		Implements RigidBody2D. Accumulates forces, integrates velocity with
+ DESCRIPTION:		Implements RigidBody2D. Accumulates forces, integrates velocity with
 					exponential damping, optionally applies gravity/legacy acceleration,
 					and writes motion to the owner's Transform.
 
-All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #include <cmath>
 
-#include "RigidBody2D.hpp"
-#include "GOC.hpp"
-#include "Transform.hpp"
 #include "Forces.hpp"
+#include "GOC.hpp"
+#include "RigidBody2D.hpp"
+#include "Transform.hpp"
 
 // Lifecycle
 void RigidBody2D::Initialize() {
@@ -78,18 +78,15 @@ void RigidBody2D::AddImpulse(const Math::Vector2D& impulse) {
 }
 
 // Queries
-Math::Vector2D const RigidBody2D::GetVelocity() const
-{
+Math::Vector2D const RigidBody2D::GetVelocity() const {
 	return velocity;
 }
 
-Math::Vector2D const RigidBody2D::GetAcceleration() const
-{
+Math::Vector2D const RigidBody2D::GetAcceleration() const {
 	return acceleration;
 }
 
-bool const RigidBody2D::GetUseGravity() const
-{
+bool const RigidBody2D::GetUseGravity() const {
 	return useGravity;
 }
 
@@ -105,7 +102,7 @@ Math::Vector2D RigidBody2D::GetPosition() const {
 }
 
 float RigidBody2D::GetMass() const {
-	return (invMass > 0.0f) ? (1.0f / invMass) : 0.0f;
+	return (invMass > 0.0f)?(1.0f / invMass):0.0f;
 }
 
 float RigidBody2D::GetInverseMass() const {
@@ -130,7 +127,7 @@ void RigidBody2D::Stop() {
 }
 
 void RigidBody2D::SetMass(float mass) {
-	invMass = (mass > 0.0f) ? (1.0f / mass) : 0.0f;
+	invMass = (mass > 0.0f)?(1.0f / mass):0.0f;
 }
 
 void RigidBody2D::SetLinearDamping(float value) {

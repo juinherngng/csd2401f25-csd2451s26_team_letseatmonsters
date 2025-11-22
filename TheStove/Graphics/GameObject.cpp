@@ -15,8 +15,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-#include "GameObject.hpp"
 #include "../Core/Collision.hpp"
+
+#include "GameObject.hpp"
 #include "ResourceManager.hpp"
 
 GameObject::GameObject(Mesh* mesh, Shader* shader)

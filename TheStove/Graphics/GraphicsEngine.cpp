@@ -1,23 +1,23 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			GraphicsEngine.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
-CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+ FILE NAME:			GraphicsEngine.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 					Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
+ DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
 					and batched instanced rendering of GameObjects.
 
 		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <iostream>
+#include <filesystem>
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <filesystem>
+#include <iostream>
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
@@ -34,10 +34,10 @@ namespace {
 			std::cout << "[ShaderPath] Current working directory: " << std::filesystem::current_path() << std::endl;
 			printedCwd = true;
 		}
-		
+
 		// Extract just the filename from the path
 		std::string filename = std::filesystem::path(relativePathFromProjectRoot).filename().string();
-		
+
 		// Try multiple possible locations, prioritizing build/shaders since it exists
 		std::vector<std::string> possiblePaths = {
 			"shaders/" + filename,                                  // From build directory (build/shaders/)
@@ -71,8 +71,7 @@ GraphicsEngine& GraphicsEngine::Instance() {
 GraphicsEngine::GraphicsEngine()
 	: resourceManager(ResourceManager::Instance()),
 	projection(1.0f),
-	view(1.0f)
-{
+	view(1.0f) {
 }
 
 // Initialize core renderer, FBO, default resources, and ImGui
@@ -111,7 +110,7 @@ void GraphicsEngine::Initialize() {
 void GraphicsEngine::Update(float dt) {
 	// Store dt for performance tracking
 	lastDt = dt;
-	
+
 	// Note: Actual rendering is still called from main loop via BeginFrame/Render/EndFrame
 	// This Update is just for system integration and performance monitoring
 	(void)dt; // Suppress unused parameter warning if no other logic needed
@@ -186,9 +185,15 @@ void GraphicsEngine::EndSceneRender() {
 }
 
 // Getters
-const glm::mat4& GraphicsEngine::GetProjection() const { return projection; }
-const glm::mat4& GraphicsEngine::GetView() const { return view; }
-ImGuiID GraphicsEngine::GetMainDockspaceID() const { return mMainDockspaceId; }
+const glm::mat4& GraphicsEngine::GetProjection() const {
+	return projection;
+}
+const glm::mat4& GraphicsEngine::GetView() const {
+	return view;
+}
+ImGuiID GraphicsEngine::GetMainDockspaceID() const {
+	return mMainDockspaceId;
+}
 
 // Handle window resize: update letterboxed viewport and background placement
 void GraphicsEngine::Resize(int width, int height) {
@@ -223,7 +228,7 @@ void GraphicsEngine::Resize(int width, int height) {
 	if (backgroundObject) {
 		backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
 		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
-			static_cast<float>(kRefH), 1.0f));
+											 static_cast<float>(kRefH), 1.0f));
 	}
 }
 
@@ -236,38 +241,38 @@ void GraphicsEngine::ApplyViewport() const {
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
-		ResolveShaderPath("../shaders/shader.vert"),
-		ResolveShaderPath("../shaders/shader.frag"));
+							   ResolveShaderPath("../shaders/shader.vert"),
+							   ResolveShaderPath("../shaders/shader.frag"));
 
 	// Load texture shader
 	resourceManager.LoadShader("texture",
-		ResolveShaderPath("../shaders/texture.vert"),
-		ResolveShaderPath("../shaders/texture.frag"));
+							   ResolveShaderPath("../shaders/texture.vert"),
+							   ResolveShaderPath("../shaders/texture.frag"));
 
 	// Load sprite shader
 	resourceManager.LoadShader("sprite",
-		ResolveShaderPath("../shaders/sprite.vert"),
-		ResolveShaderPath("../shaders/sprite.frag"));
+							   ResolveShaderPath("../shaders/sprite.vert"),
+							   ResolveShaderPath("../shaders/sprite.frag"));
 
 	// Load static sprite shader
 	resourceManager.LoadShader("staticsprite",
-		ResolveShaderPath("../shaders/staticsprite.vert"),
-		ResolveShaderPath("../shaders/staticsprite.frag"));
+							   ResolveShaderPath("../shaders/staticsprite.vert"),
+							   ResolveShaderPath("../shaders/staticsprite.frag"));
 
 	// Load animated sprite shader
 	resourceManager.LoadShader("animatedsprite",
-		ResolveShaderPath("../shaders/animatedsprite.vert"),
-		ResolveShaderPath("../shaders/animatedsprite.frag"));
+							   ResolveShaderPath("../shaders/animatedsprite.vert"),
+							   ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load instanced static sprite shader
 	resourceManager.LoadShader("staticsprite_instanced",
-		ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
-		ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
+							   ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
+							   ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
 
 	// Load instanced animated sprite shader
 	resourceManager.LoadShader("animatedsprite_instanced",
-		ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
-		ResolveShaderPath("../shaders/animatedsprite.frag"));
+							   ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
+							   ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load triangle mesh
 	std::vector<float> vertices;
@@ -350,7 +355,7 @@ void GraphicsEngine::BeginImGuiFrame() {
 // Draw the Scene window and present the scene FBO texture inside it
 void GraphicsEngine::DrawSceneDockWindow() {
 	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
-		ImGuiCond_FirstUseEver);
+							   ImGuiCond_FirstUseEver);
 
 	if (ImGui::Begin("Scene###SceneWindow")) {
 		ImVec2 avail = ImGui::GetContentRegionAvail();
@@ -367,7 +372,7 @@ void GraphicsEngine::DrawSceneDockWindow() {
 		// Center the image in the window
 		ImVec2 cursor = ImGui::GetCursorPos();
 		ImGui::SetCursorPos(ImVec2(cursor.x + (avail.x - w) * 0.5f,
-			cursor.y + (avail.y - h) * 0.5f));
+								   cursor.y + (avail.y - h) * 0.5f));
 
 		// Absolute rect for picking
 		sceneImagePos_ = ImGui::GetCursorScreenPos();
@@ -615,25 +620,58 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 	}
 
-	// Render static sprites with batching and instancing
+	// Render static sprites with batching and instancing,
+	// while preserving the original order from the Scene (layer + Y sorting).
 	if (!staticSprites.empty()) {
-		std::map<RenderKey, std::vector<GameObject*>> batches;
 
-		for (auto* obj : staticSprites) {
-			RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
-			batches[key].push_back(obj);
-		}
+		auto sameRenderKey = [](const RenderKey& a, const RenderKey& b) {
+			return a.mesh == b.mesh && a.shader == b.shader && a.texture == b.texture;
+		};
 
-		renderStats.totalBatches += static_cast<int>(batches.size());
+		std::size_t i = 0;
+		while (i < staticSprites.size()) {
+			GameObject* first = staticSprites[i];
+			if (!first || !first->GetMesh() || !first->GetShader()) {
+				++i;
+				continue;
+			}
 
-		for (auto& [key, batch] : batches) {
-			if (batch.size() >= INSTANCING_THRESHOLD) {
-				// Instanced path
-				renderStats.instancedObjects += static_cast<int>(batch.size());
+			RenderKey key{ first->GetMesh(), first->GetShader(), first->GetTexture() };
+
+			// Collect a contiguous run of objects that share this RenderKey
+			std::vector<GameObject*> run;
+			run.push_back(first);
+			++i;
+
+			while (i < staticSprites.size()) {
+				GameObject* next = staticSprites[i];
+				if (!next || !next->GetMesh() || !next->GetShader()) {
+					++i;
+					continue;
+				}
+
+				RenderKey nextKey{ next->GetMesh(), next->GetShader(), next->GetTexture() };
+				if (!sameRenderKey(key, nextKey)) {
+					break; // different material to end of this batch
+				}
+
+				run.push_back(next);
+				++i;
+			}
+
+			if (run.empty()) {
+				continue;
+			}
+
+			renderStats.totalBatches++;
+
+			if (run.size() >= INSTANCING_THRESHOLD) {
+				// Instanced path (same logic as before, but using "run" instead of "batch")
+				renderStats.instancedObjects += static_cast<int>(run.size());
 
 				std::vector<glm::mat4> modelMatrices;
-				modelMatrices.reserve(batch.size());
-				for (const auto* obj : batch) {
+				modelMatrices.reserve(run.size());
+				for (const auto* obj : run) {
 					modelMatrices.push_back(obj->GetModelMatrix());
 				}
 
@@ -651,11 +689,11 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 					instancedShader->SetTexture("u_Texture", 0);
 				}
 
-				key.mesh->DrawInstanced(key.texture, batch.size());
+				key.mesh->DrawInstanced(key.texture, run.size());
 				renderStats.drawCalls++;
 			}
 			else {
-				// Non-instanced path
+				// Non-instanced path (same as before, but keep order in "run")
 				key.shader->Use();
 				key.shader->SetViewMatrix(view);
 				key.shader->SetProjectionMatrix(projection);
@@ -664,7 +702,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 					key.shader->SetTexture("u_Texture", 0);
 				}
 
-				for (const auto* obj : batch) {
+				for (const auto* obj : run) {
 					key.shader->SetModelMatrix(obj->GetModelMatrix());
 					key.mesh->Draw();
 					renderStats.drawCalls++;

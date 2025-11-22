@@ -16,14 +16,15 @@
 
 #pragma once
 
-#include <unordered_map>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
+#include <unordered_map>
+
+#include "../Graphics/GraphicsEngine.hpp"
 
 #include "imgui.h"
 #include "System.hpp"
-#include "../Graphics/GraphicsEngine.hpp"
 
  /**
   * @class InputManager
@@ -59,6 +60,9 @@ public:
 
 	// Coordinate Conversion
 	glm::vec3 ScreenToWorld(float mouseX, float mouseY) const;
+
+	// Clear all key/mouse state (used when losing/regaining focus)
+	void ClearState();
 
 private:
 	// Internal update method that takes window

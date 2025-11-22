@@ -1,73 +1,63 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			Factory.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+ FILE NAME:			Factory.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
 
-DESCRIPTION:
-	Central manager for creating, tracking, and destroying GOC instances.
+ DESCRIPTION:		Central manager for creating, tracking, and destroying GOC instances.
 
-	Responsibilities:
-	- Register ComponentCreators for data-driven composition.
-	- Build new GOCs via BuildAndSerialize (e.g., Player, Table).
-	- Assign unique IDs to each GOC and maintain an ID-to-object map.
-	- Safely schedule and process destruction of GOCs.
-	- Update all active components each frame (calling Update on enabled ones).
+					Responsibilities:
+					- Register ComponentCreators for data-driven composition.
+					- Build new GOCs via BuildAndSerialize (e.g., Player, Table).
+					- Assign unique IDs to each GOC and maintain an ID-to-object map.
+					- Safely schedule and process destruction of GOCs.
+					- Update all active components each frame (calling Update on enabled ones).
 
-	The Factory serves as the global composition root of the GOC system.
+					The Factory serves as the global composition root of the GOC system.
 
-All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
-#include "Factory.hpp"
 #include <stdexcept>
 #include <string>
-#include "Transform.hpp"
-#include "RigidBody2D.hpp"
+
+#include "Factory.hpp"
 #include "ISerializer.hpp"
+#include "RigidBody2D.hpp"
+#include "Transform.hpp"
 
 Factory* FACTORY = NULL;
 
-Factory::Factory()
-{
-	if (FACTORY != NULL)
-	{
+Factory::Factory() {
+	if (FACTORY != NULL) {
 		throw "Factory already created";
 	}
 	FACTORY = this;
 	lastId = 0;
 }
-Factory::~Factory()
-{
-	for (auto c : creatorsMap)
-	{
+Factory::~Factory() {
+	for (auto c : creatorsMap) {
 		delete c.second;
 	}
 }
 
-GOC* Factory::Create()
-{
+GOC* Factory::Create() {
 	GOC* gameObject = CreateEmptyComposition();
-	if (gameObject)
-	{
+	if (gameObject) {
 		gameObject->Initialize();
 	}
 	return gameObject;
 }
 
-void Factory::AddDestroy(GOC* g)
-{
+void Factory::AddDestroy(GOC* g) {
 	toDelete.insert(g);
 }
 
-void Factory::Update(float dt)
-{
-	for (auto* g : toDelete)
-	{
+void Factory::Update(float dt) {
+	for (auto* g : toDelete) {
 		auto it = idMap.find(g->ObjectId);
-		if (it != idMap.end())
-		{
+		if (it != idMap.end()) {
 			delete g;
 			idMap.erase(it);
 		}
@@ -75,17 +65,13 @@ void Factory::Update(float dt)
 
 	toDelete.clear();
 
-	for (auto& kv : idMap)
-	{
+	for (auto& kv : idMap) {
 		GOC* g = kv.second;
 
-		for (auto& list : g->GetComponentList())
-		{
+		for (auto& list : g->GetComponentList()) {
 			GameComponent* c = list.second;
-			if (c->IsEnabled())
-			{
-				if (!c->IsStarted())
-				{
+			if (c->IsEnabled()) {
+				if (!c->IsStarted()) {
 					c->SetStarted(true);
 				}
 				c->Update(dt);
@@ -95,10 +81,8 @@ void Factory::Update(float dt)
 }
 
 //Destroy all the GOCs in the world. Used for final shutdown.
-void Factory::DestroyAllObjects()
-{
-	for (auto o : idMap)
-	{
+void Factory::DestroyAllObjects() {
+	for (auto o : idMap) {
 		delete o.second;
 	}
 
@@ -107,8 +91,7 @@ void Factory::DestroyAllObjects()
 
 //Create and Id a GOC at runtime. Used to dynamically build GOC.
 //After components have been added call GOC->Initialize().
-GOC* Factory::CreateEmptyComposition()
-{
+GOC* Factory::CreateEmptyComposition() {
 	GOC* gameObject = new GOC();
 	IdGameObject(gameObject);
 	return gameObject;
@@ -117,23 +100,19 @@ GOC* Factory::CreateEmptyComposition()
 //Build a composition and serialize from the data file but do not initialize the GOC.
 //Used to create a composition and then adjust its data before initialization
 //see GameObjectComposition::Initialize for details.
-GOC* Factory::BuildAndSerialize(const std::string& filename)
-{
+GOC* Factory::BuildAndSerialize(const std::string& filename) {
 	GOC* gameObject = new GOC();
 	gameObject->name = filename;
 
 	ISerializer serializer;
 
-	if (!serializer.Load("../assets/data/" + filename))
-	{
+	if (!serializer.Load("../assets/data/" + filename)) {
 		throw std::runtime_error("Failed to load file: " + filename);
 	}
 
-	for (const auto& compData : serializer.GetComponents())
-	{
+	for (const auto& compData : serializer.GetComponents()) {
 		auto it = creatorsMap.find(compData.type);
-		if (it == creatorsMap.end())
-		{
+		if (it == creatorsMap.end()) {
 			throw std::runtime_error("No ComponentCreator registered for " + compData.type);
 		}
 
@@ -142,8 +121,7 @@ GOC* Factory::BuildAndSerialize(const std::string& filename)
 		gameObject->AddComponent(creator->type, component);
 
 		// Deserialize Transform
-		if (compData.type == "Transform")
-		{
+		if (compData.type == "Transform") {
 			Transform* t = static_cast<Transform*>(component);
 			float posX = std::stof(compData.properties.at("posX"));
 			float posY = std::stof(compData.properties.at("posY"));
@@ -156,8 +134,7 @@ GOC* Factory::BuildAndSerialize(const std::string& filename)
 		}
 
 		// Deserialize RigidBody2D
-		if (compData.type == "RigidBody2D")
-		{
+		if (compData.type == "RigidBody2D") {
 			RigidBody2D* rb = static_cast<RigidBody2D*>(component);
 			float velX = std::stof(compData.properties.at("velX"));
 			float velY = std::stof(compData.properties.at("velY"));
@@ -177,8 +154,7 @@ GOC* Factory::BuildAndSerialize(const std::string& filename)
 }
 
 //Id object and store it in the object map.
-void Factory::IdGameObject(GOC* gameObject)
-{
+void Factory::IdGameObject(GOC* gameObject) {
 	//Just increment the last id used. Does not handle 
 //overflow but it would take over 4 billion objects
 //to break
@@ -190,19 +166,16 @@ void Factory::IdGameObject(GOC* gameObject)
 }
 
 //Add a component creator enabling data driven composition
-void Factory::AddComponentCreator(const std::string& name, ComponentCreator* creator)
-{
+void Factory::AddComponentCreator(const std::string& name, ComponentCreator* creator) {
 	std::cout << "Adding component " << name << std::endl;
 	creatorsMap[name] = creator;
 }
 
 //Get the game object with given id. This function will return NULL if
 //the object has been destroyed.
-GOC* Factory::GetObjectWithId(unsigned int id)
-{
+GOC* Factory::GetObjectWithId(unsigned int id) {
 	auto it = idMap.find(id);
-	if (it != idMap.end())
-	{
+	if (it != idMap.end()) {
 		return it->second;
 	}
 	return NULL;
