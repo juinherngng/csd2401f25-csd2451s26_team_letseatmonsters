@@ -131,9 +131,26 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 }
 
 void AnimationManager::AttachNPCAnimations(int objectID) {
-	// NPCs use similar setup to player (texture swapping)
+	// NPCs use textutre swapping for now
 	Animator2D& anim = animators_[objectID];
 
+	// NPC sprite sheets: 8 columns x 5 rows
+	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(4, 0, 7, 14, 8);
+	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(3, 0, 7, 14, 8);
+	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(2, 0, 7, 14, 8);
+
+	std::vector<glm::vec4> leftWalkFrames = CreateFrameSequenceRow(1, 0, 7, 14, 8);
+	std::vector<glm::vec4> rightWalkFrames = CreateFrameSequenceRow(0, 0, 7, 14, 8);
+
+	// Not in use currently
+	animationSets_[objectID]["IDLE_FRONT"] = AnimationSet{ frontIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_LEFT"] = AnimationSet{ leftIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_RIGHT"] = AnimationSet{ rightIdleFrames, 0.15f, true };
+
+	animationSets_[objectID]["WALK_LEFT"] = AnimationSet{ leftWalkFrames, 0.15f, true };
+	animationSets_[objectID]["WALK_RIGHT"] = AnimationSet{ rightWalkFrames, 0.15f, true };
+
+	// For texture swapping (temporary)
 	std::vector<glm::vec4> singleFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 
 	animationSets_[objectID]["front"] = { singleFrame, 0.1f, true };
