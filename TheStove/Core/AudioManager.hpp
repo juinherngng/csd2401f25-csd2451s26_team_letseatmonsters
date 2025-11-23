@@ -200,6 +200,15 @@ public:
     /************************************************************************/
     /*!
     \brief
+    Sets the master volume.
+    \param volume
+    The new master volume (0.0 to 1.0).
+    */
+    /************************************************************************/
+    void SetMasterVolume(float volume);
+    /************************************************************************/
+    /*!
+    \brief
     Sets the bgm volume.
     \param volume
     The new bgm volume (0.0 to 1.0).
@@ -218,6 +227,15 @@ public:
     /************************************************************************/
     /*!
     \brief
+    Gets the current master volume.
+    \return
+    The master volume (0.0 to 1.0).
+    */
+    /************************************************************************/
+    float GetMasterVolume() const;
+    /************************************************************************/
+    /*!
+    \brief
     Gets the current bgm volume.
     \return
     The bgm volume (0.0 to 1.0).
@@ -233,6 +251,17 @@ public:
     */
     /************************************************************************/
     float GetVfxVolume() const;
+    /************************************************************************/
+    /*!
+    \brief
+    Sets the volume for a specific playing sound channel.
+    \param name
+    The name of the sound channel.
+    \param volume
+    The new volume (0.0 to 1.0).
+    */
+    /************************************************************************/
+    void SetVolume(std::string const& name, float volume);
     /************************************************************************/
     /*!
     \brief
@@ -349,7 +378,7 @@ private:
     FMOD::ChannelGroup*                   masterGroup;
     std::map<std::string, FMOD::Sound*>   sounds;
     std::map<std::string, FMOD::Channel*> channels;
-    float                                 bgmVolume, vfxVolume;
+    float                                 masterVolume, bgmVolume, vfxVolume;
     bool                                  muted;
 
     struct PendingPlay

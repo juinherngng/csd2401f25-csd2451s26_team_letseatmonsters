@@ -15,7 +15,7 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 
 #include "AudioManager.hpp"
 
-AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), system(nullptr), masterGroup(nullptr), bgmVolume(1.f), vfxVolume(1.f), muted(false)
+AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), system(nullptr), masterGroup(nullptr), masterVolume(1.f), bgmVolume(1.f), vfxVolume(1.f), muted(false)
 {
 	// Subscribe to messages
 	debugInfoSubId = messageBus.Subscribe(
@@ -177,6 +177,7 @@ bool AudioManager::InitializeSystem()
 	if (result != FMOD_OK) return false;
 
 	// set initial volumes
+	SetMasterVolume(masterVolume);
 	SetBgmVolume(bgmVolume);
 	SetVfxVolume(vfxVolume);
 	muted = false;
@@ -348,18 +349,18 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 	FMOD_RESULT result = system->playSound(sound, nullptr, paused, &channel);
 	CheckError(result, "playSound: " + name);
 
-	// set volume based on type
+	// set volume based on type, multiplied by master volume
 	if (result == FMOD_OK && channel) 
 	{
-		float finalVolume = volume;
+		float finalVolume = volume * masterVolume;
 
 		if (name.find("bgm") != std::string::npos) 
 		{
-			finalVolume = bgmVolume;
+			finalVolume = bgmVolume * masterVolume;
 		}
 		else if(name.find("sfx") != std::string::npos || name.find("vfx") != std::string::npos) 
 		{
-			finalVolume = vfxVolume;
+			finalVolume = vfxVolume * masterVolume;
 		}
 
 		channel->setVolume(finalVolume);
@@ -401,22 +402,36 @@ void AudioManager::ResumeAll() {
 	}
 }
 
+void AudioManager::SetMasterVolume(float volume)
+{
+	// Clamp volume between 0.0 and 1.0
+	masterVolume = std::clamp(volume, 0.0f, 1.0f);
+
+	if (masterGroup && !muted)
+		masterGroup->setVolume(masterVolume);
+}
+
 void AudioManager::SetBgmVolume(float volume)
 {
 	// Clamp volume between 0.0 and 1.0
-	bgmVolume = volume;
+	bgmVolume = std::clamp(volume, 0.0f, 1.0f);
 
-	if (masterGroup && !muted)
-		masterGroup->setVolume(bgmVolume);
+	// BGM volume is relative to master volume
+	// Note: Individual channel volumes are set during playback in PlaySound()
 }
 
 void AudioManager::SetVfxVolume(float volume)
 {
 	// Clamp volume between 0.0 and 1.0
-	vfxVolume = volume;
+	vfxVolume = std::clamp(volume, 0.0f, 1.0f);
 
-	if (masterGroup && !muted)
-		masterGroup->setVolume(vfxVolume);
+	// VFX volume is relative to master volume
+	// Note: Individual channel volumes are set during playback in PlaySound()
+}
+
+float AudioManager::GetMasterVolume() const
+{
+	return masterVolume;
 }
 
 float AudioManager::GetBgmVolume() const
@@ -429,13 +444,23 @@ float AudioManager::GetVfxVolume() const
 	return vfxVolume;
 }
 
+void AudioManager::SetVolume(std::string const& name, float volume)
+{
+	// Find the channel and set its volume
+	auto it = channels.find(name);
+	if (it != channels.end() && it->second) {
+		float clampedVolume = std::clamp(volume, 0.0f, 1.0f);
+		it->second->setVolume(clampedVolume);
+	}
+}
+
 void AudioManager::Mute(bool shouldMute)
 {
 	// Mute or unmute all audio
 	muted = shouldMute;
 
 	if (masterGroup)
-		masterGroup->setVolume(muted ? 0.f : bgmVolume);
+		masterGroup->setVolume(muted ? 0.f : masterVolume);
 }
 
 bool AudioManager::IsMuted() const
@@ -455,9 +480,10 @@ void AudioManager::CheckError(FMOD_RESULT result, std::string const& context)
 void AudioManager::ApplySettings(ConfigManager::Settings const& settings) 
 {
 	// Apply audio settings
+	SetMasterVolume(settings.masterVolume);
 	SetBgmVolume(settings.bgmVolume);
 	SetVfxVolume(settings.vfxVolume);
-	std::cout << "Audio settings applied: BGM Volume = " << settings.bgmVolume << ", VFX Volume = " << settings.vfxVolume << std::endl;
+	std::cout << "Audio settings applied: Master Volume = " << settings.masterVolume << ", BGM Volume = " << settings.bgmVolume << ", VFX Volume = " << settings.vfxVolume << std::endl;
 }
 
 void AudioManager::EnqueuePlay(std::string const& name, float volume, bool paused)

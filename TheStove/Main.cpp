@@ -1,3 +1,18 @@
+/*
+----------------------------------------------------------------------------------------------------
+FILE NAME:			Main.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR(s):			Ng Juin Herng, juinherng.ng@digipen.edu (25%)
+					Seah Wang Hua, wanghua.seah@digipen.edu (25%)
+					Yat Chun Wee, y.chunwee@digipen.edu	    (25%)
+					Vu Phan Hung, phanhung.vu@digipen.edu	(25%)
+
+DESCRIPTION:		Main entry point and application loop for the engine.
+
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "Core/DebugUI.hpp"
 #include "Core/Precompiled.hpp"
 
@@ -7,6 +22,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <filesystem>
 
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
@@ -52,7 +68,7 @@ struct ApplicationState {
 };
 
 // Global app state pointer for signal handlers and callbacks
-static ApplicationState* g_AppState = nullptr;
+ApplicationState* g_AppState = nullptr;
 
 // Function to set modal dialog state (called by file dialog code)
 void SetModalDialogOpen(bool open) {
@@ -198,6 +214,27 @@ int main() {
 	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
 
 	std::cout << "=== Memory leak detection enabled ===" << std::endl;
+#endif
+
+#ifdef _WIN32
+	// Get the executable path and set working directory to its location
+	char exePath[MAX_PATH];
+	GetModuleFileNameA(NULL, exePath, MAX_PATH);
+	
+	// Extract directory from full path
+	std::string exePathStr(exePath);
+	size_t lastSlash = exePathStr.find_last_of("\\/");
+	if (lastSlash != std::string::npos) {
+		std::string exeDir = exePathStr.substr(0, lastSlash);
+		SetCurrentDirectoryA(exeDir.c_str());
+		std::cout << "[Main] Set working directory to: " << exeDir << std::endl;
+	}
+#else
+	// For non-Windows platforms, use std::filesystem
+	auto exePath = std::filesystem::read_symlink("/proc/self/exe");
+	auto exeDir = exePath.parent_path();
+	std::filesystem::current_path(exeDir);
+	std::cout << "[Main] Set working directory to: " << exeDir << std::endl;
 #endif
 
 	// Create application state on the stack
@@ -446,10 +483,12 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		ResourceManager::Instance().SetAudioManager(audioMgr);
 		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
 
-		// Load audio catalog from JSON file
-		if (!Audio::AudioCatalog::LoadCatalogFromFile("../assets/Audio/AudioCatalog.json"))
+		// Load audio catalog from SOURCE directory (../../assets from build/Release)
+		const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
+		if (!Audio::AudioCatalog::LoadCatalogFromFile(catalogPath))
 		{
-			std::cerr << "Warning: Failed to load audio catalog. Creating default catalog..." << std::endl;
+			std::cerr << "Warning: Failed to load audio catalog from " << catalogPath << std::endl;
+			std::cerr << "Creating default catalog..." << std::endl;
 			// If catalog doesn't exist, it will be empty but won't crash
 		}
 

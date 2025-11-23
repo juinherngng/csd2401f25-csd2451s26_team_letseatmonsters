@@ -94,6 +94,10 @@ void GraphicsEngine::Initialize() {
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+		// Set ImGui INI file path to a persistent location outside build directory
+		// This survives clean builds
+		io.IniFilename = "../../imgui.ini";
+
 		// Slightly larger UI for readability
 		io.FontGlobalScale = 1.0f;
 		ImGuiStyle& style = ImGui::GetStyle();

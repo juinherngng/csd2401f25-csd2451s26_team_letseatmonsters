@@ -33,6 +33,7 @@ namespace ConfigManager {
 	struct Settings {
 		Resolution resolution{};
 		bool fullscreen{};
+		float masterVolume{};
 		float bgmVolume{};
 		float vfxVolume{};
 	};
