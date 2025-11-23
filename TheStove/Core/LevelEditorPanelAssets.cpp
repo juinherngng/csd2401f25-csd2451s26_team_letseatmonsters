@@ -12,18 +12,17 @@
 					- Context menu: soft delete (move to "trash")
 					- Audio catalog management with inline editing
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <algorithm>
-#include <cctype>
-#include <filesystem>
-#include <imgui.h>
-#include <iostream>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include "LevelEditorPanelAssets.hpp"
+
+#include "LevelEditor.hpp"
+#include "LevelEditorFileIO.hpp"
+#include "AudioLoading.hpp"
+#include "Core.hpp"
+#include "Message.hpp"
 
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
@@ -39,6 +38,16 @@ namespace fs = std::filesystem;
 
 using namespace LEFILEIO;
 
+// Forward declaration and external declaration for ApplicationState from Main.cpp
+namespace CoreFramework { class CoreEngine; }
+
+struct ApplicationState {
+	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
+	// Other members not needed here
+};
+
+extern ApplicationState* g_AppState;
+
 namespace {
 	// Helper to normalize paths for audio loading (convert to forward slashes)
 	std::string NormalizeAudioPath(const std::string& path) {
@@ -46,47 +55,10 @@ namespace {
 
 		// Convert backslashes to forward slashes
 		std::replace(normalized.begin(), normalized.end(), '\\', '/');
-
-		// Try to make it absolute if it's relative and doesn't exist at the current location
-		try {
-			fs::path inputPath(normalized);
-
-			// If it's a relative path, try to resolve it
-			if (inputPath.is_relative()) {
-				fs::path absPath = fs::absolute(inputPath);
-
-				// If the absolute path doesn't exist, try to find it relative to the executable
-				if (!fs::exists(absPath)) {
-					// Try to construct path relative to the build directory
-					fs::path buildPath = fs::current_path() / "build" / normalized;
-					if (fs::exists(buildPath)) {
-						absPath = buildPath;
-					}
-					// Try without "build" folder
-					else {
-						fs::path reposPath = fs::current_path();
-						// Navigate up to find the repos folder
-						while (!reposPath.empty() && reposPath.filename() != "repos") {
-							reposPath = reposPath.parent_path();
-						}
-						if (!reposPath.empty()) {
-							fs::path testPath = reposPath / "csd2401f25-csd2451s26_team_letseatmonsters" / "build" / normalized;
-							if (fs::exists(testPath)) {
-								absPath = testPath;
-							}
-						}
-					}
-				}
-
-				normalized = absPath.string();
-				// Convert to forward slashes again
-				std::replace(normalized.begin(), normalized.end(), '\\', '/');
-			}
-		}
-		catch (...) {
-			// If any error occurs, keep the original normalized path
-		}
-
+		
+		// Keep relative paths as-is (don't try to make them absolute)
+		// FMOD can handle relative paths just fine
+		
 		return normalized;
 	}
 }
@@ -106,16 +78,16 @@ namespace LEPANELASSETS {
 
 		ImGui::BeginChild("##AssetsBox", ImVec2(0, 0), true);
 
-		// Helper to gather audio from both ../assets and ../assets/Audio
+		// Helper to gather audio from both ../../assets and ../../assets/Audio (SOURCE directory)
 		auto BuildAudioList = []() {
 			std::vector<std::string> all;
 
 			{
-				auto root = ListAssetsWithExt("../assets", { ".wav", ".mp3" });
+				auto root = ListAssetsWithExt("../../assets", { ".wav", ".mp3" });
 				all.insert(all.end(), root.begin(), root.end());
 			}
 			{
-				auto sub = ListAssetsWithExt("../assets/Audio", { ".wav", ".mp3" });
+				auto sub = ListAssetsWithExt("../../assets/Audio", { ".wav", ".mp3" });
 				all.insert(all.end(), sub.begin(), sub.end());
 			}
 
@@ -128,10 +100,10 @@ namespace LEPANELASSETS {
 
 		// Static caches for file lists (refresh when importing or on demand)
 		static std::vector<std::string> sTextures =
-			ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
+			ListAssetsWithExt("../../assets", { ".png", ".jpg", ".jpeg" });
 
 		static std::vector<std::string> sPrefabs =
-			ListAssetsWithExt("../prefabs", { ".json" });
+			ListAssetsWithExt("../../prefabs", { ".json" });
 
 		// Audio (.wav, .mp3) across assets + assets/Audio
 		static std::vector<std::string> sAudio = BuildAudioList();
@@ -156,12 +128,13 @@ namespace LEPANELASSETS {
 				OpenFileDialog("PNG files\0*.png\0All files\0*.*\0");
 
 			if (!pickedPath.empty()) {
+				// Import to SOURCE directory (../../assets from build/Release)
 				const std::string projectPath =
-					CopyFileIntoProjectUnique(pickedPath, "../assets");
+					CopyFileIntoProjectUnique(pickedPath, "../../assets");
 
 				if (!projectPath.empty()) {
 					// Refresh list after copy
-					sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
+					sTextures = ListAssetsWithExt("../../assets", { ".png", ".jpg", ".jpeg" });
 
 					// Auto-apply to currently selected object unless Ctrl is held
 					ImGuiIO& io = ImGui::GetIO();
@@ -202,12 +175,13 @@ namespace LEPANELASSETS {
 				OpenFileDialog("JSON files\0*.json\0All files\0*.*\0");
 
 			if (!picked.empty()) {
+				// Import to SOURCE directory (../../prefabs from build/Release)
 				const std::string projPath =
-					CopyFileIntoProjectUnique(picked, "../prefabs");
+					CopyFileIntoProjectUnique(picked, "../../prefabs");
 
 				if (!projPath.empty()) {
 					// Refresh list after copy
-					sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
+					sPrefabs = ListAssetsWithExt("../../prefabs", { ".json" });
 
 					// Invalidate prefab preview thumbnails so they reload
 					sPrefabPreviewCache.clear();
@@ -243,11 +217,13 @@ namespace LEPANELASSETS {
 					sAudioErrorPending = true;
 				}
 				else {
-					std::cout << "[Assets Panel] Copying to: ../assets/Audio" << std::endl;
-
-					// Copy into project audio folder
+					// Use ../../assets/Audio to go from build/Release up to project root, then into source assets
+					const std::string targetDir = "../../assets/Audio";
+					std::cout << "[Assets Panel] Copying to: " << targetDir << std::endl;
+					
+					// Copy into project audio folder (SOURCE directory, not build)
 					const std::string projPath =
-						CopyFileIntoProjectUnique(picked, "../assets/Audio");
+						CopyFileIntoProjectUnique(picked, targetDir);
 
 					if (projPath.empty()) {
 						std::cerr << "[Assets Panel] ERROR: Failed to copy file!" << std::endl;
@@ -269,7 +245,7 @@ namespace LEPANELASSETS {
 							newAsset.filepath = normalizedPath;
 
 							// Extract name from filepath (without extension)
-							size_t lastSlash = normalizedPath.find_last_of("/\\");
+							size_t lastSlash = normalizedPath.find_last_of("/\\");;
 							size_t lastDot = normalizedPath.find_last_of('.');
 
 							if (lastSlash != std::string::npos && lastDot != std::string::npos) {
@@ -299,10 +275,11 @@ namespace LEPANELASSETS {
 									newAsset.loop,
 									newAsset.stream
 								);
-
-								// Auto-save catalog after successful import
-								if (Audio::AudioCatalog::SaveCatalogToFile("../assets/Audio/AudioCatalog.json")) {
-									std::cout << "[Assets Panel] Catalog auto-saved successfully" << std::endl;
+								
+								// Save catalog to SOURCE directory (../../assets from build/Release)
+								const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
+								if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
+									std::cout << "[Assets Panel] Catalog auto-saved to: " << catalogPath << std::endl;
 								}
 								else {
 									std::cerr << "[Assets Panel] WARNING: Failed to auto-save catalog!" << std::endl;
@@ -360,7 +337,7 @@ namespace LEPANELASSETS {
 		// Textures section
 		if (ImGui::CollapsingHeader("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##tex")) {
-				sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
+				sTextures = ListAssetsWithExt("../../assets", { ".png", ".jpg", ".jpeg" });
 			}
 
 			bool refreshTextures = false;
@@ -430,7 +407,7 @@ namespace LEPANELASSETS {
 				if (ImGui::BeginDragDropSource()) {
 					ImGui::SetDragDropPayload("ASSET_PATH", path.c_str(), path.size() + 1);
 					ImGui::TextUnformatted("Texture");
-					ImGui::TextWrapped("%s", path.c_str());
+				 ImGui::TextWrapped("%s", path.c_str());
 					ImGui::EndDragDropSource();
 				}
 
@@ -449,15 +426,15 @@ namespace LEPANELASSETS {
 			}
 
 			if (refreshTextures) {
-				sTextures = ListAssetsWithExt("../assets", { ".png", ".jpg", ".jpeg" });
+				sTextures = ListAssetsWithExt("../../assets", { ".png", ".jpg", ".jpeg" });
 			}
 		}
 
 		// Prefabs section
 		if (ImGui::CollapsingHeader("Prefabs", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##pf")) {
-				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
-				sPrefabPreviewCache.clear();
+			 sPrefabs = ListAssetsWithExt("../../prefabs", { ".json" });
+			 sPrefabPreviewCache.clear();
 			}
 
 			bool refreshPrefabs = false;
@@ -523,8 +500,8 @@ namespace LEPANELASSETS {
 			}
 
 			if (refreshPrefabs) {
-				sPrefabs = ListAssetsWithExt("../prefabs", { ".json" });
-				sPrefabPreviewCache.clear();
+				sPrefabs = ListAssetsWithExt("../../prefabs", { ".json" });
+			 sPrefabPreviewCache.clear();
 			}
 		}
 
@@ -539,7 +516,9 @@ namespace LEPANELASSETS {
 			ImGui::SameLine();
 
 			if (ImGui::Button("Save Catalog")) {
-				if (Audio::AudioCatalog::SaveCatalogToFile("../assets/Audio/AudioCatalog.json")) {
+				// Save to SOURCE directory, not build directory
+				const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
+				if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
 					ImGui::OpenPopup("Catalog Saved");
 				}
 			}
@@ -548,7 +527,9 @@ namespace LEPANELASSETS {
 
 			if (ImGui::Button("Reload Catalog")) {
 				Audio::AudioCatalog::UnloadAllAudio();
-				if (Audio::AudioCatalog::LoadCatalogFromFile("../assets/Audio/AudioCatalog.json")) {
+				// Load from SOURCE directory
+				const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
+				if (Audio::AudioCatalog::LoadCatalogFromFile(catalogPath)) {
 					Audio::AudioCatalog::LoadAllAudio();
 					ImGui::OpenPopup("Catalog Reloaded");
 				}
@@ -649,11 +630,15 @@ namespace LEPANELASSETS {
 				static std::string editingName = "";
 				static bool editMode = false;
 				static Audio::AudioAsset editBuffer;
+				
+				// State for tracking which audio is currently playing (for UI feedback)
+				static std::string currentlyPlaying = "";
 
 				for (const auto& asset : catalogAssets) {
 					ImGui::PushID(asset.name.c_str());
 
 					bool isEditing = (editMode && editingName == asset.name);
+					bool isPlaying = (currentlyPlaying == asset.name);
 
 					// Collapsing header for each audio asset
 					if (ImGui::TreeNode(asset.name.c_str())) {
@@ -719,6 +704,44 @@ namespace LEPANELASSETS {
 							ImGui::Text("Stream: %s", asset.stream?"Yes":"No");
 							ImGui::Text("Volume: %.2f", asset.volume);
 							ImGui::TextWrapped("File: %s", asset.filepath.c_str());
+							
+							ImGui::Spacing();
+							ImGui::Separator();
+							ImGui::Spacing();
+							
+							// Play/Stop buttons for audio preview
+							if (isPlaying) {
+								// Show stop button if this audio is playing
+								if (ImGui::Button("Stop Preview", ImVec2(120, 0))) {
+									// Stop via MessageBus
+									if (g_AppState && g_AppState->coreEngine) {
+										g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
+										currentlyPlaying = "";
+										std::cout << "[Assets Panel] Stopped preview: " << asset.name << std::endl;
+									}
+								}
+							} else {
+								// Show play button
+								if (ImGui::Button("Play Preview", ImVec2(120, 0))) {
+									// Stop any currently playing preview first
+									if (!currentlyPlaying.empty() && g_AppState && g_AppState->coreEngine) {
+										g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(currentlyPlaying);
+									}
+									
+									// Play via MessageBus
+									if (g_AppState && g_AppState->coreEngine) {
+										g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>(
+											asset.name, 
+											asset.volume, 
+											false  // Don't pause
+										);
+										currentlyPlaying = asset.name;
+										std::cout << "[Assets Panel] Playing preview: " << asset.name << std::endl;
+									}
+								}
+							}
+							
+							ImGui::SameLine();
 
 							if (ImGui::Button("Edit")) {
 								editMode = true;
@@ -727,6 +750,11 @@ namespace LEPANELASSETS {
 							}
 							ImGui::SameLine();
 							if (ImGui::Button("Remove")) {
+								// Stop if currently playing
+								if (isPlaying && g_AppState && g_AppState->coreEngine) {
+									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
+									currentlyPlaying = "";
+								}
 								ImGui::OpenPopup("Confirm Remove Audio");
 							}
 
@@ -827,10 +855,11 @@ namespace LEPANELASSETS {
 								newAsset.loop,
 								newAsset.stream
 							);
-
-							// Auto-save catalog after successful addition
-							if (Audio::AudioCatalog::SaveCatalogToFile("../assets/Audio/AudioCatalog.json")) {
-								std::cout << "[Assets Panel] Catalog auto-saved after double-click add" << std::endl;
+							
+							// Auto-save catalog to SOURCE directory after successful addition
+							const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
+							if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
+								std::cout << "[Assets Panel] Catalog auto-saved after double-click add to: " << catalogPath << std::endl;
 							}
 						}
 					}

@@ -31,6 +31,14 @@
       "name": "background_music",
       "stream": true,
       "volume": 0.800000011920929
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/MyoonchiDiner_Sample.wav",
+      "loop": false,
+      "name": "MyoonchiDiner_Sample",
+      "stream": false,
+      "volume": 1.0
     }
   ],
   "version": "1.0"
