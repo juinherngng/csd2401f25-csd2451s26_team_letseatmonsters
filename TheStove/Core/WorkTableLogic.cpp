@@ -61,11 +61,28 @@ bool WorkTableLogic::CanAcceptItem(Scene& scene, int itemID) const
     return IsItemProcessable(scene, *item);
 }
 
-bool WorkTableLogic::IsItemProcessable(Scene& /*scene*/, const GameObject& /*item*/) const
+bool WorkTableLogic::IsItemProcessable(Scene& scene, const GameObject& item) const
 {
     // Base implementation: allow any item.
     // Later, you can override this in derived classes or update this to check
     // ingredient type, e.g. via an IngredientLogic component or tag.
+
+        // Try to get IngredientLogic attached to this item.
+    //
+    // NOTE: This assumes you have something like:
+    //   template<typename T>
+    //   T* Scene::GetLogicForObject(int objectID);
+    //
+    // If your actual API is different, just swap this one line accordingly.
+    IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
+    if (!ing)
+    {
+        // Not an ingredient – this table doesn’t know how to process it.
+        return false;
+    }
+
+    // Delegate to the helper: only raw ingredients are worth processing.
+    return CanProcessIngredient(*ing);
     return true;
 }
 
@@ -113,7 +130,7 @@ void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& /*item*/)
 
 // ------------------- Processing complete hook -------------------
 
-void WorkTableLogic::OnProcessingComplete(Scene& /*scene*/, GameObject& /*item*/)
+void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item)
 {
     // Base implementation: do nothing.
     // Example for a future derived table:
@@ -127,6 +144,25 @@ void WorkTableLogic::OnProcessingComplete(Scene& /*scene*/, GameObject& /*item*/
     // IngredientLogic* ing = scene.GetLogicForObject<IngredientLogic>(item.GetID());
     // if (ing)
     //     CompleteProcessingForIngredient(*ing);
+
+        // Look up the IngredientLogic for this item.
+    IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
+    if (!ing)
+    {
+        // Not an ingredient – nothing to do.
+        return;
+    }
+
+    // If your rule is “only raw gets processed”, respect that:
+    if (!CanProcessIngredient(*ing))
+    {
+        return;
+    }
+
+    // This is where the magic happens:
+    //  - IngredientLogic::MarkProcessed()
+    //  - internally flips Vegetable -> Refined_Veg, Meat -> Refined_Meat, etc.
+    CompleteProcessingForIngredient(*ing);
 }
 
 bool WorkTableLogic::CanProcessIngredient(const IngredientLogic& ingredient) const

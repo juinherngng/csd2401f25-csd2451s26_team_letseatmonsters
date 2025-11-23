@@ -169,6 +169,23 @@
       "x": 200.0,
       "y": 202.76950073242188,
       "z": 0.0
+    },
+    {
+      "animated": false,
+      "col_h": 100.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "col_w": 100.0,
+      "h": 100.0,
+      "rotation": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0,
+      "tag": "ingredient_box",
+      "texture": "../assets/IngredientBox.png",
+      "w": 100.0,
+      "x": 200.0,
+      "y": 202.76950073242188,
+      "z": 0.0
     }
   ]
 }

@@ -291,6 +291,52 @@ GameObject* Scene::SpawnAnimatedSprite(
 	return obj;
 }
 
+GameObject* Scene::SpawnStaticSpriteAtSamePos(int ownerID,
+	const std::string& texturePath,
+	float width,
+	float height,
+	const std::string& layer)
+{
+	GameObject* owner = GetGameObjectByID(ownerID);
+	if (!owner)
+		return nullptr;
+
+	glm::vec3 pos = owner->GetPositionGLM();
+
+	GameObject* obj = SpawnStaticSprite(
+		texturePath,
+		glm::vec3(pos.x, pos.y, pos.z),
+		glm::vec2(width, height),
+		layer
+	);
+	if (!obj)
+		return nullptr;
+
+	const int id = obj->GetID();
+
+	SetObjectTexturePath(id, texturePath);
+
+	obj->SetColliderSize(Math::Vector2D(width, height));
+	obj->SetColliderOffset(Math::Vector2D(0.0f, 0.0f));
+
+	Scene::Defaults defs{};
+	defs.pos = glm::vec3(pos.x, pos.y, pos.z);
+	defs.size = glm::vec2(width, height);
+	defs.rot = 0.0f;
+	defs.colSize = glm::vec2(width, height);
+	defs.colOff = glm::vec2(0.0f, 0.0f);
+	defs.vel = glm::vec2(0.0f, 0.0f);
+	defs.texture = texturePath;
+	defs.tag = "ingredient";      // feel free to use something else
+	defs.layer = layer;
+	SetDefaults(id, defs);
+
+	ClampToWalkArea(obj);
+
+	return obj;
+}
+
+
 GameObject* Scene::GetGameObjectByID(int targetID) {
 	return entityManager.GetByID(targetID);
 }
@@ -734,6 +780,9 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	}
 	else if (tag == "customer_table") {
 		logicManager.AddLogic<CustomerTableLogic>(id);
+	}
+	else if (tag == "ingredient_box") {
+		logicManager.AddLogic<IngredientBoxLogic>(id);
 	}
 	// you can extend with more tags later
 }

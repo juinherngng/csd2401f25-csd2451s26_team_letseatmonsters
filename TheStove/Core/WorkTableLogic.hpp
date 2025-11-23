@@ -61,9 +61,9 @@ protected:
     void CompleteProcessingForIngredient(IngredientLogic& ingredient);
 
 
-    bool  isProcessing_;
-    float processingTime_;  // seconds needed to process an ingredient
-    float timer_;
+    bool  isProcessing_ = false;
+    float processingTime_ = 3.0f;  // seconds needed to process an ingredient
+    float timer_ = 0.0f;
 
     std::string GetName() const override { return "WorkTableLogic"; }
 };

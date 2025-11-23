@@ -426,6 +426,26 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 		return;
 	}
 
+	if (IngredientBoxLogic* box = logicMgr.GetLogicForObject<IngredientBoxLogic>(tableObjectID))
+	{
+		std::cout << "[PlayerLogic] Interacting with IngredientBox\n";
+
+		// If already holding something, don't spawn new ingredient.
+		if (carriedItemID >= 0)
+		{
+			std::cout << "[PlayerLogic] Already holding item " << carriedItemID
+				<< ", ignoring ingredient box\n";
+			return;
+		}
+
+		int newItemID = box->SpawnIngredient(scene);
+		if (newItemID >= 0)
+		{
+			PickUp(scene, newItemID);  // your existing pickup logic
+		}
+		return; // Do not fall through to normal table logic
+	}
+
 	const bool playerHolding = (carriedItemID >= 0);
 	const bool tableHasItem = table->HasItem();
 

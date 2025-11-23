@@ -38,6 +38,7 @@
 #include "../Core/TableLogic.hpp"
 #include "../Core/WorkTableLogic.hpp"
 #include "../Core/CustomerTableLogic.hpp"
+#include "../Core/IngredientBoxLogic.hpp"
 
 
 #include <string>
@@ -66,6 +67,9 @@ public:
 
 	PlayerController& GetPlayerController() { return playerController; }
 	const PlayerController& GetPlayerController() const { return playerController; }
+
+	LogicManager& GetLogicManager() { return logicManager; }
+	const LogicManager& GetLogicManager() const { return logicManager; }
 
 	/**
 	 * @brief Construct a new Scene object.
@@ -126,6 +130,14 @@ public:
 		const glm::vec2 size,
 		const std::vector<glm::vec4> frames,
 		float frameDuration, bool loop,
+		const std::string& layer);
+
+	// Spawns a static sprite at the same position as ownerID, with given texture/size/layer.
+// Returns the new GameObject* or nullptr on failure.
+	GameObject* SpawnStaticSpriteAtSamePos(int ownerID,
+		const std::string& texturePath,
+		float width,
+		float height,
 		const std::string& layer);
 
 	/**
@@ -240,7 +252,6 @@ public:
 	void RequestClearAll();
 	void ResolveInitialStaticOverlaps();
 
-	LogicManager& GetLogicManager() { return logicManager; }
 	// new helper:
 	void AttachLogicForTag(int id, const std::string& tag);
 
