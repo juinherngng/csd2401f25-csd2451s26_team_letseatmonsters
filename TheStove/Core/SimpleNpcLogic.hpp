@@ -15,6 +15,7 @@ DESCRIPTION:		Declares the SimpleNpcLogic class implementing autonomous NPC move
 #include "GameObjectLogic.hpp"
 #include "FoodTypes.hpp"
 #include "Math.hpp"
+#include <iostream>
 
 class SimpleNpcLogic : public GameObjectLogic {
 public:
@@ -85,7 +86,6 @@ public:
     void ClearCustomerTableTarget();
 
     bool HasCustomerTableTarget() const { return hasCustomerTarget_; }
-    int  GetCustomerTableID()     const { return customerTableID_; }
 
 private:
     enum class State { Idle, MoveUp, MoveDown };
@@ -107,7 +107,6 @@ private:
     Math::Vector2D  customerSeatTarget_{ 0.0f, 0.0f };
     float           arriveThreshold_ = 8.0f; // how close counts as "arrived"
 
-    int            customerTableID_ = kInvalidID;
     BehaviourState behaviourState_ = BehaviourState::Idle;
 
     bool orderTaken_ = false;

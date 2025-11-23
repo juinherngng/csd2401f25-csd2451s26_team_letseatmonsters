@@ -121,3 +121,16 @@ void CustomerTableLogic::OnPlateServed(const PlateLogic& plate)
     //  - Start "eating" behaviour, patience reset, etc.
     (void)plate;
 }
+
+Math::Vector2D CustomerTableLogic::GetCustomerSeatWorld(Scene& scene) const
+{
+    GameObject* owner = GetOwner(scene);
+    if (!owner) {
+        return Math::Vector2D(0.0f, 0.0f);
+    }
+
+    Math::Vector3D pos3 = owner->GetPosition();
+    return Math::Vector2D(pos3.x + customerSeatOffset_.x,
+        pos3.y + customerSeatOffset_.y);
+}
+

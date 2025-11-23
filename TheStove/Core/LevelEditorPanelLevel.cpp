@@ -172,7 +172,9 @@ namespace {
 				out.tag = "dino";
 			}
 			else {
-				out.tag.clear();
+				// Preserve whatever tag was originally assigned in the level/defaults
+				Scene::Defaults defs = scene.GetDefaults(g->GetID());
+				out.tag = defs.tag;  // this will be "table", "customer_table", "work_table", etc.
 			}
 
 			const glm::vec2 v = scene.GetNPCVelocity(g->GetID());

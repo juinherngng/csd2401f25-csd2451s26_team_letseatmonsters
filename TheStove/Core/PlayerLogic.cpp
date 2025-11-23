@@ -27,6 +27,10 @@ void PlayerLogic::Start(Scene& scene)
 	hasMoveTarget = false;
 	carriedItemID = -1;
 	facingDir = FacingDir::Front;
+
+	GameObject* owner = GetOwner(scene);
+	std::cout << "[PlayerLogic] Start on object ID "
+		<< (owner ? owner->GetID() : -1) << "\n";
 }
 
 // Decide and apply sprite based on movement direction
@@ -72,6 +76,8 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 	GameObject* player = GetOwner(scene);
 
+	std::cout << "[PlayerLogic] MoveTo(" << dest.x << ", " << dest.y << ")\n";
+
 	if (player) {
 		glm::vec3 pos3 = player->GetPositionGLM();
 		glm::vec2 pos(pos3.x, pos3.y);
@@ -91,24 +97,83 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 }
 
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
-	// Only once per click
-	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT))
+	PlayerController& controller = scene.GetPlayerController();
+
+	// Only once per click (left mouse)
+	if (!controller.IsClickToMoveJustPressed())
 		return;
 
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
-	glm::vec2 mouseWorld{};
-	// Use the same helper the old PlayerController used
-	if (!scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld)) {
-		// mouse not over scene viewport, do nothing
-		std::cout << "not over scene";
-		return;
-	}
-
+	glm::vec2 mouseWorld = controller.GetClickWorld();
 	std::cout << "[PlayerLogic] Click world = (" << mouseWorld.x << ", " << mouseWorld.y << ")\n";
 
-	MoveTo(scene, mouseWorld);   // our own kinematic MoveTo
+	// ----------------------------------------------------------
+	// 1) Raycast: check if click is on any table-like object
+	// ----------------------------------------------------------
+	LogicManager& logicMgr = scene.GetLogicManager();
+
+	int   clickedTableID = -1;
+	float bestDistSq = std::numeric_limits<float>::max();
+
+	for (GameObject* obj : scene.GetAllObjectsRaw()) {
+		if (!obj) continue;
+
+		int id = obj->GetID();
+
+		// TEMP DEBUG:
+		auto& logicMgr = scene.GetLogicManager();
+		auto* tableLogic2 = logicMgr.GetLogicForObject<TableLogic>(id);
+		std::cout << "[ClickDebug] id=" << id
+			<< " hasTableLogic=" << (tableLogic2 ? "yes" : "no")
+			<< "\n";
+
+		// Any table (normal / work / customer) derives from TableLogic
+		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(id);
+		if (!tableLogic) {
+			continue; // not a table-like object
+		}
+
+		// --- Use collider as click area ---
+		auto colSize = obj->GetColliderSize();   // (width, height)
+		auto colOffset = obj->GetColliderOffset(); // (offset x, offset y)
+
+		glm::vec3 objPos = obj->GetPositionGLM();
+		glm::vec2 center(objPos.x + colOffset.x, objPos.y + colOffset.y);
+
+		float halfW = colSize.x * 0.5f;
+		float halfH = colSize.y * 0.5f;
+
+		bool inside =
+			(mouseWorld.x >= center.x - halfW && mouseWorld.x <= center.x + halfW) &&
+			(mouseWorld.y >= center.y - halfH && mouseWorld.y <= center.y + halfH);
+
+		if (!inside)
+			continue;
+
+		float dx = mouseWorld.x - center.x;
+		float dy = mouseWorld.y - center.y;
+		float distSq = dx * dx + dy * dy;
+
+		if (distSq < bestDistSq) {
+			bestDistSq = distSq;
+			clickedTableID = id;
+		}
+	}
+
+	// ----------------------------------------------------------
+	// 2) If we clicked a table, interact with it
+	// ----------------------------------------------------------
+	if (clickedTableID >= 0) {
+		std::cout << "[PlayerLogic] Click hit table id " << clickedTableID << "\n";
+		InteractWithTable(scene, clickedTableID);
+	}
+
+	// ----------------------------------------------------------
+	// 3) Still move to click position (for convenience)
+	// ----------------------------------------------------------
+	MoveTo(scene, mouseWorld);
 }
 
 // Move owner GameObject towards moveTarget at moveSpeed
@@ -169,6 +234,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	const float allowedLenSq = allowedDelta.x * allowedDelta.x +
 		allowedDelta.y * allowedDelta.y;
 	if (allowedLenSq < 0.0001f) {
+		std::cout << "[PlayerLogic] MoveTo cancelled by collision, clearing target\n";
 		hasMoveTarget = false;
 		if (GameObject* p = GetOwner(scene)) {
 			scene.GetMovementManager().ClearMoveTarget(p->GetID());
@@ -212,6 +278,8 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 
 	carriedItemID = itemID;
 
+	std::cout << "[PlayerLogic] PickUp item " << itemID << "\n";
+
 	// For now, just snap the item near the player.
 	// Later you can add proper “holdingPoint” + offsets like Unity.
 	glm::vec3 p = player->GetPositionGLM();
@@ -226,9 +294,12 @@ void PlayerLogic::Drop(Scene& scene) {
 	GameObject* player = GetOwner(scene);
 	GameObject* item = scene.GetGameObjectByID(carriedItemID);
 	if (!player || !item) {
+		std::cout << "[PlayerLogic] Drop failed, invalid item or player. Clearing carriedItemID.\n";
 		carriedItemID = -1;
 		return;
 	}
+
+	std::cout << "[PlayerLogic] Drop item " << carriedItemID << "\n";
 
 	glm::vec3 p = player->GetPositionGLM();
 	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple “in front” drop
@@ -280,17 +351,16 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
+	PlayerController& controller = scene.GetPlayerController();
+	controller.SampleInput(dt, input, scene.GetGraphicsEngine());
+
 	HandleScaleInput(player, input, dt);
 	HandleRotationInput(player, input, dt);
 
 	glm::vec3 pos3 = player->GetPositionGLM();
-	glm::vec2 inputDir(0.f, 0.f);
-	float speed = 200.0f;
 
-	if (input.IsKeyPressed(GLFW_KEY_A)) inputDir.x -= 1.f;
-	if (input.IsKeyPressed(GLFW_KEY_D)) inputDir.x += 1.f;
-	if (input.IsKeyPressed(GLFW_KEY_W)) inputDir.y -= 1.f;
-	if (input.IsKeyPressed(GLFW_KEY_S)) inputDir.y += 1.f;
+	glm::vec2 inputDir = controller.GetMoveAxis();
+	float speed = 200.0f;
 
 	if (inputDir.x != 0.f || inputDir.y != 0.f) {
 		hasMoveTarget = false;
@@ -342,6 +412,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 {
+	std::cout << "[PlayerLogic] InteractWithTable tableID=" << tableObjectID << "\n";
 	GameObject* player = GetOwner(scene);
 	if (!player)
 		return;
@@ -350,7 +421,10 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	LogicManager& logicMgr = scene.GetLogicManager();
 	TableLogic* table = logicMgr.GetLogicForObject<TableLogic>(tableObjectID);
 	if (!table)
+	{
+		std::cout << "[PlayerLogic] InteractWithTable: no TableLogic found on that object\n";
 		return;
+	}
 
 	const bool playerHolding = (carriedItemID >= 0);
 	const bool tableHasItem = table->HasItem();

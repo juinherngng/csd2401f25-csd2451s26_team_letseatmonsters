@@ -38,13 +38,7 @@ public:
         customerSeatOffset_ = localOffset;
     }
 
-    Math::Vector2D GetCustomerSeatWorld(Scene& scene) const {
-        GameObject* owner = GetOwner(scene);
-        if (!owner) return Math::Vector2D(0.0f, 0.0f);
-        Math::Vector3D pos3 = owner->GetPosition();
-        return Math::Vector2D(pos3.x + customerSeatOffset_.x,
-            pos3.y + customerSeatOffset_.y);
-    }
+    Math::Vector2D GetCustomerSeatWorld(Scene& scene) const;
 
     // ---- TableLogic overrides ----
 

@@ -712,6 +712,9 @@ void Scene::RequestClearAll() {
 }
 
 void Scene::AttachLogicForTag(int id, const std::string& tag) {
+	std::cout << "[Scene] AttachLogicForTag id=" << id
+		<< " tag='" << tag << "'\n";
+
 	if (tag == "player") {
 		logicManager.AddLogic<PlayerLogic>(id);
 		spriteID = id; // keep existing usage
@@ -722,6 +725,15 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	else if (tag == "dino") {
 		logicManager.AddLogic<SimpleNpcLogic>(id);
 		dinoID = id; // preserve your special ID if you rely on it elsewhere
+	}
+	else if (tag == "table") {
+		logicManager.AddLogic<TableLogic>(id);
+	}
+	else if (tag == "work_table") {
+		logicManager.AddLogic<WorkTableLogic>(id);
+	}
+	else if (tag == "customer_table") {
+		logicManager.AddLogic<CustomerTableLogic>(id);
 	}
 	// you can extend with more tags later
 }

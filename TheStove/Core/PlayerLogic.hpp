@@ -46,8 +46,6 @@ public:
     // Unity: Drop(Vector3 dropPos) – for now just “drop near player”
     void Drop(Scene& scene);
 
-    void InteractWithTable(Scene& scene, int tableObjectID);
-
 private:
     // Movement state
     glm::vec2 moveTarget{ 0.f, 0.f };

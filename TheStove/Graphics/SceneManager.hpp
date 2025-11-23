@@ -35,6 +35,9 @@
 #include "../Core/LogicManager.hpp"
 #include "../Core/PlayerLogic.hpp"
 #include "../Core/SimpleNpcLogic.hpp"
+#include "../Core/TableLogic.hpp"
+#include "../Core/WorkTableLogic.hpp"
+#include "../Core/CustomerTableLogic.hpp"
 
 
 #include <string>
@@ -60,6 +63,9 @@ public:
 
 	collision::World& GetCollisionWorld();
 	const collision::World& GetCollisionWorld() const;
+
+	PlayerController& GetPlayerController() { return playerController; }
+	const PlayerController& GetPlayerController() const { return playerController; }
 
 	/**
 	 * @brief Construct a new Scene object.

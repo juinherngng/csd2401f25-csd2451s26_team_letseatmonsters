@@ -20,6 +20,10 @@ void SimpleNpcLogic::Awake(Scene& scene) {
     timer = 0.0f;
     state = State::Idle;
     //nextMoveUp = false; // first move: down
+
+    GameObject* owner = GetOwner(scene);
+    std::cout << "[SimpleNpcLogic] Awake on object ID "
+        << (owner ? owner->GetID() : -1) << "\n";
 }
 
 void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
@@ -50,6 +54,9 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
             pos.x = curPos.x;
             pos.y = curPos.y;
             npc->SetPosition(pos);
+
+            // Notify customer behaviour FSM:
+            OnSeatedAtTable(scene);
 
             // Once arrived, we can keep them there. If later you want them to
             // go back to patrol, you can call ClearCustomerTableTarget().
@@ -143,6 +150,8 @@ void SimpleNpcLogic::AssignCustomerTable(int tableObjectID)
 {
     customerTableID_ = tableObjectID;
 
+    std::cout << "[SimpleNpcLogic] AssignCustomerTable tableID=" << tableObjectID << "\n";
+
     // If currently idle as a customer, start looking for the table.
     if (behaviourState_ == BehaviourState::Idle) {
         behaviourState_ = BehaviourState::FindingTable;
@@ -151,6 +160,9 @@ void SimpleNpcLogic::AssignCustomerTable(int tableObjectID)
 
 void SimpleNpcLogic::OnSeatedAtTable(Scene& /*scene*/)
 {
+    std::cout << "[SimpleNpcLogic] OnSeatedAtTable, state="
+        << static_cast<int>(behaviourState_) << "\n";
+
     // When NPC reaches its assigned table, it should start ordering.
     if (behaviourState_ == BehaviourState::FindingTable ||
         behaviourState_ == BehaviourState::WalkingToTable)
@@ -161,6 +173,9 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& /*scene*/)
 
 void SimpleNpcLogic::TakeOrder(Scene& /*scene*/)
 {
+    std::cout << "[SimpleNpcLogic] TakeOrder, state="
+        << static_cast<int>(behaviourState_) << "\n";
+
     // Only meaningful if in ORDERING state.
     if (behaviourState_ != BehaviourState::Ordering)
         return;
@@ -171,6 +186,9 @@ void SimpleNpcLogic::TakeOrder(Scene& /*scene*/)
 
 void SimpleNpcLogic::OnDishServed(Scene& /*scene*/, DishType dishType)
 {
+    std::cout << "[SimpleNpcLogic] OnDishServed, dishType="
+        << static_cast<int>(dishType) << "\n";
+
     // Only meaningful if actually waiting for food.
     if (behaviourState_ != BehaviourState::WaitingForFood)
         return;
@@ -184,6 +202,9 @@ void SimpleNpcLogic::OnDishServed(Scene& /*scene*/, DishType dishType)
 
 void SimpleNpcLogic::TakePayment(Scene& /*scene*/)
 {
+    std::cout << "[SimpleNpcLogic] TakePayment, state="
+        << static_cast<int>(behaviourState_) << "\n";
+
     // Only meaningful if currently paying.
     if (behaviourState_ != BehaviourState::Paying)
         return;
@@ -200,6 +221,8 @@ void SimpleNpcLogic::UpdateCustomerLogic(float dt)
             eatTimer_ = eatDuration_;
             finishedDish_ = true;
 
+            std::cout << "[SimpleNpcLogic] Finished eating, switching to Paying\n";
+
             // Once done eating, NPC is ready to pay.
             behaviourState_ = BehaviourState::Paying;
         }
@@ -214,10 +237,18 @@ void SimpleNpcLogic::SetCustomerTableTarget(int tableObjectID, const Math::Vecto
     customerTableID_ = tableObjectID;
     customerSeatTarget_ = seatWorldPos;
     hasCustomerTarget_ = true;
+    behaviourState_ = BehaviourState::WalkingToTable;
+
+    std::cout << "[SimpleNpcLogic] SetCustomerTableTarget tableID=" << tableObjectID
+        << " seat=(" << seatWorldPos.x << ", " << seatWorldPos.y << ")\n";
+
 }
 
 void SimpleNpcLogic::ClearCustomerTableTarget()
 {
+    std::cout << "[SimpleNpcLogic] ClearCustomerTableTarget (was "
+        << customerTableID_ << ")\n";
+
     hasCustomerTarget_ = false;
     customerTableID_ = kInvalidID;
     customerSeatTarget_ = Math::Vector2D(0.0f, 0.0f);

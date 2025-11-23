@@ -28,6 +28,8 @@
 #include "../Graphics/EntityManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
 
+class GraphicsEngine;
+
  /**
   * @class PlayerController
   * @brief High-level input bridge for the player. Reads input and delegates actions to the
@@ -48,6 +50,19 @@ public:
 		bool useForces);
 
 	float GetRotation() const { return rotation_; }
+
+	// -------- New: input snapshot for PlayerLogic / other systems --------
+	// Sample input for this frame (WASD + click-to-move) WITHOUT moving anything.
+	void SampleInput(float deltaTime,
+		InputManager& inputManager,
+		GraphicsEngine& graphicsEngine);
+
+	// Movement axis from WASD (-1..1 per axis). Same semantics as your old code.
+	glm::vec2 GetMoveAxis() const { return moveAxis_; }
+
+	// Click-to-move snapshot (LMB). Valid only for the frame where the click happened.
+	bool IsClickToMoveJustPressed() const { return clickToMoveJustPressed_ && clickWorldValid_; }
+	glm::vec2 GetClickWorld() const { return clickWorld_; }
 
 private:
 	// Handles up/down key scaling with clamped bounds.
@@ -70,4 +85,9 @@ private:
 
 	// Rotation state (degrees).
 	float rotation_ = 0.0f;
+
+	glm::vec2 moveAxis_{ 0.0f, 0.0f };  // WASD movement axis
+	bool clickToMoveJustPressed_ = false;
+	bool clickWorldValid_ = false;
+	glm::vec2 clickWorld_{ 0.0f, 0.0f };
 };
