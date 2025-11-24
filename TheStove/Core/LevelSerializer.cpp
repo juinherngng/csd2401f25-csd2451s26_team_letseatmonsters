@@ -53,6 +53,7 @@ static json WriteLevelObject(const LevelObject& obj) {
 	json jsonData = {
 		{ "texture", obj.texture },
 		{ "tag", obj.tag },
+		{ "layer", obj.layer},
 		{ "x", obj.x },
 		{ "y", obj.y },
 		{ "z", obj.z },
