@@ -16,6 +16,7 @@
 #include <iostream>
 
 #include "../Core/Collision.hpp"
+
 #include "GameObject.hpp"
 #include "ResourceManager.hpp"
 

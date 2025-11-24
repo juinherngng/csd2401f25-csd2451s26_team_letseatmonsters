@@ -1,13 +1,28 @@
-// PlayerLogic.cpp
-#include "PlayerLogic.hpp"
-#include "../Graphics/SceneManager.hpp"
-#include "../Core/InputManager.hpp"
-#include "../Core/InputControls.hpp"
-#include "../Core/DebugUI.hpp"        // for DebuggerApp
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			PlayerLogic.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Implements player behaviour including WASD movement, click-to-move steering,
+					collision-trimmed navigation, arrival handling, sprite direction switching, and
+					simple item interaction logic. Integrates with Scene, InputManager, and physics
+					step mode.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include <iostream>
 
-void PlayerLogic::Start(Scene& scene)
-{
+#include "../Core/DebugUI.hpp"
+#include "../Core/InputControls.hpp"
+#include "../Core/InputManager.hpp"
+#include "../Graphics/SceneManager.hpp"
+#include "PlayerLogic.hpp"
+
+void PlayerLogic::Start(Scene& scene) {
 	(void)scene;
 	hasMoveTarget = false;
 	carriedItemID = -1;
@@ -126,14 +141,17 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	if (step > dist)
 		step = dist;
 
-	pos.x += dir.x * step;
-	pos.y += dir.y * step;
+	// Desired movement for this frame
+	glm::vec2 desiredDelta(dir.x * step, dir.y * step);
+
+	// Trim against static world (outer frame + wood + gate)
+	glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+
+	pos.x += allowedDelta.x;
+	pos.y += allowedDelta.y;
 
 	player->SetPosition(glm::vec3(pos.x, pos.y, pos3.z));
 	scene.ClampToWalkArea(player);
-
-	// Update sprite based on movement direction
-	UpdateSprite(scene, player, dir);
 }
 
 // Unity: OnArrived()
@@ -141,7 +159,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 void PlayerLogic::OnArrived(Scene& scene) {
 	(void)scene;
 	// Example debug:
-	 std::cout << "[PlayerLogic] Arrived at destination\n";
+	std::cout << "[PlayerLogic] Arrived at destination\n";
 }
 
 // Unity: PickUp(GameObject item) – here by engine ID
@@ -180,6 +198,22 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
+	const float physicsDt = scene.GetLastPhysicsDt();
+	const physics::StepController& step = scene.GetStepController();
+	const bool stepMode = step.enabled;
+
+	if (stepMode && physicsDt <= 0.0f) {
+		// Optional: still allow click selection while frozen
+		HandleClickInput(scene, input);
+
+		// Debug: prove we still see the key
+		if (input.IsKeyJustPressed(GLFW_KEY_P)) {
+			std::cout << "[PlayerLogic] P pressed (step mode, frozen)\n";
+		}
+
+		return; // skip movement while paused
+	}
+
 	glm::vec3 pos3 = player->GetPositionGLM();
 	glm::vec2 inputDir(0.f, 0.f);
 	float speed = 200.0f;
@@ -191,24 +225,33 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	if (inputDir.x != 0.f || inputDir.y != 0.f) {
 		hasMoveTarget = false;
+
 		float len = std::sqrt(inputDir.x * inputDir.x + inputDir.y * inputDir.y);
 		if (len > 0.0001f) {
 			inputDir.x /= len;
 			inputDir.y /= len;
 		}
 
-		pos3.x += inputDir.x * speed * dt;
-		pos3.y += inputDir.y * speed * dt;
+		// Desired movement this frame
+		glm::vec2 desiredDelta(inputDir.x * speed * dt,
+							   inputDir.y * speed * dt);
+
+		// Trim against static world (outer frame + wood + gate)
+		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+
+		pos3.x += allowedDelta.x;
+		pos3.y += allowedDelta.y;
 
 		player->SetPosition(pos3);
+
+		// Optional: still clamp to overall walk rectangle if you want a hard outer bound
 		scene.ClampToWalkArea(player);
+
 		// Update sprite based on keyboard movement
 		UpdateSprite(scene, player, inputDir);
 	}
 
-
 	HandleClickInput(scene, input);
-
 
 	UpdateMovement(dt, scene);
 

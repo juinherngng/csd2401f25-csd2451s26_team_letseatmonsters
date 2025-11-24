@@ -39,6 +39,7 @@ std::string CollisionManager::GetName() {
 	return "CollisionManager";
 }
 
+// Engine integration
 void CollisionManager::SetEntityManager(EntityManager* entityMgr) {
 	entityManager_ = entityMgr;
 }
@@ -59,8 +60,8 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 
 		// Build AABB from object's position and scale
 		const Math::Vector3D pos(obj->GetPosition().x,
-			obj->GetPosition().y,
-			obj->GetPosition().z);
+								 obj->GetPosition().y,
+								 obj->GetPosition().z);
 		const glm::vec3 scale = obj->GetScaleGLM();
 
 		collision::AABB box = collision::World::makeAABBFromCenter(
@@ -81,9 +82,15 @@ void CollisionManager::Clear() {
 
 // World building
 void CollisionManager::BuildWalls(const collision::WalkArea& walkArea,
-	const collision::WoodVertical& wood,
-	const collision::StageEndGateVertical& endGate) {
+								  const collision::WoodVertical& wood,
+								  const collision::StageEndGateVertical& endGate) {
 	collisionWorld_.build(walkArea, wood, endGate);
+}
+
+void CollisionManager::AddStaticRects(const std::vector<collision::AABB>& rects) {
+	for (const auto& r : rects) {
+		collisionWorld_.addWall(r);
+	}
 }
 
 // Queries

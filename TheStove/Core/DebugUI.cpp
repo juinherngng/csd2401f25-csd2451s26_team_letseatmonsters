@@ -1,12 +1,12 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			DebugUI.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
-CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			DebugUI.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
 					Seah Wang Hua, wanghua.seah"digipen.edu
 
-DESCRIPTION:		The definitions of functions for the debugger window.
+ DESCRIPTION:		The definitions of functions for the debugger window.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -14,14 +14,16 @@ DESCRIPTION:		The definitions of functions for the debugger window.
 
 #pragma once
 
-#include "../Graphics/GraphicsEngine.hpp"
-#include "../Graphics/SceneManager.hpp"
-#include "Core.hpp"
-#include "DebugUI.hpp"
 #include <algorithm>
 #include <imgui_internal.h>
 #include <unordered_set>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include "../Graphics/GraphicsEngine.hpp"
+#include "../Graphics/SceneManager.hpp"
+
+#include "Core.hpp"
+#include "DebugUI.hpp"
 
 namespace Debug {
 	DebuggerApp gDebugger;
@@ -224,7 +226,7 @@ namespace Debug {
 
 		// Create my window
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
-			ImGuiCond_FirstUseEver);
+								   ImGuiCond_FirstUseEver);
 
 		// Minimal, clean padding for this window
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
@@ -281,8 +283,8 @@ namespace Debug {
 				}
 
 				for (auto& performance : sysPerformance) {
-					performance.peakPercentage = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
-					performance.avgPercentage = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
+					performance.peakPercentage = showFramePercentage?performance.percentageOfFrame:performance.percentageOf;
+					performance.avgPercentage = showFramePercentage?performance.percentageOfFrame:performance.percentageOf;
 					performance.sampleCount = 1;
 				}
 			}
@@ -305,7 +307,7 @@ namespace Debug {
 				totalSystemTimeMs += performance.lastTimeMs;
 
 				// Choose which percentage to display
-				float displayPercent = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
+				float displayPercent = showFramePercentage?performance.percentageOfFrame:performance.percentageOf;
 
 				// Determine color based on performance percentage
 				ImVec4 barColor;
@@ -337,7 +339,7 @@ namespace Debug {
 				if (showDetailedStats) {
 					ImGui::Indent(20.0f);
 					ImGui::TextColored(ImVec4(0.5f, 0.5f, 1.0f, 1.0f), "Avg: %.2f%% | Peak: %.2f%%",
-						performance.avgPercentage, performance.peakPercentage);
+									   performance.avgPercentage, performance.peakPercentage);
 					if (showFramePercentage) {
 						// Also show the relative distribution
 						ImGui::TextColored(ImVec4(0.5f, 0.5f, 1.0f, 1.0f), "Relative: %.2f%%", performance.percentageOf);
@@ -351,8 +353,8 @@ namespace Debug {
 				}
 
 				// Draw progress bar (clamp at 100% for display purposes)
-				float barValue = showFramePercentage ?
-					std::min(displayPercent / 100.0f, 1.0f) :
+				float barValue = showFramePercentage?
+					std::min(displayPercent / 100.0f, 1.0f):
 					displayPercent / 100.0f;
 
 				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
@@ -364,17 +366,17 @@ namespace Debug {
 			ImGui::Separator();
 			if (showFramePercentage) {
 				// Protect against division by zero
-				float safeFrameTime = (msperFrame > 0.0f) ? msperFrame : 0.001f;
+				float safeFrameTime = (msperFrame > 0.0f)?msperFrame:0.001f;
 
 				// Calculate total frame percentage based on actual time vs frame budget
 				float totalFramePercent = (totalSystemTimeMs / safeFrameTime) * 100.0f;
 				ImGui::Text("Total Frame Usage: %.2f%% (%.3f ms / %.3f ms)",
-					totalFramePercent, totalSystemTimeMs, msperFrame);
+							totalFramePercent, totalSystemTimeMs, msperFrame);
 
 				// Overall performance bar for frame usage
-				ImVec4 totalBarColor = totalFramePercent < 60.0f ?
-					ImVec4(0.0f, 1.0f, 0.0f, 1.0f) :
-					(totalFramePercent < 80.0f ? ImVec4(1.0f, 1.0f, 0.0f, 1.0f) : ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+				ImVec4 totalBarColor = totalFramePercent < 60.0f?
+					ImVec4(0.0f, 1.0f, 0.0f, 1.0f):
+					(totalFramePercent < 80.0f?ImVec4(1.0f, 1.0f, 0.0f, 1.0f):ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
 				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, totalBarColor);
 				ImGui::ProgressBar(std::min(totalFramePercent / 100.0f, 1.0f), ImVec2(-1.0f, 0.0f), "");
 				ImGui::PopStyleColor();
@@ -432,7 +434,7 @@ namespace Debug {
 					}
 
 					scene_->SetSimulationActive(simActive);
-					AddDebugLine(simActive ? "Simulation started\n" : "Simulation paused\n");
+					AddDebugLine(simActive?"Simulation started\n":"Simulation paused\n");
 				}
 				if (ImGui::Button("Clear All Objects")) {
 					if (coreEngine) {
@@ -664,7 +666,7 @@ namespace Debug {
 		}
 
 		// Prevent division by zero for frame time
-		float safeFrameDt = (frameDt > 0.0f) ? frameDt : 0.001f;
+		float safeFrameDt = (frameDt > 0.0f)?frameDt:0.001f;
 
 		// Build a set of current system names for cleanup detection
 		std::unordered_set<std::string> currentSystemNames;
@@ -684,7 +686,7 @@ namespace Debug {
 
 			// Find existing performance entry or create new one
 			auto it = std::find_if(sysPerformance.begin(), sysPerformance.end(),
-				[&](const SystemPerformance& perf) { return perf.name == sys->GetName(); });
+								   [&](const SystemPerformance& perf) { return perf.name == sys->GetName(); });
 
 			if (it != sysPerformance.end()) {
 				// Update existing entry
@@ -723,9 +725,9 @@ namespace Debug {
 		// Remove entries for systems that no longer exist
 		sysPerformance.erase(
 			std::remove_if(sysPerformance.begin(), sysPerformance.end(),
-				[&currentSystemNames](const SystemPerformance& perf) {
-					return currentSystemNames.find(perf.name) == currentSystemNames.end();
-				}),
+						   [&currentSystemNames](const SystemPerformance& perf) {
+			return currentSystemNames.find(perf.name) == currentSystemNames.end();
+		}),
 			sysPerformance.end()
 		);
 	}
@@ -746,7 +748,7 @@ namespace Debug {
 			return;
 		}
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
-			ImGuiCond_FirstUseEver);
+								   ImGuiCond_FirstUseEver);
 		ImGui::Begin("Console Log###ConsoleLog");
 
 		// Clear logs if the button was pressed

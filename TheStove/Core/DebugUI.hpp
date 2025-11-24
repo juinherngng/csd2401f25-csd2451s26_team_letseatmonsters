@@ -1,11 +1,11 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			DebugUI.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
-CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			DebugUI.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		The declarations of functions for the debugger window.
+ DESCRIPTION:		The declarations of functions for the debugger window.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -13,23 +13,24 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 
 #pragma once
 
-#include <iostream>
 #include <fstream>
-#include <vector>
-#include <streambuf>
+#include <iostream>
 #include <ostream>
+#include <streambuf>
 #include <string>
+#include <vector>
 
-#include "Precompiled.hpp"
 #include "AudioManager.hpp"
+#include "Precompiled.hpp"
 #include "FontSystem.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 
-namespace CoreFramework { class CoreEngine; }
+namespace CoreFramework {
+	class CoreEngine;
+}
 class Scene;
 
-struct SystemPerformance
-{
+struct SystemPerformance {
 	std::string name;				// Name of the system
 	float percentageOf = 0.0f;		// The %tage of the total system time (relative distribution)
 	float percentageOfFrame = 0.0f;	// The %tage of the frame time (absolute usage)
@@ -39,17 +40,14 @@ struct SystemPerformance
 	float lastTimeMs = 0.0f;		// Last frame time in milliseconds
 };
 
-enum class FPSMode
-{
+enum class FPSMode {
 	Unlimited,
 	VSYNC,
 	Capped
 };
 
-namespace Debug
-{
-	class DebuggerApp
-	{
+namespace Debug {
+	class DebuggerApp {
 	public:
 		// Ctor
 		DebuggerApp();
@@ -78,7 +76,9 @@ namespace Debug
 		// Updates each systems %tage usage of the current engine
 		void UpdateSystemTimes(float loopTime);
 
-		bool IsActive() const { return openedDebugger; }
+		bool IsActive() const {
+			return openedDebugger;
+		}
 
 		void AddDebugLine(const std::string& txt);
 
@@ -88,7 +88,9 @@ namespace Debug
 
 		void SetRenderStats(int objects, int batches, int instanced, int draws);
 
-		void SetScene(Scene* scenePtr) { scene_ = scenePtr; }
+		void SetScene(Scene* scenePtr) {
+			scene_ = scenePtr;
+		}
 
 		// Font System integration
 		void InitializeFontSystem();

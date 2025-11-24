@@ -10,31 +10,29 @@
 					- Instantiate a new object from a prefab
 					- Propagate prefab changes to all linked instances
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "LevelEditorPanelPrefabs.hpp"
-
-#include "LevelEditor.hpp"
-#include "LevelEditorFileIO.hpp"
-#include "LevelEditorPrefabLinks.hpp"
-#include "LevelSerializer.hpp"
+#include <algorithm>
+#include <cstdio>
+#include <filesystem>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
+#include <string>
+#include <vector>
 
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <imgui.h>
-
-#include <algorithm>
-#include <cstdio>
-#include <filesystem>
-#include <string>
-#include <vector>
+#include "LevelEditor.hpp"
+#include "LevelEditorFileIO.hpp"
+#include "LevelEditorPanelPrefabs.hpp"
+#include "LevelEditorPrefabLinks.hpp"
+#include "LevelSerializer.hpp"
 
 namespace fs = std::filesystem;
 

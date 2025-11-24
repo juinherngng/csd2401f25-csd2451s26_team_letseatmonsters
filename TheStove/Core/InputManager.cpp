@@ -25,7 +25,7 @@ InputManager::InputManager() {
 
 InputManager& InputManager::Get() {
 	static InputManager fallback;
-	return sActive ? *sActive : fallback;
+	return sActive?*sActive:fallback;
 }
 
 // SystemInterface implementation
@@ -64,19 +64,19 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	int keys[] = {
 		GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN,
 		GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D,
-		// physics dt, collider, points/lines, level editor
+		// physics dt, collider, points/lines, force, level editor
 		GLFW_KEY_P, GLFW_KEY_R, GLFW_KEY_T, GLFW_KEY_F, GLFW_KEY_L,
 		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3
 	};
 
 	// If ImGui wants the keyboard, clear key states so gameplay won't react
 	if (!io.WantCaptureKeyboard) {
-		for (int key : keys) {
+		for (int key:keys) {
 			mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
 		}
 	}
 	else {
-		for (int key : keys) {
+		for (int key:keys) {
 			mCurrentKeyStates[key] = false;
 		}
 	}
@@ -85,7 +85,7 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
 
 	// ALWAYS track mouse button states - let individual systems check WantCaptureMouse themselves
-	for (int b : buttons) {
+	for (int b:buttons) {
 		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
 	}
 

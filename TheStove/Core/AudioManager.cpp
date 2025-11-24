@@ -1,12 +1,12 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			AudioManager.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			AudioManager.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Audio manager using FMOD for sound playback and management.
+ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -15,7 +15,7 @@ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 
 #include "AudioManager.hpp"
 
-AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), system(nullptr), masterGroup(nullptr), bgmVolume(1.f), vfxVolume(1.f), muted(false)
+AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), system(nullptr), masterGroup(nullptr), masterVolume(1.f), bgmVolume(1.f), vfxVolume(1.f), muted(false)
 {
 	// Subscribe to messages
 	debugInfoSubId = messageBus.Subscribe(
@@ -36,55 +36,45 @@ AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), sy
 	);
 }
 
-AudioManager::~AudioManager() 
-{
+AudioManager::~AudioManager() {
 	// Unsubscribe from messages
 	messageBus.Unsubscribe(CoreFramework::MessageType::TOGGLE_DEBUG_INFO, debugInfoSubId);
 	messageBus.Unsubscribe(CoreFramework::MessageType::PLAY_AUDIO, playAudioSubId);
 	messageBus.Unsubscribe(CoreFramework::MessageType::STOP_AUDIO, stopAudioSubId);
-	
+
 	Shutdown();
 }
 
 // Initialize system
-void AudioManager::Initialize()
-{
-	if (InitializeSystem())
-	{
+void AudioManager::Initialize() {
+	if (InitializeSystem()) {
 		std::cout << "AudioManager system initialized." << std::endl;
-		
+
 		// Audio files should now be loaded through ResourceManager
 	}
-	else
-	{
+	else {
 		std::cerr << "AudioManager system failed to initialize." << std::endl;
 	}
 }
 
-void AudioManager::Update(float dt)
-{
+void AudioManager::Update(float dt) {
 	//std::cout << "AudioManager system updating with dt: " << dt << std::endl;
 
 	if (!system) return;
 
 	// process queued play requests
-	if (!pendingPlays.empty())
-	{
-		for (const auto& playReq : pendingPlays)
-		{
+	if (!pendingPlays.empty()) {
+		for (const auto& playReq : pendingPlays) {
 			PlaySound(playReq.name, playReq.volume, playReq.paused);
 		}
 		pendingPlays.clear();
 	}
 
 	// process active volume fades
-	if (!activeFades.empty())
-	{
-		for (auto it = activeFades.begin(); it != activeFades.end(); )
-		{
+	if (!activeFades.empty()) {
+		for (auto it = activeFades.begin(); it != activeFades.end(); ) {
 			auto chanIt = channels.find(it->first);
-			if (chanIt == channels.end() || !chanIt->second)
-			{
+			if (chanIt == channels.end() || !chanIt->second) {
 				it = activeFades.erase(it);
 				continue;
 			}
@@ -92,7 +82,7 @@ void AudioManager::Update(float dt)
 			VolumeFade& f = it->second;
 			f.elapsed += dt;
 
-			float t = (f.duration > 0.f) ? std::min(f.elapsed / f.duration, 1.f) : 1.f;
+			float t = (f.duration > 0.f)?std::min(f.elapsed / f.duration, 1.f):1.f;
 			float newVol = f.fromVolume + (f.toVolume - f.fromVolume) * t;
 			chanIt->second->setVolume(newVol);
 
@@ -107,8 +97,7 @@ void AudioManager::Update(float dt)
 	system->update();
 
 	// Clean up finished channels
-	for (auto it = channels.begin(); it != channels.end(); )
-	{
+	for (auto it = channels.begin(); it != channels.end(); ) {
 		bool playing = false;
 
 		if (it->second)
@@ -121,43 +110,39 @@ void AudioManager::Update(float dt)
 	}
 }
 
-void AudioManager::OnToggleDebugInfo(const CoreFramework::Message& msg)
-{
+void AudioManager::OnToggleDebugInfo(const CoreFramework::Message& msg) {
 	// Could toggle audio debug overlay logging, etc.
 	(void)msg; // Suppress unused parameter warning
 }
 
-void AudioManager::OnPlayAudio(const CoreFramework::Message& msg)
-{
+void AudioManager::OnPlayAudio(const CoreFramework::Message& msg) {
 	// Cast to specific message type
 	const auto& playMsg = static_cast<const CoreFramework::PlayAudioMessage&>(msg);
-	
+
 	// Enqueue the audio playback request
 	EnqueuePlay(playMsg.soundName, playMsg.volume, playMsg.paused);
 }
 
-void AudioManager::OnStopAudio(const CoreFramework::Message& msg)
-{
+void AudioManager::OnStopAudio(const CoreFramework::Message& msg) {
 	// Cast to specific message type
 	const auto& stopMsg = static_cast<const CoreFramework::StopAudioMessage&>(msg);
-	
+
 	// If sound name is empty, stop all sounds
 	if (stopMsg.soundName.empty()) {
 		StopAllSounds();
-	} else {
+	}
+	else {
 		StopSound(stopMsg.soundName);
 	}
 }
 
-std::string AudioManager::GetName()
-{
+std::string AudioManager::GetName() {
 	return "AudioManager";
 }
 
 // AudioManager functions
 
-bool AudioManager::InitializeSystem()
-{
+bool AudioManager::InitializeSystem() {
 	// Initialize FMOD system
 	FMOD_RESULT result = FMOD::System_Create(&system);
 	CheckError(result, "System_Create");
@@ -177,6 +162,7 @@ bool AudioManager::InitializeSystem()
 	if (result != FMOD_OK) return false;
 
 	// set initial volumes
+	SetMasterVolume(masterVolume);
 	SetBgmVolume(bgmVolume);
 	SetVfxVolume(vfxVolume);
 	muted = false;
@@ -184,25 +170,21 @@ bool AudioManager::InitializeSystem()
 	return true;
 }
 
-void AudioManager::Shutdown()
-{
+void AudioManager::Shutdown() {
 	// stop all sounds and clear channels
 	StopAllSounds();
 	channels.clear();
 
 	// Release all loaded sounds
-	for (auto& [name, sound] : sounds)
-	{
-		if (sound)
-		{
+	for (auto& [name, sound] : sounds) {
+		if (sound) {
 			sound->release();
 			std::cout << "Released sound: " << name << std::endl;
 		}
 	}
 	sounds.clear();
 
-	if (system)
-	{
+	if (system) {
 		// close and release FMOD system
 		system->release();
 		system = nullptr;
@@ -211,18 +193,15 @@ void AudioManager::Shutdown()
 	masterGroup = nullptr;
 }
 
-FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const& filePath, bool loop, bool stream)
-{
+FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const& filePath, bool loop, bool stream) {
 	// Ensure audio system is set
-	if (!system) 
-	{
+	if (!system) {
 		std::cerr << "Audio system not initialized!" << std::endl;
 		return nullptr;
 	}
 
 	// Check if already loaded
-	if (auto it = sounds.find(name); it != sounds.end())
-	{
+	if (auto it = sounds.find(name); it != sounds.end()) {
 		std::cout << "Audio '" << name << "' already loaded, returning existing." << std::endl;
 		return it->second;
 	}
@@ -230,36 +209,36 @@ FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const&
 	// Debug: Print the path we're trying to load
 	std::cout << "[AudioManager] Attempting to load: " << name << std::endl;
 	std::cout << "  Relative path: " << filePath << std::endl;
-	
+
 	// Check if file exists
 	if (!std::filesystem::exists(filePath)) {
 		std::cerr << "[AudioManager] File does not exist at path: " << filePath << std::endl;
-		
+
 		// Try to get absolute path for debugging
 		try {
 			std::filesystem::path absPath = std::filesystem::absolute(filePath);
 			std::cerr << "  Absolute path would be: " << absPath.string() << std::endl;
 			std::cerr << "  Current working directory: " << std::filesystem::current_path().string() << std::endl;
-		} catch (...) {
+		}
+		catch (...) {
 			std::cerr << "  Could not determine absolute path" << std::endl;
 		}
-		
+
 		return nullptr;
 	}
 
 	std::cout << "  File exists, proceeding with FMOD load..." << std::endl;
 
 	// Set FMOD mode flags
-	FMOD_MODE mode = FMOD_DEFAULT | (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) | 
-									(stream ? FMOD_CREATESTREAM : FMOD_CREATESAMPLE);
+	FMOD_MODE mode = FMOD_DEFAULT | (loop?FMOD_LOOP_NORMAL:FMOD_LOOP_OFF) |
+		(stream?FMOD_CREATESTREAM:FMOD_CREATESAMPLE);
 
 	// Load sound
 	FMOD::Sound* sound = nullptr;
 	FMOD_RESULT result = system->createSound(filePath.c_str(), mode, nullptr, &sound);
 
 	// Check for errors
-	if (result != FMOD_OK)
-	{
+	if (result != FMOD_OK) {
 		std::cerr << "Failed to load audio '" << name << "': " << FMOD_ErrorString(result) << std::endl;
 		return nullptr;
 	}
@@ -271,8 +250,7 @@ FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const&
 	return sound;
 }
 
-FMOD::Sound* AudioManager::GetSound(std::string const& name) const
-{
+FMOD::Sound* AudioManager::GetSound(std::string const& name) const {
 	// Check if audio exists
 	if (auto it = sounds.find(name); it != sounds.end()) return it->second;
 
@@ -280,16 +258,13 @@ FMOD::Sound* AudioManager::GetSound(std::string const& name) const
 	return nullptr;
 }
 
-void AudioManager::UnloadSound(std::string const& name)
-{
+void AudioManager::UnloadSound(std::string const& name) {
 	// Stop if playing
 	StopSound(name);
 
 	// Check if audio exists and release
-	if (auto it = sounds.find(name); it != sounds.end())
-	{
-		if (it->second)
-		{
+	if (auto it = sounds.find(name); it != sounds.end()) {
+		if (it->second) {
 			it->second->release();
 		}
 		sounds.erase(it);
@@ -297,17 +272,14 @@ void AudioManager::UnloadSound(std::string const& name)
 	}
 }
 
-bool AudioManager::HasSound(std::string const& name) const
-{
+bool AudioManager::HasSound(std::string const& name) const {
 	// Check if audio exists
 	return sounds.find(name) != sounds.end();
 }
 
-bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& outChannels, int& outBits, float& freq) const
-{
+bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& outChannels, int& outBits, float& freq) const {
 	auto it = sounds.find(name);
-	if (it == sounds.end() || !it->second) 
-	{
+	if (it == sounds.end() || !it->second) {
 		std::cerr << "Audio '" << name << "' not found!" << std::endl;
 		return false;
 	}
@@ -335,8 +307,7 @@ bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs,
 	return true;
 }
 
-void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
-{
+void AudioManager::PlaySound(std::string const& name, float volume, bool paused) {
 	if (!system) return;
 
 	// Get the sound
@@ -348,18 +319,18 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 	FMOD_RESULT result = system->playSound(sound, nullptr, paused, &channel);
 	CheckError(result, "playSound: " + name);
 
-	// set volume based on type
+	// set volume based on type, multiplied by master volume
 	if (result == FMOD_OK && channel) 
 	{
-		float finalVolume = volume;
+		float finalVolume = volume * masterVolume;
 
 		if (name.find("bgm") != std::string::npos) 
 		{
-			finalVolume = bgmVolume;
+			finalVolume = bgmVolume * masterVolume;
 		}
 		else if(name.find("sfx") != std::string::npos || name.find("vfx") != std::string::npos) 
 		{
-			finalVolume = vfxVolume;
+			finalVolume = vfxVolume * masterVolume;
 		}
 
 		channel->setVolume(finalVolume);
@@ -367,8 +338,7 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 	}
 }
 
-void AudioManager::StopSound(std::string const& name)
-{
+void AudioManager::StopSound(std::string const& name) {
 	// Stop and remove channel if exists
 	auto it = channels.find(name);
 
@@ -378,8 +348,7 @@ void AudioManager::StopSound(std::string const& name)
 	}
 }
 
-void AudioManager::StopAllSounds()
-{
+void AudioManager::StopAllSounds() {
 	// Stop all channels
 	if (masterGroup)
 		masterGroup->stop();
@@ -401,32 +370,53 @@ void AudioManager::ResumeAll() {
 	}
 }
 
+void AudioManager::SetMasterVolume(float volume)
+{
+	// Clamp volume between 0.0 and 1.0
+	masterVolume = std::clamp(volume, 0.0f, 1.0f);
+
+	if (masterGroup && !muted)
+		masterGroup->setVolume(masterVolume);
+}
+
 void AudioManager::SetBgmVolume(float volume)
 {
 	// Clamp volume between 0.0 and 1.0
-	bgmVolume = volume;
+	bgmVolume = std::clamp(volume, 0.0f, 1.0f);
 
-	if (masterGroup && !muted)
-		masterGroup->setVolume(bgmVolume);
+	// BGM volume is relative to master volume
+	// Note: Individual channel volumes are set during playback in PlaySound()
 }
 
-void AudioManager::SetVfxVolume(float volume)
-{
+void AudioManager::SetVfxVolume(float volume) {
 	// Clamp volume between 0.0 and 1.0
-	vfxVolume = volume;
+	vfxVolume = std::clamp(volume, 0.0f, 1.0f);
 
-	if (masterGroup && !muted)
-		masterGroup->setVolume(vfxVolume);
+	// VFX volume is relative to master volume
+	// Note: Individual channel volumes are set during playback in PlaySound()
 }
 
-float AudioManager::GetBgmVolume() const
+float AudioManager::GetMasterVolume() const
 {
+	return masterVolume;
+}
+
+float AudioManager::GetBgmVolume() const {
 	return bgmVolume;
 }
 
-float AudioManager::GetVfxVolume() const
-{
+float AudioManager::GetVfxVolume() const {
 	return vfxVolume;
+}
+
+void AudioManager::SetVolume(std::string const& name, float volume)
+{
+	// Find the channel and set its volume
+	auto it = channels.find(name);
+	if (it != channels.end() && it->second) {
+		float clampedVolume = std::clamp(volume, 0.0f, 1.0f);
+		it->second->setVolume(clampedVolume);
+	}
 }
 
 void AudioManager::Mute(bool shouldMute)
@@ -435,16 +425,14 @@ void AudioManager::Mute(bool shouldMute)
 	muted = shouldMute;
 
 	if (masterGroup)
-		masterGroup->setVolume(muted ? 0.f : bgmVolume);
+		masterGroup->setVolume(muted ? 0.f : masterVolume);
 }
 
-bool AudioManager::IsMuted() const
-{
+bool AudioManager::IsMuted() const {
 	return muted;
 }
 
-void AudioManager::CheckError(FMOD_RESULT result, std::string const& context)
-{
+void AudioManager::CheckError(FMOD_RESULT result, std::string const& context) {
 	// Log error if not OK
 	if (result != FMOD_OK) {
 		std::cerr << "[FMOD] Error in " << context << ": " << FMOD_ErrorString(result) << std::endl;
@@ -452,22 +440,20 @@ void AudioManager::CheckError(FMOD_RESULT result, std::string const& context)
 }
 
 // set volume from ConfigManager
-void AudioManager::ApplySettings(ConfigManager::Settings const& settings) 
-{
+void AudioManager::ApplySettings(ConfigManager::Settings const& settings) {
 	// Apply audio settings
+	SetMasterVolume(settings.masterVolume);
 	SetBgmVolume(settings.bgmVolume);
 	SetVfxVolume(settings.vfxVolume);
-	std::cout << "Audio settings applied: BGM Volume = " << settings.bgmVolume << ", VFX Volume = " << settings.vfxVolume << std::endl;
+	std::cout << "Audio settings applied: Master Volume = " << settings.masterVolume << ", BGM Volume = " << settings.bgmVolume << ", VFX Volume = " << settings.vfxVolume << std::endl;
 }
 
-void AudioManager::EnqueuePlay(std::string const& name, float volume, bool paused)
-{
+void AudioManager::EnqueuePlay(std::string const& name, float volume, bool paused) {
 	// Add to pending plays queue
 	pendingPlays.push_back({ name, volume, paused });
 }
 
-void AudioManager::FadeChannel(std::string const& name, float toVolume, float duration)
-{
+void AudioManager::FadeChannel(std::string const& name, float toVolume, float duration) {
 	// Start volume fade on channel if exists
 	auto it = channels.find(name);
 
@@ -481,8 +467,7 @@ void AudioManager::FadeChannel(std::string const& name, float toVolume, float du
 	activeFades[name] = VolumeFade{ currentVolume, toVolume, duration, 0.f };
 }
 
-void AudioManager::PlayUIClickSound()
-{
+void AudioManager::PlayUIClickSound() {
 	// Play UI click sound with appropriate volume for subtle feedback
 	float clickVolume = GetVfxVolume() * 0.5f; // 50% of VFX volume for subtle UI sounds
 	PlaySound("ui_click", clickVolume, false);

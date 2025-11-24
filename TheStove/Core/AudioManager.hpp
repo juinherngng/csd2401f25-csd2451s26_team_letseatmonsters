@@ -1,202 +1,210 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			AudioManager.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			AudioManager.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Audio manager using FMOD for sound playback and management.
+ DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
 
-#include <iostream>
 #include <fmod.hpp>
 #include <fmod_errors.h>
-#include <string>
+#include <iostream>
 #include <map>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "System.hpp"
-#include "MessageBus.hpp"
 #include "ConfigManager.hpp"
+#include "MessageBus.hpp"
+#include "System.hpp"
 
-class AudioManager : public CoreFramework::SystemInterface
-{
+class AudioManager : public CoreFramework::SystemInterface {
 public:
-    // Audio System functions for Core Engine
+	// Audio System functions for Core Engine
+
+	/************************************************************************/
+	/*!
+	\brief
+	Initializes the audio system and resources.
+	*/
+	/************************************************************************/
+	void Initialize() override;
+	/************************************************************************/
+	/*!
+	\brief
+	Updates the audio system each frame.
+	\param dt
+	Delta time since last update.
+	*/
+	/************************************************************************/
+	void Update(float dt) override;
+	/************************************************************************/
+	/*!
+	\brief
+	Returns the name of the system.
+	\return
+	The system name as a string.
+	*/
+	/************************************************************************/
+	std::string GetName() override;
+
+	// AudioManager functions
+
+	/************************************************************************/
+	/*!
+	\brief
+	Constructs the AudioManager and initializes member variables.
+	\param bus
+	Reference to the MessageBus for pub/sub messaging.
+	*/
+	/************************************************************************/
+	AudioManager(CoreFramework::MessageBus& bus);
+	/************************************************************************/
+	/*!
+	\brief
+	Destroys the AudioManager and releases resources.
+	*/
+	/************************************************************************/
+	~AudioManager();
+
+	// Initialization & Shutdown
+
+	/************************************************************************/
+	/*!
+	\brief
+	Initializes the FMOD audio system.
+	\return
+	True if initialization succeeded, false otherwise.
+	*/
+	/************************************************************************/
+	bool InitializeSystem();
+	/************************************************************************/
+	/*!
+	\brief
+	Shuts down the FMOD audio system and releases resources.
+	*/
+	/************************************************************************/
+	void Shutdown();
+
+	// Sound Loading & Unloading
+
+	/************************************************************************/
+	/*!
+	\brief
+	Loads a sound file into the audio system.
+	\param name
+	The name to reference the sound.
+	\param filepath
+	The file path to the sound file.
+	\param loop
+	Whether the sound should loop.
+	\param stream
+	Whether to stream the sound from disk (true) or load it fully into memory (false).
+	\return
+	Pointer to the loaded FMOD::Sound, or nullptr if loading failed.
+	*/
+	/************************************************************************/
+	FMOD::Sound* LoadSound(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
+	/************************************************************************/
+	/*!
+	\brief
+	Gets a previously loaded sound by name.
+	\param name
+	The name of the sound to retrieve.
+	\return
+	Pointer to the FMOD::Sound, or nullptr if not found.
+	*/
+	/************************************************************************/
+	FMOD::Sound* GetSound(std::string const& name) const;
+	/************************************************************************/
+	/*!
+	\brief
+	Unloads a sound and releases its resources.
+	\param name
+	The name of the sound to unload.
+	*/
+	/************************************************************************/
+	void UnloadSound(std::string const& name);
+	/************************************************************************/
+	/*!
+	\brief
+	Checks if a sound has been loaded.
+	\param name
+	The name of the sound to check.
+	\return
+	True if the sound exists, false otherwise.
+	*/
+	/************************************************************************/
+	bool HasSound(std::string const& name) const;
+	/************************************************************************/
+	/*!
+	\brief
+	Retrieves information about a loaded sound.
+	\param name
+	The name of the sound.
+	\param lengthMs
+	Output: length of the sound in milliseconds.
+	\param outChannels
+	Output: number of audio channels.
+	\param outBits
+	Output: bits per sample.
+	\param freq
+	Output: default frequency in Hz.
+	\return
+	True if info was retrieved successfully, false otherwise.
+	*/
+	/************************************************************************/
+	bool GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& outChannels, int& outBits, float& freq) const;
+
+	// Playback Control
+
+	/************************************************************************/
+	/*!
+	\brief
+	Plays a loaded sound.
+	\param name
+	The name of the sound to play.
+	\param volume
+	Playback volume (0.0 to 1.0).
+	\param paused
+	Whether to start the sound paused.
+	*/
+	/************************************************************************/
+	void PlaySound(std::string const& name, float volume = 1.f, bool paused = false);
+	/************************************************************************/
+	/*!
+	\brief
+	Stops playback of a sound.
+	\param name
+	The name of the sound to stop.
+	*/
+	/************************************************************************/
+	void StopSound(std::string const& name);
+	/************************************************************************/
+	/*!
+	\brief
+	Stops all currently playing sounds.
+	*/
+	/************************************************************************/
+	void StopAllSounds();
+
+	// Volume & Mute Control
 
     /************************************************************************/
     /*!
     \brief
-    Initializes the audio system and resources.
-    */
-    /************************************************************************/
-    void Initialize() override;
-    /************************************************************************/
-    /*!
-    \brief
-    Updates the audio system each frame.
-    \param dt
-    Delta time since last update.
-    */
-    /************************************************************************/
-    void Update(float dt) override;
-    /************************************************************************/
-    /*!
-    \brief
-    Returns the name of the system.
-    \return
-    The system name as a string.
-    */
-    /************************************************************************/
-    std::string GetName() override;
-
-    // AudioManager functions
-
-    /************************************************************************/
-    /*!
-    \brief
-    Constructs the AudioManager and initializes member variables.
-    \param bus
-    Reference to the MessageBus for pub/sub messaging.
-    */
-    /************************************************************************/
-    AudioManager(CoreFramework::MessageBus& bus);
-    /************************************************************************/
-    /*!
-    \brief
-    Destroys the AudioManager and releases resources.
-    */
-    /************************************************************************/
-    ~AudioManager();
-
-    // Initialization & Shutdown
-
-    /************************************************************************/
-    /*!
-    \brief
-    Initializes the FMOD audio system.
-    \return
-    True if initialization succeeded, false otherwise.
-    */
-    /************************************************************************/
-    bool InitializeSystem();
-    /************************************************************************/
-    /*!
-    \brief
-    Shuts down the FMOD audio system and releases resources.
-    */
-    /************************************************************************/
-    void Shutdown();
-
-    // Sound Loading & Unloading
-
-    /************************************************************************/
-    /*!
-    \brief
-    Loads a sound file into the audio system.
-    \param name
-    The name to reference the sound.
-    \param filepath
-    The file path to the sound file.
-    \param loop
-    Whether the sound should loop.
-    \param stream
-    Whether to stream the sound from disk (true) or load it fully into memory (false).
-    \return
-    Pointer to the loaded FMOD::Sound, or nullptr if loading failed.
-    */
-    /************************************************************************/
-    FMOD::Sound* LoadSound(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
-    /************************************************************************/
-    /*!
-    \brief
-    Gets a previously loaded sound by name.
-    \param name
-    The name of the sound to retrieve.
-    \return
-    Pointer to the FMOD::Sound, or nullptr if not found.
-    */
-    /************************************************************************/
-    FMOD::Sound* GetSound(std::string const& name) const;
-    /************************************************************************/
-    /*!
-    \brief
-    Unloads a sound and releases its resources.
-    \param name
-    The name of the sound to unload.
-    */
-    /************************************************************************/
-    void UnloadSound(std::string const& name);
-    /************************************************************************/
-    /*!
-    \brief
-    Checks if a sound has been loaded.
-    \param name
-    The name of the sound to check.
-    \return
-    True if the sound exists, false otherwise.
-    */
-    /************************************************************************/
-    bool HasSound(std::string const& name) const;
-    /************************************************************************/
-    /*!
-    \brief
-    Retrieves information about a loaded sound.
-    \param name
-    The name of the sound.
-    \param lengthMs
-    Output: length of the sound in milliseconds.
-    \param outChannels
-    Output: number of audio channels.
-    \param outBits
-    Output: bits per sample.
-    \param freq
-    Output: default frequency in Hz.
-    \return
-    True if info was retrieved successfully, false otherwise.
-    */
-    /************************************************************************/
-    bool GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& outChannels, int& outBits, float& freq) const;
-
-    // Playback Control
-
-    /************************************************************************/
-    /*!
-    \brief
-    Plays a loaded sound.
-    \param name
-    The name of the sound to play.
+    Sets the master volume.
     \param volume
-    Playback volume (0.0 to 1.0).
-    \param paused
-    Whether to start the sound paused.
+    The new master volume (0.0 to 1.0).
     */
     /************************************************************************/
-    void PlaySound(std::string const& name, float volume = 1.f, bool paused = false);
-    /************************************************************************/
-    /*!
-    \brief
-    Stops playback of a sound.
-    \param name
-    The name of the sound to stop.
-    */
-    /************************************************************************/
-    void StopSound(std::string const& name);
-    /************************************************************************/
-    /*!
-    \brief
-    Stops all currently playing sounds.
-    */
-    /************************************************************************/
-    void StopAllSounds();
-
-    // Volume & Mute Control
-
+    void SetMasterVolume(float volume);
     /************************************************************************/
     /*!
     \brief
@@ -218,6 +226,15 @@ public:
     /************************************************************************/
     /*!
     \brief
+    Gets the current master volume.
+    \return
+    The master volume (0.0 to 1.0).
+    */
+    /************************************************************************/
+    float GetMasterVolume() const;
+    /************************************************************************/
+    /*!
+    \brief
     Gets the current bgm volume.
     \return
     The bgm volume (0.0 to 1.0).
@@ -233,6 +250,17 @@ public:
     */
     /************************************************************************/
     float GetVfxVolume() const;
+    /************************************************************************/
+    /*!
+    \brief
+    Sets the volume for a specific playing sound channel.
+    \param name
+    The name of the sound channel.
+    \param volume
+    The new volume (0.0 to 1.0).
+    */
+    /************************************************************************/
+    void SetVolume(std::string const& name, float volume);
     /************************************************************************/
     /*!
     \brief
@@ -254,25 +282,27 @@ public:
 
 	// Receive settings from ConfigManager
 
-    /************************************************************************/
-    /*!
-    \brief
-    Applies audio-related settings from the configuration manager.
-    \param settings
-    The settings to apply.
-    */
-    /************************************************************************/
-    void ApplySettings(ConfigManager::Settings const& settings);
+	/************************************************************************/
+	/*!
+	\brief
+	Applies audio-related settings from the configuration manager.
+	\param settings
+	The settings to apply.
+	*/
+	/************************************************************************/
+	void ApplySettings(ConfigManager::Settings const& settings);
 
 	/************************************************************************/
 	/*!
 	\brief
 	Gets the underlying FMOD system instance.
-    \return
+	\return
 	Pointer to the FMOD::System instance.
 	*/
 	/************************************************************************/
-	FMOD::System* GetSystem() const { return system; }
+	FMOD::System* GetSystem() const {
+		return system;
+	}
 
 	/************************************************************************/
 	/*!
@@ -310,69 +340,67 @@ public:
 	/************************************************************************/
 	void FadeChannel(std::string const& name, float toVolume, float duration);
 
-    // UI Sound Effects
+	// UI Sound Effects
 
-    /************************************************************************/
-    /*!
-    \brief
-    Plays the UI click sound effect.
-    \details
-    Convenience method for playing button click sounds with appropriate volume.
-    Uses VFX volume scaled down to 50% for subtle UI feedback.
-    */
-    /************************************************************************/
-    void PlayUIClickSound();
+	/************************************************************************/
+	/*!
+	\brief
+	Plays the UI click sound effect.
+	\details
+	Convenience method for playing button click sounds with appropriate volume.
+	Uses VFX volume scaled down to 50% for subtle UI feedback.
+	*/
+	/************************************************************************/
+	void PlayUIClickSound();
 
-    void PauseAll();   // pause all currently playing sounds/music
-    void ResumeAll();  // resume everything that was paused
+	void PauseAll();   // pause all currently playing sounds/music
+	void ResumeAll();  // resume everything that was paused
 
 private:
-    /************************************************************************/
-    /*!
-    \brief
-    Error handling for FMOD operations.
-    \param result
-    The FMOD_RESULT to check.
-    \param context
-    Contextual information for the error.
-    */
-    /************************************************************************/
-    void CheckError(FMOD_RESULT result, std::string const& context);
+	/************************************************************************/
+	/*!
+	\brief
+	Error handling for FMOD operations.
+	\param result
+	The FMOD_RESULT to check.
+	\param context
+	Contextual information for the error.
+	*/
+	/************************************************************************/
+	void CheckError(FMOD_RESULT result, std::string const& context);
 
-    // Message handlers
-    void OnToggleDebugInfo(const CoreFramework::Message& msg);
-    void OnPlayAudio(const CoreFramework::Message& msg);
-    void OnStopAudio(const CoreFramework::Message& msg);
+	// Message handlers
+	void OnToggleDebugInfo(const CoreFramework::Message& msg);
+	void OnPlayAudio(const CoreFramework::Message& msg);
+	void OnStopAudio(const CoreFramework::Message& msg);
 
     // FMOD System and resources
     FMOD::System*                         system;
     FMOD::ChannelGroup*                   masterGroup;
     std::map<std::string, FMOD::Sound*>   sounds;
     std::map<std::string, FMOD::Channel*> channels;
-    float                                 bgmVolume, vfxVolume;
+    float                                 masterVolume, bgmVolume, vfxVolume;
     bool                                  muted;
 
-    struct PendingPlay
-    {
-        std::string name;
-        float volume;
+	struct PendingPlay {
+		std::string name;
+		float volume;
 		bool paused;
-    };
+	};
 
-    struct VolumeFade
-    {
-        float fromVolume;
-        float toVolume;
-        float duration;
-        float elapsed;
-    };
+	struct VolumeFade {
+		float fromVolume;
+		float toVolume;
+		float duration;
+		float elapsed;
+	};
 
 	std::vector<PendingPlay> pendingPlays;                      // queued play requests
 	std::unordered_map<std::string, VolumeFade> activeFades;    // per-sound active fades
 
-    // Pub/sub
-    CoreFramework::MessageBus& messageBus;
-    CoreFramework::SubscriberId debugInfoSubId;
-    CoreFramework::SubscriberId playAudioSubId;
-    CoreFramework::SubscriberId stopAudioSubId;
+	// Pub/sub
+	CoreFramework::MessageBus& messageBus;
+	CoreFramework::SubscriberId debugInfoSubId;
+	CoreFramework::SubscriberId playAudioSubId;
+	CoreFramework::SubscriberId stopAudioSubId;
 };

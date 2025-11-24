@@ -97,10 +97,25 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 
 // Saves LevelData into a JSON file
 bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
-	json jsonData;
-	jsonData["objects"] = json::array();
+	json jsonData = json::object();
 
-	for (auto& obj : inLevel.objects) {
+	// Try to load existing JSON so we keep things like "collision"
+	{
+		std::ifstream in(path);
+		if (in) {
+			try {
+				in >> jsonData;
+			}
+			catch (...) {
+				// If parse fails, fall back to a clean object
+				jsonData = json::object();
+			}
+		}
+	}
+
+	// Replace ONLY the "objects" array with the new snapshot
+	jsonData["objects"] = json::array();
+	for (const auto& obj : inLevel.objects) {
 		jsonData["objects"].push_back(WriteLevelObject(obj));
 	}
 

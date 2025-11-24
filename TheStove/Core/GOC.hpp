@@ -1,37 +1,37 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			GOC.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+ FILE NAME:			GOC.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
 
-DESCRIPTION:
-	GOC (Game Object Composition) represents a single "entity" in the engine.
-	Each GOC contains a map of components (inherited from GameComponent) keyed
-	by std::type_index.
+ DESCRIPTION:		GOC (Game Object Composition) represents a single "entity" in the engine.
+					Each GOC contains a map of components (inherited from GameComponent) keyed
+					by std::type_index.
 
-	Responsibilities:
-	- Attach and manage components at runtime.
-	- Initialize and update all attached components.
-	- Provide typed access to components (via Get<T>).
-	- Defer destruction requests to the Factory for safe cleanup.
+					Responsibilities:
+					- Attach and manage components at runtime.
+					- Initialize and update all attached components.
+					- Provide typed access to components (via Get<T>).
+					- Defer destruction requests to the Factory for safe cleanup.
 
-	This forms the "GameObject" part of the GameObject-Component system.
+					This forms the "GameObject" part of the GameObject-Component system.
 
-All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
+
 #include <typeinfo>
 #include <typeindex>
 #include <unordered_map>
 #include <optional>
 #include <string>
+
 #include "GameComponent.hpp"
 
 //Game Object
-class GOC
-{
+class GOC {
 public:
 	std::string name;
 
@@ -41,8 +41,7 @@ public:
 	//return null if not
 	//usage: auto enemyTransform = enemy->Get<Transform>();
 	template <typename T>
-	std::optional<T*> Get() const
-	{
+	std::optional<T*> Get() const {
 		auto it = m_components.find(typeid(T));
 
 		if (it == m_components.end())
@@ -51,8 +50,7 @@ public:
 	}
 
 	template <typename T>
-	bool Has() const
-	{
+	bool Has() const {
 		return m_components.find(typeid(T)) != m_components.end();
 	}
 
@@ -74,24 +72,20 @@ public:
 
 	//Remove Component
 	template <typename T>
-	void RemoveComponent()
-	{
+	void RemoveComponent() {
 		auto it = m_components.find(typeid(T));
-		if (it != m_components.end())
-		{
+		if (it != m_components.end()) {
 			delete it->second;
 			m_components.erase(it);
 		}
 	}
 
 	//Return GameObject unique ID
-	unsigned int GetId()
-	{
+	unsigned int GetId() {
 		return ObjectId;
 	}
 
-	const std::unordered_map<std::type_index, GameComponent*> GetComponentList() const
-	{
+	const std::unordered_map<std::type_index, GameComponent*> GetComponentList() const {
 		return m_components;
 	}
 

@@ -26,7 +26,7 @@ class Scene;
 namespace LEPANELASSETS {
 	// Draw the Assets panel window.
 	void DrawAssetsPanel(LevelEditor& editor,
-		Scene& scene,
-		int& selectedIndex,
-		int selectedObjectId);
+						 Scene& scene,
+						 int& selectedIndex,
+						 int selectedObjectId);
 }

@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "../Graphics/GameObject.hpp"
+
 #include "Collision.hpp"
 #include "Math.hpp"
 

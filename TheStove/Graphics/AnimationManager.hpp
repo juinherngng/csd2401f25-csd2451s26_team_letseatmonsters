@@ -1,26 +1,27 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			AnimationManager.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
-CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			AnimationManager.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:	    Declares AnimationManager, which manages 2D sprite animations for game objects,
+ DESCRIPTION:	    Declares AnimationManager, which manages 2D sprite animations for game objects,
 					updating frame UVs based on Animator2D components. Supports play/pause control
 					and registering animation sets for different entity types.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
 
-#include "Animator.hpp"  // This includes Animator2D
-#include "../Core/System.hpp"  // For SystemInterface
-#include <unordered_map>
-#include <string>
-#include <vector>
 #include <glm/glm.hpp>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "../Core/System.hpp"  // For SystemInterface
+#include "Animator.hpp"		   // This includes Animator2D
 
 class EntityManager;  // Forward declaration
 
@@ -50,7 +51,9 @@ public:
 	void Play();
 	void Pause();
 	void Stop();
-	bool IsPlaying() const { return isPlaying; }
+	bool IsPlaying() const {
+		return isPlaying;
+	}
 
 	// Animation registration for specific entity types
 	void AttachDinoAnimations(int objectID);

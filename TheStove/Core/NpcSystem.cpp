@@ -48,9 +48,9 @@ void NPCSystem::RegisterLaneNPC(int npcID, float laneX) {
 }
 
 void NPCSystem::UpdateLaneNPCs(float deltaTime,
-	EntityManager& entityManager,
-	CollisionManager& collisionManager,
-	const collision::WalkArea& walkArea) {
+							   EntityManager& entityManager,
+							   CollisionManager& collisionManager,
+							   const collision::WalkArea& walkArea) {
 	for (const auto& [npcID, laneX] : laneNPCs_) {
 		GameObject* npc = entityManager.GetByID(npcID);
 		if (npc == nullptr) {
@@ -59,15 +59,15 @@ void NPCSystem::UpdateLaneNPCs(float deltaTime,
 
 		// Pull current position/velocity into Math:: types for physics helpers.
 		Math::Vector3D posM(npc->GetPosition().x,
-			npc->GetPosition().y,
-			npc->GetPosition().z);
+							npc->GetPosition().y,
+							npc->GetPosition().z);
 
 		Math::Vector2D velM(npcVelocities_[npcID].x,
-			npcVelocities_[npcID].y);
+							npcVelocities_[npcID].y);
 
 		// Move along Y-lane with bounce against the world (helper in your physics module).
 		physics::MoveYLaneWithBounce(collisionManager.GetCollisionWorld(),
-			npc, posM, velM, laneX, deltaTime);
+									 npc, posM, velM, laneX, deltaTime);
 
 		// Clamp within the walkable region.
 		physics::ClampInsideWalk(walkArea, npc, posM);
@@ -154,8 +154,8 @@ void NPCSystem::HandleNPCCollisions(EntityManager& entityManager) {
 }
 
 void NPCSystem::UpdateGenericNPCs(float deltaTime,
-	EntityManager& entityManager,
-	const collision::WalkArea& walkArea) {
+								  EntityManager& entityManager,
+								  const collision::WalkArea& walkArea) {
 	for (const auto& [npcID, velocity] : npcVelocities_) {
 		// Skip lane NPCs (already updated in UpdateLaneNPCs).
 		if (laneNPCs_.find(npcID) != laneNPCs_.end()) {

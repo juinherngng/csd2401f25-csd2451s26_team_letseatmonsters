@@ -4,13 +4,10 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		AABB primitives and a simple world collision utility (gridless).
-					- AABB overlap & minimum translation vector (MTV).
-					- Weighted separation for pairwise resolution.
-					- Point-in-center-AABB helper (using half-extents).
-					- World: static walls collection + sweep-based resolve.
+ DESCRIPTION:		Declares basic collision primitives (AABB, MTV helpers) and a simple
+					2D collision world that trims desired motion against static walls.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

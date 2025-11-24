@@ -1,4 +1,19 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			PlayerLogic.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
+
+ DESCRIPTION:		Declares the SimpleNpcLogic script used for basic NPC behaviour. Defines the
+					movement states, timing values, and direction flags used to drive simple
+					up-down patrolling logic. Inherits from GameObjectLogic.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #pragma once
+
 #include "GameObjectLogic.hpp"
 
 class SimpleNpcLogic : public GameObjectLogic {

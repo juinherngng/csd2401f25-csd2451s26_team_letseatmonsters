@@ -6,12 +6,9 @@
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
 					Ng Juin Herng, juinherng.ng@digipen.edu
 
- DESCRIPTION:       Declares CollisionManager, which maintains a spatial grid of scene objects for
-					broad-phase queries and owns the world collision geometry. Provides helpers to:
-					- rebuild broad-phase per frame,
-					- resolve intended movement (step trimming),
-					- query nearby objects or a point,
-					- build static walls/walk areas.
+ DESCRIPTION:       Declares CollisionManager. Owns a static collision::World and a dynamic
+					spatial grid of GameObjects, rebuilds broad-phase data every frame, and
+					exposes helper queries for nearby/point lookups used by gameplay code.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -19,14 +16,14 @@
 
 #pragma once
 
-#include <vector>
 #include <unordered_map>
-
-#include "SpatialGrid.hpp"
-#include "Collision.hpp"
-#include "Math.hpp"
+#include <vector>
 
 #include "../Graphics/EntityManager.hpp"
+
+#include "Collision.hpp"
+#include "Math.hpp"
+#include "SpatialGrid.hpp"
 #include "System.hpp"
 
  /**
@@ -54,8 +51,8 @@ public:
 
 	// Build static world geometry from authoring structs.
 	void BuildWalls(const collision::WalkArea& walkArea,
-		const collision::WoodVertical& wood,
-		const collision::StageEndGateVertical& endGate);
+					const collision::WoodVertical& wood,
+					const collision::StageEndGateVertical& endGate);
 
 	// Query grid for objects overlapping an AABB.
 	std::vector<GameObject*> QueryNearby(const collision::AABB& queryBox) const;
@@ -84,6 +81,8 @@ public:
 	const SpatialGrid& GetSpatialGrid() const {
 		return spatialGrid_;
 	}
+
+	void AddStaticRects(const std::vector<collision::AABB>& rects);
 
 	// Clear both the grid and the world geometry.
 	void Clear();

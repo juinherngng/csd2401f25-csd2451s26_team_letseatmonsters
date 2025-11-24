@@ -1,12 +1,12 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			GraphicsEngine.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
-CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+ FILE NAME:			GraphicsEngine.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 					Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
+ DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
 					and batched instanced rendering of GameObjects.
 
 		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
@@ -93,6 +93,10 @@ void GraphicsEngine::Initialize() {
 
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+		// Set ImGui INI file path to a persistent location outside build directory
+		// This survives clean builds
+		io.IniFilename = "../../imgui.ini";
 
 		// Slightly larger UI for readability
 		io.FontGlobalScale = 1.0f;
@@ -228,7 +232,7 @@ void GraphicsEngine::Resize(int width, int height) {
 	if (backgroundObject) {
 		backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
 		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
-			static_cast<float>(kRefH), 1.0f));
+											 static_cast<float>(kRefH), 1.0f));
 	}
 }
 
@@ -241,38 +245,38 @@ void GraphicsEngine::ApplyViewport() const {
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
-		ResolveShaderPath("../shaders/shader.vert"),
-		ResolveShaderPath("../shaders/shader.frag"));
+							   ResolveShaderPath("../shaders/shader.vert"),
+							   ResolveShaderPath("../shaders/shader.frag"));
 
 	// Load texture shader
 	resourceManager.LoadShader("texture",
-		ResolveShaderPath("../shaders/texture.vert"),
-		ResolveShaderPath("../shaders/texture.frag"));
+							   ResolveShaderPath("../shaders/texture.vert"),
+							   ResolveShaderPath("../shaders/texture.frag"));
 
 	// Load sprite shader
 	resourceManager.LoadShader("sprite",
-		ResolveShaderPath("../shaders/sprite.vert"),
-		ResolveShaderPath("../shaders/sprite.frag"));
+							   ResolveShaderPath("../shaders/sprite.vert"),
+							   ResolveShaderPath("../shaders/sprite.frag"));
 
 	// Load static sprite shader
 	resourceManager.LoadShader("staticsprite",
-		ResolveShaderPath("../shaders/staticsprite.vert"),
-		ResolveShaderPath("../shaders/staticsprite.frag"));
+							   ResolveShaderPath("../shaders/staticsprite.vert"),
+							   ResolveShaderPath("../shaders/staticsprite.frag"));
 
 	// Load animated sprite shader
 	resourceManager.LoadShader("animatedsprite",
-		ResolveShaderPath("../shaders/animatedsprite.vert"),
-		ResolveShaderPath("../shaders/animatedsprite.frag"));
+							   ResolveShaderPath("../shaders/animatedsprite.vert"),
+							   ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load instanced static sprite shader
 	resourceManager.LoadShader("staticsprite_instanced",
-		ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
-		ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
+							   ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
+							   ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
 
 	// Load instanced animated sprite shader
 	resourceManager.LoadShader("animatedsprite_instanced",
-		ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
-		ResolveShaderPath("../shaders/animatedsprite.frag"));
+							   ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
+							   ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load triangle mesh
 	std::vector<float> vertices;
@@ -355,7 +359,7 @@ void GraphicsEngine::BeginImGuiFrame() {
 // Draw the Scene window and present the scene FBO texture inside it
 void GraphicsEngine::DrawSceneDockWindow() {
 	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
-		ImGuiCond_FirstUseEver);
+							   ImGuiCond_FirstUseEver);
 
 	if (ImGui::Begin("Scene###SceneWindow")) {
 		ImVec2 avail = ImGui::GetContentRegionAvail();
@@ -372,7 +376,7 @@ void GraphicsEngine::DrawSceneDockWindow() {
 		// Center the image in the window
 		ImVec2 cursor = ImGui::GetCursorPos();
 		ImGui::SetCursorPos(ImVec2(cursor.x + (avail.x - w) * 0.5f,
-			cursor.y + (avail.y - h) * 0.5f));
+								   cursor.y + (avail.y - h) * 0.5f));
 
 		// Absolute rect for picking
 		sceneImagePos_ = ImGui::GetCursorScreenPos();
@@ -626,7 +630,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 		auto sameRenderKey = [](const RenderKey& a, const RenderKey& b) {
 			return a.mesh == b.mesh && a.shader == b.shader && a.texture == b.texture;
-			};
+		};
 
 		std::size_t i = 0;
 		while (i < staticSprites.size()) {

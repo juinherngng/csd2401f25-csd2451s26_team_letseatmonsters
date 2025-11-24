@@ -16,12 +16,14 @@
 
 #pragma once
 
+#include <glm/glm.hpp>
+
 #include "../Core/Math.hpp"
+
 #include "DebugRenderer.hpp"
 #include "Mesh.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
-#include <glm/glm.hpp>
 
  /**
   * @class GameObject

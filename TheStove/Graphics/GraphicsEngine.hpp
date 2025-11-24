@@ -1,12 +1,12 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			GraphicsEngine.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
-CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+ FILE NAME:			GraphicsEngine.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 					Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Declares the GraphicsEngine responsible for initialization, off-screen scene FBO,
+ DESCRIPTION:		Declares the GraphicsEngine responsible for initialization, off-screen scene FBO,
 					ImGui dockspace, background handling, and batched rendering.
 
 		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
@@ -20,6 +20,7 @@ DESCRIPTION:		Declares the GraphicsEngine responsible for initialization, off-sc
 #include <vector>
 
 #include "../Core/System.hpp"
+
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "DebugRenderer.hpp"
@@ -121,7 +122,7 @@ public:
 
 	// Reference render size
 	static constexpr int kRefW = 1200;
-	static constexpr int kRefH = 800;
+	static constexpr int kRefH = 900;
 
 private:
 	// Core state
@@ -129,7 +130,7 @@ private:
 	ResourceManager& resourceManager;
 
 	int screenWidth = 1200;
-	int screenHeight = 800;
+	int screenHeight = 900;
 
 	// Background rendering
 	std::unique_ptr<GameObject> backgroundObject;

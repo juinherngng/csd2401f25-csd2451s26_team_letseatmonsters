@@ -1,10 +1,10 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			GameStateManager.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Darren Toh, darren.toh@digipen.edu
+ FILE NAME:			GameStateManager.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Darren Toh, darren.toh@digipen.edu
 
-DESCRIPTION:		Game State Manager interface derived from System.hpp. Uses 3 Function pointers
+ DESCRIPTION:		Game State Manager interface derived from System.hpp. Uses 3 Function pointers
 					and redirects them to level/scene-specific init, update and exit functions.
 					These function pointers are then called in main by the game state manager.
 					This is a header file for declarations.
@@ -12,12 +12,16 @@ DESCRIPTION:		Game State Manager interface derived from System.hpp. Uses 3 Funct
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
-#include "System.hpp"
+
+#pragma once
+
+#include <functional> 
+#include <memory>
+
 #include "MessageBus.hpp"
+#include "System.hpp"
 #include "TestLevel.hpp"
 #include "TestLevel2.hpp"
-#include <memory>
-#include <functional> 
 
 namespace Framework {
 	enum GameState {
@@ -35,9 +39,8 @@ namespace Framework {
 	typedef std::function<void(float dt)> FP;
 
 	extern FP fpInit, fpUpdate, fpExit; // Function pointers that changes depending on what state the game is in currently
-	
-	class GameStateManager : public CoreFramework::SystemInterface
-	{
+
+	class GameStateManager : public CoreFramework::SystemInterface {
 	public:
 		/************************************************************************/
 		/*!
@@ -48,7 +51,7 @@ namespace Framework {
 		*/
 		/************************************************************************/
 		GameStateManager(CoreFramework::MessageBus& bus);
-		
+
 		/************************************************************************/
 		/*!
 		\brief
@@ -56,7 +59,7 @@ namespace Framework {
 		*/
 		/************************************************************************/
 		~GameStateManager();
-		
+
 		//Setup Manager Logic
 		void Initialize() override;
 		//Manager Update loop
@@ -67,11 +70,11 @@ namespace Framework {
 		void InitializeGameState(int GS, float dt);
 		//Call function pointer to state update
 		void UpdateGameState(int newState, float dt);
-		
+
 	private:
 		// Message handlers
 		void OnQuit(const CoreFramework::Message& msg);
-		
+
 		// Pub/sub
 		CoreFramework::MessageBus& messageBus;
 		CoreFramework::SubscriberId quitSubId;

@@ -14,19 +14,18 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "LevelEditor.hpp"
-
 #include <imgui.h>
-
-#include "LevelEditorPanelAssets.hpp"
-#include "LevelEditorPanelLevel.hpp"
-#include "LevelEditorPanelPrefabs.hpp"
-#include "LevelEditorPickDrag.hpp"
-
-#include "InputManager.hpp"
 
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
+
+#include "InputManager.hpp"
+#include "LevelEditor.hpp"
+#include "LevelEditorPanelAssets.hpp"
+#include "LevelEditorPanelLevel.hpp"
+#include "LevelEditorPanelPrefabs.hpp"
+#include "LevelEditorPanelAudioControl.hpp"
+#include "LevelEditorPickDrag.hpp"
 
  // DrawUI
 void LevelEditor::DrawUI(Scene& scene) {
@@ -57,6 +56,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 	LEPANELLEVEL::DrawLevelPanel(*this, scene, selectedIndex, selectedObjectId);
 	LEPANELPREFABS::DrawPrefabsPanel(*this, scene, selectedObjectId);
 	LEPANELASSETS::DrawAssetsPanel(*this, scene, selectedIndex, selectedObjectId);
+	LEPANELAUDIOCONTROL::DrawAudioControlPanel(*this, scene);
 
 	// Disable editor picking/dragging while the game is running
 	if (!isPlaying) {

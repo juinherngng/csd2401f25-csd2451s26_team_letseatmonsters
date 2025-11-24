@@ -1,7 +1,21 @@
-// SimpleNpcLogic.cpp
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			PlayerLogic.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
+
+ DESCRIPTION:		Implements the SimpleNpcLogic behaviour, including timed idle-to-move state
+					transitions, vertical patrolling based on authored velocity, walk-area clamping,
+					and automatic direction reversal when hitting boundaries.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include "../Core/Collision.hpp"  // for WalkArea definition
 #include "../Core/Physics.hpp"      // optional, if you want clamp helpers
 #include "../Graphics/SceneManager.hpp"
+
 #include "SimpleNpcLogic.hpp"
 
 void SimpleNpcLogic::Awake(Scene& scene) {
@@ -28,19 +42,19 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 
 	// Step 1: compute desired movement based on state
 	switch (state) {
-	case State::Idle:
+		case State::Idle:
 		if (timer >= idleDuration) {
-			state = nextMoveUp ? State::MoveUp : State::MoveDown;
+			state = nextMoveUp?State::MoveUp:State::MoveDown;
 			timer = 0.0f;
 		}
 		break;
 
-	case State::MoveUp:
+		case State::MoveUp:
 		pos.x += vel.x * dt;
 		pos.y -= vel.y * dt;
 		break;
 
-	case State::MoveDown:
+		case State::MoveDown:
 		pos.x += vel.x * dt;
 		pos.y += vel.y * dt; // larger y is "down"
 		break;
