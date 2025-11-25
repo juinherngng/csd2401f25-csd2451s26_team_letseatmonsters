@@ -17,7 +17,9 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#ifdef _DEBUG
 #include <imgui.h>
+#endif
 #include <vector>
 
 #include "../Graphics/GameObject.hpp"
@@ -28,6 +30,7 @@
 #include "LevelEditorPickDrag.hpp"
 
 namespace LEPICKDRAG {
+#ifdef _DEBUG
 	void HandleScenePickDrag(LevelEditor& editor,
 							 Scene& scene,
 							 int& selectedIndex,
@@ -133,4 +136,13 @@ namespace LEPICKDRAG {
 			draggingId = -1;
 		}
 	}
+#else
+	// Release build: no-op stub so code can link but no ImGui is referenced.
+	void HandleScenePickDrag(LevelEditor& /*editor*/,
+							 Scene& /*scene*/,
+							 int& /*selectedIndex*/,
+							 int& /*selectedObjectId*/) {
+		// Intentionally empty in Release builds (editor UI disabled).
+	}
+#endif
 }

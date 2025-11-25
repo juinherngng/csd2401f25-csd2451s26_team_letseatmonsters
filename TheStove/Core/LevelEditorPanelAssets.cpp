@@ -35,6 +35,10 @@
 #include "LevelEditorFileIO.hpp"
 #include "LevelEditorPanelAssets.hpp"
 
+#ifdef _DEBUG
+#include <imgui.h>
+#endif
+
 namespace fs = std::filesystem;
 
 using namespace LEFILEIO;
@@ -82,6 +86,7 @@ namespace {
 }
 
 namespace LEPANELASSETS {
+#ifdef _DEBUG
 	// Draw the Assets docked window
 	void DrawAssetsPanel(LevelEditor& editor, Scene& scene, int& selectedIndex, int selectedObjectId) {
 		// Dock into the main dockspace on first use (safe no-op otherwise)
@@ -918,4 +923,10 @@ namespace LEPANELASSETS {
 		(void)editor;		 // currently unused in this panel; keep parameter for future hooks
 		(void)selectedIndex; // currently unused in this panel; keep parameter for future hooks
 	}
+#else
+	// Release build: no-op implementation so code compiles without ImGui
+	void DrawAssetsPanel(LevelEditor& /*editor*/, Scene& /*scene*/, int& /*selectedIndex*/, int /*selectedObjectId*/) {
+		// Editor UI disabled in Release.
+	}
+#endif
 }

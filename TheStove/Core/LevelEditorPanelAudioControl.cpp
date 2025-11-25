@@ -27,7 +27,9 @@
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
 
+#ifdef _DEBUG
 #include <imgui.h>
+#endif
 
 #include <algorithm>
 #include <iostream>
@@ -44,7 +46,7 @@ struct ApplicationState {
 extern ApplicationState* g_AppState;
 
 namespace LEPANELAUDIOCONTROL {
-
+#ifdef _DEBUG
     // Draw the Audio Control docked window
     void DrawAudioControlPanel(LevelEditor& editor, Scene& scene) {
         // Dock into the main dockspace on first use
@@ -340,5 +342,10 @@ namespace LEPANELAUDIOCONTROL {
         (void)editor; // Suppress unused parameter warning
         (void)scene;  // Suppress unused parameter warning
     }
+#else
+    void DrawAudioControlPanel(LevelEditor& /*editor*/, Scene& /*scene*/) {
+        // No-op in Release builds — audio control editor disabled.
+    }
+#endif
 
 } // namespace LEPANELAUDIOCONTROL

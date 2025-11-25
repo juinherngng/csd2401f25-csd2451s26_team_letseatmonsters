@@ -332,6 +332,7 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	if (tag == "player") {
 		logicManager.AddLogic<PlayerLogic>(id);
 		spriteID = id; // keep existing usage
+		animationManager.AttachPlayerAnimations(id);
 	}
 	else if (tag == "npc1" || tag == "npc2") {
 		logicManager.AddLogic<SimpleNpcLogic>(id);
