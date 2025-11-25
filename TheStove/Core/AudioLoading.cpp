@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Implementation of JSON-based audio catalog with serialization.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -14,6 +14,7 @@
 #include <cctype>
 #include <fstream>
 #include <iostream>
+#include <filesystem>
 
 #include "../Graphics/ResourceManager.hpp"
 
@@ -35,10 +36,20 @@ namespace Audio {
 
 	bool AudioCatalog::LoadCatalogFromFile(const std::string& catalogPath) {
 		std::cout << "AudioCatalog: Loading catalog from " << catalogPath << "..." << std::endl;
+		
+		// Show current working directory for debugging
+		std::filesystem::path cwd = std::filesystem::current_path();
+		std::cout << "  [LoadCatalog] Current working directory: " << cwd << std::endl;
+		
+		// Show absolute path
+		std::filesystem::path absolutePath = std::filesystem::absolute(catalogPath);
+		std::cout << "  [LoadCatalog] Absolute path: " << absolutePath << std::endl;
+		std::cout << "  [LoadCatalog] File exists: " << (std::filesystem::exists(absolutePath) ? "YES" : "NO") << std::endl;
 
 		std::ifstream file(catalogPath);
 		if (!file.is_open()) {
 			std::cerr << "AudioCatalog: Failed to open catalog file: " << catalogPath << std::endl;
+			std::cerr << "  [LoadCatalog] Attempted to read from: " << absolutePath << std::endl;
 			return false;
 		}
 
@@ -85,8 +96,12 @@ namespace Audio {
 					std::cout << "  Loaded asset: " << asset.name << " (path: " << asset.filepath << ")" << std::endl;
 				}
 			}
+			else
+			{
+				std::cout << "  No 'audio_assets' array found in catalog file (empty catalog)" << std::endl;
+			}
 
-			std::cout << "AudioCatalog: Successfully loaded " << s_AudioAssets.size() << " audio assets." << std::endl;
+			std::cout << "AudioCatalog: Successfully loaded " << s_AudioAssets.size() << " audio assets from file." << std::endl;
 			return true;
 		}
 		catch (const json::exception& e) {
@@ -98,13 +113,34 @@ namespace Audio {
 	bool AudioCatalog::SaveCatalogToFile(const std::string& catalogPath) {
 		std::cout << "AudioCatalog: Saving catalog to " << catalogPath << "..." << std::endl;
 
-		try {
+		try
+		{
+			// Show current working directory for debugging
+			std::filesystem::path cwd = std::filesystem::current_path();
+			std::cout << "  [SaveCatalog] Current working directory: " << cwd << std::endl;
+			
+			// Ensure parent directory exists
+			std::filesystem::path filePath(catalogPath);
+			std::filesystem::path parentDir = filePath.parent_path();
+			
+			// Log the absolute path where we're actually writing
+			std::filesystem::path absolutePath = std::filesystem::absolute(filePath);
+			std::cout << "  [SaveCatalog] Absolute path: " << absolutePath << std::endl;
+			
+			if (!parentDir.empty() && !std::filesystem::exists(parentDir)) {
+				std::cout << "AudioCatalog: Creating directory: " << parentDir << std::endl;
+				std::filesystem::create_directories(parentDir);
+			}
+			
 			json catalogJson;
 			catalogJson["version"] = "1.0";
 			catalogJson["audio_assets"] = json::array();
 
 			// Serialize all audio assets
-			for (const auto& asset : s_AudioAssets) {
+			for (const auto& asset : s_AudioAssets)
+			{
+				std::cout << "  [SaveCatalog] Saving asset '" << asset.name << "' with filepath: " << asset.filepath << std::endl;
+				
 				json assetJson;
 				assetJson["name"] = asset.name;
 				assetJson["filepath"] = asset.filepath;
@@ -124,10 +160,33 @@ namespace Audio {
 			}
 
 			file << catalogJson.dump(2); // 2-space indentation
+			file.flush(); // Explicitly flush the buffer
 			file.close();
-
-			std::cout << "AudioCatalog: Successfully saved " << s_AudioAssets.size() << " audio assets." << std::endl;
-			return true;
+			
+			// Verify the file was actually written by checking its existence and size
+			if (std::filesystem::exists(absolutePath)) {
+				auto fileSize = std::filesystem::file_size(absolutePath);
+				std::cout << "AudioCatalog: Successfully saved " << s_AudioAssets.size() << " audio assets to " << catalogPath << std::endl;
+				std::cout << "  [SaveCatalog] File size: " << fileSize << " bytes" << std::endl;
+				std::cout << "  [SaveCatalog] *** FILE WRITTEN TO: " << absolutePath << " ***" << std::endl;
+				std::cout << "  [SaveCatalog] *** OPEN THIS FILE TO VERIFY THE PATHS! ***" << std::endl;
+				
+				// Read back the file to verify it contains the data
+				std::ifstream verifyFile(catalogPath);
+				if (verifyFile.is_open()) {
+					std::string line;
+					int lineCount = 0;
+					while (std::getline(verifyFile, line) && lineCount < 5) {
+						std::cout << "  [SaveCatalog] Line " << lineCount++ << ": " << line << std::endl;
+					}
+					verifyFile.close();
+				}
+				
+				return true;
+			} else {
+				std::cerr << "AudioCatalog: ERROR - File does not exist after writing!" << std::endl;
+				return false;
+			}
 		}
 		catch (const json::exception& e) {
 			std::cerr << "AudioCatalog: JSON serialization error: " << e.what() << std::endl;
