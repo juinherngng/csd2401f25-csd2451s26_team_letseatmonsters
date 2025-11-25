@@ -177,6 +177,14 @@ private:
 			if (shader != other.shader) return shader < other.shader;
 			return texture < other.texture;
 		}
+
+		bool operator==(const RenderKey& other) const {
+			return mesh == other.mesh && shader == other.shader && texture == other.texture;
+		}
+
+		bool operator!=(const RenderKey& other) const {
+			return !(*this == other);
+		}
 	};
 
 	// Render statistics

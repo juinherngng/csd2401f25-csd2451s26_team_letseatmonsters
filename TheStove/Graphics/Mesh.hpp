@@ -30,14 +30,20 @@ public:
 		POSITION_TEXTURE   // position (3) + texcoord (2) = 5 floats
 	};
 
+	struct InstanceData {
+		glm::mat4 modelMatrix;
+		glm::vec4 uvOffsetScale; // x,y offset, z,w scale for UV animation frame
+	};
+
 	// used GLsizei instead of size_t for vertexSize - juinherng
 	Mesh(const float* vertices, GLsizei vertexCount, GLsizei vertexSize, VertexLayout layout = POSITION_COLOR);
 
 	void Draw() const;
 	void Draw(const Texture* texture) const;
 
-	void SetupInstanceBuffer(const std::vector<glm::mat4>& modelMatrices);
+	void SetupInstanceBuffer(const std::vector<InstanceData>& instanceData);
 	void DrawInstanced(Texture* texture, size_t instanceCount);
+
 
 private:
 	VertexArray vao;

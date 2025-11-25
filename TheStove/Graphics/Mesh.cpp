@@ -69,39 +69,41 @@ void Mesh::Draw(const Texture* texture) const {
 	vao.Unbind();
 }
 
-void Mesh::SetupInstanceBuffer(const std::vector<glm::mat4>& modelMatrices) {
-	if (modelMatrices.empty()) return;
+void Mesh::SetupInstanceBuffer(const std::vector<InstanceData>& instanceData) {
+	if (instanceData.empty()) return;
 
-	// Create instance buffer if not already created
 	if (!instanceBufferInitialized) {
 		glGenBuffers(1, &instanceVBO);
 		instanceBufferInitialized = true;
 	}
 
-	// Upload model matrices to GPU
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glBufferData(GL_ARRAY_BUFFER,
-				 modelMatrices.size() * sizeof(glm::mat4),
-				 &modelMatrices[0],
-				 GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, instanceData.size() * sizeof(InstanceData), instanceData.data(), GL_DYNAMIC_DRAW);
 
-	// Bind VAO to set up instanced attributes
 	vao.Bind();
 
-	// Set up mat4 as 4 vec4 attributes (locations 2, 3, 4, 5)
-	const GLsizei vec4Size = sizeof(glm::vec4);
+	// modelMatrix starts at offset offsetof(InstanceData, modelMatrix)
+	const std::size_t matOffset = offsetof(InstanceData, modelMatrix);
+	const std::size_t vec4Size = sizeof(glm::vec4);
+	const GLsizei stride = static_cast<GLsizei>(sizeof(InstanceData));
 
-	for (int i = 0; i < 4; i++) {
+	for (int i = 0; i < 4; ++i) {
+		const void* ptr = reinterpret_cast<const void*>(matOffset + i * vec4Size);
 		glEnableVertexAttribArray(2 + i);
-		glVertexAttribPointer(2 + i, 4, GL_FLOAT, GL_FALSE,
-							  4 * vec4Size,
-							  reinterpret_cast<void*>(static_cast<size_t>(i * vec4Size)));
-		glVertexAttribDivisor(2 + i, 1); // Advance once per instance
+		glVertexAttribPointer(2 + i, 4, GL_FLOAT, GL_FALSE, stride, ptr);
+		glVertexAttribDivisor(2 + i, 1);
 	}
 
-	glBindVertexArray(0);
+	// UV offset/scale
+	const void* uvPtr = reinterpret_cast<const void*>(offsetof(InstanceData, uvOffsetScale));
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, stride, uvPtr);
+	glVertexAttribDivisor(6, 1);
+
+	vao.Unbind();
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
+
 
 void Mesh::DrawInstanced(Texture* texture, size_t instanceCount) {
 	if (instanceCount == 0) return;
