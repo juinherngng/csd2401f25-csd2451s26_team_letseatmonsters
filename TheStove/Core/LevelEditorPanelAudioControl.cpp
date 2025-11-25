@@ -229,6 +229,14 @@ namespace LEPANELAUDIOCONTROL {
             audioByCategory[asset.category].push_back(&asset);
         }
 
+        // Sort audio within each category by name (this groups by prefix like ui_, sfx_, bgm_)
+        for (auto& [category, assets] : audioByCategory) {
+            std::sort(assets.begin(), assets.end(),
+                [](const Audio::AudioAsset* a, const Audio::AudioAsset* b) {
+                    return a->name < b->name;
+                });
+        }
+
         // Display each category
         const char* categoryColors[] = { "ui", "sfx", "bgm", "ambient", "other" };
         const ImVec4 colors[] = {

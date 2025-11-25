@@ -28,7 +28,9 @@
 #include "Core/ConfigManager.hpp"
 #include "Core/Core.hpp"
 #include "Core/DebugUI.hpp"
+#include "Core/FileDropHandler.hpp"
 #include "Core/GameStateManager.hpp"
+#include "Core/LevelEditorFileIO.hpp"
 #include "Core/MovementManager.hpp"
 #include "Core/Precompiled.hpp"
 #include "Core/TileMap.hpp"
@@ -514,6 +516,16 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	glfwSetKeyCallback(app.window, nullptr);
 	glfwSetScrollCallback(app.window, nullptr);
 
+	// External file drop callback - forwards to FileDropHandler system
+	glfwSetDropCallback(app.window, [](GLFWwindow* win, int count, const char** paths) {
+		(void)win;
+		if (g_AppState && g_AppState->coreEngine) {
+			if (auto* dropHandler = g_AppState->coreEngine->GetSystem<FileDropHandler>()) {
+				dropHandler->HandleGLFWDrop(count, paths);
+			}
+		}
+	});
+
 	// When we lose focus (ALT-TAB, CTRL-ALT-DEL, clicking another window),
 	// pause the game but don't force minimize
 	glfwSetWindowFocusCallback(app.window, [](GLFWwindow* win, int focused) {
@@ -558,6 +570,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	app.coreEngine->AddSystem(std::make_unique<InputManager>());
 	app.coreEngine->AddSystem(std::make_unique<GraphicsEngine>());		// Register GraphicsEngine as a system - CoreEngine takes ownership
 	app.coreEngine->AddSystem(std::make_unique<AudioManager>(app.coreEngine->GetMessageBus()));
+	app.coreEngine->AddSystem(std::make_unique<FileDropHandler>(app.coreEngine->GetMessageBus()));
 	app.coreEngine->AddSystem(std::make_unique<Framework::GameStateManager>(app.coreEngine->GetMessageBus()));
 	app.coreEngine->AddSystem(std::make_unique<AnimationManager>());
 	app.coreEngine->AddSystem(std::make_unique<MovementManager>());
@@ -809,6 +822,7 @@ void cleanup(ApplicationState& app) {
 		glfwSetCursorPosCallback(app.window, nullptr);
 		glfwSetKeyCallback(app.window, nullptr);
 		glfwSetScrollCallback(app.window, nullptr);
+		glfwSetDropCallback(app.window, nullptr);
 		glfwSetWindowFocusCallback(app.window, nullptr);
 		glfwSetWindowIconifyCallback(app.window, nullptr);
 		glfwSetErrorCallback(nullptr);
