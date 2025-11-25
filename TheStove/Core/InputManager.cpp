@@ -16,7 +16,11 @@
 
 #include "InputManager.hpp"
 
- // Lifetime / Access
+#if defined(_DEBUG)
+#include <imgui.h>
+#endif
+
+// Lifetime / Access
 InputManager* InputManager::sActive = nullptr;
 
 InputManager::InputManager() {
@@ -58,7 +62,12 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	mPreviousKeyStates = mCurrentKeyStates;
 	mPrevMouseButtons = mMouseButtons;
 
+#if defined(_DEBUG)
 	ImGuiIO& io = ImGui::GetIO();
+	bool wantCaptureKeyboard = io.WantCaptureKeyboard;
+#else
+	bool wantCaptureKeyboard = false;
+#endif
 
 	// Poll commonly used keys
 	int keys[] = {
@@ -70,7 +79,7 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	};
 
 	// If ImGui wants the keyboard, clear key states so gameplay won't react
-	if (!io.WantCaptureKeyboard) {
+	if (!wantCaptureKeyboard) {
 		for (int key:keys) {
 			mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
 		}

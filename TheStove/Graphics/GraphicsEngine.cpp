@@ -76,6 +76,20 @@ GraphicsEngine::GraphicsEngine()
 
 // Initialize core renderer, FBO, default resources, and ImGui
 void GraphicsEngine::Initialize() {
+	// Ensure there's a current GLFW OpenGL context before calling any GL functions.
+	GLFWwindow* ctx = glfwGetCurrentContext();
+	if (ctx == nullptr) {
+		std::cerr << "[GraphicsEngine] ERROR: No current OpenGL context. Initialize must be called after creating/making context current.\n";
+		return;
+	}
+
+	// Load GL function pointers as early as possible (must succeed before any gl* calls).
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+		std::cerr << "[GraphicsEngine] ERROR: gladLoadGLLoader failed - no GL functions available\n";
+		return;
+	}
+
+	// Now safe to call GL / renderer initialization
 	renderer.Initialize();
 	renderer.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
@@ -87,6 +101,8 @@ void GraphicsEngine::Initialize() {
 	DebugRenderer::Init();
 	DebugRenderer::SetEnabled(false);
 
+#ifdef _DEBUG
+	// Initialize ImGui only after GL loader succeeded and we have a valid context.
 	if (!_imguiInitialized) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -104,10 +120,11 @@ void GraphicsEngine::Initialize() {
 		style.ScaleAllSizes(1.2f);
 		ImGui::StyleColorsDark();
 
-		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
+		ImGui_ImplGlfw_InitForOpenGL(ctx, true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
 		_imguiInitialized = true;
 	}
+#endif
 }
 
 // SystemInterface Update - currently just tracks deltaTime for performance monitoring
@@ -327,6 +344,12 @@ void GraphicsEngine::ClearBackground() {
 
 // Start a new ImGui frame and host a global DockSpace
 void GraphicsEngine::BeginImGuiFrame() {
+#ifdef _DEBUG
+	// Guard: only call backend frame functions if ImGui was initialized
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		return;
+	}
+
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -354,10 +377,17 @@ void GraphicsEngine::BeginImGuiFrame() {
 
 	ImGui::End();
 	ImGui::PopStyleVar(2);
+#endif
 }
 
 // Draw the Scene window and present the scene FBO texture inside it
 void GraphicsEngine::DrawSceneDockWindow() {
+#ifdef _DEBUG
+	// Guard: bail if ImGui not initialized or no context
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		return;
+	}
+
 	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
 							   ImGuiCond_FirstUseEver);
 
@@ -408,12 +438,20 @@ void GraphicsEngine::DrawSceneDockWindow() {
 	}
 
 	ImGui::End();
+#endif
 }
 
 // Finish the current ImGui frame and render it
 void GraphicsEngine::EndImGuiFrame() {
+#ifdef _DEBUG
+	// Guard: only render if initialized & valid ImGui context
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		return;
+	}
+
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#endif
 }
 
 // Frame begin: clear backbuffer, set viewport, bind scene FBO, begin ImGui
@@ -428,6 +466,13 @@ void GraphicsEngine::BeginFrame() {
 
 // Convert current mouse (screen) into scene world coords if within image
 bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
+#ifdef _DEBUG
+	// Guard: If ImGui not ready, return early
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		(void)outWorld;
+		return false;
+	}
+
 	ImVec2 imgPos = sceneImagePos_;
 	ImVec2 imgSize = sceneImageSize_;
 
@@ -503,6 +548,11 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 
 	outWorld = glm::vec2(world4.x, world4.y);
 	return true;
+#else
+	// No ImGui / Scene window in Release - picking disabled.
+	(void)outWorld;
+	return false;
+#endif
 }
 
 // Default render path
@@ -559,9 +609,35 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		}
 	}
 
+	// Unbind scene FBO so default framebuffer can be used for final presentation
 	EndSceneRender();
+
+#ifdef _DEBUG
+	// Debug: render ImGui dockspace + scene image into ImGui window
 	DrawSceneDockWindow();
 	EndImGuiFrame();
+#else
+	// Release: present the scene FBO to the default framebuffer (GLFW window)
+	// Validate resources before blit
+	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+		// Source rect (scene FBO)
+		const int srcW = mSceneWidth;
+		const int srcH = mSceneHeight;
+
+		// Destination rect (window)
+		const int dstW = screenWidth;
+		const int dstH = screenHeight;
+
+		// Perform blit (scaled)
+		glBlitFramebuffer(0, 0, srcW, srcH, 0, 0, dstW, dstH, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+		// Restore default framebuffer binding
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+#endif
 
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
@@ -600,8 +676,18 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Early out if no objects
 	if (objects.empty()) {
 		EndSceneRender();
+#ifdef _DEBUG
 		DrawSceneDockWindow();
 		EndImGuiFrame();
+#else
+		// Blit scene FBO to default framebuffer in Release (guarded)
+		if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBlitFramebuffer(0, 0, mSceneWidth, mSceneHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+#endif
 		return;
 	}
 
@@ -716,8 +802,18 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 	// End-of-frame UI and finalization
 	EndSceneRender();
+#ifdef _DEBUG
 	DrawSceneDockWindow();
 	EndImGuiFrame();
+#else
+	// Blit to default framebuffer (guarded)
+	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBlitFramebuffer(0, 0, mSceneWidth, mSceneHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+#endif
 
 	// OpenGL error check loop
 	GLenum error;
@@ -726,13 +822,13 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	}
 }
 
-
 // Free resources and shutdown ImGui
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
 	DebugRenderer::Shutdown();
 	resourceManager.Clear();
 
+#ifdef _DEBUG
 	// ImGui cleanup
 	if (_imguiInitialized) {
 		ImGui_ImplOpenGL3_Shutdown();
@@ -740,6 +836,6 @@ void GraphicsEngine::Shutdown() {
 		ImGui::DestroyContext();
 		_imguiInitialized = false;
 	}
+#endif
 }
-
 

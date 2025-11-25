@@ -49,7 +49,9 @@
 struct ApplicationState {
 	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
 	std::unique_ptr<Scene> currentScene;
+#ifdef _DEBUG
 	std::unique_ptr<Debug::DebuggerApp> debugApp;
+#endif
 
 	GLFWwindow* window = nullptr; // GLFW owns this, we just reference it
 	float lastFrame = 0.0f;
@@ -374,15 +376,18 @@ int main() {
 			//app.debugApp->RunDebuggerApp();
 		}
 		catch (const std::exception& e) {
-			app.debugApp->LogError(std::string("Unhandled exception: ") + e.what());
+#ifdef _DEBUG
+			if (app.debugApp) app.debugApp->LogError(std::string("Unhandled exception: ") + e.what());
+#endif
 			std::cerr << "Error: " << e.what() << std::endl;
 			cleanup(app);
 			return -1;
 		}
-		catch (...) // Catches all other exceptions not caught by the first
-		{
-			app.debugApp->LogError("Unknown crash occurred");
-			std::cerr << "Crash: Unknown exception\n";
+		catch (...) {
+#ifdef _DEBUG
+			if (app.debugApp) app.debugApp->LogError("Unknown crash occurred");
+#endif
+			std::cerr << "Crash: Unknown exception\n";				
 			cleanup(app);
 			return -1;
 		}
@@ -679,7 +684,8 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Scene is now constructed with MovementManager reference - no need for SetMovementManager
 	std::cout << "Scene connected to MovementManager system.\n";
 
-	// Create DebuggerApp with smart pointer
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	// Create DebuggerApp with smart pointer (debug-only)
 	app.debugApp = std::make_unique<Debug::DebuggerApp>();
 	if (!app.debugApp->InitializeDebuggerApp(app.window, app.coreEngine.get())) {
 		std::cerr << "Failed to initialize DebuggerApp\n";
@@ -690,6 +696,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	}
 
 	app.debugApp->SetScene(app.currentScene.get());
+#endif
 
 	return true;
 }
@@ -720,10 +727,12 @@ static void update(ApplicationState& app) {
 			?deltaTime
 			:(0.96f * app.smoothedDt) + (0.04f * deltaTime);
 
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 		if (app.debugApp) {
 			app.debugApp->fps = 0.0f;
 			app.debugApp->msperFrame = 0.0f;
 		}
+#endif
 
 		// Do NOT update scene or core engine while paused
 		return;
@@ -742,8 +751,12 @@ static void update(ApplicationState& app) {
 	app.smoothedDt = (app.smoothedDt == 0.0f)?deltaTime:(0.96f * app.smoothedDt) + (0.04f * deltaTime);
 
 	// Update FPS display variables for DebuggerApp
-	app.debugApp->fps = (app.smoothedDt > 0.f)?(1.f / app.smoothedDt + 0.5f):0.f;
-	app.debugApp->msperFrame = (app.smoothedDt * 1000.0f);
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	if (app.debugApp) {
+		app.debugApp->fps = (app.smoothedDt > 0.f)?(1.f / app.smoothedDt + 0.5f):0.f;
+		app.debugApp->msperFrame = (app.smoothedDt * 1000.0f);
+	}
+#endif
 
 	app.coreEngine->GameLoop();
 
@@ -771,19 +784,25 @@ static void draw(ApplicationState& app) {
 	drawList.clear();
 	app.currentScene->CollectRenderablePointers(drawList);
 
-	if (app.debugApp->IsActive()) {
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	if (app.debugApp && app.debugApp->IsActive()) {
 		app.debugApp->RenderDebuggerApp();
 	}
+#endif
 
 	//graphicsEngine->Render(drawList);
 	graphicsEngine->RenderBatched(drawList);
 
-	app.debugApp->SetRenderStats(
-		graphicsEngine->GetTotalObjects(),
-		graphicsEngine->GetBatchCount(),
-		graphicsEngine->GetInstancedObjectCount(),
-		graphicsEngine->GetDrawCallCount()
-	);
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	if (app.debugApp) {
+		app.debugApp->SetRenderStats(
+			graphicsEngine->GetTotalObjects(),
+			graphicsEngine->GetBatchCount(),
+			graphicsEngine->GetInstancedObjectCount(),
+			graphicsEngine->GetDrawCallCount()
+		);
+	}
+#endif
 
 	glfwSwapBuffers(app.window);
 }
@@ -835,17 +854,19 @@ void cleanup(ApplicationState& app) {
 			audioMgr->Shutdown();
 		}
 	}
-
+				
 	// Unload all audio assets
 	std::cout << "Unloading audio assets..." << std::endl;
 	Audio::AudioCatalog::UnloadAllAudio();
 
 	// Shutdown ImGui (must happen while OpenGL context is valid)
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (app.debugApp) {
 		std::cout << "Shutting down debugger..." << std::endl;
 		app.debugApp->Shutdown();
 		app.debugApp.reset();
 	}
+#endif
 
 	// Clean up scene objects
 	if (app.currentScene) {

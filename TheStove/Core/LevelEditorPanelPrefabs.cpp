@@ -19,7 +19,11 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#ifdef _DEBUG
 #include <imgui.h>
+#endif
+
 #include <string>
 #include <vector>
 
@@ -47,6 +51,7 @@ namespace LEPANELPREFABS {
 		}
 	}
 
+#ifdef _DEBUG
 	// Draw the Prefabs docked window
 	void DrawPrefabsPanel(LevelEditor& editor, Scene& scene, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(
@@ -115,7 +120,7 @@ namespace LEPANELPREFABS {
 					// Texture path
 					out.texture = scene.GetObjectTexturePath(selectedObjectId);
 
-					// Transform (position/scale) � store rotation in DEGREES for JSON
+					// Transform (position/scale) – store rotation in DEGREES for JSON
 					const glm::vec3 p = gSel->GetPositionGLM();
 					const glm::vec3 s = gSel->GetScaleGLM();
 
@@ -279,4 +284,12 @@ namespace LEPANELPREFABS {
 
 		ImGui::End();
 	}
+#else
+	// Release build: no-op implementation to avoid ImGui dependency
+	void DrawPrefabsPanel(LevelEditor& /*editor*/, Scene& /*scene*/, int& /*selectedObjectId*/) {
+		// Prefab editor disabled in Release builds.
+	}
+#endif
+
 }
+

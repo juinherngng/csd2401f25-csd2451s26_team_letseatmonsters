@@ -12,6 +12,7 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 #pragma once
 
 #include <algorithm>
@@ -674,3 +675,13 @@ namespace Debug {
 		std::cout << "Default ImGui layout initialized successfully!\n";
 	}
 }
+
+#else // Release: define trivial gDebugger so other translation units can link
+
+#include "DebugUI.hpp"
+
+namespace Debug {
+	DebuggerApp gDebugger;
+}
+
+#endif // defined(_DEBUG) || defined(ENABLE_DEBUG_UI)

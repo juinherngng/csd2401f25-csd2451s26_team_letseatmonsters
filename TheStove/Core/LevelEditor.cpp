@@ -29,6 +29,19 @@
 
  // DrawUI
 void LevelEditor::DrawUI(Scene& scene) {
+	// Fast path: editor disabled
+	if (!isEnabled) {
+		return;
+	}
+
+	// Defensive: skip if called outside an ImGui frame or when ImGui not initialized.
+	// Must check before calling any ImGui functions (ImGui::GetStyle(), etc.).
+	ImGuiContext* ctx = ImGui::GetCurrentContext();
+	if (ctx == nullptr || !ctx->WithinFrameScope) {
+		return;
+	}
+
+	// Now safe to call ImGui APIs
 	ImGuiStyle& st = ImGui::GetStyle();
 	st.FrameRounding = 3;
 	st.FramePadding = ImVec2(5, 3);
@@ -41,16 +54,6 @@ void LevelEditor::DrawUI(Scene& scene) {
 
 	// The scene viewport should not capture game mouse by default while drawing editor UI
 	InputManager::Get().SetSceneViewportWantsGameMouse(false);
-
-	if (!isEnabled) {
-		return;
-	}
-
-	// Defensive: skip if called outside an ImGui frame
-	ImGuiContext* ctx = ImGui::GetCurrentContext();
-	if (ctx == nullptr || !ctx->WithinFrameScope) {
-		return;
-	}
 
 	// ----- Panels -----
 	LEPANELLEVEL::DrawLevelPanel(*this, scene, selectedIndex, selectedObjectId);
