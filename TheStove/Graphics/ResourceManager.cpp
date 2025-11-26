@@ -14,6 +14,7 @@
 #include <iostream>
 
 #include "../Core/AudioManager.hpp"
+#include "../Core/FontSystem.hpp"
 
 #include "ResourceManager.hpp"
 
@@ -146,6 +147,16 @@ bool ResourceManager::GetAudioInfo(const std::string& name, unsigned int& length
 	return audioManager->GetSoundInfo(name, lengthMs, channels, bits, freq);
 }
 
+// Font management methods
+
+FontSystem::Font* ResourceManager::LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize) {
+	return FontSystem::FontManager::Instance().LoadFont(name, fontPath, fontSize);
+}
+
+FontSystem::Font* ResourceManager::GetFont(const std::string& name) {
+	return FontSystem::FontManager::Instance().GetFont(name);
+}
+
 void ResourceManager::Clear() {
 	if (!isCleared) {
 		std::cout << "Clearing ResourceManager..." << std::endl;
@@ -153,6 +164,7 @@ void ResourceManager::Clear() {
 		meshes.clear();
 		textures.clear();
 		// Note: Audio is managed by AudioManager, so we don't clear it here
+		// Note: Fonts are managed by FontManager, so we don't clear them here
 		isCleared = true;
 	}
 }

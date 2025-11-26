@@ -22,8 +22,11 @@
 #include "Shader.hpp"
 #include "Texture.hpp"
 
-// Forward declaration
+// Forward declarations
 class AudioManager;
+namespace FontSystem {
+	class Font;
+}
 
 class ResourceManager {
 public:
@@ -46,6 +49,10 @@ public:
 	// Texture management
 	Texture* LoadTexture(const std::string& name, const std::string& filePath);
 	Texture* GetTexture(const std::string& name);
+
+	// Font management
+	FontSystem::Font* LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize);
+	FontSystem::Font* GetFont(const std::string& name);
 
 	// Audio management (delegates to AudioManager)
 	bool LoadAudio(const std::string& name, const std::string& filePath, bool loop = false, bool stream = false);

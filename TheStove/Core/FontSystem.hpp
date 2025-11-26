@@ -2,10 +2,10 @@
 ----------------------------------------------------------------------------------------------------
 FILE NAME:			FontSystem.hpp
 PROJECT NAME:		Project GAM200
-AUTHOR:			Font System Implementation
+AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
 
 DESCRIPTION:		Font system using FreeType to load TTF fonts, render text with
-				different fonts at different positions using OpenGL.
+					different fonts at different positions using OpenGL.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -92,6 +92,13 @@ namespace FontSystem
 	class Text
 	{
 	public:
+		// Rotation mode enum
+		enum class RotationMode
+		{
+			PerCharacter,  // Each character rotates individually (curved text effect)
+			Block          // Entire text block rotates as one (normal rotation)
+		};
+
 		Text();
 		~Text();
 
@@ -109,12 +116,20 @@ namespace FontSystem
 		
 		// Set scale
 		void SetScale(float scale);
+		
+		// Set rotation in degrees
+		void SetRotation(float degrees);
+
+		// Set rotation mode
+		void SetRotationMode(RotationMode mode);
 
 		// Getters
 		const std::string& GetText() const { return m_text; }
 		const glm::vec2& GetPosition() const { return m_position; }
 		const glm::vec4& GetColor() const { return m_color; }
 		float GetScale() const { return m_scale; }
+		float GetRotation() const { return m_rotation; }
+		RotationMode GetRotationMode() const { return m_rotationMode; }
 		Font* GetFont() const { return m_font; }
 
 		// Render the text (called by TextRenderer)
@@ -129,6 +144,8 @@ namespace FontSystem
 		glm::vec2 m_position = glm::vec2(0.0f, 0.0f);
 		glm::vec4 m_color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		float m_scale = 1.0f;
+		float m_rotation = 0.0f;  // Rotation in degrees
+		RotationMode m_rotationMode = RotationMode::Block;  // Default to block rotation
 
 		// OpenGL rendering resources
 		GLuint m_VAO = 0;

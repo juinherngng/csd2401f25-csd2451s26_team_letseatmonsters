@@ -2,17 +2,19 @@
 ----------------------------------------------------------------------------------------------------
 FILE NAME:			FontSystem.cpp
 PROJECT NAME:		Project GAM200
-AUTHOR:			Font System Implementation
+AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
 
 DESCRIPTION:		Implementation of font system using FreeType for loading fonts
-				and OpenGL for rendering text.
+					and OpenGL for rendering text.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #include "FontSystem.hpp"
+#include "Math.hpp"
 #include <iostream>
+#include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -219,7 +221,8 @@ namespace FontSystem
 
 	Text::Text()
 	{
-		SetupRendering();
+		// Don't call SetupRendering() here - OpenGL may not be initialized yet
+		// SetupRendering will be called lazily in Render() when needed
 	}
 
 	Text::~Text()
@@ -250,6 +253,16 @@ namespace FontSystem
 	void Text::SetScale(float scale)
 	{
 		m_scale = scale;
+	}
+
+	void Text::SetRotation(float degrees)
+	{
+		m_rotation = degrees;
+	}
+
+	void Text::SetRotationMode(RotationMode mode)
+	{
+		m_rotationMode = mode;
 	}
 
 	void Text::SetupRendering()
@@ -293,6 +306,10 @@ namespace FontSystem
 
 	void Text::Render(GLuint shaderProgram, const glm::mat4& projection)
 	{
+		// Lazy initialization - setup rendering on first render call when OpenGL is ready
+		if (!m_renderingSetup)
+			SetupRendering();
+
 		if (!m_font || m_text.empty() || !m_renderingSetup)
 			return;
 
@@ -313,9 +330,14 @@ namespace FontSystem
 		glActiveTexture(GL_TEXTURE0);
 		glBindVertexArray(m_VAO);
 
-		// Current position for rendering
-		float x = m_position.x;
-		float y = m_position.y;
+		// Calculate rotation in radians
+		float rotRad = Math::ToRadians(m_rotation);
+		float cosR = std::cos(rotRad);
+		float sinR = std::sin(rotRad);
+
+		// Starting cursor position (will advance for each character)
+		float cursorX = 0.0f;
+		float cursorY = 0.0f;
 
 		// Iterate through all characters
 		for (char c : m_text)
@@ -324,36 +346,102 @@ namespace FontSystem
 			if (!ch)
 				continue;
 
-			float xpos = x + ch->bearing.x * m_scale;
-			float ypos = y - (ch->size.y - ch->bearing.y) * m_scale;
+			// Position relative to cursor
+			// In top-left coordinate system, bearing.y is positive upward from baseline
+			// We want glyphs to sit on the baseline, so subtract bearing.y
+			float xpos = cursorX + ch->bearing.x * m_scale;
+			float ypos = cursorY - ch->bearing.y * m_scale;
 
 			float w = ch->size.x * m_scale;
 			float h = ch->size.y * m_scale;
 
-			// Update VBO for each character
-			float vertices[6][4] = {
-				{ xpos,     ypos + h,   0.0f, 0.0f },
-				{ xpos,     ypos,       0.0f, 1.0f },
-				{ xpos + w, ypos,       1.0f, 1.0f },
-
-				{ xpos,     ypos + h,   0.0f, 0.0f },
-				{ xpos + w, ypos,       1.0f, 1.0f },
-				{ xpos + w, ypos + h,   1.0f, 0.0f }
+			// Define quad vertices in local space (relative to cursor)
+			struct Vertex {
+				float x, y;
 			};
+			
+			Vertex vertices[6] = {
+				{ xpos,     ypos },      // top-left
+				{ xpos,     ypos + h },  // bottom-left
+				{ xpos + w, ypos + h },  // bottom-right
+
+				{ xpos,     ypos },      // top-left
+				{ xpos + w, ypos + h },  // bottom-right
+				{ xpos + w, ypos }       // top-right
+			};
+
+			// Apply rotation and translation based on rotation mode
+			float finalVertices[6][4];
+			
+			if (m_rotationMode == RotationMode::PerCharacter)
+			{
+				// Per-character rotation: rotate each character individually
+				for (int i = 0; i < 6; i++)
+				{
+					// Rotate around origin
+					float rx = vertices[i].x * cosR - vertices[i].y * sinR;
+					float ry = vertices[i].x * sinR + vertices[i].y * cosR;
+					
+					// Translate to world position
+					finalVertices[i][0] = rx + m_position.x;
+					finalVertices[i][1] = ry + m_position.y;
+					
+					// UV coordinates
+					if (i == 0 || i == 3)      // top-left
+						{ finalVertices[i][2] = 0.0f; finalVertices[i][3] = 0.0f; }
+					else if (i == 1)           // bottom-left
+						{ finalVertices[i][2] = 0.0f; finalVertices[i][3] = 1.0f; }
+					else if (i == 2 || i == 4) // bottom-right
+						{ finalVertices[i][2] = 1.0f; finalVertices[i][3] = 1.0f; }
+				else                       // top-right
+					{ finalVertices[i][2] = 1.0f; finalVertices[i][3] = 0.0f; }
+				}
+				
+				// Advance cursor with rotation (curved text effect)
+				float advanceX = (ch->advance >> 6) * m_scale;
+				cursorX += advanceX * cosR;
+				cursorY += advanceX * sinR;
+			}
+			else // RotationMode::Block
+			{
+				// Block rotation: rotate entire text as one unit
+				for (int i = 0; i < 6; i++)
+				{
+					// First rotate the vertices around origin
+					float rx = vertices[i].x * cosR - vertices[i].y * sinR;
+					float ry = vertices[i].x * sinR + vertices[i].y * cosR;
+					
+					// Then translate to world position
+					finalVertices[i][0] = rx + m_position.x;
+					finalVertices[i][1] = ry + m_position.y;
+					
+					// UV coordinates
+					if (i == 0 || i == 3)      // top-left
+						{ finalVertices[i][2] = 0.0f; finalVertices[i][3] = 0.0f; }
+					else if (i == 1)           // bottom-left
+						{ finalVertices[i][2] = 0.0f; finalVertices[i][3] = 1.0f; }
+					else if (i == 2 || i == 4) // bottom-right
+						{ finalVertices[i][2] = 1.0f; finalVertices[i][3] = 1.0f; }
+					else                       // top-right
+						{ finalVertices[i][2] = 1.0f; finalVertices[i][3] = 0.0f; }
+				}
+				
+				// Advance cursor WITHOUT rotation (straight line, then rotate entire block)
+				float advanceX = (ch->advance >> 6) * m_scale;
+				cursorX += advanceX;
+				// cursorY stays 0 for block mode
+			}
 
 			// Render glyph texture over quad
 			glBindTexture(GL_TEXTURE_2D, ch->textureID);
 			
 			// Update content of VBO memory
 			glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(finalVertices), finalVertices);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			
 			// Render quad
 			glDrawArrays(GL_TRIANGLES, 0, 6);
-			
-			// Advance cursor for next glyph (advance is in 1/64th pixels)
-			x += (ch->advance >> 6) * m_scale;
 		}
 
 		glBindVertexArray(0);
