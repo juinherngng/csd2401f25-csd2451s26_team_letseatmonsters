@@ -17,8 +17,11 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#ifdef _DEBUG
 #include <imgui.h>
 #include <imgui_internal.h>
+#endif
+
 #include <filesystem>
 #include <vector>
 #include <string>
@@ -39,7 +42,6 @@
 #include "LevelEditorFileIO.hpp"
 #include "LevelEditorPrefabLinks.hpp"
 #include "InputManager.hpp"
-
 
 
 namespace fs = std::filesystem;
@@ -152,8 +154,6 @@ namespace {
 				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
 			}
 
-			// scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
-
 			// Store transform and defaults
 			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, 0.0f }, { obj.w, obj.h, 1.0f }, obj.rotation);
 
@@ -226,7 +226,8 @@ namespace {
 		}
 	}
 
-	// Draws the advanced Layering System UI
+#ifdef _DEBUG
+	// Draws the advanced Layering System UI (debug-only)
 	static void DrawLayerManager(Scene& scene, int selectedObjectId) {
 		if (!ImGui::CollapsingHeader("Layering System", ImGuiTreeNodeFlags_DefaultOpen)) {
 			return;
@@ -317,10 +318,17 @@ namespace {
 			ImGui::PopID();
 		}
 	}
+#else
+	// Release build: provide a no-op stub to keep signatures available but avoid ImGui calls.
+	static void DrawLayerManager(Scene& /*scene*/, int /*selectedObjectId*/) {
+		// Editor layering UI disabled in Release builds.
+	}
+#endif
 }
 
 // Public ImGui Level Panel Implementation
 namespace LEPANELLEVEL {
+#ifdef _DEBUG
 	void DrawLevelPanel(LevelEditor& editor, Scene& scene,
 						int& selectedIndex, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
@@ -399,6 +407,7 @@ namespace LEPANELLEVEL {
 		// Undo
 		if (ImGui::Button("Undo")) {
 			if (PerformUndo(editor, scene)) {
+				// visually reset selection
 				selectedIndex = -1;
 				selectedObjectId = -1;
 			}
@@ -1047,4 +1056,15 @@ namespace LEPANELLEVEL {
 	void RecordUndoSnapshot(LevelEditor& editor, Scene& scene) {
 		PushUndoSnapshot(editor, scene);
 	}
+#else
+	// Release: no ImGui, provide no-op implementations so callers still link.
+	void DrawLevelPanel(LevelEditor& /*editor*/, Scene& /*scene*/, int& /*selectedIndex*/, int& /*selectedObjectId*/) {
+		// Editor UI disabled in Release builds.
+	}
+
+	void RecordUndoSnapshot(LevelEditor& /*editor*/, Scene& /*scene*/) {
+		// No-op in Release.
+	}
+#endif
 }
+

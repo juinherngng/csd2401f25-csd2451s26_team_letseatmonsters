@@ -27,7 +27,9 @@
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
 
+#ifdef _DEBUG
 #include <imgui.h>
+#endif
 
 #include <algorithm>
 #include <iostream>
@@ -44,7 +46,7 @@ struct ApplicationState {
 extern ApplicationState* g_AppState;
 
 namespace LEPANELAUDIOCONTROL {
-
+#ifdef _DEBUG
     // Draw the Audio Control docked window
     void DrawAudioControlPanel(LevelEditor& editor, Scene& scene) {
         // Dock into the main dockspace on first use
@@ -229,6 +231,14 @@ namespace LEPANELAUDIOCONTROL {
             audioByCategory[asset.category].push_back(&asset);
         }
 
+        // Sort audio within each category by name (this groups by prefix like ui_, sfx_, bgm_)
+        for (auto& [category, assets] : audioByCategory) {
+            std::sort(assets.begin(), assets.end(),
+                [](const Audio::AudioAsset* a, const Audio::AudioAsset* b) {
+                    return a->name < b->name;
+                });
+        }
+
         // Display each category
         const char* categoryColors[] = { "ui", "sfx", "bgm", "ambient", "other" };
         const ImVec4 colors[] = {
@@ -332,5 +342,10 @@ namespace LEPANELAUDIOCONTROL {
         (void)editor; // Suppress unused parameter warning
         (void)scene;  // Suppress unused parameter warning
     }
+#else
+    void DrawAudioControlPanel(LevelEditor& /*editor*/, Scene& /*scene*/) {
+        // No-op in Release builds — audio control editor disabled.
+    }
+#endif
 
 } // namespace LEPANELAUDIOCONTROL

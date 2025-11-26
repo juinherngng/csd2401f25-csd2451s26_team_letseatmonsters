@@ -10,7 +10,7 @@
 					simple item interaction logic. Integrates with Scene, InputManager, and physics
 					step mode.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -34,37 +34,48 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	(void)scene;
 	if (!player) return;
 
-	glm::vec2 direction = moveDirRaw;
+	const float moveThreshold = 0.01f;
+	std::string desiredAnimation;
 
-	// Small dead zone to avoid jitter when very close / tiny input
-	if (glm::length(direction) <= 0.001f) {
-		return;
-	}
+	float absX = std::abs(moveDirRaw.x);
+	float absY = std::abs(moveDirRaw.y);
 
-	float absX = std::abs(direction.x);
-	float absY = std::abs(direction.y);
-
-	if (absX > absY) {
-		// Horizontal dominant
-		if (direction.x > 0.0f) {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_right.png", "../assets/mc_sprite_right.png"));
-		}
-		else {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_left.png", "../assets/mc_sprite_left.png"));
+	// Detect idle/no movement
+	if (glm::length(moveDirRaw) < moveThreshold) {
+		switch (facingDir) {
+		case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
+		case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
+		case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
+		case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
 		}
 	}
 	else {
-		// Vertical dominant
-		if (direction.y > 0.0f) {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_front.png", "../assets/mc_sprite_front.png"));
+		if (absX > absY) {
+			if (moveDirRaw.x > 0.0f) {
+				desiredAnimation = "WALK_RIGHT";
+				facingDir = FacingDir::Right;
+			}
+			else {
+				desiredAnimation = "WALK_LEFT";
+				facingDir = FacingDir::Left;
+			}
 		}
 		else {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_back.png", "../assets/mc_sprite_back.png"));
+			if (moveDirRaw.y > 0.0f) {
+				desiredAnimation = "WALK_FRONT";
+				facingDir = FacingDir::Front;
+			}
+			else {
+				desiredAnimation = "WALK_BACK";
+				facingDir = FacingDir::Back;
+			}
 		}
+	}
+
+	// Query the currently playing animation (to prevent animation resets due to the same input pressed)
+	std::string currentAnimation = scene.GetCurrentAnimationName(player->GetID());
+	if (desiredAnimation != currentAnimation) {
+		scene.SetAnimation(player->GetID(), desiredAnimation);
 	}
 }
 
@@ -155,14 +166,14 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 }
 
 // Unity: OnArrived()
-// For now it’s a stub; later you can branch by what we clicked (tables, spawners, etc.)
+// For now itï¿½s a stub; later you can branch by what we clicked (tables, spawners, etc.)
 void PlayerLogic::OnArrived(Scene& scene) {
 	(void)scene;
 	// Example debug:
 	std::cout << "[PlayerLogic] Arrived at destination\n";
 }
 
-// Unity: PickUp(GameObject item) – here by engine ID
+// Unity: PickUp(GameObject item) ï¿½ here by engine ID
 void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	GameObject* item = scene.GetGameObjectByID(itemID);
 	GameObject* player = GetOwner(scene);
@@ -172,12 +183,12 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	carriedItemID = itemID;
 
 	// For now, just snap the item near the player.
-	// Later you can add proper “holdingPoint” + offsets like Unity.
+	// Later you can add proper ï¿½holdingPointï¿½ + offsets like Unity.
 	glm::vec3 p = player->GetPositionGLM();
-	item->SetPosition(glm::vec3(p.x, p.y - 32.f, p.z)); // crude “front” offset
+	item->SetPosition(glm::vec3(p.x, p.y - 32.f, p.z)); // crude ï¿½frontï¿½ offset
 }
 
-// Unity: Drop(Vector3 dropPos) – here: drop slightly in front of player
+// Unity: Drop(Vector3 dropPos) ï¿½ here: drop slightly in front of player
 void PlayerLogic::Drop(Scene& scene) {
 	if (carriedItemID < 0)
 		return;
@@ -190,7 +201,7 @@ void PlayerLogic::Drop(Scene& scene) {
 	}
 
 	glm::vec3 p = player->GetPositionGLM();
-	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple “in front” drop
+	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple ï¿½in frontï¿½ drop
 	carriedItemID = -1;
 }
 
@@ -218,11 +229,13 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	glm::vec2 inputDir(0.f, 0.f);
 	float speed = 200.0f;
 
+	// Get keyboard input
 	if (input.IsKeyPressed(GLFW_KEY_A)) inputDir.x -= 1.f;
 	if (input.IsKeyPressed(GLFW_KEY_D)) inputDir.x += 1.f;
 	if (input.IsKeyPressed(GLFW_KEY_W)) inputDir.y -= 1.f;
 	if (input.IsKeyPressed(GLFW_KEY_S)) inputDir.y += 1.f;
 
+	// Main keyboard movement
 	if (inputDir.x != 0.f || inputDir.y != 0.f) {
 		hasMoveTarget = false;
 
@@ -249,6 +262,18 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 		// Update sprite based on keyboard movement
 		UpdateSprite(scene, player, inputDir);
+	}
+	// If has click-to-move target, follow that
+	else if (hasMoveTarget) {
+		glm::vec2 pos(pos3.x, pos3.y);
+		glm::vec2 moveDir = moveTarget - pos; 
+		// Move player toward target
+		// Set animation based on moveDir
+		UpdateSprite(scene, player, moveDir); // Pass click-move vector 
+	}
+	else {
+		// Idle: pass zero movement vector
+		UpdateSprite(scene, player, glm::vec2(0.f, 0.f));
 	}
 
 	HandleClickInput(scene, input);

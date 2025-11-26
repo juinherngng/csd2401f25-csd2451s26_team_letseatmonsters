@@ -136,3 +136,7 @@ float GameObject::GetRotationAngleZ() const {
 	float angle = std::atan2(m_Rotation[1][0], m_Rotation[0][0]);
 	return angle;
 }
+
+bool GameObject::IsAnimated() const {
+	return animator != nullptr;
+}

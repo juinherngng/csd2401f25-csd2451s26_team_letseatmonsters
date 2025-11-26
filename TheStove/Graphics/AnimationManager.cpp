@@ -9,7 +9,7 @@
 					updating frame UVs based on Animator2D components. Supports play/pause
 					control and registering animation sets for different entity types.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -99,30 +99,59 @@ void AnimationManager::AttachDinoAnimations(int objectID) {
 }
 
 void AnimationManager::AttachPlayerAnimations(int objectID) {
-	// Player uses texture swapping, not frame animation
-	// But we create an animator for consistency
+
 	Animator2D& anim = animators_[objectID];
 
-	// Single-frame "animations" for each direction
-	std::vector<glm::vec4> singleFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
+	// Player sprite sheets: 8 columns x 14 rows
+	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(13, 0, 7, 14, 8);		
+	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(12, 0, 7, 14, 8);			
+	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(11, 0, 7, 14, 8);		
+	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(10, 0, 7, 14, 8);	
 
-	animationSets_[objectID]["front"] = { singleFrame, 0.1f, true };
-	animationSets_[objectID]["back"] = { singleFrame, 0.1f, true };
-	animationSets_[objectID]["left"] = { singleFrame, 0.1f, true };
-	animationSets_[objectID]["right"] = { singleFrame, 0.1f, true };
+	std::vector<glm::vec4> backWalkFrames = CreateFrameSequenceRow(9, 0, 7, 14, 8);
+	std::vector<glm::vec4> frontWalkFrames = CreateFrameSequenceRow(8, 0, 7, 14, 8);
+	std::vector<glm::vec4> leftWalkFrames = CreateFrameSequenceRow(7, 0, 7, 14, 8);
+	std::vector<glm::vec4> rightWalkFrames = CreateFrameSequenceRow(6, 0, 7, 14, 8);
 
-	const auto& frontAnim = animationSets_[objectID]["front"];
-	anim.SetFrames(frontAnim.frames, frontAnim.frameDuration, frontAnim.loop);
-	currentAnimations_[objectID] = "front";
+	animationSets_[objectID]["IDLE_FRONT"] = AnimationSet{ frontIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_BACK"] = AnimationSet{ backIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_LEFT"] = AnimationSet{ leftIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_RIGHT"] = AnimationSet{ rightIdleFrames, 0.15f, true };
+
+	animationSets_[objectID]["WALK_FRONT"] = AnimationSet{ frontWalkFrames, 0.15f, true };
+	animationSets_[objectID]["WALK_BACK"] = AnimationSet{ backWalkFrames, 0.15f, true };
+	animationSets_[objectID]["WALK_LEFT"] = AnimationSet{ leftWalkFrames, 0.15f, true };
+	animationSets_[objectID]["WALK_RIGHT"] = AnimationSet{ rightWalkFrames, 0.15f, true };
+
+	const auto& idleAnim = animationSets_[objectID]["IDLE_FRONT"];
+	anim.SetFrames(idleAnim.frames, idleAnim.frameDuration, idleAnim.loop);
+	currentAnimations_[objectID] = "IDLE_FRONT";
 	anim.Play();
 
 	std::cout << "[AnimationManager] Attached player animations to object " << objectID << std::endl;
 }
 
 void AnimationManager::AttachNPCAnimations(int objectID) {
-	// NPCs use similar setup to player (texture swapping)
+	// NPCs use textutre swapping for now
 	Animator2D& anim = animators_[objectID];
 
+	// NPC sprite sheets: 8 columns x 5 rows
+	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(4, 0, 7, 14, 8);
+	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(3, 0, 7, 14, 8);
+	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(2, 0, 7, 14, 8);
+
+	std::vector<glm::vec4> leftWalkFrames = CreateFrameSequenceRow(1, 0, 7, 14, 8);
+	std::vector<glm::vec4> rightWalkFrames = CreateFrameSequenceRow(0, 0, 7, 14, 8);
+
+	// Not in use currently
+	animationSets_[objectID]["IDLE_FRONT"] = AnimationSet{ frontIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_LEFT"] = AnimationSet{ leftIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_RIGHT"] = AnimationSet{ rightIdleFrames, 0.15f, true };
+
+	animationSets_[objectID]["WALK_LEFT"] = AnimationSet{ leftWalkFrames, 0.15f, true };
+	animationSets_[objectID]["WALK_RIGHT"] = AnimationSet{ rightWalkFrames, 0.15f, true };
+
+	// For texture swapping (temporary)
 	std::vector<glm::vec4> singleFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 
 	animationSets_[objectID]["front"] = { singleFrame, 0.1f, true };
@@ -186,6 +215,7 @@ bool AnimationManager::HasAnimator(int objectID) const {
 
 // ===== Helper Functions =====
 
+// Only extracts frames from a single row, works only for single row sprite sheets
 std::vector<glm::vec4> AnimationManager::CreateFrameSequence(int startFrame, int endFrame, int totalFrames) {
 	std::vector<glm::vec4> frames;
 	float frameWidth = 1.0f / totalFrames;
@@ -197,6 +227,21 @@ std::vector<glm::vec4> AnimationManager::CreateFrameSequence(int startFrame, int
 
 	return frames;
 }
+
+// Extracts frames from a specific row in a grid-based sprite sheet
+std::vector<glm::vec4> AnimationManager::CreateFrameSequenceRow(int row, int startCol, int endCol, int totalRows = 14, int totalCols = 8) {
+	std::vector<glm::vec4> frames;
+	float frameWidth = 1.0f / totalCols;    // 0.125
+	float frameHeight = 1.0f / totalRows;   // ~0.0714
+	float v = row * frameHeight;
+	for (int i = startCol; i <= endCol; ++i) {
+		float u = i * frameWidth;
+		frames.push_back(glm::vec4(u, v, frameWidth, frameHeight));
+	}
+	return frames;
+}
+
+
 
 // ===== Play/Pause Control =====
 

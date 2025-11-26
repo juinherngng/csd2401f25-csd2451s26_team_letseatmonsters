@@ -24,6 +24,7 @@
 #include "Mesh.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
+#include "Animator.hpp"
 
  /**
   * @class GameObject
@@ -147,6 +148,9 @@ public:
 		return m_uvRect;
 	}
 
+	// Check if the GameObject is currently using an animated sprite
+	bool IsAnimated() const;
+
 private:
 	Mesh* m_Mesh;
 	Shader* m_Shader;
@@ -167,4 +171,6 @@ private:
 	Math::Vector2D m_Velocity{ 0.f, 0.f };
 	Math::Vector2D m_ColliderSize{ 1.f, 1.f };
 	Math::Vector2D m_ColliderOffset{ 0.f, 0.f };
+
+	Animator2D* animator = nullptr;
 };

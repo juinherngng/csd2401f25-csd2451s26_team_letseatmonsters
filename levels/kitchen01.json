@@ -1,18 +1,18 @@
 {
   "objects": [
     {
-      "animated": false,
+      "animated": true,
       "col_h": 128.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
       "col_w": 64.0,
       "h": 128.0,
-      "layer": "1",
+      "layer": "3",
       "rotation": 0.0,
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "player",
-      "texture": "../assets/mc_sprite_front.png",
+      "texture": "../assets/mc_sprite.png",
       "w": 128.0,
       "x": 341.1042785644531,
       "y": 444.17181396484375,

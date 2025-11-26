@@ -76,6 +76,20 @@ GraphicsEngine::GraphicsEngine()
 
 // Initialize core renderer, FBO, default resources, and ImGui
 void GraphicsEngine::Initialize() {
+	// Ensure there's a current GLFW OpenGL context before calling any GL functions.
+	GLFWwindow* ctx = glfwGetCurrentContext();
+	if (ctx == nullptr) {
+		std::cerr << "[GraphicsEngine] ERROR: No current OpenGL context. Initialize must be called after creating/making context current.\n";
+		return;
+	}
+
+	// Load GL function pointers as early as possible (must succeed before any gl* calls).
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+		std::cerr << "[GraphicsEngine] ERROR: gladLoadGLLoader failed - no GL functions available\n";
+		return;
+	}
+
+	// Now safe to call GL / renderer initialization
 	renderer.Initialize();
 	renderer.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
@@ -87,6 +101,8 @@ void GraphicsEngine::Initialize() {
 	DebugRenderer::Init();
 	DebugRenderer::SetEnabled(false);
 
+#ifdef _DEBUG
+	// Initialize ImGui only after GL loader succeeded and we have a valid context.
 	if (!_imguiInitialized) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -104,10 +120,11 @@ void GraphicsEngine::Initialize() {
 		style.ScaleAllSizes(1.2f);
 		ImGui::StyleColorsDark();
 
-		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
+		ImGui_ImplGlfw_InitForOpenGL(ctx, true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
 		_imguiInitialized = true;
 	}
+#endif
 }
 
 // SystemInterface Update - currently just tracks deltaTime for performance monitoring
@@ -327,6 +344,12 @@ void GraphicsEngine::ClearBackground() {
 
 // Start a new ImGui frame and host a global DockSpace
 void GraphicsEngine::BeginImGuiFrame() {
+#ifdef _DEBUG
+	// Guard: only call backend frame functions if ImGui was initialized
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		return;
+	}
+
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -354,10 +377,17 @@ void GraphicsEngine::BeginImGuiFrame() {
 
 	ImGui::End();
 	ImGui::PopStyleVar(2);
+#endif
 }
 
 // Draw the Scene window and present the scene FBO texture inside it
 void GraphicsEngine::DrawSceneDockWindow() {
+#ifdef _DEBUG
+	// Guard: bail if ImGui not initialized or no context
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		return;
+	}
+
 	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
 							   ImGuiCond_FirstUseEver);
 
@@ -408,12 +438,20 @@ void GraphicsEngine::DrawSceneDockWindow() {
 	}
 
 	ImGui::End();
+#endif
 }
 
 // Finish the current ImGui frame and render it
 void GraphicsEngine::EndImGuiFrame() {
+#ifdef _DEBUG
+	// Guard: only render if initialized & valid ImGui context
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		return;
+	}
+
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#endif
 }
 
 // Frame begin: clear backbuffer, set viewport, bind scene FBO, begin ImGui
@@ -428,6 +466,13 @@ void GraphicsEngine::BeginFrame() {
 
 // Convert current mouse (screen) into scene world coords if within image
 bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
+#ifdef _DEBUG
+	// Guard: If ImGui not ready, return early
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		(void)outWorld;
+		return false;
+	}
+
 	ImVec2 imgPos = sceneImagePos_;
 	ImVec2 imgSize = sceneImageSize_;
 
@@ -503,8 +548,14 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 
 	outWorld = glm::vec2(world4.x, world4.y);
 	return true;
+#else
+	// No ImGui / Scene window in Release - picking disabled.
+	(void)outWorld;
+	return false;
+#endif
 }
 
+// Default render path
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
 	// Draw background first
 	if (backgroundObject) {
@@ -558,9 +609,35 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		}
 	}
 
+	// Unbind scene FBO so default framebuffer can be used for final presentation
 	EndSceneRender();
+
+#ifdef _DEBUG
+	// Debug: render ImGui dockspace + scene image into ImGui window
 	DrawSceneDockWindow();
 	EndImGuiFrame();
+#else
+	// Release: present the scene FBO to the default framebuffer (GLFW window)
+	// Validate resources before blit
+	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+		// Source rect (scene FBO)
+		const int srcW = mSceneWidth;
+		const int srcH = mSceneHeight;
+
+		// Destination rect (window)
+		const int dstW = screenWidth;
+		const int dstH = screenHeight;
+
+		// Perform blit (scaled)
+		glBlitFramebuffer(0, 0, srcW, srcH, 0, 0, dstW, dstH, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+		// Restore default framebuffer binding
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+#endif
 
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
@@ -568,7 +645,7 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	}
 }
 
-// Batched/instanced render path for static sprites; direct draw for animated (instanced animated not implemented yet)
+// Batched/instanced render path 
 void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Reset stats
 	renderStats = RenderStats();
@@ -596,148 +673,119 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-
+	// Early out if no objects
 	if (objects.empty()) {
 		EndSceneRender();
+#ifdef _DEBUG
 		DrawSceneDockWindow();
 		EndImGuiFrame();
+#else
+		// Blit scene FBO to default framebuffer in Release (guarded)
+		if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			glBlitFramebuffer(0, 0, mSceneWidth, mSceneHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+#endif
 		return;
 	}
 
-	// Separate by shader type
-	std::vector<GameObject*> staticSprites;
-	std::vector<GameObject*> animatedSprites;
-
-	// Get the animatedsprite shader once for comparison
+	// Prefetch possible instanced shaders + animated shader pointer
+	Shader* staticsInstShader = resourceManager.GetShader("staticsprite_instanced");
+	Shader* animatedInstShader = resourceManager.GetShader("animatedsprite_instanced");
 	Shader* animShader = resourceManager.GetShader("animatedsprite");
 
-	for (auto* obj : objects) {
-		if (!obj || !obj->GetMesh() || !obj->GetShader()) {
-			continue;
+	// Build contiguous runs keyed by (mesh, shader, texture) - preserves layering order
+	std::vector<Mesh::InstanceData> instanceBatch;
+	RenderKey currentKey{ nullptr, nullptr, nullptr };
+
+	auto flushBatch = [&](const std::vector<Mesh::InstanceData>& batch, const RenderKey& key) {
+		if (batch.empty() || !key.mesh || !key.shader) return;
+
+		const bool wantsInstancing = batch.size() >= INSTANCING_THRESHOLD;
+
+		// Map the original shader -> preferred instanced shader 
+		Shader* preferredInstanced = nullptr;
+		if (key.shader == resourceManager.GetShader("staticsprite")) {
+			preferredInstanced = staticsInstShader;
+		}
+		else if (key.shader == animShader) {
+			preferredInstanced = animatedInstShader;
 		}
 
-		if (obj->GetShader() == animShader) {
-			animatedSprites.push_back(obj); // animated
+		// If we should and can instance, use instanced path
+		if (wantsInstancing && preferredInstanced) {
+			key.mesh->SetupInstanceBuffer(batch);
+
+			preferredInstanced->Use();
+			preferredInstanced->SetViewMatrix(view);
+			preferredInstanced->SetProjectionMatrix(projection);
+
+			if (key.texture) {
+				key.texture->Bind(0);
+				preferredInstanced->SetTexture("u_Texture", 0);
+			}
+
+			key.mesh->DrawInstanced(key.texture, static_cast<GLsizei>(batch.size()));
+
+			renderStats.drawCalls++;
+			renderStats.totalBatches++;
+			renderStats.instancedObjects += static_cast<int>(batch.size());
 		}
 		else {
-			staticSprites.push_back(obj); // static
-		}
-	}
+			// Non-instanced fallback: draw each element with original shader so per-object uniforms work
+			key.shader->Use();
+			key.shader->SetViewMatrix(view);
+			key.shader->SetProjectionMatrix(projection);
 
-	// Render static sprites with batching and instancing,
-	// while preserving the original order from the Scene (layer + Y sorting).
-	if (!staticSprites.empty()) {
-
-		auto sameRenderKey = [](const RenderKey& a, const RenderKey& b) {
-			return a.mesh == b.mesh && a.shader == b.shader && a.texture == b.texture;
-		};
-
-		std::size_t i = 0;
-		while (i < staticSprites.size()) {
-			GameObject* first = staticSprites[i];
-			if (!first || !first->GetMesh() || !first->GetShader()) {
-				++i;
-				continue;
+			if (key.texture) {
+				key.texture->Bind(0);
+				key.shader->SetTexture("u_Texture", 0);
 			}
 
-			RenderKey key{ first->GetMesh(), first->GetShader(), first->GetTexture() };
+			for (const auto& inst : batch) {
+				// per-object model matrix
+				key.shader->SetModelMatrix(inst.modelMatrix);
 
-			// Collect a contiguous run of objects that share this RenderKey
-			std::vector<GameObject*> run;
-			run.push_back(first);
-			++i;
-
-			while (i < staticSprites.size()) {
-				GameObject* next = staticSprites[i];
-				if (!next || !next->GetMesh() || !next->GetShader()) {
-					++i;
-					continue;
+				// If shader is animated (non-instanced), supply UV via uniforms
+				if (key.shader == animShader) {
+					key.shader->SetUVOffset(glm::vec2(inst.uvOffsetScale.x, inst.uvOffsetScale.y));
+					key.shader->SetUVScale(glm::vec2(inst.uvOffsetScale.z, inst.uvOffsetScale.w));
 				}
 
-				RenderKey nextKey{ next->GetMesh(), next->GetShader(), next->GetTexture() };
-				if (!sameRenderKey(key, nextKey)) {
-					break; // different material to end of this batch
-				}
-
-				run.push_back(next);
-				++i;
-			}
-
-			if (run.empty()) {
-				continue;
+				key.mesh->Draw();
+				renderStats.drawCalls++;
 			}
 
 			renderStats.totalBatches++;
-
-			if (run.size() >= INSTANCING_THRESHOLD) {
-				// Instanced path (same logic as before, but using "run" instead of "batch")
-				renderStats.instancedObjects += static_cast<int>(run.size());
-
-				std::vector<glm::mat4> modelMatrices;
-				modelMatrices.reserve(run.size());
-				for (const auto* obj : run) {
-					modelMatrices.push_back(obj->GetModelMatrix());
-				}
-
-				key.mesh->SetupInstanceBuffer(modelMatrices);
-
-				Shader* instancedShader = resourceManager.GetShader("staticsprite_instanced");
-				if (!instancedShader) {
-					instancedShader = key.shader;
-				}
-
-				instancedShader->Use();
-				instancedShader->SetViewMatrix(view);
-				instancedShader->SetProjectionMatrix(projection);
-				if (key.texture) {
-					instancedShader->SetTexture("u_Texture", 0);
-				}
-
-				key.mesh->DrawInstanced(key.texture, run.size());
-				renderStats.drawCalls++;
-			}
-			else {
-				// Non-instanced path (same as before, but keep order in "run")
-				key.shader->Use();
-				key.shader->SetViewMatrix(view);
-				key.shader->SetProjectionMatrix(projection);
-				if (key.texture) {
-					key.texture->Bind(0);
-					key.shader->SetTexture("u_Texture", 0);
-				}
-
-				for (const auto* obj : run) {
-					key.shader->SetModelMatrix(obj->GetModelMatrix());
-					key.mesh->Draw();
-					renderStats.drawCalls++;
-				}
-			}
 		}
+		};
+
+	// Build runs in order
+	for (auto* obj : objects) {
+		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
+
+		RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
+
+		// Flush when render key changes
+		if (key != currentKey && !instanceBatch.empty()) {
+			flushBatch(instanceBatch, currentKey);
+			instanceBatch.clear();
+		}
+		currentKey = key;
+
+		Mesh::InstanceData inst;
+		inst.modelMatrix = obj->GetModelMatrix();
+		// Always store per-object UV rect in instance data (instanced shader will use it, fallback uses uniforms)
+		inst.uvOffsetScale = obj->GetUVRect();
+		instanceBatch.push_back(inst);
 	}
 
-	// Render animated sprites (no batching/instancing, not implemented yet)
-	for (const auto* obj : animatedSprites) {
-		Shader* shader = obj->GetShader();
-		Mesh* mesh = obj->GetMesh();
-		Texture* texture = obj->GetTexture();
-
-		shader->Use();
-		shader->SetModelMatrix(obj->GetModelMatrix());
-		shader->SetViewMatrix(view);
-		shader->SetProjectionMatrix(projection);
-
-		// Set UV coordinates 
-		const glm::vec4 uv = obj->GetUVRect();
-		shader->SetUVOffset(glm::vec2(uv.x, uv.y));
-		shader->SetUVScale(glm::vec2(uv.z, uv.w));
-
-		if (texture) {
-			texture->Bind(0);
-			shader->SetTexture("u_Texture", 0);
-		}
-
-		mesh->Draw();
-		renderStats.drawCalls++;
+	// Flush remaining batch
+	if (!instanceBatch.empty()) {
+		flushBatch(instanceBatch, currentKey);
+		instanceBatch.clear();
 	}
 
 	// Debug bounding boxes render
@@ -745,19 +793,29 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		glDisable(GL_DEPTH_TEST);
 		for (const auto* obj : objects) {
 			if (obj) {
-				obj->DrawBoundingBox(view, projection, glm::vec3(1.0f, 0.0f, 0.0f));
+				obj->DrawBoundingBox(view, projection, glm::vec3{ 1.0f, 0.0f, 0.0f });
 			}
 		}
 		DebugRenderer::Flush(view, projection);
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	// End-of-frame UI
+	// End-of-frame UI and finalization
 	EndSceneRender();
+#ifdef _DEBUG
 	DrawSceneDockWindow();
 	EndImGuiFrame();
+#else
+	// Blit to default framebuffer (guarded)
+	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glBlitFramebuffer(0, 0, mSceneWidth, mSceneHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+#endif
 
-	// GL error check
+	// OpenGL error check loop
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
 		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
@@ -770,6 +828,7 @@ void GraphicsEngine::Shutdown() {
 	DebugRenderer::Shutdown();
 	resourceManager.Clear();
 
+#ifdef _DEBUG
 	// ImGui cleanup
 	if (_imguiInitialized) {
 		ImGui_ImplOpenGL3_Shutdown();
@@ -777,6 +836,6 @@ void GraphicsEngine::Shutdown() {
 		ImGui::DestroyContext();
 		_imguiInitialized = false;
 	}
+#endif
 }
-
 
