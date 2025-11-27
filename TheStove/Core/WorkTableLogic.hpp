@@ -17,6 +17,8 @@ class WorkTableLogic : public TableLogic
 public:
     explicit WorkTableLogic(int ownerID);
 
+    void Start(Scene& scene);
+
     // Called every frame by the logic system.
     void Update(float dt, Scene& scene, InputManager&) override;
 

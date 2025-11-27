@@ -784,6 +784,9 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	else if (tag == "ingredient_box") {
 		logicManager.AddLogic<IngredientBoxLogic>(id);
 	}
+	else if (tag == "plate_box") {
+		logicManager.AddLogic<IngredientBoxLogic>(id);
+	}
 	// you can extend with more tags later
 }
 

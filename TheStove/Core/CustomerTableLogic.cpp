@@ -6,6 +6,9 @@ CustomerTableLogic::CustomerTableLogic(int ownerID)
     : TableLogic(ownerID)
     , seatedCustomerID_(kInvalidID)
 {
+    ClearApproachOffsets();
+
+    AddApproachOffset(Math::Vector2D(0.0f, -160.0f));
 }
 
 void CustomerTableLogic::Start(Scene& scene)

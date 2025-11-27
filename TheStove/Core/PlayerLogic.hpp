@@ -14,6 +14,7 @@ DESCRIPTION:		Declares the PlayerLogic class that controls player input handling
 #pragma once
 #include "GameObjectLogic.hpp"
 #include <glm/glm.hpp>
+#include "Math.hpp"
 
 class PlayerLogic : public GameObjectLogic {
 public:
@@ -62,10 +63,21 @@ private:
 
     // Simple “holding” state by object ID
     int carriedItemID{ -1 };
+    int pendingTableID = -1;   // table we intend to interact with after moving
+
+    // Offset where the carried item should appear relative to the player
+    glm::vec2 carryOffset{ 0.f, -32.f };
+
+    // Store original collider size of the carried item (so we can restore on drop)
+    Math::Vector2D carriedItemOriginalColliderSize{ 0.f, 0.f };
+    bool hasCarriedItemOriginalColliderSize{ false };
 
     // Internal helpers
     void HandleClickInput(Scene& scene, InputManager& input); // Unity: input + raycast
     void UpdateMovement(float dt, Scene& scene);              // Unity: NavMeshAgent movement
     void OnArrived(Scene& scene);                             // Unity: OnArrived() hook
     void UpdateSprite(Scene& scene, GameObject* player, const glm::vec2& moveDir);
+
+    //keep carried item following the player
+    void UpdateCarriedItemTransform(Scene& scene);
 };

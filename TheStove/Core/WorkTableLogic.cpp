@@ -10,6 +10,18 @@ WorkTableLogic::WorkTableLogic(int ownerID)
     , processingTime_(3.0f)   // default: 3 seconds to process
     , timer_(0.0f)
 {
+    ClearApproachOffsets();
+
+    AddApproachOffset(Math::Vector2D(0.0f, 110.0f));
+}
+
+void WorkTableLogic::Start(Scene& scene)
+{
+    std::cout << "[WorkTableLogic] Start ownerID=" << GetOwnerID() << "\n";
+
+    ClearApproachOffsets();
+
+    AddApproachOffset(Math::Vector2D(0.0f, 110.0f));
 }
 
 // ------------------- Update -------------------
@@ -21,6 +33,10 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&)
         return;
 
     timer_ += dt;
+
+    std::cout << "[WorkTableLogic] processing... t=" << timer_
+        << "/" << processingTime_ << "\n";
+
     if (timer_ >= processingTime_)
     {
         timer_ = processingTime_;
@@ -120,12 +136,21 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
         isProcessing_ = true;
         timer_ = 0.0f;
     }
+
+    std::cout << "[WorkTableLogic] Started processing item " << item.GetID()
+        << " on table " << GetOwnerID() << "\n";
 }
 
-void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& /*item*/)
+void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& item)
 {
     // If the player removes the item mid-process, cancel.
-    CancelProcessing(scene);
+    if (isProcessing_)
+    {
+        std::cout << "[WorkTableLogic] Item " << item.GetID()
+            << " TAKEN while still processing! t=" << processingTime_
+            << "/" << timer_ << "\n";
+        CancelProcessing(scene);
+    }
 }
 
 // ------------------- Processing complete hook -------------------
@@ -150,19 +175,35 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item)
     if (!ing)
     {
         // Not an ingredient – nothing to do.
+        std::cout << "[WorkTableLogic] OnProcessingComplete: item "
+            << item.GetID() << " has no IngredientLogic\n";
         return;
     }
 
     // If your rule is “only raw gets processed”, respect that:
     if (!CanProcessIngredient(*ing))
     {
+        std::cout << "[WorkTableLogic] OnProcessingComplete: ingredient "
+            << item.GetID() << " is not processable\n";
         return;
     }
+
+    // 2) Swap the sprite to the cut cabbage texture
+//    (for now we assume this table is a cutting board for vegetables).
+    item.SetTexture(
+        ResourceManager::Instance().LoadTexture(
+            "../assets/Cabbage_CUT_Ingredient.png",
+            "../assets/Cabbage_CUT_Ingredient.png"
+        )
+    );
 
     // This is where the magic happens:
     //  - IngredientLogic::MarkProcessed()
     //  - internally flips Vegetable -> Refined_Veg, Meat -> Refined_Meat, etc.
     CompleteProcessingForIngredient(*ing);
+
+    std::cout << "[WorkTableLogic] Finished processing item " << item.GetID()
+        << ", new type=" << static_cast<int>(ing->GetType()) << "\n";
 }
 
 bool WorkTableLogic::CanProcessIngredient(const IngredientLogic& ingredient) const
