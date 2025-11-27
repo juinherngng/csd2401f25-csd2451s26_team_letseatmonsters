@@ -48,6 +48,7 @@ struct LevelObject {
 
 struct LevelData {
 	std::vector<LevelObject> objects{};
+	std::string background; // optional background texture path
 };
 
 // Public Interface

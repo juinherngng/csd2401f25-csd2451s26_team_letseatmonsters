@@ -78,9 +78,9 @@ void Scene::LoadScene(const std::string& sceneName) {
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
-	// Debug-only animation controls (implemented in separate debug file)
+	// Debug-only animation controls
 #ifdef _DEBUG
-	UpdateAnimationControls(); // debug-only hotkeys
+	UpdateAnimationControls();
 #endif
 
 	// Deferred Clear

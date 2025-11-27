@@ -312,8 +312,10 @@ void GraphicsEngine::LoadDefaultResources() {
 
 // Set/ensure a fullscreen background quad using the given texture path
 void GraphicsEngine::SetBackground(const std::string& texturePath) {
-	// Load background texture
-	Texture* bgTexture = resourceManager.LoadTexture("background", texturePath);
+	// Derive a unique key per path to avoid returning a cached texture
+	std::string key = "background_" + std::filesystem::path(texturePath).filename().string();
+
+	Texture* bgTexture = resourceManager.LoadTexture(key, texturePath);
 	if (!bgTexture) {
 		std::cerr << "Failed to load background texture: " << texturePath << std::endl;
 		return;
@@ -549,9 +551,46 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	outWorld = glm::vec2(world4.x, world4.y);
 	return true;
 #else
-	// No ImGui / Scene window in Release - picking disabled.
-	(void)outWorld;
-	return false;
+	// Release: compute from GLFW mouse and letterboxed viewport
+	GLFWwindow* win = glfwGetCurrentContext();
+	if (!win) { return false; }
+
+	// Mouse in window space
+	double mx, my;
+	glfwGetCursorPos(win, &mx, &my);
+
+	// Check inside letterboxed viewport
+	const float vx = static_cast<float>(viewportX_);
+	const float vy = static_cast<float>(viewportY_);
+	const float vw = static_cast<float>(viewportW_);
+	const float vh = static_cast<float>(viewportH_);
+	if (mx < vx || my < vy || mx > (vx + vw) || my > (vy + vh)) {
+		return false;
+	}
+
+	// Local coords in viewport [0..vw],[0..vh]
+	const float localX = static_cast<float>(mx) - vx;
+	const float localY = static_cast<float>(my) - vy;
+
+	// UV [0..1]
+	const float u = localX / vw;
+	const float v = localY / vh;
+
+	// Pixel in reference canvas
+	const float px = u * float(kRefW);
+	const float py = v * float(kRefH);
+
+	// Clip -> world using inverse(V*P) of reference canvas
+	glm::vec4 clip;
+	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;
+	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;
+	clip.z = 0.0f;
+	clip.w = 1.0f;
+
+	const glm::mat4 invVP = glm::inverse(projection * view);
+	const glm::vec4 world4 = invVP * clip;
+	outWorld = glm::vec2(world4.x, world4.y);
+	return true;
 #endif
 }
 

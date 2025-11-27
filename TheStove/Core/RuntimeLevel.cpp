@@ -109,9 +109,15 @@ namespace RuntimeLevel {
 		}
 
 		scene.ClearAll();
+
+		// Set background if provided; otherwise keep current
+		if (!data.background.empty()) {
+			std::cout << "[RuntimeLevel] Background set: " << data.background << std::endl;
+			scene.SetSceneBackground(data.background);
+		}
+
 		BuildSceneFromLevel(data, scene);
 		scene.RebuildColliders();
-
 		return true;
 	}
 }

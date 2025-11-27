@@ -21,6 +21,9 @@ namespace CoreFramework {
 	CoreEngine::CoreEngine() {
 		gameActive = true;	// game is running
 
+		// Initialize lastTime so the first deltaTime is ~0
+		lastTime = std::chrono::high_resolution_clock::now();
+
 		// Subscribe to QUIT messages to handle application shutdown
 		messageBus.Subscribe(MessageType::QUIT,
 							 [this](const Message& msg) {
