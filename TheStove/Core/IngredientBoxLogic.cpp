@@ -91,7 +91,7 @@ bool IngredientBoxLogic::CanAcceptItem(Scene& scene, int itemID) const
 
 int IngredientBoxLogic::SpawnIngredient(Scene& scene)
 {
-    const int ownerID = GetOwnerID();
+    const int ownerID_ = GetOwnerID();
     LogicManager& logicMgr = scene.GetLogicManager();
 
     GameObject* spawnedObj = nullptr;
@@ -101,7 +101,7 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene)
     {
         // Spawn a raw ingredient (e.g. cabbage)
         spawnedObj = scene.SpawnStaticSpriteAtSamePos(
-            ownerID,
+            ownerID_,
             ingredientTexture_,
             ingredientWidth_,
             ingredientHeight_,
@@ -111,7 +111,7 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene)
         if (!spawnedObj)
         {
             std::cout << "[IngredientBoxLogic] Failed to spawn INGREDIENT from box "
-                << ownerID << "\n";
+                << ownerID_ << "\n";
             return -1;
         }
 

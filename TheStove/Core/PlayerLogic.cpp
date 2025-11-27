@@ -101,7 +101,7 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 		// Update sprite immediately based on click direction
 		UpdateSprite(scene, player, delta);
 
-		scene.GetMovementManager().SetMoveTarget(player->GetID(), dest);
+		//scene.GetMovementManager().SetMoveTarget(player->GetID(), dest);
 	}
 
 	moveTarget = dest;
@@ -112,16 +112,25 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 }
 
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
-	PlayerController& controller = scene.GetPlayerController();
 
 	// Only once per click (left mouse)
-	if (!controller.IsClickToMoveJustPressed())
+	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT))
+	{
+		std::cout << "RETURNING\n";
 		return;
+	}
 
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
-	glm::vec2 mouseWorld = controller.GetClickWorld();
+	glm::vec2 mouseWorld{};
+
+	if (!scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld)) {
+		// Mouse not over scene viewport, ignore click
+		std::cout << "[PlayerLogic] Mouse not over scene viewport\n";
+		return;
+	}
+
 	std::cout << "[PlayerLogic] Click world = (" << mouseWorld.x << ", " << mouseWorld.y << ")\n";
 
 	// ----------------------------------------------------------
@@ -232,8 +241,8 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	if (distSq <= arriveRadiusSq) {
 		hasMoveTarget = false;
 
-		if (GameObject* player = GetOwner(scene)) {
-			scene.GetMovementManager().ClearMoveTarget(player->GetID());
+		if (GameObject* player_ = GetOwner(scene)) {
+			scene.GetMovementManager().ClearMoveTarget(player_->GetID());
 		}
 
 		OnArrived(scene);
@@ -254,11 +263,6 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	const auto size = player->GetColliderSize();
 	const auto offset = player->GetColliderOffset();
 
-	// Build AABB for current position (center = pos + offset)
-	Math::Vector3D center(pos3.x + offset.x, pos3.y + offset.y, pos3.z);
-	Math::Vector3D scale(size.x, size.y, 1.0f);
-
-	collision::AABB box = collision::World::makeAABBFromCenter(center, scale);
 		// Apply allowed movement
 		// Desired movement for this frame
 		glm::vec2 desiredDelta(dir.x * step, dir.y * step);
@@ -385,45 +389,45 @@ void PlayerLogic::Drop(Scene& scene) {
 	carriedItemID = -1;
 }
 
-void PlayerLogic::HandleScaleInput(GameObject* player, InputManager& input, float dt)
-{
-	(void)dt;
-	if (!player) return;
+//void PlayerLogic::HandleScaleInput(GameObject* player, InputManager& input, float dt)
+//{
+//	(void)dt;
+//	if (!player) return;
+//
+//	glm::vec3 scale = player->GetScaleGLM();
+//
+//	if (input.IsKeyPressed(GLFW_KEY_UP)) {
+//		scale *= 1.01f;
+//		scale = glm::min(scale, glm::vec3(500.0f));
+//		player->SetScale(scale);
+//	}
+//
+//	if (input.IsKeyPressed(GLFW_KEY_DOWN)) {
+//		scale *= 0.99f;
+//		scale = glm::max(scale, glm::vec3(50.0f));
+//		player->SetScale(scale);
+//	}
+//}
 
-	glm::vec3 scale = player->GetScaleGLM();
-
-	if (input.IsKeyPressed(GLFW_KEY_UP)) {
-		scale *= 1.01f;
-		scale = glm::min(scale, glm::vec3(500.0f));
-		player->SetScale(scale);
-	}
-
-	if (input.IsKeyPressed(GLFW_KEY_DOWN)) {
-		scale *= 0.99f;
-		scale = glm::max(scale, glm::vec3(50.0f));
-		player->SetScale(scale);
-	}
-}
-
-void PlayerLogic::HandleRotationInput(GameObject* player, InputManager& input, float dt)
-{
-	if (!player) return;
-
-	const float kRotationSpeed = 10.0f; // degrees per second
-
-	if (input.IsKeyPressed(GLFW_KEY_RIGHT)) {
-		rotation_ += kRotationSpeed * dt;
-	}
-	if (input.IsKeyPressed(GLFW_KEY_LEFT)) {
-		rotation_ -= kRotationSpeed * dt;
-	}
-
-	// Normalize to [0, 360)
-	while (rotation_ >= 360.0f) rotation_ -= 360.0f;
-	while (rotation_ < 0.0f)   rotation_ += 360.0f;
-
-	player->SetRotation(rotation_, glm::vec3(0, 0, 1));
-}
+//void PlayerLogic::HandleRotationInput(GameObject* player, InputManager& input, float dt)
+//{
+//	if (!player) return;
+//
+//	const float kRotationSpeed = 10.0f; // degrees per second
+//
+//	if (input.IsKeyPressed(GLFW_KEY_RIGHT)) {
+//		rotation_ += kRotationSpeed * dt;
+//	}
+//	if (input.IsKeyPressed(GLFW_KEY_LEFT)) {
+//		rotation_ -= kRotationSpeed * dt;
+//	}
+//
+//	// Normalize to [0, 360)
+//	while (rotation_ >= 360.0f) rotation_ -= 360.0f;
+//	while (rotation_ < 0.0f)   rotation_ += 360.0f;
+//
+//	player->SetRotation(rotation_, glm::vec3(0, 0, 1));
+//}
 
 
 void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
@@ -436,6 +440,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	if (stepMode && physicsDt <= 0.0f) {
 		// Optional: still allow click selection while frozen
+		std::cout << "HANDLE CLICK INPUT FREONZE\n";
 		HandleClickInput(scene, input);
 
 		// Debug: prove we still see the key
@@ -496,6 +501,8 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		// Idle: pass zero movement vector
 		UpdateSprite(scene, player, glm::vec2(0.f, 0.f));
 	}
+
+	std::cout << "HANDLE CLICK INPUT\n";
 
 	HandleClickInput(scene, input);
 

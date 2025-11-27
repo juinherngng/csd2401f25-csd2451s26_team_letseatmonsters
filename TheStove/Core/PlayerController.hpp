@@ -23,7 +23,6 @@
 #include "../Graphics/EntityManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
 
-class GraphicsEngine;
 #include "InputManager.hpp"
 #include "Math.hpp"
 #include "MovementManager.hpp"

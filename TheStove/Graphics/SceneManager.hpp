@@ -91,9 +91,6 @@ public:
 	void ClearAll();
 	void RequestClearAll();
 
-	GraphicsEngine& GetGraphicsEngine();
-	const GraphicsEngine& GetGraphicsEngine() const;
-
 	// Simulation control
 	void SetSimulationActive(bool active);
 	bool IsSimulationActive() const;
@@ -257,11 +254,6 @@ public:
 	collision::WalkArea GetWalkArea() const;
 	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
 	void ApplyFinalConstraints(EntityManager& entityMgr);
-
-	// Logic system access
-	LogicManager& GetLogicManager() {
-		return logicManager;
-	}
 
 	// Expose EntityManager for systems that need it
 	EntityManager& GetEntityManager() {

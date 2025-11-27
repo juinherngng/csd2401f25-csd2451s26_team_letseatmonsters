@@ -1,7 +1,7 @@
 {
   "objects": [
     {
-      "animated": false,
+      "animated": true,
       "col_h": 128.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -12,7 +12,7 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "player",
-      "texture": "../assets/mc_sprite_front.png",
+      "texture": "../assets/mc_sprite.png",
       "w": 128.0,
       "x": 400.0,
       "y": 400.0,

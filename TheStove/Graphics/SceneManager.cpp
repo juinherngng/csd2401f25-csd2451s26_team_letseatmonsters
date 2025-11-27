@@ -411,15 +411,6 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	// you can extend with more tags later
 }
 
-
-GraphicsEngine& Scene::GetGraphicsEngine() {
-	return graphicsEngine;
-}
-
-const GraphicsEngine& Scene::GetGraphicsEngine() const {
-	return graphicsEngine;
-}
-
 MovementManager& Scene::GetMovementManager() {
 	return movementManager;
 }
