@@ -1,17 +1,19 @@
 /*
-----------------------------------------------------------------------------------------------------
-FILE NAME:			SimpleNpcLogic.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			PlayerLogic.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
 
-DESCRIPTION:		Declares the SimpleNpcLogic class implementing autonomous NPC movement
-                    with idle/walk states, direction switching, and boundary collision
-                    reactions for simple vertical patrol behavior.
+ DESCRIPTION:		Declares the SimpleNpcLogic script used for basic NPC behaviour. Defines the
+					movement states, timing values, and direction flags used to drive simple
+					up-down patrolling logic. Inherits from GameObjectLogic.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
-----------------------------------------------------------------------------------------------------
-*/
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #pragma once
+
 #include "GameObjectLogic.hpp"
 #include "FoodTypes.hpp"
 #include "Math.hpp"
@@ -19,11 +21,13 @@ DESCRIPTION:		Declares the SimpleNpcLogic class implementing autonomous NPC move
 
 class SimpleNpcLogic : public GameObjectLogic {
 public:
-    using GameObjectLogic::GameObjectLogic;
+	using GameObjectLogic::GameObjectLogic;
 
-    void Awake(Scene& scene) override;
-    void Update(float dt, Scene& scene, InputManager& input) override;
-    std::string GetName() const override { return "SimpleNpcLogic"; }
+	void Awake(Scene& scene) override;
+	void Update(float dt, Scene& scene, InputManager& input) override;
+	std::string GetName() const override {
+		return "SimpleNpcLogic";
+	}
 
 // ===================== Customer behaviour API =====================
 // These are the functions CustomerTableLogic / NPC system can call
@@ -82,19 +86,21 @@ public:
 // instead of doing the up/down patrol.
     void SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos);
 
-    // Clear any assigned customer table – NPC will go back to normal patrol.
+    // Clear any assigned customer table ï¿½ NPC will go back to normal patrol.
     void ClearCustomerTableTarget();
 
     bool HasCustomerTableTarget() const { return hasCustomerTarget_; }
 
 private:
-    enum class State { Idle, MoveUp, MoveDown };
+	enum class State {
+		Idle, MoveUp, MoveDown
+	};
 
-    State state = State::Idle;
-    float timer = 0.0f;
+	State state = State::Idle;
+	float timer = 0.0f;
 
-    float idleDuration = 0.5f;   // pause at top/bottom
-    float speed = 100.0f; // pixels per second
+	float idleDuration = 0.5f;   // pause at top/bottom
+	float speed = 100.0f; // pixels per second
 
     // Which direction we will move next after an Idle
     bool nextMoveUp = false;     // start by moving DOWN

@@ -1,0 +1,84 @@
+==========================================
+Lines of Code Report
+==========================================
+Author: CookieWasTaken
+Since: 2025-10-13
+Generated: Fri Nov  7 14:18:59 +08 2025
+==========================================
+
+Files Modified: 5 unique files
+
+Files Still Exist: 5 files
+
+==========================================
+CODE ANALYSIS - SUMMARY
+Excludes: Comments and Blank Lines
+==========================================
+
+       5 text files.
+classified 5 files       5 unique files.                              
+       0 files ignored.
+
+github.com/AlDanial/cloc v 1.90  T=0.08 s (61.6 files/s, 24499.0 lines/s)
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+C++                              2            234            184            973
+C/C++ Header                     3             85            237            276
+-------------------------------------------------------------------------------
+SUM:                             5            319            421           1249
+-------------------------------------------------------------------------------
+
+==========================================
+CODE ANALYSIS - PER FILE (Current State)
+==========================================
+
+       5 text files.
+classified 5 files       5 unique files.                              
+       0 files ignored.
+
+github.com/AlDanial/cloc v 1.90  T=0.08 s (64.7 files/s, 25747.6 lines/s)
+---------------------------------------------------------------------------------------
+File                                     blank        comment           code
+---------------------------------------------------------------------------------------
+TheStove/Core/DebugUI.cpp                  112             99            537
+TheStove/Main.cpp                          122             85            436
+TheStove/Core/Message.hpp                   31             98            156
+TheStove/Core/DebugUI.hpp                   33             23             70
+TheStove/Core/Core.hpp                      21            116             50
+---------------------------------------------------------------------------------------
+SUM:                                       319            421           1249
+---------------------------------------------------------------------------------------
+
+==========================================
+GIT CHANGES PER FILE
+==========================================
+
+File                                                                        Added    Deleted        Net
+--------------------------------------------------------------------------------------------
+TheStove/Core/DebugUI.cpp                                                      41         54        -13
+TheStove/Core/DebugUI.hpp                                                       3          4         -1
+TheStove/Main.cpp                                                               2          1          1
+TheStove/Core/Message.hpp                                                       1          1          0
+TheStove/Core/Core.hpp                                                          1          1          0
+                                                                                0          0          0
+--------------------------------------------------------------------------------------------
+
+==========================================
+GIT COMMIT STATISTICS - TOTAL
+==========================================
+
+Lines Added:    48
+Lines Deleted:  61
+Net Change:     -13
+Total Commits:  4
+
+==========================================
+FILES MODIFIED
+==========================================
+
+TheStove/Core/Core.hpp
+TheStove/Core/DebugUI.cpp
+TheStove/Core/DebugUI.hpp
+TheStove/Core/Message.hpp
+TheStove/Main.cpp

@@ -8,10 +8,11 @@ DESCRIPTION:		Declares the base GameObjectLogic class which defines the common
                     interface for all gameplay logic components attached to GameObjects,
                     including lifecycle methods and owner access utilities.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+        All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 #pragma once
+
 #include <string>
 
 class Scene;
@@ -20,20 +21,34 @@ class GameObject;
 
 class GameObjectLogic {
 public:
-    explicit GameObjectLogic(int ownerID) : ownerID(ownerID) {}
-    virtual ~GameObjectLogic() = default;
+	explicit GameObjectLogic(int ownerID) : ownerID(ownerID) {
+	}
+	virtual ~GameObjectLogic() = default;
 
-    virtual void Awake(Scene& scene) {}
-    virtual void Start(Scene& scene) {}
-    virtual void Update(float dt, Scene& scene, InputManager& input) {}
-    virtual void OnDestroy(Scene& scene) {}
+	// suppress unused parameter warnings
+	virtual void Awake(Scene& scene) {
+		(void)scene;
+	}
+	virtual void Start(Scene& scene) {
+		(void)scene;
+	}
+	virtual void Update(float dt, Scene& scene, InputManager& input) {
+		(void)dt; (void)scene; (void)input;
+	}
+	virtual void OnDestroy(Scene& scene) {
+		(void)scene;
+	}
 
-    int GetOwnerID() const { return ownerID; }
+	int GetOwnerID() const {
+		return ownerID;
+	}
 
 protected:
-    GameObject* GetOwner(Scene& scene) const;
+	GameObject* GetOwner(Scene& scene) const;
 
-    int ownerID;
-    // optional: name for debugging
-    virtual std::string GetName() const { return "GameObjectLogic"; }
+	int ownerID;
+	// optional: name for debugging
+	virtual std::string GetName() const {
+		return "GameObjectLogic";
+	}
 };

@@ -30,9 +30,9 @@ void ForceRegistry::Add(RigidBody2D* bodyPtr, IForceGenerator* generator) {
 void ForceRegistry::Remove(RigidBody2D* bodyPtr, IForceGenerator* generator) {
 	entries.erase(
 		std::remove_if(entries.begin(), entries.end(),
-			[&](const Entry& e) {
-				return (e.body == bodyPtr) && (e.gen == generator);
-			}),
+					   [&](const Entry& e) {
+		return (e.body == bodyPtr) && (e.gen == generator);
+	}),
 		entries.end()
 	);
 }
@@ -102,9 +102,9 @@ SeekForce::SeekForce(Math::Vector2D* targetPtr, float maxAccelIn, float arrive)
 }
 
 SeekForce::SeekForce(Math::Vector2D* targetPtr,
-	const Math::Vector2D* cur,
-	float maxAccelIn,
-	float arrive)
+					 const Math::Vector2D* cur,
+					 float maxAccelIn,
+					 float arrive)
 	: target(targetPtr), currentPos2DPtr(cur), maxAccel(maxAccelIn), arriveRadius(arrive) {
 }
 
@@ -135,7 +135,7 @@ void SeekForce::UpdateForce(RigidBody2D& body, float) {
 	if (distance > 1e-4f) {
 		// Normalize and push with fixed acceleration (scaled by mass)
 		const Math::Vector2D direction = toTarget * (1.0f / distance);
-		const float accel = (maxAccel > 0.0f) ? maxAccel : 0.0f;
+		const float accel = (maxAccel > 0.0f)?maxAccel:0.0f;
 		body.AddForce(direction * (accel * body.GetMass()));
 	}
 }

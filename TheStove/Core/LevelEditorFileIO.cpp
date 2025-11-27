@@ -17,25 +17,24 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "LevelEditorFileIO.hpp"
-
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
 #include <filesystem>
+#include <iostream>
 #include <system_error>
 #include <vector>
 #include <string>
-
 #include <imgui.h>
 #include <glm/glm.hpp>
-
-#include "LevelSerializer.hpp"
 
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
+
+#include "LevelEditorFileIO.hpp"
+#include "LevelSerializer.hpp"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -49,6 +48,10 @@ namespace LEFILEIO {
 	// Open a native file dialog (Windows). Returns empty string if canceled.
 	std::string OpenFileDialog(const char* filter) {
 #ifdef _WIN32
+		// Save the current working directory before opening the dialog
+		char originalCwd[MAX_PATH];
+		GetCurrentDirectoryA(MAX_PATH, originalCwd);
+		
 		char filePathBuffer[MAX_PATH] = { 0 };
 
 		OPENFILENAMEA ofn{};
@@ -57,9 +60,14 @@ namespace LEFILEIO {
 		ofn.nFilterIndex = 1;
 		ofn.lpstrFile = filePathBuffer;
 		ofn.nMaxFile = MAX_PATH;
-		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER;
+		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER | OFN_NOCHANGEDIR; // Add OFN_NOCHANGEDIR flag
 
-		if (GetOpenFileNameA(&ofn)) {
+		bool result = GetOpenFileNameA(&ofn);
+		
+		// Restore the original working directory after the dialog closes
+		SetCurrentDirectoryA(originalCwd);
+		
+		if (result) {
 			return std::string(filePathBuffer);
 		}
 #endif
@@ -101,12 +109,24 @@ namespace LEFILEIO {
 			return {};
 		}
 
-		// Return a project-relative form like "../assets/..."
-		return (fs::path("..") / dst.lexically_normal().relative_path()).generic_string();
+		// IMPORTANT: Don't use dst.generic_string() - it may resolve to absolute path
+		// Instead, manually construct the relative path string from the original destinationDir
+		std::string resultFilename = dst.filename().string();
+		
+		// Ensure destinationDir ends with forward slash for consistent concatenation
+		std::string normalizedDir = destinationDir;
+		std::replace(normalizedDir.begin(), normalizedDir.end(), '\\', '/');
+		if (!normalizedDir.empty() && normalizedDir.back() != '/') {
+			normalizedDir += '/';
+		}
+		
+		std::string relativePath = normalizedDir + resultFilename;
+		
+		std::cout << "[CopyFileIntoProjectUnique] Returning path: " << relativePath << std::endl;
+		return relativePath;
 	}
 
-	// Move a file into a sibling "trash" directory instead of deleting it.
-	// Returns true on success.
+	// Move to trash
 	bool MoveToTrash(const std::string& filePath) {
 		std::error_code ec;
 
@@ -127,6 +147,7 @@ namespace LEFILEIO {
 	}
 
 	// List all .json files (non-recursive) in a directory, sorted by name.
+	// Returns relative paths.
 	std::vector<std::string> ListJsonFiles(const std::string& dir) {
 		std::vector<std::string> out;
 		std::error_code ec;
@@ -135,9 +156,19 @@ namespace LEFILEIO {
 			return out;
 		}
 
+		// Normalize directory path
+		std::string normalizedDir = dir;
+		std::replace(normalizedDir.begin(), normalizedDir.end(), '\\', '/');
+		if (!normalizedDir.empty() && normalizedDir.back() != '/') {
+			normalizedDir += '/';
+		}
+
 		for (const auto& p : fs::directory_iterator(dir, ec)) {
 			if (p.is_regular_file() && p.path().extension() == ".json") {
-				out.push_back(p.path().generic_string());
+				// Manually construct relative path to avoid fs::path converting to absolute
+				std::string filename = p.path().filename().string();
+				std::string relativePath = normalizedDir + filename;
+				out.push_back(relativePath);
 			}
 		}
 
@@ -146,13 +177,20 @@ namespace LEFILEIO {
 	}
 
 	// List files with specific lowercase extensions (e.g., {".png",".jpg"}).
-	// Returns sorted list of absolute/generic paths.
+	// Returns sorted list of relative paths (relative to current working directory).
 	std::vector<std::string> ListAssetsWithExt(const std::string& dir, const std::vector<std::string>& extensions) {
 		std::vector<std::string> out;
 		std::error_code ec;
 
 		if (!fs::exists(dir, ec)) {
 			return out;
+		}
+
+		// Normalize directory path
+		std::string normalizedDir = dir;
+		std::replace(normalizedDir.begin(), normalizedDir.end(), '\\', '/');
+		if (!normalizedDir.empty() && normalizedDir.back() != '/') {
+			normalizedDir += '/';
 		}
 
 		for (const auto& p : fs::directory_iterator(dir, ec)) {
@@ -162,11 +200,14 @@ namespace LEFILEIO {
 
 			std::string ext = p.path().extension().string();
 			std::transform(ext.begin(), ext.end(), ext.begin(),
-				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+						   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
 			for (const auto& e : extensions) {
 				if (ext == e) {
-					out.push_back(p.path().generic_string());
+					// Manually construct relative path to avoid fs::path converting to absolute
+					std::string filename = p.path().filename().string();
+					std::string relativePath = normalizedDir + filename;
+					out.push_back(relativePath);
 					break;
 				}
 			}
@@ -245,7 +286,7 @@ namespace LEFILEIO {
 	// Useful for forcing a re-import of modified assets at runtime.
 	Texture* LoadTextureBypassingCache(const std::string& path) {
 		const std::uint64_t tick = static_cast<std::uint64_t>(ImGui::GetTime() * 1'000'000.0);
-		const std::string   key = "sprite_" + path + "#v" + std::to_string(tick);
+		const std::string key = "sprite_" + path + "#v" + std::to_string(tick);
 
 		return ResourceManager::Instance().LoadTexture(key, path);
 	}

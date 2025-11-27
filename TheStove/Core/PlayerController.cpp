@@ -17,13 +17,13 @@
 #include "../Graphics/GraphicsEngine.hpp"
 
 void PlayerController::HandleInput(float deltaTime,
-	InputManager& inputManager,
-	EntityManager& entityManager,
-	MovementManager& movementManager,
-	PhysicsManager& physicsManager,
-	GraphicsEngine& graphicsEngine,
-	int playerID,
-	bool useForces) {
+								   InputManager& inputManager,
+								   EntityManager& entityManager,
+								   MovementManager& movementManager,
+								   PhysicsManager& physicsManager,
+								   GraphicsEngine& graphicsEngine,
+								   int playerID,
+								   bool useForces) {
 	if (playerID < 0) {
 		return;
 	}
@@ -42,7 +42,7 @@ void PlayerController::HandleInput(float deltaTime,
 
 	// Handle click-to-move (Left mouse)
 	HandleClickToMove(inputManager, entityManager, movementManager,
-		physicsManager, graphicsEngine, playerID, useForces);
+					  physicsManager, graphicsEngine, playerID, useForces);
 }
 
 void PlayerController::HandleScaleInput(InputManager& inputManager, GameObject* sprite, float deltaTime) {
@@ -60,6 +60,8 @@ void PlayerController::HandleScaleInput(InputManager& inputManager, GameObject* 
 		scale = glm::max(scale, glm::vec3(50.0f));
 		sprite->SetScale(scale);
 	}
+
+	(void)deltaTime;
 }
 
 void PlayerController::HandleRotationInput(InputManager& inputManager, float deltaTime) {
@@ -85,12 +87,12 @@ void PlayerController::HandleRotationInput(InputManager& inputManager, float del
 }
 
 void PlayerController::HandleClickToMove(InputManager& inputManager,
-	EntityManager& entityManager,
-	MovementManager& movementManager,
-	PhysicsManager& physicsManager,
-	GraphicsEngine& graphicsEngine,
-	int playerID,
-	bool useForces) {
+										 EntityManager& entityManager,
+										 MovementManager& movementManager,
+										 PhysicsManager& physicsManager,
+										 GraphicsEngine& graphicsEngine,
+										 int playerID,
+										 bool useForces) {
 	// Only act on the initial press to set a target once.
 	if (!inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		return;

@@ -7,7 +7,7 @@ AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
 DESCRIPTION:		Implements player control logic, including movement, sprite updates,
 					mouse click handling, item pickup/drop, and scene clamping behavior.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 #include "PlayerLogic.hpp"
@@ -19,8 +19,13 @@ DESCRIPTION:		Implements player control logic, including movement, sprite update
 #include "CustomerTableLogic.hpp"
 #include <iostream>
 
-void PlayerLogic::Start(Scene& scene)
-{
+#include "../Core/DebugUI.hpp"
+#include "../Core/InputControls.hpp"
+#include "../Core/InputManager.hpp"
+#include "../Graphics/SceneManager.hpp"
+#include "PlayerLogic.hpp"
+
+void PlayerLogic::Start(Scene& scene) {
 	(void)scene;
 	hasMoveTarget = false;
 	carriedItemID = -1;
@@ -37,37 +42,48 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	(void)scene;
 	if (!player) return;
 
-	glm::vec2 direction = moveDirRaw;
+	const float moveThreshold = 0.01f;
+	std::string desiredAnimation;
 
-	// Small dead zone to avoid jitter when very close / tiny input
-	if (glm::length(direction) <= 0.001f) {
-		return;
-	}
+	float absX = std::abs(moveDirRaw.x);
+	float absY = std::abs(moveDirRaw.y);
 
-	float absX = std::abs(direction.x);
-	float absY = std::abs(direction.y);
-
-	if (absX > absY) {
-		// Horizontal dominant
-		if (direction.x > 0.0f) {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_right.png", "../assets/mc_sprite_right.png"));
-		}
-		else {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_left.png", "../assets/mc_sprite_left.png"));
+	// Detect idle/no movement
+	if (glm::length(moveDirRaw) < moveThreshold) {
+		switch (facingDir) {
+		case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
+		case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
+		case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
+		case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
 		}
 	}
 	else {
-		// Vertical dominant
-		if (direction.y > 0.0f) {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_front.png", "../assets/mc_sprite_front.png"));
+		if (absX > absY) {
+			if (moveDirRaw.x > 0.0f) {
+				desiredAnimation = "WALK_RIGHT";
+				facingDir = FacingDir::Right;
+			}
+			else {
+				desiredAnimation = "WALK_LEFT";
+				facingDir = FacingDir::Left;
+			}
 		}
 		else {
-			player->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_back.png", "../assets/mc_sprite_back.png"));
+			if (moveDirRaw.y > 0.0f) {
+				desiredAnimation = "WALK_FRONT";
+				facingDir = FacingDir::Front;
+			}
+			else {
+				desiredAnimation = "WALK_BACK";
+				facingDir = FacingDir::Back;
+			}
 		}
+	}
+
+	// Query the currently playing animation (to prevent animation resets due to the same input pressed)
+	std::string currentAnimation = scene.GetCurrentAnimationName(player->GetID());
+	if (desiredAnimation != currentAnimation) {
+		scene.SetAnimation(player->GetID(), desiredAnimation);
 	}
 }
 
@@ -243,10 +259,12 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	Math::Vector3D scale(size.x, size.y, 1.0f);
 
 	collision::AABB box = collision::World::makeAABBFromCenter(center, scale);
-
-	Math::Vector2D desiredDelta(dir.x * step, dir.y * step);
-	Math::Vector2D allowedDelta =
-		scene.GetCollisionManager().GetCollisionWorld().resolve(box, desiredDelta);
+		// Apply allowed movement
+		// Desired movement for this frame
+		glm::vec2 desiredDelta(dir.x * step, dir.y * step);
+	
+		// Trim against static world (outer frame + wood + gate)
+		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
 
 	// If we can't move at all (hit a wall and are stuck), cancel the target
 	const float allowedLenSq = allowedDelta.x * allowedDelta.x +
@@ -260,7 +278,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 		return;
 	}
 
-	// Apply allowed movement
+
 	pos.x += allowedDelta.x;
 	pos.y += allowedDelta.y;
 
@@ -280,7 +298,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 }
 
 // Unity: OnArrived()
-// For now it’s a stub; later you can branch by what we clicked (tables, spawners, etc.)
+// For now itï¿½s a stub; later you can branch by what we clicked (tables, spawners, etc.)
 void PlayerLogic::OnArrived(Scene& scene) {
 	(void)scene;
 	// Example debug:
@@ -318,7 +336,7 @@ void PlayerLogic::OnArrived(Scene& scene) {
 	pendingTableID = -1;
 }
 
-// Unity: PickUp(GameObject item) – here by engine ID
+// Unity: PickUp(GameObject item) ï¿½ here by engine ID
 void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	GameObject* item = scene.GetGameObjectByID(itemID);
 	GameObject* player = GetOwner(scene);
@@ -342,7 +360,7 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	UpdateCarriedItemTransform(scene);
 }
 
-// Unity: Drop(Vector3 dropPos) – here: drop slightly in front of player
+// Unity: Drop(Vector3 dropPos) ï¿½ here: drop slightly in front of player
 void PlayerLogic::Drop(Scene& scene) {
 	if (carriedItemID < 0)
 		return;
@@ -363,7 +381,7 @@ void PlayerLogic::Drop(Scene& scene) {
 	}
 
 	glm::vec3 p = player->GetPositionGLM();
-	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple “in front” drop
+	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple ï¿½in frontï¿½ drop
 	carriedItemID = -1;
 }
 
@@ -412,21 +430,35 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
-	PlayerController& controller = scene.GetPlayerController();
-	controller.SampleInput(dt, input, scene.GetGraphicsEngine());
+	const float physicsDt = scene.GetLastPhysicsDt();
+	const physics::StepController& step = scene.GetStepController();
+	const bool stepMode = step.enabled;
 
-	HandleScaleInput(player, input, dt);
-	HandleRotationInput(player, input, dt);
+	if (stepMode && physicsDt <= 0.0f) {
+		// Optional: still allow click selection while frozen
+		HandleClickInput(scene, input);
+
+		// Debug: prove we still see the key
+		if (input.IsKeyJustPressed(GLFW_KEY_P)) {
+			std::cout << "[PlayerLogic] P pressed (step mode, frozen)\n";
+		}
+
+		return; // skip movement while paused
+	}
 
 	glm::vec3 pos3 = player->GetPositionGLM();
-
-	glm::vec2 inputDir = controller.GetMoveAxis();
+	glm::vec2 inputDir(0.f, 0.f);
 	float speed = 200.0f;
 
+	// Get keyboard input
+	if (input.IsKeyPressed(GLFW_KEY_A)) inputDir.x -= 1.f;
+	if (input.IsKeyPressed(GLFW_KEY_D)) inputDir.x += 1.f;
+	if (input.IsKeyPressed(GLFW_KEY_W)) inputDir.y -= 1.f;
+	if (input.IsKeyPressed(GLFW_KEY_S)) inputDir.y += 1.f;
+
+	// Main keyboard movement
 	if (inputDir.x != 0.f || inputDir.y != 0.f) {
 		hasMoveTarget = false;
-
-		scene.GetMovementManager().ClearMoveTarget(player->GetID());
 
 		float len = std::sqrt(inputDir.x * inputDir.x + inputDir.y * inputDir.y);
 		if (len > 0.0001f) {
@@ -434,31 +466,36 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 			inputDir.y /= len;
 		}
 
-		glm::vec2 desiredStep = inputDir * moveSpeed * dt;
+		// Desired movement this frame
+		glm::vec2 desiredDelta(inputDir.x * speed * dt,
+							   inputDir.y * speed * dt);
 
-		// Build collider at current position in M-space
-		Math::Vector3D posM(pos3.x, pos3.y, pos3.z);
-		const collision::AABB box = physics::MakeColliderBox(player, posM);
+		// Trim against static world (outer frame + wood + gate)
+		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
 
-		// Ask collision world to resolve movement against all static walls
-		collision::World& world = scene.GetCollisionWorld();
-		Math::Vector2D desiredMove(desiredStep.x, desiredStep.y);
-		Math::Vector2D allowedMove = world.resolve(box, desiredMove);
+		pos3.x += allowedDelta.x;
+		pos3.y += allowedDelta.y;
 
-		// Apply allowed movement
-		posM.x += allowedMove.x;
-		posM.y += allowedMove.y;
+		player->SetPosition(pos3);
 
-		glm::vec3 newPos(posM.x, posM.y, posM.z);
-		player->SetPosition(newPos);
-
-		// Still clamp to walk area / gate as a final safeguard
+		// Optional: still clamp to overall walk rectangle if you want a hard outer bound
 		scene.ClampToWalkArea(player);
 
 		// Update sprite based on keyboard movement
 		UpdateSprite(scene, player, inputDir);
 	}
-
+	// If has click-to-move target, follow that
+	else if (hasMoveTarget) {
+		glm::vec2 pos(pos3.x, pos3.y);
+		glm::vec2 moveDir = moveTarget - pos; 
+		// Move player toward target
+		// Set animation based on moveDir
+		UpdateSprite(scene, player, moveDir); // Pass click-move vector 
+	}
+	else {
+		// Idle: pass zero movement vector
+		UpdateSprite(scene, player, glm::vec2(0.f, 0.f));
+	}
 
 	HandleClickInput(scene, input);
 

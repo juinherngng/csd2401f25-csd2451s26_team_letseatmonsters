@@ -12,18 +12,16 @@ DESCRIPTION:		The core engine managing the game loop, systems, and messaging.
 
 #pragma once
 
-#include "System.hpp"
-#include "MessageBus.hpp"
-
-#include <vector>
 #include <chrono>
 #include <memory>
 #include <utility>
+#include <vector>
 
-namespace CoreFramework
-{
-	class CoreEngine
-	{
+#include "MessageBus.hpp"
+#include "System.hpp"
+
+namespace CoreFramework {
+	class CoreEngine {
 	public:
 		/************************************************************************/
 		/*!
@@ -85,7 +83,9 @@ namespace CoreFramework
 			FPS as a float.
 		*/
 		/************************************************************************/
-		float GetFPS() const { return fps; }
+		float GetFPS() const {
+			return fps;
+		}
 
 		/************************************************************************/
 		/*!
@@ -95,7 +95,9 @@ namespace CoreFramework
 			Delta time in seconds as a float.
 		*/
 		/************************************************************************/
-		float GetDeltaTime() const { return deltaTime; }
+		float GetDeltaTime() const {
+			return deltaTime;
+		}
 
 		/************************************************************************/
 		/*!
@@ -105,7 +107,9 @@ namespace CoreFramework
 			Const reference to the systems vector.
 		*/
 		/************************************************************************/
-		const std::vector<std::unique_ptr<SystemInterface>>& GetSystems() const { return Systems; }
+		const std::vector<std::unique_ptr<SystemInterface>>& GetSystems() const {
+			return Systems;
+		}
 
 		/************************************************************************/
 		/*!
@@ -118,8 +122,7 @@ namespace CoreFramework
 		*/
 		/************************************************************************/
 		template<typename T>
-		T* GetSystem()
-		{
+		T* GetSystem() {
 			for (auto& s : Systems)
 				if (auto* casted = dynamic_cast<T*>(s.get()))
 					return casted;
@@ -135,8 +138,7 @@ namespace CoreFramework
 		*/
 		/************************************************************************/
 		template<typename T>
-		T const* GetSystem() const
-		{
+		T const* GetSystem() const {
 			for (auto const& s : Systems)
 				if (auto const* casted = dynamic_cast<T const*>(s.get()))
 					return casted;
@@ -151,7 +153,9 @@ namespace CoreFramework
 			True if running, false if shutting down.
 		*/
 		/************************************************************************/
-		bool IsGameActive() const { return gameActive; }
+		bool IsGameActive() const {
+			return gameActive;
+		}
 
 		/************************************************************************/
 		/*!
@@ -161,7 +165,9 @@ namespace CoreFramework
 			Reference to the internal MessageBus.
 		*/
 		/************************************************************************/
-		MessageBus& GetMessageBus() { return messageBus; }
+		MessageBus& GetMessageBus() {
+			return messageBus;
+		}
 
 		/************************************************************************/
 		/*!
@@ -171,7 +177,9 @@ namespace CoreFramework
 			Const reference to the internal MessageBus.
 		*/
 		/************************************************************************/
-		const MessageBus& GetMessageBus() const { return messageBus; }
+		const MessageBus& GetMessageBus() const {
+			return messageBus;
+		}
 
 	private:
 		using SystemPtr = std::unique_ptr<SystemInterface>;

@@ -46,6 +46,10 @@ target_link_libraries(LetsEatMonsters PRIVATE TheStove)
 # Set C++ standard for the build
 set_property(TARGET LetsEatMonsters PROPERTY CXX_STANDARD 20)
 
+# Set the working directory for Visual Studio debugging to the build directory
+# This ensures relative paths like ../assets work correctly
+set_property(TARGET LetsEatMonsters PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
+
 # Copy FMOD DLL to the executable's output directory
 copy_fmod_dll_to_target(LetsEatMonsters)
 
@@ -65,11 +69,35 @@ add_custom_command(TARGET LetsEatMonsters POST_BUILD
     COMMENT "Copying shader files to build directory"
 )
 
+# Copy level files to the build directory for run.bat
+add_custom_command(TARGET LetsEatMonsters POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/levels"
+    "${CMAKE_BINARY_DIR}/levels"
+    COMMENT "Copying shader files to build directory"
+)
+
+# Copy prefab files to the build directory for run.bat
+add_custom_command(TARGET LetsEatMonsters POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/prefabs"
+    "${CMAKE_BINARY_DIR}/prefabs"
+    COMMENT "Copying prefab files to build directory"
+)
+
+# Copy extern files to the build directory for run.bat
+add_custom_command(TARGET LetsEatMonsters POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/extern"
+    "${CMAKE_BINARY_DIR}/extern"
+    COMMENT "Copying extern files to build directory"
+)
+
 # Add compiler warnings and flags based on compiler
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(TheStove PRIVATE -Wall)
     target_compile_options(LetsEatMonsters PRIVATE -Wall)
 elseif (MSVC)
-    target_compile_options(TheStove PRIVATE /W3 /WX-)
-    target_compile_options(LetsEatMonsters PRIVATE /W3 /WX-)
+    target_compile_options(TheStove PRIVATE /W4 /WX-)
+    target_compile_options(LetsEatMonsters PRIVATE /W4 /WX-)
 endif()

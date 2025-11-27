@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Wrapper for clear color, buffer clear, and platform init
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -14,8 +14,8 @@
 
 class Renderer {
 public:
-    void Initialize();
-    void Clear();
-    void SetClearColor(float r, float g, float b, float a);
+	void Initialize();
+	void Clear();
+	void SetClearColor(float r, float g, float b, float a);
 };
 

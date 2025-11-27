@@ -1,16 +1,16 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			RigidBody2D.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
-CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+ FILE NAME:			RigidBody2D.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
-DESCRIPTION:		Declares a lightweight 2D rigid body component that stores linear state
+ DESCRIPTION:		Declares a lightweight 2D rigid body component that stores linear state
 					(velocity, mass, damping), accumulates forces/impulses, integrates motion,
 					and writes back to an attached Transform. Designed to be used with a
 					ForceRegistry and simple steering forces (seek, drag, gravity).
 
-All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -34,10 +34,10 @@ class ForceRegistry;
  *  - Optionally apply gravity or externally supplied acceleration.
  *  - Write motion to the owner's Transform (if present).
  */
-class RigidBody2D : public GameComponent
-{
+class RigidBody2D : public GameComponent {
 public:
-	RigidBody2D() : velocity(Math::Vector2D::ZERO), acceleration(Math::Vector2D::ZERO)/*, mass(0.0f)*/, useGravity(false) {};
+	RigidBody2D() : velocity(Math::Vector2D::ZERO), acceleration(Math::Vector2D::ZERO)/*, mass(0.0f)*/, useGravity(false) {
+	};
 
 	// ----- Lifecycle -----
 
@@ -104,8 +104,7 @@ public:
 	// Clone this component (kept to match engine conventions).
 	GameComponent* Clone() const override;
 
-	~RigidBody2D() override
-	{
+	~RigidBody2D() override {
 		std::cout << "Deleting RigidBody2D's component " << "\n";
 	}
 private:

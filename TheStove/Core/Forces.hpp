@@ -18,11 +18,11 @@
 
 #pragma once
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
-#include "RigidBody2D.hpp"
 #include "Math.hpp"
+#include "RigidBody2D.hpp"
 
  // Interface: any force source implements this.
 struct IForceGenerator {
@@ -101,9 +101,9 @@ struct SeekForce : IForceGenerator {
 	SeekForce(Math::Vector2D* targetPtr, float maxAccelIn = 600.0f, float arrive = 6.0f);
 
 	SeekForce(Math::Vector2D* targetPtr,
-		const Math::Vector2D* currentPosPtr,
-		float maxAccelIn = 600.0f,
-		float arrive = 6.0f);
+			  const Math::Vector2D* currentPosPtr,
+			  float maxAccelIn = 600.0f,
+			  float arrive = 6.0f);
 
 	void UpdateForce(RigidBody2D& body, float dt) override;
 };

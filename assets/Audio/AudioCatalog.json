@@ -1,0 +1,45 @@
+{
+  "audio_assets": [
+    {
+      "category": "ui",
+      "filepath": "../assets/Audio/Cute Pop Sound Effects1 0.1.wav",
+      "loop": false,
+      "name": "ui_click",
+      "stream": false,
+      "volume": 0.5
+    },
+    {
+      "category": "sfx",
+      "filepath": "../assets/Audio/Boiling7.wav",
+      "loop": true,
+      "name": "boiling_sound",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../assets/Audio/Grill SFX5.wav",
+      "loop": true,
+      "name": "grilling_sound",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "bgm",
+      "filepath": "../assets/Audio/bgm.wav",
+      "loop": true,
+      "name": "background_music",
+      "stream": true,
+      "volume": 0.800000011920929
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/MyoonchiDiner_Sample.wav",
+      "loop": false,
+      "name": "MyoonchiDiner_Sample",
+      "stream": false,
+      "volume": 1.0
+    }
+  ],
+  "version": "1.0"
+}

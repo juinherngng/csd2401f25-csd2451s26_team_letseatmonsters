@@ -4,6 +4,7 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:       Declares PhysicsManager, a lightweight force-based integrator that updates
 					per-entity velocity/position, supports seek/arrive targets, simple drag, and
@@ -16,19 +17,18 @@
 
 #pragma once
 
-#include <unordered_map>
 #include <memory>
-
-#include "Physics.hpp"
-#include "CollisionManager.hpp"
-#include "InputManager.hpp"
-#include "MovementManager.hpp"
-#include "Math.hpp"
-#include "Forces.hpp"
-#include "System.hpp"
+#include <unordered_map>
 
 #include "../Graphics/EntityManager.hpp"
 
+#include "CollisionManager.hpp"
+#include "Forces.hpp"
+#include "InputManager.hpp"
+#include "Math.hpp"
+#include "MovementManager.hpp"
+#include "Physics.hpp"
+#include "System.hpp"
 
  /**
   * @brief Lightweight force-based physics for entities.
@@ -52,10 +52,13 @@ public:
 	void SetEntityManager(EntityManager* entityMgr);
 	void SetInputManager(InputManager* inputMgr);
 
+	// World collision/trim resolver used to clamp movement each step.
+	void SetCollisionWorld(collision::World* world);
+
 	// Core physics update (original signature - now called internally)
 	void UpdatePhysics(float deltaTime,
-		EntityManager& entityManager,
-		InputManager& inputManager);
+					   EntityManager& entityManager,
+					   InputManager& inputManager);
 
 	// Enable physics on an entity and initialize its state.
 	void EnablePhysics(int entityID, float mass = 1.0f);
@@ -76,13 +79,14 @@ public:
 	void Clear();
 
 	// Access to step controller
-	physics::StepController& GetStepController() { return physicsStep_; }
-
-	// World collision/trim resolver used to clamp movement each step.
-	void SetCollisionWorld(const collision::World* w) { world_ = w; }
+	physics::StepController& GetStepController() {
+		return physicsStep_;
+	}
 
 	// Movement system (used to clear click-to-move targets on impact).
-	void SetMovementManager(MovementManager* m) { movement_ = m; }
+	void SetMovementManager(MovementManager* m) {
+		movement_ = m;
+	}
 
 private:
 	// Internal state & constants

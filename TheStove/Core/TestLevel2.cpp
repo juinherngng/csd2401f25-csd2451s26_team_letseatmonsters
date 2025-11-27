@@ -1,18 +1,20 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			TestLevel2.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Darren Toh, darren.toh@digipen.edu
+ FILE NAME:			TestLevel2.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Darren Toh, darren.toh@digipen.edu
 
-DESCRIPTION:		Source file Test state for GameStateManager. This script contains definitions for Init, Update
+ DESCRIPTION:		Source file Test state for GameStateManager. This script contains definitions for Init, Update
 					and Exit functions specific to this level. To be Updated with calls to more components.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
+
 #pragma once
 
 #include "TestLevel2.hpp"
+
 namespace Framework {
 
 	void Level2Init(float deltaTime) {

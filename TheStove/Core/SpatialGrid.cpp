@@ -6,12 +6,12 @@
 
  DESCRIPTION:		Definitions for a uniform 2D spatial hash grid used for broad-phase queries.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #include "SpatialGrid.hpp"
 
@@ -80,7 +80,7 @@ void SpatialGrid::Insert(GameObject* object, const collision::AABB& box) {
 
 	ForEachCell(box, [&](Key key) {
 		cells[key].push_back(object);
-		});
+	});
 }
 
 void SpatialGrid::Query(const collision::AABB& box, std::vector<GameObject*>& outCandidates) const {
@@ -103,7 +103,7 @@ void SpatialGrid::Query(const collision::AABB& box, std::vector<GameObject*>& ou
 				outCandidates.push_back(obj);
 			}
 		}
-		});
+	});
 }
 
 void SpatialGrid::QueryPoint(const Math::Vector2D& point, std::vector<GameObject*>& outCandidates) const {

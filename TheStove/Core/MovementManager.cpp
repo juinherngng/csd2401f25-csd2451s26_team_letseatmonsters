@@ -4,6 +4,7 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:       Implements MovementManager. Updates player WASD and click-to-move, NPC patrols,
 					and passive velocity-based motion. Uses world trimming to resolve step movement
@@ -17,14 +18,14 @@
 #include <iostream>
 #include <vector>
 
+#include "../Core/InputManager.hpp"
+#include "../Graphics/EntityManager.hpp"
+#include "../Graphics/GameObject.hpp"
+
 #include "MovementManager.hpp"
 #include "NPCSystem.hpp"
 
-#include "../Graphics/EntityManager.hpp"
-#include "../Graphics/GameObject.hpp"
-#include "../Core/InputManager.hpp"
-
-// ----- SystemInterface implementation -----
+ // ----- SystemInterface implementation -----
 void MovementManager::Initialize() {
 	std::cout << "MovementManager initialized" << std::endl;
 }
@@ -47,7 +48,7 @@ void MovementManager::SetInputManager(InputManager* inputMgr) {
 	inputManager_ = inputMgr;
 }
 
- // Core Functionality
+// Core Functionality
 void MovementManager::UpdateMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager) {
 	// Update player movement (WASD + click-to-move)
 	if (playerID_ >= 0) {
@@ -202,7 +203,7 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
 
 		// Record facing intent
 		data.hasFacingHint = (lenSq > 0.f);
-		data.facingHint = (lenSq > 0.f) ? desiredMove : glm::vec2(0.f);
+		data.facingHint = (lenSq > 0.f)?desiredMove:glm::vec2(0.f);
 
 		data.velocity = desiredMove * data.moveSpeed;
 	}
@@ -248,7 +249,7 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
 	auto impacted = [](const glm::vec2& d, const glm::vec2& a) {
 		const float eps = 1e-4f;
 		return (std::fabs(d.x - a.x) > eps) || (std::fabs(d.y - a.y) > eps);
-		};
+	};
 
 	if (world_ != nullptr) {
 		// Build current AABB from collider
@@ -269,7 +270,7 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
 		// If trimmed: keep the allowed slide, only cancel click target if we're really blocked
 		if (impacted(desiredDelta2D, allowedDelta2D)) {
 			const float allowedLen = std::sqrt(allowedDelta2D.x * allowedDelta2D.x +
-				allowedDelta2D.y * allowedDelta2D.y);
+											   allowedDelta2D.y * allowedDelta2D.y);
 
 			// Tune threshold as needed (in pixels per frame)
 			if (data.hasTarget && allowedLen < 0.50f) {

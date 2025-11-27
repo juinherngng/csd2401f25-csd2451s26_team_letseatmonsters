@@ -5,7 +5,10 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
- DESCRIPTION:		Represents a renderable game object with mesh, shader, texture, transform, and collider.
+ DESCRIPTION:		Defines the GameObject class, representing any renderable or interactable
+					entity in the game world. Every GameObject contains references to mesh, shader,
+					and texture resources for rendering, and encapsulates its position, scale,
+					rotation, velocity, and collider data for gameplay systems.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -13,12 +16,15 @@
 
 #pragma once
 
-#include "Mesh.hpp"
-#include "Texture.hpp"
-#include "Shader.hpp"
-#include "DebugRenderer.hpp"
-#include "../Core/Math.hpp"
 #include <glm/glm.hpp>
+
+#include "../Core/Math.hpp"
+
+#include "DebugRenderer.hpp"
+#include "Mesh.hpp"
+#include "Shader.hpp"
+#include "Texture.hpp"
+#include "Animator.hpp"
 
  /**
   * @class GameObject
@@ -91,12 +97,22 @@ public:
 	/** @brief Recompute the model matrix based on position/rotation/scale. */
 	void UpdateModelMatrix();
 
-	void SetTexture(Texture* tex) { m_Texture = tex; }
+	void SetTexture(Texture* tex) {
+		m_Texture = tex;
+	}
 
-	Shader* GetShader() const { return m_Shader; }
-	Mesh* GetMesh() const { return m_Mesh; }
-	glm::mat4 GetModelMatrix() const { return m_ModelMatrix; }
-	Texture* GetTexture() const { return m_Texture; }
+	Shader* GetShader() const {
+		return m_Shader;
+	}
+	Mesh* GetMesh() const {
+		return m_Mesh;
+	}
+	glm::mat4 GetModelMatrix() const {
+		return m_ModelMatrix;
+	}
+	Texture* GetTexture() const {
+		return m_Texture;
+	}
 
 	// Collider handling
 	/** @brief Set the colliders full size (width/height). */
@@ -113,9 +129,9 @@ public:
 
 	glm::vec3 GetScaleGLM() const;
 	float GetRotationAngleZ() const;
-	float GetRotation() const { return rotation_; }
-
-	void Draw(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) const;
+	float GetRotation() const {
+		return rotation_;
+	}
 
 	/**
 	 * @brief Draw the colliders bounding box for debugging.
@@ -125,8 +141,15 @@ public:
 	 */
 	void DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color) const;
 
-	void SetUVRect(const glm::vec4& r) { m_uvRect = r; }
-	glm::vec4 GetUVRect() const { return m_uvRect; }
+	void SetUVRect(const glm::vec4& r) {
+		m_uvRect = r;
+	}
+	glm::vec4 GetUVRect() const {
+		return m_uvRect;
+	}
+
+	// Check if the GameObject is currently using an animated sprite
+	bool IsAnimated() const;
 
 private:
 	Mesh* m_Mesh;
@@ -148,4 +171,6 @@ private:
 	Math::Vector2D m_Velocity{ 0.f, 0.f };
 	Math::Vector2D m_ColliderSize{ 1.f, 1.f };
 	Math::Vector2D m_ColliderOffset{ 0.f, 0.f };
+
+	Animator2D* animator = nullptr;
 };

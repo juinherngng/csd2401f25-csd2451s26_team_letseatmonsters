@@ -1,10 +1,10 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			System.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			System.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		System interface for game engine systems.
+ DESCRIPTION:		System interface for game engine systems.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -14,10 +14,8 @@ DESCRIPTION:		System interface for game engine systems.
 
 #include <iostream>
 
-namespace CoreFramework
-{
-	class SystemInterface
-	{
+namespace CoreFramework {
+	class SystemInterface {
 	public:
 
 		/************************************************************************/
@@ -46,7 +44,8 @@ namespace CoreFramework
 			Initialize the system.
 		*/
 		/************************************************************************/
-		virtual void Initialize() {};
+		virtual void Initialize() {
+		};
 
 		/************************************************************************/
 		/*!
@@ -54,7 +53,8 @@ namespace CoreFramework
 			All systems need a virtual destructor to have their destructor called.
 		*/
 		/************************************************************************/
-		virtual ~SystemInterface() {}
+		virtual ~SystemInterface() {
+		}
 
 		// For performance tracking
 		float lastDt = 0.0f; // Tracks the last frame delta of this system
