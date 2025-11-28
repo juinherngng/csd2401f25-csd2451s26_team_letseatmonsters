@@ -689,9 +689,9 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	if (gsm) {
 		gsm->SetScene(app.currentScene.get());
 
-		// Map your states to JSON files
-		gsm->RegisterJsonState(Framework::GS_Level1, "../levels/kitchen01.json");
-		gsm->RegisterJsonState(Framework::GS_Level2, "../levels/kitchen02.json"); // adjust as needed
+		// Map states to JSON files
+		gsm->RegisterJsonState(Framework::GS_Level1, "../levels/main_menu.json");	// state 0 = menu
+		gsm->RegisterJsonState(Framework::GS_Level2, "../levels/kitchen01.json");	// state 1 = gameplay
 	}
 }
 

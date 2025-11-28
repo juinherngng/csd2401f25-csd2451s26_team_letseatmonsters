@@ -23,6 +23,9 @@
 #include <random>
 
 #include "SceneManager.hpp"
+#include "../Core/MenuButtonLogic.hpp"
+#include <Core/RuntimeLevel.hpp>
+#include "../Core/PauseButtonLogic.hpp" 
 
  // Simulation control
 void Scene::SetSimulationActive(bool active) {
@@ -78,55 +81,67 @@ void Scene::LoadScene(const std::string& sceneName) {
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
-	// Debug-only animation controls
 #ifdef _DEBUG
 	UpdateAnimationControls();
 #endif
-
-	// Deferred Clear
 	if (pendingClear_) {
 		ClearAll();
 		RebuildColliders();
 		pendingClear_ = false;
-		return; // Skip rest of update this frame
+		return;
 	}
 
-	// Process input commands (debug toggles, force toggle, etc.)
 	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager, spriteID, useForces_, showAuxDebug_);
 
-	// Level editor toggle
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
 		mLevelEditor.Toggle();
 	}
 
-	// Resolve physics timestep
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
 	lastPhysicsDt_ = physicsDt;
 
-	if (simulationActive) {
-		// Run all scripts
-		logicManager.StartAll(*this);
-		logicManager.UpdateAll(deltaTime, *this, inputManager);
+	// ALWAYS update logic (menu buttons need this even with simulation disabled)
+	logicManager.StartAll(*this);
+	logicManager.UpdateAll(deltaTime, *this, inputManager);
 
+	if (simulationActive) {
 		if (useForces_) {
 			physicsManager.UpdatePhysics(physicsDt, entityManager, inputManager);
 		}
-
-		// Update NPC AI
 		const collision::WalkArea walk = GetWalkArea();
 		npcSystem.Update(physicsDt, entityManager, collisionManager, walk);
-
-		// Handle player-NPC collisions
 		HandlePlayerCollisions(physicsDt, entityManager);
-
-		// Apply final constraints (gates, boundaries)
 		ApplyFinalConstraints(entityManager);
 	}
 
-	// Debug visualization
-	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
+	// Process deferred level load after logic iteration completes
+	if (hasPendingLevel_) {
+		if (!pendingLevelPath_.empty()) {
+			if (!RuntimeLevel::LoadAndBuild(pendingLevelPath_, *this)) {
+				std::cerr << "[Scene] Deferred level load failed: " << pendingLevelPath_ << std::endl;
+			}
+			else {
+				RebuildColliders();
+				SetSimulationActive(pendingLevelSimActive_);
+				inputManager.ClearState(); // avoid stale click replay
+			}
+		}
+		hasPendingLevel_ = false;
+		pendingLevelPath_.clear();
+	}
 
+	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 	(void)window;
+
+	// Handle ESC to toggle pause overlay in Release
+#ifndef _DEBUG
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
+		if (IsSimulationActive()) {
+			// Only allow pause during gameplay (not in main menu)
+			ShowPauseOverlay();
+		}
+	}
+#endif
 }
 
 void Scene::ResetResizeBaseline() {
@@ -343,6 +358,18 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 		logicManager.AddLogic<SimpleNpcLogic>(id);
 		dinoID = id; // preserve your special ID if you rely on it elsewhere
 	}
+	// Button tags
+	else if (tag == "btn_play") {
+		// Go from menu -> gameplay
+		logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);
+	}
+	else if (tag == "btn_howtoplay") {
+		// Go from menu -> settings
+		// Settings
+	}
+	else if (tag == "btn_quit") {
+		logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+	}
 	// Extend with more tags as needed
 }
 
@@ -395,4 +422,58 @@ void Scene::RemoveLayer(const std::string& name) {
 	if (it != layers.end()) {
 		layers.erase(it);
 	}
+}
+
+void Scene::QueueLevelLoad(const std::string& path, bool activateSimulation) {
+	pendingLevelPath_ = path;
+	pendingLevelSimActive_ = activateSimulation;
+	hasPendingLevel_ = true;
+}
+
+void Scene::ShowPauseOverlay() {
+#ifndef _DEBUG
+	if (pauseOverlayActive_) return;
+	pauseOverlayActive_ = true;
+
+	// Pause simulation while overlay is active
+	SetSimulationActive(false);
+
+	// Just a high number to ensure it renders over everything else
+	const std::string uiLayer = "1000";
+
+	// Payse overlay
+	if (GameObject* dim = SpawnStaticSprite("../assets/pause.png",
+		{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
+		{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
+		uiLayer)) {
+		pauseOverlayObjectIds_.push_back(dim->GetID());
+	}
+
+	// Buttons (positions in reference space)
+	auto spawnBtn = [&](const char* tex, const glm::vec2& pos, PauseAction action) {
+		if (GameObject* b = SpawnStaticSprite(tex, { pos.x, pos.y, 0.0f }, { 300.0f, 100.0f }, uiLayer)) {
+			const int id = b->GetID();
+			pauseOverlayObjectIds_.push_back(id);
+			// Attach logic directly
+			logicManager.AddLogic<PauseButtonLogic>(id, action);
+			// Remember texture path for hover logic
+			SetObjectTexturePath(id, tex);
+		}
+	};
+
+	spawnBtn("../assets/green_button_static.png", { 967.f, 454.f }, PauseAction::Resume);
+	spawnBtn("../assets/green_button_static.png", { 967.f, 584.f }, PauseAction::HowToPlay);
+	spawnBtn("../assets/green_button_static.png", { 967.f, 714.f }, PauseAction::Quit);
+#endif
+}
+
+void Scene::HidePauseOverlay() {
+#ifndef _DEBUG
+	if (!pauseOverlayActive_) return;
+	for (int id : pauseOverlayObjectIds_) {
+		DespawnByID(id);
+	}
+	pauseOverlayObjectIds_.clear();
+	pauseOverlayActive_ = false;
+#endif
 }

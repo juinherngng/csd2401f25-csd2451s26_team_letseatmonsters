@@ -1,11 +1,16 @@
 /*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:         RuntimeLevel.cpp
- PROJECT NAME:      Project GAM200
+ FILE NAME:			RuntimeLevel.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
 
- DESCRIPTION:       Runtime utilities for loading a JSON level and building a Scene (no ImGui).
+ DESCRIPTION:		Implements RuntimeLevel utilities to parse LevelData JSON, spawn animated/static GameObjects with
+					proper layers/tags/colliders/animations, set scene backgrounds, rebuild colliders, and store object
+					metadata for runtime level loading. (For use outside of editor only.)
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
-*/
+ */
 
 #include <iostream>
 #include <glm/glm.hpp>
@@ -81,7 +86,7 @@ namespace RuntimeLevel {
 				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
 			}
 
-			// Defaults metadata
+			// Default metadata
 			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, 0.0f }, { obj.w, obj.h, 1.0f }, obj.rotation);
 
 			Scene::Defaults defs{};
@@ -110,7 +115,7 @@ namespace RuntimeLevel {
 
 		scene.ClearAll();
 
-		// Set background if provided; otherwise keep current
+		// Set background if provided, otherwise keep current
 		if (!data.background.empty()) {
 			std::cout << "[RuntimeLevel] Background set: " << data.background << std::endl;
 			scene.SetSceneBackground(data.background);

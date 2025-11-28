@@ -1,11 +1,16 @@
 /*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:         RuntimeLevel.hpp
- PROJECT NAME:      Project GAM200
+ FILE NAME:			RuntimeLevel.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
 
- DESCRIPTION:       Runtime utilities for loading a JSON level and building a Scene (no ImGui).
+ DESCRIPTION:		Implements RuntimeLevel utilities to parse LevelData JSON, spawn animated/static GameObjects
+					with proper layers/tags/colliders/animations, set scene backgrounds, rebuild colliders, and
+					store object metadata for runtime level loading. (For use outside of editor only.)
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
-*/
+ */
 #pragma once
 
 #include <string>

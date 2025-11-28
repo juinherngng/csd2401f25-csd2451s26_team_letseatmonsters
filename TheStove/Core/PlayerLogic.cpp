@@ -206,6 +206,11 @@ void PlayerLogic::Drop(Scene& scene) {
 }
 
 void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
+	// Stop player logic when paused/overlay is active
+	if (!scene.IsSimulationActive() || scene.IsPauseOverlayActive()) {
+		return;
+	}
+
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 

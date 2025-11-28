@@ -20,6 +20,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "../Graphics/GraphicsEngine.hpp"
 
@@ -64,6 +65,12 @@ public:
 	// Clear all key/mouse state (used when losing/regaining focus)
 	void ClearState();
 
+	// Consume next mouse press event
+	void ConsumeNextMousePress(int button);
+
+	// Helper to clear all pending consumes
+	void ClearMouseConsume(int button);
+
 private:
 	// Internal update method that takes window
 	void UpdateInternal(GLFWwindow* window);
@@ -83,4 +90,7 @@ private:
 
 	// Mouse position in window coordinates (pixels)
 	glm::dvec2 mMousePos{ 0.0, 0.0 };
+
+	// Set of mouse buttons whose next press will be consumed
+	std::unordered_set<int> mConsumeNextMousePress;
 };
