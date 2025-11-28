@@ -102,16 +102,16 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 
 	Animator2D& anim = animators_[objectID];
 
-	// Player sprite sheets: 8 columns x 14 rows
-	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(13, 0, 7, 14, 8);		
-	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(12, 0, 7, 14, 8);			
-	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(11, 0, 7, 14, 8);		
-	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(10, 0, 7, 14, 8);	
+	// Player sprite sheets: 8 columns x 15 rows
+	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(14, 0, 7, 15, 8);		
+	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(13, 0, 7, 15, 8);			
+	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(12, 0, 7, 15, 8);		
+	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(11, 0, 7, 15, 8);	
 
-	std::vector<glm::vec4> backWalkFrames = CreateFrameSequenceRow(9, 0, 7, 14, 8);
-	std::vector<glm::vec4> frontWalkFrames = CreateFrameSequenceRow(8, 0, 7, 14, 8);
-	std::vector<glm::vec4> leftWalkFrames = CreateFrameSequenceRow(7, 0, 7, 14, 8);
-	std::vector<glm::vec4> rightWalkFrames = CreateFrameSequenceRow(6, 0, 7, 14, 8);
+	std::vector<glm::vec4> backWalkFrames = CreateFrameSequenceRow(10, 0, 7, 15, 8);
+	std::vector<glm::vec4> frontWalkFrames = CreateFrameSequenceRow(9, 0, 7, 15, 8);
+	std::vector<glm::vec4> leftWalkFrames = CreateFrameSequenceRow(8, 0, 7, 15, 8);
+	std::vector<glm::vec4> rightWalkFrames = CreateFrameSequenceRow(7, 0, 7, 15, 8);
 
 	animationSets_[objectID]["IDLE_FRONT"] = AnimationSet{ frontIdleFrames, 0.15f, true };
 	animationSets_[objectID]["IDLE_BACK"] = AnimationSet{ backIdleFrames, 0.15f, true };
@@ -229,7 +229,7 @@ std::vector<glm::vec4> AnimationManager::CreateFrameSequence(int startFrame, int
 }
 
 // Extracts frames from a specific row in a grid-based sprite sheet
-std::vector<glm::vec4> AnimationManager::CreateFrameSequenceRow(int row, int startCol, int endCol, int totalRows = 14, int totalCols = 8) {
+std::vector<glm::vec4> AnimationManager::CreateFrameSequenceRow(int row, int startCol, int endCol, int totalRows = 15, int totalCols = 8) {
 	std::vector<glm::vec4> frames;
 	float frameWidth = 1.0f / totalCols;    // 0.125
 	float frameHeight = 1.0f / totalRows;   // ~0.0714

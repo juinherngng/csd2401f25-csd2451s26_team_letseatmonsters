@@ -44,13 +44,29 @@ public:
 	}
 
 	void Update(float deltaTime) {
-		if (!m_Playing || m_Frames.empty()) return;
+		if (!m_Playing || m_Frames.empty()) {
+			return;
+		}
+
+		// Basic guard against invalid frame duration
+		if (m_FrameDuration <= 0.0f) {
+			m_FrameDuration = 0.1f; // default to 10 FPS if bad data
+		}
+
 		m_Accumulator += deltaTime;
-		if (m_Accumulator >= m_FrameDuration) {
+
+		// Consume as many frames as the accumulator allows
+		while (m_Accumulator >= m_FrameDuration) {
 			m_Accumulator -= m_FrameDuration;
-			m_CurrentFrame++;
-			if (m_CurrentFrame >= (int)m_Frames.size()) {
-				m_CurrentFrame = m_Loop?0:(int)m_Frames.size() - 1;
+			++m_CurrentFrame;
+			if (m_CurrentFrame >= static_cast<int>(m_Frames.size())) {
+				m_CurrentFrame = m_Loop ? 0 : static_cast<int>(m_Frames.size()) - 1;
+
+				// If not looping, stop advancing and clear accumulator
+				if (!m_Loop) {
+					m_Accumulator = 0.0f;
+					break;
+				}
 			}
 		}
 	}

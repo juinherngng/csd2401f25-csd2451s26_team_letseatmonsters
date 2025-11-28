@@ -697,6 +697,17 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Scene is now constructed with MovementManager reference - no need for SetMovementManager
 	std::cout << "Scene connected to MovementManager system.\n";
 
+	{
+	auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>();
+	if (gsm) {
+		gsm->SetScene(app.currentScene.get());
+
+		// Map states to JSON files
+		gsm->RegisterJsonState(Framework::GS_Level1, "../levels/main_menu.json");	// state 0 = menu
+		gsm->RegisterJsonState(Framework::GS_Level2, "../levels/kitchen01.json");	// state 1 = gameplay
+	}
+}
+
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	// Create DebuggerApp with smart pointer (debug-only)
 	app.debugApp = std::make_unique<Debug::DebuggerApp>();

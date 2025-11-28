@@ -75,7 +75,8 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 		GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D,
 		// physics dt, collider, points/lines, force, level editor
 		GLFW_KEY_P, GLFW_KEY_R, GLFW_KEY_T, GLFW_KEY_F, GLFW_KEY_L,
-		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3
+		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3,
+		GLFW_KEY_ESCAPE 
 	};
 
 	// If ImGui wants the keyboard, clear key states so gameplay won't react
@@ -93,7 +94,7 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	// Mouse buttons to track
 	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
 
-	// ALWAYS track mouse button states - let individual systems check WantCaptureMouse themselves
+	// Always track mouse button states, let individual systems check WantCaptureMouse themselves
 	for (int b:buttons) {
 		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
 	}
@@ -142,7 +143,18 @@ bool InputManager::IsMouseButtonJustPressed(int button) const {
 	bool curr = (itC != mMouseButtons.end()) && itC->second;
 	bool prev = (itP != mPrevMouseButtons.end()) && itP->second;
 
-	return curr && !prev;
+	bool justPressed = curr && !prev;
+
+	// If flagged for consumption, hide this edge once
+	if (justPressed) {
+		if (mConsumeNextMousePress.find(button) != mConsumeNextMousePress.end()) {
+			// Remove flag so only one press is consumed
+			const_cast<std::unordered_set<int>&>(mConsumeNextMousePress).erase(button);
+			return false;
+		}
+	}
+
+	return justPressed;
 }
 
 bool InputManager::IsMouseButtonJustReleased(int button) const {
@@ -178,4 +190,12 @@ glm::vec3 InputManager::ScreenToWorld(float mouseX, float mouseY) const {
 	}
 
 	return glm::vec3(world.x, world.y, world.z);
+}
+
+void InputManager::ConsumeNextMousePress(int button) {
+	mConsumeNextMousePress.insert(button);
+}
+
+void InputManager::ClearMouseConsume(int button) {
+	mConsumeNextMousePress.erase(button);
 }

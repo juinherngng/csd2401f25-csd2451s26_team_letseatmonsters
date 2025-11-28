@@ -1,0 +1,59 @@
+{
+  "background": "../assets/main_menu.png",
+  "objects": [
+    {
+      "animated": false,
+      "texture": "../assets/green_button_static.png",
+      "tag": "btn_play",
+      "layer": "1",
+      "x": 967.0,
+      "y": 454.0,
+      "z": 0.0,
+      "w": 300.0,
+      "h": 100.0,
+      "rotation": 0.0,
+      "col_w": 256.0,
+      "col_h": 96.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0
+    },
+    {
+      "animated": false,
+      "texture": "../assets/green_button_static.png",
+      "tag": "btn_howtoplay",
+      "layer": "1",
+      "x": 967.0,
+      "y": 584.0,
+      "z": 0.0,
+      "w": 300.0,
+      "h": 100.0,
+      "rotation": 0.0,
+      "col_w": 256.0,
+      "col_h": 96.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0
+    },
+    {
+      "animated": false,
+      "texture": "../assets/green_button_static.png",
+      "tag": "btn_quit",
+      "layer": "1",
+      "x": 967.0,
+      "y": 714.0,
+      "z": 0.0,
+      "w": 300.0,
+      "h": 100.0,
+      "rotation": 0.0,
+      "col_w": 256.0,
+      "col_h": 96.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0
+    }
+  ]
+}

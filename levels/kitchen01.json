@@ -1,4 +1,5 @@
 {
+  "background": "../assets/Background_Full.png",
   "objects": [
     {
       "animated": true,
