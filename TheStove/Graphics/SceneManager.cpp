@@ -109,6 +109,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		logicManager.StartAll(*this);
 		logicManager.UpdateAll(deltaTime, *this, inputManager);
 
+		// NEW: seat customers at tables once.
+		customerManager_.Update(physicsDt, *this);
+
 		if (useForces_) {
 			physicsManager.UpdatePhysics(physicsDt, entityManager, inputManager);
 		}
@@ -147,6 +150,7 @@ void Scene::ClearAll() {
 	animationManager.Clear();
 	movementManager.Clear();
 	npcSystem.Clear();
+	customerManager_.Reset();
 
 	spriteID = -1;
 	dinoID = -1;
@@ -257,6 +261,8 @@ std::vector<GameObject*> Scene::GetAllObjectsRaw() {
 }
 
 void Scene::DespawnByID(int targetID) {
+	logicManager.RemoveAllFor(targetID, *this);
+
 	// Remove from entity manager (handles transforms too)
 	entityManager.DespawnByID(targetID);
 }

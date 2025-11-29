@@ -51,11 +51,11 @@ private:
     const char* ingredientTexture_ = "../assets/Cabbage_Ingredient.png"; // change to your real asset
     float ingredientWidth_ = 64.0f;
     float ingredientHeight_ = 64.0f;
-    const char* ingredientLayer_ = "1";
+    const char* ingredientLayer_ = "3";
 
     // Config for the spawned plate sprite – tweak as needed:
     const char* plateTexture_ = "../assets/Plate.png";
     float       plateWidth_ = 64.0f;
     float       plateHeight_ = 64.0f;
-    const char* plateLayer_ = "1";
+    const char* plateLayer_ = "2";
 };

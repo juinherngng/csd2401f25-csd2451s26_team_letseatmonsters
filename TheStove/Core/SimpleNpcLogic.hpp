@@ -120,6 +120,7 @@ private:
     bool finishedDish_ = false;
     bool hasPaid_ = false;
 
+    DishType desiredDishType_ = DishType::VegDish; // default want salad
     DishType servedDishType_ = DishType::PoopDish;
 
     // Simple "eating" timer: after dish is served, NPC spends some time

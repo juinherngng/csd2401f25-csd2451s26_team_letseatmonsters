@@ -39,6 +39,7 @@
 #include "../Core/WorkTableLogic.hpp"
 #include "../Core/CustomerTableLogic.hpp"
 #include "../Core/IngredientBoxLogic.hpp"
+#include "../Core/CustomerManagerLogic.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"
@@ -276,6 +277,7 @@ private:
 	PlayerController playerController;
 	NPCSystem npcSystem;
 	DebugVisualizer debugVisualizer;
+	CustomerManagerSystem customerManager_;
 
 	// Step-by-step controller
 	physics::StepController physicsStep_;

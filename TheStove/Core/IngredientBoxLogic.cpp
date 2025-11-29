@@ -17,7 +17,7 @@ void IngredientBoxLogic::ConfigureAsVegetableBox()
     ingredientTexture_ = "../assets/Cabbage_Ingredient.png";
     ingredientWidth_ = 64.0f;
     ingredientHeight_ = 64.0f;
-    ingredientLayer_ = "1";
+    ingredientLayer_ = "3";
 }
 
 void IngredientBoxLogic::ConfigureAsPlateBox()
@@ -28,7 +28,7 @@ void IngredientBoxLogic::ConfigureAsPlateBox()
     plateTexture_ = "../assets/Plate.png";   // e.g. "../assets/Plate_Empty.png"
     plateWidth_ = 64.0f;
     plateHeight_ = 64.0f;
-    plateLayer_ = "1";
+    plateLayer_ = "2";
 }
 
 void IngredientBoxLogic::Start(Scene& scene)

@@ -19,10 +19,20 @@
 #include "SimpleNpcLogic.hpp"
 
 void SimpleNpcLogic::Awake(Scene& scene) {
-	(void)scene;
-	timer = 0.0f;
-	state = State::Idle;
-	//nextMoveUp = false; // first move: down
+    (void)scene;
+    timer = 0.0f;
+    state = State::Idle;
+
+    // Customer FSM initialisation
+    behaviourState_ = BehaviourState::Idle;
+    orderTaken_ = false;
+    dishServed_ = false;
+    finishedDish_ = false;
+    hasPaid_ = false;
+    eatTimer_ = 0.0f;
+    // eatDuration_ already set to 3.0f in the header
+    desiredDishType_ = DishType::VegDish;
+    servedDishType_ = DishType::PoopDish;
 }
 
 void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
@@ -157,7 +167,7 @@ void SimpleNpcLogic::AssignCustomerTable(int tableObjectID)
     }
 }
 
-void SimpleNpcLogic::OnSeatedAtTable(Scene& /*scene*/)
+void SimpleNpcLogic::OnSeatedAtTable(Scene& scene)
 {
     std::cout << "[SimpleNpcLogic] OnSeatedAtTable, state="
         << static_cast<int>(behaviourState_) << "\n";
@@ -166,9 +176,18 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& /*scene*/)
     if (behaviourState_ == BehaviourState::FindingTable ||
         behaviourState_ == BehaviourState::WalkingToTable)
     {
+        // Start ordering this dish (2 processed veg salad).
         behaviourState_ = BehaviourState::Ordering;
+        desiredDishType_ = DishType::VegDish;  // <--- change to your actual salad enum if different
+
+        std::cout << "[SimpleNpcLogic] Now ordering dish type = "
+            << static_cast<int>(desiredDishType_) << "\n";
+
+        // Auto-take the order so we move into WaitingForFood right away.
+        TakeOrder(scene); // This sets behaviourState_ = WaitingForFood
     }
 }
+
 
 void SimpleNpcLogic::TakeOrder(Scene& /*scene*/)
 {

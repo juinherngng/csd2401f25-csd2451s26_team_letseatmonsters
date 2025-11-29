@@ -116,7 +116,7 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 	// Only once per click (left mouse)
 	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT))
 	{
-		std::cout << "RETURNING\n";
+		//std::cout << "RETURNING\n";
 		return;
 	}
 
@@ -440,7 +440,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	if (stepMode && physicsDt <= 0.0f) {
 		// Optional: still allow click selection while frozen
-		std::cout << "HANDLE CLICK INPUT FREONZE\n";
+		//std::cout << "HANDLE CLICK INPUT FREONZE\n";
 		HandleClickInput(scene, input);
 
 		// Debug: prove we still see the key
@@ -502,7 +502,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		UpdateSprite(scene, player, glm::vec2(0.f, 0.f));
 	}
 
-	std::cout << "HANDLE CLICK INPUT\n";
+	//std::cout << "HANDLE CLICK INPUT\n";
 
 	HandleClickInput(scene, input);
 
@@ -621,9 +621,103 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 
 		if (plate && ingr)
 		{
+			// GameObject ID of the ingredient we are currently carrying
+			const int ingredientObjID = ingr->GetOwnerID();
+
+			// How many logical ingredients were on the plate BEFORE we add this one?
+			const int ingredientCountBefore = plate->GetIngredientCount();
+
 			bool consumedNow = false;
 			if (plate->TryAddIngredient(*ingr, consumedNow))
 			{
+				std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient type\n";
+
+				// --- VISUAL: first ingredient goes onto the plate visually ---
+				if (ingredientCountBefore == 0) // this is the first ingredient on this plate
+				{
+					GameObject* plateObj = scene.GetGameObjectByID(tableItemID);
+					GameObject* ingredientObj = scene.GetGameObjectByID(ingredientObjID);
+
+					if (plateObj && ingredientObj)
+					{
+						glm::vec3 platePos = plateObj->GetPositionGLM();
+
+						// Snap the ingredient sprite onto the plate.
+						// If you want a small offset, tweak this, e.g. platePos.y + 8.f.
+						ingredientObj->SetPosition(platePos);
+
+						// Remember which GameObject is now visually sitting on this plate
+						plate->SetFirstIngredientObjectID(ingredientObjID);
+					}
+				}
+
+				//// If at some point TryAddIngredient decides to consume immediately,
+				//// we still support that (currently outConsumedNow is always false).
+				//bool carriedDespawned = false;
+				//if (consumedNow)
+				//{
+				//	scene.DespawnByID(ingredientObjID);
+				//	hasCarriedItemOriginalColliderSize = false;
+				//	carriedDespawned = true;
+				//}
+
+				// --- Try to assemble a dish once we have enough ingredients ---
+				DishType dishType;
+				std::vector<IngredientType> consumedTypes;
+				if (plate->TryAssembleDish(dishType, consumedTypes))
+				{
+					std::cout << "  [PlayerLogic] CASE3: Dish assembled on plate\n";
+
+					// 1) Destroy the first ingredient that was sitting on the plate (if any)
+					int firstObjID = plate->GetFirstIngredientObjectID();
+					if (firstObjID >= 0)
+					{
+						scene.DespawnByID(firstObjID);
+					}
+
+					// 2) Destroy the ingredient we just added (the one we were carrying)
+					if (ingredientObjID >= 0 && ingredientObjID != firstObjID)
+					{
+						scene.DespawnByID(ingredientObjID);
+					}
+
+					// We won't restore its collider size because the object is gone.
+					hasCarriedItemOriginalColliderSize = false;
+
+					// (Optional) Clear the stored first ingredient ID since it's gone now
+					// plate->SetFirstIngredientObjectID(-1);
+
+					// 3) Update the plate sprite based on dishType (existing code kept)
+					GameObject* plateObj = scene.GetGameObjectByID(tableItemID);
+					if (plateObj)
+					{
+						const char* texPath = "../assets/Plate_Dish_Default.png";
+
+						switch (dishType)
+						{
+						case DishType::VegDish:
+							texPath = "../assets/Salad.png";
+							break;
+						case DishType::MeatDish:
+							texPath = "../assets/Plate_MeatDish.png";
+							break;
+						case DishType::SoupDish:
+							texPath = "../assets/Plate_SoupDish.png";
+							break;
+						case DishType::PoopDish:
+						default:
+							texPath = "../assets/Plate_PoopDish.png";
+							break;
+						}
+
+						auto tex = ResourceManager::Instance().LoadTexture(texPath, texPath);
+						plateObj->SetTexture(tex);
+						scene.SetObjectTexturePath(tableItemID, texPath);
+					}
+				}
+
+
+				// Either way, we are no longer carrying this item
 				carriedItemID = -1;
 				std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient; carriedItem cleared\n";
 			}
@@ -633,6 +727,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 			}
 			return;
 		}
+
 
 		std::cout << "  [PlayerLogic] CASE3: no (plate,ingredient) combo found\n";
 		return;

@@ -66,10 +66,6 @@ bool WorkTableLogic::CanAcceptItem(Scene& scene, int itemID) const
     if (!TableLogic::CanAcceptItem(scene, itemID))
         return false;
 
-    // Do not accept new items while already processing something.
-    if (isProcessing_)
-        return false;
-
     GameObject* item = scene.GetGameObjectByID(itemID);
     if (!item)
         return false;
@@ -99,7 +95,6 @@ bool WorkTableLogic::IsItemProcessable(Scene& scene, const GameObject& item) con
 
     // Delegate to the helper: only raw ingredients are worth processing.
     return CanProcessIngredient(*ing);
-    return true;
 }
 
 // ------------------- Processing control -------------------

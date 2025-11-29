@@ -1,7 +1,7 @@
 #include "PlateLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
 
-PlateLogic::PlateLogic(int ownerID) : GameObjectLogic(ownerID), dishPrepared_(false), dishType_(DishType::PoopDish) // default
+PlateLogic::PlateLogic(int ownerID) : GameObjectLogic(ownerID), dishPrepared_(false), dishType_(DishType::PoopDish), firstIngredientObjectID_(-1) // default
 {
 }
 
@@ -48,6 +48,7 @@ void PlateLogic::AddIngredientType(IngredientType type)
 void PlateLogic::ClearIngredients()
 {
 	ingredients_.clear();
+	firstIngredientObjectID_ = -1;
 }
 
 // ----- Dish assembly -----
@@ -90,6 +91,7 @@ void PlateLogic::ClearPreparedDish()
 	dishPrepared_ = false;
 	dishType_ = DishType::PoopDish;
 	ingredients_.clear();
+	firstIngredientObjectID_ = -1;
 }
 
 // Helper: map two refined ingredient types to a dish type.
@@ -126,6 +128,7 @@ DishType PlateLogic::ComputeDishFromPair(IngredientType a, IngredientType b) con
 
 bool PlateLogic::TryAddIngredient(const IngredientLogic& ingredient, bool& outConsumedNow)
 {
+	// Do NOT consume the ingredient's GameObject here.
 	outConsumedNow = false;
 
 	// Only allow processed (refined) ingredients on the plate.
@@ -137,13 +140,10 @@ bool PlateLogic::TryAddIngredient(const IngredientLogic& ingredient, bool& outCo
 	if (!CanAcceptIngredientType(type))
 		return false;
 
+	// Just store the logical type
 	AddIngredientType(type);
 
-	// We *do not* automatically assemble here; assembly is a separate action.
-	// So the ingredient is logically "placed" on the plate as a type, but
-	// nobody is destroyed/spawned yet.
-	//
-	// Later, Player or some interaction code can call TryAssembleDish(...) to
-	// actually decide what dish is created and which ingredients are consumed.
+	// We keep the GameObject alive; visual + destruction are handled elsewhere.
 	return true;
 }
+

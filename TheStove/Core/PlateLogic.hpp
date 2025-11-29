@@ -87,6 +87,12 @@ public:
     // Returns true if the ingredient type was added to the plate successfully.
     bool TryAddIngredient(const IngredientLogic& ingredient, bool& outConsumedNow);
 
+    // How many logical ingredients are currently on this plate?
+    int GetIngredientCount() const { return static_cast<int>(ingredients_.size()); }
+
+    // Track the GameObject ID of the first ingredient that was put on this plate
+    void SetFirstIngredientObjectID(int id) { firstIngredientObjectID_ = id; }
+    int  GetFirstIngredientObjectID() const { return firstIngredientObjectID_; }
 
 protected:
     // Helper that computes the resulting dish type from two refined ingredient types.
@@ -96,6 +102,9 @@ protected:
     std::vector<IngredientType> ingredients_;
     bool dishPrepared_;
     DishType dishType_;
+
+    // NEW: visual tracking of the first ingredient object on this plate
+    int         firstIngredientObjectID_ = -1;
 
     std::string GetName() const override { return "PlateLogic"; }
 };

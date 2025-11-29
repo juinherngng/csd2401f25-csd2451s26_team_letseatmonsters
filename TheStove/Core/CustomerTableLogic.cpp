@@ -1,6 +1,8 @@
 #include "CustomerTableLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/GameObject.hpp"
+#include "../Core/LogicManager.hpp"   
+#include "../Core/SimpleNpcLogic.hpp" 
 
 CustomerTableLogic::CustomerTableLogic(int ownerID)
     : TableLogic(ownerID)
@@ -8,7 +10,7 @@ CustomerTableLogic::CustomerTableLogic(int ownerID)
 {
     ClearApproachOffsets();
 
-    AddApproachOffset(Math::Vector2D(0.0f, -160.0f));
+    AddApproachOffset(Math::Vector2D(0.0f, -140.0f));
 }
 
 void CustomerTableLogic::Start(Scene& scene)
@@ -89,7 +91,7 @@ void CustomerTableLogic::OnItemTaken(Scene& /*scene*/, GameObject& /*item*/)
     // You could add logic here later (e.g., cancel serving).
 }
 
-void CustomerTableLogic::OnDishServed(Scene& /*scene*/, GameObject& /*dish*/)
+void CustomerTableLogic::OnDishServed(Scene& scene, GameObject& dish)
 {
     // Base implementation: do nothing.
     //
@@ -101,7 +103,33 @@ void CustomerTableLogic::OnDishServed(Scene& /*scene*/, GameObject& /*dish*/)
     //           customer->OnDishServed(dish);
     //       }
     //   }
+    (void)dish; // We’re not reading the plate contents yet.
+
+    if (!HasSeatedCustomer())
+        return;
+
+    LogicManager& logicMgr = scene.GetLogicManager();
+
+    // Find the customer logic attached to the seated NPC.
+    SimpleNpcLogic* customerLogic =
+        logicMgr.GetLogicForObject<SimpleNpcLogic>(seatedCustomerID_);
+
+    if (!customerLogic) {
+        std::cout << "[CustomerTableLogic] OnDishServed but no SimpleNpcLogic on customerID="
+            << seatedCustomerID_ << "\n";
+        return;
+    }
+
+    // For now: treat ANY completed dish placed here as the salad we wanted.
+    // If you have real dish detection, plug it in here instead of hardcoding Salad.
+    DishType servedType = DishType::VegDish; // TODO: map from plate/dish object.
+
+    std::cout << "[CustomerTableLogic] Notifying customer " << seatedCustomerID_
+        << " that dish type=" << static_cast<int>(servedType) << " is served.\n";
+
+    customerLogic->OnDishServed(scene, servedType);
 }
+
 
 bool CustomerTableLogic::CanServeFromPlate(const PlateLogic& plate) const
 {

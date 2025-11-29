@@ -122,8 +122,8 @@
       "tag": "table",
       "texture": "../assets/Table_Leg.png",
       "w": 100.0,
-      "x": 200.0,
-      "y": 683.0,
+      "x": 237,
+      "y": 582,
       "z": 0.0
     },
     {
@@ -140,8 +140,8 @@
       "tag": "table",
       "texture": "../assets/Table_Leg.png",
       "w": 100.0,
-      "x": 300.0,
-      "y": 583.0,
+      "x": 342,
+      "y": 582,
       "z": 0.0
     },
     {
@@ -158,8 +158,8 @@
       "tag": "table",
       "texture": "../assets/Table_Leg.png",
       "w": 100.0,
-      "x": 400.0,
-      "y": 683.0,
+      "x": 445,
+      "y": 582,
       "z": 0.0
     },
     {
@@ -176,7 +176,7 @@
       "tag": "customer_table",
       "texture": "../assets/Customertable_Topleft.png",
       "w": 70.0,
-      "x": 855.9385375976563,
+      "x": 856,
       "y": 226.20753479003906,
       "z": 0.0
     },
@@ -194,8 +194,8 @@
       "tag": "customer_table",
       "texture": "../assets/Customertable_Bottomleft.png",
       "w": 70.0,
-      "x": 857.203857421875,
-      "y": 655.0,
+      "x": 856,
+      "y": 747,
       "z": 0.0
     },
     {
@@ -212,8 +212,8 @@
       "tag": "work_table",
       "texture": "../assets/Cutting_Board.png",
       "w": 100.0,
-      "x": 200.0,
-      "y": 199.0963897705078,
+      "x": 233,
+      "y": 279,
       "z": 0.0
     },
     {
@@ -230,8 +230,8 @@
       "tag": "ingredient_box",
       "texture": "../assets/IngredientBox.png",
       "w": 100.0,
-      "x": 297.7043151855469,
-      "y": 201.3002471923828,
+      "x": 339,
+      "y": 279,
       "z": 0.0
     },
     {
@@ -248,8 +248,8 @@
       "tag": "plate_box",
       "texture": "../assets/PlateBox.png",
       "w": 100.0,
-      "x": 497.7043151855469,
-      "y": 201.3002471923828,
+      "x": 445,
+      "y": 279,
       "z": 0.0
     }
   ]
