@@ -17,24 +17,41 @@
 #include <string>
 #include "GameObjectLogic.hpp"
 
+class AudioManager;
+
 class MenuButtonLogic final : public GameObjectLogic {
 public:
 	explicit MenuButtonLogic(int ownerID, std::string targetJson, bool activateSimulation)
 		: GameObjectLogic(ownerID),
-		  targetJson_(std::move(targetJson)),
 		  activateSimulation_(activateSimulation) {
+		// Determine which state to load based on the JSON path BEFORE moving
+		if (targetJson.find("kitchen01") != std::string::npos) {
+			stateToLoad_ = 1; // GS_Level2 = gameplay
+		}
+		else {
+			stateToLoad_ = 0; // GS_Level1 = main menu
+		}
+		// Now store the path after we've checked it
+		targetJson_ = std::move(targetJson);
 	}
 
 	void Update(float dt, Scene& scene, InputManager& input) override;
+
+	// Set AudioManager for button click sounds
+	void SetAudioManager(AudioManager* audioMgr) { audioManager_ = audioMgr; }
 
 private:
 	// Click target
 	std::string targetJson_;
 	bool activateSimulation_ = false;
+	int stateToLoad_ = 0;
 
 	// Hover state cache
 	bool initialized_ = false;
 	bool hovered_ = false;
 	std::string normalTexturePath_;
 	std::string hoverTexturePath_;
+
+	// Audio
+	AudioManager* audioManager_ = nullptr;
 };

@@ -57,9 +57,12 @@ public:
 	 * @param moveMgr Reference to the movement manager system.
 	 * @param physicsMgr Reference to the physics manager system.
 	 * @param collisionMgr Reference to the collision manager system.
-	 */
+	*/
 	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
 		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
+
+	// Set AudioManager for UI sounds
+	void SetAudioManager(AudioManager* audioMgr) { audioManager_ = audioMgr; }
 
 	void LoadScene(const std::string& sceneName);
 	void Update(float deltaTime, GLFWwindow* window);
@@ -240,6 +243,18 @@ public:
 		return hasPendingLevel_;
 	}
 
+	// Game state change request
+	void RequestStateChange(int newState);
+	bool HasPendingStateChange() const {
+		return hasPendingStateChange_;
+	}
+	int GetPendingState() const {
+		return pendingState_;
+	}
+	void ClearPendingStateChange() {
+		hasPendingStateChange_ = false;
+	}
+
 	// Pause overlay methods
 	void ShowPauseOverlay();
 	void HidePauseOverlay();
@@ -248,15 +263,18 @@ public:
 	}
 
 private:
-	// Engine/input
-	GraphicsEngine& graphicsEngine;
-	EntityManager entityManager;
-	LogicManager logicManager;
-	InputManager& inputManager;				// Changed from owned instance to reference
-	AnimationManager& animationManager;		// Changed from owned instance to reference
-	MovementManager& movementManager;		// Changed from owned instance to reference
-	CollisionManager& collisionManager;		// Changed from owned instance to reference
-	PhysicsManager& physicsManager;			// Changed from owned instance to reference
+// Engine/input
+GraphicsEngine& graphicsEngine;
+EntityManager entityManager;
+LogicManager logicManager;
+InputManager& inputManager;				// Changed from owned instance to reference
+AnimationManager& animationManager;		// Changed from owned instance to reference
+MovementManager& movementManager;		// Changed from owned instance to reference
+CollisionManager& collisionManager;		// Changed from owned instance to reference
+PhysicsManager& physicsManager;			// Changed from owned instance to reference
+
+// Audio for UI sounds
+AudioManager* audioManager_ = nullptr;
 
 	// Systems
 	InputCommandHandler inputCommandHandler;
@@ -293,6 +311,10 @@ private:
 	std::string pendingLevelPath_;
 	bool pendingLevelSimActive_ = false;
 	bool hasPendingLevel_ = false;
+
+	// Pending game state change
+	int pendingState_ = -1;
+	bool hasPendingStateChange_ = false;
 
 	// Pause overlay state
 	bool pauseOverlayActive_ = false;

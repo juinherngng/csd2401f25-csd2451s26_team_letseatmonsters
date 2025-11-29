@@ -16,6 +16,7 @@
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
+#include "AudioManager.hpp"
 
 #include <string>
 
@@ -89,11 +90,16 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		TrySetTexture(owner, normalTexturePath_);
 	}
 
-	// Click to trigger level switch (deferred by Scene)
+	// Click to trigger state change (deferred by Scene)
 	if (over && input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		if (!targetJson_.empty()) {
+			// Play UI click sound
+			if (audioManager_) {
+				audioManager_->PlayUIClickSound();
+			}
+
 			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT); // Prevent carry-over
-			scene.QueueLevelLoad(targetJson_, activateSimulation_);
+			scene.RequestStateChange(stateToLoad_);
 		}
 	}
 }

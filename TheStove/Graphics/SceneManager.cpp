@@ -361,7 +361,10 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	// Button tags
 	else if (tag == "btn_play") {
 		// Go from menu -> gameplay
-		logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);
+		auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);
+		if (logic && audioManager_) {
+			logic->SetAudioManager(audioManager_);
+		}
 	}
 	else if (tag == "btn_howtoplay") {
 		// Go from menu -> settings
@@ -428,6 +431,11 @@ void Scene::QueueLevelLoad(const std::string& path, bool activateSimulation) {
 	pendingLevelPath_ = path;
 	pendingLevelSimActive_ = activateSimulation;
 	hasPendingLevel_ = true;
+}
+
+void Scene::RequestStateChange(int newState) {
+	pendingState_ = newState;
+	hasPendingStateChange_ = true;
 }
 
 void Scene::ShowPauseOverlay() {

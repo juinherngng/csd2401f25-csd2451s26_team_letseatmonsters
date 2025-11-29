@@ -26,6 +26,7 @@
 #include "TestLevel2.hpp"
 
 class Scene; // forward-declare Scene
+class AudioManager; // forward-declare AudioManager
 
 namespace Framework {
 	enum GameState {
@@ -62,6 +63,11 @@ namespace Framework {
 			jsonStatePaths[state] = levelPath;
 		}
 
+		// Inject AudioManager for state-based audio control
+		void SetAudioManager(AudioManager* mgr) {
+			audioManager = mgr;
+		}
+
 	private:
 		void OnQuit(const CoreFramework::Message& msg);
 
@@ -75,5 +81,12 @@ namespace Framework {
 		Scene* scene = nullptr;
 		std::unordered_map<int, std::string> jsonStatePaths;
 		bool pendingSimActivation = false; // NEW
+
+		// Audio management
+		AudioManager* audioManager = nullptr;
+		std::string currentAudio; // Track currently playing background music
+		bool wasPaused = false;    // Track pause state for audio
+
+		void StopCurrentAudio();
 	};
 }
