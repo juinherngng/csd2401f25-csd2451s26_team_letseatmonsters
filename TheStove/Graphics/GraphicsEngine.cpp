@@ -668,26 +668,37 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	EndImGuiFrame();
 #else
 	// Release: present the scene FBO to the default framebuffer (GLFW window)
-	// Validate resources before blit
 	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-		// Source rect (scene FBO)
+		// Source rect: the whole scene FBO
 		const int srcW = mSceneWidth;
 		const int srcH = mSceneHeight;
 
-		// Destination rect (window)
-		const int dstW = screenWidth;
-		const int dstH = screenHeight;
+		// Destination rect: SAME letterboxed region as Resize() + picking
+		const int dstX0 = viewportX_;
+		const int dstY0 = viewportY_;
+		const int dstX1 = viewportX_ + viewportW_;
+		const int dstY1 = viewportY_ + viewportH_;
 
-		// Perform blit (scaled)
-		glBlitFramebuffer(0, 0, srcW, srcH, 0, 0, dstW, dstH, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		// Optional: clear full window to black, so bars look nice
+		glViewport(0, 0, screenWidth, screenHeight);
+		glClearColor(0.f, 0.f, 0.f, 1.f);
+		glClear(GL_COLOR_BUFFER_BIT);
 
-		// Restore default framebuffer binding
+		// Blit the FBO into the letterboxed area
+		glBlitFramebuffer(
+			0, 0, srcW, srcH,
+			dstX0, dstY0, dstX1, dstY1,
+			GL_COLOR_BUFFER_BIT,
+			GL_LINEAR
+		);
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 #endif
+
 
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
@@ -737,10 +748,30 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glBlitFramebuffer(0, 0, mSceneWidth, mSceneHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+			const int srcW = mSceneWidth;
+			const int srcH = mSceneHeight;
+
+			const int dstX0 = viewportX_;
+			const int dstY0 = viewportY_;
+			const int dstX1 = viewportX_ + viewportW_;
+			const int dstY1 = viewportY_ + viewportH_;
+
+			glViewport(0, 0, screenWidth, screenHeight);
+			glClearColor(0.f, 0.f, 0.f, 1.f);
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			glBlitFramebuffer(
+				0, 0, srcW, srcH,
+				dstX0, dstY0, dstX1, dstY1,
+				GL_COLOR_BUFFER_BIT,
+				GL_LINEAR
+			);
+
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
 #endif
+
 		return;
 	}
 
@@ -862,14 +893,34 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	DrawSceneDockWindow();
 	EndImGuiFrame();
 #else
-	// Blit to default framebuffer (guarded)
+	// Blit to default framebuffer (guarded) in Release
 	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-		glBlitFramebuffer(0, 0, mSceneWidth, mSceneHeight, 0, 0, screenWidth, screenHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+		const int srcW = mSceneWidth;
+		const int srcH = mSceneHeight;
+
+		const int dstX0 = viewportX_;
+		const int dstY0 = viewportY_;
+		const int dstX1 = viewportX_ + viewportW_;
+		const int dstY1 = viewportY_ + viewportH_;
+
+		glViewport(0, 0, screenWidth, screenHeight);
+		glClearColor(0.f, 0.f, 0.f, 1.f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glBlitFramebuffer(
+			0, 0, srcW, srcH,
+			dstX0, dstY0, dstX1, dstY1,
+			GL_COLOR_BUFFER_BIT,
+			GL_LINEAR
+		);
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 #endif
+
 
 	// OpenGL error check loop
 	GLenum error;
