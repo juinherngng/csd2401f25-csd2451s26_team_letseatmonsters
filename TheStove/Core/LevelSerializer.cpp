@@ -84,9 +84,13 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	file >> jsonData;
 
 	outLevel.objects.clear();
+	outLevel.background.clear();
+
+	// optional background
+	outLevel.background = jsonData.value("background", "");
 
 	if (!jsonData.contains("objects")) {
-		return true; // empty level file is valid
+		return true; // valid: level with just background
 	}
 
 	for (auto& jsonObj : jsonData["objects"]) {
@@ -96,35 +100,34 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	return true;
 }
 
-// Saves LevelData into a JSON file
 bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	json jsonData = json::object();
 
-	// Try to load existing JSON so we keep things like "collision"
+	// Try to load existing JSON to preserve unrelated keys
 	{
 		std::ifstream in(path);
 		if (in) {
-			try {
-				in >> jsonData;
-			}
-			catch (...) {
-				// If parse fails, fall back to a clean object
-				jsonData = json::object();
-			}
+			try { in >> jsonData; }
+			catch (...) { jsonData = json::object(); }
 		}
 	}
 
-	// Replace ONLY the "objects" array with the new snapshot
+	// Write background if present
+	if (!inLevel.background.empty()) {
+		jsonData["background"] = inLevel.background;
+	} else {
+		// Optional: erase background if you want to remove it
+		// jsonData.erase("background");
+	}
+
+	// Replace ONLY the "objects" array
 	jsonData["objects"] = json::array();
 	for (const auto& obj : inLevel.objects) {
 		jsonData["objects"].push_back(WriteLevelObject(obj));
 	}
 
 	std::ofstream file(path);
-	if (!file) {
-		return false;
-	}
-
+	if (!file) return false;
 	file << jsonData.dump(2);
 	return true;
 }

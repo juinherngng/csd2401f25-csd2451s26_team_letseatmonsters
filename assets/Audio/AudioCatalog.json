@@ -10,17 +10,25 @@
     },
     {
       "category": "sfx",
-      "filepath": "../assets/Audio/Boiling7.wav",
+      "filepath": "../assets/Audio/Grill SFX5.wav",
       "loop": true,
-      "name": "boiling_sound",
+      "name": "sfx_grilling_sound",
       "stream": false,
       "volume": 1.0
     },
     {
       "category": "sfx",
-      "filepath": "../assets/Audio/Grill SFX5.wav",
+      "filepath": "../assets/Audio/Boiling7.wav",
       "loop": true,
-      "name": "grilling_sound",
+      "name": "sfx_boiling_sound",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/MyoonchiDiner_Sample.wav",
+      "loop": false,
+      "name": "bgm_MyoonchiDiner_StageTheme",
       "stream": false,
       "volume": 1.0
     },
@@ -28,15 +36,15 @@
       "category": "bgm",
       "filepath": "../assets/Audio/bgm.wav",
       "loop": true,
-      "name": "background_music",
+      "name": "bgm_background_music",
       "stream": true,
       "volume": 0.800000011920929
     },
     {
-      "category": "sfx",
-      "filepath": "../../assets/Audio/MyoonchiDiner_Sample.wav",
+      "category": "bgm",
+      "filepath": "../../assets/Audio/MyoonchiDiner_MainMenu.mp3",
       "loop": false,
-      "name": "MyoonchiDiner_Sample",
+      "name": "bgm_MyoonchiDiner_MainMenu",
       "stream": false,
       "volume": 1.0
     }

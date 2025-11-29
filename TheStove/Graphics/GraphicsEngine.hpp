@@ -197,4 +197,7 @@ private:
 
 	// Instancing threshold
 	static constexpr int INSTANCING_THRESHOLD = 10;
+	
+	// Text rendering
+	void RenderTextObjects();
 };

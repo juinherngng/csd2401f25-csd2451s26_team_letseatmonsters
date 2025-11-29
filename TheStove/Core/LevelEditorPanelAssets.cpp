@@ -3,6 +3,7 @@
  FILE NAME:         LevelEditorPanelAssets.cpp
  PROJECT NAME:      Project GAM200
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
+ CO-AUTHORS:        Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:       Implementation of the Level Editor Assets panel.
 					- Import Texture / Import Prefab / Import Audio (native dialog)
@@ -64,6 +65,23 @@ namespace {
 		// FMOD can handle relative paths just fine
 		
 		return normalized;
+	}
+
+	// Helper to detect category from name prefix
+	std::string DetectCategoryFromName(const std::string& name) {
+		// Convert to lowercase for comparison
+		std::string lowerName = name;
+		std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
+					   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		
+		// Check for common prefixes
+		if (lowerName.find("ui_") == 0) return "ui";
+		if (lowerName.find("sfx_") == 0) return "sfx";
+		if (lowerName.find("bgm_") == 0) return "bgm";
+		if (lowerName.find("ambient_") == 0) return "ambient";
+		
+		// Default to "other" if no recognized prefix
+		return "other";
 	}
 }
 
@@ -208,7 +226,7 @@ namespace LEPANELASSETS {
 				std::string ext;
 				const size_t dot = picked.find_last_of('.');
 				if (dot != std::string::npos) {
-					ext = picked.substr(dot);
+				 ext = picked.substr(dot);
 				}
 
 				std::transform(ext.begin(), ext.end(), ext.begin(),
@@ -266,7 +284,7 @@ namespace LEPANELASSETS {
 							// Default properties
 							newAsset.loop = false;
 							newAsset.stream = false;
-							newAsset.category = "sfx";
+							newAsset.category = DetectCategoryFromName(newAsset.name); // Auto-detect from name
 							newAsset.volume = 1.0f;
 
 							// Add to catalog
@@ -494,7 +512,7 @@ namespace LEPANELASSETS {
 						if (MoveToTrash(path)) {
 							refreshPrefabs = true;
 							// Also drop the cached thumbnail for this prefab
-							sPrefabPreviewCache.erase(path);
+						 sPrefabPreviewCache.erase(path);
 						}
 					}
 
@@ -654,6 +672,8 @@ namespace LEPANELASSETS {
 							ImGui::SetNextItemWidth(200.0f);
 							if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf))) {
 								editBuffer.name = nameBuf;
+								// Auto-detect category from name prefix
+								editBuffer.category = DetectCategoryFromName(editBuffer.name);
 							}
 
 							// Category combo
@@ -757,7 +777,7 @@ namespace LEPANELASSETS {
 							if (ImGui::Button("Remove")) {
 								// Stop if currently playing
 								if (isPlaying && g_AppState && g_AppState->coreEngine) {
-									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
+								 g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
 									currentlyPlaying = "";
 								}
 								ImGui::OpenPopup("Confirm Remove Audio");
@@ -850,7 +870,7 @@ namespace LEPANELASSETS {
 
 						newAsset.loop = false;
 						newAsset.stream = false;
-						newAsset.category = "sfx";
+						newAsset.category = DetectCategoryFromName(newAsset.name); // Auto-detect from name
 						newAsset.volume = 1.0f;
 
 						if (Audio::AudioCatalog::AddAudioAsset(newAsset)) {

@@ -1,6 +1,6 @@
 # ======================= Project Configuration =========================
 
-cmake_minimum_required(VERSION 2.8...3.13)
+cmake_minimum_required(VERSION 3.5...3.27)
 project (Lets-Eat-Monsters)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
@@ -15,6 +15,7 @@ set(ALL_LIBS
    imgui
    fmod
    stb_image
+   freetype
 )
 
 # Gather source files for the core game library

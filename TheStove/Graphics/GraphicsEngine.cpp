@@ -21,6 +21,8 @@
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
+#include "../Core/FontSystem.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 
 // File-scoped state
 static bool _imguiInitialized = false;
@@ -97,6 +99,15 @@ void GraphicsEngine::Initialize() {
 	view = glm::mat4(1.0f);
 
 	LoadDefaultResources();
+
+	// Initialize FontSystem
+	if (!FontSystem::FontManager::Instance().Initialize()) {
+		std::cerr << "[GraphicsEngine] ERROR: Failed to initialize FontManager\n";
+	}
+
+	if (!FontSystem::TextRenderer::Instance().Initialize()) {
+		std::cerr << "[GraphicsEngine] ERROR: Failed to initialize TextRenderer\n";
+	}
 
 	DebugRenderer::Init();
 	DebugRenderer::SetEnabled(false);
@@ -312,8 +323,10 @@ void GraphicsEngine::LoadDefaultResources() {
 
 // Set/ensure a fullscreen background quad using the given texture path
 void GraphicsEngine::SetBackground(const std::string& texturePath) {
-	// Load background texture
-	Texture* bgTexture = resourceManager.LoadTexture("background", texturePath);
+	// Derive a unique key per path to avoid returning a cached texture
+	std::string key = "background_" + std::filesystem::path(texturePath).filename().string();
+
+	Texture* bgTexture = resourceManager.LoadTexture(key, texturePath);
 	if (!bgTexture) {
 		std::cerr << "Failed to load background texture: " << texturePath << std::endl;
 		return;
@@ -549,9 +562,46 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	outWorld = glm::vec2(world4.x, world4.y);
 	return true;
 #else
-	// No ImGui / Scene window in Release - picking disabled.
-	(void)outWorld;
-	return false;
+	// Release: compute from GLFW mouse and letterboxed viewport
+	GLFWwindow* win = glfwGetCurrentContext();
+	if (!win) { return false; }
+
+	// Mouse in window space
+	double mx, my;
+	glfwGetCursorPos(win, &mx, &my);
+
+	// Check inside letterboxed viewport
+	const float vx = static_cast<float>(viewportX_);
+	const float vy = static_cast<float>(viewportY_);
+	const float vw = static_cast<float>(viewportW_);
+	const float vh = static_cast<float>(viewportH_);
+	if (mx < vx || my < vy || mx > (vx + vw) || my > (vy + vh)) {
+		return false;
+	}
+
+	// Local coords in viewport [0..vw],[0..vh]
+	const float localX = static_cast<float>(mx) - vx;
+	const float localY = static_cast<float>(my) - vy;
+
+	// UV [0..1]
+	const float u = localX / vw;
+	const float v = localY / vh;
+
+	// Pixel in reference canvas
+	const float px = u * float(kRefW);
+	const float py = v * float(kRefH);
+
+	// Clip -> world using inverse(V*P) of reference canvas
+	glm::vec4 clip;
+	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;
+	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;
+	clip.z = 0.0f;
+	clip.w = 1.0f;
+
+	const glm::mat4 invVP = glm::inverse(projection * view);
+	const glm::vec4 world4 = invVP * clip;
+	outWorld = glm::vec2(world4.x, world4.y);
+	return true;
 #endif
 }
 
@@ -675,6 +725,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 	// Early out if no objects
 	if (objects.empty()) {
+		// Render text objects even if no game objects
+		RenderTextObjects();
+		
 		EndSceneRender();
 #ifdef _DEBUG
 		DrawSceneDockWindow();
@@ -760,7 +813,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 			renderStats.totalBatches++;
 		}
-		};
+	};
 
 	// Build runs in order
 	for (auto* obj : objects) {
@@ -800,6 +853,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		glEnable(GL_DEPTH_TEST);
 	}
 
+	// Render text objects on top of scene
+	RenderTextObjects();
+
 	// End-of-frame UI and finalization
 	EndSceneRender();
 #ifdef _DEBUG
@@ -822,10 +878,53 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	}
 }
 
+// Render text objects
+void GraphicsEngine::RenderTextObjects() {
+#ifdef _DEBUG
+	// In debug builds, get text from the editor panel
+	const auto& textObjects = LEPANELFONTS::GetTextObjects();
+	
+	if (textObjects.empty()) {
+		return;
+	}
+	
+	// Create Text renderers on demand and render
+	for (const auto& data : textObjects) {
+		// Get the font from ResourceManager
+		FontSystem::Font* font = ResourceManager::Instance().GetFont(data.fontName);
+		if (!font) {
+			continue;
+		}
+		
+		// Create a temporary Text object for rendering
+		FontSystem::Text textRenderer;
+		textRenderer.SetFont(font);
+		textRenderer.SetText(data.text);
+		textRenderer.SetPosition(glm::vec2(data.x, data.y));
+		textRenderer.SetScale(data.scale);
+		textRenderer.SetRotation(data.rotation);
+		textRenderer.SetRotationMode(data.useBlockRotation ? 
+			FontSystem::Text::RotationMode::Block : 
+			FontSystem::Text::RotationMode::PerCharacter);
+		textRenderer.SetColor(glm::vec4(data.colorR, data.colorG, data.colorB, data.colorA));
+		
+		// Render using TextRenderer singleton
+		FontSystem::TextRenderer::Instance().RenderText(textRenderer, projection);
+	}
+#else
+	// In release build, text will be rendered from game state
+#endif
+}
+
 // Free resources and shutdown ImGui
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
 	DebugRenderer::Shutdown();
+	
+	// Shutdown FontSystem
+	FontSystem::TextRenderer::Instance().Shutdown();
+	FontSystem::FontManager::Instance().Shutdown();
+	
 	resourceManager.Clear();
 
 #ifdef _DEBUG

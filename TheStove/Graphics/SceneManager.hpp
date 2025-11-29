@@ -261,6 +261,19 @@ public:
 		return entityManager;
 	}
 
+	// Level loading queue
+	void QueueLevelLoad(const std::string& path, bool activateSimulation);
+	bool HasPendingLevel() const {
+		return hasPendingLevel_;
+	}
+
+	// Pause overlay methods
+	void ShowPauseOverlay();
+	void HidePauseOverlay();
+	bool IsPauseOverlayActive() const {
+		return pauseOverlayActive_;
+	}
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -303,6 +316,15 @@ private:
 	bool pendingClear_ = false;
 	int editorSelectedId = -1;
 	std::string currentLevelPath_;
+
+	// Pending level load state
+	std::string pendingLevelPath_;
+	bool pendingLevelSimActive_ = false;
+	bool hasPendingLevel_ = false;
+
+	// Pause overlay state
+	bool pauseOverlayActive_ = false;
+	std::vector<int> pauseOverlayObjectIds_;
 
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;

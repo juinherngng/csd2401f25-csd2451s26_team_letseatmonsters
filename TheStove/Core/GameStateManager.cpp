@@ -14,9 +14,6 @@
 */
 
 #include "GameStateManager.hpp"
-#include "TestLevel.hpp"
-#include "TestLevel2.hpp"
-
 #include "../Graphics/SceneManager.hpp"
 #include "RuntimeLevel.hpp"
 
@@ -144,8 +141,13 @@ namespace Framework {
 			return false;
 		}
 
-		// Defer simulation activation to next Update tick to avoid race with still-initializing systems
-		pendingSimActivation = true;
+		// Auto-start simulation for gameplay only
+		if (state == Framework::GS_Level1) {
+			scene->SetSimulationActive(false);  // main menu stays paused
+			pendingSimActivation = false;
+		} else {
+			pendingSimActivation = true;        // other states (e.g., gameplay)
+		}
 
 		fpInit = nullptr;
 		fpUpdate = nullptr;

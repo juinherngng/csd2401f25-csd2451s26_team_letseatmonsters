@@ -20,10 +20,10 @@
 #include <string>
 #include <vector>
 
-#include "../Graphics/GraphicsEngine.hpp"
-
 #include "AudioManager.hpp"
 #include "Precompiled.hpp"
+#include "FontSystem.hpp"
+#include "../Graphics/GraphicsEngine.hpp"
 
 namespace CoreFramework {
 	class CoreEngine;
@@ -98,6 +98,10 @@ namespace Debug {
 			scene_ = scenePtr;
 		}
 
+		// Font System integration
+		void InitializeFontSystem();
+		void RenderTextOverlays();
+		
 		void SetupDefaultLayout();
 
 	public:
@@ -112,6 +116,7 @@ namespace Debug {
 		bool openedDebugger; // Shows Whether debugger window is visible
 
 		std::vector<std::string> debuglines;
+		
 	private:
 		GLFWwindow* debugWindow; // The host window
 		CoreFramework::CoreEngine* coreEngine; // Pointer to CoreEngine (not owned)
@@ -130,6 +135,10 @@ namespace Debug {
 
 		Scene* scene_ = nullptr;
 
+		// Font System members
+		bool fontSystemInitialized = false;
+		FontSystem::Text text1;
+		FontSystem::Text text2;
 	};
 	extern DebuggerApp gDebugger;
 

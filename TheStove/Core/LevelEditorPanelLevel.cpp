@@ -389,6 +389,10 @@ namespace LEPANELLEVEL {
 				scene.SetSimulationActive(false);
 				scene.ResetResizeBaseline();
 
+				if (!work.background.empty()) {
+					scene.SetSceneBackground(work.background);
+				}
+
 				editor.SetPlaying(false);
 				selectedIndex = -1;
 				selectedObjectId = -1;

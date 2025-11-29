@@ -25,6 +25,7 @@
 #include "LevelEditorPanelLevel.hpp"
 #include "LevelEditorPanelPrefabs.hpp"
 #include "LevelEditorPanelAudioControl.hpp"
+#include "LevelEditorPanelFonts.hpp"
 #include "LevelEditorPickDrag.hpp"
 
  // DrawUI
@@ -60,6 +61,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 	LEPANELPREFABS::DrawPrefabsPanel(*this, scene, selectedObjectId);
 	LEPANELASSETS::DrawAssetsPanel(*this, scene, selectedIndex, selectedObjectId);
 	LEPANELAUDIOCONTROL::DrawAudioControlPanel(*this, scene);
+	LEPANELFONTS::DrawFontsPanel(*this, scene);
 
 	// Disable editor picking/dragging while the game is running
 	if (!isPlaying) {
