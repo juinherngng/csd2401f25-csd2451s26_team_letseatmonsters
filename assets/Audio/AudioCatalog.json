@@ -26,24 +26,16 @@
     },
     {
       "category": "bgm",
-      "filepath": "../../assets/Audio/MyoonchiDiner_Sample.wav",
+      "filepath": "../../assets/Audio/MyoonchiDiner_LevelTheme.wav",
       "loop": false,
-      "name": "bgm_MyoonchiDiner_StageTheme",
+      "name": "bgm_MyoonchiDiner_LevelTheme",
       "stream": false,
       "volume": 1.0
     },
     {
       "category": "bgm",
-      "filepath": "../assets/Audio/bgm.wav",
+      "filepath": "../../assets/Audio/MyoonchiDiner_MainMenu.wav",
       "loop": true,
-      "name": "bgm_background_music",
-      "stream": true,
-      "volume": 0.800000011920929
-    },
-    {
-      "category": "bgm",
-      "filepath": "../../assets/Audio/MyoonchiDiner_MainMenu.mp3",
-      "loop": false,
       "name": "bgm_MyoonchiDiner_MainMenu",
       "stream": false,
       "volume": 1.0
