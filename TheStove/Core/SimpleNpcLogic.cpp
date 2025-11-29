@@ -64,11 +64,12 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
             pos.y = curPos.y;
             npc->SetPosition(pos);
 
-            // Notify customer behaviour FSM:
-            OnSeatedAtTable(scene);
-
             // Once arrived, we can keep them there. If later you want them to
             // go back to patrol, you can call ClearCustomerTableTarget().
+
+            // Notify customer behaviour FSM ONCE.
+            OnSeatedAtTable(scene);
+
             return;
         }
         else {
@@ -169,7 +170,13 @@ void SimpleNpcLogic::AssignCustomerTable(int tableObjectID)
 
 void SimpleNpcLogic::OnSeatedAtTable(Scene& scene)
 {
-    std::cout << "[SimpleNpcLogic] OnSeatedAtTable, state="
+    int npcID = -1;
+    if (GameObject* owner = GetOwner(scene)) {
+        npcID = owner->GetID();
+    }
+
+    std::cout << "[SimpleNpcLogic] OnSeatedAtTable, npcID="
+        << npcID << " state="
         << static_cast<int>(behaviourState_) << "\n";
 
     // When NPC reaches its assigned table, it should start ordering.
@@ -178,7 +185,7 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene)
     {
         // Start ordering this dish (2 processed veg salad).
         behaviourState_ = BehaviourState::Ordering;
-        desiredDishType_ = DishType::VegDish;  // <--- change to your actual salad enum if different
+        desiredDishType_ = DishType::VegDish;
 
         std::cout << "[SimpleNpcLogic] Now ordering dish type = "
             << static_cast<int>(desiredDishType_) << "\n";
@@ -233,8 +240,10 @@ void SimpleNpcLogic::TakePayment(Scene& /*scene*/)
 
 void SimpleNpcLogic::UpdateCustomerLogic(float dt)
 {
-    if (behaviourState_ == BehaviourState::Eating) {
+    if (behaviourState_ == BehaviourState::Eating)
+    {
         eatTimer_ += dt;
+        std::cout << "SimpleNpcLogic] Eating... timer= " << eatTimer_ << "/" << eatDuration_ << "\n";
         if (eatTimer_ >= eatDuration_) {
             eatTimer_ = eatDuration_;
             finishedDish_ = true;

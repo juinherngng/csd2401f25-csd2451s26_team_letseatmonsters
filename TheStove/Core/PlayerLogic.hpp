@@ -18,7 +18,7 @@
 #include <glm/glm.hpp>
 #include "Math.hpp"
 
-#include "GameObjectLogic.hpp"
+#include "../Core/GameObjectLogic.hpp"
 
 class PlayerLogic : public GameObjectLogic {
 public:

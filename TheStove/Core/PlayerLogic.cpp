@@ -14,16 +14,16 @@ DESCRIPTION:		Implements player control logic, including movement, sprite update
 #include "../Graphics/SceneManager.hpp"
 #include "../Core/InputManager.hpp"
 #include "../Core/InputControls.hpp"
-#include "TableLogic.hpp"
-#include "WorkTableLogic.hpp"
-#include "CustomerTableLogic.hpp"
+#include "../Core/TableLogic.hpp"
+#include "../Core/WorkTableLogic.hpp"
+#include "../Core/CustomerTableLogic.hpp"
 #include <iostream>
 
 #include "../Core/DebugUI.hpp"
 #include "../Core/InputControls.hpp"
 #include "../Core/InputManager.hpp"
 #include "../Graphics/SceneManager.hpp"
-#include "PlayerLogic.hpp"
+#include "../Core/PlayerLogic.hpp"
 
 void PlayerLogic::Start(Scene& scene) {
 	(void)scene;
@@ -304,8 +304,6 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 // Unity: OnArrived()
 // For now it�s a stub; later you can branch by what we clicked (tables, spawners, etc.)
 void PlayerLogic::OnArrived(Scene& scene) {
-	(void)scene;
-	// Example debug:
 	std::cout << "[PlayerLogic] Arrived at destination\n";
 
 	if (pendingTableID < 0)
@@ -319,26 +317,53 @@ void PlayerLogic::OnArrived(Scene& scene) {
 	}
 
 	glm::vec3 pPos = player->GetPositionGLM();
-	glm::vec3 tPos = tableObj->GetPositionGLM();
 
-	float dx = pPos.x - tPos.x;
-	float dy = pPos.y - tPos.y;
-	float distSq = dx * dx + dy * dy;
+	// Get the table logic so we can ask for its approach point
+	LogicManager& logicMgr = scene.GetLogicManager();
+	TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(pendingTableID);
 
-	// Interaction radius (tweak to taste)
-	constexpr float kInteractRadius = 120.0f;
+	float distSq = 0.0f;
+
+	if (tableLogic) {
+		// Use the SAME approach-point logic that we used when clicking.
+		Math::Vector2D from(pPos.x, pPos.y);
+		Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
+
+		float dx = pPos.x - approach.x;
+		float dy = pPos.y - approach.y;
+		distSq = dx * dx + dy * dy;
+
+		std::cout << "[PlayerLogic] Dist to table APPROACH point: "
+			<< std::sqrt(distSq)
+			<< " (approach=(" << approach.x << ", " << approach.y << "))\n";
+	}
+	else {
+		// Fallback: no TableLogic (shouldn’t really happen for tables)
+		glm::vec3 tPos = tableObj->GetPositionGLM();
+		float dx = pPos.x - tPos.x;
+		float dy = pPos.y - tPos.y;
+		distSq = dx * dx + dy * dy;
+
+		std::cout << "[PlayerLogic] Dist to table ORIGIN (fallback): "
+			<< std::sqrt(distSq) << "\n";
+	}
+
+	// Interaction radius around the approach point
+	constexpr float kInteractRadius = 40.0f;  // tweak to taste
+
 	if (distSq <= kInteractRadius * kInteractRadius) {
 		std::cout << "[PlayerLogic] Close enough to table " << pendingTableID
-			<< ", performing interaction\n";
+			<< " (approach), performing interaction\n";
 		InteractWithTable(scene, pendingTableID);
 	}
 	else {
-		std::cout << "[PlayerLogic] Arrived near click, but too far from table (dist="
+		std::cout << "[PlayerLogic] Arrived near click, but too far from table approach (dist="
 			<< std::sqrt(distSq) << ")\n";
 	}
 
 	pendingTableID = -1;
 }
+
 
 // Unity: PickUp(GameObject item) � here by engine ID
 void PlayerLogic::PickUp(Scene& scene, int itemID) {
