@@ -429,6 +429,19 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	else if (tag == "plate_box") {
 		logicManager.AddLogic<IngredientBoxLogic>(id);
 	}
+	// Button tags
+	else if (tag == "btn_play") {
+		// Go from menu -> gameplay
+		logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);
+	}
+	else if (tag == "btn_howtoplay") {
+		// Go from menu -> settings
+		// Settings
+	}
+	else if (tag == "btn_quit") {
+		logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+	}
+	// Extend with more tags as needed
 	// you can extend with more tags later
 }
 
@@ -454,19 +467,6 @@ collision::World& Scene::GetCollisionWorld() {
 
 const collision::World& Scene::GetCollisionWorld() const {
 	return collisionManager.GetCollisionWorld();
-	// Button tags
-	else if (tag == "btn_play") {
-		// Go from menu -> gameplay
-		logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);
-	}
-	else if (tag == "btn_howtoplay") {
-		// Go from menu -> settings
-		// Settings
-	}
-	else if (tag == "btn_quit") {
-		logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
-	}
-	// Extend with more tags as needed
 }
 
 void Scene::AddLayer(const std::string& name) {
