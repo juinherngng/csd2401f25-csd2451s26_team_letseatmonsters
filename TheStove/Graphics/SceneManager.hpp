@@ -40,6 +40,7 @@
 #include "EntityManager.hpp"
 #include "GraphicsEngine.hpp"
 #include "Layer.hpp"
+#include "../Core/FontSystem.hpp"
 
  /**
   * @class Scene
@@ -262,6 +263,11 @@ public:
 		return pauseOverlayActive_;
 	}
 
+	// Menu button text rendering
+	void CreateMenuButtonTexts();
+	void RenderMenuButtonTexts();
+	void ClearMenuButtonTexts();
+
 private:
 // Engine/input
 GraphicsEngine& graphicsEngine;
@@ -319,6 +325,14 @@ AudioManager* audioManager_ = nullptr;
 	// Pause overlay state
 	bool pauseOverlayActive_ = false;
 	std::vector<int> pauseOverlayObjectIds_;
+
+	// Menu button text rendering
+	struct MenuButtonText {
+		FontSystem::Text textObj;
+		int buttonID = 0;
+		std::string label;
+	};
+	std::vector<MenuButtonText> menuButtonTexts_;
 
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;

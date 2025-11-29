@@ -852,6 +852,9 @@ static void draw(ApplicationState& app) {
 	//graphicsEngine->Render(drawList);
 	graphicsEngine->RenderBatched(drawList);
 
+	// Render menu button texts on top (in both debug and release)
+	app.currentScene->RenderMenuButtonTexts();
+
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (app.debugApp) {
 		app.debugApp->SetRenderStats(

@@ -161,6 +161,7 @@ void Scene::ClearAll() {
 	animationManager.Clear();
 	movementManager.Clear();
 	npcSystem.Clear();
+	ClearMenuButtonTexts();
 
 	spriteID = -1;
 	dinoID = -1;
@@ -438,7 +439,7 @@ void Scene::RequestStateChange(int newState) {
 	hasPendingStateChange_ = true;
 }
 
-void Scene::ShowPauseOverlay() {
+	void Scene::ShowPauseOverlay() {
 #ifndef _DEBUG
 	if (pauseOverlayActive_) return;
 	pauseOverlayActive_ = true;
@@ -446,8 +447,8 @@ void Scene::ShowPauseOverlay() {
 	// Pause simulation while overlay is active
 	SetSimulationActive(false);
 
-	// Just a high number to ensure it renders over everything else
-	const std::string uiLayer = "1000";
+	// Use very high layer number to ensure pause overlay renders on top of all game objects
+	const std::string uiLayer = "999999";
 
 	// Payse overlay
 	if (GameObject* dim = SpawnStaticSprite("../assets/pause.png",
@@ -481,7 +482,156 @@ void Scene::HidePauseOverlay() {
 	for (int id : pauseOverlayObjectIds_) {
 		DespawnByID(id);
 	}
-	pauseOverlayObjectIds_.clear();
-	pauseOverlayActive_ = false;
+		pauseOverlayObjectIds_.clear();
+		pauseOverlayActive_ = false;
 #endif
+}
+
+void Scene::CreateMenuButtonTexts() {
+	ClearMenuButtonTexts();
+
+	// Get or load a font for menu buttons
+	FontSystem::Font* font = ResourceManager::Instance().GetFont("menu_font");
+	if (!font) {
+		// Try to load a default font
+		font = FontSystem::FontManager::Instance().LoadFont(
+			"menu_font",
+			"../assets/Font/ChrustyRock-ORLA.ttf",
+			48
+		);
+		if (!font) {
+			// Try alternative font
+			font = FontSystem::FontManager::Instance().LoadFont(
+				"menu_font",
+				"../assets/Font/ToThePointRegular-n9y4.ttf",
+				48
+			);
+		}
+		if (!font) {
+			std::cerr << "[Scene] Failed to load font for menu buttons\n";
+			return;
+		}
+	}
+
+	// Find menu button objects by their tags and create text for them
+	const std::vector<std::pair<std::string, std::string>> buttonLabels = {
+		{"btn_play", "PLAY"},
+		{"btn_howtoplay", "HOW TO PLAY"},
+		{"btn_quit", "QUIT"}
+	};
+
+	for (const auto& [tag, label] : buttonLabels) {
+		// Find the button object with this tag
+		std::vector<GameObject*> allObjects = entityManager.GetAllObjects();
+		for (GameObject* obj : allObjects) {
+			if (!obj) continue;
+
+			// Check if this object has the matching tag
+			Scene::Defaults defs = GetDefaults(obj->GetID());
+			if (defs.tag == tag) {
+				// Create text for this button
+				MenuButtonText menuText;
+				menuText.buttonID = obj->GetID();
+				menuText.label = label;
+				menuText.textObj.SetFont(font);
+				menuText.textObj.SetText(label);
+
+				// Get button position and size
+				glm::vec3 btnPos = obj->GetPositionGLM();
+				glm::vec3 btnSize = obj->GetScaleGLM();
+
+			// Calculate actual text width and height using font glyph metrics when available
+			FontSystem::Font* f = font;
+			float textWidth = 0.0f;
+			float maxHeight = 0.0f;
+			if (f) {
+				for (char c : label) {
+					const FontSystem::Character* ch = f->GetCharacter(c);
+					if (ch) {
+						textWidth += static_cast<float>(ch->advance >> 6);
+						maxHeight = std::max(maxHeight, static_cast<float>(ch->size.y));
+					}
+				}
+			}
+
+			// Fallback if metrics not available
+			if (textWidth <= 0.0f) {
+				float baseFontSize = 36.0f;
+				textWidth = label.length() * baseFontSize * 0.4f;
+				maxHeight = baseFontSize * 0.8f;
+			}
+
+			// Calculate scale to fit text within button bounds (with padding)
+			float paddingW = 0.75f; // width padding
+			float paddingH = 0.7f;  // height padding
+			float targetW = btnSize.x * paddingW;
+			float targetH = btnSize.y * paddingH;
+			float scaleX = targetW / textWidth;
+			float scaleY = targetH / maxHeight;
+			float scale = std::min(scaleX, scaleY);
+
+			// Final dimensions
+			float finalWidth = textWidth * scale;
+			float finalHeight = maxHeight * scale;
+
+			// Position text centered on button (FontSystem renders from top-left baseline aware)
+			float textX = btnPos.x - (finalWidth * 0.5f);
+			float textY = btnPos.y - (finalHeight * 0.5f);
+
+				menuText.textObj.SetPosition(glm::vec2(textX, textY));
+				menuText.textObj.SetScale(scale);
+				menuText.textObj.SetColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); // White
+
+				menuButtonTexts_.push_back(menuText);
+				break; // Found the button for this tag
+			}
+		}
+	}
+
+	if (!menuButtonTexts_.empty()) {
+		std::cout << "[Scene] Created text for " << menuButtonTexts_.size() << " menu buttons\n";
+	}
+}
+
+	void Scene::RenderMenuButtonTexts() {
+	if (menuButtonTexts_.empty()) {
+		return;
+	}
+
+    glm::mat4 projection = graphicsEngine.GetProjection();
+
+    // Save current GL viewport so we can restore after drawing
+    GLint prevViewport[4];
+    glGetIntegerv(GL_VIEWPORT, prevViewport);
+
+    // If we're rendering into the scene FBO (non-default framebuffer), set viewport to FBO size
+    GLint boundFBO = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
+    if (boundFBO != 0) {
+        // Draw in FBO pixel coords (FBO matches reference canvas size)
+        glViewport(0, 0, graphicsEngine.GetSceneWidth(), graphicsEngine.GetSceneHeight());
+    }
+    else {
+        // We're rendering to the default framebuffer: apply the letterboxed viewport so positions match
+        graphicsEngine.ApplyViewport();
+    }
+
+    // Disable depth test for text rendering and enable alpha blending
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Render each text object - positions are in reference space that matches projection
+    for (auto& menuText : menuButtonTexts_) {
+        FontSystem::TextRenderer::Instance().RenderText(menuText.textObj, projection);
+    }
+
+    // Restore GL state
+    glDisable(GL_BLEND);
+    // Restore previous viewport (default framebuffer expects full window viewport)
+    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+}
+
+void Scene::ClearMenuButtonTexts() {
+	menuButtonTexts_.clear();
 }
