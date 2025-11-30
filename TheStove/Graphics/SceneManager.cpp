@@ -624,9 +624,9 @@ void Scene::ShowPauseOverlay() {
 		}
 		};
 
-	spawnPauseBtn("../assets/green_button_static.png", { 967.f, 454.f }, PauseAction::Resume);
-	spawnPauseBtn("../assets/green_button_static.png", { 967.f, 584.f }, PauseAction::HowToPlay);
-	spawnPauseBtn("../assets/green_button_static.png", { 967.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn("../assets/continue_s.png", { 967.f, 454.f }, PauseAction::Resume);
+	spawnPauseBtn("../assets/how_s.png", { 967.f, 584.f }, PauseAction::HowToPlay);
+	spawnPauseBtn("../assets/quit_s.png", { 967.f, 714.f }, PauseAction::Quit);
 #endif
 }
 

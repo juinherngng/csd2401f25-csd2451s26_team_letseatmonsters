@@ -23,9 +23,18 @@
 namespace {
 	static std::string MakeHoverPath(const std::string& path) {
 		if (path.empty()) return path;
+
 		const size_t dot = path.find_last_of('.');
-		if (dot == std::string::npos) return path + "_hover";
-		return path.substr(0, dot) + "_hover" + path.substr(dot);
+		const std::string ext  = (dot != std::string::npos) ? path.substr(dot) : std::string();
+		const std::string base = (dot != std::string::npos) ? path.substr(0, dot) : path;
+
+		if (base.size() >= 2 && base.substr(base.size() - 2) == "_h") {
+			return dot != std::string::npos ? path : (base + ext);
+		}
+		if (base.size() >= 2 && base.substr(base.size() - 2) == "_s") {
+			return base.substr(0, base.size() - 2) + "_h" + ext;
+		}
+		return base + "_h" + ext;
 	}
 
 	static void TrySetTexture(GameObject* owner, const std::string& texPath) {

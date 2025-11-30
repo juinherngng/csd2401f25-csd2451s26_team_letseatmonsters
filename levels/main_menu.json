@@ -3,7 +3,7 @@
   "objects": [
     {
       "animated": false,
-      "texture": "../assets/green_button_static.png",
+      "texture": "../assets/start_s.png",
       "tag": "btn_play",
       "layer": "1",
       "x": 967.0,
@@ -21,7 +21,7 @@
     },
     {
       "animated": false,
-      "texture": "../assets/green_button_static.png",
+      "texture": "../assets/how_s.png",
       "tag": "btn_howtoplay",
       "layer": "1",
       "x": 967.0,
@@ -39,7 +39,7 @@
     },
     {
       "animated": false,
-      "texture": "../assets/green_button_static.png",
+      "texture": "../assets/quit_s.png",
       "tag": "btn_quit",
       "layer": "1",
       "x": 967.0,
