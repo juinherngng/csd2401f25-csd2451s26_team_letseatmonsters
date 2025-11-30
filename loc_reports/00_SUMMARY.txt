@@ -1,15 +1,14 @@
 ==========================================
 SUMMARY - All Authors
 ==========================================
-Since: 2025-10-13
-Generated: Fri Nov  7 14:19:20 +08 2025
+Since: 2025-11-08
+Generated: Sun Nov 30 16:33:39 +08 2025
 ==========================================
 
 Author                       Commits  Lines Added    Lines Del   Net Change
 --------------------------------------------------------------------------------
-CookieWasTaken                     4           48           61          -13
-Wang Hua                          20         3440         1476         1964
-Yat Chun Wee                      25        24540        22961         1579
-chuuniby                          17         1073          585          488
-juinherngng                       26         5371         2422         2949
-y.chunwee                         42        34100         7617        26483
+Chun Wee                          27         6306         5265         1041
+CookieWasTaken                     2            4            4            0
+Wang Hua                          12         1453          393         1060
+juinherngng                       17         3314          473         2841
+y.chunwee                          2          149           68           81
