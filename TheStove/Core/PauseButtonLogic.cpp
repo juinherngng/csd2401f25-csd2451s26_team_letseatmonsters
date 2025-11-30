@@ -8,7 +8,7 @@
 					hover texture swapping, and button actions logic: resume simulation/hide overlay, load settings JSON,
 					or close GLFW window on Quit.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

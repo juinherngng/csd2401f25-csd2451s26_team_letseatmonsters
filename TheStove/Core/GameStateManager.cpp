@@ -3,13 +3,16 @@
  FILE NAME:			GameStateManager.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Darren Toh, darren.toh@digipen.edu
+ CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
- DESCRIPTION:		Game State Manager interface derived from System.hpp. Uses 3 Function pointers
-					and redirects them to level/scene-specific init, update and exit functions.
-					These function pointers are then called in main by the game state manager.
-					This is a header file for definitions.
+ DESCRIPTION:		This file implements the logic for first-time initialization, per-frame updates, and transitions
+ 					between states, preferring JSON-driven runtime level loading when mappings are registered, with a 
+					fallback to legacy function-pointer-based level init/update/exit routines. Manages scene simulation
+					activation timing, tracks pause state to pause/resume audio in gameplay, and controls state-based
+					playback and cleanup of background music and ambience through the injected AudioManager instance.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
