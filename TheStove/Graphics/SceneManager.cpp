@@ -511,9 +511,9 @@ void Scene::RequestStateChange(int newState) {
 		}
 	};
 
-	spawnBtn("../assets/green_button_static.png", { 967.f, 454.f }, PauseAction::Resume);
-	spawnBtn("../assets/green_button_static.png", { 967.f, 584.f }, PauseAction::HowToPlay);
-	spawnBtn("../assets/green_button_static.png", { 967.f, 714.f }, PauseAction::Quit);
+	spawnBtn("../assets/continue_s.png", { 967.f, 454.f }, PauseAction::Resume);
+	spawnBtn("../assets/how_s.png", { 967.f, 584.f }, PauseAction::HowToPlay);
+	spawnBtn("../assets/quit_s.png", { 967.f, 714.f }, PauseAction::Quit);
 #endif
 }
 
