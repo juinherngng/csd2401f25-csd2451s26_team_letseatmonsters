@@ -20,6 +20,7 @@
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 
+#ifndef _DEBUG
 namespace {
 	static std::string MakeHoverPath(const std::string& path) {
 		if (path.empty()) return path;
@@ -45,6 +46,7 @@ namespace {
 		}
 	}
 }
+#endif 
 
 void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 #ifdef _DEBUG
