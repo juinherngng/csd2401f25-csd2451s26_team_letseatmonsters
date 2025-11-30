@@ -1,4 +1,5 @@
 {
+  "background": "../assets/Background_Full.png",
   "objects": [
     {
       "animated": true,
@@ -12,7 +13,7 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "player",
-      "texture": "../assets/mc_sprite_front.png",
+      "texture": "../assets/mc_sprite.png",
       "w": 128.0,
       "x": 377.969970703125,
       "y": 496.7301025390625,
