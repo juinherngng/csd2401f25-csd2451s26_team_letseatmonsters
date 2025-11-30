@@ -8,7 +8,7 @@
 					 against button AABB, hover texture transitions using ResourceManager, and triggering JSON
 					 level loads using left-click.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

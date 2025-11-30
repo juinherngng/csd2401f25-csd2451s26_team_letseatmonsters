@@ -325,13 +325,9 @@ int main() {
 
 	bool startFullscreen = settings.fullscreen;
 
-	if (!init(app, settings.resolution.width, settings.resolution.height, "TheStove", false)) {
+	if (!init(app, settings.resolution.width, settings.resolution.height, "TheStove", startFullscreen)) {
 		cleanup(app);
 		return -1;
-	}
-
-	if (startFullscreen) {
-		ToggleFullscreen(app);
 	}
 
 	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>()) {
@@ -531,13 +527,15 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		}
 	});
 
+	// enable focus callback only in release mode
+	#ifndef _DEBUG
 	// When we lose focus (ALT-TAB, CTRL-ALT-DEL, clicking another window),
-	// pause the game but don't force minimize
+	// explicitly minimize our game window
 	glfwSetWindowFocusCallback(app.window, [](GLFWwindow* win, int focused) {
-		(void)win; // suppress unused parameter warning
 
 		if (focused == GLFW_FALSE) {
-			// Don't minimize if a modal dialog (file picker) is open
+			// Force the game window to minimize
+			glfwIconifyWindow(win);
 			if (g_AppState && g_AppState->modalDialogOpen) {
 				// Just pause audio/input, but don't force minimize
 				HandlePauseResume(true);
@@ -552,6 +550,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			HandlePauseResume(false);
 		}
 	});
+	#endif	
 
 	// Iconify callback is kept just to keep pause/resume in sync
 	glfwSetWindowIconifyCallback(app.window, [](GLFWwindow* win, int iconified) {
