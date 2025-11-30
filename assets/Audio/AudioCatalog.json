@@ -1,14 +1,6 @@
 {
   "audio_assets": [
     {
-      "category": "ui",
-      "filepath": "../assets/Audio/Cute Pop Sound Effects1 0.1.wav",
-      "loop": false,
-      "name": "ui_click",
-      "stream": false,
-      "volume": 0.5
-    },
-    {
       "category": "sfx",
       "filepath": "../assets/Audio/Grill SFX5.wav",
       "loop": true,
@@ -66,9 +58,9 @@
     },
     {
       "category": "ui",
-      "filepath": "../../assets/Audio/ui_hover.wav",
+      "filepath": "../../assets/Audio/ui_click.wav",
       "loop": false,
-      "name": "ui_hover",
+      "name": "ui_click",
       "stream": false,
       "volume": 0.05000000074505806
     },
