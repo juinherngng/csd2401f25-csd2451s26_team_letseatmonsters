@@ -339,9 +339,9 @@ void GraphicsEngine::SetBackground(const std::string& texturePath) {
 
 		if (quadMesh && textureShader) {
 			backgroundObject = std::make_unique<GameObject>(quadMesh, textureShader);
-			// Position background to fill screen
-			backgroundObject->SetPosition(glm::vec3(screenWidth * 0.5f, screenHeight * 0.5f, 0.0f));
-			backgroundObject->SetScale(glm::vec3(static_cast<float>(screenWidth), static_cast<float>(screenHeight), 1.0f));
+			// Position background to fill reference canvas (not screen size)
+			backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
+			backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW), static_cast<float>(kRefH), 1.0f));
 		}
 	}
 

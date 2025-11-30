@@ -43,8 +43,8 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	// Debug build: keep inert (no hover, no click).
 	(void)scene;
 	(void)input;
-	return;
-#endif
+#else
+	// Release build: full button logic
 
 	// Lazy init texture paths
 	if (!initialized_) {
@@ -102,4 +102,5 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 			scene.RequestStateChange(stateToLoad_);
 		}
 	}
+#endif
 }
