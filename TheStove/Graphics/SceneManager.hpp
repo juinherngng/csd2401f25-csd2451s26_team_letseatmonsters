@@ -40,6 +40,7 @@
 #include "../Core/CustomerTableLogic.hpp"
 #include "../Core/IngredientBoxLogic.hpp"
 #include "../Core/CustomerManagerLogic.hpp"
+#include "../Core/HowToPlayButtonLogic.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"
@@ -296,6 +297,11 @@ public:
 	void RenderMenuButtonTexts();
 	void ClearMenuButtonTexts();
 
+	// How-to-play overlay state
+	void SetHowToPlayOverlayActive(bool active) { howToPlayOverlayActive_ = active; }
+	bool IsHowToPlayOverlayActive() const { return howToPlayOverlayActive_; }
+
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -365,4 +371,6 @@ private:
 
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;
+
+	bool howToPlayOverlayActive_ = false;
 };

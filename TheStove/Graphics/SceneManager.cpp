@@ -439,8 +439,8 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 		}
 	}
 	else if (tag == "btn_howtoplay") {
-		// Go from menu -> settings
-		// Settings
+		// Main-menu How To Play button → show HowToPlay.png overlay
+		logicManager.AddLogic<HowToPlayButtonLogic>(id);
 	}
 	else if (tag == "btn_quit") {
 		logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);

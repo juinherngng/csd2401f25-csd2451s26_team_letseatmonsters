@@ -46,6 +46,10 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	return;
 #endif
 
+	if (scene.IsHowToPlayOverlayActive()) {
+		return;
+	}
+
 	// Lazy init texture paths
 	if (!initialized_) {
 		normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
