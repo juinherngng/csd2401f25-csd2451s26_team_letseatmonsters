@@ -268,6 +268,9 @@ public:
 	void RenderMenuButtonTexts();
 	void ClearMenuButtonTexts();
 
+	// FPS display rendering
+	void RenderFPSText();
+
 private:
 // Engine/input
 GraphicsEngine& graphicsEngine;
@@ -333,6 +336,14 @@ AudioManager* audioManager_ = nullptr;
 		std::string label;
 	};
 	std::vector<MenuButtonText> menuButtonTexts_;
+
+	// FPS display (release builds) - toggled with F1
+	FontSystem::Text fpsText_;
+	bool showFPS_ = false;
+	float fpsAccumTime_ = 0.0f;
+	int fpsAccumFrames_ = 0;
+	int fpsValue_ = 0;
+	const float fpsUpdateInterval_ = 0.25f; // update every 0.25s
 
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;

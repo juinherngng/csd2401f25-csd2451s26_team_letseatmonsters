@@ -854,6 +854,9 @@ static void draw(ApplicationState& app) {
 
 	// Render menu button texts on top (in both debug and release)
 	app.currentScene->RenderMenuButtonTexts();
+	
+	// Render FPS text on top (release only)
+	app.currentScene->RenderFPSText();
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (app.debugApp) {

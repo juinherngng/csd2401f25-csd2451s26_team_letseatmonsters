@@ -97,6 +97,32 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		mLevelEditor.Toggle();
 	}
 
+#ifndef _DEBUG
+
+	// Toggle FPS display with F1 in Release
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_F1)) {
+		showFPS_ = !showFPS_;
+		if (showFPS_) {
+			// Lazy-load a small font for FPS
+			FontSystem::Font* f = ResourceManager::Instance().GetFont("fps_font");
+			if (!f) {
+				f = FontSystem::FontManager::Instance().LoadFont("fps_font", "../assets/Font/ToThePointRegular-n9y4.ttf", 48);
+			}
+			if (f) {
+				fpsText_.SetFont(f);
+				fpsText_.SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)); // yellow for visibility
+				fpsText_.SetScale(1.5f); // 1.5x size for better visibility
+				fpsText_.SetPosition(glm::vec2(10.0f, 60.0f)); // Move down to avoid clipping
+				fpsAccumTime_ = 0.0f;
+				fpsAccumFrames_ = 0;
+				fpsValue_ = 60; // Start with a visible value
+				fpsText_.SetText(std::string("FPS: ") + std::to_string(fpsValue_));
+			}
+		}
+	}
+
+#endif
+
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
 	lastPhysicsDt_ = physicsDt;
 
@@ -132,6 +158,21 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 	(void)window;
+
+#ifndef _DEBUG
+	// Update FPS accumulator when enabled (release builds only)
+	if (showFPS_) {
+		fpsAccumTime_ += deltaTime;
+		fpsAccumFrames_ += 1;
+		if (fpsAccumTime_ >= fpsUpdateInterval_) {
+			float avg = static_cast<float>(fpsAccumFrames_) / fpsAccumTime_;
+			fpsValue_ = static_cast<int>(avg + 0.5f);
+			fpsAccumTime_ = 0.0f;
+			fpsAccumFrames_ = 0;
+			fpsText_.SetText(std::string("FPS: ") + std::to_string(fpsValue_));
+		}
+	}
+#endif
 
 	// Handle ESC to toggle pause overlay in Release
 #ifndef _DEBUG
@@ -634,4 +675,49 @@ void Scene::CreateMenuButtonTexts() {
 
 void Scene::ClearMenuButtonTexts() {
 	menuButtonTexts_.clear();
+}
+
+void Scene::RenderFPSText() {
+#ifndef _DEBUG
+	if (!showFPS_) {
+		return;
+	}
+
+	static bool firstRender = true;
+	if (firstRender) {
+		std::cout << "[Scene] RenderFPSText() called for the first time" << std::endl;
+		firstRender = false;
+	}
+
+	glm::mat4 projection = graphicsEngine.GetProjection();
+
+	// Save current GL viewport so we can restore after drawing
+	GLint prevViewport[4];
+	glGetIntegerv(GL_VIEWPORT, prevViewport);
+
+	// If we're rendering into the scene FBO (non-default framebuffer), set viewport to FBO size
+	GLint boundFBO = 0;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
+	if (boundFBO != 0) {
+		// Draw in FBO pixel coords (FBO matches reference canvas size)
+		glViewport(0, 0, graphicsEngine.GetSceneWidth(), graphicsEngine.GetSceneHeight());
+	}
+	else {
+		// We're rendering to the default framebuffer: apply the letterboxed viewport so positions match
+		graphicsEngine.ApplyViewport();
+	}
+
+	// Disable depth test for text rendering and enable alpha blending
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	// Render FPS text
+	FontSystem::TextRenderer::Instance().RenderText(fpsText_, projection);
+
+	// Restore GL state
+	glDisable(GL_BLEND);
+	// Restore previous viewport (default framebuffer expects full window viewport)
+	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+#endif
 }
