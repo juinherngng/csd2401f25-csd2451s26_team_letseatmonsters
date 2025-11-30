@@ -3,87 +3,88 @@ Lines of Code Report
 ==========================================
 Author: Wang Hua
 Since: 2025-11-08
-Generated: Sun Nov 30 16:33:03 +08 2025
+Generated: Sun Nov 30 23:02:45 +08 2025
 ==========================================
 
-Files Modified: 44 unique files
+Files Modified: 53 unique files
 
-Files Still Exist: 44 files
+Files Still Exist: 53 files
 
 ==========================================
 CODE ANALYSIS - SUMMARY
 Excludes: Comments and Blank Lines
 ==========================================
 
-      38 text files.
-classified 38 files      38 unique files.                              
-       6 files ignored.
+      39 text files.
+classified 39 files      39 unique files.                              
+      14 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.62 s (61.6 files/s, 16166.5 lines/s)
+github.com/AlDanial/cloc v 1.90  T=0.76 s (51.4 files/s, 14650.9 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C++                             21           1470           1131           5589
-C/C++ Header                    13            303            350            864
-JSON                             2              0              0            172
+C++                             22           1657           1281           6199
+C/C++ Header                    13            317            375            894
+JSON                             2              0              0            284
 INI                              1             13              0             67
 GLSL                             1              6              2             12
 -------------------------------------------------------------------------------
-SUM:                            38           1792           1483           6704
+SUM:                            39           1993           1658           7456
 -------------------------------------------------------------------------------
 
 ==========================================
 CODE ANALYSIS - PER FILE (Current State)
 ==========================================
 
-      38 text files.
-classified 38 files      38 unique files.                              
-       6 files ignored.
+      39 text files.
+classified 39 files      39 unique files.                              
+      14 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.68 s (55.5 files/s, 14578.3 lines/s)
+github.com/AlDanial/cloc v 1.90  T=0.80 s (49.0 files/s, 13953.4 lines/s)
 ----------------------------------------------------------------------------------------------------------
 File                                                                   blank        comment           code
 ----------------------------------------------------------------------------------------------------------
-TheStove/Core/LevelEditorPanelLevel.cpp                                  189             98            784
-TheStove/Graphics/GraphicsEngine.cpp                                     159            132            649
-TheStove/Main.cpp                                                        184            153            644
+TheStove/Core/LevelEditorPanelLevel.cpp                                  190            100            788
+TheStove/Graphics/GraphicsEngine.cpp                                     172            131            688
 TheStove/Core/LevelEditorPanelAssets.cpp                                 167            122            643
+TheStove/Main.cpp                                                        183            155            642
+TheStove/Graphics/SceneManager.cpp                                       145             88            609
 TheStove/Core/DebugUI.cpp                                                141            113            582
-TheStove/Graphics/SceneManager.cpp                                       119             89            515
+TheStove/Core/PlayerLogic.cpp                                            156            151            491
+TheStove/Graphics/SceneManager.hpp                                        64             71            252
 TheStove/Core/LevelEditorPanelAudioControl.cpp                            58             54            239
-TheStove/Graphics/SceneManager.hpp                                        58             65            227
+levels/kitchen01.json                                                      0              0            225
 TheStove/Core/LevelEditorPanelPrefabs.cpp                                 55             40            200
-TheStove/Core/PlayerLogic.cpp                                             57             46            189
 TheStove/Graphics/AnimationManager.cpp                                    59             36            179
-TheStove/Core/GameStateManager.cpp                                        33             30            154
+TheStove/Core/GameStateManager.cpp                                        33             33            154
+TheStove/Core/HowToPlayButtonLogic.cpp                                    41             33            136
 TheStove/Graphics/GraphicsEngine.hpp                                      36             34            133
 TheStove/Core/InputManager.cpp                                            45             27            130
-levels/kitchen01.json                                                      0              0            113
 TheStove/Core/DebugUI.hpp                                                 45             26            109
 TheStove/Core/LevelEditorPickDrag.cpp                                     27             26             95
 TheStove/Graphics/GameObject.cpp                                          31             16             95
-TheStove/Core/RuntimeLevel.cpp                                            24             21             89
-TheStove/Core/LevelSerializer.cpp                                         27             20             85
-TheStove/Graphics/GameObject.hpp                                          35             62             79
+TheStove/Core/RuntimeLevel.cpp                                            24             21             92
+TheStove/Core/LevelSerializer.cpp                                         28             22             91
+TheStove/Core/PauseButtonLogic.cpp                                        20             20             84
+TheStove/Graphics/GameObject.hpp                                          39             63             82
+TheStove/Core/MenuButtonLogic.cpp                                         19             25             81
 TheStove/Graphics/Mesh.cpp                                                28             19             73
 TheStove/Core/Core.cpp                                                    23             27             71
-TheStove/Core/MenuButtonLogic.cpp                                         15             21             69
-TheStove/Core/PauseButtonLogic.cpp                                        17             19             68
 imgui.ini                                                                 13              0             67
-TheStove/Graphics/Animator.hpp                                            14             12             60
+TheStove/Graphics/Animator.hpp                                            17             27             60
 levels/main_menu.json                                                      0              0             59
-TheStove/Core/GameStateManager.hpp                                        21             17             55
+TheStove/Core/GameStateManager.hpp                                        21             19             55
 TheStove/Graphics/AnimationManager.hpp                                    20             30             44
 TheStove/Core/InputManager.hpp                                            21             35             40
 TheStove/Core/LevelEditor.cpp                                             12             22             36
-TheStove/Core/LevelSerializer.hpp                                         12             19             30
+TheStove/Core/LevelSerializer.hpp                                         13             20             32
 TheStove/Core/MenuButtonLogic.hpp                                         11             17             29
 TheStove/Graphics/Mesh.hpp                                                16             10             29
 TheStove/Core/PauseButtonLogic.hpp                                         8             10             21
 TheStove/Graphics/shaders/animatedsprite_instanced.vert                    6              2             12
 TheStove/Core/RuntimeLevel.hpp                                             6             13              8
 ----------------------------------------------------------------------------------------------------------
-SUM:                                                                    1792           1483           6704
+SUM:                                                                    1993           1658           7456
 ----------------------------------------------------------------------------------------------------------
 
 ==========================================
@@ -93,24 +94,25 @@ GIT CHANGES PER FILE
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
 TheStove/Graphics/GraphicsEngine.cpp                                          220        122         98
-TheStove/Core/RuntimeLevel.cpp                                                135          7        128
-TheStove/Graphics/SceneManager.cpp                                            106         22         84
-TheStove/Core/PauseButtonLogic.cpp                                            104          0        104
-TheStove/Core/MenuButtonLogic.cpp                                              99          0         99
-TheStove/Core/GameStateManager.cpp                                             82         31         51
+TheStove/Core/RuntimeLevel.cpp                                                136          8        128
+TheStove/Core/PauseButtonLogic.cpp                                            118          3        115
+TheStove/Core/MenuButtonLogic.cpp                                             117          2        115
+TheStove/Graphics/SceneManager.cpp                                            109         25         84
+TheStove/Core/GameStateManager.cpp                                             90         36         54
 TheStove/Graphics/AnimationManager.cpp                                         77         32         45
 TheStove/Core/PlayerLogic.cpp                                                  67         39         28
-levels/main_menu.json                                                          61          2         59
+levels/main_menu.json                                                          64          5         59
 TheStove/Main.cpp                                                              51         19         32
+TheStove/Graphics/Animator.hpp                                                 46         12         34
 TheStove/Core/DebugUI.hpp                                                      43          1         42
-TheStove/Core/MenuButtonLogic.hpp                                              40          0         40
-TheStove/Core/PauseButtonLogic.hpp                                             39          0         39
+TheStove/Core/MenuButtonLogic.hpp                                              41          1         40
+TheStove/Core/PauseButtonLogic.hpp                                             40          1         39
 TheStove/Core/InputManager.cpp                                                 34          5         29
-TheStove/Core/RuntimeLevel.hpp                                                 31          4         27
+TheStove/Core/RuntimeLevel.hpp                                                 32          5         27
+TheStove/Core/GameStateManager.hpp                                             31         32         -1
 TheStove/Core/LevelEditorPanelLevel.cpp                                        28          4         24
-TheStove/Core/GameStateManager.hpp                                             24         27         -3
 TheStove/Graphics/SceneManager.hpp                                             22          0         22
-TheStove/Graphics/Animator.hpp                                                 21          5         16
+TheStove/Core/HowToPlayButtonLogic.cpp                                         21          5         16
 TheStove/Graphics/Mesh.cpp                                                     19         17          2
 TheStove/Core/LevelSerializer.cpp                                              18         15          3
 TheStove/Core/LevelEditorPanelPrefabs.cpp                                      14          1         13
@@ -130,12 +132,20 @@ TheStove/Graphics/GameObject.cpp                                                
 TheStove/Core/Core.cpp                                                          3          0          3
 TheStove/Graphics/AnimationManager.hpp                                          2          1          1
 TheStove/Core/LevelSerializer.hpp                                               1          0          1
+assets/start_s.png                                                              0          0          0
+assets/start_h.png                                                              0          0          0
+assets/quit_s.png                                                               0          0          0
+assets/quit_h.png                                                               0          0          0
 assets/pause.png                                                                0          0          0
 assets/mc_sprite.png                                                            0          0          0
 assets/main_menu.png                                                            0          0          0
+assets/how_s.png                                                                0          0          0
+assets/how_h.png                                                                0          0          0
 assets/green_button_static_hover.png                                            0          0          0
 assets/green_button_static.png                                                  0          0          0
 assets/goat_spritesheet.png                                                     0          0          0
+assets/continue_s.png                                                           0          0          0
+assets/continue_h.png                                                           0          0          0
                                                                                 0          0          0
 --------------------------------------------------------------------------------------------
 
@@ -143,10 +153,10 @@ assets/goat_spritesheet.png                                                     
 GIT COMMIT STATISTICS - TOTAL
 ==========================================
 
-Lines Added:    1453
-Lines Deleted:  393
-Net Change:     1060
-Total Commits:  12
+Lines Added:    1556
+Lines Deleted:  430
+Net Change:     1126
+Total Commits:  18
 
 ==========================================
 FILES MODIFIED
@@ -157,6 +167,7 @@ TheStove/Core/DebugUI.cpp
 TheStove/Core/DebugUI.hpp
 TheStove/Core/GameStateManager.cpp
 TheStove/Core/GameStateManager.hpp
+TheStove/Core/HowToPlayButtonLogic.cpp
 TheStove/Core/InputManager.cpp
 TheStove/Core/InputManager.hpp
 TheStove/Core/LevelEditor.cpp
@@ -187,12 +198,20 @@ TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
 TheStove/Graphics/shaders/animatedsprite_instanced.vert
 TheStove/Main.cpp
+assets/continue_h.png
+assets/continue_s.png
 assets/goat_spritesheet.png
 assets/green_button_static.png
 assets/green_button_static_hover.png
+assets/how_h.png
+assets/how_s.png
 assets/main_menu.png
 assets/mc_sprite.png
 assets/pause.png
+assets/quit_h.png
+assets/quit_s.png
+assets/start_h.png
+assets/start_s.png
 imgui.ini
 levels/kitchen01.json
 levels/main_menu.json

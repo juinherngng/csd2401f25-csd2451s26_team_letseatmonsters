@@ -3,7 +3,7 @@ Lines of Code Report
 ==========================================
 Author: y.chunwee
 Since: 2025-11-08
-Generated: Sun Nov 30 16:33:38 +08 2025
+Generated: Sun Nov 30 23:03:33 +08 2025
 ==========================================
 
 Files Modified: 7 unique files
@@ -19,13 +19,13 @@ Excludes: Comments and Blank Lines
 classified 7 files       7 unique files.                              
        0 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.11 s (62.4 files/s, 43351.3 lines/s)
+github.com/AlDanial/cloc v 1.90  T=0.13 s (55.0 files/s, 39623.9 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C++                              7            842            616           3409
+C++                              7            882            616           3546
 -------------------------------------------------------------------------------
-SUM:                             7            842            616           3409
+SUM:                             7            882            616           3546
 -------------------------------------------------------------------------------
 
 ==========================================
@@ -36,19 +36,19 @@ CODE ANALYSIS - PER FILE (Current State)
 classified 7 files       7 unique files.                              
        0 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.11 s (61.1 files/s, 42501.0 lines/s)
+github.com/AlDanial/cloc v 1.90  T=0.12 s (56.9 files/s, 40968.5 lines/s)
 --------------------------------------------------------------------------------------------
 File                                                     blank        comment           code
 --------------------------------------------------------------------------------------------
-TheStove/Core/LevelEditorPanelLevel.cpp                    189             98            784
-TheStove/Graphics/GraphicsEngine.cpp                       159            132            649
+TheStove/Core/LevelEditorPanelLevel.cpp                    190            100            788
+TheStove/Graphics/GraphicsEngine.cpp                       172            131            688
 TheStove/Core/LevelEditorPanelAssets.cpp                   167            122            643
+TheStove/Graphics/SceneManager.cpp                         145             88            609
 TheStove/Core/DebugUI.cpp                                  141            113            582
-TheStove/Graphics/SceneManager.cpp                         119             89            515
 TheStove/Core/LevelEditorPanelPrefabs.cpp                   55             40            200
 TheStove/Core/LevelEditor.cpp                               12             22             36
 --------------------------------------------------------------------------------------------
-SUM:                                                       842            616           3409
+SUM:                                                       882            616           3546
 --------------------------------------------------------------------------------------------
 
 ==========================================

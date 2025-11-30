@@ -2,9 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			Main.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (33.3%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(33.3%)
+					Seah Wang Hua, wanghua.seah@digipen.edu (33.3%)
 
  DESCRIPTION:		Entry point of the application. Initializes GLFW, creates the CoreEngine and all
 					engine systems, loads the active Scene, and runs the main update/draw loop.

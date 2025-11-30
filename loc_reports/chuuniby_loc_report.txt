@@ -2,59 +2,89 @@
 Lines of Code Report
 ==========================================
 Author: chuuniby
-Since: 2025-10-13
-Generated: Sun Nov 30 16:27:33 +08 2025
+Since: 2025-11-08
+Generated: Sun Nov 30 23:02:50 +08 2025
 ==========================================
 
-Files Modified: 12 unique files
+Files Modified: 52 unique files
 
-Files Still Exist: 12 files
+Files Still Exist: 52 files
 
 ==========================================
 CODE ANALYSIS - SUMMARY
 Excludes: Comments and Blank Lines
 ==========================================
 
-      12 text files.
-classified 12 files      12 unique files.                              
-       1 file ignored.
+      40 text files.
+classified 40 files      40 unique files.                              
+      13 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.21 s (51.8 files/s, 9302.5 lines/s)
+github.com/AlDanial/cloc v 1.90  T=0.74 s (52.5 files/s, 11906.2 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C++                              6            247            219            914
-C/C++ Header                     5            106            122            366
+C++                             20           1252           1029           4496
+C/C++ Header                    17            366            550            850
+JSON                             1              0              0            225
+INI                              1             13              0             67
 -------------------------------------------------------------------------------
-SUM:                            11            353            341           1280
+SUM:                            39           1631           1579           5638
 -------------------------------------------------------------------------------
 
 ==========================================
 CODE ANALYSIS - PER FILE (Current State)
 ==========================================
 
-      12 text files.
-classified 12 files      12 unique files.                              
-       1 file ignored.
+      40 text files.
+classified 40 files      40 unique files.                              
+      13 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.20 s (56.4 files/s, 10115.5 lines/s)
--------------------------------------------------------------------------------------
-File                                              blank        comment           code
--------------------------------------------------------------------------------------
-TheStove/Graphics/SceneManager.cpp                  119             89            515
-TheStove/Graphics/SceneManager.hpp                   58             65            227
-TheStove/Core/PlayerLogic.cpp                        57             46            189
-TheStove/Core/NpcSystem.cpp                          37             28            121
-TheStove/Core/LogicManager.hpp                       13             12             53
-TheStove/Core/SimpleNpcLogic.cpp                     17             23             48
-TheStove/Core/LevelEditor.cpp                        12             22             36
-TheStove/Core/PlayerLogic.hpp                        15             20             34
-TheStove/Core/GameObjectLogic.hpp                    10             13             32
-TheStove/Core/SimpleNpcLogic.hpp                     10             12             20
-TheStove/Core/GameObjectLogic.cpp                     5             11              5
--------------------------------------------------------------------------------------
-SUM:                                                353            341           1280
--------------------------------------------------------------------------------------
+github.com/AlDanial/cloc v 1.90  T=0.70 s (56.1 files/s, 12722.1 lines/s)
+---------------------------------------------------------------------------------------------
+File                                                      blank        comment           code
+---------------------------------------------------------------------------------------------
+TheStove/Core/LevelEditorPanelLevel.cpp                     190            100            788
+TheStove/Graphics/GraphicsEngine.cpp                        172            131            688
+TheStove/Graphics/SceneManager.cpp                          145             88            609
+TheStove/Core/PlayerLogic.cpp                               156            151            491
+TheStove/Graphics/SceneCollisionLayout.cpp                  117             92            375
+TheStove/Graphics/SceneManager.hpp                           64             71            252
+levels/kitchen01.json                                         0              0            225
+TheStove/Core/SimpleNpcLogic.cpp                             59             43            180
+TheStove/Core/TableLogic.cpp                                 46             36            160
+TheStove/Core/WorkTableLogic.cpp                             45             59            137
+TheStove/Core/HowToPlayButtonLogic.cpp                       41             33            136
+TheStove/Core/PlayerController.cpp                           31             28            131
+TheStove/Core/IngredientBoxLogic.cpp                         30             27            124
+TheStove/Core/CustomerTableLogic.cpp                         45             61            117
+TheStove/Core/PlateLogic.cpp                                 34             31            100
+TheStove/Core/RuntimeLevel.cpp                               24             21             92
+TheStove/Core/LevelSerializer.cpp                            28             22             91
+TheStove/Core/PauseButtonLogic.cpp                           20             20             84
+TheStove/Graphics/GameObject.hpp                             39             63             82
+TheStove/Core/LogicManager.hpp                               17             13             81
+TheStove/Core/MenuButtonLogic.cpp                            19             25             81
+TheStove/Core/SimpleNpcLogic.hpp                             32             33             68
+TheStove/Core/CustomerManagerLogic.cpp                       31             29             67
+imgui.ini                                                    13              0             67
+TheStove/Core/PlayerController.hpp                           18             27             48
+TheStove/Core/PlayerLogic.hpp                                21             27             43
+TheStove/Core/TableLogic.hpp                                 26             46             39
+TheStove/Core/IngredientBoxLogic.hpp                         18             25             35
+TheStove/Core/IngredientLogic.cpp                            11             17             34
+TheStove/Core/PlateLogic.hpp                                 25             67             34
+TheStove/Core/LevelSerializer.hpp                            13             20             32
+TheStove/Core/CustomerTableLogic.hpp                         26             37             30
+TheStove/Core/WorkTableLogic.hpp                             19             36             29
+TheStove/Core/IngredientLogic.hpp                            12             23             18
+TheStove/Core/DishLogic.hpp                                  11             14             17
+TheStove/Core/FoodTypes.hpp                                   6             14             17
+TheStove/Core/HowToPlayButtonLogic.hpp                       10             11             15
+TheStove/Core/DishLogic.cpp                                   8             15             11
+TheStove/Core/CustomerManagerLogic.hpp                        9             23             10
+---------------------------------------------------------------------------------------------
+SUM:                                                       1631           1579           5638
+---------------------------------------------------------------------------------------------
 
 ==========================================
 GIT CHANGES PER FILE
@@ -62,18 +92,58 @@ GIT CHANGES PER FILE
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-TheStove/Core/PlayerLogic.cpp                                                 317         98        219
-TheStove/Core/SimpleNpcLogic.cpp                                              217        143         74
-TheStove/Core/LogicManager.hpp                                                186        124         62
-TheStove/Core/GameObjectLogic.hpp                                              81         54         27
-TheStove/Core/SimpleNpcLogic.hpp                                               69         46         23
-TheStove/Graphics/SceneManager.cpp                                             68         46         22
-TheStove/Core/PlayerLogic.hpp                                                  67         22         45
-TheStove/Graphics/SceneManager.hpp                                             30         22          8
-TheStove/Core/GameObjectLogic.cpp                                              21         14          7
-TheStove/Core/NpcSystem.cpp                                                    13         13          0
-TheStove/Core/LevelEditor.cpp                                                   4          3          1
-LetsEatMonsters_ReadMe.txt                                                      2          0          2
+TheStove/Core/PlayerLogic.cpp                                                 556        138        418
+TheStove/Core/WorkTableLogic.cpp                                              257         16        241
+TheStove/Core/TableLogic.cpp                                                  252         10        242
+levels/kitchen01.json                                                         250        138        112
+TheStove/Core/CustomerTableLogic.cpp                                          231          8        223
+TheStove/Core/SimpleNpcLogic.cpp                                              217         19        198
+TheStove/Core/IngredientBoxLogic.cpp                                          217         36        181
+TheStove/Graphics/SceneManager.cpp                                            209        128         81
+TheStove/Core/HowToPlayButtonLogic.cpp                                        209         15        194
+TheStove/Core/PlateLogic.cpp                                                  172          7        165
+TheStove/Core/CustomerManagerLogic.cpp                                        132          5        127
+TheStove/Core/PlateLogic.hpp                                                  126          0        126
+TheStove/Core/TableLogic.hpp                                                  113          2        111
+TheStove/Core/CustomerTableLogic.hpp                                          100          7         93
+TheStove/Core/SimpleNpcLogic.hpp                                               93          2         91
+TheStove/Core/WorkTableLogic.hpp                                               88          4         84
+TheStove/Core/IngredientBoxLogic.hpp                                           80          2         78
+TheStove/Core/PauseButtonLogic.cpp                                             72         63          9
+TheStove/Core/MenuButtonLogic.cpp                                              71         67          4
+TheStove/Graphics/GraphicsEngine.cpp                                           63         12         51
+TheStove/Core/IngredientLogic.cpp                                              62          0         62
+TheStove/Core/IngredientLogic.hpp                                              53          0         53
+TheStove/Graphics/SceneManager.hpp                                             51         31         20
+TheStove/Core/CustomerManagerLogic.hpp                                         47          5         42
+TheStove/Core/DishLogic.hpp                                                    42          0         42
+TheStove/Core/LevelEditorPanelLevel.cpp                                        41         34          7
+TheStove/Core/HowToPlayButtonLogic.hpp                                         40          4         36
+TheStove/Graphics/SceneCollisionLayout.cpp                                     37          3         34
+TheStove/Core/FoodTypes.hpp                                                    37          0         37
+TheStove/Core/LogicManager.hpp                                                 35          0         35
+TheStove/Core/PlayerController.cpp                                             34          0         34
+TheStove/Core/DishLogic.cpp                                                    34          0         34
+imgui.ini                                                                      28         28          0
+TheStove/Core/PlayerLogic.hpp                                                  25          3         22
+TheStove/Core/PlayerController.hpp                                             20          1         19
+LetsEatMonsters_ReadMe.txt                                                     14          1         13
+TheStove/Core/LevelSerializer.cpp                                              11          2          9
+TheStove/Graphics/GameObject.hpp                                                8          0          8
+TheStove/Core/LevelSerializer.hpp                                               4          0          4
+TheStove/Core/RuntimeLevel.cpp                                                  1          0          1
+assets/Table_NoLeg.png                                                          0          0          0
+assets/Table_Leg.png                                                            0          0          0
+assets/Salad.png                                                                0          0          0
+assets/PlateBox.png                                                             0          0          0
+assets/Plate.png                                                                0          0          0
+assets/IngredientBox.png                                                        0          0          0
+assets/HowToPlay.png                                                            0          0          0
+assets/Cutting_Board.png                                                        0          0          0
+assets/Customertable_Topleft.png                                                0          0          0
+assets/Customertable_Bottomleft.png                                             0          0          0
+assets/Cabbage_Ingredient.png                                                   0          0          0
+assets/Cabbage_CUT_Ingredient.png                                               0          0          0
                                                                                 0          0          0
 --------------------------------------------------------------------------------------------
 
@@ -81,24 +151,64 @@ LetsEatMonsters_ReadMe.txt                                                      
 GIT COMMIT STATISTICS - TOTAL
 ==========================================
 
-Lines Added:    1075
-Lines Deleted:  585
-Net Change:     490
-Total Commits:  18
+Lines Added:    4132
+Lines Deleted:  791
+Net Change:     3341
+Total Commits:  24
 
 ==========================================
 FILES MODIFIED
 ==========================================
 
 LetsEatMonsters_ReadMe.txt
-TheStove/Core/GameObjectLogic.cpp
-TheStove/Core/GameObjectLogic.hpp
-TheStove/Core/LevelEditor.cpp
+TheStove/Core/CustomerManagerLogic.cpp
+TheStove/Core/CustomerManagerLogic.hpp
+TheStove/Core/CustomerTableLogic.cpp
+TheStove/Core/CustomerTableLogic.hpp
+TheStove/Core/DishLogic.cpp
+TheStove/Core/DishLogic.hpp
+TheStove/Core/FoodTypes.hpp
+TheStove/Core/HowToPlayButtonLogic.cpp
+TheStove/Core/HowToPlayButtonLogic.hpp
+TheStove/Core/IngredientBoxLogic.cpp
+TheStove/Core/IngredientBoxLogic.hpp
+TheStove/Core/IngredientLogic.cpp
+TheStove/Core/IngredientLogic.hpp
+TheStove/Core/LevelEditorPanelLevel.cpp
+TheStove/Core/LevelSerializer.cpp
+TheStove/Core/LevelSerializer.hpp
 TheStove/Core/LogicManager.hpp
-TheStove/Core/NpcSystem.cpp
+TheStove/Core/MenuButtonLogic.cpp
+TheStove/Core/PauseButtonLogic.cpp
+TheStove/Core/PlateLogic.cpp
+TheStove/Core/PlateLogic.hpp
+TheStove/Core/PlayerController.cpp
+TheStove/Core/PlayerController.hpp
 TheStove/Core/PlayerLogic.cpp
 TheStove/Core/PlayerLogic.hpp
+TheStove/Core/RuntimeLevel.cpp
 TheStove/Core/SimpleNpcLogic.cpp
 TheStove/Core/SimpleNpcLogic.hpp
+TheStove/Core/TableLogic.cpp
+TheStove/Core/TableLogic.hpp
+TheStove/Core/WorkTableLogic.cpp
+TheStove/Core/WorkTableLogic.hpp
+TheStove/Graphics/GameObject.hpp
+TheStove/Graphics/GraphicsEngine.cpp
+TheStove/Graphics/SceneCollisionLayout.cpp
 TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
+assets/Cabbage_CUT_Ingredient.png
+assets/Cabbage_Ingredient.png
+assets/Customertable_Bottomleft.png
+assets/Customertable_Topleft.png
+assets/Cutting_Board.png
+assets/HowToPlay.png
+assets/IngredientBox.png
+assets/Plate.png
+assets/PlateBox.png
+assets/Salad.png
+assets/Table_Leg.png
+assets/Table_NoLeg.png
+imgui.ini
+levels/kitchen01.json
