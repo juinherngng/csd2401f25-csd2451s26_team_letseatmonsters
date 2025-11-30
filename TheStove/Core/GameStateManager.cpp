@@ -178,15 +178,21 @@ namespace Framework {
 				audioManager->PlaySound(currentAudio, audioManager->GetBgmVolume(), false);
 				std::cout << "[GameStateManager] Playing main menu music" << std::endl;
 			}
-			else if (state == Framework::GS_Level2) {
-				// Gameplay level state - play level music
-				currentAudio = "bgm_MyoonchiDiner_LevelTheme";
-				audioManager->PlaySound(currentAudio, audioManager->GetBgmVolume(), false);
-				std::cout << "[GameStateManager] Playing level theme music" << std::endl;
-			}
-			else {
-				currentAudio.clear();
-			}
+		else if (state == Framework::GS_Level2) {
+			// Gameplay level state - play level music and kitchen ambience
+			currentAudio = "bgm_MyoonchiDiner_LevelTheme";
+			audioManager->PlaySound(currentAudio, audioManager->GetBgmVolume(), false);
+			std::cout << "[GameStateManager] Playing level theme music" << std::endl;
+
+			// Play kitchen ambience at 50% of BGM volume
+			currentAmbience = "bgm_KitchenAmbience";
+			audioManager->PlaySound(currentAmbience, audioManager->GetBgmVolume() * 0.5f, false);
+			std::cout << "[GameStateManager] Playing kitchen ambience" << std::endl;
+		}
+		else {
+			currentAudio.clear();
+			currentAmbience.clear();
+		}
 		}
 		#endif
 
@@ -197,9 +203,15 @@ namespace Framework {
 	}
 
 	void GameStateManager::StopCurrentAudio() {
-		if (audioManager && !currentAudio.empty()) {
-			audioManager->StopSound(currentAudio);
-			currentAudio.clear();
+		if (audioManager) {
+			if (!currentAudio.empty()) {
+				audioManager->StopSound(currentAudio);
+				currentAudio.clear();
+			}
+			if (!currentAmbience.empty()) {
+				audioManager->StopSound(currentAmbience);
+				currentAmbience.clear();
+			}
 		}
 	}
 }

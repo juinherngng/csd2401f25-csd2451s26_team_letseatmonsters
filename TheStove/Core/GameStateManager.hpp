@@ -85,6 +85,7 @@ namespace Framework {
 		// Audio management
 		AudioManager* audioManager = nullptr;
 		std::string currentAudio; // Track currently playing background music
+		std::string currentAmbience; // Track currently playing ambient sound
 		bool wasPaused = false;    // Track pause state for audio
 
 		void StopCurrentAudio();
