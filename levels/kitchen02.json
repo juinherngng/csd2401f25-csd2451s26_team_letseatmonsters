@@ -1,7 +1,7 @@
 {
   "objects": [
     {
-      "animated": false,
+      "animated": true,
       "col_h": 128.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
