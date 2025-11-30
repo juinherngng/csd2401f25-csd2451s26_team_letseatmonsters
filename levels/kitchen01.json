@@ -1,8 +1,10 @@
 {
-  "background": "../assets/Background_Full.png",
+  "background": "../assets/Background.png",
   "objects": [
     {
       "animated": true,
+      "approach_offx" : 0.0,
+      "approach_offy" : 0.0,
       "col_h": 128.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -21,6 +23,8 @@
     },
     {
       "animated": true,
+      "approach_offx" : 0.0,
+      "approach_offy" : 0.0,
       "col_h": 128.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -39,6 +43,8 @@
     },
     {
       "animated": true,
+      "approach_offx" : 0.0,
+      "approach_offy" : 0.0,
       "col_h": 128.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -57,6 +63,8 @@
     },
     {
       "animated": true,
+      "approach_offx" : 0.0,
+      "approach_offy" : 0.0,
       "col_h": 128.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -75,6 +83,8 @@
     },
     {
       "animated": false,
+      "approach_offx" : 0.0,
+      "approach_offy" : 0.0,
       "col_h": 128.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -93,10 +103,12 @@
     },
     {
       "animated": false,
-      "col_h": 128.0,
+      "approach_offx" : 0.0,
+      "approach_offy" : 0.0,
+      "col_h": 0.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
-      "col_w": 64.0,
+      "col_w": 0.0,
       "h": 128.0,
       "layer": "2",
       "rotation": 0.0,
@@ -111,6 +123,8 @@
     },
     {
       "animated": false,
+      "approach_offx" : 0.0,
+      "approach_offy" : -110.0,
       "col_h": 100.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -123,12 +137,14 @@
       "tag": "table",
       "texture": "../assets/Table_Leg.png",
       "w": 100.0,
-      "x": 237,
-      "y": 582,
+      "x": 469,
+      "y": 775,
       "z": 0.0
     },
     {
       "animated": false,
+      "approach_offx" : 110.0,
+      "approach_offy" : 0.0,
       "col_h": 100.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -141,12 +157,14 @@
       "tag": "table",
       "texture": "../assets/Table_Leg.png",
       "w": 100.0,
-      "x": 342,
-      "y": 582,
+      "x": 527,
+      "y": 282,
       "z": 0.0
     },
     {
       "animated": false,
+      "approach_offx" : 0.0,
+      "approach_offy" : 110.0,
       "col_h": 100.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -159,17 +177,19 @@
       "tag": "table",
       "texture": "../assets/Table_Leg.png",
       "w": 100.0,
-      "x": 445,
-      "y": 582,
+      "x": 469,
+      "y": 178,
       "z": 0.0
     },
     {
       "animated": false,
+      "approach_offx" : -90.0,
+      "approach_offy" : 0.0,
       "col_h": 156.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
-      "col_w": 70.0,
-      "h": 156.0,
+      "col_w": 0.1,
+      "h": 70.0,
       "layer": "1",
       "rotation": 0.0,
       "speed_x": 0.0,
@@ -177,12 +197,14 @@
       "tag": "customer_table",
       "texture": "../assets/Customertable_Topleft.png",
       "w": 70.0,
-      "x": 856,
-      "y": 226,
+      "x": 984,
+      "y": 256,
       "z": 0.0
     },
     {
       "animated": false,
+      "approach_offx" : -90.0,
+      "approach_offy" : 0.0,
       "col_h": 156.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -195,12 +217,14 @@
       "tag": "customer_table",
       "texture": "../assets/Customertable_Bottomleft.png",
       "w": 70.0,
-      "x": 856,
+      "x": 984,
       "y": 747,
       "z": 0.0
     },
     {
       "animated": false,
+      "approach_offx" : 90.0,
+      "approach_offy" : 0.0,
       "col_h": 100.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -213,12 +237,14 @@
       "tag": "work_table",
       "texture": "../assets/Cutting_Board.png",
       "w": 100.0,
-      "x": 233,
-      "y": 279,
+      "x": 230,
+      "y": 354,
       "z": 0.0
     },
     {
       "animated": false,
+      "approach_offx" : 0.0,
+      "approach_offy" : 110.0,
       "col_h": 100.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -231,12 +257,14 @@
       "tag": "ingredient_box",
       "texture": "../assets/IngredientBox.png",
       "w": 100.0,
-      "x": 339,
-      "y": 279,
+      "x": 230,
+      "y": 189,
       "z": 0.0
     },
     {
       "animated": false,
+      "approach_offx" : -110.0,
+      "approach_offy" : 0.0,
       "col_h": 100.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -249,8 +277,8 @@
       "tag": "plate_box",
       "texture": "../assets/PlateBox.png",
       "w": 100.0,
-      "x": 445,
-      "y": 279,
+      "x": 533,
+      "y": 619,
       "z": 0.0
     }
   ]

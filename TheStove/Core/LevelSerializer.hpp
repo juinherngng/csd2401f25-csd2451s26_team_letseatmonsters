@@ -41,6 +41,10 @@ struct LevelObject {
 	float speedX{ 0.0f };
 	float speedY{ 0.0f };
 
+	// NEW: approach offset (relative to object center)
+	float approachOffsetX{ 0.0f };
+	float approachOffsetY{ 0.0f };
+
 	// Animation flag
 	bool animated{ false };
 	std::string animName;

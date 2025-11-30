@@ -33,12 +33,10 @@ void IngredientBoxLogic::ConfigureAsPlateBox()
 
 void IngredientBoxLogic::Start(Scene& scene)
 {
+    // Base TableLogic will:
+    //  - reset heldItemID_
+    //  - override our default offset with Scene::Defaults.vel if non-zero
     TableLogic::Start(scene);
-
-    ClearApproachOffsets();
-
-    AddApproachOffset(Math::Vector2D(0.0f, 110.0f));
-    std::cout << "[IngredientBoxLogic] Start on owner " << GetOwnerID() << "\n";
 
     // Debug: show world-space approach points for this box
     auto worldPoints = GetApproachPointsWorld(scene);
@@ -48,9 +46,7 @@ void IngredientBoxLogic::Start(Scene& scene)
             << worldPoints[i].x << ", " << worldPoints[i].y << ")\n";
     }
 
-    // -------- Auto-config based on tag (optional) --------
-// Assumes your GameObject has some kind of GetTag() / GetTagName().
-// If API is different, just adjust this block.
+    // -------- Auto-config based on tag --------
     if (GameObject* owner = GetOwner(scene))
     {
         const std::string& tag = scene.GetDefaults(GetOwnerID()).tag;
@@ -63,17 +59,17 @@ void IngredientBoxLogic::Start(Scene& scene)
         {
             ConfigureAsPlateBox();
         }
-        // else: keep whatever default configuration you want
         else
         {
             ConfigureAsVegetableBox();
-            std::cout << "[IngredientBoxLogic] WARNING: owner " << ownerID
+            std::cout << "[IngredientBoxLogic] WARNING: owner "
+                << GetOwnerID()
                 << " has unknown tag '" << tag
                 << "', defaulting to vegetable box\n";
         }
     }
-
 }
+
 
 void IngredientBoxLogic::Update(float dt, Scene& scene, InputManager& input)
 {

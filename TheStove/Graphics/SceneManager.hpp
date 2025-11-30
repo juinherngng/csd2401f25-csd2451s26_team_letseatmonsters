@@ -229,6 +229,7 @@ public:
 		glm::vec2 colSize{ 64,128 };
 		glm::vec2 colOff{ 0,0 };
 		glm::vec2 vel{ 0,0 };
+		glm::vec2 approachOffset{ 0,0 }; // NEW: for table approach point
 		std::string texture;
 		std::string tag;
 		std::string layer;

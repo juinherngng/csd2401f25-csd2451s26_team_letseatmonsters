@@ -10,18 +10,16 @@ WorkTableLogic::WorkTableLogic(int ownerID)
     , processingTime_(3.0f)   // default: 3 seconds to process
     , timer_(0.0f)
 {
-    ClearApproachOffsets();
+    //ClearApproachOffsets();
 
-    AddApproachOffset(Math::Vector2D(0.0f, 110.0f));
+    //AddApproachOffset(Math::Vector2D(0.0f, 110.0f));
 }
 
-void WorkTableLogic::Start(Scene& /*scene*/)
+void WorkTableLogic::Start(Scene& scene)
 {
     std::cout << "[WorkTableLogic] Start ownerID=" << GetOwnerID() << "\n";
 
-    ClearApproachOffsets();
-
-    AddApproachOffset(Math::Vector2D(0.0f, 110.0f));
+    TableLogic::Start(scene);
 }
 
 // ------------------- Update -------------------

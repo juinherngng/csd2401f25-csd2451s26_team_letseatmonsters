@@ -8,16 +8,37 @@ CustomerTableLogic::CustomerTableLogic(int ownerID)
     : TableLogic(ownerID)
     , seatedCustomerID_(kInvalidID)
 {
-    ClearApproachOffsets();
+    //ClearApproachOffsets();
 
-    AddApproachOffset(Math::Vector2D(0.0f, -140.0f));
+    //AddApproachOffset(Math::Vector2D(0.0f, -140.0f));
 }
 
 void CustomerTableLogic::Start(Scene& scene)
 {
+    // Base TableLogic will:
+    //  - reset heldItemID_
+    //  - override default offset with Scene::Defaults.vel if non-zero
     TableLogic::Start(scene);
+
     seatedCustomerID_ = kInvalidID;
+
+    // NEW: read the authored approachOffset from Scene::Defaults and use it
+// as the customer seat offset if it is non-zero.
+    GameObject* owner = GetOwner(scene);
+    if (!owner)
+        return;
+
+    const int id = owner->GetID();
+    Scene::Defaults defs = scene.GetDefaults(id);
+
+    if (defs.approachOffset.x != 0.0f || defs.approachOffset.y != 0.0f)
+    {
+        // Use the JSON/authored offset for where the customer should sit
+        customerSeatOffset_ = Math::Vector2D(defs.approachOffset.x,
+            defs.approachOffset.y);
+    }
 }
+
 
 void CustomerTableLogic::OnDestroy(Scene& scene)
 {

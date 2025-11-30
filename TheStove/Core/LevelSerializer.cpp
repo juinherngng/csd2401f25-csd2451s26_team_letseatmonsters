@@ -45,6 +45,10 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 
 	obj.animated = jsonObj.value("animated", false);
 
+	// NEW: approach offset (safe for existing JSON, defaults to 0)
+	obj.approachOffsetX = jsonObj.value("approach_offx", 0.0f);
+	obj.approachOffsetY = jsonObj.value("approach_offy", 0.0f);
+
 	return obj;
 }
 
@@ -67,7 +71,10 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "speed_x", obj.speedX },
 		{ "speed_y", obj.speedY },
 		{ "animated", obj.animated },
-		{ "layer", obj.layer }
+		{ "layer", obj.layer },
+		// NEW: approach offset
+{ "approach_offx", obj.approachOffsetX },
+{ "approach_offy", obj.approachOffsetY }
 	};
 
 	return jsonData;
@@ -115,7 +122,8 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	// Write background if present
 	if (!inLevel.background.empty()) {
 		jsonData["background"] = inLevel.background;
-	} else {
+	}
+	else {
 		// Optional: erase background if you want to remove it
 		// jsonData.erase("background");
 	}

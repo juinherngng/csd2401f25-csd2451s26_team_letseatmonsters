@@ -99,6 +99,7 @@ namespace RuntimeLevel {
 			defs.texture = obj.texture;
 			defs.tag = obj.tag;
 			defs.layer = obj.layer;
+			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
 
 			scene.SetDefaults(g->GetID(), defs);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);

@@ -78,7 +78,7 @@ void Scene::LoadScene(const std::string& sceneName) {
 	ClearAll();
 
 	// You can keep a background even with an empty level (or move this into JSON later)
-	SetSceneBackground("../assets/Background_Full.png");
+	SetSceneBackground("../assets/Background.png");
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {

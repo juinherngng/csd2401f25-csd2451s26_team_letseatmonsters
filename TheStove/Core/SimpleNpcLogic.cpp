@@ -37,9 +37,9 @@ void SimpleNpcLogic::Awake(Scene& scene) {
 
 void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 	// IMPORTANT: do not run logic in editor mode
-	//if (!scene.IsSimulationActive()) {
-	//    return;
-	//}
+	if (!scene.IsSimulationActive()) {
+	    return;
+	}
 
 	GameObject* npc = GetOwner(scene);
 	if (!npc) return;

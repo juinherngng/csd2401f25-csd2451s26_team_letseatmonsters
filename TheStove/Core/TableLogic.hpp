@@ -54,6 +54,14 @@ public:
     // Add a new approach offset in local space.
     void AddApproachOffset(const Math::Vector2D& offset);
 
+    // Replace any existing approach offsets with a single one
+    void SetSingleApproachOffset(const Math::Vector2D& offset)
+    {
+        ClearApproachOffsets();
+        AddApproachOffset(offset);
+    }
+
+
     // Remove all approach offsets.
     void ClearApproachOffsets();
 
@@ -76,8 +84,8 @@ protected:
     // For example:
     // - Work table: start processing timer when an ingredient is placed.
     // - Customer table: check if the dish is complete, notify customer, etc.
-    virtual void OnItemPlaced(Scene& scene, GameObject& item) {}
-    virtual void OnItemTaken(Scene& scene, GameObject& item) {}
+    virtual void OnItemPlaced(Scene& /*scene*/, GameObject& /*item*/) {}
+    virtual void OnItemTaken(Scene& /*scene*/, GameObject& /*item*/) {}
 
     // Convenience to get the table GameObject (owner) with null-check already done.
     GameObject* GetOwnerChecked(Scene& scene) const;

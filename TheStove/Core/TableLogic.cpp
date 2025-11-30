@@ -7,18 +7,32 @@
 
 TableLogic::TableLogic(int ownerID) : GameObjectLogic(ownerID), heldItemID_(kInvalidID)
 {
-    // Default: one approach point directly "in front" of the table.
-    // You can tweak this later or add more via AddApproachOffset.
-    // (Assuming +Y is "up" visually; adjust sign if needed.)
-    ClearApproachOffsets();
+    //// Default: one approach point directly "in front" of the table.
+    //// You can tweak this later or add more via AddApproachOffset.
+    //// (Assuming +Y is "up" visually; adjust sign if needed.)
+    //ClearApproachOffsets();
 
-    AddApproachOffset(Math::Vector2D(0.0f, -110.0f));
+    //AddApproachOffset(Math::Vector2D(0.0f, -110.0f));
 }
 
-void TableLogic::Start(Scene& /*scene*/)
+void TableLogic::Start(Scene& scene)
 {
     // Ensure clean state if this script is reused.
     heldItemID_ = kInvalidID;
+
+    // If we have an owner, check if there is a per-instance offset
+    // stored in Scene::Defaults.vel. If it's non-zero, use it.
+    GameObject* owner = GetOwner(scene);
+    if (!owner)
+        return;
+
+    Scene::Defaults def = scene.GetDefaults(GetOwnerID());
+
+    // Only override if level/spawner actually set a non-zero vel.
+    if (def.approachOffset.x != 0.0f || def.approachOffset.y != 0.0f)
+    {
+        SetSingleApproachOffset(Math::Vector2D(def.approachOffset.x, def.approachOffset.y));
+    }
 }
 
 void TableLogic::OnDestroy(Scene& scene)
