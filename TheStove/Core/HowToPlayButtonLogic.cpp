@@ -21,23 +21,39 @@
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 
+#ifndef _DEBUG
 namespace {
-    std::string MakeHoverPath(const std::string& path) {
+    static std::string MakeHoverPath(const std::string& path) {
         if (path.empty()) return path;
+
         const size_t dot = path.find_last_of('.');
-        if (dot == std::string::npos) return path + "_hover";
-        return path.substr(0, dot) + "_hover" + path.substr(dot);
+        const std::string ext = (dot != std::string::npos) ? path.substr(dot) : std::string();
+        const std::string base = (dot != std::string::npos) ? path.substr(0, dot) : path;
+
+        // If already ends with "_h", keep it
+        if (base.size() >= 2 && base.substr(base.size() - 2) == "_h") {
+            return dot != std::string::npos ? path : (base + ext);
+        }
+
+        // If ends with "_s", replace with "_h"
+        if (base.size() >= 2 && base.substr(base.size() - 2) == "_s") {
+            return base.substr(0, base.size() - 2) + "_h" + ext;
+        }
+
+        // Fallback: append "_h" before extension
+        return base + "_h" + ext;
     }
 
-    void TrySetTexture(GameObject* owner, const std::string& texPath) {
+    static void TrySetTexture(GameObject* owner, const std::string& texPath) {
         if (!owner || texPath.empty()) return;
-
+        // Match EntityManager naming convention for static sprite textures
         std::string cacheName = "staticsprite_" + texPath;
         if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheName, texPath)) {
             owner->SetTexture(tex);
         }
     }
 }
+#endif // _DEBUG
 
 void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 #ifdef _DEBUG
