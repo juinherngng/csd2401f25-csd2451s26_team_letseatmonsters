@@ -53,6 +53,7 @@ namespace {
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
 
+#ifdef _DEBUG
 	static constexpr int MAX_UNDO = 50;
 	static std::vector<LevelData> sUndoStack;
 
@@ -89,6 +90,7 @@ namespace {
 
 		return true;
 	}
+#endif // _DEBUG
 
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
@@ -224,7 +226,7 @@ namespace {
 			const glm::vec2 v = scene.GetNPCVelocity(g->GetID());
 			out.speedX = v.x; out.speedY = v.y;
 
-			levelOut.objects.push_back(out);
+		levelOut.objects.push_back(out);
 		}
 	}
 
@@ -320,12 +322,7 @@ namespace {
 			ImGui::PopID();
 		}
 	}
-#else
-	// Release build: provide a no-op stub to keep signatures available but avoid ImGui calls.
-	static void DrawLayerManager(Scene& /*scene*/, int /*selectedObjectId*/) {
-		// Editor layering UI disabled in Release builds.
-	}
-#endif
+#endif // _DEBUG
 }
 
 // Public ImGui Level Panel Implementation

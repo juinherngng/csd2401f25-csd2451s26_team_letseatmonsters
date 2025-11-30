@@ -670,6 +670,14 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Create Scene with smart pointer, passing all manager references
 	app.currentScene = std::make_unique<Scene>(*graphicsEngine, *inputMgr, *animMgr,
 											   *movementMgr, *physicsMgr, *collisionMgr);
+
+	// Get AudioManager and set it on Scene for UI sounds
+	AudioManager* audioMgr = app.coreEngine->GetSystem<AudioManager>();
+	if (audioMgr) {
+		app.currentScene->SetAudioManager(audioMgr);
+		std::cout << "AudioManager connected to Scene for UI sounds.\n";
+	}
+
 	app.currentScene->LoadScene("LoadTest");
 
 	// Set the EntityManager reference in AnimationManager
@@ -699,12 +707,22 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 	{
 	auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>();
+	auto* audioMgrGsm = app.coreEngine->GetSystem<AudioManager>();
+
 	if (gsm) {
 		gsm->SetScene(app.currentScene.get());
+
+		// Inject AudioManager for state-based audio control
+		if (audioMgrGsm) {
+			gsm->SetAudioManager(audioMgrGsm);
+		}
 
 		// Map states to JSON files
 		gsm->RegisterJsonState(Framework::GS_Level1, "../levels/main_menu.json");	// state 0 = menu
 		gsm->RegisterJsonState(Framework::GS_Level2, "../levels/kitchen01.json");	// state 1 = gameplay
+		
+		// Initialize to main menu state
+		gsm->InitializeGameState(Framework::GS_Level1, 0.0f);
 	}
 }
 
@@ -767,6 +785,23 @@ static void update(ApplicationState& app) {
 	// Update scene with delta time and window pointer
 	app.currentScene->Update(deltaTime, app.window);
 
+	// Check for pending state changes from menu buttons
+	if (app.currentScene->HasPendingStateChange()) {
+		int newState = app.currentScene->GetPendingState();
+		app.currentScene->ClearPendingStateChange();
+
+		std::cout << "[Main] Processing state change request to state: " << newState << std::endl;
+
+		// Trigger the state change through GameStateManager
+		if (auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>()) {
+			std::cout << "[Main] Calling GameStateManager::UpdateGameState(" << newState << ")" << std::endl;
+			gsm->UpdateGameState(newState, deltaTime);
+		}
+		else {
+			std::cerr << "[Main] ERROR: GameStateManager not found!" << std::endl;
+		}
+	}
+
 	// Smoothing for deltatime (for the fps)
 	// Account for division by 0 on the first frame where gDt = 0
 	// This controls how fast the fps counter reacts to changes
@@ -816,6 +851,9 @@ static void draw(ApplicationState& app) {
 
 	//graphicsEngine->Render(drawList);
 	graphicsEngine->RenderBatched(drawList);
+
+	// Render menu button texts on top (in both debug and release)
+	app.currentScene->RenderMenuButtonTexts();
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (app.debugApp) {
