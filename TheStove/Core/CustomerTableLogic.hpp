@@ -1,3 +1,20 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:         CustomerTableLogic.hpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Vu Phan Hung
+
+DESCRIPTION: Declares the CustomerTableLogic class, representing a
+             table that can seat a customer. Exposes API for checking
+             occupancy, assigning customers, and retrieving seat
+             transforms used by the AI.
+
+
+
+         All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #pragma once
 
 #include "TableLogic.hpp"

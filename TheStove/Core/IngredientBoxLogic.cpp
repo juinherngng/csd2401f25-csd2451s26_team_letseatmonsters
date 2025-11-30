@@ -1,3 +1,20 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:         IngredientBoxLogic.cpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Vu Phan Hung
+
+DESCRIPTION:     Defines IngredientBoxLogic, a table-like object that spawns
+                 ingredient items for the player. The box can be configured to
+                 spawn vegetables, meat, mushrooms, or plates depending on the
+                 setup. Provides logic for spawning, clearing, and controlling
+                 which ingredient type appears.
+
+
+
+         All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
 #include "IngredientBoxLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
 #include "../Core/LogicManager.hpp"

@@ -1,12 +1,17 @@
 /*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:         CustomerManagerSystem.cpp
+ FILE NAME:         CustomerManagerlogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            (your name here)
+ AUTHOR:            Vu Phan Hung
 
- DESCRIPTION:       Implements CustomerManagerSystem. On first update, finds CustomerTableLogic
-                    and SimpleNpcLogic instances, pairs them, and assigns seat targets so that
-                    NPCs walk to their tables instead of doing fallback patrol.
+DESCRIPTION: Implements a simple scene-level system that manages all
+             customers in the level. It assigns customers to available
+             CustomerTableLogic tables, gives them target seating
+             positions, and coordinates table–customer pairing at runtime.
+
+
+
+
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

@@ -1,3 +1,19 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:         PlateLogic.cpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Vu Phan Hung
+
+DESCRIPTION:     Implements PlateLogic, which manages the assembly of processed
+                 ingredients into completed dishes. Handles ingredient validation,
+                 dish-recipe matching, storing ingredient types, and determining
+                 the final dish output (VegDish, MeatDish, SoupDish, etc.).
+
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include "PlateLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
 

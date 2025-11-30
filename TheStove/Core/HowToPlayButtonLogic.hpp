@@ -2,11 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         HowToPlayButtonLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            <your name>
+ AUTHOR:            Vu Phan Hung
 
- DESCRIPTION:       Declares HowToPlayButtonLogic, which handles the main-menu
-                    "How To Play" button: hover texture and showing/hiding a
-                    full-screen HowToPlay.png overlay.
+DESCRIPTION: Declares the HowToPlayButtonLogic class, including data
+             required for hover detection, overlay spawning, texture
+             swapping, and tracking which instance owns the overlay.
+
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

@@ -1,3 +1,20 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:         TableLogic.hpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Vu Phan Hung
+
+DESCRIPTION:     Implements the base class TableLogic, providing shared behavior
+                 for all table-type objects. This includes item placement and
+                 pickup, approach-point calculation for NPCs/players, and generic
+                 per-table interaction logic. Specialized tables (worktable,
+                 customer table, ingredient box, etc.) inherit and override this.
+
+
+         All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #pragma once
 
 #include <vector>

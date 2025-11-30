@@ -1,3 +1,20 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:         CustomerTableLogic.cpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Vu Phan Hung
+
+DESCRIPTION: Implements behaviour for a dining table that can seat a
+             customer. Handles table state (occupied/free), seat
+             positions, communication with CustomerManagerLogic, and
+             interactions such as placing dishes or checking whether a
+             customer is served.
+
+
+         All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include "CustomerTableLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/GameObject.hpp"
