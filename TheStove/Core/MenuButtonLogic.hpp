@@ -8,7 +8,7 @@
 					 button behavior for menu GameObjects including hover texture swapping and 
 					 deferred level loading via Scene::QueueLevelLoad when clicked.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
