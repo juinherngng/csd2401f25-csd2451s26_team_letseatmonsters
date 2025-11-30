@@ -10,7 +10,7 @@
 					simple item interaction logic. Integrates with Scene, InputManager, and physics
 					step mode.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -43,10 +43,10 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	// Detect idle/no movement
 	if (glm::length(moveDirRaw) < moveThreshold) {
 		switch (facingDir) {
-		case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
-		case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
-		case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
-		case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
+			case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
+			case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
+			case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
+			case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
 		}
 	}
 	else {
@@ -271,7 +271,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	// If has click-to-move target, follow that
 	else if (hasMoveTarget) {
 		glm::vec2 pos(pos3.x, pos3.y);
-		glm::vec2 moveDir = moveTarget - pos; 
+		glm::vec2 moveDir = moveTarget - pos;
 		// Move player toward target
 		// Set animation based on moveDir
 		UpdateSprite(scene, player, moveDir); // Pass click-move vector 
