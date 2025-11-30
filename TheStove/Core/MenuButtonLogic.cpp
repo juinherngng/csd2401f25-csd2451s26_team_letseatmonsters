@@ -20,6 +20,7 @@
 
 #include <string>
 
+#ifndef _DEBUG
 namespace {
 	static std::string MakeHoverPath(const std::string& path) {
 		if (path.empty()) return path;
@@ -51,6 +52,7 @@ namespace {
 		}
 	}
 }
+#endif // _DEBUG
 
 void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 #ifdef _DEBUG
