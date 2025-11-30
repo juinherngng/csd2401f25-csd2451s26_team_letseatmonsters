@@ -8,7 +8,7 @@
 					with proper layers/tags/colliders/animations, set scene backgrounds, rebuild colliders, and
 					store object metadata for runtime level loading. (For use outside of editor only.)
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 #pragma once
