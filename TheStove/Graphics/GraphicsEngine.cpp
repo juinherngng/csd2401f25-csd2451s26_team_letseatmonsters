@@ -243,15 +243,15 @@ void GraphicsEngine::Resize(int width, int height) {
 		-1.0f, 1.0f
 	);
 
-	// Compute centered letterboxed viewport
-	const float sx = static_cast<float>(width) / static_cast<float>(kRefW);
-	const float sy = static_cast<float>(height) / static_cast<float>(kRefH);
-	viewportScale_ = std::min(sx, sy);
-
-	viewportW_ = static_cast<int>(kRefW * viewportScale_);
-	viewportH_ = static_cast<int>(kRefH * viewportScale_);
-	viewportX_ = (width - viewportW_) / 2;
-	viewportY_ = (height - viewportH_) / 2;
+	// Fullscreen viewport without letterboxing
+	viewportW_ = width;
+	viewportH_ = height;
+	viewportX_ = 0;
+	viewportY_ = 0;
+	viewportScale_ = std::min(
+		static_cast<float>(width) / static_cast<float>(kRefW),
+		static_cast<float>(height) / static_cast<float>(kRefH)
+	);
 
 	// Apply the viewport now
 	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
