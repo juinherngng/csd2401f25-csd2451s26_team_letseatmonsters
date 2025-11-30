@@ -5,6 +5,7 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 					Vu Phan Hung, phanhung.vu@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:		Implements the Scene class, which is responsible for the high-level
 					management, coordination, and per-frame updating of all entities, systems,

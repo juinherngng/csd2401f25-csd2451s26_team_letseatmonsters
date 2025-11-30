@@ -5,6 +5,7 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 					Vu Phan Hung, phanhung.vu@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:		Declares the SceneManager (Scene) class, which orchestrates the lifecycle and
 					high-level coordination of all major systems within a game scene. This includes:

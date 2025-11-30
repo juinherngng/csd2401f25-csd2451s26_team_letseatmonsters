@@ -3,6 +3,7 @@
  FILE NAME:			MenuButtonLogic.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:		 Implements MenuButtonLogic::Update for release builds only, handling mouse click registering logic
 					 against button AABB, hover texture transitions using ResourceManager, and triggering JSON
