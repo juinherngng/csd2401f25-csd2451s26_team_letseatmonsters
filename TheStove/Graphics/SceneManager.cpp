@@ -580,37 +580,57 @@ void Scene::ShowPauseOverlay() {
 	if (pauseOverlayActive_) return;
 	pauseOverlayActive_ = true;
 
+	std::cout << "[Scene] ShowPauseOverlay()\n";
+
 	// Pause simulation while overlay is active
 	SetSimulationActive(false);
 
-	// Use very high layer number to ensure pause overlay renders on top of all game objects
 	const std::string uiLayer = "999999";
 
-	// Payse overlay
+	// Pause overlay background
 	if (GameObject* dim = SpawnStaticSprite("../assets/pause.png",
 		{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
 		{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
 		uiLayer)) {
 		pauseOverlayObjectIds_.push_back(dim->GetID());
+		std::cout << "  [Scene] Pause background id=" << dim->GetID() << "\n";
 	}
 
-	// Buttons (positions in reference space)
-	auto spawnBtn = [&](const char* tex, const glm::vec2& pos, PauseAction action) {
+	auto spawnPauseBtn = [&](const char* tex, const glm::vec2& pos, PauseAction action) {
 		if (GameObject* b = SpawnStaticSprite(tex, { pos.x, pos.y, 0.0f }, { 300.0f, 100.0f }, uiLayer)) {
 			const int id = b->GetID();
 			pauseOverlayObjectIds_.push_back(id);
-			// Attach logic directly
-			logicManager.AddLogic<PauseButtonLogic>(id, action);
-			// Remember texture path for hover logic
 			SetObjectTexturePath(id, tex);
+
+			switch (action) {
+			case PauseAction::Resume:
+				logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Resume);
+				std::cout << "  [Scene] Spawned Resume button id=" << id << " with PauseButtonLogic\n";
+				break;
+
+			case PauseAction::HowToPlay:
+				logicManager.AddLogic<HowToPlayButtonLogic>(id);
+				std::cout << "  [Scene] Spawned HowToPlay button id=" << id << " with HowToPlayButtonLogic\n";
+				break;
+
+			case PauseAction::Quit:
+				logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+				std::cout << "  [Scene] Spawned Quit button id=" << id << " with PauseButtonLogic\n";
+				break;
+			}
+		}
+		else {
+			std::cout << "  [Scene] ERROR: failed to spawn pause button for action=" << (int)action << "\n";
 		}
 		};
 
-	spawnBtn("../assets/green_button_static.png", { 967.f, 454.f }, PauseAction::Resume);
-	spawnBtn("../assets/green_button_static.png", { 967.f, 584.f }, PauseAction::HowToPlay);
-	spawnBtn("../assets/green_button_static.png", { 967.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn("../assets/green_button_static.png", { 967.f, 454.f }, PauseAction::Resume);
+	spawnPauseBtn("../assets/green_button_static.png", { 967.f, 584.f }, PauseAction::HowToPlay);
+	spawnPauseBtn("../assets/green_button_static.png", { 967.f, 714.f }, PauseAction::Quit);
 #endif
 }
+
+
 
 void Scene::HidePauseOverlay() {
 #ifndef _DEBUG

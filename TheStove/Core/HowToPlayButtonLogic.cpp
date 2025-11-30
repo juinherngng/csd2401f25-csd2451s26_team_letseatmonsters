@@ -15,6 +15,8 @@
 
 #include "HowToPlayButtonLogic.hpp"
 
+#include <iostream> // <-- for debug logs
+
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
@@ -39,30 +41,58 @@ namespace {
 
 void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 #ifdef _DEBUG
-    // Debug build: keep inert (same behaviour as MenuButtonLogic / PauseButtonLogic)
+    // In Debug build this script is currently inert.
+    std::cout << "[HowToPlayButtonLogic] Update called in _DEBUG build, doing nothing. ownerID="
+        << GetOwnerID() << "\n";
     (void)scene;
     (void)input;
 #else
+    GameObject* owner = GetOwner(scene);
+    if (!owner) {
+        std::cout << "[HowToPlayButtonLogic] owner is NULL, ownerID=" << GetOwnerID() << "\n";
+        return;
+    }
+
     const bool overlayActive = scene.IsHowToPlayOverlayActive();
+
+    std::cout << "[HowToPlayButtonLogic] Update ownerID=" << GetOwnerID()
+        << " overlayActive=" << overlayActive
+        << " overlayId_=" << overlayId_
+        << " initialized_=" << (initialized_ ? "true" : "false")
+        << "\n";
+
+    // If overlay is active but THIS instance did not spawn it,
+    // ignore input – let the owner instance handle closing.
+    if (overlayActive && overlayId_ < 0) {
+        std::cout << "  [HowToPlayButtonLogic] overlayActive && overlayId_ < 0, ignoring input.\n";
+        return;
+    }
 
     // --- CASE 1: overlay already active -> treat any click or Esc as "close overlay" ---
     if (overlayActive) {
         const bool clickClose = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
         const bool escClose = input.IsKeyJustPressed(GLFW_KEY_ESCAPE);
 
+        std::cout << "  [HowToPlayButtonLogic] overlay active, clickClose="
+            << clickClose << " escClose=" << escClose << "\n";
+
         if (clickClose || escClose) {
             if (overlayId_ >= 0) {
+                std::cout << "  [HowToPlayButtonLogic] Despawning overlay id=" << overlayId_ << "\n";
                 scene.DespawnByID(overlayId_);
                 overlayId_ = -1;
             }
 
             scene.SetHowToPlayOverlayActive(false);
+            std::cout << "  [HowToPlayButtonLogic] SetHowToPlayOverlayActive(false)\n";
 
-            // Restore button texts on main menu
+            // Restore button texts on main menu (no-op in gameplay if no menu buttons)
             scene.CreateMenuButtonTexts();
+            std::cout << "  [HowToPlayButtonLogic] Called CreateMenuButtonTexts()\n";
 
             if (clickClose) {
                 input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+                std::cout << "  [HowToPlayButtonLogic] Consumed mouse click to close overlay\n";
             }
         }
 
@@ -77,6 +107,10 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
         normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
         hoverTexturePath_ = MakeHoverPath(normalTexturePath_);
         initialized_ = true;
+
+        std::cout << "  [HowToPlayButtonLogic] Lazy init: normalTexturePath_='"
+            << normalTexturePath_ << "' hoverTexturePath_='"
+            << hoverTexturePath_ << "'\n";
     }
 
     // Mouse position in world coords
@@ -89,8 +123,9 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
         mouseWorld = glm::vec2(w.x, w.y);
     }
 
-    GameObject* owner = GetOwner(scene);
-    if (!owner) return;
+    std::cout << "  [HowToPlayButtonLogic] mouseWorld=("
+        << mouseWorld.x << ", " << mouseWorld.y
+        << ") insideScene=" << (insideScene ? "true" : "false") << "\n";
 
     // AABB hit-test using button position + size
     const glm::vec3 pos = owner->GetPositionGLM();
@@ -102,13 +137,20 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
         mouseWorld.x >= (pos.x - halfW) && mouseWorld.x <= (pos.x + halfW) &&
         mouseWorld.y >= (pos.y - halfH) && mouseWorld.y <= (pos.y + halfH);
 
+    std::cout << "  [HowToPlayButtonLogic] button pos=(" << pos.x << ", " << pos.y
+        << ") size=(" << sz.x << ", " << sz.y << ") over=" << (over ? "true" : "false") << "\n";
+
     // Hover visual swap
     if (over && !hovered_) {
         hovered_ = true;
+        std::cout << "  [HowToPlayButtonLogic] Hover ENTER, switching to hover texture '"
+            << hoverTexturePath_ << "'\n";
         TrySetTexture(owner, hoverTexturePath_);
     }
     else if (!over && hovered_) {
         hovered_ = false;
+        std::cout << "  [HowToPlayButtonLogic] Hover LEAVE, switching back to normal texture '"
+            << normalTexturePath_ << "'\n";
         TrySetTexture(owner, normalTexturePath_);
     }
 
@@ -117,10 +159,12 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
         return;
     }
 
+    std::cout << "  [HowToPlayButtonLogic] CLICK on button, spawning HowToPlay overlay\n";
+
     input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 
     // Spawn full-screen HowToPlay overlay on top UI layer
-    const std::string uiLayer = "999999";
+    const std::string uiLayer = "9999999";
     const float w = static_cast<float>(GraphicsEngine::kRefW);
     const float h = static_cast<float>(GraphicsEngine::kRefH);
 
@@ -131,15 +175,18 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
         uiLayer);
 
     if (!img) {
+        std::cout << "  [HowToPlayButtonLogic] ERROR: SpawnStaticSprite returned nullptr\n";
         return; // failed to spawn (wrong path etc.)
     }
 
     overlayId_ = img->GetID();
     img->SetMovableByPhysics(false);
 
+    std::cout << "  [HowToPlayButtonLogic] Overlay spawned with id=" << overlayId_ << "\n";
+
     // Mark overlay active in the scene and hide menu button texts
     scene.SetHowToPlayOverlayActive(true);
     scene.ClearMenuButtonTexts();
+    std::cout << "  [HowToPlayButtonLogic] SetHowToPlayOverlayActive(true) and ClearMenuButtonTexts()\n";
 #endif // _DEBUG
 }
-

@@ -270,18 +270,22 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 		// Trim against static world (outer frame + wood + gate)
 		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
 
-	// If we can't move at all (hit a wall and are stuck), cancel the target
-	const float allowedLenSq = allowedDelta.x * allowedDelta.x +
-		allowedDelta.y * allowedDelta.y;
-	if (allowedLenSq < 0.0001f) {
-		std::cout << "[PlayerLogic] MoveTo cancelled by collision, clearing target\n";
-		hasMoveTarget = false;
-		if (GameObject* p = GetOwner(scene)) {
-			scene.GetMovementManager().ClearMoveTarget(p->GetID());
-		}
-		return;
-	}
+		// If we can't move at all (hit a wall and are stuck), treat it as "try to arrive"
+		// and let OnArrived decide if we are close enough to interact.
+		const float allowedLenSq = allowedDelta.x * allowedDelta.x +
+			allowedDelta.y * allowedDelta.y;
+		if (allowedLenSq < 0.0001f) {
+			std::cout << "[PlayerLogic] MoveTo blocked by collision, invoking OnArrived\n";
 
+			hasMoveTarget = false;
+			if (GameObject* p = GetOwner(scene)) {
+				scene.GetMovementManager().ClearMoveTarget(p->GetID());
+			}
+
+			// This will check distance to the table’s approach point using kInteractRadius
+			OnArrived(scene);
+			return;
+		}
 
 	pos.x += allowedDelta.x;
 	pos.y += allowedDelta.y;
