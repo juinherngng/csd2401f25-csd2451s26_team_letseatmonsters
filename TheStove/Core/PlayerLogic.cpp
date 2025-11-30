@@ -353,7 +353,7 @@ void PlayerLogic::OnArrived(Scene& scene) {
 	}
 
 	// Interaction radius around the approach point
-	constexpr float kInteractRadius = 40.0f;  // tweak to taste
+	constexpr float kInteractRadius = 67.0f;  // tweak to taste
 
 	if (distSq <= kInteractRadius * kInteractRadius) {
 		std::cout << "[PlayerLogic] Close enough to table " << pendingTableID

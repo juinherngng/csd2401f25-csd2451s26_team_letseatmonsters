@@ -17,13 +17,11 @@ void CustomerTableLogic::Start(Scene& scene)
 {
     // Base TableLogic will:
     //  - reset heldItemID_
-    //  - override default offset with Scene::Defaults.vel if non-zero
+    //  - (currently) set the player approach offset from defs.approachOffset
     TableLogic::Start(scene);
 
     seatedCustomerID_ = kInvalidID;
 
-    // NEW: read the authored approachOffset from Scene::Defaults and use it
-// as the customer seat offset if it is non-zero.
     GameObject* owner = GetOwner(scene);
     if (!owner)
         return;
@@ -31,13 +29,33 @@ void CustomerTableLogic::Start(Scene& scene)
     const int id = owner->GetID();
     Scene::Defaults defs = scene.GetDefaults(id);
 
+    // We interpret defs.approachOffset as the CUSTOMER seat offset.
     if (defs.approachOffset.x != 0.0f || defs.approachOffset.y != 0.0f)
     {
-        // Use the JSON/authored offset for where the customer should sit
+        // Customer sits at the authored offset (e.g. 90, 0)
         customerSeatOffset_ = Math::Vector2D(defs.approachOffset.x,
             defs.approachOffset.y);
+
+        // PLAYER approach is mirrored across the table center (e.g. -90, 0)
+        Math::Vector2D playerOffset(-defs.approachOffset.x,
+            -defs.approachOffset.y);
+
+        // Override the base TableLogic approach point for this table
+        SetSingleApproachOffset(playerOffset);
+
+        std::cout << "[CustomerTableLogic] ownerID=" << GetOwnerID()
+            << " customerSeatOffset=(" << customerSeatOffset_.x << ", " << customerSeatOffset_.y << ")"
+            << " playerApproachOffset=(" << playerOffset.x << ", " << playerOffset.y << ")\n";
+    }
+    else
+    {
+        // Fallback if nothing authored: simple defaults
+        customerSeatOffset_ = Math::Vector2D(0.0f, -90.0f);   // customer just "above"
+        SetSingleApproachOffset(Math::Vector2D(0.0f, 90.0f)); // player "below"
     }
 }
+
+
 
 
 void CustomerTableLogic::OnDestroy(Scene& scene)

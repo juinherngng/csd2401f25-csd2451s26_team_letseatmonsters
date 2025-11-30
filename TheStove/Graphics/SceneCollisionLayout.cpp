@@ -246,11 +246,19 @@ void Scene::BuildLevelColliders() {
 	// Benches + counters + bottom strip
 	std::vector<collision::AABB> staticRects;
 	staticRects.reserve(kStaticRectDefs.size());
-	for (const auto& def : kStaticRectDefs) {
+
+	for (std::size_t i = 0; i < kStaticRectDefs.size(); ++i) {
+		const auto& def = kStaticRectDefs[i];
+
+		// e.g. skip rect 5:
+		if (i == 2) continue;
+		if (i == 0) continue;
+
 		staticRects.push_back(MakeTileRect(def.tx0, def.ty0, def.tx1, def.ty1));
 	}
 
 	collisionManager.AddStaticRects(staticRects);
+
 
 	// Get a pointer to the shared collision world
 	collision::World* world = &collisionManager.GetCollisionWorld();
