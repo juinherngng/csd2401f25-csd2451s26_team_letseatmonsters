@@ -39,10 +39,10 @@ namespace {
 
 void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 #ifdef _DEBUG
-    (void)scene; (void)input;
-    return; // inert in debug build (matches MenuButtonLogic / PauseButtonLogic pattern)
-#endif
-
+    // Debug build: keep inert (same behaviour as MenuButtonLogic / PauseButtonLogic)
+    (void)scene;
+    (void)input;
+#else
     const bool overlayActive = scene.IsHowToPlayOverlayActive();
 
     // --- CASE 1: overlay already active -> treat any click or Esc as "close overlay" ---
@@ -140,4 +140,6 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
     // Mark overlay active in the scene and hide menu button texts
     scene.SetHowToPlayOverlayActive(true);
     scene.ClearMenuButtonTexts();
+#endif // _DEBUG
 }
+
