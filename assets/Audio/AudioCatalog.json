@@ -39,6 +39,54 @@
       "name": "bgm_MyoonchiDiner_MainMenu",
       "stream": false,
       "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_beep.wav",
+      "loop": false,
+      "name": "sfx_beep",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_order_ready.wav",
+      "loop": false,
+      "name": "sfx_order_ready",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_order_received.wav",
+      "loop": false,
+      "name": "sfx_order_received",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "ui",
+      "filepath": "../../assets/Audio/ui_hover.wav",
+      "loop": false,
+      "name": "ui_hover",
+      "stream": false,
+      "volume": 0.05000000074505806
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/bgm_KitchenAmbience.wav",
+      "loop": true,
+      "name": "bgm_KitchenAmbience",
+      "stream": false,
+      "volume": 0.5
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_game_over.wav",
+      "loop": false,
+      "name": "sfx_game_over",
+      "stream": false,
+      "volume": 1.0
     }
   ],
   "version": "1.0"

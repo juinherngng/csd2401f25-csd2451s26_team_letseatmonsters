@@ -76,7 +76,8 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 		// physics dt, collider, points/lines, force, level editor
 		GLFW_KEY_P, GLFW_KEY_R, GLFW_KEY_T, GLFW_KEY_F, GLFW_KEY_L,
 		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3,
-		GLFW_KEY_ESCAPE 
+		GLFW_KEY_ESCAPE,
+		GLFW_KEY_F1  // FPS display toggle in Release
 	};
 
 	// If ImGui wants the keyboard, clear key states so gameplay won't react

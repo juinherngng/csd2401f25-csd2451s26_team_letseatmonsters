@@ -300,18 +300,19 @@ public:
 	// How-to-play overlay state
 	void SetHowToPlayOverlayActive(bool active) { howToPlayOverlayActive_ = active; }
 	bool IsHowToPlayOverlayActive() const { return howToPlayOverlayActive_; }
-
+	// FPS display rendering
+	void RenderFPSText();
 
 private:
-	// Engine/input
-	GraphicsEngine& graphicsEngine;
-	EntityManager entityManager;
-	LogicManager logicManager;
-	InputManager& inputManager;				// Changed from owned instance to reference
-	AnimationManager& animationManager;		// Changed from owned instance to reference
-	MovementManager& movementManager;		// Changed from owned instance to reference
-	CollisionManager& collisionManager;		// Changed from owned instance to reference
-	PhysicsManager& physicsManager;			// Changed from owned instance to reference
+// Engine/input
+GraphicsEngine& graphicsEngine;
+EntityManager entityManager;
+LogicManager logicManager;
+InputManager& inputManager;				// Changed from owned instance to reference
+AnimationManager& animationManager;		// Changed from owned instance to reference
+MovementManager& movementManager;		// Changed from owned instance to reference
+CollisionManager& collisionManager;		// Changed from owned instance to reference
+PhysicsManager& physicsManager;			// Changed from owned instance to reference
 
 	// Audio for UI sounds
 	AudioManager* audioManager_ = nullptr;
@@ -368,6 +369,14 @@ private:
 		std::string label;
 	};
 	std::vector<MenuButtonText> menuButtonTexts_;
+
+	// FPS display (release builds) - toggled with F1
+	FontSystem::Text fpsText_;
+	bool showFPS_ = false;
+	float fpsAccumTime_ = 0.0f;
+	int fpsAccumFrames_ = 0;
+	int fpsValue_ = 0;
+	const float fpsUpdateInterval_ = 0.25f; // update every 0.25s
 
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;
