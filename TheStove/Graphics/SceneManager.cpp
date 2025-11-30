@@ -207,7 +207,7 @@ void Scene::ClearAll() {
 	movementManager.Clear();
 	npcSystem.Clear();
 	customerManager_.Reset();
-	ClearMenuButtonTexts();
+	//ClearMenuButtonTexts();
 
 	spriteID = -1;
 	dinoID = -1;
@@ -643,6 +643,8 @@ void Scene::HidePauseOverlay() {
 #endif
 }
 
+// text objects for menu buttons (disabled for now)
+#if 0
 void Scene::CreateMenuButtonTexts() {
 	ClearMenuButtonTexts();
 
@@ -791,6 +793,8 @@ void Scene::RenderMenuButtonTexts() {
 void Scene::ClearMenuButtonTexts() {
 	menuButtonTexts_.clear();
 }
+
+#endif
 
 void Scene::RenderFPSText() {
 #ifndef _DEBUG

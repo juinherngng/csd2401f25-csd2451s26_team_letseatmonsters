@@ -293,9 +293,11 @@ public:
 	}
 
 	// Menu button text rendering
+#if 0
 	void CreateMenuButtonTexts();
 	void RenderMenuButtonTexts();
 	void ClearMenuButtonTexts();
+#endif
 
 	// How-to-play overlay state
 	void SetHowToPlayOverlayActive(bool active) { howToPlayOverlayActive_ = active; }

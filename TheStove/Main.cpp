@@ -852,7 +852,7 @@ static void draw(ApplicationState& app) {
 	graphicsEngine->RenderBatched(drawList);
 
 	// Render menu button texts on top (in both debug and release)
-	app.currentScene->RenderMenuButtonTexts();
+	//app.currentScene->RenderMenuButtonTexts();
 	
 	// Render FPS text on top (release only)
 	app.currentScene->RenderFPSText();

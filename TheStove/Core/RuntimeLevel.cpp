@@ -125,10 +125,12 @@ namespace RuntimeLevel {
 		BuildSceneFromLevel(data, scene);
 		scene.RebuildColliders();
 
+#if 0
 		// Create text for menu buttons if this is a menu level
 		if (path.find("main_menu") != std::string::npos) {
 			scene.CreateMenuButtonTexts();
 		}
+#endif
 
 		return true;
 	}

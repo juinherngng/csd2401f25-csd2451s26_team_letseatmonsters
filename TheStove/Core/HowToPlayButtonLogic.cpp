@@ -87,7 +87,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
             std::cout << "  [HowToPlayButtonLogic] SetHowToPlayOverlayActive(false)\n";
 
             // Restore button texts on main menu (no-op in gameplay if no menu buttons)
-            scene.CreateMenuButtonTexts();
+            // scene.CreateMenuButtonTexts();
             std::cout << "  [HowToPlayButtonLogic] Called CreateMenuButtonTexts()\n";
 
             if (clickClose) {
@@ -186,7 +186,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 
     // Mark overlay active in the scene and hide menu button texts
     scene.SetHowToPlayOverlayActive(true);
-    scene.ClearMenuButtonTexts();
+    //scene.ClearMenuButtonTexts();
     std::cout << "  [HowToPlayButtonLogic] SetHowToPlayOverlayActive(true) and ClearMenuButtonTexts()\n";
 #endif // _DEBUG
 }
