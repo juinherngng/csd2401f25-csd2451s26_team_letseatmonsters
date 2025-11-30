@@ -1,11 +1,11 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			GraphicsEngine.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
-CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+ FILE NAME:			GraphicsEngine.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 
-DESCRIPTION:		Declares the DebugVisualizer utility (static-only) used to render
+ DESCRIPTION:		Declares the DebugVisualizer utility (static-only) used to render
 					collision boxes, spatial grid cells, and pathing cues for selected
 					GameObjects. Functions are grouped by purpose and kept lightweight
 					so they can be called from the main debug pass each frame.
@@ -18,11 +18,11 @@ DESCRIPTION:		Declares the DebugVisualizer utility (static-only) used to render
 
 #include <vector>
 
+#include "../Graphics/DebugRenderer.hpp"
+#include "../Graphics/EntityManager.hpp"
+
 #include "CollisionManager.hpp"
 #include "MovementManager.hpp"
-
-#include "../Graphics/EntityManager.hpp"
-#include "../Graphics/DebugRenderer.hpp"
 
 /**
  * @class DebugVisualizer
@@ -34,10 +34,10 @@ public:
 
 	// Entry point to render all debug overlays for the current frame.
 	static void DrawDebugInfo(EntityManager& entityManager,
-		CollisionManager& collisionManager,
-		MovementManager& movementManager,
-		int playerId,
-		bool showAuxiliary);
+							  CollisionManager& collisionManager,
+							  MovementManager& movementManager,
+							  int playerId,
+							  bool showAuxiliary);
 
 	// Draws AABBs for every object that has a valid collider size.
 	static void DrawAllColliders(const std::vector<GameObject*>& objects);

@@ -3,7 +3,7 @@
 # Script to count lines of code modified by a specific author since a given date
 # Usage: ./count_loc.sh [author-name] [--list-files|-l]
 
-SINCE_DATE="2025-10-13"
+SINCE_DATE="2025-11-08"
 AUTHOR="${1:-$(git config user.name)}"
 
 echo "=========================================="
@@ -94,6 +94,88 @@ echo "--------------------------------------------------------------------------
 git log --author="$AUTHOR" --since="$SINCE_DATE" --pretty=format: --numstat | \
     awk '{file[$3]+=$1; file_del[$3]+=$2} END {for (f in file) printf "%-70s %10s %10s %10s\n", f, file[f], file_del[f], file[f]-file_del[f]}' | \
     sort -t' ' -k4 -nr
+
+echo "--------------------------------------------------------------------------------------------"
+
+echo ""
+echo "=========================================="
+echo "GIT CHANGES PER FILE (CODE ONLY - NO COMMENTS)"
+echo "=========================================="
+echo ""
+printf "%-70s %10s %10s %10s\n" "File" "Added" "Deleted" "Net"
+echo "--------------------------------------------------------------------------------------------"
+
+git log --author="$AUTHOR" --since="$SINCE_DATE" -p --no-color \
+| LC_ALL=C awk '
+function is_code_line(s, t) {
+    # blank or whitespace-only -> ignore
+    if (s ~ /^[ \t]*$/) return 0;
+
+    # full-line comments -> ignore
+    if (s ~ /^[ \t]*\/\//) return 0;   # //
+    if (s ~ /^[ \t]*\/\*/) return 0;   # /*
+    if (s ~ /^[ \t]*\*/)  return 0;    #  *
+    if (s ~ /^[ \t]*\*\/[ \t]*$/) return 0; # */
+
+    # lines that are only braces + spaces -> ignore
+    t = s;
+    gsub(/[ \t{}]/, "", t);
+    if (t == "") return 0;
+
+    # require some "code-ish" characters
+    if (s ~ /[A-Za-z0-9_]/) return 1;                # identifiers, numbers
+    if (s ~ /[+\-*/%<>=!&|^~]/) return 1;            # operators
+    if (s ~ /[;:,]/) return 1;                       # statement separators
+    return 0;
+}
+
+# start of a new file diff
+/^diff --git/ {
+    file = $3;                 # b/path
+    sub("^b/", "", file);
+
+    # only track .cpp and .hpp files
+    if (file ~ /\.cpp$/ || file ~ /\.hpp$/) {
+        currentFile = file;
+    } else {
+        currentFile = "";
+    }
+    next;
+}
+
+# ignore binary diffs and hunk headers
+/^Binary files / { next }
+/^\+\+\+/ { next }
+/^\-\-\-/ { next }
+
+# if this diff is for a non-code file, skip everything
+currentFile == "" { next }
+
+# added lines
+/^\+/ {
+    line = substr($0, 2);
+    if (is_code_line(line)) {
+        added[currentFile]++;
+    }
+    next;
+}
+
+# deleted lines
+/^\-/ {
+    line = substr($0, 2);
+    if (is_code_line(line)) {
+        deleted[currentFile]++;
+    }
+    next;
+}
+
+END {
+    for (f in added) {
+        printf "%-70s %10d %10d %10d\n",
+               f, added[f], deleted[f], added[f] - deleted[f];
+    }
+}
+' | sort -k4 -nr
 
 echo "--------------------------------------------------------------------------------------------"
 

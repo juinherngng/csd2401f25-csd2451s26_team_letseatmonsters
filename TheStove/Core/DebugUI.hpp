@@ -1,11 +1,11 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			DebugUI.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Glenn Yeo Yi Heng, g.yeo@digipen.edu
-CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			DebugUI.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		The declarations of functions for the debugger window.
+ DESCRIPTION:		The declarations of functions for the debugger window.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -13,22 +13,27 @@ DESCRIPTION:		The declarations of functions for the debugger window.
 
 #pragma once
 
-#include <iostream>
 #include <fstream>
-#include <vector>
-#include <streambuf>
+#include <iostream>
 #include <ostream>
+#include <streambuf>
 #include <string>
+#include <vector>
 
-#include "Precompiled.hpp"
 #include "AudioManager.hpp"
+#include "Precompiled.hpp"
+#include "FontSystem.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 
-namespace CoreFramework { class CoreEngine; }
+namespace CoreFramework {
+	class CoreEngine;
+}
 class Scene;
 
-struct SystemPerformance
-{
+// Forward declare GLFW window type so Release branch doesn't need GLFW headers
+struct GLFWwindow;
+
+struct SystemPerformance {
 	std::string name;				// Name of the system
 	float percentageOf = 0.0f;		// The %tage of the total system time (relative distribution)
 	float percentageOfFrame = 0.0f;	// The %tage of the frame time (absolute usage)
@@ -38,17 +43,17 @@ struct SystemPerformance
 	float lastTimeMs = 0.0f;		// Last frame time in milliseconds
 };
 
-enum class FPSMode
-{
+enum class FPSMode {
 	Unlimited,
 	VSYNC,
 	Capped
 };
 
-namespace Debug
-{
-	class DebuggerApp
-	{
+namespace Debug {
+
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+
+	class DebuggerApp {
 	public:
 		// Ctor
 		DebuggerApp();
@@ -77,7 +82,9 @@ namespace Debug
 		// Updates each systems %tage usage of the current engine
 		void UpdateSystemTimes(float loopTime);
 
-		bool IsActive() const { return openedDebugger; }
+		bool IsActive() const {
+			return openedDebugger;
+		}
 
 		void AddDebugLine(const std::string& txt);
 
@@ -87,8 +94,14 @@ namespace Debug
 
 		void SetRenderStats(int objects, int batches, int instanced, int draws);
 
-		void SetScene(Scene* scenePtr) { scene_ = scenePtr; }
+		void SetScene(Scene* scenePtr) {
+			scene_ = scenePtr;
+		}
 
+		// Font System integration
+		void InitializeFontSystem();
+		void RenderTextOverlays();
+		
 		void SetupDefaultLayout();
 
 	public:
@@ -103,6 +116,7 @@ namespace Debug
 		bool openedDebugger; // Shows Whether debugger window is visible
 
 		std::vector<std::string> debuglines;
+		
 	private:
 		GLFWwindow* debugWindow; // The host window
 		CoreFramework::CoreEngine* coreEngine; // Pointer to CoreEngine (not owned)
@@ -121,6 +135,46 @@ namespace Debug
 
 		Scene* scene_ = nullptr;
 
+		// Font System members
+		bool fontSystemInitialized = false;
+		FontSystem::Text text1;
+		FontSystem::Text text2;
 	};
 	extern DebuggerApp gDebugger;
-}
+
+#else // Release branch: provide a small no-op implementation so callers still compile / link
+
+	class DebuggerApp {
+	public:
+		DebuggerApp() noexcept : fps(0), msperFrame(0), fpsMode(FPSMode::VSYNC), openedDebugger(false) {}
+		~DebuggerApp() noexcept = default;
+
+		void Shutdown() noexcept {}
+		bool InitializeDebuggerApp(GLFWwindow* /*externalWindow*/, CoreFramework::CoreEngine* /*coreEnginePtr*/) noexcept { return false; }
+		void UpdateDebuggerApp() noexcept {}
+		void RenderDebuggerApp() noexcept {}
+		void RunDebuggerApp() noexcept {}
+		void LogError(const std::string& /*errorMessage*/) noexcept {}
+		void UpdateSystemTimes(float /*loopTime*/) noexcept {}
+		bool IsActive() const noexcept { return false; }
+		void AddDebugLine(const std::string& /*txt*/) noexcept {}
+		void ClearDebugLog() noexcept { debuglines.clear(); }
+		void ShowDebugLog() noexcept {}
+		void SetRenderStats(int /*objects*/, int /*batches*/, int /*instanced*/, int /*draws*/) noexcept {}
+		void SetScene(Scene* /*scenePtr*/) noexcept {}
+		void SetupDefaultLayout() noexcept {}
+
+	public:
+		float fps = 0; // FPS
+		float msperFrame = 0; // MS/frame
+		std::vector<SystemPerformance> sysPerformance;
+		FPSMode fpsMode = FPSMode::VSYNC;
+		bool openedDebugger = false;
+		std::vector<std::string> debuglines;
+	};
+
+	extern DebuggerApp gDebugger;
+
+#endif // defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+
+} // namespace Debug

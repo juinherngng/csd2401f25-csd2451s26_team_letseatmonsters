@@ -2,13 +2,13 @@
 Lines of Code Report
 ==========================================
 Author: juinherngng
-Since: 2025-10-13
-Generated: Fri Nov  7 14:19:10 +08 2025
+Since: 2025-11-08
+Generated: Sun Nov 30 23:02:56 +08 2025
 ==========================================
 
-Files Modified: 51 unique files
+Files Modified: 62 unique files
 
-Files Still Exist: 47 files
+Files Still Exist: 55 files
 
 ==========================================
 CODE ANALYSIS - SUMMARY
@@ -17,17 +17,20 @@ Excludes: Comments and Blank Lines
 
       47 text files.
 classified 47 files      47 unique files.                              
-       7 files ignored.
+      18 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.65 s (61.3 files/s, 13580.9 lines/s)
+github.com/AlDanial/cloc v 1.90  T=0.75 s (49.0 files/s, 14979.8 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C++                             19           1096            852           3912
-C/C++ Header                    17            405           1084           1020
-Bourne Shell                     4             75             39            384
+C++                             20           1598           1136           6094
+C/C++ Header                    13            309            879            823
+Bourne Shell                     1             34             13            154
+JSON                             1              0              0             85
+CMake                            1             20             17             67
+INI                              1             13              0             67
 -------------------------------------------------------------------------------
-SUM:                            40           1576           1975           5316
+SUM:                            37           1974           2045           7290
 -------------------------------------------------------------------------------
 
 ==========================================
@@ -36,55 +39,52 @@ CODE ANALYSIS - PER FILE (Current State)
 
       47 text files.
 classified 47 files      47 unique files.                              
-       7 files ignored.
+      18 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.69 s (57.6 files/s, 12771.2 lines/s)
------------------------------------------------------------------------------------------
-File                                                  blank        comment           code
------------------------------------------------------------------------------------------
-TheStove/Core/DebugUI.cpp                               112             99            537
-TheStove/Graphics/SceneManager.cpp                      167            125            509
-TheStove/Graphics/GraphicsEngine.cpp                    124             83            495
-TheStove/Main.cpp                                       122             85            436
-TheStove/Core/MovementManager.cpp                        92             66            370
-TheStove/Core/AudioManager.cpp                           88             63            301
-TheStove/Core/Message.hpp                                31             98            156
-TheStove/Graphics/SceneManager.hpp                       57             89            155
-count_loc_all_authors.sh                                 34             13            154
-TheStove/Graphics/AnimationManager.cpp                   48             33            147
-TheStove/Core/PhysicsManager.cpp                         40             38            125
-TheStove/Graphics/EntityManager.cpp                      35             21            125
-TheStove/Core/NpcSystem.cpp                              37             28            121
-TheStove/Graphics/ResourceManager.cpp                    31             15            120
-TheStove/Core/PlayerController.cpp                       25             25            106
-TheStove/Core/InputManager.cpp                           40             25            100
-count_loc.sh                                             16              9             99
-TheStove/Core/AudioLoading.cpp                           34             37             98
-TheStove/Graphics/GraphicsEngine.hpp                     32             33             96
-TheStove/Graphics/GameObject.cpp                         29             16             92
-TheStove/Core/MessageBus.hpp                             20             93             80
-TheStove/Core/Core.cpp                                   22             26             79
-TheStove/Core/AudioManager.hpp                           31            273             71
-TheStove/Core/DebugUI.hpp                                33             23             70
-TheStove/Core/GameStateManager.cpp                       16             22             69
-TheStove/count_loc_v2.sh                                 12              7             68
-TheStove/count_loc.sh                                    13             10             63
-TheStove/Core/MovementManager.hpp                        46             59             62
-TheStove/Core/CollisionManager.cpp                       21             26             55
-TheStove/Core/PhysicsManager.hpp                         28             42             51
-TheStove/Core/Core.hpp                                   21            116             50
-TheStove/Graphics/AnimationManager.hpp                   19             30             41
-TheStove/Graphics/ResourceManager.hpp                    17             18             38
-TheStove/Core/InputManager.hpp                           16             31             35
-TheStove/Core/GameStateManager.hpp                       11             36             32
-TheStove/Core/CollisionManager.hpp                       17             39             31
-TheStove/Core/LevelEditor.cpp                            13             19             27
-TheStove/Core/AudioLoading.hpp                           10             63             19
-TheStove/Core/GameObjectLogic.hpp                         6              3             19
-TheStove/Core/System.hpp                                 10             38             14
------------------------------------------------------------------------------------------
-SUM:                                                   1576           1975           5316
------------------------------------------------------------------------------------------
+github.com/AlDanial/cloc v 1.90  T=0.70 s (52.7 files/s, 16103.1 lines/s)
+-------------------------------------------------------------------------------------------------
+File                                                          blank        comment           code
+-------------------------------------------------------------------------------------------------
+TheStove/Core/LevelEditorPanelLevel.cpp                         190            100            788
+TheStove/Graphics/GraphicsEngine.cpp                            172            131            688
+TheStove/Core/LevelEditorPanelAssets.cpp                        167            122            643
+TheStove/Main.cpp                                               183            155            642
+TheStove/Graphics/SceneManager.cpp                              145             88            609
+TheStove/Core/FontSystem.cpp                                    109             70            436
+TheStove/Core/AudioManager.cpp                                   99             74            301
+TheStove/Core/LevelEditorPanelFonts.cpp                          56             34            266
+TheStove/Graphics/SceneManager.hpp                               64             71            252
+TheStove/Core/LevelEditorPanelAudioControl.cpp                   58             54            239
+TheStove/Core/AudioLoading.cpp                                   66             34            233
+TheStove/Core/ConfigManager.cpp                                  40             24            194
+TheStove/Core/LevelEditorFileIO.cpp                              58             41            194
+TheStove/Core/GameStateManager.cpp                               33             33            154
+count_loc_all_authors.sh                                         34             13            154
+TheStove/Core/HowToPlayButtonLogic.cpp                           41             33            136
+TheStove/Graphics/GraphicsEngine.hpp                             36             34            133
+TheStove/Core/InputManager.cpp                                   45             27            130
+TheStove/Graphics/ResourceManager.cpp                            36             16            118
+TheStove/Core/FileDropHandler.cpp                                45             32            114
+TheStove/Core/FontSystem.hpp                                     43             40            107
+TheStove/Core/RuntimeLevel.cpp                                   24             21             92
+assets/Audio/AudioCatalog.json                                    0              0             85
+TheStove/Core/MenuButtonLogic.cpp                                19             25             81
+TheStove/Core/AudioManager.hpp                                   32            299             75
+CMakeLists.txt                                                   20             17             67
+imgui.ini                                                        13              0             67
+TheStove/Core/GameStateManager.hpp                               21             19             55
+TheStove/Graphics/ResourceManager.hpp                            19             19             46
+TheStove/Core/LevelEditor.cpp                                    12             22             36
+TheStove/Core/AudioLoading.hpp                                   18            120             35
+TheStove/Core/MenuButtonLogic.hpp                                11             17             29
+TheStove/Core/ConfigManager.hpp                                  12             53             26
+TheStove/Core/FileDropHandler.hpp                                21            140             20
+TheStove/Core/LevelEditorPanelFonts.hpp                           8             12             20
+TheStove/Core/LevelEditorFileIO.hpp                              18             34             18
+TheStove/Core/LevelEditorPanelAudioControl.hpp                    6             21              7
+-------------------------------------------------------------------------------------------------
+SUM:                                                           1974           2045           7290
+-------------------------------------------------------------------------------------------------
 
 ==========================================
 GIT CHANGES PER FILE
@@ -92,57 +92,70 @@ GIT CHANGES PER FILE
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-TheStove/Main.cpp                                                             797        502        295
-TheStove/Core/DebugUI.cpp                                                     667        362        305
-TheStove/Graphics/SceneManager.cpp                                            498        493          5
-TheStove/Core/Message.hpp                                                     214         45        169
-loc_reports/y_chunwee_loc_report.txt                                          193          0        193
-TheStove/Core/MessageBus.hpp                                                  193          0        193
-count_loc_all_authors.sh                                                      186          0        186
-loc_reports/Wang_Hua_loc_report.txt                                           175          0        175
-TheStove/Core/AudioManager.cpp                                                175         74        101
-TheStove/Core/AudioLoading.cpp                                                169          0        169
-loc_reports/Yat_Chun_Wee_loc_report.txt                                       151          0        151
-TheStove/Docs/AudioIntegrationGuide.txt                                       132        132          0
-loc_reports/juinherngng_loc_report.txt                                        126          0        126
-count_loc.sh                                                                  108          0        108
-TheStove/Core/AudioLoading.hpp                                                 92          0         92
-TheStove/Core/AudioManager.hpp                                                 89         31         58
-TheStove/count_loc_v2.sh                                                       87          0         87
-TheStove/Core/CollisionManager.hpp                                             87         67         20
-TheStove/count_loc.sh                                                          86          0         86
-loc_reports/chuuniby_loc_report.txt                                            82          0         82
-loc_reports/CookieWasTaken_loc_report.txt                                      70          0         70
-TheStove/Core/ImGuiDebugger.cpp                                                70         30         40
-TheStove/Core/Core.hpp                                                         68         71         -3
-TheStove/Graphics/AnimationManager.cpp                                         65         31         34
-TheStove/Graphics/SceneManager.hpp                                             60         52          8
-TheStove/Graphics/ResourceManager.cpp                                          59         99        -40
-TheStove/Core/PhysicsManager.cpp                                               58         30         28
-TheStove/Examples/AudioLoadingExample.cpp                                      55         55          0
-TheStove/Core/Core.cpp                                                         55         39         16
-TheStove/Core/MovementManager.cpp                                              50         26         24
-TheStove/Core/InputManager.cpp                                                 49         27         22
-TheStove/Core/CollisionManager.cpp                                             48         25         23
-TheStove/Graphics/AnimationManager.hpp                                         46         20         26
-TheStove/Core/MovementManager.hpp                                              38         23         15
-TheStove/Core/PhysicsManager.hpp                                               37         24         13
-TheStove/Graphics/GraphicsEngine.cpp                                           33         28          5
-TheStove/Core/InputManager.hpp                                                 30         19         11
-TheStove/Core/System.hpp                                                       28         40        -12
-TheStove/Core/GameStateManager.hpp                                             28          2         26
-TheStove/Core/GameStateManager.cpp                                             22         11         11
-TheStove/Core/DebugUI.hpp                                                      19         13          6
-TheStove/Graphics/GraphicsEngine.hpp                                           17         12          5
-loc_reports/00_SUMMARY.txt                                                     15          0         15
-TheStove/Graphics/ResourceManager.hpp                                          14         32        -18
-TheStove/Core/LevelEditor.cpp                                                   7          0          7
-TheStove/Core/ImGuiDebugger.hpp                                                 6          3          3
-TheStove/Core/GameObjectLogic.hpp                                               5          4          1
-TheStove/Core/NpcSystem.cpp                                                     4          0          4
-TheStove/Graphics/GameObject.cpp                                                3          0          3
-TheStove/Graphics/EntityManager.cpp                                             3          0          3
-TheStove/Core/PlayerController.cpp                                              2          0          2
+TheStove/Core/LevelEditorPanelAssets.cpp                                      544         90        454
+loc_reports/Chun_Wee_loc_report.txt                                           436          0        436
+TheStove/Core/LevelEditorPanelFonts.cpp                                       356          0        356
+TheStove/Core/LevelEditorPanelAudioControl.cpp                                344          0        344
+TheStove/Core/AudioLoading.cpp                                                311        116        195
+TheStove/Graphics/SceneManager.cpp                                            255          7        248
+TheStove/Core/FileDropHandler.cpp                                             191          0        191
+TheStove/Core/FileDropHandler.hpp                                             181          0        181
+loc_reports/juinherngng_loc_report.txt                                        151        152         -1
+TheStove/Main.cpp                                                             138         18        120
+loc_reports/Wang_Hua_loc_report.txt                                           127        169        -42
+imgui.ini                                                                     123        112         11
+assets/Audio/AudioCatalog.json                                                114         29         85
+TheStove/Core/FontSystem.cpp                                                  109         21         88
+TheStove/Core/AudioLoading.hpp                                                107         23         84
+TheStove/Graphics/GraphicsEngine.cpp                                           77         13         64
+TheStove/Core/GameStateManager.cpp                                             72         12         60
+TheStove/Core/AudioManager.cpp                                                 62         13         49
+TheStove/Graphics/SceneManager.hpp                                             59         10         49
+TheStove/Core/LevelEditorFileIO.cpp                                            53         10         43
+loc_reports/Yat_Chun_Wee_loc_report.txt                                        43         45         -2
+TheStove/Core/LevelEditorPanelFonts.hpp                                        40          0         40
+TheStove/Core/LevelEditorPanelAudioControl.hpp                                 34          0         34
+loc_reports/y_chunwee_loc_report.txt                                           33        221       -188
+loc_reports/chuuniby_loc_report.txt                                            30         28          2
+TheStove/Core/AudioManager.hpp                                                 30          1         29
+loc_reports/CookieWasTaken_loc_report.txt                                      29         38         -9
+assets/imgui.ini                                                               20         14          6
+TheStove/Core/FontSystem.hpp                                                   19          2         17
+TheStove/Core/MenuButtonLogic.hpp                                              18          1         17
+TheStove/Core/ConfigManager.cpp                                                18          1         17
+TheStove/Core/GameStateManager.hpp                                             14          0         14
+TheStove/Graphics/ResourceManager.cpp                                          12          0         12
+TheStove/Core/MenuButtonLogic.cpp                                              11          4          7
+TheStove/Graphics/ResourceManager.hpp                                           8          1          7
+TheStove/Core/RuntimeLevel.cpp                                                  8          0          8
+loc_reports/00_SUMMARY.txt                                                      7          8         -1
+TheStove/Core/LevelEditorPanelLevel.cpp                                         4          7         -3
+TheStove/Core/LevelEditor.cpp                                                   4          0          4
+CMakeLists.txt                                                                  4          0          4
+assets/config.txt                                                               3          2          1
+TheStove/Graphics/GraphicsEngine.hpp                                            3          0          3
+TheStove/Core/ConfigManager.hpp                                                 3          0          3
+TheStove/Core/LevelEditorFileIO.hpp                                             2          2          0
+TheStove/Core/InputManager.cpp                                                  2          1          1
+TheStove/Core/HowToPlayButtonLogic.cpp                                          2          2          0
+count_loc_all_authors.sh                                                        1          1          0
+.gitignore                                                                      1          1          0
+assets/Audio/{ui_hover.wav                                                      0          0          0
+assets/Audio/{MyoonchiDiner_Sample.wav                                          0          0          0
+assets/Audio/{                                                                  0          0          0
+assets/Audio/ui_hover.wav                                                       0          0          0
+assets/Audio/trash/myoonchibgm.wav                                              0          0          0
+assets/Audio/trash/MyoonchiDiner_Sample.wav                                     0          0          0
+assets/Audio/trash/MyoonchiDiner_MainMenu.mp3                                   0          0          0
+assets/Audio/sfx_order_received.wav                                             0          0          0
+assets/Audio/sfx_order_ready.wav                                                0          0          0
+assets/Audio/sfx_game_over.wav                                                  0          0          0
+assets/Audio/sfx_beep.wav                                                       0          0          0
+assets/Audio/bgm_KitchenAmbience.wav                                            0          0          0
+assets/Audio/bgm.wav                                                            0          0          0
+assets/Audio/MyoonchiDiner_Sample.wav                                           0          0          0
+assets/Audio/MyoonchiDiner_MainMenu.mp3                                         0          0          0
+assets/Audio/MyoonchiDiner_LevelTheme.wav                                       0          0          0
                                                                                 0          0          0
 --------------------------------------------------------------------------------------------
 
@@ -150,48 +163,43 @@ TheStove/Core/PlayerController.cpp                                              
 GIT COMMIT STATISTICS - TOTAL
 ==========================================
 
-Lines Added:    5371
-Lines Deleted:  2422
-Net Change:     2949
-Total Commits:  26
+Lines Added:    4213
+Lines Deleted:  1175
+Net Change:     3038
+Total Commits:  25
 
 ==========================================
 FILES MODIFIED
 ==========================================
 
+.gitignore
+CMakeLists.txt
 TheStove/Core/AudioLoading.cpp
 TheStove/Core/AudioLoading.hpp
 TheStove/Core/AudioManager.cpp
 TheStove/Core/AudioManager.hpp
-TheStove/Core/CollisionManager.cpp
-TheStove/Core/CollisionManager.hpp
-TheStove/Core/Core.cpp
-TheStove/Core/Core.hpp
-TheStove/Core/DebugUI.cpp
-TheStove/Core/DebugUI.hpp
-TheStove/Core/GameObjectLogic.hpp
+TheStove/Core/ConfigManager.cpp
+TheStove/Core/ConfigManager.hpp
+TheStove/Core/FileDropHandler.cpp
+TheStove/Core/FileDropHandler.hpp
+TheStove/Core/FontSystem.cpp
+TheStove/Core/FontSystem.hpp
 TheStove/Core/GameStateManager.cpp
 TheStove/Core/GameStateManager.hpp
-TheStove/Core/ImGuiDebugger.cpp
-TheStove/Core/ImGuiDebugger.hpp
+TheStove/Core/HowToPlayButtonLogic.cpp
 TheStove/Core/InputManager.cpp
-TheStove/Core/InputManager.hpp
 TheStove/Core/LevelEditor.cpp
-TheStove/Core/Message.hpp
-TheStove/Core/MessageBus.hpp
-TheStove/Core/MovementManager.cpp
-TheStove/Core/MovementManager.hpp
-TheStove/Core/NpcSystem.cpp
-TheStove/Core/PhysicsManager.cpp
-TheStove/Core/PhysicsManager.hpp
-TheStove/Core/PlayerController.cpp
-TheStove/Core/System.hpp
-TheStove/Docs/AudioIntegrationGuide.txt
-TheStove/Examples/AudioLoadingExample.cpp
-TheStove/Graphics/AnimationManager.cpp
-TheStove/Graphics/AnimationManager.hpp
-TheStove/Graphics/EntityManager.cpp
-TheStove/Graphics/GameObject.cpp
+TheStove/Core/LevelEditorFileIO.cpp
+TheStove/Core/LevelEditorFileIO.hpp
+TheStove/Core/LevelEditorPanelAssets.cpp
+TheStove/Core/LevelEditorPanelAudioControl.cpp
+TheStove/Core/LevelEditorPanelAudioControl.hpp
+TheStove/Core/LevelEditorPanelFonts.cpp
+TheStove/Core/LevelEditorPanelFonts.hpp
+TheStove/Core/LevelEditorPanelLevel.cpp
+TheStove/Core/MenuButtonLogic.cpp
+TheStove/Core/MenuButtonLogic.hpp
+TheStove/Core/RuntimeLevel.cpp
 TheStove/Graphics/GraphicsEngine.cpp
 TheStove/Graphics/GraphicsEngine.hpp
 TheStove/Graphics/ResourceManager.cpp
@@ -199,11 +207,27 @@ TheStove/Graphics/ResourceManager.hpp
 TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
 TheStove/Main.cpp
-TheStove/count_loc.sh
-TheStove/count_loc_v2.sh
-count_loc.sh
+assets/Audio/AudioCatalog.json
+assets/Audio/MyoonchiDiner_LevelTheme.wav
+assets/Audio/MyoonchiDiner_MainMenu.mp3
+assets/Audio/MyoonchiDiner_MainMenu.wav
+assets/Audio/MyoonchiDiner_Sample.wav
+assets/Audio/bgm.wav
+assets/Audio/bgm_KitchenAmbience.wav
+assets/Audio/sfx_beep.wav
+assets/Audio/sfx_game_over.wav
+assets/Audio/sfx_order_ready.wav
+assets/Audio/sfx_order_received.wav
+assets/Audio/trash/MyoonchiDiner_MainMenu.mp3
+assets/Audio/trash/MyoonchiDiner_Sample.wav
+assets/Audio/trash/myoonchibgm.wav
+assets/Audio/ui_click.wav
+assets/Audio/ui_hover.wav
+assets/config.txt
 count_loc_all_authors.sh
+imgui.ini
 loc_reports/00_SUMMARY.txt
+loc_reports/Chun_Wee_loc_report.txt
 loc_reports/CookieWasTaken_loc_report.txt
 loc_reports/Wang_Hua_loc_report.txt
 loc_reports/Yat_Chun_Wee_loc_report.txt

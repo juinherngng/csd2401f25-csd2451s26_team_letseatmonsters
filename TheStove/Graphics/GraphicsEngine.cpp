@@ -1,26 +1,28 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			GraphicsEngine.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
-CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+ FILE NAME:			GraphicsEngine.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
 					Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
+ DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
 					and batched instanced rendering of GameObjects.
 
 		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <iostream>
+#include <filesystem>
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <filesystem>
+#include <iostream>
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
+#include "../Core/FontSystem.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 
 // File-scoped state
 static bool _imguiInitialized = false;
@@ -34,10 +36,10 @@ namespace {
 			std::cout << "[ShaderPath] Current working directory: " << std::filesystem::current_path() << std::endl;
 			printedCwd = true;
 		}
-		
+
 		// Extract just the filename from the path
 		std::string filename = std::filesystem::path(relativePathFromProjectRoot).filename().string();
-		
+
 		// Try multiple possible locations, prioritizing build/shaders since it exists
 		std::vector<std::string> possiblePaths = {
 			"shaders/" + filename,                                  // From build directory (build/shaders/)
@@ -71,12 +73,25 @@ GraphicsEngine& GraphicsEngine::Instance() {
 GraphicsEngine::GraphicsEngine()
 	: resourceManager(ResourceManager::Instance()),
 	projection(1.0f),
-	view(1.0f)
-{
+	view(1.0f) {
 }
 
 // Initialize core renderer, FBO, default resources, and ImGui
 void GraphicsEngine::Initialize() {
+	// Ensure there's a current GLFW OpenGL context before calling any GL functions.
+	GLFWwindow* ctx = glfwGetCurrentContext();
+	if (ctx == nullptr) {
+		std::cerr << "[GraphicsEngine] ERROR: No current OpenGL context. Initialize must be called after creating/making context current.\n";
+		return;
+	}
+
+	// Load GL function pointers as early as possible (must succeed before any gl* calls).
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+		std::cerr << "[GraphicsEngine] ERROR: gladLoadGLLoader failed - no GL functions available\n";
+		return;
+	}
+
+	// Now safe to call GL / renderer initialization
 	renderer.Initialize();
 	renderer.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
@@ -85,9 +100,20 @@ void GraphicsEngine::Initialize() {
 
 	LoadDefaultResources();
 
+	// Initialize FontSystem
+	if (!FontSystem::FontManager::Instance().Initialize()) {
+		std::cerr << "[GraphicsEngine] ERROR: Failed to initialize FontManager\n";
+	}
+
+	if (!FontSystem::TextRenderer::Instance().Initialize()) {
+		std::cerr << "[GraphicsEngine] ERROR: Failed to initialize TextRenderer\n";
+	}
+
 	DebugRenderer::Init();
 	DebugRenderer::SetEnabled(false);
 
+#ifdef _DEBUG
+	// Initialize ImGui only after GL loader succeeded and we have a valid context.
 	if (!_imguiInitialized) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -95,23 +121,28 @@ void GraphicsEngine::Initialize() {
 		ImGuiIO& io = ImGui::GetIO();
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+		// Set ImGui INI file path to a persistent location outside build directory
+		// This survives clean builds
+		io.IniFilename = "../../imgui.ini";
+
 		// Slightly larger UI for readability
 		io.FontGlobalScale = 1.0f;
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.ScaleAllSizes(1.2f);
 		ImGui::StyleColorsDark();
 
-		ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
+		ImGui_ImplGlfw_InitForOpenGL(ctx, true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
 		_imguiInitialized = true;
 	}
+#endif
 }
 
 // SystemInterface Update - currently just tracks deltaTime for performance monitoring
 void GraphicsEngine::Update(float dt) {
 	// Store dt for performance tracking
 	lastDt = dt;
-	
+
 	// Note: Actual rendering is still called from main loop via BeginFrame/Render/EndFrame
 	// This Update is just for system integration and performance monitoring
 	(void)dt; // Suppress unused parameter warning if no other logic needed
@@ -186,9 +217,15 @@ void GraphicsEngine::EndSceneRender() {
 }
 
 // Getters
-const glm::mat4& GraphicsEngine::GetProjection() const { return projection; }
-const glm::mat4& GraphicsEngine::GetView() const { return view; }
-ImGuiID GraphicsEngine::GetMainDockspaceID() const { return mMainDockspaceId; }
+const glm::mat4& GraphicsEngine::GetProjection() const {
+	return projection;
+}
+const glm::mat4& GraphicsEngine::GetView() const {
+	return view;
+}
+ImGuiID GraphicsEngine::GetMainDockspaceID() const {
+	return mMainDockspaceId;
+}
 
 // Handle window resize: update letterboxed viewport and background placement
 void GraphicsEngine::Resize(int width, int height) {
@@ -206,15 +243,15 @@ void GraphicsEngine::Resize(int width, int height) {
 		-1.0f, 1.0f
 	);
 
-	// Compute centered letterboxed viewport
-	const float sx = static_cast<float>(width) / static_cast<float>(kRefW);
-	const float sy = static_cast<float>(height) / static_cast<float>(kRefH);
-	viewportScale_ = std::min(sx, sy);
-
-	viewportW_ = static_cast<int>(kRefW * viewportScale_);
-	viewportH_ = static_cast<int>(kRefH * viewportScale_);
-	viewportX_ = (width - viewportW_) / 2;
-	viewportY_ = (height - viewportH_) / 2;
+	// Fullscreen viewport without letterboxing
+	viewportW_ = width;
+	viewportH_ = height;
+	viewportX_ = 0;
+	viewportY_ = 0;
+	viewportScale_ = std::min(
+		static_cast<float>(width) / static_cast<float>(kRefW),
+		static_cast<float>(height) / static_cast<float>(kRefH)
+	);
 
 	// Apply the viewport now
 	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
@@ -223,7 +260,7 @@ void GraphicsEngine::Resize(int width, int height) {
 	if (backgroundObject) {
 		backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
 		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
-			static_cast<float>(kRefH), 1.0f));
+											 static_cast<float>(kRefH), 1.0f));
 	}
 }
 
@@ -236,38 +273,38 @@ void GraphicsEngine::ApplyViewport() const {
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
-		ResolveShaderPath("../shaders/shader.vert"),
-		ResolveShaderPath("../shaders/shader.frag"));
+							   ResolveShaderPath("../shaders/shader.vert"),
+							   ResolveShaderPath("../shaders/shader.frag"));
 
 	// Load texture shader
 	resourceManager.LoadShader("texture",
-		ResolveShaderPath("../shaders/texture.vert"),
-		ResolveShaderPath("../shaders/texture.frag"));
+							   ResolveShaderPath("../shaders/texture.vert"),
+							   ResolveShaderPath("../shaders/texture.frag"));
 
 	// Load sprite shader
 	resourceManager.LoadShader("sprite",
-		ResolveShaderPath("../shaders/sprite.vert"),
-		ResolveShaderPath("../shaders/sprite.frag"));
+							   ResolveShaderPath("../shaders/sprite.vert"),
+							   ResolveShaderPath("../shaders/sprite.frag"));
 
 	// Load static sprite shader
 	resourceManager.LoadShader("staticsprite",
-		ResolveShaderPath("../shaders/staticsprite.vert"),
-		ResolveShaderPath("../shaders/staticsprite.frag"));
+							   ResolveShaderPath("../shaders/staticsprite.vert"),
+							   ResolveShaderPath("../shaders/staticsprite.frag"));
 
 	// Load animated sprite shader
 	resourceManager.LoadShader("animatedsprite",
-		ResolveShaderPath("../shaders/animatedsprite.vert"),
-		ResolveShaderPath("../shaders/animatedsprite.frag"));
+							   ResolveShaderPath("../shaders/animatedsprite.vert"),
+							   ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load instanced static sprite shader
 	resourceManager.LoadShader("staticsprite_instanced",
-		ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
-		ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
+							   ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
+							   ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
 
 	// Load instanced animated sprite shader
 	resourceManager.LoadShader("animatedsprite_instanced",
-		ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
-		ResolveShaderPath("../shaders/animatedsprite.frag"));
+							   ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
+							   ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load triangle mesh
 	std::vector<float> vertices;
@@ -286,8 +323,10 @@ void GraphicsEngine::LoadDefaultResources() {
 
 // Set/ensure a fullscreen background quad using the given texture path
 void GraphicsEngine::SetBackground(const std::string& texturePath) {
-	// Load background texture
-	Texture* bgTexture = resourceManager.LoadTexture("background", texturePath);
+	// Derive a unique key per path to avoid returning a cached texture
+	std::string key = "background_" + std::filesystem::path(texturePath).filename().string();
+
+	Texture* bgTexture = resourceManager.LoadTexture(key, texturePath);
 	if (!bgTexture) {
 		std::cerr << "Failed to load background texture: " << texturePath << std::endl;
 		return;
@@ -300,9 +339,9 @@ void GraphicsEngine::SetBackground(const std::string& texturePath) {
 
 		if (quadMesh && textureShader) {
 			backgroundObject = std::make_unique<GameObject>(quadMesh, textureShader);
-			// Position background to fill screen
-			backgroundObject->SetPosition(glm::vec3(screenWidth * 0.5f, screenHeight * 0.5f, 0.0f));
-			backgroundObject->SetScale(glm::vec3(static_cast<float>(screenWidth), static_cast<float>(screenHeight), 1.0f));
+			// Position background to fill reference canvas (not screen size)
+			backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
+			backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW), static_cast<float>(kRefH), 1.0f));
 		}
 	}
 
@@ -318,6 +357,12 @@ void GraphicsEngine::ClearBackground() {
 
 // Start a new ImGui frame and host a global DockSpace
 void GraphicsEngine::BeginImGuiFrame() {
+#ifdef _DEBUG
+	// Guard: only call backend frame functions if ImGui was initialized
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		return;
+	}
+
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -345,12 +390,19 @@ void GraphicsEngine::BeginImGuiFrame() {
 
 	ImGui::End();
 	ImGui::PopStyleVar(2);
+#endif
 }
 
 // Draw the Scene window and present the scene FBO texture inside it
 void GraphicsEngine::DrawSceneDockWindow() {
+#ifdef _DEBUG
+	// Guard: bail if ImGui not initialized or no context
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		return;
+	}
+
 	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
-		ImGuiCond_FirstUseEver);
+							   ImGuiCond_FirstUseEver);
 
 	if (ImGui::Begin("Scene###SceneWindow")) {
 		ImVec2 avail = ImGui::GetContentRegionAvail();
@@ -367,7 +419,7 @@ void GraphicsEngine::DrawSceneDockWindow() {
 		// Center the image in the window
 		ImVec2 cursor = ImGui::GetCursorPos();
 		ImGui::SetCursorPos(ImVec2(cursor.x + (avail.x - w) * 0.5f,
-			cursor.y + (avail.y - h) * 0.5f));
+								   cursor.y + (avail.y - h) * 0.5f));
 
 		// Absolute rect for picking
 		sceneImagePos_ = ImGui::GetCursorScreenPos();
@@ -399,12 +451,20 @@ void GraphicsEngine::DrawSceneDockWindow() {
 	}
 
 	ImGui::End();
+#endif
 }
 
 // Finish the current ImGui frame and render it
 void GraphicsEngine::EndImGuiFrame() {
+#ifdef _DEBUG
+	// Guard: only render if initialized & valid ImGui context
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		return;
+	}
+
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+#endif
 }
 
 // Frame begin: clear backbuffer, set viewport, bind scene FBO, begin ImGui
@@ -419,6 +479,13 @@ void GraphicsEngine::BeginFrame() {
 
 // Convert current mouse (screen) into scene world coords if within image
 bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
+#ifdef _DEBUG
+	// Guard: If ImGui not ready, return early
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		(void)outWorld;
+		return false;
+	}
+
 	ImVec2 imgPos = sceneImagePos_;
 	ImVec2 imgSize = sceneImageSize_;
 
@@ -494,8 +561,51 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 
 	outWorld = glm::vec2(world4.x, world4.y);
 	return true;
+#else
+	// Release: compute from GLFW mouse and letterboxed viewport
+	GLFWwindow* win = glfwGetCurrentContext();
+	if (!win) { return false; }
+
+	// Mouse in window space
+	double mx, my;
+	glfwGetCursorPos(win, &mx, &my);
+
+	// Check inside letterboxed viewport
+	const float vx = static_cast<float>(viewportX_);
+	const float vy = static_cast<float>(viewportY_);
+	const float vw = static_cast<float>(viewportW_);
+	const float vh = static_cast<float>(viewportH_);
+	if (mx < vx || my < vy || mx > (vx + vw) || my > (vy + vh)) {
+		return false;
+	}
+
+	// Local coords in viewport [0..vw],[0..vh]
+	const float localX = static_cast<float>(mx) - vx;
+	const float localY = static_cast<float>(my) - vy;
+
+	// UV [0..1]
+	const float u = localX / vw;
+	const float v = localY / vh;
+
+	// Pixel in reference canvas
+	const float px = u * float(kRefW);
+	const float py = v * float(kRefH);
+
+	// Clip -> world using inverse(V*P) of reference canvas
+	glm::vec4 clip;
+	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;
+	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;
+	clip.z = 0.0f;
+	clip.w = 1.0f;
+
+	const glm::mat4 invVP = glm::inverse(projection * view);
+	const glm::vec4 world4 = invVP * clip;
+	outWorld = glm::vec2(world4.x, world4.y);
+	return true;
+#endif
 }
 
+// Default render path
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
 	// Draw background first
 	if (backgroundObject) {
@@ -549,9 +659,46 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		}
 	}
 
+	// Unbind scene FBO so default framebuffer can be used for final presentation
 	EndSceneRender();
+
+#ifdef _DEBUG
+	// Debug: render ImGui dockspace + scene image into ImGui window
 	DrawSceneDockWindow();
 	EndImGuiFrame();
+#else
+	// Release: present the scene FBO to the default framebuffer (GLFW window)
+	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+		// Source rect: the whole scene FBO
+		const int srcW = mSceneWidth;
+		const int srcH = mSceneHeight;
+
+		// Destination rect: SAME letterboxed region as Resize() + picking
+		const int dstX0 = viewportX_;
+		const int dstY0 = viewportY_;
+		const int dstX1 = viewportX_ + viewportW_;
+		const int dstY1 = viewportY_ + viewportH_;
+
+		// Optional: clear full window to black, so bars look nice
+		glViewport(0, 0, screenWidth, screenHeight);
+		glClearColor(0.f, 0.f, 0.f, 1.f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		// Blit the FBO into the letterboxed area
+		glBlitFramebuffer(
+			0, 0, srcW, srcH,
+			dstX0, dstY0, dstX1, dstY1,
+			GL_COLOR_BUFFER_BIT,
+			GL_LINEAR
+		);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+#endif
+
 
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
@@ -559,7 +706,7 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	}
 }
 
-// Batched/instanced render path for static sprites; direct draw for animated (instanced animated not implemented yet)
+// Batched/instanced render path 
 void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Reset stats
 	renderStats = RenderStats();
@@ -587,115 +734,142 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-
+	// Early out if no objects
 	if (objects.empty()) {
+		// Render text objects even if no game objects
+		RenderTextObjects();
+		
 		EndSceneRender();
+#ifdef _DEBUG
 		DrawSceneDockWindow();
 		EndImGuiFrame();
+#else
+		// Blit scene FBO to default framebuffer in Release (guarded)
+		if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+			const int srcW = mSceneWidth;
+			const int srcH = mSceneHeight;
+
+			const int dstX0 = viewportX_;
+			const int dstY0 = viewportY_;
+			const int dstX1 = viewportX_ + viewportW_;
+			const int dstY1 = viewportY_ + viewportH_;
+
+			glViewport(0, 0, screenWidth, screenHeight);
+			glClearColor(0.f, 0.f, 0.f, 1.f);
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			glBlitFramebuffer(
+				0, 0, srcW, srcH,
+				dstX0, dstY0, dstX1, dstY1,
+				GL_COLOR_BUFFER_BIT,
+				GL_LINEAR
+			);
+
+			glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		}
+#endif
+
 		return;
 	}
 
-	// Separate by shader type
-	std::vector<GameObject*> staticSprites;
-	std::vector<GameObject*> animatedSprites;
-
-	// Get the animatedsprite shader once for comparison
+	// Prefetch possible instanced shaders + animated shader pointer
+	Shader* staticsInstShader = resourceManager.GetShader("staticsprite_instanced");
+	Shader* animatedInstShader = resourceManager.GetShader("animatedsprite_instanced");
 	Shader* animShader = resourceManager.GetShader("animatedsprite");
 
-	for (auto* obj : objects) {
-		if (!obj || !obj->GetMesh() || !obj->GetShader()) {
-			continue;
+	// Build contiguous runs keyed by (mesh, shader, texture) - preserves layering order
+	std::vector<Mesh::InstanceData> instanceBatch;
+	RenderKey currentKey{ nullptr, nullptr, nullptr };
+
+	auto flushBatch = [&](const std::vector<Mesh::InstanceData>& batch, const RenderKey& key) {
+		if (batch.empty() || !key.mesh || !key.shader) return;
+
+		const bool wantsInstancing = batch.size() >= INSTANCING_THRESHOLD;
+
+		// Map the original shader -> preferred instanced shader 
+		Shader* preferredInstanced = nullptr;
+		if (key.shader == resourceManager.GetShader("staticsprite")) {
+			preferredInstanced = staticsInstShader;
+		}
+		else if (key.shader == animShader) {
+			preferredInstanced = animatedInstShader;
 		}
 
-		if (obj->GetShader() == animShader) {
-			animatedSprites.push_back(obj); // animated
+		// If we should and can instance, use instanced path
+		if (wantsInstancing && preferredInstanced) {
+			key.mesh->SetupInstanceBuffer(batch);
+
+			preferredInstanced->Use();
+			preferredInstanced->SetViewMatrix(view);
+			preferredInstanced->SetProjectionMatrix(projection);
+
+			if (key.texture) {
+				key.texture->Bind(0);
+				preferredInstanced->SetTexture("u_Texture", 0);
+			}
+
+			key.mesh->DrawInstanced(key.texture, static_cast<GLsizei>(batch.size()));
+
+			renderStats.drawCalls++;
+			renderStats.totalBatches++;
+			renderStats.instancedObjects += static_cast<int>(batch.size());
 		}
 		else {
-			staticSprites.push_back(obj); // static
-		}
-	}
+			// Non-instanced fallback: draw each element with original shader so per-object uniforms work
+			key.shader->Use();
+			key.shader->SetViewMatrix(view);
+			key.shader->SetProjectionMatrix(projection);
 
-	// Render static sprites with batching and instancing
-	if (!staticSprites.empty()) {
-		std::map<RenderKey, std::vector<GameObject*>> batches;
+			if (key.texture) {
+				key.texture->Bind(0);
+				key.shader->SetTexture("u_Texture", 0);
+			}
 
-		for (auto* obj : staticSprites) {
-			RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
-			batches[key].push_back(obj);
-		}
+			for (const auto& inst : batch) {
+				// per-object model matrix
+				key.shader->SetModelMatrix(inst.modelMatrix);
 
-		renderStats.totalBatches += static_cast<int>(batches.size());
-
-		for (auto& [key, batch] : batches) {
-			if (batch.size() >= INSTANCING_THRESHOLD) {
-				// Instanced path
-				renderStats.instancedObjects += static_cast<int>(batch.size());
-
-				std::vector<glm::mat4> modelMatrices;
-				modelMatrices.reserve(batch.size());
-				for (const auto* obj : batch) {
-					modelMatrices.push_back(obj->GetModelMatrix());
+				// If shader is animated (non-instanced), supply UV via uniforms
+				if (key.shader == animShader) {
+					key.shader->SetUVOffset(glm::vec2(inst.uvOffsetScale.x, inst.uvOffsetScale.y));
+					key.shader->SetUVScale(glm::vec2(inst.uvOffsetScale.z, inst.uvOffsetScale.w));
 				}
 
-				key.mesh->SetupInstanceBuffer(modelMatrices);
-
-				Shader* instancedShader = resourceManager.GetShader("staticsprite_instanced");
-				if (!instancedShader) {
-					instancedShader = key.shader;
-				}
-
-				instancedShader->Use();
-				instancedShader->SetViewMatrix(view);
-				instancedShader->SetProjectionMatrix(projection);
-				if (key.texture) {
-					instancedShader->SetTexture("u_Texture", 0);
-				}
-
-				key.mesh->DrawInstanced(key.texture, batch.size());
+				key.mesh->Draw();
 				renderStats.drawCalls++;
 			}
-			else {
-				// Non-instanced path
-				key.shader->Use();
-				key.shader->SetViewMatrix(view);
-				key.shader->SetProjectionMatrix(projection);
-				if (key.texture) {
-					key.texture->Bind(0);
-					key.shader->SetTexture("u_Texture", 0);
-				}
 
-				for (const auto* obj : batch) {
-					key.shader->SetModelMatrix(obj->GetModelMatrix());
-					key.mesh->Draw();
-					renderStats.drawCalls++;
-				}
-			}
+			renderStats.totalBatches++;
 		}
+	};
+
+	// Build runs in order
+	for (auto* obj : objects) {
+		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
+
+		RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
+
+		// Flush when render key changes
+		if (key != currentKey && !instanceBatch.empty()) {
+			flushBatch(instanceBatch, currentKey);
+			instanceBatch.clear();
+		}
+		currentKey = key;
+
+		Mesh::InstanceData inst;
+		inst.modelMatrix = obj->GetModelMatrix();
+		// Always store per-object UV rect in instance data (instanced shader will use it, fallback uses uniforms)
+		inst.uvOffsetScale = obj->GetUVRect();
+		instanceBatch.push_back(inst);
 	}
 
-	// Render animated sprites (no batching/instancing, not implemented yet)
-	for (const auto* obj : animatedSprites) {
-		Shader* shader = obj->GetShader();
-		Mesh* mesh = obj->GetMesh();
-		Texture* texture = obj->GetTexture();
-
-		shader->Use();
-		shader->SetModelMatrix(obj->GetModelMatrix());
-		shader->SetViewMatrix(view);
-		shader->SetProjectionMatrix(projection);
-
-		// Set UV coordinates 
-		const glm::vec4 uv = obj->GetUVRect();
-		shader->SetUVOffset(glm::vec2(uv.x, uv.y));
-		shader->SetUVScale(glm::vec2(uv.z, uv.w));
-
-		if (texture) {
-			texture->Bind(0);
-			shader->SetTexture("u_Texture", 0);
-		}
-
-		mesh->Draw();
-		renderStats.drawCalls++;
+	// Flush remaining batch
+	if (!instanceBatch.empty()) {
+		flushBatch(instanceBatch, currentKey);
+		instanceBatch.clear();
 	}
 
 	// Debug bounding boxes render
@@ -703,31 +877,108 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		glDisable(GL_DEPTH_TEST);
 		for (const auto* obj : objects) {
 			if (obj) {
-				obj->DrawBoundingBox(view, projection, glm::vec3(1.0f, 0.0f, 0.0f));
+				obj->DrawBoundingBox(view, projection, glm::vec3{ 1.0f, 0.0f, 0.0f });
 			}
 		}
 		DebugRenderer::Flush(view, projection);
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	// End-of-frame UI
+	// Render text objects on top of scene
+	RenderTextObjects();
+
+	// End-of-frame UI and finalization
 	EndSceneRender();
+#ifdef _DEBUG
 	DrawSceneDockWindow();
 	EndImGuiFrame();
+#else
+	// Blit to default framebuffer (guarded) in Release
+	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-	// GL error check
+		const int srcW = mSceneWidth;
+		const int srcH = mSceneHeight;
+
+		const int dstX0 = viewportX_;
+		const int dstY0 = viewportY_;
+		const int dstX1 = viewportX_ + viewportW_;
+		const int dstY1 = viewportY_ + viewportH_;
+
+		glViewport(0, 0, screenWidth, screenHeight);
+		glClearColor(0.f, 0.f, 0.f, 1.f);
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glBlitFramebuffer(
+			0, 0, srcW, srcH,
+			dstX0, dstY0, dstX1, dstY1,
+			GL_COLOR_BUFFER_BIT,
+			GL_LINEAR
+		);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+#endif
+
+
+	// OpenGL error check loop
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
 		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
 	}
 }
 
+// Render text objects
+void GraphicsEngine::RenderTextObjects() {
+#ifdef _DEBUG
+	// In debug builds, get text from the editor panel
+	const auto& textObjects = LEPANELFONTS::GetTextObjects();
+	
+	if (textObjects.empty()) {
+		return;
+	}
+	
+	// Create Text renderers on demand and render
+	for (const auto& data : textObjects) {
+		// Get the font from ResourceManager
+		FontSystem::Font* font = ResourceManager::Instance().GetFont(data.fontName);
+		if (!font) {
+			continue;
+		}
+		
+		// Create a temporary Text object for rendering
+		FontSystem::Text textRenderer;
+		textRenderer.SetFont(font);
+		textRenderer.SetText(data.text);
+		textRenderer.SetPosition(glm::vec2(data.x, data.y));
+		textRenderer.SetScale(data.scale);
+		textRenderer.SetRotation(data.rotation);
+		textRenderer.SetRotationMode(data.useBlockRotation ? 
+			FontSystem::Text::RotationMode::Block : 
+			FontSystem::Text::RotationMode::PerCharacter);
+		textRenderer.SetColor(glm::vec4(data.colorR, data.colorG, data.colorB, data.colorA));
+		
+		// Render using TextRenderer singleton
+		FontSystem::TextRenderer::Instance().RenderText(textRenderer, projection);
+	}
+#else
+	// In release build, text will be rendered from game state
+#endif
+}
+
 // Free resources and shutdown ImGui
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
 	DebugRenderer::Shutdown();
+	
+	// Shutdown FontSystem
+	FontSystem::TextRenderer::Instance().Shutdown();
+	FontSystem::FontManager::Instance().Shutdown();
+	
 	resourceManager.Clear();
 
+#ifdef _DEBUG
 	// ImGui cleanup
 	if (_imguiInitialized) {
 		ImGui_ImplOpenGL3_Shutdown();
@@ -735,6 +986,6 @@ void GraphicsEngine::Shutdown() {
 		ImGui::DestroyContext();
 		_imguiInitialized = false;
 	}
+#endif
 }
-
 

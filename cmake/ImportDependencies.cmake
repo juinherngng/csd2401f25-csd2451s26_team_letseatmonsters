@@ -197,6 +197,36 @@ macro(import_stb_image)
     endif()
 endmacro()
 
+# Macro to import freetype
+macro(import_freetype)
+    if(NOT TARGET freetype)
+        # Set minimum policy version for FreeType to satisfy CMake 4.x requirements
+        set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+        
+        FetchContent_Declare(
+            freetype
+            GIT_REPOSITORY https://github.com/freetype/freetype.git
+            GIT_TAG VER-2-13-2
+        )
+        
+        if(NOT freetype_POPULATED)
+            # Set FreeType configuration options
+            set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
+            set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
+            set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
+            set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
+            set(FT_REQUIRE_ZLIB OFF CACHE BOOL "" FORCE)
+            set(FT_REQUIRE_BZIP2 OFF CACHE BOOL "" FORCE)
+            set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+            
+            FetchContent_MakeAvailable(freetype)
+        endif()
+        
+        # FreeType creates its own target automatically
+        message(STATUS "FreeType imported successfully: ${freetype_SOURCE_DIR}")
+    endif()
+endmacro()
+
 # Macro to import all dependencies
 macro(importDependencies)
     message(STATUS "Starting to import dependencies...")
@@ -224,6 +254,10 @@ macro(importDependencies)
     message(STATUS "Importing STB_IMAGE...")
     import_stb_image()
     message(STATUS "STB_IMAGE imported successfully.")
+
+    message(STATUS "Importing FREETYPE...")
+    import_freetype()
+    message(STATUS "FREETYPE imported successfully.")
 
     message(STATUS "All dependencies have been imported successfully.")
 endmacro()

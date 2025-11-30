@@ -15,18 +15,18 @@
 
 #pragma once
 
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
-#include <cmath>
 #include <iostream>
-
-#include "InputManager.hpp"
-#include "MovementManager.hpp"
-#include "PhysicsManager.hpp"
-#include "Math.hpp"
 
 #include "../Graphics/EntityManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
+
+#include "InputManager.hpp"
+#include "Math.hpp"
+#include "MovementManager.hpp"
+#include "PhysicsManager.hpp"
 
  /**
   * @class PlayerController
@@ -39,15 +39,30 @@ public:
 
 	// Main per - frame input handler for the player.
 	void HandleInput(float deltaTime,
-		InputManager& inputManager,
-		EntityManager& entityManager,
-		MovementManager& movementManager,
-		PhysicsManager& physicsManager,
-		GraphicsEngine& graphicsEngine,
-		int playerID,
-		bool useForces);
+					 InputManager& inputManager,
+					 EntityManager& entityManager,
+					 MovementManager& movementManager,
+					 PhysicsManager& physicsManager,
+					 GraphicsEngine& graphicsEngine,
+					 int playerID,
+					 bool useForces);
 
-	float GetRotation() const { return rotation_; }
+	float GetRotation() const {
+		return rotation_;
+	}
+
+	// -------- New: input snapshot for PlayerLogic / other systems --------
+	// Sample input for this frame (WASD + click-to-move) WITHOUT moving anything.
+	void SampleInput(float deltaTime,
+		InputManager& inputManager,
+		GraphicsEngine& graphicsEngine);
+
+	// Movement axis from WASD (-1..1 per axis). Same semantics as your old code.
+	glm::vec2 GetMoveAxis() const { return moveAxis_; }
+
+	// Click-to-move snapshot (LMB). Valid only for the frame where the click happened.
+	bool IsClickToMoveJustPressed() const { return clickToMoveJustPressed_ && clickWorldValid_; }
+	glm::vec2 GetClickWorld() const { return clickWorld_; }
 
 private:
 	// Handles up/down key scaling with clamped bounds.
@@ -58,16 +73,21 @@ private:
 
 	// Handles left - click to set a new target(forces or kinematic).
 	void HandleClickToMove(InputManager& inputManager,
-		EntityManager& entityManager,
-		MovementManager& movementManager,
-		PhysicsManager& physicsManager,
-		GraphicsEngine& graphicsEngine,
-		int playerID,
-		bool useForces);
+						   EntityManager& entityManager,
+						   MovementManager& movementManager,
+						   PhysicsManager& physicsManager,
+						   GraphicsEngine& graphicsEngine,
+						   int playerID,
+						   bool useForces);
 
 	// Update player sprite texture based on movement direction
 	void UpdateSpriteDirection(const glm::vec2& direction, GameObject* sprite);
 
 	// Rotation state (degrees).
 	float rotation_ = 0.0f;
+
+	glm::vec2 moveAxis_{ 0.0f, 0.0f };  // WASD movement axis
+	bool clickToMoveJustPressed_ = false;
+	bool clickWorldValid_ = false;
+	glm::vec2 clickWorld_{ 0.0f, 0.0f };
 };

@@ -32,3 +32,16 @@ Play Button	                            Start simulation (locks editing)
 Stop Button	                            Return to Edit Mode
 Instantiate (Prefab Panel)	            Create prefab instance in scene
 Save / Load Level	                    Export or import level JSON data
+
+[Controls and Gameplay]
+W/A/S/D/Mouse Left-Click		Move player character
+ESC					Pause
+
+Left-Click on ingredient box: Spawn Ingredient
+Left-Click on plate box: Spawn Plate
+Left-Click on Work Station with Raw Ingredient: Start the process of refining ingredient
+Left-Click on Item to pick up
+Left-Click on empty table with item to put down item on that empty table
+Left-Click on empty plate with refined ingredient make the base to make a full dish
+Left-Click on plate with 1 refined ingredient with 1 refined ingredient to make a full dish
+Left-Click on Customer table with a full dish will serve the dish to the customer

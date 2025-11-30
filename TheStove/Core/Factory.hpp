@@ -1,34 +1,34 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			Factory.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+ FILE NAME:			Factory.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
 
-DESCRIPTION:
-	Central manager for creating, tracking, and destroying GOC instances.
+ DESCRIPTION:		Central manager for creating, tracking, and destroying GOC instances.
 
-	Responsibilities:
-	- Register ComponentCreators for data-driven composition.
-	- Build new GOCs via BuildAndSerialize (e.g., Player, Table).
-	- Assign unique IDs to each GOC and maintain an ID-to-object map.
-	- Safely schedule and process destruction of GOCs.
-	- Update all active components each frame (calling Update on enabled ones).
+					Responsibilities:
+					- Register ComponentCreators for data-driven composition.
+					- Build new GOCs via BuildAndSerialize (e.g., Player, Table).
+					- Assign unique IDs to each GOC and maintain an ID-to-object map.
+					- Safely schedule and process destruction of GOCs.
+					- Update all active components each frame (calling Update on enabled ones).
 
-	The Factory serves as the global composition root of the GOC system.
+					The Factory serves as the global composition root of the GOC system.
 
-All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
-#include "ComponentCreator.hpp"
-#include "GOC.hpp"
+
+#include <set>
 #include <string>
 #include <unordered_map>
-#include <set>
 
-class Factory
-{
+#include "ComponentCreator.hpp"
+#include "GOC.hpp"
+
+class Factory {
 public:
 	//ctor
 	Factory();
@@ -41,12 +41,14 @@ public:
 
 	//Add the Game Object to the destroy list 
 	void AddDestroy(GOC* g);
-	
+
 	//Update the factory, destroying dead objects.
 	virtual void Update(float dt);
 
 	//Name of the system is factory.
-	virtual std::string GetName() { return "Factory"; }
+	virtual std::string GetName() {
+		return "Factory";
+	}
 
 	//Destroy all the GOCs in the world. Used for final shutdown.
 	void DestroyAllObjects();

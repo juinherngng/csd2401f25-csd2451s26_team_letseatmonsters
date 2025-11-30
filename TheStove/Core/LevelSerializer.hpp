@@ -18,7 +18,7 @@
 
  // Types
 struct LevelObject {
-	// Texture / tagging
+	// Texture / tagging / layer
 	std::string texture;
 	std::string tag;
 	std::string layer;
@@ -41,6 +41,10 @@ struct LevelObject {
 	float speedX{ 0.0f };
 	float speedY{ 0.0f };
 
+	// NEW: approach offset (relative to object center)
+	float approachOffsetX{ 0.0f };
+	float approachOffsetY{ 0.0f };
+
 	// Animation flag
 	bool animated{ false };
 	std::string animName;
@@ -48,6 +52,7 @@ struct LevelObject {
 
 struct LevelData {
 	std::vector<LevelObject> objects{};
+	std::string background; // optional background texture path
 };
 
 // Public Interface

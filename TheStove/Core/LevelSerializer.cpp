@@ -13,8 +13,8 @@
 
 #include <fstream>
 
-#include "LevelSerializer.hpp"
 #include "JSONInclude.hpp"
+#include "LevelSerializer.hpp"
 
 using nlohmann::json;
 
@@ -45,6 +45,10 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 
 	obj.animated = jsonObj.value("animated", false);
 
+	// NEW: approach offset (safe for existing JSON, defaults to 0)
+	obj.approachOffsetX = jsonObj.value("approach_offx", 0.0f);
+	obj.approachOffsetY = jsonObj.value("approach_offy", 0.0f);
+
 	return obj;
 }
 
@@ -53,6 +57,7 @@ static json WriteLevelObject(const LevelObject& obj) {
 	json jsonData = {
 		{ "texture", obj.texture },
 		{ "tag", obj.tag },
+		{ "layer", obj.layer},
 		{ "x", obj.x },
 		{ "y", obj.y },
 		{ "z", obj.z },
@@ -65,7 +70,11 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "col_offy", obj.colOffsetY },
 		{ "speed_x", obj.speedX },
 		{ "speed_y", obj.speedY },
-		{ "animated", obj.animated }
+		{ "animated", obj.animated },
+		{ "layer", obj.layer },
+		// NEW: approach offset
+{ "approach_offx", obj.approachOffsetX },
+{ "approach_offy", obj.approachOffsetY }
 	};
 
 	return jsonData;
@@ -82,9 +91,13 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	file >> jsonData;
 
 	outLevel.objects.clear();
+	outLevel.background.clear();
+
+	// optional background
+	outLevel.background = jsonData.value("background", "");
 
 	if (!jsonData.contains("objects")) {
-		return true; // empty level file is valid
+		return true; // valid: level with just background
 	}
 
 	for (auto& jsonObj : jsonData["objects"]) {
@@ -94,20 +107,35 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	return true;
 }
 
-// Saves LevelData into a JSON file
 bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
-	json jsonData;
-	jsonData["objects"] = json::array();
+	json jsonData = json::object();
 
-	for (auto& obj : inLevel.objects) {
+	// Try to load existing JSON to preserve unrelated keys
+	{
+		std::ifstream in(path);
+		if (in) {
+			try { in >> jsonData; }
+			catch (...) { jsonData = json::object(); }
+		}
+	}
+
+	// Write background if present
+	if (!inLevel.background.empty()) {
+		jsonData["background"] = inLevel.background;
+	}
+	else {
+		// Optional: erase background if you want to remove it
+		// jsonData.erase("background");
+	}
+
+	// Replace ONLY the "objects" array
+	jsonData["objects"] = json::array();
+	for (const auto& obj : inLevel.objects) {
 		jsonData["objects"].push_back(WriteLevelObject(obj));
 	}
 
 	std::ofstream file(path);
-	if (!file) {
-		return false;
-	}
-
+	if (!file) return false;
 	file << jsonData.dump(2);
 	return true;
 }

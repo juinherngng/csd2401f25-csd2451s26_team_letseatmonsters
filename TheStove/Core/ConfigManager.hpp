@@ -33,6 +33,7 @@ namespace ConfigManager {
 	struct Settings {
 		Resolution resolution{};
 		bool fullscreen{};
+		float masterVolume{};
 		float bgmVolume{};
 		float vfxVolume{};
 	};
@@ -82,6 +83,8 @@ namespace ConfigManager {
 	 */
 	inline Settings LoadFromAssetsOrDefaults(const char* filename = "config.txt") {
 		Settings s;
+		// Set default fullscreen to true
+		s.fullscreen = true;
 		LoadFromAssets(s, filename);
 		return s;
 	}

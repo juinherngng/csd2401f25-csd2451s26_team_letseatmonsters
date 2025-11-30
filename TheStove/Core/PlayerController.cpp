@@ -14,15 +14,16 @@
  */
 
 #include "PlayerController.hpp"
+#include "../Graphics/GraphicsEngine.hpp"
 
 void PlayerController::HandleInput(float deltaTime,
-	InputManager& inputManager,
-	EntityManager& entityManager,
-	MovementManager& movementManager,
-	PhysicsManager& physicsManager,
-	GraphicsEngine& graphicsEngine,
-	int playerID,
-	bool useForces) {
+								   InputManager& inputManager,
+								   EntityManager& entityManager,
+								   MovementManager& movementManager,
+								   PhysicsManager& physicsManager,
+								   GraphicsEngine& graphicsEngine,
+								   int playerID,
+								   bool useForces) {
 	if (playerID < 0) {
 		return;
 	}
@@ -41,7 +42,7 @@ void PlayerController::HandleInput(float deltaTime,
 
 	// Handle click-to-move (Left mouse)
 	HandleClickToMove(inputManager, entityManager, movementManager,
-		physicsManager, graphicsEngine, playerID, useForces);
+					  physicsManager, graphicsEngine, playerID, useForces);
 }
 
 void PlayerController::HandleScaleInput(InputManager& inputManager, GameObject* sprite, float deltaTime) {
@@ -86,12 +87,12 @@ void PlayerController::HandleRotationInput(InputManager& inputManager, float del
 }
 
 void PlayerController::HandleClickToMove(InputManager& inputManager,
-	EntityManager& entityManager,
-	MovementManager& movementManager,
-	PhysicsManager& physicsManager,
-	GraphicsEngine& graphicsEngine,
-	int playerID,
-	bool useForces) {
+										 EntityManager& entityManager,
+										 MovementManager& movementManager,
+										 PhysicsManager& physicsManager,
+										 GraphicsEngine& graphicsEngine,
+										 int playerID,
+										 bool useForces) {
 	// Only act on the initial press to set a target once.
 	if (!inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		return;
@@ -154,3 +155,36 @@ void PlayerController::UpdateSpriteDirection(const glm::vec2& direction, GameObj
 		}
 	}
 }
+
+void PlayerController::SampleInput(float deltaTime,
+	InputManager& inputManager,
+	GraphicsEngine& graphicsEngine)
+{
+	(void)deltaTime;
+
+	// --- Movement axis (WASD) ---
+	moveAxis_ = glm::vec2(0.0f, 0.0f);
+
+	if (inputManager.IsKeyPressed(GLFW_KEY_A)) moveAxis_.x -= 1.0f;
+	if (inputManager.IsKeyPressed(GLFW_KEY_D)) moveAxis_.x += 1.0f;
+	if (inputManager.IsKeyPressed(GLFW_KEY_W)) moveAxis_.y -= 1.0f; // up = -Y in your current scheme
+	if (inputManager.IsKeyPressed(GLFW_KEY_S)) moveAxis_.y += 1.0f;
+
+	// --- Click-to-move (LMB) snapshot ---
+	clickToMoveJustPressed_ = inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
+	clickWorldValid_ = false;
+
+	if (clickToMoveJustPressed_) {
+		glm::vec2 mouseWorld{};
+		if (graphicsEngine.GetMouseWorldInScene(mouseWorld)) {
+			clickWorld_ = mouseWorld;
+			clickWorldValid_ = true;
+		}
+		else {
+			// If the click is not over the scene viewport, treat as "no click"
+			clickToMoveJustPressed_ = false;
+			clickWorldValid_ = false;
+		}
+	}
+}
+

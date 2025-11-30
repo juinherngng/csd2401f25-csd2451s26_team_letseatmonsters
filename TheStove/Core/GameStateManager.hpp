@@ -1,23 +1,34 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			GameStateManager.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Darren Toh, darren.toh@digipen.edu
+ FILE NAME:			GameStateManager.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Darren Toh, darren.toh@digipen.edu
+ CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:		Game State Manager interface derived from System.hpp. Uses 3 Function pointers
-					and redirects them to level/scene-specific init, update and exit functions.
-					These function pointers are then called in main by the game state manager.
-					This is a header file for declarations.
+ DESCRIPTION:		This file defines the GameState enumeration and the GameStateManager system responsible for
+  					controlling the gameâ€™s high-level state machine (e.g. main menu, gameplay, quit). It declares
+					the public API for initializing and updating game states, registering JSON-backed levels, and 
+					injecting engine services such as the Scene and AudioManager used during state transitions.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
-#include "System.hpp"
+
+#pragma once
+
+#include <functional> 
+#include <memory>
+#include <unordered_map>
+#include <string>
+
 #include "MessageBus.hpp"
+#include "System.hpp"
 #include "TestLevel.hpp"
 #include "TestLevel2.hpp"
-#include <memory>
-#include <functional> 
+
+class Scene; // forward-declare Scene
+class AudioManager; // forward-declare AudioManager
 
 namespace Framework {
 	enum GameState {
@@ -25,55 +36,60 @@ namespace Framework {
 		GS_Level2,
 		GS_Quit
 	};
-	//Ints representing Game States being cycled on update
-	extern int currentGS, nextGS;
 
-	////Check if game state has been entered and initialised
+	extern int currentGS, nextGS;
 	extern bool init;
 
-	//Smart Function Pointers for interchanging functionality for game states
 	typedef std::function<void(float dt)> FP;
 
-	extern FP fpInit, fpUpdate, fpExit; // Function pointers that changes depending on what state the game is in currently
-	
-	class GameStateManager : public CoreFramework::SystemInterface
-	{
+	extern FP fpInit, fpUpdate, fpExit;
+
+	class GameStateManager : public CoreFramework::SystemInterface {
 	public:
-		/************************************************************************/
-		/*!
-		\brief
-		Constructs the GameStateManager with MessageBus reference.
-		\param bus
-		Reference to the MessageBus for pub/sub messaging.
-		*/
-		/************************************************************************/
 		GameStateManager(CoreFramework::MessageBus& bus);
-		
-		/************************************************************************/
-		/*!
-		\brief
-		Destroys the GameStateManager and unsubscribes from messages.
-		*/
-		/************************************************************************/
 		~GameStateManager();
-		
-		//Setup Manager Logic
+
 		void Initialize() override;
-		//Manager Update loop
 		void Update(float dt) override;
-		//Get System Name
 		std::string GetName() override;
-		//Set Default Game State before use in Update
 		void InitializeGameState(int GS, float dt);
-		//Call function pointer to state update
 		void UpdateGameState(int newState, float dt);
-		
+
+		// Inject Scene used for runtime level loading
+		void SetScene(Scene* s) {
+			scene = s;
+		}
+
+		// Map a GameState to a JSON level path
+		void RegisterJsonState(int state, const std::string& levelPath) {
+			jsonStatePaths[state] = levelPath;
+		}
+
+		// Inject AudioManager for state-based audio control
+		void SetAudioManager(AudioManager* mgr) {
+			audioManager = mgr;
+		}
+
 	private:
-		// Message handlers
 		void OnQuit(const CoreFramework::Message& msg);
-		
-		// Pub/sub
+
+		// Switch to a JSON-backed state if mapping exists; returns true if handled
+		bool TrySwitchJsonState(int state, float dt);
+
+	private:
 		CoreFramework::MessageBus& messageBus;
 		CoreFramework::SubscriberId quitSubId;
+
+		Scene* scene = nullptr;
+		std::unordered_map<int, std::string> jsonStatePaths;
+		bool pendingSimActivation = false; // NEW
+
+		// Audio management
+		AudioManager* audioManager = nullptr;
+		std::string currentAudio; // Track currently playing background music
+		std::string currentAmbience; // Track currently playing ambient sound
+		bool wasPaused = false;    // Track pause state for audio
+
+		void StopCurrentAudio();
 	};
 }

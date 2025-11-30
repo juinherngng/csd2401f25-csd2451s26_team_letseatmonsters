@@ -1,0 +1,85 @@
+{
+  "audio_assets": [
+    {
+      "category": "sfx",
+      "filepath": "../assets/Audio/Grill SFX5.wav",
+      "loop": true,
+      "name": "sfx_grilling_sound",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../assets/Audio/Boiling7.wav",
+      "loop": true,
+      "name": "sfx_boiling_sound",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/MyoonchiDiner_LevelTheme.wav",
+      "loop": false,
+      "name": "bgm_MyoonchiDiner_LevelTheme",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/MyoonchiDiner_MainMenu.wav",
+      "loop": true,
+      "name": "bgm_MyoonchiDiner_MainMenu",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_beep.wav",
+      "loop": false,
+      "name": "sfx_beep",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_order_ready.wav",
+      "loop": false,
+      "name": "sfx_order_ready",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_order_received.wav",
+      "loop": false,
+      "name": "sfx_order_received",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "ui",
+      "filepath": "../../assets/Audio/ui_click.wav",
+      "loop": false,
+      "name": "ui_click",
+      "stream": false,
+      "volume": 0.05000000074505806
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/bgm_KitchenAmbience.wav",
+      "loop": true,
+      "name": "bgm_KitchenAmbience",
+      "stream": false,
+      "volume": 0.5
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_game_over.wav",
+      "loop": false,
+      "name": "sfx_game_over",
+      "stream": false,
+      "volume": 1.0
+    }
+  ],
+  "version": "1.0"
+}

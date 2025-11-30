@@ -1,26 +1,27 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			AnimationManager.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Seah Wang Hua, wanghua.seah@digipen.edu
-CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			AnimationManager.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
 
-DESCRIPTION:	    Declares AnimationManager, which manages 2D sprite animations for game objects,
+ DESCRIPTION:	    Declares AnimationManager, which manages 2D sprite animations for game objects,
 					updating frame UVs based on Animator2D components. Supports play/pause control
 					and registering animation sets for different entity types.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+        All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
 
-#include "Animator.hpp"  // This includes Animator2D
-#include "../Core/System.hpp"  // For SystemInterface
-#include <unordered_map>
-#include <string>
-#include <vector>
 #include <glm/glm.hpp>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "../Core/System.hpp"  // For SystemInterface
+#include "Animator.hpp"		   // This includes Animator2D
 
 class EntityManager;  // Forward declaration
 
@@ -50,7 +51,9 @@ public:
 	void Play();
 	void Pause();
 	void Stop();
-	bool IsPlaying() const { return isPlaying; }
+	bool IsPlaying() const {
+		return isPlaying;
+	}
 
 	// Animation registration for specific entity types
 	void AttachDinoAnimations(int objectID);
@@ -78,8 +81,8 @@ private:
 	// Store all animation sets for each object
 	struct AnimationSet {
 		std::vector<glm::vec4> frames;
-		float frameDuration;
-		bool loop;
+		float frameDuration = 0.0f;
+		bool loop = false;
 	};
 	std::unordered_map<int, std::unordered_map<std::string, AnimationSet>> animationSets_;
 
@@ -87,4 +90,5 @@ private:
 
 	// Helper: Create standard frame sequences
 	std::vector<glm::vec4> CreateFrameSequence(int startFrame, int endFrame, int totalFrames);
+	std::vector<glm::vec4> CreateFrameSequenceRow(int row, int startCol, int endCol, int totalRows, int totalCols);
 };

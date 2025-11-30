@@ -16,14 +16,15 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
-#include <functional>
+#include <vector>
 
-#include "Math.hpp"
-#include "Collision.hpp"
 #include "../Graphics/GameObject.hpp"
+
+#include "Collision.hpp"
+#include "Math.hpp"
 
  /**
   * @brief Spatial hash grid for broad-phase collision / picking.

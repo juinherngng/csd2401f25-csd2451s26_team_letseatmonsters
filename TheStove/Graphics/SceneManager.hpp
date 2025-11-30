@@ -4,6 +4,8 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+					Vu Phan Hung, phanhung.vu@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu
 
  DESCRIPTION:		Declares the SceneManager (Scene) class, which orchestrates the lifecycle and
 					high-level coordination of all major systems within a game scene. This includes:
@@ -16,31 +18,37 @@
 
 #pragma once
 
-#include "GraphicsEngine.hpp"
-#include "Animator.hpp"
-#include "EntityManager.hpp"
-#include "AnimationManager.hpp"
-#include "Layer.hpp"
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include "../Core/CollisionManager.hpp"
-#include "../Core/MovementManager.hpp" 
-#include "../Core/InputManager.hpp"
-#include "../Core/PhysicsManager.hpp"
-#include "../Core/Physics.hpp"
-#include "../Core/Math.hpp"
-#include "../Core/LevelEditor.hpp"
-#include "../Core/InputCommandHandler.hpp"
-#include "../Core/PlayerController.hpp"
-#include "../Core/NPCSystem.hpp"
 #include "../Core/DebugVisualizer.hpp"
+#include "../Core/InputCommandHandler.hpp"
+#include "../Core/InputManager.hpp"
+#include "../Core/LevelEditor.hpp"
 #include "../Core/LogicManager.hpp"
+#include "../Core/Math.hpp"
+#include "../Core/MovementManager.hpp" 
+#include "../Core/NPCSystem.hpp"
+#include "../Core/Physics.hpp"
+#include "../Core/PhysicsManager.hpp"
+#include "../Core/PlayerController.hpp"
 #include "../Core/PlayerLogic.hpp"
 #include "../Core/SimpleNpcLogic.hpp"
+#include "../Core/TableLogic.hpp"
+#include "../Core/WorkTableLogic.hpp"
+#include "../Core/CustomerTableLogic.hpp"
+#include "../Core/IngredientBoxLogic.hpp"
+#include "../Core/CustomerManagerLogic.hpp"
+#include "../Core/HowToPlayButtonLogic.hpp"
 
-
-#include <string>
-#include <vector>
-#include <unordered_map>
+#include "AnimationManager.hpp"
+#include "Animator.hpp"
+#include "EntityManager.hpp"
+#include "GraphicsEngine.hpp"
+#include "Layer.hpp"
+#include "../Core/FontSystem.hpp"
 
  /**
   * @class Scene
@@ -53,6 +61,21 @@ public:
 	GraphicsEngine& GetGraphicsEngine();
 	const GraphicsEngine& GetGraphicsEngine() const;
 
+	MovementManager& GetMovementManager();
+	const MovementManager& GetMovementManager() const;
+
+	CollisionManager& GetCollisionManager();
+	const CollisionManager& GetCollisionManager() const;
+
+	collision::World& GetCollisionWorld();
+	const collision::World& GetCollisionWorld() const;
+
+	PlayerController& GetPlayerController() { return playerController; }
+	const PlayerController& GetPlayerController() const { return playerController; }
+
+	LogicManager& GetLogicManager() { return logicManager; }
+	const LogicManager& GetLogicManager() const { return logicManager; }
+
 	/**
 	 * @brief Construct a new Scene object.
 	 * @param engine Reference to the graphics engine used for rendering.
@@ -61,57 +84,58 @@ public:
 	 * @param moveMgr Reference to the movement manager system.
 	 * @param physicsMgr Reference to the physics manager system.
 	 * @param collisionMgr Reference to the collision manager system.
-	 */
-	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr, 
-		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
+	*/
+	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
+		MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
-	/**
-	 * @brief Load a scene by name (dispatches to test scene for now).
-	 * @param sceneName Name of the scene.
-	 */
+	// Set AudioManager for UI sounds
+	void SetAudioManager(AudioManager* audioMgr) { audioManager_ = audioMgr; }
+
 	void LoadScene(const std::string& sceneName);
-
-	/**
-	 * @brief Per-frame update function to update input, animations, physics, and rendering.
-	 * @param deltaTime Time step for this frame.
-	 * @param window Active GLFW window for input.
-	 */
 	void Update(float deltaTime, GLFWwindow* window);
-
-	// Stress Test Generation
-	void GenerateStressTest(int objectCount = 2500);
 
 	void DrawUI();
 	void ClearAll();
+	void RequestClearAll();
 
-	// Spawning / Object Management
+	// Simulation control
+	void SetSimulationActive(bool active);
+	bool IsSimulationActive() const;
+
+	void ResetResizeBaseline();
+	float GetLastPhysicsDt() const {
+		return lastPhysicsDt_;
+	}
+	const physics::StepController& GetStepController() const {
+		return physicsStep_;
+	}
+
+	// Spawning / object management
 
 	/**
-	 * @brief Spawns a triangle mesh object.
-	 * @param position Position in world space.
-	 * @param scale Scaling vector.
-	 * @param rotation Rotation in degrees.
-	 * @return Pointer to spawned GameObject, or nullptr if failed.
-	 */
-	 //GameObject* SpawnTriangle(const glm::vec3 position, const glm::vec3 scale, float rotation = 0.0f);
-
-	 /**
 	  * @brief Spawns a static sprite with a given texture and size.
 	  */
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
-								  const glm::vec3 position,
-								  const glm::vec2 size = glm::vec2(100.0f, 100.0f),
-								  const std::string& layer = "Not set in JSON");
+		const glm::vec3 position,
+		const glm::vec2 size = glm::vec2(100.0f, 100.0f),
+		const std::string& layer = "Not set in JSON");
 
 	/**
 	 * @brief Spawns an animated sprite with frames and timing.
 	 */
-	GameObject* SpawnAnimatedSprite(
-		const std::string& texturePath,
+	GameObject* SpawnAnimatedSprite(const std::string& texturePath,
 		const glm::vec3 position,
 		const glm::vec2 size,
 		const std::vector<glm::vec4> frames,
 		float frameDuration, bool loop,
+		const std::string& layer);
+
+	// Spawns a static sprite at the same position as ownerID, with given texture/size/layer.
+// Returns the new GameObject* or nullptr on failure.
+	GameObject* SpawnStaticSpriteAtSamePos(int ownerID,
+		const std::string& texturePath,
+		float width,
+		float height,
 		const std::string& layer);
 
 	/**
@@ -119,62 +143,71 @@ public:
 	 */
 	GameObject* GetGameObjectByID(int targetID);
 	std::vector<GameObject*> GetAllObjectsRaw();
-
-	/**
-	 * @brief Remove a game object by its ID, including its animations.
-	 */
 	void DespawnByID(int targetID);
-
-	/**
-	 * @brief Collect raw pointers to all renderable game objects.
-	 */
 	void CollectRenderablePointers(std::vector<GameObject*>& out);
 
-	// Scene / Transform Utilities
+	// Scene / transform utilities
 
 	/**
 	 * @brief Set the background texture for the scene.
 	 */
 	void SetSceneBackground(const std::string& texturePath);
 
-	// Set initial transform into the scene maps and the GameObject
 	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
 	void ClampToWalkArea(GameObject* obj);
-	const std::string& GetObjectTexturePath(int id) const;
-	void SetObjectTexturePath(int id, const std::string& path);
+	glm::vec2 ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta);
 
-	// Animation
+	float ScaleXToCurrent(float referenceX) const;
+	float ScaleYToCurrent(float referenceY) const;
+	float ToRefX(float currentX) const;
+	float ToRefY(float currentY) const;
+
+	// Animation helpers
 	bool HasAnimations(int id) const;
 	std::vector<std::string> GetAnimationList(int id) const;
 	std::string GetCurrentAnimationName(int id) const;
 
-	/**
-	 * @brief Change the active animation of an object by ID.
-	 */
 	void SetAnimation(int objID, const std::string& newAnim);
 	void AttachDinoAnimations(int objID);
+	void MarkAnimated(int id, bool state);
 
-	// ID Accessors
+	void GenerateStressTest(int objectCount = 2500);
+	void UpdateAnimationControls();
+
+	// Tag-based logic helpers
+	void AttachLogicForTag(int id, const std::string& tag);
+
+	// ID / role helpers
 	void SetPlayerID(int id);
+	int GetPlayerID() const {
+		return spriteID;
+	}
+
+	// NPC IDs can be extended as needed
 	void SetNPC1ID(int id) {
 		otherID = id;
 		if (id >= 0) {
 			npcSystem.RegisterLaneNPC(id, 1000.0f); // Only this npc1 gets lane behavior
 		}
 	}
-
 	void SetNPC2ID(int id) {
 		otherID2 = id;
 		if (id >= 0) {
 			npcSystem.RegisterLaneNPC(id, 1000.0f); //Only this npc2 gets lane behavior
 		}
 	}
-	void SetDinoID(int id) { dinoID = id; }
-
-	int GetPlayerID() const { return spriteID; }
-	int GetNPC1ID() const { return otherID; }
-	int GetNPC2ID() const { return otherID2; }
-	int GetDinoID() const { return dinoID; }
+	void SetDinoID(int id) {
+		dinoID = id;
+	}
+	int GetNPC1ID() const {
+		return otherID;
+	}
+	int GetNPC2ID() const {
+		return otherID2;
+	}
+	int GetDinoID() const {
+		return dinoID;
+	}
 
 	// NPC System
 	void SetNPCVelocity(int id, float vx, float vy) {
@@ -187,7 +220,10 @@ public:
 		npcSystem.RegisterLaneNPC(id, laneX);
 	}
 
-	// Defaults Struct
+	// Texture metadata (LevelEditor / JSON)
+	const std::string& GetObjectTexturePath(int id) const;
+	void SetObjectTexturePath(int id, const std::string& path);
+
 	struct Defaults {
 		glm::vec3 pos{ 0,0,0 };
 		glm::vec2 size{ 128,128 };
@@ -195,107 +231,158 @@ public:
 		glm::vec2 colSize{ 64,128 };
 		glm::vec2 colOff{ 0,0 };
 		glm::vec2 vel{ 0,0 };
+		glm::vec2 approachOffset{ 0,0 }; // NEW: for table approach point
 		std::string texture;
 		std::string tag;
 		std::string layer;
 	};
 
-	void SetDefaults(int id, const Defaults& d) { defaults_[id] = d; }
+	void SetDefaults(int id, const Defaults& d) {
+		defaults_[id] = d;
+	}
 	Defaults GetDefaults(int id) const {
 		auto it = defaults_.find(id);
 		return (it != defaults_.end()) ? it->second : Defaults{};
 	}
 
-	float ScaleXToCurrent(float referenceX) const;
-	float ScaleYToCurrent(float referenceY) const;
-
-	float ToRefX(float currentX) const;
-	float ToRefY(float currentY) const;
-
-	// Rebuild world/static colliders after level reload or editor reset
-	void RebuildColliders();
-
-	void SetSimulationActive(bool active);
-	bool IsSimulationActive() const;
-
-	void ResetResizeBaseline();
-
-	void MarkAnimated(int id, bool state);
-
-	// For deferred clearing
-	void RequestClearAll();
-	void ResolveInitialStaticOverlaps();
-
-	LogicManager& GetLogicManager() { return logicManager; }
-	// new helper:
-	void AttachLogicForTag(int id, const std::string& tag);
-
-	// Expose EntityManager for systems that need it
-	EntityManager& GetEntityManager() { return entityManager; }
-	
-	// Layer management
+	// Layers
 	void AddLayer(const std::string& name);
 	Layer* GetLayer(const std::string& name);
 	const std::unordered_map<std::string, Layer>& GetAllLayers() const;
+
 	std::string GetObjectLayer(int objectID) const;
-	// Registers or moves an object to a new layer, updating both the layer map and the object's metadata.
 	void AssignObjectToLayer(int id, const std::string& newLayer);
+	void RemoveLayer(const std::string& name);
 
-	void UpdateAnimationControls();
+	// World / collision rebuilds
+	void BuildLevelColliders();
+	void RebuildColliders();
+	void ResolveInitialStaticOverlaps();
 
-
-private:
-	// Helper Methods
+	collision::WalkArea GetWalkArea() const;
 	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
 	void ApplyFinalConstraints(EntityManager& entityMgr);
 
-	// World/collision
-	void BuildLevelColliders();
+	// Expose EntityManager for systems that need it
+	EntityManager& GetEntityManager() {
+		return entityManager;
+	}
 
-	// Engine/input
-	GraphicsEngine& graphicsEngine;
-	EntityManager entityManager;
-	LogicManager logicManager;
-	InputManager& inputManager;				// Changed from owned instance to reference
-	AnimationManager& animationManager;		// Changed from owned instance to reference
-	MovementManager& movementManager;		// Changed from owned instance to reference
-	CollisionManager& collisionManager;		// Changed from owned instance to reference
-	PhysicsManager& physicsManager;			// Changed from owned instance to reference
+	// Level loading queue
+	void QueueLevelLoad(const std::string& path, bool activateSimulation);
+	bool HasPendingLevel() const {
+		return hasPendingLevel_;
+	}
+
+	// Game state change request
+	void RequestStateChange(int newState);
+	bool HasPendingStateChange() const {
+		return hasPendingStateChange_;
+	}
+	int GetPendingState() const {
+		return pendingState_;
+	}
+	void ClearPendingStateChange() {
+		hasPendingStateChange_ = false;
+	}
+
+	// Pause overlay methods
+	void ShowPauseOverlay();
+	void HidePauseOverlay();
+	bool IsPauseOverlayActive() const {
+		return pauseOverlayActive_;
+	}
+
+	// Menu button text rendering
+#if 0
+	void CreateMenuButtonTexts();
+	void RenderMenuButtonTexts();
+	void ClearMenuButtonTexts();
+#endif
+
+	// How-to-play overlay state
+	void SetHowToPlayOverlayActive(bool active) { howToPlayOverlayActive_ = active; }
+	bool IsHowToPlayOverlayActive() const { return howToPlayOverlayActive_; }
+	// FPS display rendering
+	void RenderFPSText();
+
+private:
+// Engine/input
+GraphicsEngine& graphicsEngine;
+EntityManager entityManager;
+LogicManager logicManager;
+InputManager& inputManager;				// Changed from owned instance to reference
+AnimationManager& animationManager;		// Changed from owned instance to reference
+MovementManager& movementManager;		// Changed from owned instance to reference
+CollisionManager& collisionManager;		// Changed from owned instance to reference
+PhysicsManager& physicsManager;			// Changed from owned instance to reference
+
+	// Audio for UI sounds
+	AudioManager* audioManager_ = nullptr;
 
 	// Systems
 	InputCommandHandler inputCommandHandler;
 	PlayerController playerController;
 	NPCSystem npcSystem;
 	DebugVisualizer debugVisualizer;
+	CustomerManagerSystem customerManager_;
 
 	// Step-by-step controller
 	physics::StepController physicsStep_;
+	float lastPhysicsDt_ = 0.0f;
 
-	// Scene objects
-	int spriteID = -1; // default invalid ID
-	int dinoID = -1;   // for testing
+	// Scene state
+	bool simulationActive = false;
+	bool useForces_ = false;
+	bool showAuxDebug_ = true;
+
+	int spriteID = -1;
+	int dinoID = -1;
 	int otherID = -1;
 	int otherID2 = -1;
 
-	bool simulationActive = false;
-	bool useForces_ = false;
-
-	// Debug / Editor
-	bool showAuxDebug_ = true;
-	LevelEditor mLevelEditor;
-	std::unordered_map<int, std::string> mTexturePathByID;
-
-	// Defaults data
 	std::unordered_map<int, Defaults> defaults_;
-
-
-	// Layer data
 	std::unordered_map<std::string, Layer> layers;
 
-	// Resize tracking
 	int lastWidth_ = -1;
 	int lastHeight_ = -1;
 	bool resetBaseline_ = false;
 
-	bool pendingClear_ = false; // Flag for deferred clearing
+	bool pendingClear_ = false;
+	int editorSelectedId = -1;
+	std::string currentLevelPath_;
+
+	// Pending level load state
+	std::string pendingLevelPath_;
+	bool pendingLevelSimActive_ = false;
+	bool hasPendingLevel_ = false;
+
+	// Pending game state change
+	int pendingState_ = -1;
+	bool hasPendingStateChange_ = false;
+
+	// Pause overlay state
+	bool pauseOverlayActive_ = false;
+	std::vector<int> pauseOverlayObjectIds_;
+
+	// Menu button text rendering
+	struct MenuButtonText {
+		FontSystem::Text textObj;
+		int buttonID = 0;
+		std::string label;
+	};
+	std::vector<MenuButtonText> menuButtonTexts_;
+
+	// FPS display (release builds) - toggled with F1
+	FontSystem::Text fpsText_;
+	bool showFPS_ = false;
+	float fpsAccumTime_ = 0.0f;
+	int fpsAccumFrames_ = 0;
+	int fpsValue_ = 0;
+	const float fpsUpdateInterval_ = 0.25f; // update every 0.25s
+
+	LevelEditor mLevelEditor;
+	std::unordered_map<int, std::string> mTexturePathByID;
+
+	bool howToPlayOverlayActive_ = false;
 };

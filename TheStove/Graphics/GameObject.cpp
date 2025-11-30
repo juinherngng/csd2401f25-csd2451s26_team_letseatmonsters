@@ -15,8 +15,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-#include "GameObject.hpp"
 #include "../Core/Collision.hpp"
+
+#include "GameObject.hpp"
 #include "ResourceManager.hpp"
 
 GameObject::GameObject(Mesh* mesh, Shader* shader)
@@ -134,4 +135,8 @@ float GameObject::GetRotationAngleZ() const {
 	// Assuming rotation matrix represents rotation in XY plane
 	float angle = std::atan2(m_Rotation[1][0], m_Rotation[0][0]);
 	return angle;
+}
+
+bool GameObject::IsAnimated() const {
+	return animator != nullptr;
 }

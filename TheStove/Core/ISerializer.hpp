@@ -1,27 +1,27 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			ISerializer.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung
+ FILE NAME:			ISerializer.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
 
-DESCRIPTION:
-	Very simple serializer for reading key=value pairs from a text file.
+ DESCRIPTION:		Very simple serializer for reading key=value pairs from a text file.
+
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
+
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-struct ComponentData
-{
+struct ComponentData {
 	std::string type;   // e.g. "Transform"
 	std::unordered_map<std::string, std::string> properties; // key=value pairs
 };
 
-class ISerializer
-{
+class ISerializer {
 public:
 	bool Load(const std::string&);
 

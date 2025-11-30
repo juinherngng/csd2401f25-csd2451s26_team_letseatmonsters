@@ -7,18 +7,18 @@
  DESCRIPTION:		Definition of ConfigManager for loading/saving game settings.
 					The configuration file uses a simple key=value format.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "ConfigManager.hpp"
-
-#include <fstream>
-#include <sstream>
 #include <algorithm>
 #include <cctype>
-#include <windows.h>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
+#include <windows.h>
+
+#include "ConfigManager.hpp"
 
 namespace fs = std::filesystem;
 
@@ -99,13 +99,23 @@ namespace ConfigManager {
 		if (s.resolution.width < 320) s.resolution.width = 320;
 		if (s.resolution.height < 200) s.resolution.height = 200;
 
-		// Clamp volumes
+		// Clamp master volume
+		if (s.masterVolume < 0.0f) {
+			s.masterVolume = 0.0f;
+		}
+		if (s.masterVolume > 1.0f) {
+			s.masterVolume = 1.0f;
+		}
+
+		// Clamp BGM volume
 		if (s.bgmVolume < 0.0f) {
 			s.bgmVolume = 0.0f;
 		}
 		if (s.bgmVolume > 1.0f) {
 			s.bgmVolume = 1.0f;
 		}
+		
+		// Clamp VFX volume
 		if (s.vfxVolume < 0.0f) {
 			s.vfxVolume = 0.0f;
 		}
@@ -165,6 +175,12 @@ namespace ConfigManager {
 					cfg.fullscreen = parsed;
 				}
 			}
+			else if (key == "master_volume") {
+				float parsed = 0.0f;
+				if (ParseFloat(val, parsed)) {
+					cfg.masterVolume = parsed;
+				}
+			}
 			else if (key == "bgm_volume") {
 				float parsed = 0.0f;
 				if (ParseFloat(val, parsed)) {
@@ -205,6 +221,7 @@ namespace ConfigManager {
 		ofs << "window_width=" << s.resolution.width << "\n";
 		ofs << "window_height=" << s.resolution.height << "\n";
 		ofs << "fullscreen=" << (s.fullscreen ? "true" : "false") << "\n";
+		ofs << "master_volume=" << s.masterVolume << "\n";
 		ofs << "bgm_volume=" << s.bgmVolume << "\n";
 		ofs << "vfx_volume=" << s.vfxVolume << "\n";
 		ofs.flush();
@@ -213,7 +230,7 @@ namespace ConfigManager {
 	}
 
 	bool LoadFromAssets(Settings& out, const char* filename) {
-		const char* fname = filename ? filename : "config.txt";
+		const char* fname = filename?filename:"config.txt";
 
 		char exePath[MAX_PATH]{};
 		if (!GetModuleFileNameA(nullptr, exePath, MAX_PATH)) {

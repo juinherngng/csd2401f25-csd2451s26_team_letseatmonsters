@@ -1,6 +1,6 @@
 # ======================= Project Configuration =========================
 
-cmake_minimum_required(VERSION 2.8...3.13)
+cmake_minimum_required(VERSION 3.5...3.27)
 project (Lets-Eat-Monsters)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
@@ -15,6 +15,7 @@ set(ALL_LIBS
    imgui
    fmod
    stb_image
+   freetype
 )
 
 # Gather source files for the core game library
@@ -45,6 +46,10 @@ target_link_libraries(LetsEatMonsters PRIVATE TheStove)
 
 # Set C++ standard for the build
 set_property(TARGET LetsEatMonsters PROPERTY CXX_STANDARD 20)
+
+# Set the working directory for Visual Studio debugging to the build directory
+# This ensures relative paths like ../assets work correctly
+set_property(TARGET LetsEatMonsters PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 # Copy FMOD DLL to the executable's output directory
 copy_fmod_dll_to_target(LetsEatMonsters)
@@ -94,6 +99,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(TheStove PRIVATE -Wall)
     target_compile_options(LetsEatMonsters PRIVATE -Wall)
 elseif (MSVC)
-    target_compile_options(TheStove PRIVATE /W3 /WX-)
-    target_compile_options(LetsEatMonsters PRIVATE /W3 /WX-)
+    target_compile_options(TheStove PRIVATE /W4 /WX-)
+    target_compile_options(LetsEatMonsters PRIVATE /W4 /WX-)
 endif()
