@@ -165,6 +165,7 @@ namespace Framework {
 			pendingSimActivation = true;        // other states (e.g., gameplay)
 		}
 
+		#ifndef _DEBUG
 		// Handle state-based audio
 		if (audioManager) {
 			// Stop current audio before switching
@@ -187,6 +188,7 @@ namespace Framework {
 				currentAudio.clear();
 			}
 		}
+		#endif
 
 		fpInit = nullptr;
 		fpUpdate = nullptr;
