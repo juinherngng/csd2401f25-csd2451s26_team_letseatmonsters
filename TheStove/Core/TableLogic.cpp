@@ -26,6 +26,8 @@ void TableLogic::Start(Scene& scene)
     if (!owner)
         return;
 
+    owner->SetMovableByPhysics(false);
+
     Scene::Defaults def = scene.GetDefaults(GetOwnerID());
 
     // Only override if level/spawner actually set a non-zero vel.

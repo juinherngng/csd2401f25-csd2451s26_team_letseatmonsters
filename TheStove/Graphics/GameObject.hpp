@@ -151,6 +151,11 @@ public:
 	// Check if the GameObject is currently using an animated sprite
 	bool IsAnimated() const;
 
+	// Physics / pushability flag
+	void SetMovableByPhysics(bool movable) { m_IsMovableByPhysics = movable; }
+	bool IsMovableByPhysics() const { return m_IsMovableByPhysics; }
+
+
 private:
 	Mesh* m_Mesh;
 	Shader* m_Shader;
@@ -173,4 +178,7 @@ private:
 	Math::Vector2D m_ColliderOffset{ 0.f, 0.f };
 
 	Animator2D* animator = nullptr;
+
+	bool m_IsMovableByPhysics = true; // default: objects can be pushed by physics/separation
+
 };

@@ -449,9 +449,11 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 			continue; // lane NPCs ignore player collision
 		}
 
-		// Current positions (M-space)
-		Math::Vector3D playerPosM(position.x, position.y, position.z);
+		// Always read the latest player position (it may have been modified in a previous iteration)
+		glm::vec3 playerPosG = sprite->GetPositionGLM();
+		Math::Vector3D playerPosM(playerPosG.x, playerPosG.y, playerPosG.z);
 		Math::Vector3D otherPosM(other->GetPosition().x, other->GetPosition().y, other->GetPosition().z);
+
 
 		// Build AABBs at those positions
 		const collision::AABB playerBox = physics::MakeColliderBox(sprite, playerPosM);
@@ -462,6 +464,30 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 		if (!collision::overlapMTV(playerBox, otherBox, mtv)) {
 			continue;
 		}
+
+		// NEW: respect "movable by physics" flag on the other object (tables, walls, etc.)
+		const bool otherMovable = other->IsMovableByPhysics();
+
+		if (!otherMovable)
+		{
+			// For immovable objects (e.g. tables), only move the player out of overlap.
+
+			// Make the player's correction world-safe (don't push them through walls).
+			const collision::AABB startPlayerBox = physics::MakeColliderBox(sprite, playerPosM);
+
+			Math::Vector2D desiredPlayerDelta(mtv.x, mtv.y); // MTV is in the direction we need to move the player
+			Math::Vector2D allowedPlayerDelta =
+				collisionManager.GetCollisionWorld().resolve(startPlayerBox, desiredPlayerDelta);
+
+			playerPosM.x += allowedPlayerDelta.x;
+			playerPosM.y += allowedPlayerDelta.y;
+
+			// Apply the new position and continue to next candidate
+			sprite->SetPosition(toG(playerPosM));
+			// Do NOT move 'other' at all
+			continue;
+		}
+
 
 		// World-aware push: try to move the goat, clamped by walls
 		constexpr float kGoatShare = 0.50f; // you can tune 0.25f..0.50f
