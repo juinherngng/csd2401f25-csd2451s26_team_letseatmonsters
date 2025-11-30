@@ -3,92 +3,90 @@ Lines of Code Report
 ==========================================
 Author: Yat Chun Wee
 Since: 2025-10-13
-Generated: Fri Nov  7 14:19:05 +08 2025
+Generated: Sun Nov 30 16:27:29 +08 2025
 ==========================================
 
 Files Modified: 45 unique files
 
-Files Still Exist: 43 files
+Files Still Exist: 42 files
 
 ==========================================
 CODE ANALYSIS - SUMMARY
 Excludes: Comments and Blank Lines
 ==========================================
 
-      43 text files.
-classified 43 files      43 unique files.                              
+      42 text files.
+classified 42 files      42 unique files.                              
        0 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.82 s (52.7 files/s, 38690.0 lines/s)
+github.com/AlDanial/cloc v 1.90  T=0.79 s (53.4 files/s, 40748.6 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C/C++ Header                    21           4119           8175          13755
-C++                             18            921            719           3301
-JSON                             2              1              0            260
-CMake                            1             29             21            179
-INI                              1             10              0             53
+C/C++ Header                    21           4139           8153          13966
+C++                             18            945            762           3559
+JSON                             2              0              0            261
+CMake                            1             35             25            203
 -------------------------------------------------------------------------------
-SUM:                            43           5080           8915          17548
+SUM:                            42           5119           8940          17989
 -------------------------------------------------------------------------------
 
 ==========================================
 CODE ANALYSIS - PER FILE (Current State)
 ==========================================
 
-      43 text files.
-classified 43 files      43 unique files.                              
+      42 text files.
+classified 42 files      42 unique files.                              
        0 files ignored.
 
-github.com/AlDanial/cloc v 1.90  T=0.66 s (65.6 files/s, 48132.7 lines/s)
+github.com/AlDanial/cloc v 1.90  T=0.79 s (53.2 files/s, 40557.1 lines/s)
 ----------------------------------------------------------------------------------------
 File                                                 blank        comment           code
 ----------------------------------------------------------------------------------------
 TheStove/Core/JSON.hpp                                3591           6552          12780
-TheStove/Core/DebugUI.cpp                              112             99            537
-TheStove/Graphics/SceneManager.cpp                     167            125            509
-TheStove/Graphics/GraphicsEngine.cpp                   124             83            495
+TheStove/Graphics/GraphicsEngine.cpp                   159            132            649
+TheStove/Core/DebugUI.cpp                              141            113            582
+TheStove/Graphics/SceneManager.cpp                     119             89            515
 TheStove/Core/MovementManager.cpp                       92             66            370
-cmake/ImportDependencies.cmake                          29             21            179
-TheStove/Core/Physics.cpp                               47             36            178
-TheStove/Graphics/SceneManager.hpp                      57             89            155
-levels/kitchen02test.json                                1              0            148
+TheStove/Graphics/SceneManager.hpp                      58             65            227
+cmake/ImportDependencies.cmake                          35             25            203
+TheStove/Core/Physics.cpp                               45             38            171
+levels/kitchen02test.json                                0              0            148
 TheStove/Core/DebugVisualizer.cpp                       37             28            140
-TheStove/Core/PhysicsManager.cpp                        40             38            125
-TheStove/Graphics/DebugRenderer.cpp                     35             19            122
+TheStove/Graphics/GraphicsEngine.hpp                    36             34            133
+TheStove/Core/InputManager.cpp                          45             27            130
+TheStove/Graphics/DebugRenderer.cpp                     35             19            126
+TheStove/Core/PhysicsManager.cpp                        41             41            125
 TheStove/Core/NpcSystem.cpp                             37             28            121
-TheStove/Core/RigidBody2D.cpp                           37             31            115
-levels/kitchen01.json                                    0              0            112
+levels/kitchen01.json                                    0              0            113
+TheStove/Core/Math.hpp                                 108            985            112
+TheStove/Core/RigidBody2D.cpp                           37             31            112
+TheStove/Core/DebugUI.hpp                               45             26            109
 TheStove/Core/PlayerController.cpp                      25             25            106
-TheStove/Core/Math.hpp                                 108            985            105
-TheStove/Core/InputManager.cpp                          40             25            100
-TheStove/Graphics/GraphicsEngine.hpp                    32             33             96
-TheStove/Graphics/GameObject.cpp                        29             16             92
+TheStove/Graphics/GameObject.cpp                        31             16             95
 TheStove/Core/Forces.cpp                                27             23             91
-TheStove/Core/LevelSerializer.cpp                       25             15             73
-TheStove/Core/DebugUI.hpp                               33             23             70
-TheStove/Core/MovementManager.hpp                       46             59             62
-TheStove/Graphics/GameObject.hpp                        31             61             60
-TheStove/Core/CollisionManager.cpp                      21             26             55
-assets/imgui.ini                                        10              0             53
-TheStove/Core/PhysicsManager.hpp                        28             42             51
+TheStove/Core/LevelSerializer.cpp                       27             20             85
+TheStove/Graphics/GameObject.hpp                        35             62             79
+TheStove/Core/MovementManager.hpp                       46             59             68
+TheStove/Core/CollisionManager.cpp                      22             27             60
+TheStove/Core/PhysicsManager.hpp                        27             42             55
 TheStove/Core/Forces.hpp                                23             36             50
-TheStove/Core/RigidBody2D.hpp                           36             51             46
+TheStove/Core/LevelEditor.hpp                           13             29             46
 TheStove/Core/InputCommandHandler.cpp                   13             17             45
-TheStove/Core/Physics.hpp                               12             16             38
-TheStove/Core/PlayerController.hpp                      14             23             36
-TheStove/Core/NpcSystem.hpp                             18             29             34
-TheStove/Core/CollisionManager.hpp                      17             39             31
-TheStove/Core/LevelEditor.hpp                           14             29             30
-TheStove/Core/LevelSerializer.hpp                       12             19             29
-TheStove/Core/LevelEditor.cpp                           13             19             27
+TheStove/Core/RigidBody2D.hpp                           36             51             45
+TheStove/Core/CollisionManager.hpp                      18             36             40
+TheStove/Core/Physics.hpp                               13             16             38
+TheStove/Core/PlayerController.hpp                      14             23             38
+TheStove/Core/LevelEditor.cpp                           12             22             36
+TheStove/Core/NpcSystem.hpp                             17             29             34
+TheStove/Core/LevelSerializer.hpp                       12             19             30
 TheStove/Core/InputCommandHandler.hpp                    9             24             25
 TheStove/Core/DebugVisualizer.hpp                       14             24             22
 TheStove/Graphics/DebugRenderer.hpp                     17             30             18
 TheStove/Core/JSONInclude.hpp                            3              1             10
 TheStove/Core/Precompiled.hpp                            4             10              7
 ----------------------------------------------------------------------------------------
-SUM:                                                  5080           8915          17548
+SUM:                                                  5119           8940          17989
 ----------------------------------------------------------------------------------------
 
 ==========================================
