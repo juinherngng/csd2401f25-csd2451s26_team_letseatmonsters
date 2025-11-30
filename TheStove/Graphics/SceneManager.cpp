@@ -55,7 +55,7 @@ void Scene::SetObjectTexturePath(int id, const std::string& path) {
 
 // Construction / core lifecycle
 Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
-			 MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
+	MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
 	: graphicsEngine(engine), inputManager(inputMgr), animationManager(animMgr),
 	movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr) {
 	// Allow AnimationManager to find objects
@@ -105,8 +105,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	logicManager.StartAll(*this);
 	logicManager.UpdateAll(deltaTime, *this, inputManager);
 
-		// NEW: seat customers at tables once.
-		customerManager_.Update(physicsDt, *this);
+	// NEW: seat customers at tables once.
+	customerManager_.Update(physicsDt, *this);
 
 	if (simulationActive) {
 		if (useForces_) {
@@ -193,9 +193,9 @@ void Scene::SetPlayerID(int id) {
 }
 
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
-									 const glm::vec3 position,
-									 const glm::vec2 size,
-									 const std::string& layer) {
+	const glm::vec3 position,
+	const glm::vec2 size,
+	const std::string& layer) {
 	GameObject* obj = entityManager.SpawnStaticSprite(texturePath, position, size);
 
 	if (obj) {
@@ -207,11 +207,11 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 }
 
 GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
-									   const glm::vec3 position,
-									   const glm::vec2 size,
-									   const std::vector<glm::vec4> frames,
-									   float frameDuration, bool loop,
-									   const std::string& layer) {
+	const glm::vec3 position,
+	const glm::vec2 size,
+	const std::vector<glm::vec4> frames,
+	float frameDuration, bool loop,
+	const std::string& layer) {
 	GameObject* obj = entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
 
 	if (obj) {
@@ -311,7 +311,7 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		}
 
 		int result = 0;
-		for (char c:s) {
+		for (char c : s) {
 			if (!std::isdigit(static_cast<unsigned char>(c))) {
 				// Any non-numeric layer name behaves like a very "high" layer
 				// so that it draws on top of numeric layers.
@@ -322,26 +322,26 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		}
 
 		return result;
-	};
+		};
 
 	std::sort(
 		out.begin(),
 		out.end(),
 		[&](GameObject* a, GameObject* b) {
-		const std::string laName = GetObjectLayer(a->GetID());
-		const std::string lbName = GetObjectLayer(b->GetID());
+			const std::string laName = GetObjectLayer(a->GetID());
+			const std::string lbName = GetObjectLayer(b->GetID());
 
-		int la = parseLayerNumber(laName);
-		int lb = parseLayerNumber(lbName);
+			int la = parseLayerNumber(laName);
+			int lb = parseLayerNumber(lbName);
 
-		// Different layers: smaller layer number drawn first
-		if (la != lb) {
-			return la > lb;
+			// Different layers: smaller layer number drawn first
+			if (la != lb) {
+				return la > lb;
+			}
+
+			// Same layer - higher Y drawn first (lower on screen appears in front)
+			return a->GetPosition().y > b->GetPosition().y;
 		}
-
-		// Same layer - higher Y drawn first (lower on screen appears in front)
-		return a->GetPosition().y > b->GetPosition().y;
-	}
 	);
 }
 
@@ -479,7 +479,7 @@ void Scene::AddLayer(const std::string& name) {
 
 Layer* Scene::GetLayer(const std::string& name) {
 	auto it = layers.find(name);
-	return it != layers.end()?&(it->second):nullptr;
+	return it != layers.end() ? &(it->second) : nullptr;
 }
 
 const std::unordered_map<std::string, Layer>& Scene::GetAllLayers() const {
@@ -534,7 +534,7 @@ void Scene::RequestStateChange(int newState) {
 	hasPendingStateChange_ = true;
 }
 
-	void Scene::ShowPauseOverlay() {
+void Scene::ShowPauseOverlay() {
 #ifndef _DEBUG
 	if (pauseOverlayActive_) return;
 	pauseOverlayActive_ = true;
@@ -563,7 +563,7 @@ void Scene::RequestStateChange(int newState) {
 			// Remember texture path for hover logic
 			SetObjectTexturePath(id, tex);
 		}
-	};
+		};
 
 	spawnBtn("../assets/green_button_static.png", { 967.f, 454.f }, PauseAction::Resume);
 	spawnBtn("../assets/green_button_static.png", { 967.f, 584.f }, PauseAction::HowToPlay);
@@ -577,8 +577,8 @@ void Scene::HidePauseOverlay() {
 	for (int id : pauseOverlayObjectIds_) {
 		DespawnByID(id);
 	}
-		pauseOverlayObjectIds_.clear();
-		pauseOverlayActive_ = false;
+	pauseOverlayObjectIds_.clear();
+	pauseOverlayActive_ = false;
 #endif
 }
 
@@ -635,43 +635,43 @@ void Scene::CreateMenuButtonTexts() {
 				glm::vec3 btnPos = obj->GetPositionGLM();
 				glm::vec3 btnSize = obj->GetScaleGLM();
 
-			// Calculate actual text width and height using font glyph metrics when available
-			FontSystem::Font* f = font;
-			float textWidth = 0.0f;
-			float maxHeight = 0.0f;
-			if (f) {
-				for (char c : label) {
-					const FontSystem::Character* ch = f->GetCharacter(c);
-					if (ch) {
-						textWidth += static_cast<float>(ch->advance >> 6);
-						maxHeight = std::max(maxHeight, static_cast<float>(ch->size.y));
+				// Calculate actual text width and height using font glyph metrics when available
+				FontSystem::Font* f = font;
+				float textWidth = 0.0f;
+				float maxHeight = 0.0f;
+				if (f) {
+					for (char c : label) {
+						const FontSystem::Character* ch = f->GetCharacter(c);
+						if (ch) {
+							textWidth += static_cast<float>(ch->advance >> 6);
+							maxHeight = std::max(maxHeight, static_cast<float>(ch->size.y));
+						}
 					}
 				}
-			}
 
-			// Fallback if metrics not available
-			if (textWidth <= 0.0f) {
-				float baseFontSize = 36.0f;
-				textWidth = label.length() * baseFontSize * 0.4f;
-				maxHeight = baseFontSize * 0.8f;
-			}
+				// Fallback if metrics not available
+				if (textWidth <= 0.0f) {
+					float baseFontSize = 36.0f;
+					textWidth = label.length() * baseFontSize * 0.4f;
+					maxHeight = baseFontSize * 0.8f;
+				}
 
-			// Calculate scale to fit text within button bounds (with padding)
-			float paddingW = 0.75f; // width padding
-			float paddingH = 0.7f;  // height padding
-			float targetW = btnSize.x * paddingW;
-			float targetH = btnSize.y * paddingH;
-			float scaleX = targetW / textWidth;
-			float scaleY = targetH / maxHeight;
-			float scale = std::min(scaleX, scaleY);
+				// Calculate scale to fit text within button bounds (with padding)
+				float paddingW = 0.75f; // width padding
+				float paddingH = 0.7f;  // height padding
+				float targetW = btnSize.x * paddingW;
+				float targetH = btnSize.y * paddingH;
+				float scaleX = targetW / textWidth;
+				float scaleY = targetH / maxHeight;
+				float scale = std::min(scaleX, scaleY);
 
-			// Final dimensions
-			float finalWidth = textWidth * scale;
-			float finalHeight = maxHeight * scale;
+				// Final dimensions
+				float finalWidth = textWidth * scale;
+				float finalHeight = maxHeight * scale;
 
-			// Position text centered on button (FontSystem renders from top-left baseline aware)
-			float textX = btnPos.x - (finalWidth * 0.5f);
-			float textY = btnPos.y - (finalHeight * 0.5f);
+				// Position text centered on button (FontSystem renders from top-left baseline aware)
+				float textX = btnPos.x - (finalWidth * 0.5f);
+				float textY = btnPos.y - (finalHeight * 0.5f);
 
 				menuText.textObj.SetPosition(glm::vec2(textX, textY));
 				menuText.textObj.SetScale(scale);
@@ -688,43 +688,43 @@ void Scene::CreateMenuButtonTexts() {
 	}
 }
 
-	void Scene::RenderMenuButtonTexts() {
+void Scene::RenderMenuButtonTexts() {
 	if (menuButtonTexts_.empty()) {
 		return;
 	}
 
-    glm::mat4 projection = graphicsEngine.GetProjection();
+	glm::mat4 projection = graphicsEngine.GetProjection();
 
-    // Save current GL viewport so we can restore after drawing
-    GLint prevViewport[4];
-    glGetIntegerv(GL_VIEWPORT, prevViewport);
+	// Save current GL viewport so we can restore after drawing
+	GLint prevViewport[4];
+	glGetIntegerv(GL_VIEWPORT, prevViewport);
 
-    // If we're rendering into the scene FBO (non-default framebuffer), set viewport to FBO size
-    GLint boundFBO = 0;
-    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
-    if (boundFBO != 0) {
-        // Draw in FBO pixel coords (FBO matches reference canvas size)
-        glViewport(0, 0, graphicsEngine.GetSceneWidth(), graphicsEngine.GetSceneHeight());
-    }
-    else {
-        // We're rendering to the default framebuffer: apply the letterboxed viewport so positions match
-        graphicsEngine.ApplyViewport();
-    }
+	// If we're rendering into the scene FBO (non-default framebuffer), set viewport to FBO size
+	GLint boundFBO = 0;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
+	if (boundFBO != 0) {
+		// Draw in FBO pixel coords (FBO matches reference canvas size)
+		glViewport(0, 0, graphicsEngine.GetSceneWidth(), graphicsEngine.GetSceneHeight());
+	}
+	else {
+		// We're rendering to the default framebuffer: apply the letterboxed viewport so positions match
+		graphicsEngine.ApplyViewport();
+	}
 
-    // Disable depth test for text rendering and enable alpha blending
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	// Disable depth test for text rendering and enable alpha blending
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Render each text object - positions are in reference space that matches projection
-    for (auto& menuText : menuButtonTexts_) {
-        FontSystem::TextRenderer::Instance().RenderText(menuText.textObj, projection);
-    }
+	// Render each text object - positions are in reference space that matches projection
+	for (auto& menuText : menuButtonTexts_) {
+		FontSystem::TextRenderer::Instance().RenderText(menuText.textObj, projection);
+	}
 
-    // Restore GL state
-    glDisable(GL_BLEND);
-    // Restore previous viewport (default framebuffer expects full window viewport)
-    glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+	// Restore GL state
+	glDisable(GL_BLEND);
+	// Restore previous viewport (default framebuffer expects full window viewport)
+	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 }
 
 void Scene::ClearMenuButtonTexts() {

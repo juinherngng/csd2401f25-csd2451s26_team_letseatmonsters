@@ -84,7 +84,7 @@ public:
 	 * @param collisionMgr Reference to the collision manager system.
 	*/
 	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
-		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
+		MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
 	// Set AudioManager for UI sounds
 	void SetAudioManager(AudioManager* audioMgr) { audioManager_ = audioMgr; }
@@ -114,19 +114,19 @@ public:
 	  * @brief Spawns a static sprite with a given texture and size.
 	  */
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
-								  const glm::vec3 position,
-								  const glm::vec2 size = glm::vec2(100.0f, 100.0f),
-								  const std::string& layer = "Not set in JSON");
+		const glm::vec3 position,
+		const glm::vec2 size = glm::vec2(100.0f, 100.0f),
+		const std::string& layer = "Not set in JSON");
 
 	/**
 	 * @brief Spawns an animated sprite with frames and timing.
 	 */
 	GameObject* SpawnAnimatedSprite(const std::string& texturePath,
-									const glm::vec3 position,
-									const glm::vec2 size,
-									const std::vector<glm::vec4> frames,
-									float frameDuration, bool loop,
-									const std::string& layer);
+		const glm::vec3 position,
+		const glm::vec2 size,
+		const std::vector<glm::vec4> frames,
+		float frameDuration, bool loop,
+		const std::string& layer);
 
 	// Spawns a static sprite at the same position as ownerID, with given texture/size/layer.
 // Returns the new GameObject* or nullptr on failure.
@@ -239,7 +239,7 @@ public:
 	}
 	Defaults GetDefaults(int id) const {
 		auto it = defaults_.find(id);
-		return (it != defaults_.end())?it->second:Defaults{};
+		return (it != defaults_.end()) ? it->second : Defaults{};
 	}
 
 	// Layers
@@ -296,18 +296,18 @@ public:
 	void ClearMenuButtonTexts();
 
 private:
-// Engine/input
-GraphicsEngine& graphicsEngine;
-EntityManager entityManager;
-LogicManager logicManager;
-InputManager& inputManager;				// Changed from owned instance to reference
-AnimationManager& animationManager;		// Changed from owned instance to reference
-MovementManager& movementManager;		// Changed from owned instance to reference
-CollisionManager& collisionManager;		// Changed from owned instance to reference
-PhysicsManager& physicsManager;			// Changed from owned instance to reference
+	// Engine/input
+	GraphicsEngine& graphicsEngine;
+	EntityManager entityManager;
+	LogicManager logicManager;
+	InputManager& inputManager;				// Changed from owned instance to reference
+	AnimationManager& animationManager;		// Changed from owned instance to reference
+	MovementManager& movementManager;		// Changed from owned instance to reference
+	CollisionManager& collisionManager;		// Changed from owned instance to reference
+	PhysicsManager& physicsManager;			// Changed from owned instance to reference
 
-// Audio for UI sounds
-AudioManager* audioManager_ = nullptr;
+	// Audio for UI sounds
+	AudioManager* audioManager_ = nullptr;
 
 	// Systems
 	InputCommandHandler inputCommandHandler;

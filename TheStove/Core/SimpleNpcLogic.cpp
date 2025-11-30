@@ -175,9 +175,9 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene)
         npcID = owner->GetID();
     }
 
-    std::cout << "[SimpleNpcLogic] OnSeatedAtTable, npcID="
-        << npcID << " state="
-        << static_cast<int>(behaviourState_) << "\n";
+    //std::cout << "[SimpleNpcLogic] OnSeatedAtTable, npcID="
+    //    << npcID << " state="
+    //    << static_cast<int>(behaviourState_) << "\n";
 
     // When NPC reaches its assigned table, it should start ordering.
     if (behaviourState_ == BehaviourState::FindingTable ||

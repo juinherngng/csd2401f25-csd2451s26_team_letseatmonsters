@@ -15,7 +15,7 @@ WorkTableLogic::WorkTableLogic(int ownerID)
     AddApproachOffset(Math::Vector2D(0.0f, 110.0f));
 }
 
-void WorkTableLogic::Start(Scene& scene)
+void WorkTableLogic::Start(Scene& /*scene*/)
 {
     std::cout << "[WorkTableLogic] Start ownerID=" << GetOwnerID() << "\n";
 
