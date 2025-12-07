@@ -923,7 +923,7 @@ namespace LEPANELLEVEL {
 			// Rotation
 			ImGui::Text("Rotation (deg)"); ImGui::NextColumn();
 			FullWidthNext();
-			DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.05f, [&](bool) {
+			DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.8f, [&](bool) {
 				// Clamp to [0, 360) before applying so it never stores huge angles
 				rotationDeg = std::fmod(rotationDeg, 360.0f);
 				if (rotationDeg < 0.0f) {

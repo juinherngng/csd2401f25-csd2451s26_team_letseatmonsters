@@ -76,6 +76,9 @@ namespace LEPICKDRAG {
 	static float sScaleSignY = 1.0f;
 	static DragMode sDragMode = DragMode::None;
 
+	static float sLastMouseAngleRad = 0.0f;
+	static float sCurrentRotDegDrag = 0.0f;
+
 	static void ResetDragState() {
 		sActiveAxis = ActiveAxis::None;
 		sDragMode = DragMode::None;
@@ -86,6 +89,9 @@ namespace LEPICKDRAG {
 
 		sDragStartMouseScreen = ImVec2(0.f, 0.f);
 		sRotateDragging = false;
+
+		sLastMouseAngleRad = 0.0f;
+		sCurrentRotDegDrag = 0.0f;
 	}
 
 	void HandleScenePickDrag(LevelEditor& editor,
@@ -100,13 +106,18 @@ namespace LEPICKDRAG {
 
 		ImGuiIO& io = ImGui::GetIO();
 
-		// Q = Select, T = Combined gizmo (move + scale + rotate)
+		// Q = Select, T = Rect (move + scale), E = Rotate (ring-only)
 		if (!io.WantCaptureKeyboard) {
 			if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
 				sCurrentTool = TransformTool::Select;
 			}
 			if (ImGui::IsKeyPressed(ImGuiKey_T)) {
-				sCurrentTool = TransformTool::Rotate; // combined tool
+				// "move/scale" tool (no rotation)
+				sCurrentTool = TransformTool::Rect;
+			}
+			if (ImGui::IsKeyPressed(ImGuiKey_E)) {
+				// "rotate" tool (ring only)
+				sCurrentTool = TransformTool::Rotate;
 			}
 		}
 
@@ -151,7 +162,8 @@ namespace LEPICKDRAG {
 			bool startedFromGizmo = false;
 
 			// Only show gizmo in combined tool, not in Select
-			if (sCurrentTool == TransformTool::Rotate && selectedObjectId >= 0 && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+			if ((sCurrentTool == TransformTool::Rect || sCurrentTool == TransformTool::Rotate) &&
+				selectedObjectId >= 0 && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 				GameObject* sel = scene.GetGameObjectByID(selectedObjectId);
 				if (sel) {
 					const glm::vec3 pos = sel->GetPositionGLM();
@@ -174,6 +186,21 @@ namespace LEPICKDRAG {
 					ImVec2 tl = gfx.WorldToSceneImage(worldTL);
 					ImVec2 tr = gfx.WorldToSceneImage(worldTR);
 
+					// Screen-space AABB that matches the yellow rect
+					ImVec2 rectMin{
+						std::min(std::min(tl.x, tr.x), std::min(bl.x, br.x)),
+						std::min(std::min(tl.y, tr.y), std::min(bl.y, br.y))
+					};
+					ImVec2 rectMax{
+						std::max(std::max(tl.x, tr.x), std::max(bl.x, br.x)),
+						std::max(std::max(tl.y, tr.y), std::max(bl.y, br.y))
+					};
+
+					// World-space body AABB for the selected object
+					bool insideBodyWorld =
+						(mouseWorld.x >= pos.x - hx && mouseWorld.x <= pos.x + hx) &&
+						(mouseWorld.y >= pos.y - hy && mouseWorld.y <= pos.y + hy);
+
 					// Midpoints for edge handles
 					ImVec2 topMid{
 						0.5f * (tl.x + tr.x),
@@ -193,21 +220,25 @@ namespace LEPICKDRAG {
 					};
 
 					// ROTATION RING
-					{
+					if (!startedFromGizmo && sCurrentTool == TransformTool::Rotate) {
 						float radiusWorld = std::max(hx, hy) * 1.3f;
 						glm::vec2 worldCirclePoint{ pos.x + radiusWorld, pos.y };
 						ImVec2 circleEdgeScreen = gfx.WorldToSceneImage(worldCirclePoint);
+
 						float radiusScreen = std::sqrt(
 							(circleEdgeScreen.x - centerScreen.x) * (circleEdgeScreen.x - centerScreen.x) +
 							(circleEdgeScreen.y - centerScreen.y) * (circleEdgeScreen.y - centerScreen.y));
 
 						const float circleHitThickness = 10.0f;
+
 						bool onOuter = IsPointInCircle(mouseScreen, centerScreen,
 													   radiusScreen + circleHitThickness);
 						bool onInner = IsPointInCircle(mouseScreen, centerScreen,
 													   radiusScreen - circleHitThickness);
 
-						if (onOuter && !onInner) {
+						bool insideRectScreen = IsPointInRect(mouseScreen, rectMin, rectMax);
+
+						if (!insideRectScreen && onOuter && !onInner) {
 							// Clicked on ring: prepare rotation drag (no rotation until movement)
 							LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
 							sDragMode = DragMode::Rotate;
@@ -220,12 +251,21 @@ namespace LEPICKDRAG {
 							isDragging = true;
 							draggingId = selectedObjectId;
 							sRotateDragging = false;
+
+							// initialize incremental rotation state
+							glm::vec2 center{ sDragStartPos.x, sDragStartPos.y };
+							sLastMouseAngleRad = std::atan2(
+								mouseWorld.y - center.y,
+								mouseWorld.x - center.x
+							);
+							sCurrentRotDegDrag = sDragStartRotDeg;
+
 							startedFromGizmo = true;
 						}
 					}
 
 					// SCALE HANDLES (corners + edges)
-					if (!startedFromGizmo) {
+					if (!startedFromGizmo && sCurrentTool == TransformTool::Rect) {
 						const float handleSize = 6.0f;
 						const float hitSize = handleSize + 3.0f;
 
@@ -301,7 +341,7 @@ namespace LEPICKDRAG {
 					}
 
 					// MOVE ARROWS (X / Y axis)
-					if (!startedFromGizmo) {
+					if (!startedFromGizmo && sCurrentTool == TransformTool::Rect) {
 						const float arrowLenWorld = 64.0f;
 						glm::vec2 worldXEnd{ pos.x + arrowLenWorld, pos.y };
 						glm::vec2 worldYEnd{ pos.x, pos.y - arrowLenWorld };
@@ -309,7 +349,7 @@ namespace LEPICKDRAG {
 						ImVec2 xEndScreen = gfx.WorldToSceneImage(worldXEnd);
 						ImVec2 yEndScreen = gfx.WorldToSceneImage(worldYEnd);
 
-						const float handleRadius = 12.0f;
+						const float handleRadius = 20.0f;
 
 						if (IsPointNearLineEnd(mouseScreen, xEndScreen, handleRadius)) {
 							LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
@@ -339,6 +379,29 @@ namespace LEPICKDRAG {
 							draggingId = selectedObjectId;
 							startedFromGizmo = true;
 						}
+					}
+
+					// If nothing else (ring/handles/arrows) claimed the click, body move wins
+					if (!startedFromGizmo &&
+						sCurrentTool == TransformTool::Rect &&
+						insideBodyWorld) {
+
+						LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
+
+						sDragMode = DragMode::Move;
+						sActiveAxis = ActiveAxis::XY;
+						sDragStartPos = pos;
+						sDragStartScale = sz;
+						sDragStartRotDeg = glm::degrees(sel->GetRotationAngleZ());
+						sDragStartMouseWorld = mouseWorld;
+						sDragStartMouseScreen = mouseScreen;
+						grabOffset = ImVec2(mouseWorld.x - pos.x,
+											mouseWorld.y - pos.y);
+
+						isDragging = true;
+						draggingId = selectedObjectId;
+						sRotateDragging = false;
+						startedFromGizmo = true;
 					}
 				}
 			}
@@ -383,8 +446,8 @@ namespace LEPICKDRAG {
 					grabOffset = ImVec2(mouseWorld.x - p.x,
 										mouseWorld.y - p.y);
 
-					// If in combined tool, clicking body starts Move
-					if (sCurrentTool == TransformTool::Rotate) {
+					// If in Rect tool, clicking body starts Move
+					if (sCurrentTool == TransformTool::Rect) {
 						LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
 						sDragMode = DragMode::Move;
 						sActiveAxis = ActiveAxis::XY;
@@ -457,25 +520,41 @@ namespace LEPICKDRAG {
 
 							if (!sRotateDragging) {
 								if (distSq < pixelThreshold * pixelThreshold) {
-									// treat as click so far
+									// treat as click so far (no rotation yet)
 									break;
 								}
 								sRotateDragging = true;
 							}
 
 							glm::vec2 center{ sDragStartPos.x, sDragStartPos.y };
-							float startAngle = std::atan2(
-								sDragStartMouseWorld.y - center.y,
-								sDragStartMouseWorld.x - center.x);
+
+							// angle of current mouse position around pivot
 							float currentAngle = std::atan2(
 								mouseWorld.y - center.y,
 								mouseWorld.x - center.x);
 
-							float deltaAngleDeg = glm::degrees(currentAngle - startAngle);
-							float sensitivity = 0.05f;
-							deltaAngleDeg *= sensitivity;
+							// incremental angle step since last frame, wrapped to [-pi, pi]
+							float deltaStep = currentAngle - sLastMouseAngleRad;
+							const float pi = 3.14159265358979323846f;
+							if (deltaStep > pi) {
+								deltaStep -= 2.0f * pi;
+							}
+							else if (deltaStep < -pi) {
+								deltaStep += 2.0f * pi;
+							}
 
-							newRotDeg = sDragStartRotDeg + deltaAngleDeg;
+							float deltaStepDeg = glm::degrees(deltaStep);
+
+							// rotation sensitivity (you can tweak this)
+							float sensitivity = 0.8f;
+							deltaStepDeg *= sensitivity;
+
+							// accumulate rotation in degrees
+							sCurrentRotDegDrag += deltaStepDeg;
+							newRotDeg = sCurrentRotDegDrag;
+
+							// store for next frame
+							sLastMouseAngleRad = currentAngle;
 						}
 						break;
 					}
@@ -520,11 +599,13 @@ namespace LEPICKDRAG {
 		}
 
 		// Gizmo drawing (combined)
-		if (selectedObjectId >= 0 && sCurrentTool == TransformTool::Rotate) {
+		if (selectedObjectId >= 0 &&
+			(sCurrentTool == TransformTool::Rect || sCurrentTool == TransformTool::Rotate)) {
 			GameObject* sel = scene.GetGameObjectByID(selectedObjectId);
 			if (sel) {
 				const glm::vec3 pos = sel->GetPositionGLM();
 				const glm::vec3 sz = sel->GetScaleGLM();
+
 				const float hx = 0.5f * sz.x;
 				const float hy = 0.5f * sz.y;
 
@@ -546,42 +627,44 @@ namespace LEPICKDRAG {
 				dl->AddLine(br, bl, rectCol, 2.0f);
 				dl->AddLine(bl, tl, rectCol, 2.0f);
 
-				// Scale handles
-				const float handleSize = 6.0f;
-				const ImU32 handleCol = IM_COL32(255, 200, 0, 255);
+				// Scale handles — Rect tool only
+				if (sCurrentTool == TransformTool::Rect) {
+					const float handleSize = 6.0f;
+					const ImU32 handleCol = IM_COL32(255, 200, 0, 255);
 
-				auto DrawHandle = [&](ImVec2 p) {
-					ImVec2 a{ p.x - handleSize, p.y - handleSize };
-					ImVec2 b{ p.x + handleSize, p.y + handleSize };
-					dl->AddRectFilled(a, b, handleCol);
-				};
+					auto DrawHandle = [&](ImVec2 p) {
+						ImVec2 a{ p.x - handleSize, p.y - handleSize };
+						ImVec2 b{ p.x + handleSize, p.y + handleSize };
+						dl->AddRectFilled(a, b, handleCol);
+					};
 
-				DrawHandle(tl);
-				DrawHandle(tr);
-				DrawHandle(bl);
-				DrawHandle(br);
+					DrawHandle(tl);
+					DrawHandle(tr);
+					DrawHandle(bl);
+					DrawHandle(br);
 
-				ImVec2 topMid{
-					0.5f * (tl.x + tr.x),
-					0.5f * (tl.y + tr.y)
-				};
-				ImVec2 bottomMid{
-					0.5f * (bl.x + br.x),
-					0.5f * (bl.y + br.y)
-				};
-				ImVec2 leftMid{
-					0.5f * (tl.x + bl.x),
-					0.5f * (tl.y + bl.y)
-				};
-				ImVec2 rightMid{
-					0.5f * (tr.x + br.x),
-					0.5f * (tr.y + br.y)
-				};
+					ImVec2 topMid{
+						0.5f * (tl.x + tr.x),
+						0.5f * (tl.y + tr.y)
+					};
+					ImVec2 bottomMid{
+						0.5f * (bl.x + br.x),
+						0.5f * (bl.y + br.y)
+					};
+					ImVec2 leftMid{
+						0.5f * (tl.x + bl.x),
+						0.5f * (tl.y + bl.y)
+					};
+					ImVec2 rightMid{
+						0.5f * (tr.x + br.x),
+						0.5f * (tr.y + br.y)
+					};
 
-				DrawHandle(topMid);
-				DrawHandle(bottomMid);
-				DrawHandle(leftMid);
-				DrawHandle(rightMid);
+					DrawHandle(topMid);
+					DrawHandle(bottomMid);
+					DrawHandle(leftMid);
+					DrawHandle(rightMid);
+				}
 
 				// Pivot marker
 				glm::vec2 worldCenter{ pos.x, pos.y };
@@ -595,36 +678,40 @@ namespace LEPICKDRAG {
 							ImVec2(centerScreen.x, centerScreen.y + pivotSize),
 							pivotCol, 2.0f);
 
-				// Move arrows
-				const float arrowLenWorld = 64.0f;
-				glm::vec2 worldXEnd{ pos.x + arrowLenWorld, pos.y };
-				glm::vec2 worldYEnd{ pos.x, pos.y - arrowLenWorld };
+				// Move arrows — Rect tool only
+				if (sCurrentTool == TransformTool::Rect) {
+					const float arrowLenWorld = 64.0f;
+					glm::vec2 worldXEnd{ pos.x + arrowLenWorld, pos.y };
+					glm::vec2 worldYEnd{ pos.x, pos.y - arrowLenWorld };
 
-				ImVec2 xEndScreen = gfx.WorldToSceneImage(worldXEnd);
-				ImVec2 yEndScreen = gfx.WorldToSceneImage(worldYEnd);
+					ImVec2 xEndScreen = gfx.WorldToSceneImage(worldXEnd);
+					ImVec2 yEndScreen = gfx.WorldToSceneImage(worldYEnd);
 
-				ImU32 xCol = IM_COL32(255, 100, 100, 255);
-				ImU32 yCol = IM_COL32(100, 255, 100, 255);
+					ImU32 xCol = IM_COL32(255, 100, 100, 255);
+					ImU32 yCol = IM_COL32(100, 255, 100, 255);
 
-				dl->AddLine(centerScreen, xEndScreen, xCol, 3.0f);
-				ImVec2 tipX1{ xEndScreen.x - 6.0f, xEndScreen.y - 4.0f };
-				ImVec2 tipX2{ xEndScreen.x - 6.0f, xEndScreen.y + 4.0f };
-				dl->AddTriangleFilled(xEndScreen, tipX1, tipX2, xCol);
+					dl->AddLine(centerScreen, xEndScreen, xCol, 3.0f);
+					ImVec2 tipX1{ xEndScreen.x - 6.0f, xEndScreen.y - 4.0f };
+					ImVec2 tipX2{ xEndScreen.x - 6.0f, xEndScreen.y + 4.0f };
+					dl->AddTriangleFilled(xEndScreen, tipX1, tipX2, xCol);
 
-				dl->AddLine(centerScreen, yEndScreen, yCol, 3.0f);
-				ImVec2 tipY1{ yEndScreen.x - 4.0f, yEndScreen.y + 6.0f };
-				ImVec2 tipY2{ yEndScreen.x + 4.0f, yEndScreen.y + 6.0f };
-				dl->AddTriangleFilled(yEndScreen, tipY1, tipY2, yCol);
+					dl->AddLine(centerScreen, yEndScreen, yCol, 3.0f);
+					ImVec2 tipY1{ yEndScreen.x - 4.0f, yEndScreen.y + 6.0f };
+					ImVec2 tipY2{ yEndScreen.x + 4.0f, yEndScreen.y + 6.0f };
+					dl->AddTriangleFilled(yEndScreen, tipY1, tipY2, yCol);
+				}
 
-				// Rotation circle
-				float radiusWorld = std::max(hx, hy) * 1.3f;
-				glm::vec2 worldCirclePoint{ pos.x + radiusWorld, pos.y };
-				ImVec2 circleEdgeScreen = gfx.WorldToSceneImage(worldCirclePoint);
-				float radiusScreen = std::sqrt(
-					(circleEdgeScreen.x - centerScreen.x) * (circleEdgeScreen.x - centerScreen.x) +
-					(circleEdgeScreen.y - centerScreen.y) * (circleEdgeScreen.y - centerScreen.y));
-				ImU32 circleCol = IM_COL32(0, 200, 255, 255);
-				dl->AddCircle(centerScreen, radiusScreen, circleCol, 64, 2.0f);
+				// Rotation circle — Rotate tool only
+				if (sCurrentTool == TransformTool::Rotate) {
+					float radiusWorld = std::max(hx, hy) * 1.3f;
+					glm::vec2 worldCirclePoint{ pos.x + radiusWorld, pos.y };
+					ImVec2 circleEdgeScreen = gfx.WorldToSceneImage(worldCirclePoint);
+					float radiusScreen = std::sqrt(
+						(circleEdgeScreen.x - centerScreen.x) * (circleEdgeScreen.x - centerScreen.x) +
+						(circleEdgeScreen.y - centerScreen.y) * (circleEdgeScreen.y - centerScreen.y));
+					ImU32 circleCol = IM_COL32(0, 200, 255, 255);
+					dl->AddCircle(centerScreen, radiusScreen, circleCol, 64, 2.0f);
+				}
 			}
 		}
 	}
