@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <unordered_map>
 
 #ifdef _DEBUG
 #include <imgui.h>
@@ -105,11 +106,40 @@ namespace LEPANELPREFABS {
 		static char prefabPathBuf[256] = "../prefabs/my_goat.json";
 		static std::vector<std::string> sPrefabs = ListJsonFiles("../prefabs");
 
+		// Cache for prefab thumbnails (keyed by prefab JSON path)
+		static std::unordered_map<std::string, Texture*> sPrefabPreviewCache;
+
 		ImGui::TextUnformatted("Prefab path");
 		ImGui::SameLine();
 
 		if (ImGui::Button("Refresh##pf")) {
 			sPrefabs = ListJsonFiles("../prefabs");
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("Import Prefab...")) {
+			const std::string picked =
+				OpenFileDialog("JSON files\0*.json\0All files\0*.*\0");
+
+			if (!picked.empty()) {
+				const std::string targetDir = "../prefabs";
+
+				const std::string projPath = CopyFileIntoProjectUnique(picked, targetDir);
+
+				if (!projPath.empty()) {
+					// Rebuild list in this panel
+					sPrefabs = ListJsonFiles("../prefabs");
+
+					// Optional: auto-select the imported prefab in the combo
+					fs::path filename = fs::path(projPath).filename();
+					std::string displayPath = "../prefabs/" + filename.string();
+					std::snprintf(prefabPathBuf,
+								  sizeof(prefabPathBuf),
+								  "%s",
+								  displayPath.c_str());
+				}
+			}
 		}
 
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -135,6 +165,93 @@ namespace LEPANELPREFABS {
 		EnsureJsonExt(prefabPath);
 		const bool prefabExists = fs::exists(prefabPath);
 
+		// Prefab list
+		ImGui::Spacing();
+		ImGui::SeparatorText("Prefab Library");
+
+		if (ImGui::Button("Refresh##pf_list")) {
+			sPrefabs = ListJsonFiles("../prefabs");
+			sPrefabPreviewCache.clear();
+		}
+
+		// Scrollable area for prefab thumbnails + paths
+		ImGui::BeginChild("##PrefabList", ImVec2(0, 200.0f), true);
+
+		bool refreshPrefabs = false;
+		const float iconSize = 32.0f;
+
+		for (const auto& path : sPrefabs) {
+			ImGui::PushID(path.c_str());
+
+			// Fetch or build a thumbnail for this prefab
+			Texture* previewTex = nullptr;
+			auto it = sPrefabPreviewCache.find(path);
+			if (it != sPrefabPreviewCache.end()) {
+				previewTex = it->second;
+			}
+			else {
+				LevelObject data{};
+				if (LoadPrefabFromFile(path, data) && !data.texture.empty()) {
+					previewTex = LoadTextureBypassingCache(data.texture);
+				}
+
+				// Cache even nullptr so we don't keep trying failed loads
+				sPrefabPreviewCache[path] = previewTex;
+			}
+
+			// Draw thumbnail
+			if (previewTex) {
+				ImTextureID texID = (ImTextureID)(intptr_t)previewTex->GetID();
+				ImGui::Image(texID,
+							 ImVec2(iconSize, iconSize),
+							 ImVec2(0, 1),
+							 ImVec2(1, 0));
+				ImGui::SameLine();
+			}
+
+			// Highlight currently selected prefab (the one in prefabPathBuf)
+			bool isSelected = (std::strcmp(prefabPathBuf, path.c_str()) == 0);
+			if (ImGui::Selectable(path.c_str(), isSelected,
+								  0, ImVec2(0.0f, iconSize))) {
+				// Clicking on list item updates the active prefab path
+				std::snprintf(prefabPathBuf,
+							  sizeof(prefabPathBuf),
+							  "%s", path.c_str());
+			}
+
+			// Drag source: other panels can accept "PREFAB_PATH"
+			if (ImGui::BeginDragDropSource()) {
+				ImGui::SetDragDropPayload("PREFAB_PATH",
+										  path.c_str(),
+										  path.size() + 1);
+				ImGui::TextUnformatted("Prefab");
+				ImGui::TextWrapped("%s", path.c_str());
+				ImGui::EndDragDropSource();
+			}
+
+			// Right-click: soft delete
+			if (ImGui::BeginPopupContextItem(
+				(std::string("ctx_prefab##") + path).c_str())) {
+				if (ImGui::MenuItem("Delete")) {
+					if (MoveToTrash(path)) {
+						refreshPrefabs = true;
+						sPrefabPreviewCache.erase(path);
+					}
+				}
+				ImGui::EndPopup();
+			}
+
+			ImGui::PopID();
+		}
+
+		if (refreshPrefabs) {
+			sPrefabs = ListJsonFiles("../prefabs");
+			sPrefabPreviewCache.clear();
+		}
+
+		ImGui::EndChild();
+
+		// Existing spacing + separator
 		ImGui::Spacing();
 		ImGui::Separator();
 		ImGui::Spacing();

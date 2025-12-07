@@ -44,7 +44,9 @@ namespace fs = std::filesystem;
 using namespace LEFILEIO;
 
 // Forward declaration and external declaration for ApplicationState from Main.cpp
-namespace CoreFramework { class CoreEngine; }
+namespace CoreFramework {
+	class CoreEngine;
+}
 
 struct ApplicationState {
 	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
@@ -60,10 +62,10 @@ namespace {
 
 		// Convert backslashes to forward slashes
 		std::replace(normalized.begin(), normalized.end(), '\\', '/');
-		
+
 		// Keep relative paths as-is (don't try to make them absolute)
 		// FMOD can handle relative paths just fine
-		
+
 		return normalized;
 	}
 
@@ -73,13 +75,13 @@ namespace {
 		std::string lowerName = name;
 		std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
 					   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-		
+
 		// Check for common prefixes
 		if (lowerName.find("ui_") == 0) return "ui";
 		if (lowerName.find("sfx_") == 0) return "sfx";
 		if (lowerName.find("bgm_") == 0) return "bgm";
 		if (lowerName.find("ambient_") == 0) return "ambient";
-		
+
 		// Default to "other" if no recognized prefix
 		return "other";
 	}
@@ -125,17 +127,11 @@ namespace LEPANELASSETS {
 		static std::vector<std::string> sTextures =
 			ListAssetsWithExt("../../assets", { ".png", ".jpg", ".jpeg" });
 
-		static std::vector<std::string> sPrefabs =
-			ListAssetsWithExt("../../prefabs", { ".json" });
-
 		// Audio (.wav, .mp3) across assets + assets/Audio
 		static std::vector<std::string> sAudio = BuildAudioList();
 
 		// Cache to avoid reloading preview textures every frame
 		static std::unordered_map<std::string, Texture*> sTexturePreviewCache;
-
-		// Cache for prefab thumbnails (keyed by prefab JSON path)
-		static std::unordered_map<std::string, Texture*> sPrefabPreviewCache;
 
 		// Audio icon for audio assets
 		static Texture* sAudioIcon = nullptr;
@@ -193,27 +189,6 @@ namespace LEPANELASSETS {
 
 		ImGui::SameLine();
 
-		if (ImGui::Button("Import Prefab...")) {
-			const std::string picked =
-				OpenFileDialog("JSON files\0*.json\0All files\0*.*\0");
-
-			if (!picked.empty()) {
-				// Import to SOURCE directory (../../prefabs from build/Release)
-				const std::string projPath =
-					CopyFileIntoProjectUnique(picked, "../../prefabs");
-
-				if (!projPath.empty()) {
-					// Refresh list after copy
-					sPrefabs = ListAssetsWithExt("../../prefabs", { ".json" });
-
-					// Invalidate prefab preview thumbnails so they reload
-					sPrefabPreviewCache.clear();
-				}
-			}
-		}
-
-		ImGui::SameLine();
-
 		// Import Audio (.wav and .mp3 supported)
 		if (ImGui::Button("Import Audio...")) {
 			const std::string picked =
@@ -226,7 +201,7 @@ namespace LEPANELASSETS {
 				std::string ext;
 				const size_t dot = picked.find_last_of('.');
 				if (dot != std::string::npos) {
-				 ext = picked.substr(dot);
+					ext = picked.substr(dot);
 				}
 
 				std::transform(ext.begin(), ext.end(), ext.begin(),
@@ -243,7 +218,7 @@ namespace LEPANELASSETS {
 					// Use ../../assets/Audio to go from build/Release up to project root, then into source assets
 					const std::string targetDir = "../../assets/Audio";
 					std::cout << "[Assets Panel] Copying to: " << targetDir << std::endl;
-					
+
 					// Copy into project audio folder (SOURCE directory, not build)
 					const std::string projPath =
 						CopyFileIntoProjectUnique(picked, targetDir);
@@ -298,7 +273,7 @@ namespace LEPANELASSETS {
 									newAsset.loop,
 									newAsset.stream
 								);
-								
+
 								// Save catalog to SOURCE directory (../../assets from build/Release)
 								const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
 								if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
@@ -430,7 +405,7 @@ namespace LEPANELASSETS {
 				if (ImGui::BeginDragDropSource()) {
 					ImGui::SetDragDropPayload("ASSET_PATH", path.c_str(), path.size() + 1);
 					ImGui::TextUnformatted("Texture");
-				 ImGui::TextWrapped("%s", path.c_str());
+					ImGui::TextWrapped("%s", path.c_str());
 					ImGui::EndDragDropSource();
 				}
 
@@ -450,81 +425,6 @@ namespace LEPANELASSETS {
 
 			if (refreshTextures) {
 				sTextures = ListAssetsWithExt("../../assets", { ".png", ".jpg", ".jpeg" });
-			}
-		}
-
-		// Prefabs section
-		if (ImGui::CollapsingHeader("Prefabs", ImGuiTreeNodeFlags_DefaultOpen)) {
-			if (ImGui::Button("Refresh##pf")) {
-			 sPrefabs = ListAssetsWithExt("../../prefabs", { ".json" });
-			 sPrefabPreviewCache.clear();
-			}
-
-			bool refreshPrefabs = false;
-
-			for (const auto& path : sPrefabs) {
-				ImGui::PushID(path.c_str());
-
-				// Fetch or build a thumbnail for this prefab
-				Texture* previewTex = nullptr;
-				auto it = sPrefabPreviewCache.find(path);
-				if (it != sPrefabPreviewCache.end()) {
-					previewTex = it->second;
-				}
-				else {
-					LevelObject data{};
-					if (LoadPrefabFromFile(path, data) && !data.texture.empty()) {
-						// Reuse the same texture loader as the texture list
-						previewTex = LoadTextureBypassingCache(data.texture);
-					}
-
-					// Cache even nullptr so we don't keep trying failed loads
-					sPrefabPreviewCache[path] = previewTex;
-				}
-
-				const float iconSize = 32.0f;
-
-				// Draw prefab sprite thumbnail (if any), then the file name
-				if (previewTex) {
-					ImTextureID texID = (ImTextureID)(intptr_t)previewTex->GetID();
-					ImGui::Image(
-						texID,
-						ImVec2(iconSize, iconSize),
-						ImVec2(0, 1),
-						ImVec2(1, 0)
-					);
-					ImGui::SameLine();
-				}
-
-				ImGui::Selectable(path.c_str(), false, 0, ImVec2(0.0f, iconSize));
-
-				// Drag source (instantiate/apply in Level panel targets)
-				if (ImGui::BeginDragDropSource()) {
-					ImGui::SetDragDropPayload("PREFAB_PATH", path.c_str(), path.size() + 1);
-					ImGui::TextUnformatted("Prefab");
-					ImGui::TextWrapped("%s", path.c_str());
-					ImGui::EndDragDropSource();
-				}
-
-				// Context menu: soft delete
-				if (ImGui::BeginPopupContextItem((std::string("ctx_prefab##") + path).c_str())) {
-					if (ImGui::MenuItem("Delete")) {
-						if (MoveToTrash(path)) {
-							refreshPrefabs = true;
-							// Also drop the cached thumbnail for this prefab
-						 sPrefabPreviewCache.erase(path);
-						}
-					}
-
-					ImGui::EndPopup();
-				}
-
-				ImGui::PopID();
-			}
-
-			if (refreshPrefabs) {
-				sPrefabs = ListAssetsWithExt("../../prefabs", { ".json" });
-			 sPrefabPreviewCache.clear();
 			}
 		}
 
@@ -653,7 +553,7 @@ namespace LEPANELASSETS {
 				static std::string editingName = "";
 				static bool editMode = false;
 				static Audio::AudioAsset editBuffer;
-				
+
 				// State for tracking which audio is currently playing (for UI feedback)
 				static std::string currentlyPlaying = "";
 
@@ -729,11 +629,11 @@ namespace LEPANELASSETS {
 							ImGui::Text("Stream: %s", asset.stream?"Yes":"No");
 							ImGui::Text("Volume: %.2f", asset.volume);
 							ImGui::TextWrapped("File: %s", asset.filepath.c_str());
-							
+
 							ImGui::Spacing();
 							ImGui::Separator();
 							ImGui::Spacing();
-							
+
 							// Play/Stop buttons for audio preview
 							if (isPlaying) {
 								// Show stop button if this audio is playing
@@ -745,19 +645,20 @@ namespace LEPANELASSETS {
 										std::cout << "[Assets Panel] Stopped preview: " << asset.name << std::endl;
 									}
 								}
-							} else {
+							}
+							else {
 								// Show play button
 								if (ImGui::Button("Play Preview", ImVec2(120, 0))) {
 									// Stop any currently playing preview first
 									if (!currentlyPlaying.empty() && g_AppState && g_AppState->coreEngine) {
 										g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(currentlyPlaying);
 									}
-									
+
 									// Play via MessageBus
 									if (g_AppState && g_AppState->coreEngine) {
 										g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>(
-											asset.name, 
-											asset.volume, 
+											asset.name,
+											asset.volume,
 											false  // Don't pause
 										);
 										currentlyPlaying = asset.name;
@@ -765,7 +666,7 @@ namespace LEPANELASSETS {
 									}
 								}
 							}
-							
+
 							ImGui::SameLine();
 
 							if (ImGui::Button("Edit")) {
@@ -777,7 +678,7 @@ namespace LEPANELASSETS {
 							if (ImGui::Button("Remove")) {
 								// Stop if currently playing
 								if (isPlaying && g_AppState && g_AppState->coreEngine) {
-								 g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
+									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
 									currentlyPlaying = "";
 								}
 								ImGui::OpenPopup("Confirm Remove Audio");
@@ -880,7 +781,7 @@ namespace LEPANELASSETS {
 								newAsset.loop,
 								newAsset.stream
 							);
-							
+
 							// Auto-save catalog to SOURCE directory after successful addition
 							const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
 							if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
@@ -914,7 +815,7 @@ namespace LEPANELASSETS {
 			}
 
 			if (refreshAudio) {
-			 sAudio = BuildAudioList();
+				sAudio = BuildAudioList();
 			}
 		}
 
