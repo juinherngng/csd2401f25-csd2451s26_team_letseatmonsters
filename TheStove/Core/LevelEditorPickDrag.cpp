@@ -58,6 +58,11 @@ namespace LEPICKDRAG {
 		XY
 	};
 
+	struct GizmoColliderBox {
+		glm::vec3 centerWorld;  // collider center in world space (x,y,z)
+		glm::vec2 sizeWorld;    // full width/height in world units
+	};
+
 	// Current active tool (defaults to combined rect gizmo)
 	static TransformTool sCurrentTool = TransformTool::Rect;
 
@@ -113,6 +118,60 @@ namespace LEPICKDRAG {
 		const float dx = p.x - end.x;
 		const float dy = p.y - end.y;
 		return (dx * dx + dy * dy) <= radius * radius;
+	}
+
+	static void ComputeWorldCorners(const glm::vec3& pos,
+									const glm::vec3& scale,
+									float rotDeg,
+									glm::vec2& outTL,
+									glm::vec2& outTR,
+									glm::vec2& outBL,
+									glm::vec2& outBR) {
+		const float hx = 0.5f * scale.x;
+		const float hy = 0.5f * scale.y;
+
+		const float rotRad = glm::radians(rotDeg);
+		const float c = std::cos(rotRad);
+		const float s = std::sin(rotRad);
+
+		auto TransformLocal = [&](float lx, float ly) -> glm::vec2 {
+			const float rx = lx * c - ly * s;
+			const float ry = lx * s + ly * c;
+			return glm::vec2{ pos.x + rx, pos.y + ry };
+		};
+
+		// y+ is downwards in your world, so top = -hy, bottom = +hy
+		outTL = TransformLocal(-hx, -hy);
+		outTR = TransformLocal(hx, -hy);
+		outBL = TransformLocal(-hx, hy);
+		outBR = TransformLocal(hx, hy);
+	}
+
+	static bool GetColliderBoxWorld(GameObject* obj,
+									glm::vec3& outCenter,
+									glm::vec3& outSize) {
+		// Collider size & offset are stored in Math::Vector2D on GameObject
+		Math::Vector2D sizeM = obj->GetColliderSize();
+		Math::Vector2D offsetM = obj->GetColliderOffset();
+
+		// If collider is not set up, skip
+		if (sizeM.x <= 0.0f || sizeM.y <= 0.0f) {
+			return false;
+		}
+
+		glm::vec3 pos = obj->GetPositionGLM();
+
+		// Center = sprite position + offset
+		outCenter = glm::vec3(
+			pos.x + offsetM.x,
+			pos.y + offsetM.y,
+			pos.z
+		);
+
+		// Full size = collider size (same as your DrawBoundingBox logic)
+		outSize = glm::vec3(sizeM.x, sizeM.y, 1.0f);
+
+		return true;
 	}
 
 	void HandleScenePickDrag(LevelEditor& editor,
@@ -175,19 +234,18 @@ namespace LEPICKDRAG {
 					glm::vec2 worldCenter{ pos.x, pos.y };
 					ImVec2 centerScreen = gfx.WorldToSceneImage(worldCenter);
 
-					const float hx = 0.5f * sz.x;
-					const float hy = 0.5f * sz.y;
+					// Proper rotated corners in world-space
+					glm::vec2 worldTL{}, worldTR{}, worldBL{}, worldBR{};
+					ComputeWorldCorners(pos, sz, rotDeg, worldTL, worldTR, worldBL, worldBR);
 
-					// World corners (axis-aligned for drawing / picking)
-					glm::vec2 worldBL{ pos.x - hx, pos.y + hy };
-					glm::vec2 worldBR{ pos.x + hx, pos.y + hy };
-					glm::vec2 worldTL{ pos.x - hx, pos.y - hy };
-					glm::vec2 worldTR{ pos.x + hx, pos.y - hy };
-
+					// Convert to screen-space
 					ImVec2 bl = gfx.WorldToSceneImage(worldBL);
 					ImVec2 br = gfx.WorldToSceneImage(worldBR);
 					ImVec2 tl = gfx.WorldToSceneImage(worldTL);
 					ImVec2 tr = gfx.WorldToSceneImage(worldTR);
+
+					const float hx = 0.5f * sz.x;
+					const float hy = 0.5f * sz.y;
 
 					// Screen-space AABB that matches the yellow rect
 					ImVec2 rectMin{
@@ -199,10 +257,23 @@ namespace LEPICKDRAG {
 						std::max(std::max(tl.y, tr.y), std::max(bl.y, br.y))
 					};
 
-					// World-space body AABB (for body / yellow-box test)
-					bool insideBodyWorld =
-						(mouseWorld.x >= pos.x - hx && mouseWorld.x <= pos.x + hx) &&
-						(mouseWorld.y >= pos.y - hy && mouseWorld.y <= pos.y + hy);
+					// World-space body (for body / yellow-box test) using OBB logic
+					bool insideBodyWorld = false;
+					{
+						glm::vec2 local = mouseWorld - glm::vec2{ pos.x, pos.y };
+
+						// Transform mouse into the object's local (unrotated) space
+						const float rotRad = glm::radians(rotDeg);
+						const float c = std::cos(-rotRad); // inverse rotation
+						const float s = std::sin(-rotRad);
+
+						const float lx = local.x * c - local.y * s;
+						const float ly = local.x * s + local.y * c;
+
+						insideBodyWorld =
+							(lx >= -hx && lx <= hx) &&
+							(ly >= -hy && ly <= hy);
+					}
 
 					// Midpoints for edge handles
 					ImVec2 topMid{
@@ -609,21 +680,17 @@ namespace LEPICKDRAG {
 			if (sel) {
 				const glm::vec3 pos = sel->GetPositionGLM();
 				const glm::vec3 sz = sel->GetScaleGLM();
+				const float rotDeg = glm::degrees(sel->GetRotationAngleZ());
 
-				const float hx = 0.5f * sz.x;
-				const float hy = 0.5f * sz.y;
-
-				glm::vec2 worldBL{ pos.x - hx, pos.y + hy };
-				glm::vec2 worldBR{ pos.x + hx, pos.y + hy };
-				glm::vec2 worldTL{ pos.x - hx, pos.y - hy };
-				glm::vec2 worldTR{ pos.x + hx, pos.y - hy };
+				glm::vec2 worldTL{}, worldTR{}, worldBL{}, worldBR{};
+				ComputeWorldCorners(pos, sz, rotDeg, worldTL, worldTR, worldBL, worldBR);
 
 				GraphicsEngine& gfxLocal = GraphicsEngine::Instance();
 
-				ImVec2 bl = gfx.WorldToSceneImage(worldBL);
-				ImVec2 br = gfx.WorldToSceneImage(worldBR);
-				ImVec2 tl = gfx.WorldToSceneImage(worldTL);
-				ImVec2 tr = gfx.WorldToSceneImage(worldTR);
+				ImVec2 bl = gfxLocal.WorldToSceneImage(worldBL);
+				ImVec2 br = gfxLocal.WorldToSceneImage(worldBR);
+				ImVec2 tl = gfxLocal.WorldToSceneImage(worldTL);
+				ImVec2 tr = gfxLocal.WorldToSceneImage(worldTR);
 
 				ImDrawList* dl = ImGui::GetForegroundDrawList();
 
@@ -675,7 +742,7 @@ namespace LEPICKDRAG {
 
 				// Pivot marker (cyan cross)
 				glm::vec2 worldCenter{ pos.x, pos.y };
-				ImVec2 centerScreen = gfx.WorldToSceneImage(worldCenter);
+				ImVec2 centerScreen = gfxLocal.WorldToSceneImage(worldCenter);
 
 				constexpr float pivotSize = 6.0f;
 				const ImU32 pivotCol = IM_COL32(0, 255, 255, 255);

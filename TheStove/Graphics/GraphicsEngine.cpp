@@ -640,7 +640,7 @@ ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
 				w = h * targetAspect;
 			}
 			else {
-				h = w * targetAspect;
+				h = w / targetAspect;
 			}
 
 			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f,
