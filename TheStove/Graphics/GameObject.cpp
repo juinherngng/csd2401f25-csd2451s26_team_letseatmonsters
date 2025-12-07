@@ -21,7 +21,7 @@
 #include "ResourceManager.hpp"
 
 GameObject::GameObject(Mesh* mesh, Shader* shader)
-	: m_Mesh(mesh), m_Shader(shader), m_Position(0.0f), m_Scale(1.0f), m_Rotation(1.0f) {
+	: m_Mesh(mesh), m_Shader(shader), m_Position(0.0f), m_Scale(1.0f), m_Rotation(1.0f), m_RotationAngle(0.0f) {
 	UpdateModelMatrix();
 }
 
@@ -32,6 +32,7 @@ GameObject::GameObject(int objectID)
 	m_Position = glm::vec3(0.0f);
 	m_Scale = glm::vec3(1.0f);
 	m_Rotation = glm::mat4(1.0f);
+	m_RotationAngle = 0.0f;
 	m_Shader = nullptr;
 }
 
@@ -66,7 +67,8 @@ void GameObject::SetScale(const glm::vec3& scale) {
 }
 
 void GameObject::SetRotation(float angleRadians, const glm::vec3& axis) {
-	m_Rotation = glm::rotate(glm::mat4(1.0f), angleRadians, axis);
+	m_RotationAngle = angleRadians;
+	m_Rotation = glm::rotate(glm::mat4(1.0f), m_RotationAngle, axis);
 	UpdateModelMatrix();
 }
 
@@ -131,10 +133,7 @@ glm::vec3 GameObject::GetScaleGLM() const {
 }
 
 float GameObject::GetRotationAngleZ() const {
-	// Extract 2D rotation angle (around Z axis) from rotation matrix
-	// Assuming rotation matrix represents rotation in XY plane
-	float angle = std::atan2(m_Rotation[1][0], m_Rotation[0][0]);
-	return angle;
+	return m_RotationAngle;
 }
 
 bool GameObject::IsAnimated() const {

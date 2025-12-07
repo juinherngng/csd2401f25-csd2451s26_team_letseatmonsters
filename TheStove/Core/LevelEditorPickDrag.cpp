@@ -35,7 +35,16 @@ namespace LEPICKDRAG {
 #ifdef _DEBUG
 
 	enum class TransformTool {
-		Translate,
+		Select,    // Q (no gizmo drag)
+		Translate, // internal / legacy
+		Scale,     // internal / legacy
+		Rotate,	   // internal / legacy
+		Rect       // T (combined move + scale)
+	};
+
+	enum class DragMode {
+		None,
+		Move,
 		Scale,
 		Rotate
 	};
@@ -48,7 +57,7 @@ namespace LEPICKDRAG {
 	};
 
 	// Current active tool (defaults to move/translate)
-	static TransformTool sCurrentTool = TransformTool::Translate;
+	static TransformTool sCurrentTool = TransformTool::Rect;
 
 	// Current active axis while dragging via gizmo
 	static ActiveAxis sActiveAxis = ActiveAxis::None;
@@ -58,6 +67,26 @@ namespace LEPICKDRAG {
 	static glm::vec3 sDragStartPos{ 0.f, 0.f, 0.f };
 	static glm::vec3 sDragStartScale{ 1.f, 1.f, 1.f };
 	static float sDragStartRotDeg = 0.f;
+	static bool sIsRectScaling = false;
+
+	static ImVec2 sDragStartMouseScreen{ 0.f, 0.f };
+	static bool sRotateDragging = false;
+
+	static float sScaleSignX = 1.0f;
+	static float sScaleSignY = 1.0f;
+	static DragMode sDragMode = DragMode::None;
+
+	static void ResetDragState() {
+		sActiveAxis = ActiveAxis::None;
+		sDragMode = DragMode::None;
+		sDragStartMouseWorld = { 0.f, 0.f };
+		sDragStartPos = { 0.f, 0.f, 0.f };
+		sDragStartScale = { 1.f, 1.f, 1.f };
+		sDragStartRotDeg = 0.f;
+
+		sDragStartMouseScreen = ImVec2(0.f, 0.f);
+		sRotateDragging = false;
+	}
 
 	void HandleScenePickDrag(LevelEditor& editor,
 							 Scene& scene,
@@ -69,44 +98,19 @@ namespace LEPICKDRAG {
 			return;
 		}
 
-		// ImGui IO for keyboard checks (used later for Delete key)
 		ImGuiIO& io = ImGui::GetIO();
 
-		// Tool switching: Q = Move, W = Scale, E = Rotate
+		// Q = Select, T = Combined gizmo (move + scale + rotate)
 		if (!io.WantCaptureKeyboard) {
 			if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
-				sCurrentTool = TransformTool::Translate;
+				sCurrentTool = TransformTool::Select;
 			}
-			if (ImGui::IsKeyPressed(ImGuiKey_W)) {
-				sCurrentTool = TransformTool::Scale;
-			}
-			if (ImGui::IsKeyPressed(ImGuiKey_E)) {
-				sCurrentTool = TransformTool::Rotate;
+			if (ImGui::IsKeyPressed(ImGuiKey_T)) {
+				sCurrentTool = TransformTool::Rotate; // combined tool
 			}
 		}
 
-		// Small on-screen HUD so you know which gizmo mode is active
-		ImGui::SetNextWindowBgAlpha(0.35f);
-		ImGui::SetNextWindowPos(ImVec2(10.f, 40.f), ImGuiCond_Always);
-		if (ImGui::Begin("TransformToolHUD", nullptr,
-						 ImGuiWindowFlags_NoDecoration |
-						 ImGuiWindowFlags_AlwaysAutoResize |
-						 ImGuiWindowFlags_NoSavedSettings |
-						 ImGuiWindowFlags_NoInputs)) {
-			const char* modeLabel = "Move";
-			switch (sCurrentTool) {
-				case TransformTool::Translate: modeLabel = "Move (Q)";   break;
-				case TransformTool::Scale: modeLabel = "Scale (W)";  break;
-				case TransformTool::Rotate: modeLabel = "Rotate (E)"; break;
-			}
-
-			ImGui::Text("Gizmo: %s", modeLabel);
-			ImGui::TextDisabled("Q: Move   W: Scale   E: Rotate");
-		}
-
-		ImGui::End();
-
-		// Function-scoped statics follow your naming rule: camelCase with leading underscore.
+		// Persistent drag state
 		static bool isDragging = false;
 		static int draggingId = -1;
 		static ImVec2 grabOffset = ImVec2(0.f, 0.f);
@@ -123,19 +127,31 @@ namespace LEPICKDRAG {
 			return (dx * dx + dy * dy) <= radius * radius;
 		};
 
+		auto IsPointInRect = [](ImVec2 p, ImVec2 mn, ImVec2 mx) {
+			return (p.x >= mn.x && p.x <= mx.x &&
+					p.y >= mn.y && p.y <= mx.y);
+		};
+
 		auto IsPointNearLineEnd = [](ImVec2 p, ImVec2 end, float radius) {
 			float dx = p.x - end.x;
 			float dy = p.y - end.y;
 			return (dx * dx + dy * dy) <= radius * radius;
 		};
 
-		// LMB click: gizmo hit-test first, then object picking
+		// LMB CLICK: start drag
 		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 			sActiveAxis = ActiveAxis::None;
+			sDragMode = DragMode::None;
+			isDragging = false;
+			draggingId = -1;
+			sRotateDragging = false;
+			sDragStartMouseWorld = mouseWorld;
+			sDragStartMouseScreen = mouseScreen;
+
 			bool startedFromGizmo = false;
 
-			// If something is selected, try to start drag from gizmo handles first
-			if (selectedObjectId >= 0) {
+			// Only show gizmo in combined tool, not in Select
+			if (sCurrentTool == TransformTool::Rotate && selectedObjectId >= 0 && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 				GameObject* sel = scene.GetGameObjectByID(selectedObjectId);
 				if (sel) {
 					const glm::vec3 pos = sel->GetPositionGLM();
@@ -144,116 +160,181 @@ namespace LEPICKDRAG {
 					glm::vec2 worldCenter{ pos.x, pos.y };
 					ImVec2 centerScreen = gfx.WorldToSceneImage(worldCenter);
 
-					// Move gizmo: arrows on +X and +Y
-					const float arrowLenWorld = 64.0f;
-					glm::vec2 worldXEnd{ pos.x + arrowLenWorld, pos.y };
-					glm::vec2 worldYEnd{ pos.x, pos.y - arrowLenWorld };
+					const float hx = 0.5f * sz.x;
+					const float hy = 0.5f * sz.y;
 
-					ImVec2 xEndScreen = gfx.WorldToSceneImage(worldXEnd);
-					ImVec2 yEndScreen = gfx.WorldToSceneImage(worldYEnd);
+					// Basic rect corners in world space
+					glm::vec2 worldBL{ pos.x - hx, pos.y + hy };
+					glm::vec2 worldBR{ pos.x + hx, pos.y + hy };
+					glm::vec2 worldTL{ pos.x - hx, pos.y - hy };
+					glm::vec2 worldTR{ pos.x + hx, pos.y - hy };
 
-					// Rotate gizmo: circle around object (radius from bbox)
-					float hx = 0.5f * sz.x;
-					float hy = 0.5f * sz.y;
-					float radiusWorld = std::max(hx, hy) * 1.3f;
-					glm::vec2 worldCirclePoint{ pos.x + radiusWorld, pos.y };
-					ImVec2 circleEdgeScreen = gfx.WorldToSceneImage(worldCirclePoint);
-					float radiusScreen = std::sqrt(
-						(circleEdgeScreen.x - centerScreen.x) * (circleEdgeScreen.x - centerScreen.x) +
-						(circleEdgeScreen.y - centerScreen.y) * (circleEdgeScreen.y - centerScreen.y));
+					ImVec2 bl = gfx.WorldToSceneImage(worldBL);
+					ImVec2 br = gfx.WorldToSceneImage(worldBR);
+					ImVec2 tl = gfx.WorldToSceneImage(worldTL);
+					ImVec2 tr = gfx.WorldToSceneImage(worldTR);
 
-					// Decide based on current tool
-					if (sCurrentTool == TransformTool::Translate) {
-						// Prioritise axis handles over free-move
-						const float handleRadius = 12.0f;
-						if (IsPointNearLineEnd(mouseScreen, xEndScreen, handleRadius)) {
-							// X-axis move
+					// Midpoints for edge handles
+					ImVec2 topMid{
+						0.5f * (tl.x + tr.x),
+						0.5f * (tl.y + tr.y)
+					};
+					ImVec2 bottomMid{
+						0.5f * (bl.x + br.x),
+						0.5f * (bl.y + br.y)
+					};
+					ImVec2 leftMid{
+						0.5f * (tl.x + bl.x),
+						0.5f * (tl.y + bl.y)
+					};
+					ImVec2 rightMid{
+						0.5f * (tr.x + br.x),
+						0.5f * (tr.y + br.y)
+					};
+
+					// ROTATION RING
+					{
+						float radiusWorld = std::max(hx, hy) * 1.3f;
+						glm::vec2 worldCirclePoint{ pos.x + radiusWorld, pos.y };
+						ImVec2 circleEdgeScreen = gfx.WorldToSceneImage(worldCirclePoint);
+						float radiusScreen = std::sqrt(
+							(circleEdgeScreen.x - centerScreen.x) * (circleEdgeScreen.x - centerScreen.x) +
+							(circleEdgeScreen.y - centerScreen.y) * (circleEdgeScreen.y - centerScreen.y));
+
+						const float circleHitThickness = 10.0f;
+						bool onOuter = IsPointInCircle(mouseScreen, centerScreen,
+													   radiusScreen + circleHitThickness);
+						bool onInner = IsPointInCircle(mouseScreen, centerScreen,
+													   radiusScreen - circleHitThickness);
+
+						if (onOuter && !onInner) {
+							// Clicked on ring: prepare rotation drag (no rotation until movement)
 							LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
-							sActiveAxis = ActiveAxis::X;
-							sDragStartMouseWorld = mouseWorld;
+							sDragMode = DragMode::Rotate;
+							sActiveAxis = ActiveAxis::XY;
 							sDragStartPos = pos;
 							sDragStartScale = sz;
 							sDragStartRotDeg = glm::degrees(sel->GetRotationAngleZ());
-							grabOffset = ImVec2(mouseWorld.x - pos.x, mouseWorld.y - pos.y);
+							sDragStartMouseWorld = mouseWorld;
+							sDragStartMouseScreen = mouseScreen;
+							isDragging = true;
+							draggingId = selectedObjectId;
+							sRotateDragging = false;
+							startedFromGizmo = true;
+						}
+					}
+
+					// SCALE HANDLES (corners + edges)
+					if (!startedFromGizmo) {
+						const float handleSize = 6.0f;
+						const float hitSize = handleSize + 3.0f;
+
+						auto MakeBox = [&](ImVec2 c) {
+							ImVec2 mn{ c.x - hitSize, c.y - hitSize };
+							ImVec2 mx{ c.x + hitSize, c.y + hitSize };
+							return std::pair<ImVec2, ImVec2>(mn, mx);
+						};
+
+						auto [tlMin, tlMax] = MakeBox(tl);
+						auto [trMin, trMax] = MakeBox(tr);
+						auto [blMin, blMax] = MakeBox(bl);
+						auto [brMin, brMax] = MakeBox(br);
+						auto [topMin, topMax] = MakeBox(topMid);
+						auto [bottomMin, bottomMax] = MakeBox(bottomMid);
+						auto [leftMin, leftMax] = MakeBox(leftMid);
+						auto [rightMin, rightMax] = MakeBox(rightMid);
+
+						// Corners: uniform XY
+						if (IsPointInRect(mouseScreen, tlMin, tlMax)) {
+							sScaleSignX = -1.0f;
+							sScaleSignY = -1.0f;
+							sActiveAxis = ActiveAxis::XY;
+						}
+						else if (IsPointInRect(mouseScreen, trMin, trMax)) {
+							sScaleSignX = 1.0f;
+							sScaleSignY = -1.0f;
+							sActiveAxis = ActiveAxis::XY;
+						}
+						else if (IsPointInRect(mouseScreen, blMin, blMax)) {
+							sScaleSignX = -1.0f;
+							sScaleSignY = 1.0f;
+							sActiveAxis = ActiveAxis::XY;
+						}
+						else if (IsPointInRect(mouseScreen, brMin, brMax)) {
+							sScaleSignX = 1.0f;
+							sScaleSignY = 1.0f;
+							sActiveAxis = ActiveAxis::XY;
+						}
+						// Edges: X or Y only
+						else if (IsPointInRect(mouseScreen, leftMin, leftMax)) {
+							sScaleSignX = -1.0f;
+							sScaleSignY = 1.0f; // unused
+							sActiveAxis = ActiveAxis::X;
+						}
+						else if (IsPointInRect(mouseScreen, rightMin, rightMax)) {
+							sScaleSignX = 1.0f;
+							sScaleSignY = 1.0f; // unused
+							sActiveAxis = ActiveAxis::X;
+						}
+						else if (IsPointInRect(mouseScreen, topMin, topMax)) {
+							sScaleSignX = 1.0f; // unused
+							sScaleSignY = -1.0f;
+							sActiveAxis = ActiveAxis::Y;
+						}
+						else if (IsPointInRect(mouseScreen, bottomMin, bottomMax)) {
+							sScaleSignX = 1.0f; // unused
+							sScaleSignY = 1.0f;
+							sActiveAxis = ActiveAxis::Y;
+						}
+
+						if (sActiveAxis != ActiveAxis::None) {
+							LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
+							sDragMode = DragMode::Scale;
+							sDragStartPos = pos;
+							sDragStartScale = sz;
+							sDragStartRotDeg = glm::degrees(sel->GetRotationAngleZ());
+							sDragStartMouseWorld = mouseWorld;
+							isDragging = true;
+							draggingId = selectedObjectId;
+							startedFromGizmo = true;
+						}
+					}
+
+					// MOVE ARROWS (X / Y axis)
+					if (!startedFromGizmo) {
+						const float arrowLenWorld = 64.0f;
+						glm::vec2 worldXEnd{ pos.x + arrowLenWorld, pos.y };
+						glm::vec2 worldYEnd{ pos.x, pos.y - arrowLenWorld };
+
+						ImVec2 xEndScreen = gfx.WorldToSceneImage(worldXEnd);
+						ImVec2 yEndScreen = gfx.WorldToSceneImage(worldYEnd);
+
+						const float handleRadius = 12.0f;
+
+						if (IsPointNearLineEnd(mouseScreen, xEndScreen, handleRadius)) {
+							LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
+							sDragMode = DragMode::Move;
+							sActiveAxis = ActiveAxis::X;
+							sDragStartPos = pos;
+							sDragStartScale = sz;
+							sDragStartRotDeg = glm::degrees(sel->GetRotationAngleZ());
+							sDragStartMouseWorld = mouseWorld;
+							grabOffset = ImVec2(mouseWorld.x - pos.x,
+												mouseWorld.y - pos.y);
 							isDragging = true;
 							draggingId = selectedObjectId;
 							startedFromGizmo = true;
 						}
 						else if (IsPointNearLineEnd(mouseScreen, yEndScreen, handleRadius)) {
-							// Y-axis move
 							LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
+							sDragMode = DragMode::Move;
 							sActiveAxis = ActiveAxis::Y;
-							sDragStartMouseWorld = mouseWorld;
 							sDragStartPos = pos;
 							sDragStartScale = sz;
 							sDragStartRotDeg = glm::degrees(sel->GetRotationAngleZ());
-							grabOffset = ImVec2(mouseWorld.x - pos.x, mouseWorld.y - pos.y);
-							isDragging = true;
-							draggingId = selectedObjectId;
-							startedFromGizmo = true;
-						}
-					}
-					else if (sCurrentTool == TransformTool::Rotate) {
-						// Click near rotation circle to start rotation
-						const float circleHitThickness = 10.0f;
-						if (IsPointInCircle(mouseScreen, centerScreen, radiusScreen + circleHitThickness) &&
-							!IsPointInCircle(mouseScreen, centerScreen, radiusScreen - circleHitThickness)) {
-							LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
-							sActiveAxis = ActiveAxis::XY;
 							sDragStartMouseWorld = mouseWorld;
-							sDragStartPos = pos;
-							sDragStartScale = sz;
-							sDragStartRotDeg = glm::degrees(sel->GetRotationAngleZ());
-							isDragging = true;
-							draggingId = selectedObjectId;
-							startedFromGizmo = true;
-						}
-					}
-					else if (sCurrentTool == TransformTool::Scale) {
-						// Corner-only scaling – only react if clicking a yellow handle
-
-						// Compute corner positions in screen space
-						glm::vec2 worldBL{ pos.x - hx, pos.y + hy }; // bottom-left
-						glm::vec2 worldBR{ pos.x + hx, pos.y + hy };
-						glm::vec2 worldTL{ pos.x - hx, pos.y - hy };
-						glm::vec2 worldTR{ pos.x + hx, pos.y - hy };
-
-						ImVec2 bl = gfx.WorldToSceneImage(worldBL);
-						ImVec2 br = gfx.WorldToSceneImage(worldBR);
-						ImVec2 tl = gfx.WorldToSceneImage(worldTL);
-						ImVec2 tr = gfx.WorldToSceneImage(worldTR);
-
-						const float handleSize = 6.0f;
-						const float hit = handleSize + 3.0f; // slightly bigger hitbox
-
-						ImVec2 tlMin{ tl.x - hit, tl.y - hit };
-						ImVec2 tlMax{ tl.x + hit, tl.y + hit };
-
-						ImVec2 trMin{ tr.x - hit, tr.y - hit };
-						ImVec2 trMax{ tr.x + hit, tr.y + hit };
-
-						ImVec2 blMin{ bl.x - hit, bl.y - hit };
-						ImVec2 blMax{ bl.x + hit, bl.y + hit };
-
-						ImVec2 brMin{ br.x - hit, br.y - hit };
-						ImVec2 brMax{ br.x + hit, br.y + hit };
-
-						auto IsPointInRect = [](ImVec2 p, ImVec2 mn, ImVec2 mx) {
-							return (p.x >= mn.x && p.x <= mx.x &&
-									p.y >= mn.y && p.y <= mx.y);
-						};
-
-						if (IsPointInRect(mouseScreen, tlMin, tlMax) ||
-							IsPointInRect(mouseScreen, trMin, trMax) ||
-							IsPointInRect(mouseScreen, blMin, blMax) ||
-							IsPointInRect(mouseScreen, brMin, brMax)) {
-							// Start uniform-ish scaling from any corner
-							LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
-							sActiveAxis = ActiveAxis::XY;
-							sDragStartMouseWorld = mouseWorld;
-							sDragStartPos = pos;
-							sDragStartScale = sz;
-							sDragStartRotDeg = glm::degrees(sel->GetRotationAngleZ());
+							grabOffset = ImVec2(mouseWorld.x - pos.x,
+												mouseWorld.y - pos.y);
 							isDragging = true;
 							draggingId = selectedObjectId;
 							startedFromGizmo = true;
@@ -262,16 +343,13 @@ namespace LEPICKDRAG {
 				}
 			}
 
-			// If not clicking on gizmo, fall back to picking topmost object and starting drag
+			// FALLBACK: pick object from body click
 			if (!startedFromGizmo) {
 				int picked = -1;
 
-				// Find topmost (last drawn) by iterating from back to front
 				for (int i = static_cast<int>(list.size()) - 1; i >= 0; --i) {
 					GameObject* g = list[i];
-					if (!g) {
-						continue;
-					}
+					if (!g) continue;
 
 					const glm::vec3 pos = g->GetPositionGLM();
 					const glm::vec3 sz = g->GetScaleGLM();
@@ -290,118 +368,120 @@ namespace LEPICKDRAG {
 				}
 
 				if (picked >= 0) {
-					// Drive selection by object ID
 					selectedObjectId = list[picked]->GetID();
-					selectedIndex = -1; // will be recomputed in the Level panel
-
-					LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
+					selectedIndex = -1;
 
 					GameObject* pickedObj = list[picked];
 					const glm::vec3 p = pickedObj->GetPositionGLM();
 					const glm::vec3 s = pickedObj->GetScaleGLM();
 					const float     rDeg = glm::degrees(pickedObj->GetRotationAngleZ());
 
-					// Store drag-start state for all tools
 					sDragStartMouseWorld = mouseWorld;
 					sDragStartPos = p;
 					sDragStartScale = s;
 					sDragStartRotDeg = rDeg;
+					grabOffset = ImVec2(mouseWorld.x - p.x,
+										mouseWorld.y - p.y);
 
-					// Default: free movement / scaling / rotation
-					sActiveAxis = ActiveAxis::XY;
-
-					// Offset only used for translate/move gizmo
-					grabOffset = ImVec2(mouseWorld.x - p.x, mouseWorld.y - p.y);
-
-					if (sCurrentTool == TransformTool::Scale) {
-						// In Scale mode: clicking the body only selects (no drag)
-						isDragging = false;
-						draggingId = -1;
-					}
-					else {
-						// In Move / Rotate: click body and drag immediately
+					// If in combined tool, clicking body starts Move
+					if (sCurrentTool == TransformTool::Rotate) {
+						LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
+						sDragMode = DragMode::Move;
+						sActiveAxis = ActiveAxis::XY;
 						isDragging = true;
 						draggingId = selectedObjectId;
+					}
+					else {
+						sDragMode = DragMode::None;
+						isDragging = false;
+						draggingId = -1;
 					}
 				}
 			}
 		}
 
-		// LMB hold: apply current gizmo (Move / Scale / Rotate) to the selected object
+		// LMB HOLD: apply transform
 		if (isDragging && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
 			GameObject* g = scene.GetGameObjectByID(draggingId);
 			if (g) {
-				// Delta from drag start, in world space
 				const glm::vec2 delta = mouseWorld - sDragStartMouseWorld;
 
 				glm::vec3 newPos = sDragStartPos;
 				glm::vec3 newScale = sDragStartScale;
+				// Default: keep current object rotation
 				float newRotDeg = sDragStartRotDeg;
 
 				constexpr float kMinSize = 4.0f;
-				constexpr float kSnapMove = 8.0f; // position snap step
-				constexpr float kSnapRot = 15.0f; // rotation snap step
 
-				switch (sCurrentTool) {
-					case TransformTool::Translate:
+				switch (sDragMode) {
+					case DragMode::Move:
 					{
-						// Default free-move keeps the grab point under the cursor
 						if (sActiveAxis == ActiveAxis::X) {
 							newPos.x = sDragStartPos.x + delta.x;
 						}
 						else if (sActiveAxis == ActiveAxis::Y) {
 							newPos.y = sDragStartPos.y + delta.y;
 						}
-						else { // free XY
+						else {
 							newPos.x = mouseWorld.x - grabOffset.x;
 							newPos.y = mouseWorld.y - grabOffset.y;
 						}
-
-						// Optional snapping with Shift (Unity-like)
-						if (io.KeyShift) {
-							newPos.x = std::round(newPos.x / kSnapMove) * kSnapMove;
-							newPos.y = std::round(newPos.y / kSnapMove) * kSnapMove;
-						}
 						break;
 					}
-					case TransformTool::Scale:
+					case DragMode::Scale:
 					{
 						if (sActiveAxis == ActiveAxis::X) {
-							newScale.x = std::max(kMinSize, sDragStartScale.x + delta.x * 2.0f);
-							newScale.y = sDragStartScale.y;
+							newScale.x = std::max(kMinSize,
+												  sDragStartScale.x + sScaleSignX * delta.x * 2.0f);
 						}
 						else if (sActiveAxis == ActiveAxis::Y) {
-							newScale.y = std::max(kMinSize, sDragStartScale.y - delta.y * 2.0f);
-							newScale.x = sDragStartScale.x;
+							newScale.y = std::max(kMinSize,
+												  sDragStartScale.y + sScaleSignY * delta.y * 2.0f);
 						}
-						else { // free uniform-ish scaling
-							newScale.x = std::max(kMinSize, sDragStartScale.x + delta.x * 2.0f);
-							newScale.y = std::max(kMinSize, sDragStartScale.y - delta.y * 2.0f);
+						else { // XY
+							newScale.x = std::max(kMinSize,
+												  sDragStartScale.x + sScaleSignX * delta.x * 2.0f);
+							newScale.y = std::max(kMinSize,
+												  sDragStartScale.y + sScaleSignY * delta.y * 2.0f);
 						}
 						break;
 					}
-					case TransformTool::Rotate:
+					case DragMode::Rotate:
 					{
-						// Rotate around the object centre using mouse angle
-						glm::vec2 center{ sDragStartPos.x, sDragStartPos.y };
+						if (sCurrentTool == TransformTool::Rotate) {
+							// Only start actual rotation after mouse moved enough
+							const float pixelThreshold = 12.0f;
+							float dx = mouseScreen.x - sDragStartMouseScreen.x;
+							float dy = mouseScreen.y - sDragStartMouseScreen.y;
+							float distSq = dx * dx + dy * dy;
 
-						float startAngle = std::atan2(
-							sDragStartMouseWorld.y - center.y,
-							sDragStartMouseWorld.x - center.x);
+							if (!sRotateDragging) {
+								if (distSq < pixelThreshold * pixelThreshold) {
+									// treat as click so far
+									break;
+								}
+								sRotateDragging = true;
+							}
 
-						float currentAngle = std::atan2(
-							mouseWorld.y - center.y,
-							mouseWorld.x - center.x);
+							glm::vec2 center{ sDragStartPos.x, sDragStartPos.y };
+							float startAngle = std::atan2(
+								sDragStartMouseWorld.y - center.y,
+								sDragStartMouseWorld.x - center.x);
+							float currentAngle = std::atan2(
+								mouseWorld.y - center.y,
+								mouseWorld.x - center.x);
 
-						float deltaAngleDeg = glm::degrees(currentAngle - startAngle);
-						newRotDeg = sDragStartRotDeg + deltaAngleDeg;
+							float deltaAngleDeg = glm::degrees(currentAngle - startAngle);
+							float sensitivity = 0.05f;
+							deltaAngleDeg *= sensitivity;
 
-						// Snap with Shift (e.g., 15-degree increments)
-						if (io.KeyShift) {
-							newRotDeg = std::round(newRotDeg / kSnapRot) * kSnapRot;
+							newRotDeg = sDragStartRotDeg + deltaAngleDeg;
 						}
 						break;
 					}
+					case DragMode::None:
+					default:
+					break;
 				}
 
 				scene.SetTransformFromLevel(
@@ -415,47 +495,44 @@ namespace LEPICKDRAG {
 			}
 		}
 
-		// LMB release: stop dragging
+		// LMB RELEASE: stop dragging
 		if (isDragging && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 			isDragging = false;
 			draggingId = -1;
 			sActiveAxis = ActiveAxis::None;
+			sDragMode = DragMode::None;
+			sRotateDragging = false;
 		}
 
-		// Delete key for selected object
+		// Delete key to remove selected
 		if (!io.WantCaptureKeyboard &&
 			selectedObjectId >= 0 &&
 			ImGui::IsKeyPressed(ImGuiKey_Delete)) {
 			LEPANELLEVEL::RecordUndoSnapshot(editor, scene);
-
-			// Remove the object from the scene
 			scene.DespawnByID(selectedObjectId);
-
-			// Clear selection and drag state so inspector & editor are clean
 			selectedObjectId = -1;
 			selectedIndex = -1;
 			isDragging = false;
 			draggingId = -1;
 			sActiveAxis = ActiveAxis::None;
+			sDragMode = DragMode::None;
+			sRotateDragging = false;
 		}
 
-		// Gizmo overlay drawing
-		if (selectedObjectId >= 0) {
+		// Gizmo drawing (combined)
+		if (selectedObjectId >= 0 && sCurrentTool == TransformTool::Rotate) {
 			GameObject* sel = scene.GetGameObjectByID(selectedObjectId);
 			if (sel) {
-				// Position and size in world space
 				const glm::vec3 pos = sel->GetPositionGLM();
 				const glm::vec3 sz = sel->GetScaleGLM();
 				const float hx = 0.5f * sz.x;
 				const float hy = 0.5f * sz.y;
 
-				// Four world-space corners of the sprite rect
-				glm::vec2 worldBL{ pos.x - hx, pos.y + hy }; // bottom-left (Y-down ref)
+				glm::vec2 worldBL{ pos.x - hx, pos.y + hy };
 				glm::vec2 worldBR{ pos.x + hx, pos.y + hy };
 				glm::vec2 worldTL{ pos.x - hx, pos.y - hy };
 				glm::vec2 worldTR{ pos.x + hx, pos.y - hy };
 
-				// Convert to screen-space inside the Scene image
 				ImVec2 bl = gfx.WorldToSceneImage(worldBL);
 				ImVec2 br = gfx.WorldToSceneImage(worldBR);
 				ImVec2 tl = gfx.WorldToSceneImage(worldTL);
@@ -463,14 +540,13 @@ namespace LEPICKDRAG {
 
 				ImDrawList* dl = ImGui::GetForegroundDrawList();
 
-				// Selection rectangle
-				const ImU32 rectCol = IM_COL32(255, 255, 0, 255); // yellow
+				const ImU32 rectCol = IM_COL32(255, 255, 0, 255);
 				dl->AddLine(tl, tr, rectCol, 2.0f);
 				dl->AddLine(tr, br, rectCol, 2.0f);
 				dl->AddLine(br, bl, rectCol, 2.0f);
 				dl->AddLine(bl, tl, rectCol, 2.0f);
 
-				// Corner "handles" (purely visual for scale)
+				// Scale handles
 				const float handleSize = 6.0f;
 				const ImU32 handleCol = IM_COL32(255, 200, 0, 255);
 
@@ -485,59 +561,70 @@ namespace LEPICKDRAG {
 				DrawHandle(bl);
 				DrawHandle(br);
 
-				// Pivot marker at centre
+				ImVec2 topMid{
+					0.5f * (tl.x + tr.x),
+					0.5f * (tl.y + tr.y)
+				};
+				ImVec2 bottomMid{
+					0.5f * (bl.x + br.x),
+					0.5f * (bl.y + br.y)
+				};
+				ImVec2 leftMid{
+					0.5f * (tl.x + bl.x),
+					0.5f * (tl.y + bl.y)
+				};
+				ImVec2 rightMid{
+					0.5f * (tr.x + br.x),
+					0.5f * (tr.y + br.y)
+				};
+
+				DrawHandle(topMid);
+				DrawHandle(bottomMid);
+				DrawHandle(leftMid);
+				DrawHandle(rightMid);
+
+				// Pivot marker
 				glm::vec2 worldCenter{ pos.x, pos.y };
 				ImVec2 centerScreen = gfx.WorldToSceneImage(worldCenter);
 				const float pivotSize = 6.0f;
 				ImU32 pivotCol = IM_COL32(0, 255, 255, 255);
 				dl->AddLine(ImVec2(centerScreen.x - pivotSize, centerScreen.y),
-							ImVec2(centerScreen.x + pivotSize, centerScreen.y), pivotCol, 2.0f);
+							ImVec2(centerScreen.x + pivotSize, centerScreen.y),
+							pivotCol, 2.0f);
 				dl->AddLine(ImVec2(centerScreen.x, centerScreen.y - pivotSize),
-							ImVec2(centerScreen.x, centerScreen.y + pivotSize), pivotCol, 2.0f);
+							ImVec2(centerScreen.x, centerScreen.y + pivotSize),
+							pivotCol, 2.0f);
 
-				// Tool-specific gizmo overlay
-				if (sCurrentTool == TransformTool::Translate) {
-					// Move gizmo: X (red) and Y (green) arrows
-					const float arrowLenWorld = 64.0f;
-					glm::vec2 worldXEnd{ pos.x + arrowLenWorld, pos.y };
-					glm::vec2 worldYEnd{ pos.x, pos.y - arrowLenWorld };
+				// Move arrows
+				const float arrowLenWorld = 64.0f;
+				glm::vec2 worldXEnd{ pos.x + arrowLenWorld, pos.y };
+				glm::vec2 worldYEnd{ pos.x, pos.y - arrowLenWorld };
 
-					ImVec2 xEndScreen = gfx.WorldToSceneImage(worldXEnd);
-					ImVec2 yEndScreen = gfx.WorldToSceneImage(worldYEnd);
+				ImVec2 xEndScreen = gfx.WorldToSceneImage(worldXEnd);
+				ImVec2 yEndScreen = gfx.WorldToSceneImage(worldYEnd);
 
-					ImU32 xCol = IM_COL32(255, 100, 100, 255);
-					ImU32 yCol = IM_COL32(100, 255, 100, 255);
+				ImU32 xCol = IM_COL32(255, 100, 100, 255);
+				ImU32 yCol = IM_COL32(100, 255, 100, 255);
 
-					// X-axis arrow
-					dl->AddLine(centerScreen, xEndScreen, xCol, 3.0f);
-					// little triangle tip
-					ImVec2 tipX1{ xEndScreen.x - 6.0f, xEndScreen.y - 4.0f };
-					ImVec2 tipX2{ xEndScreen.x - 6.0f, xEndScreen.y + 4.0f };
-					dl->AddTriangleFilled(xEndScreen, tipX1, tipX2, xCol);
+				dl->AddLine(centerScreen, xEndScreen, xCol, 3.0f);
+				ImVec2 tipX1{ xEndScreen.x - 6.0f, xEndScreen.y - 4.0f };
+				ImVec2 tipX2{ xEndScreen.x - 6.0f, xEndScreen.y + 4.0f };
+				dl->AddTriangleFilled(xEndScreen, tipX1, tipX2, xCol);
 
-					// Y-axis arrow
-					dl->AddLine(centerScreen, yEndScreen, yCol, 3.0f);
-					ImVec2 tipY1{ yEndScreen.x - 4.0f, yEndScreen.y + 6.0f };
-					ImVec2 tipY2{ yEndScreen.x + 4.0f, yEndScreen.y + 6.0f };
-					dl->AddTriangleFilled(yEndScreen, tipY1, tipY2, yCol);
-				}
-				else if (sCurrentTool == TransformTool::Rotate) {
-					// Rotation circle gizmo
-					float radiusWorld = std::max(hx, hy) * 1.3f;
-					glm::vec2 worldCirclePoint{ pos.x + radiusWorld, pos.y };
-					ImVec2 circleEdgeScreen = gfx.WorldToSceneImage(worldCirclePoint);
-					float radiusScreen = std::sqrt(
-						(circleEdgeScreen.x - centerScreen.x) * (circleEdgeScreen.x - centerScreen.x) +
-						(circleEdgeScreen.y - centerScreen.y) * (circleEdgeScreen.y - centerScreen.y));
+				dl->AddLine(centerScreen, yEndScreen, yCol, 3.0f);
+				ImVec2 tipY1{ yEndScreen.x - 4.0f, yEndScreen.y + 6.0f };
+				ImVec2 tipY2{ yEndScreen.x + 4.0f, yEndScreen.y + 6.0f };
+				dl->AddTriangleFilled(yEndScreen, tipY1, tipY2, yCol);
 
-					ImU32 circleCol = IM_COL32(0, 200, 255, 255);
-					dl->AddCircle(centerScreen, radiusScreen, circleCol, 64, 2.0f);
-
-					// Small rotation handle above top edge (kept from original)
-					ImVec2 topMid{ 0.5f * (tl.x + tr.x), 0.5f * (tl.y + tr.y) - 18.0f };
-					dl->AddCircleFilled(topMid, 4.0f, circleCol);
-					dl->AddLine(ImVec2(0.5f * (tl.x + tr.x), 0.5f * (tl.y + tr.y)), topMid, circleCol, 2.0f);
-				}
+				// Rotation circle
+				float radiusWorld = std::max(hx, hy) * 1.3f;
+				glm::vec2 worldCirclePoint{ pos.x + radiusWorld, pos.y };
+				ImVec2 circleEdgeScreen = gfx.WorldToSceneImage(worldCirclePoint);
+				float radiusScreen = std::sqrt(
+					(circleEdgeScreen.x - centerScreen.x) * (circleEdgeScreen.x - centerScreen.x) +
+					(circleEdgeScreen.y - centerScreen.y) * (circleEdgeScreen.y - centerScreen.y));
+				ImU32 circleCol = IM_COL32(0, 200, 255, 255);
+				dl->AddCircle(centerScreen, radiusScreen, circleCol, 64, 2.0f);
 			}
 		}
 	}

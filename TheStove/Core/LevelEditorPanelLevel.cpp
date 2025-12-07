@@ -28,6 +28,7 @@
 #include <algorithm>
 #include <iostream>
 #include <cstdio>
+#include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -98,18 +99,18 @@ namespace {
 			GameObject* g = nullptr;
 
 			// Use "Default" when the saved layer name is empty
-			std::string layerName = obj.layer.empty() ? "1" : obj.layer;
+			std::string layerName = obj.layer.empty()?"1":obj.layer;
 
 			// Spawn animated or static
 			if (obj.animated) {
 				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h },
-					fullFrame, 0.25f, true, layerName);
+											  fullFrame, 0.25f, true, layerName);
 
 				if (obj.texture.find("dino") != std::string::npos) {
 					scene.AttachDinoAnimations(g->GetID());
 
-					const std::string clip = obj.animName.empty() ? "IDLE" : obj.animName;
+					const std::string clip = obj.animName.empty()?"IDLE":obj.animName;
 					scene.SetAnimation(g->GetID(), clip);
 				}
 			}
@@ -122,8 +123,19 @@ namespace {
 				continue;
 			}
 
-			// Rotation (editor stores degrees; GameObject uses radians)
-			g->SetRotation(glm::radians(obj.rotation), { 0, 0, 1 });
+			float rotDeg = obj.rotation;
+
+			// Clean up any old bad data that was saved previously
+			if (!std::isfinite(rotDeg)) {
+				rotDeg = 0.0f;
+			}
+
+			// Optional: keep it within [0, 360) if you want
+			rotDeg = std::fmod(rotDeg, 360.0f);
+			if (rotDeg < 0.0f) rotDeg += 360.0f;
+
+			// Apply to object
+			g->SetRotation(glm::radians(rotDeg), { 0, 0, 1 });
 
 			// Collider data
 			g->SetColliderSize({ obj.colWidth, obj.colHeight });
@@ -200,7 +212,13 @@ namespace {
 
 			out.x = p.x; out.y = p.y; out.z = p.z;
 			out.w = s.x; out.h = s.y;
-			out.rotation = glm::degrees(g->GetRotationAngleZ());
+
+			float rotDeg = glm::degrees(g->GetRotationAngleZ());
+			if (!std::isfinite(rotDeg)) {
+				rotDeg = 0.0f; // clamp broken angles
+			}
+
+			out.rotation = rotDeg;
 
 			const auto csz = g->GetColliderSize();
 			const auto cof = g->GetColliderOffset();
@@ -316,7 +334,7 @@ namespace {
 				// Optional: don't allow deleting base layer "1"
 				if (layerName != "1") {
 					// Move all objects on this layer back to layer 1
-					for (int objID : layer->GetObjects()) {
+					for (int objID:layer->GetObjects()) {
 						scene.AssignObjectToLayer(objID, "1");
 					}
 
@@ -334,7 +352,7 @@ namespace {
 namespace LEPANELLEVEL {
 #ifdef _DEBUG
 	void DrawLevelPanel(LevelEditor& editor, Scene& scene,
-		int& selectedIndex, int& selectedObjectId) {
+						int& selectedIndex, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 
 		if (!ImGui::Begin("Level###LE_Level")) {
@@ -436,7 +454,7 @@ namespace LEPANELLEVEL {
 		ImGui::SameLine();
 
 		// Play
-		if (ImGui::Button(editor.IsPlaying() ? "Playing..." : "Play")) {
+		if (ImGui::Button(editor.IsPlaying()?"Playing...":"Play")) {
 			if (!editor.IsPlaying()) {
 				LevelData& snap = editor.MutablePlaySnapshot();
 				SyncSceneToLevel(scene, snap);
@@ -476,21 +494,21 @@ namespace LEPANELLEVEL {
 		// Remove objects whose layer is currently hidden
 		objectList.erase(
 			std::remove_if(objectList.begin(), objectList.end(),
-				[&](GameObject* g) {
-					if (!g) {
-						return true;
-					}
-					std::string layerName = scene.GetObjectLayer(g->GetID());
-					Layer* layer = scene.GetLayer(layerName);
-					return (layer && !layer->IsVisible());
-				}),
+						   [&](GameObject* g) {
+			if (!g) {
+				return true;
+			}
+			std::string layerName = scene.GetObjectLayer(g->GetID());
+			Layer* layer = scene.GetLayer(layerName);
+			return (layer && !layer->IsVisible());
+		}),
 			objectList.end());
 
 		// Sort by ID so list doesn’t reshuffle when objects move
 		std::sort(objectList.begin(), objectList.end(),
-			[](GameObject* a, GameObject* b) {
-				return a->GetID() < b->GetID();
-			});
+				  [](GameObject* a, GameObject* b) {
+			return a->GetID() < b->GetID();
+		});
 
 		// Keep hierarchy row in sync with selection by ID (click in Scene)
 		if (selectedObjectId != -1) {
@@ -540,8 +558,8 @@ namespace LEPANELLEVEL {
 
 				std::string layer = scene.GetObjectLayer(gid);
 				std::string label = niceName.empty()
-					? ("ID " + std::to_string(gid) + " [Layer: " + layer + "]")
-					: (niceName + " (ID " + std::to_string(gid) + ") [Layer: " + layer + "]");
+					?("ID " + std::to_string(gid) + " [Layer: " + layer + "]")
+					:(niceName + " (ID " + std::to_string(gid) + ") [Layer: " + layer + "]");
 
 				ImGui::PushID(gid);
 				bool isSelected = (selectedObjectId == gid);
@@ -656,7 +674,21 @@ namespace LEPANELLEVEL {
 
 			glm::vec3 position = obj->GetPositionGLM();
 			glm::vec3 size = obj->GetScaleGLM();
+
 			float rotationDeg = glm::degrees(obj->GetRotationAngleZ());
+
+			if (!std::isfinite(rotationDeg)) {
+				rotationDeg = 0.0f;
+				// Also push this clean value into the object so it doesn’t stay corrupted
+				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
+			}
+
+			// Normalize inspector angle so it never shows crazy values
+			rotationDeg = std::fmod(rotationDeg, 360.0f);
+			if (rotationDeg < 0.0f) {
+				rotationDeg += 360.0f;
+			}
+
 			auto colliderSize = obj->GetColliderSize();
 			auto colliderOff = obj->GetColliderOffset();
 			glm::vec2 velocity = scene.GetNPCVelocity(id);
@@ -690,7 +722,7 @@ namespace LEPANELLEVEL {
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("Right-click to reset");
 				}
-				};
+			};
 
 			auto DragFloatWithReset = [&](const char* label, float* v, float d, float speed, auto apply) {
 				bool changed = ImGui::DragFloat(label, v, speed);
@@ -716,7 +748,7 @@ namespace LEPANELLEVEL {
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("Right-click to reset");
 				}
-				};
+			};
 
 			ImGui::Columns(2, nullptr, false);
 			ImGuiStyle& style = ImGui::GetStyle();
@@ -735,7 +767,7 @@ namespace LEPANELLEVEL {
 
 			auto FullWidthNext = []() {
 				ImGui::SetNextItemWidth(-FLT_MIN);
-				};
+			};
 
 			// Texture
 			ImGui::Text("Texture"); ImGui::NextColumn();
@@ -831,7 +863,7 @@ namespace LEPANELLEVEL {
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
 				scene.ClampToWalkArea(obj);
-				});
+			});
 			ImGui::NextColumn();
 
 			// Size
@@ -841,7 +873,7 @@ namespace LEPANELLEVEL {
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
 				scene.ClampToWalkArea(obj);
-				});
+			});
 			ImGui::NextColumn();
 
 			// Animation
@@ -891,10 +923,16 @@ namespace LEPANELLEVEL {
 			// Rotation
 			ImGui::Text("Rotation (deg)"); ImGui::NextColumn();
 			FullWidthNext();
-			DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.25f, [&](bool) {
+			DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.05f, [&](bool) {
+				// Clamp to [0, 360) before applying so it never stores huge angles
+				rotationDeg = std::fmod(rotationDeg, 360.0f);
+				if (rotationDeg < 0.0f) {
+					rotationDeg += 360.0f;
+				}
+
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
-				});
+			});
 			ImGui::NextColumn();
 
 			// Collider size
@@ -903,7 +941,7 @@ namespace LEPANELLEVEL {
 			DragVec2WithReset("##colsz", &colliderSize.x, ImVec2(defaults.colSize.x, defaults.colSize.y), 1.0f, [&](bool) {
 				obj->SetColliderSize({ colliderSize.x, colliderSize.y });
 				scene.RebuildColliders();
-				});
+			});
 			ImGui::NextColumn();
 
 			// Collider offset
@@ -912,7 +950,7 @@ namespace LEPANELLEVEL {
 			DragVec2WithReset("##coloff", &colliderOff.x, ImVec2(defaults.colOff.x, defaults.colOff.y), 1.0f, [&](bool) {
 				obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
 				scene.RebuildColliders();
-				});
+			});
 			ImGui::NextColumn();
 
 			// Velocity
@@ -920,13 +958,13 @@ namespace LEPANELLEVEL {
 			FullWidthNext();
 			DragVec2WithReset("##vel", &velocity.x, ImVec2(defaults.vel.x, defaults.vel.y), 1.0f, [&](bool) {
 				scene.SetNPCVelocity(id, velocity.x, velocity.y);
-				});
+			});
 			ImGui::NextColumn();
 
 			ImGui::Columns(1);
 
 			// Apply updated values
-			scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
+			// scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
 			obj->SetColliderSize({ colliderSize.x, colliderSize.y });
 			obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
 			scene.SetNPCVelocity(id, velocity.x, velocity.y);
@@ -981,14 +1019,14 @@ namespace LEPANELLEVEL {
 			// Prefab dropped to instantiate
 			if (const ImGuiPayload* pp = ImGui::AcceptDragDropPayload("PREFAB_PATH")) {
 				const char* droppedCStr = static_cast<const char*>(pp->Data);
-				const std::string dropped = droppedCStr ? std::string(droppedCStr) : std::string();
+				const std::string dropped = droppedCStr?std::string(droppedCStr):std::string();
 
 				LevelObject data{};
 				if (LEFILEIO::LoadPrefabFromFile(dropped, data)) {
 					// Snapshot BEFORE creating instance from prefab
 					PushUndoSnapshot(editor, scene);
 
-					std::string prefabLayer = data.layer.empty() ? "1" : data.layer;
+					std::string prefabLayer = data.layer.empty()?"1":data.layer;
 					GameObject* g = scene.SpawnStaticSprite(
 						data.texture,
 						{ data.x, data.y, data.z },
@@ -1005,7 +1043,7 @@ namespace LEPANELLEVEL {
 
 						scene.SetObjectTexturePath(g->GetID(), data.texture);
 						scene.SetTransformFromLevel(g->GetID(),
-							{ data.x, data.y, data.z }, { data.w, data.h, 1.0f }, data.rotation);
+													{ data.x, data.y, data.z }, { data.w, data.h, 1.0f }, data.rotation);
 						scene.SetNPCVelocity(g->GetID(), data.speedX, data.speedY);
 						scene.ClampToWalkArea(g);
 					}
@@ -1015,7 +1053,7 @@ namespace LEPANELLEVEL {
 			// Texture dropped to apply to selected
 			if (const ImGuiPayload* tp = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
 				const char* droppedCStr = static_cast<const char*>(tp->Data);
-				const std::string dropped = droppedCStr ? std::string(droppedCStr) : std::string();
+				const std::string dropped = droppedCStr?std::string(droppedCStr):std::string();
 
 				if (selectedObjectId != -1) {
 					// Find the selected object by ID in the render-sorted list

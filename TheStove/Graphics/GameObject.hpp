@@ -20,11 +20,11 @@
 
 #include "../Core/Math.hpp"
 
+#include "Animator.hpp"
 #include "DebugRenderer.hpp"
 #include "Mesh.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
-#include "Animator.hpp"
 
  /**
   * @class GameObject
@@ -91,6 +91,8 @@ public:
 	 */
 	void SetRotation(float angleRadians, const glm::vec3& axis);
 
+	float m_RotationAngle = 0.0f;
+
 	void SetVelocity(const Math::Vector2D& velocity);
 	Math::Vector2D GetVelocity() const;
 
@@ -152,9 +154,12 @@ public:
 	bool IsAnimated() const;
 
 	// Physics / pushability flag
-	void SetMovableByPhysics(bool movable) { m_IsMovableByPhysics = movable; }
-	bool IsMovableByPhysics() const { return m_IsMovableByPhysics; }
-
+	void SetMovableByPhysics(bool movable) {
+		m_IsMovableByPhysics = movable;
+	}
+	bool IsMovableByPhysics() const {
+		return m_IsMovableByPhysics;
+	}
 
 private:
 	Mesh* m_Mesh;
