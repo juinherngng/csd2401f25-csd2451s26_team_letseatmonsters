@@ -44,6 +44,40 @@ using namespace LEFILEIO;
 using namespace LELINKS;
 
 namespace LEPANELPREFABS {
+	static LevelObject BuildPrefabFromObject(Scene& scene, GameObject* g) {
+		LevelObject out{};
+
+		out.texture = scene.GetObjectTexturePath(g->GetID());
+
+		const glm::vec3 p = g->GetPositionGLM();
+		const glm::vec3 s = g->GetScaleGLM();
+
+		out.x = p.x;
+		out.y = p.y;
+		out.z = p.z;
+		out.w = s.x;
+		out.h = s.y;
+
+		out.rotation = glm::degrees(g->GetRotationAngleZ());
+
+		const auto csz = g->GetColliderSize();
+		const auto cof = g->GetColliderOffset();
+
+		out.colWidth = csz.x;
+		out.colHeight = csz.y;
+		out.colOffsetX = cof.x;
+		out.colOffsetY = cof.y;
+
+		out.animated = scene.HasAnimations(g->GetID());
+		out.layer = scene.GetObjectLayer(g->GetID());
+
+		const glm::vec2 v = scene.GetNPCVelocity(g->GetID());
+		out.speedX = v.x;
+		out.speedY = v.y;
+
+		return out;
+	}
+
 	// Ensure a .json extension for save paths
 	static inline void EnsureJsonExt(std::string& path) {
 		if (fs::path(path).extension().empty()) {
@@ -262,20 +296,28 @@ namespace LEPANELPREFABS {
 		if (ImGui::Button("Propagate prefab changes")) {
 			if (prefabExists) {
 				LevelObject data{};
-				if (LoadPrefabFromFile(prefabPath, data)) {
-					std::vector<GameObject*> objs; scene.CollectRenderablePointers(objs);
+				if (prefabExists && selectedObjectId >= 0) {
+					GameObject* src = scene.GetGameObjectByID(selectedObjectId);
+					if (src) {
+						// Build prefab based on UPDATED editor values
+						LevelObject updated = BuildPrefabFromObject(scene, src);
 
-					for (auto* g : objs) {
-						if (g == nullptr) {
-							continue;
-						}
+						// Save updated prefab JSON
+						SavePrefabToFile(prefabPath, updated);
 
-						const int gid = g->GetID();
-						auto it = PrefabLinkByID.find(gid);
+						// Apply to all linked instances
+						std::vector<GameObject*> objs;
+						scene.CollectRenderablePointers(objs);
 
-						if (it != PrefabLinkByID.end() && it->second == prefabPath) {
-							// Keep current position/Z; apply refreshed prefab data
-							ApplyPrefabToObjectKeepPosition(data, scene, g);
+						for (auto* g : objs) {
+							if (!g) continue;
+
+							const int gid = g->GetID();
+							auto it = PrefabLinkByID.find(gid);
+
+							if (it != PrefabLinkByID.end() && it->second == prefabPath) {
+								ApplyPrefabToObjectKeepPosition(updated, scene, g);
+							}
 						}
 					}
 				}
@@ -292,4 +334,3 @@ namespace LEPANELPREFABS {
 #endif
 
 }
-
