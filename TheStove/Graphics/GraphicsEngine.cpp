@@ -19,10 +19,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-#include "GraphicsEngine.hpp"
-#include "MeshLoader.hpp"
 #include "../Core/FontSystem.hpp"
 #include "../Core/LevelEditorPanelFonts.hpp"
+#include "GraphicsEngine.hpp"
+#include "MeshLoader.hpp"
 
 // File-scoped state
 static bool _imguiInitialized = false;
@@ -564,7 +564,9 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 #else
 	// Release: compute from GLFW mouse and letterboxed viewport
 	GLFWwindow* win = glfwGetCurrentContext();
-	if (!win) { return false; }
+	if (!win) {
+		return false;
+	}
 
 	// Mouse in window space
 	double mx, my;
@@ -575,7 +577,7 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	const float vy = static_cast<float>(viewportY_);
 	const float vw = static_cast<float>(viewportW_);
 	const float vh = static_cast<float>(viewportH_);
-	if (mx < vx || my < vy || mx > (vx + vw) || my > (vy + vh)) {
+	if (mx < vx || my < vy || mx >(vx + vw) || my >(vy + vh)) {
 		return false;
 	}
 
@@ -602,6 +604,63 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	const glm::vec4 world4 = invVP * clip;
 	outWorld = glm::vec2(world4.x, world4.y);
 	return true;
+#endif
+}
+
+void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
+#ifdef _DEBUG
+	outPos = sceneImagePos_;
+	outSize = sceneImageSize_;
+#else
+	// In release we render directly to the GLFW window. Keep it simple:
+	outPos = ImVec2(0.0f, 0.0f);
+	outSize = ImVec2(static_cast<float>(viewportW_),
+					 static_cast<float>(viewportH_));
+#endif
+}
+
+ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
+#ifdef _DEBUG
+	// Reconstruct the Scene image rect the same way as in GetMouseWorldInScene
+	ImVec2 imgPos = sceneImagePos_;
+	ImVec2 imgSize = sceneImageSize_;
+
+	if (imgSize.x <= 1.0f || imgSize.y <= 1.0f) {
+		// Fallback if Scene window wasn't drawn yet this frame
+		ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
+		if (sceneWin) {
+			const ImRect c = sceneWin->InnerRect;
+			const float availW = c.GetWidth();
+			const float availH = c.GetHeight();
+			const float targetAspect = float(kRefW) / float(kRefH);
+
+			float w = availW, h = availH;
+			const float r = w / h;
+			if (r > targetAspect) {
+				w = h * targetAspect;
+			}
+			else {
+				h = w * targetAspect;
+			}
+
+			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f,
+							c.Min.y + (availH - h) * 0.5f);
+			imgSize = ImVec2(w, h);
+		}
+	}
+
+	// Map world (0..kRefW, 0..kRefH) into image UV and then into screen space
+	const float u = world.x / float(kRefW);
+	const float v = world.y / float(kRefH);
+
+	const float localX = u * imgSize.x;
+	const float localY = v * imgSize.y;
+
+	return ImVec2(imgPos.x + localX, imgPos.y + localY);
+#else
+	// In release builds the editor UI is disabled; this is only used in Debug.
+	(void)world;
+	return ImVec2(0.0f, 0.0f);
 #endif
 }
 
@@ -738,7 +797,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	if (objects.empty()) {
 		// Render text objects even if no game objects
 		RenderTextObjects();
-		
+
 		EndSceneRender();
 #ifdef _DEBUG
 		DrawSceneDockWindow();
@@ -934,11 +993,11 @@ void GraphicsEngine::RenderTextObjects() {
 #ifdef _DEBUG
 	// In debug builds, get text from the editor panel
 	const auto& textObjects = LEPANELFONTS::GetTextObjects();
-	
+
 	if (textObjects.empty()) {
 		return;
 	}
-	
+
 	// Create Text renderers on demand and render
 	for (const auto& data : textObjects) {
 		// Get the font from ResourceManager
@@ -946,7 +1005,7 @@ void GraphicsEngine::RenderTextObjects() {
 		if (!font) {
 			continue;
 		}
-		
+
 		// Create a temporary Text object for rendering
 		FontSystem::Text textRenderer;
 		textRenderer.SetFont(font);
@@ -954,11 +1013,11 @@ void GraphicsEngine::RenderTextObjects() {
 		textRenderer.SetPosition(glm::vec2(data.x, data.y));
 		textRenderer.SetScale(data.scale);
 		textRenderer.SetRotation(data.rotation);
-		textRenderer.SetRotationMode(data.useBlockRotation ? 
-			FontSystem::Text::RotationMode::Block : 
-			FontSystem::Text::RotationMode::PerCharacter);
+		textRenderer.SetRotationMode(data.useBlockRotation?
+									 FontSystem::Text::RotationMode::Block:
+									 FontSystem::Text::RotationMode::PerCharacter);
 		textRenderer.SetColor(glm::vec4(data.colorR, data.colorG, data.colorB, data.colorA));
-		
+
 		// Render using TextRenderer singleton
 		FontSystem::TextRenderer::Instance().RenderText(textRenderer, projection);
 	}
@@ -971,11 +1030,11 @@ void GraphicsEngine::RenderTextObjects() {
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
 	DebugRenderer::Shutdown();
-	
+
 	// Shutdown FontSystem
 	FontSystem::TextRenderer::Instance().Shutdown();
 	FontSystem::FontManager::Instance().Shutdown();
-	
+
 	resourceManager.Clear();
 
 #ifdef _DEBUG

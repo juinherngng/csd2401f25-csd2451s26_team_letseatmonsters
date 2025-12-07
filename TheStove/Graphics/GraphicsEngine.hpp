@@ -124,6 +124,12 @@ public:
 	static constexpr int kRefW = 1200;
 	static constexpr int kRefH = 900;
 
+	// Returns the screen-space rect of the Scene image
+	void GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const;
+
+	// Convert world-space (editor) coordinates to screen-space inside the Scene image
+	ImVec2 WorldToSceneImage(const glm::vec2& world) const;
+
 private:
 	// Core state
 	Renderer renderer;
@@ -197,7 +203,7 @@ private:
 
 	// Instancing threshold
 	static constexpr int INSTANCING_THRESHOLD = 10;
-	
+
 	// Text rendering
 	void RenderTextObjects();
 };
