@@ -103,8 +103,8 @@ namespace LEPANELPREFABS {
 		ImGui::SeparatorText("Prefabs / Archetypes");
 
 		// Prefab path row (combo + input + refresh)
-		static char prefabPathBuf[256] = "../prefabs/my_goat.json";
-		static std::vector<std::string> sPrefabs = ListJsonFiles("../prefabs");
+		static char prefabPathBuf[256] = "../../prefabs/my_goat.json";
+		static std::vector<std::string> sPrefabs = ListJsonFiles("../../prefabs");
 
 		// Cache for prefab thumbnails (keyed by prefab JSON path)
 		static std::unordered_map<std::string, Texture*> sPrefabPreviewCache;
@@ -113,7 +113,7 @@ namespace LEPANELPREFABS {
 		ImGui::SameLine();
 
 		if (ImGui::Button("Refresh##pf")) {
-			sPrefabs = ListJsonFiles("../prefabs");
+			sPrefabs = ListJsonFiles("../../prefabs");
 		}
 
 		ImGui::SameLine();
@@ -123,17 +123,17 @@ namespace LEPANELPREFABS {
 				OpenFileDialog("JSON files\0*.json\0All files\0*.*\0");
 
 			if (!picked.empty()) {
-				const std::string targetDir = "../prefabs";
+				const std::string targetDir = "../../prefabs";
 
 				const std::string projPath = CopyFileIntoProjectUnique(picked, targetDir);
 
 				if (!projPath.empty()) {
 					// Rebuild list in this panel
-					sPrefabs = ListJsonFiles("../prefabs");
+					sPrefabs = ListJsonFiles("../../prefabs");
 
 					// Optional: auto-select the imported prefab in the combo
 					fs::path filename = fs::path(projPath).filename();
-					std::string displayPath = "../prefabs/" + filename.string();
+					std::string displayPath = "../../prefabs/" + filename.string();
 					std::snprintf(prefabPathBuf,
 								  sizeof(prefabPathBuf),
 								  "%s",
@@ -170,7 +170,7 @@ namespace LEPANELPREFABS {
 		ImGui::SeparatorText("Prefab Library");
 
 		if (ImGui::Button("Refresh##pf_list")) {
-			sPrefabs = ListJsonFiles("../prefabs");
+			sPrefabs = ListJsonFiles("../../prefabs");
 			sPrefabPreviewCache.clear();
 		}
 
@@ -245,7 +245,7 @@ namespace LEPANELPREFABS {
 		}
 
 		if (refreshPrefabs) {
-			sPrefabs = ListJsonFiles("../prefabs");
+			sPrefabs = ListJsonFiles("../../prefabs");
 			sPrefabPreviewCache.clear();
 		}
 
@@ -318,7 +318,7 @@ namespace LEPANELPREFABS {
 					std::string savePath = prefabPath;
 					if (SavePrefabToFile(savePath, out)) {
 						std::snprintf(prefabPathBuf, sizeof(prefabPathBuf), "%s", savePath.c_str());
-						sPrefabs = ListJsonFiles("../prefabs");
+						sPrefabs = ListJsonFiles("../../prefabs");
 
 						// Link this instance to the prefab we just saved
 						PrefabLinkByID[selectedObjectId] = savePath;
