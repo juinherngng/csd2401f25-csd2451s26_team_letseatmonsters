@@ -598,6 +598,11 @@ namespace LEPANELLEVEL {
 			proto.layer = "1";
 			proto.rotation = 0.f;
 
+			proto.colWidth = proto.w;
+			proto.colHeight = proto.h;
+			proto.colOffsetX = 0.f;
+			proto.colOffsetY = 0.f;
+
 			if (GameObject* obj = scene.SpawnStaticSprite(proto.texture, { proto.x, proto.y, proto.z }, { proto.w, proto.h }, proto.layer)) {
 				obj->SetColliderSize({ proto.colWidth, proto.colHeight });
 				obj->SetColliderOffset({ proto.colOffsetX, proto.colOffsetY });
@@ -618,6 +623,7 @@ namespace LEPANELLEVEL {
 				scene.SetDefaults(obj->GetID(), defs);
 
 				scene.ClampToWalkArea(obj);
+				scene.RebuildColliders();
 			}
 		}
 
@@ -794,6 +800,14 @@ namespace LEPANELLEVEL {
 						scene.MarkAnimated(id, false);
 					}
 				}
+
+				if (colliderSize.x <= 0.f || colliderSize.y <= 0.f) {
+					colliderSize.x = size.x;
+					colliderSize.y = size.y;
+					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+					obj->SetColliderOffset({ 0.f, 0.f });
+					scene.RebuildColliders();
+				}
 			}
 
 			ImGui::NextColumn();
@@ -873,6 +887,11 @@ namespace LEPANELLEVEL {
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
 				scene.ClampToWalkArea(obj);
+
+				colliderSize.x = size.x;
+				colliderSize.y = size.y;
+				obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+				scene.RebuildColliders();
 			});
 			ImGui::NextColumn();
 
@@ -1038,14 +1057,22 @@ namespace LEPANELLEVEL {
 						LELINKS::PrefabLinkByID[g->GetID()] = dropped;
 
 						g->SetRotation(glm::radians(data.rotation), { 0, 0, 1 });
-						g->SetColliderSize({ data.colWidth,  data.colHeight });
-						g->SetColliderOffset({ data.colOffsetX, data.colOffsetY });
+
+						if (data.colWidth > 0.f && data.colHeight > 0.f) {
+							g->SetColliderSize({ data.colWidth,  data.colHeight });
+							g->SetColliderOffset({ data.colOffsetX, data.colOffsetY });
+						}
 
 						scene.SetObjectTexturePath(g->GetID(), data.texture);
-						scene.SetTransformFromLevel(g->GetID(),
-													{ data.x, data.y, data.z }, { data.w, data.h, 1.0f }, data.rotation);
+						scene.SetTransformFromLevel(
+							g->GetID(),
+							{ data.x, data.y, data.z },
+							{ data.w, data.h, 1.0f },
+							data.rotation);
 						scene.SetNPCVelocity(g->GetID(), data.speedX, data.speedY);
 						scene.ClampToWalkArea(g);
+
+						scene.RebuildColliders();
 					}
 				}
 			}
@@ -1087,6 +1114,14 @@ namespace LEPANELLEVEL {
 								// Non-animated: reset to full-frame UV and mark as static
 								o->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
 								scene.MarkAnimated(id2, false);
+							}
+
+							auto col = o->GetColliderSize();
+							if (col.x <= 0.f || col.y <= 0.f) {
+								glm::vec3 s = o->GetScaleGLM();
+								o->SetColliderSize({ s.x, s.y });
+								o->SetColliderOffset({ 0.f, 0.f });
+								scene.RebuildColliders();
 							}
 						}
 					}

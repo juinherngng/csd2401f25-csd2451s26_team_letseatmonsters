@@ -29,7 +29,26 @@
 #include "../Core/PauseButtonLogic.hpp" 
 #include "SceneManager.hpp"
 
- // Simulation control
+namespace {
+	// If an object has no collider yet, initialise an AABB that matches its visual size.
+	void InitDefaultCollider(GameObject* obj) {
+		if (!obj) {
+			return;
+		}
+
+		Math::Vector2D col = obj->GetColliderSize();
+		// Don't overwrite artist / prefab data if collider already exists
+		if (col.x > 0.0f && col.y > 0.0f) {
+			return;
+		}
+
+		glm::vec3 s = obj->GetScaleGLM();
+		obj->SetColliderSize(Math::Vector2D{ s.x, s.y });
+		obj->SetColliderOffset(Math::Vector2D{ 0.0f, 0.0f });
+	}
+}
+
+// Simulation control
 void Scene::SetSimulationActive(bool active) {
 	simulationActive = active;
 
@@ -243,6 +262,8 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	if (obj) {
 		int id = obj->GetID();
 		AssignObjectToLayer(id, layer);
+
+		InitDefaultCollider(obj);
 	}
 
 	return obj;
@@ -259,6 +280,8 @@ GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
 	if (obj) {
 		int id = obj->GetID();
 		AssignObjectToLayer(id, layer);
+
+		InitDefaultCollider(obj);
 	}
 
 	return obj;
