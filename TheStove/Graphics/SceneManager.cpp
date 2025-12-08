@@ -470,12 +470,16 @@ void Scene::MarkAnimated(int id, bool state) {
 
 // Tag-based logic helpers
 void Scene::AttachLogicForTag(int id, const std::string& tag) {
+	// ALWAYS wipe old logic from this object
+	logicManager.RemoveAllFor(id, *this);
+
 	std::cout << "[Scene] AttachLogicForTag id=" << id
 		<< " tag='" << tag << "'\n";
 
+	// Add only the logic that matches the new tag
 	if (tag == "player") {
 		logicManager.AddLogic<PlayerLogic>(id);
-		spriteID = id; // keep existing usage
+		spriteID = id;
 		animationManager.AttachPlayerAnimations(id);
 	}
 	else if (tag == "npc1" || tag == "npc2") {
@@ -483,7 +487,7 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	}
 	else if (tag == "dino") {
 		logicManager.AddLogic<SimpleNpcLogic>(id);
-		dinoID = id; // preserve your special ID if you rely on it elsewhere
+		dinoID = id;
 	}
 	else if (tag == "table") {
 		logicManager.AddLogic<TableLogic>(id);
@@ -500,23 +504,19 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	else if (tag == "plate_box") {
 		logicManager.AddLogic<IngredientBoxLogic>(id);
 	}
-	// Button tags
+	// Menu buttons etc
 	else if (tag == "btn_play") {
-		// Go from menu -> gameplay
 		auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);
 		if (logic && audioManager_) {
 			logic->SetAudioManager(audioManager_);
 		}
 	}
 	else if (tag == "btn_howtoplay") {
-		// Main-menu How To Play button → show HowToPlay.png overlay
 		logicManager.AddLogic<HowToPlayButtonLogic>(id);
 	}
 	else if (tag == "btn_quit") {
 		logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
 	}
-	// Extend with more tags as needed
-	// you can extend with more tags later
 }
 
 MovementManager& Scene::GetMovementManager() {

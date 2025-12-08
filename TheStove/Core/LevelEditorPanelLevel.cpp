@@ -190,7 +190,7 @@ namespace {
 		}
 	}
 
-	// Build LevelData snapshot from the current scene.
+	// Scene to LevelData snapshot
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut) {
 		levelOut.objects.clear();
 
@@ -201,56 +201,88 @@ namespace {
 				continue;
 			}
 
+			const int id = g->GetID();
+
 			LevelObject out{};
-			out.texture = scene.GetObjectTexturePath(g->GetID());
-			out.animated = scene.HasAnimations(g->GetID());
-			out.animName = scene.GetCurrentAnimationName(g->GetID());
-			out.layer = scene.GetObjectLayer(g->GetID());
+			out.texture = scene.GetObjectTexturePath(id);
+			out.animated = scene.HasAnimations(id);
+			out.animName = scene.GetCurrentAnimationName(id);
 
-			const glm::vec3 p = g->GetPositionGLM();
-			const glm::vec3 s = g->GetScaleGLM();
-
-			out.x = p.x; out.y = p.y; out.z = p.z;
-			out.w = s.x; out.h = s.y;
-
-			float rotDeg = glm::degrees(g->GetRotationAngleZ());
-			if (!std::isfinite(rotDeg)) {
-				rotDeg = 0.0f; // clamp broken angles
+			// Layer – use the layering system, fall back to "1"
+			out.layer = scene.GetObjectLayer(id);
+			if (out.layer.empty()) {
+				out.layer = "1";
 			}
 
+			// Transform
+			glm::vec3 pos = g->GetPositionGLM();
+			glm::vec3 size = g->GetScaleGLM();
+			float rotDeg = glm::degrees(g->GetRotationAngleZ());
+
+			out.x = pos.x;
+			out.y = pos.y;
+			out.w = size.x;
+			out.h = size.y;
 			out.rotation = rotDeg;
 
+			// Collider
 			const auto csz = g->GetColliderSize();
 			const auto cof = g->GetColliderOffset();
-			out.colWidth = csz.x; out.colHeight = csz.y;
-			out.colOffsetX = cof.x; out.colOffsetY = cof.y;
+			out.colWidth = csz.x;
+			out.colHeight = csz.y;
+			out.colOffsetX = cof.x;
+			out.colOffsetY = cof.y;
 
-			if (g->GetID() == scene.GetPlayerID()) {
-				out.tag = "player";
-			}
-			else if (g->GetID() == scene.GetNPC1ID()) {
-				out.tag = "npc1";
-			}
-			else if (g->GetID() == scene.GetNPC2ID()) {
-				out.tag = "npc2";
-			}
-			else if (g->GetID() == scene.GetDinoID()) {
-				out.tag = "dino";
-			}
-			else {
-				// Preserve whatever tag was originally assigned in the level/defaults
-				Scene::Defaults defs = scene.GetDefaults(g->GetID());
-				out.tag = defs.tag;  // this will be "table", "customer_table", "work_table", etc.
-				out.approachOffsetX = defs.approachOffset.x;
-				out.approachOffsetY = defs.approachOffset.y;
+			// TAG: use the value stored in Defaults as the single source of truth
+			Scene::Defaults defs = scene.GetDefaults(id);
+
+			// If this object has no stored tag yet, infer it ONCE from special IDs
+			if (defs.tag.empty()) {
+				if (id == scene.GetPlayerID())      defs.tag = "player";
+				else if (id == scene.GetNPC1ID())   defs.tag = "npc1";
+				else if (id == scene.GetNPC2ID())   defs.tag = "npc2";
+				else if (id == scene.GetDinoID())   defs.tag = "dino";
+				else                                defs.tag = "npc"; // generic goat
+
+				scene.SetDefaults(id, defs);
 			}
 
+			out.tag = defs.tag;
+			out.approachOffsetX = defs.approachOffset.x;
+			out.approachOffsetY = defs.approachOffset.y;
 
-			const glm::vec2 v = scene.GetNPCVelocity(g->GetID());
-			out.speedX = v.x; out.speedY = v.y;
+			// Velocity
+			const glm::vec2 v = scene.GetNPCVelocity(id);
+			out.speedX = v.x;
+			out.speedY = v.y;
 
 			levelOut.objects.push_back(out);
 		}
+	}
+
+	// Swap transform + default-pos between two objects, if both exist.
+	void SwapObjectPositions(Scene& scene, int aID, int bID) {
+		if (aID == -1 || bID == -1 || aID == bID)
+			return;
+
+		GameObject* a = scene.GetGameObjectByID(aID);
+		GameObject* b = scene.GetGameObjectByID(bID);
+		if (!a || !b)
+			return;
+
+		// Swap scene transforms
+		glm::vec3 posA = a->GetPositionGLM();
+		glm::vec3 posB = b->GetPositionGLM();
+
+		a->SetPosition(posB);
+		b->SetPosition(posA);
+
+		// Also swap default positions so saving/reloading stays consistent
+		Scene::Defaults defA = scene.GetDefaults(aID);
+		Scene::Defaults defB = scene.GetDefaults(bID);
+		std::swap(defA.pos, defB.pos);
+		scene.SetDefaults(aID, defA);
+		scene.SetDefaults(bID, defB);
 	}
 
 #ifdef _DEBUG
@@ -667,20 +699,15 @@ namespace LEPANELLEVEL {
 			}
 
 			char tagBuf[64] = "";
-			if (id == scene.GetPlayerID()) {
+			if (!defaults.tag.empty()) {
+				std::snprintf(tagBuf, sizeof(tagBuf), "%s", defaults.tag.c_str());
+			}
+			// Fallbacks only for objects that don’t have a tag stored yet.
+			else if (id == scene.GetPlayerID()) {
 				std::snprintf(tagBuf, sizeof(tagBuf), "player");
-			}
-			else if (id == scene.GetNPC1ID()) {
-				std::snprintf(tagBuf, sizeof(tagBuf), "npc1");
-			}
-			else if (id == scene.GetNPC2ID()) {
-				std::snprintf(tagBuf, sizeof(tagBuf), "npc2");
 			}
 			else if (id == scene.GetDinoID()) {
 				std::snprintf(tagBuf, sizeof(tagBuf), "dino");
-			}
-			else if (!defaults.tag.empty()) {
-				std::snprintf(tagBuf, sizeof(tagBuf), "%s", defaults.tag.c_str());
 			}
 
 			glm::vec3 position = obj->GetPositionGLM();
@@ -862,15 +889,23 @@ namespace LEPANELLEVEL {
 					if (ImGui::Selectable(name.c_str(), isSelected)) {
 						// Snapshot before changing the layer
 						PushUndoSnapshot(editor, scene);
+
 						scene.AssignObjectToLayer(id, name);
 						currentLayer = name;
+
+						// Keep defaults in sync so resets / hierarchy labels behave correctly
+						defaults.layer = name;
+						scene.SetDefaults(id, defaults);
 					}
+
 					if (isSelected) {
 						ImGui::SetItemDefaultFocus();
 					}
 				}
+
 				ImGui::EndCombo();
 			}
+
 			ImGui::NextColumn();
 
 			// Position
@@ -994,21 +1029,25 @@ namespace LEPANELLEVEL {
 
 			// Handle special IDs if tag changed
 			std::string newTag = tagBuf;
+			std::string oldTag = defaults.tag;
+
+			defaults.tag = newTag;
+			scene.SetDefaults(id, defaults);
+
+			if (oldTag == "player" && newTag != "player") {
+				scene.SetPlayerID(-1);
+			}
+			if (oldTag == "dino" && newTag != "dino") {
+				scene.SetDinoID(-1);
+			}
+
 			if (newTag == "player") {
 				scene.SetPlayerID(id);
-			}
-			else if (newTag == "npc1") {
-				scene.SetNPC1ID(id);
-			}
-			else if (newTag == "npc2") {
-				scene.SetNPC2ID(id);
 			}
 			else if (newTag == "dino") {
 				scene.SetDinoID(id);
 			}
 
-			defaults.tag = newTag;
-			scene.SetDefaults(id, defaults);
 			scene.AttachLogicForTag(id, newTag);
 
 			if (editor.IsPlaying()) {
