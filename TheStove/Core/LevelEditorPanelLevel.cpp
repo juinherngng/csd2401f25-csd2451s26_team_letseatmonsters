@@ -653,6 +653,8 @@ namespace LEPANELLEVEL {
 			GameObject* obj = objectList[selectedIndex];
 			const int id = obj->GetID();
 
+			Scene::Defaults defaults = scene.GetDefaults(id);
+
 			ImGui::SeparatorText("Properties Inspector");
 			ImGui::TextDisabled("Selected ID: %d", id);
 
@@ -677,6 +679,9 @@ namespace LEPANELLEVEL {
 			else if (id == scene.GetDinoID()) {
 				std::snprintf(tagBuf, sizeof(tagBuf), "dino");
 			}
+			else if (!defaults.tag.empty()) {
+				std::snprintf(tagBuf, sizeof(tagBuf), "%s", defaults.tag.c_str());
+			}
 
 			glm::vec3 position = obj->GetPositionGLM();
 			glm::vec3 size = obj->GetScaleGLM();
@@ -698,8 +703,6 @@ namespace LEPANELLEVEL {
 			auto colliderSize = obj->GetColliderSize();
 			auto colliderOff = obj->GetColliderOffset();
 			glm::vec2 velocity = scene.GetNPCVelocity(id);
-
-			const auto defaults = scene.GetDefaults(id);
 
 			// Helpers with right-click reset
 			auto DragVec2WithReset = [&](const char* label, float* v, ImVec2 d, float speed, auto apply) {
@@ -1003,6 +1006,10 @@ namespace LEPANELLEVEL {
 			else if (newTag == "dino") {
 				scene.SetDinoID(id);
 			}
+
+			defaults.tag = newTag;
+			scene.SetDefaults(id, defaults);
+			scene.AttachLogicForTag(id, newTag);
 
 			if (editor.IsPlaying()) {
 				ImGui::EndDisabled();

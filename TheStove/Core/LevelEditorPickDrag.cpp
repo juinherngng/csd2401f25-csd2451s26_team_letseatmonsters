@@ -70,7 +70,7 @@ namespace LEPICKDRAG {
 	};
 
 	// Current active tool (defaults to combined rect gizmo)
-	static TransformTool sCurrentTool = TransformTool::Rect;
+	static TransformTool sCurrentTool = TransformTool::Select;
 
 	// Current active axis while dragging via gizmo
 	static ActiveAxis sActiveAxis = ActiveAxis::None;
@@ -278,15 +278,29 @@ namespace LEPICKDRAG {
 
 		// Tool hotkeys (Q / T / E)
 		if (!io.WantCaptureKeyboard) {
+			// Q = "no gizmo" / select / direct drag
 			if (ImGui::IsKeyPressed(ImGuiKey_Q)) {
 				sCurrentTool = TransformTool::Select;
 			}
+
+			// T = toggle transform gizmo on/off
 			if (ImGui::IsKeyPressed(ImGuiKey_T)) {
-				sCurrentTool = TransformTool::Rect; // move/scale + arrows
+				if (sCurrentTool == TransformTool::Rect || sCurrentTool == TransformTool::Rotate) {
+					// If a gizmo tool is active, turn it off (back to Q behaviour)
+					sCurrentTool = TransformTool::Select;
+				}
+				else {
+					// Turn gizmo on: Rect = move+scale+axis arrows
+					sCurrentTool = TransformTool::Rect;
+				}
 			}
+
+			// E = rotate gizmo (only active while T has turned gizmo "on")
 			if (ImGui::IsKeyPressed(ImGuiKey_E)) {
 				sCurrentTool = TransformTool::Rotate; // rotation ring only
 			}
+
+			// C = toggle between Transform vs Collider gizmo type
 			if (ImGui::IsKeyPressed(ImGuiKey_C)) {
 				sGizmoMode = (sGizmoMode == GizmoMode::Transform)
 					?GizmoMode::Collider
