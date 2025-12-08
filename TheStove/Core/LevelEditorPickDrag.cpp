@@ -30,6 +30,7 @@
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/SceneManager.hpp"
 
+#include "Collision.hpp"
 #include "LevelEditorPanelLevel.hpp"
 #include "LevelEditorPickDrag.hpp"
 
@@ -176,13 +177,14 @@ namespace LEPICKDRAG {
 
 		glm::vec3 pos = obj->GetPositionGLM();
 
-		// (this matches GameObject::DrawBoundingBox exactly)
+		// Center = sprite position + collider offset  (same as DrawBoundingBox)
 		outCenter = glm::vec3(
 			pos.x + offsetM.x,
 			pos.y + offsetM.y,
 			pos.z
 		);
 
+		// Full size = collider size
 		outSize = glm::vec3(
 			sizeM.x,
 			sizeM.y,
@@ -192,18 +194,57 @@ namespace LEPICKDRAG {
 		return true;
 	}
 
-	// Basis for TRANSFORM gizmo: always use sprite transform
+	// Exact collider AABB in world space, using the same math as GameObject::DrawBoundingBox
+	static bool GetColliderAABBWorld(GameObject* obj,
+									 glm::vec2& outTL,
+									 glm::vec2& outTR,
+									 glm::vec2& outBL,
+									 glm::vec2& outBR) {
+		// Read collider data
+		Math::Vector2D sizeM = obj->GetColliderSize();
+		Math::Vector2D offsetM = obj->GetColliderOffset();
+
+		if (sizeM.x <= 0.0f || sizeM.y <= 0.0f) {
+			return false;
+		}
+
+		glm::vec3 pos = obj->GetPositionGLM();
+
+		// Center = sprite position + offset (same as GameObject::DrawBoundingBox)
+		Math::Vector3D centerM(
+			pos.x + offsetM.x,
+			pos.y + offsetM.y,
+			pos.z
+		);
+
+		// Scale = collider size
+		Math::Vector3D scaleM(sizeM.x, sizeM.y, 1.0f);
+
+		// Use the *exact* collision helper
+		collision::AABB box = collision::World::makeAABBFromCenter(centerM, scaleM);
+
+		// In our coordinate system: min.y = top, max.y = bottom
+		outTL = glm::vec2(box.min.x, box.min.y); // left,  top
+		outTR = glm::vec2(box.max.x, box.min.y); // right, top
+		outBL = glm::vec2(box.min.x, box.max.y); // left,  bottom
+		outBR = glm::vec2(box.max.x, box.max.y); // right, bottom
+
+		return true;
+	}
+
+	// Basis for TRANSFORM gizmo: use sprite transform only
 	static void GetTransformBasis(GameObject* obj,
 								  glm::vec3& outPos,
 								  glm::vec3& outScale,
 								  float& outRotDeg) {
-		const glm::vec3 pos = obj->GetPositionGLM();
-		const glm::vec3 sz = obj->GetScaleGLM();
-		const float     rotDeg = glm::degrees(obj->GetRotationAngleZ());
+		// Use the object's actual transform
+		outPos = obj->GetPositionGLM();
+		outScale = obj->GetScaleGLM();
 
-		outPos = pos;
-		outScale = sz;
-		outRotDeg = rotDeg;
+		outRotDeg = glm::degrees(obj->GetRotationAngleZ());
+		if (!std::isfinite(outRotDeg)) {
+			outRotDeg = 0.0f;
+		}
 	}
 
 	// Basis for COLLIDER gizmo: use collider AABB (no rotation)
@@ -305,7 +346,17 @@ namespace LEPICKDRAG {
 
 					// Proper rotated corners in world-space
 					glm::vec2 worldTL{}, worldTR{}, worldBL{}, worldBR{};
-					ComputeWorldCorners(pos, sz, rotDeg, worldTL, worldTR, worldBL, worldBR);
+
+					if (sGizmoMode == GizmoMode::Transform) {
+						// Transform gizmo (Unity-style): sprite bounds, with rotation
+						ComputeWorldCorners(pos, sz, rotDeg, worldTL, worldTR, worldBL, worldBR);
+					}
+					else {
+						// Collider gizmo: draw exactly the red collider box
+						if (!GetColliderAABBWorld(sel, worldTL, worldTR, worldBL, worldBR)) {
+							return; // no collider to draw
+						}
+					}
 
 					// Convert to screen-space
 					ImVec2 bl = gfx.WorldToSceneImage(worldBL);
@@ -865,8 +916,19 @@ namespace LEPICKDRAG {
 					return; // nothing to draw for collider mode without collider
 				}
 
+				// Proper corners in world-space
 				glm::vec2 worldTL{}, worldTR{}, worldBL{}, worldBR{};
-				ComputeWorldCorners(pos, sz, rotDeg, worldTL, worldTR, worldBL, worldBR);
+
+				if (sGizmoMode == GizmoMode::Transform) {
+					// Transform gizmo: use sprite transform / rotation
+					ComputeWorldCorners(pos, sz, rotDeg, worldTL, worldTR, worldBL, worldBR);
+				}
+				else {
+					// Collider gizmo: use *exact* collider AABB math (matches red debug box)
+					if (!GetColliderAABBWorld(sel, worldTL, worldTR, worldBL, worldBR)) {
+						return; // no collider -> nothing to pick
+					}
+				}
 
 				GraphicsEngine& gfxLocal = GraphicsEngine::Instance();
 

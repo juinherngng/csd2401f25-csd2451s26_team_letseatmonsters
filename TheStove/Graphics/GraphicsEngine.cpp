@@ -649,9 +649,18 @@ ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
 		}
 	}
 
-	// Map world (0..kRefW, 0..kRefH) into image UV and then into screen space
-	const float u = world.x / float(kRefW);
-	const float v = world.y / float(kRefH);
+	glm::vec4 world4(world.x, world.y, 0.0f, 1.0f);
+	glm::vec4 clip = projection * view * world4;
+
+	if (clip.w == 0.0f) {
+		// Avoid division by zero; put it off-screen.
+		return ImVec2(-10000.0f, -10000.0f);
+	}
+
+	glm::vec3 ndc = glm::vec3(clip) / clip.w;
+
+	const float u = (ndc.x * 0.5f) + 0.5f;
+	const float v = (-ndc.y * 0.5f) + 0.5f;
 
 	const float localX = u * imgSize.x;
 	const float localY = v * imgSize.y;
