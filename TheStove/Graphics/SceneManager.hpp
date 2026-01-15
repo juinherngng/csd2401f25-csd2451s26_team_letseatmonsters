@@ -187,6 +187,14 @@ public:
 	// Tag-based logic helpers
 	void AttachLogicForTag(int id, const std::string& tag);
 
+	// Centralized tag metadata
+	void SetObjectTag(int id, const std::string& tag);
+	std::string GetObjectTag(int id) const;
+
+	// Centralized tag rules
+	void ApplyTagRules(int id, const std::string& tag, float speedX, float speedY);
+	bool TagUsesVelocity(const std::string& tag) const;
+
 	// ID / role helpers
 	void SetPlayerID(int id);
 	int GetPlayerID() const {
@@ -397,6 +405,7 @@ private:
 
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;
+	std::unordered_map<int, std::string> objectTags_;
 
 	bool howToPlayOverlayActive_ = false;
 };
