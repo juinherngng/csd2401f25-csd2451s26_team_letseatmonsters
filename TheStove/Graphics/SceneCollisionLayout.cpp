@@ -28,30 +28,30 @@ static constexpr float kTile = 50.0f;
 
 // Tile-space definitions
 // Walkable inner rectangle (match to background art) in tiles
-static constexpr float kWalkL_T = 180.0f / kTile;  // 3.6
-static constexpr float kWalkR_T = 1150.0f / kTile; // 23.0
-static constexpr float kWalkT_T = 110.0f / kTile;  // 2.2
-static constexpr float kWalkB_T = 825.0f / kTile;  // 16.5
+static constexpr float kWalkL_T = 150.0f / kTile;  // bigger number = more to the right
+static constexpr float kWalkR_T = 1300.0f / kTile; 
+static constexpr float kWalkT_T = 100.0f / kTile;  // bigger number = more down
+static constexpr float kWalkB_T = 825.0f / kTile;
 
 // Middle divider (vertical split) in tiles
-static constexpr float kWoodX0_T = 500.0f / kTile;      // 10.0
-static constexpr float kWoodX1_T = 590.0f / kTile;      // 11.8
-static constexpr float kWoodTopMinY_T = 100.0f / kTile; // 2.0
-static constexpr float kWoodTopMaxY_T = 320.0f / kTile; // 6.4
-static constexpr float kWoodGapMinY_T = 320.0f / kTile; // 6.4
-static constexpr float kWoodGapMaxY_T = 570.0f / kTile; // 11.4
-static constexpr float kWoodBotMinY_T = 570.0f / kTile; // 11.4
-static constexpr float kWoodBotMaxY_T = 700.0f / kTile; // 14.0
+static constexpr float kWoodX0_T = 563.0f / kTile; // bigger number = more to the right
+static constexpr float kWoodX1_T = 587.0f / kTile;
+static constexpr float kWoodTopMinY_T = 100.0f / kTile;
+static constexpr float kWoodTopMaxY_T = 320.0f / kTile;
+static constexpr float kWoodGapMinY_T = 320.0f / kTile;
+static constexpr float kWoodGapMaxY_T = 570.0f / kTile;
+static constexpr float kWoodBotMinY_T = 570.0f / kTile;
+static constexpr float kWoodBotMaxY_T = 825.0f / kTile;
 
 // End-of-stage vertical gate in tiles
-static constexpr float kEndVX0_T = 1080.0f / kTile;     // 21.6
-static constexpr float kEndVX1_T = 1200.0f / kTile;     // 24.0
-static constexpr float kEndVTopMinY_T = 100.0f / kTile; // 2.0
-static constexpr float kEndVTopMaxY_T = 320.0f / kTile; // 6.4
-static constexpr float kEndVGapMinY_T = 320.0f / kTile; // 6.4
-static constexpr float kEndVGapMaxY_T = 570.0f / kTile; // 11.4
-static constexpr float kEndVBotMinY_T = 570.0f / kTile; // 11.4
-static constexpr float kEndVBotMaxY_T = 700.0f / kTile; // 14.0
+static constexpr float kEndVX0_T = 1080.0f / kTile;
+static constexpr float kEndVX1_T = 1200.0f / kTile;
+static constexpr float kEndVTopMinY_T = 100.0f / kTile;
+static constexpr float kEndVTopMaxY_T = 320.0f / kTile;
+static constexpr float kEndVGapMinY_T = 320.0f / kTile; 
+static constexpr float kEndVGapMaxY_T = 570.0f / kTile;
+static constexpr float kEndVBotMinY_T = 570.0f / kTile;
+static constexpr float kEndVBotMaxY_T = 825.0f / kTile;
 
 // Pixel-space versions derived from tiles (used by physics/collision)
 static constexpr float kWalkL = kWalkL_T * kTile;
@@ -81,26 +81,6 @@ static constexpr float kEndVGapMinY = kEndVGapMinY_T * kTile;
 static constexpr float kEndVGapMaxY = kEndVGapMaxY_T * kTile;
 static constexpr float kEndVBotMinY = kEndVBotMinY_T * kTile;
 static constexpr float kEndVBotMaxY = kEndVBotMaxY_T * kTile;
-
-// Benches + ingredient counter + bottom strip, all in tiles
-struct StaticRectDef {
-	float tx0, ty0, tx1, ty1; // tile-space coordinates
-};
-
-static constexpr std::array<StaticRectDef, 6> kStaticRectDefs{ {
-		// top-middle bench
-		{ 13.9f, 3.4f, 15.2f, 5.0f },
-		// top-right bench
-		{ 19.0f, 3.4f, 20.3f, 5.0f },
-		// bottom-middle bench
-		{ 13.9f, 13.3f, 15.2f, 15.0f },
-		// bottom-right bench
-		{ 19.0f, 13.3f, 20.3f, 15.0f },
-		// Ingredient counter row (top kitchen)
-		{ 4.0f, 2.0f, 11.0f, 3.5f },
-		// Bottom solid area: grills + green + both posts
-		{ 4.0f, 14.8f, 11.0f, 16.0f }
-	} };
 
 namespace {
 	inline Math::Vector2D toM(const glm::vec2& v) {
@@ -243,23 +223,6 @@ void Scene::BuildLevelColliders() {
 	// Build all static walls (outer frame + wood + gate)
 	collisionManager.BuildWalls(walk, wood, gate);
 
-	// Benches + counters + bottom strip
-	std::vector<collision::AABB> staticRects;
-	staticRects.reserve(kStaticRectDefs.size());
-
-	for (std::size_t i = 0; i < kStaticRectDefs.size(); ++i) {
-		const auto& def = kStaticRectDefs[i];
-
-		// e.g. skip rect 5:
-		if (i == 2) continue;
-		if (i == 0) continue;
-
-		staticRects.push_back(MakeTileRect(def.tx0, def.ty0, def.tx1, def.ty1));
-	}
-
-	collisionManager.AddStaticRects(staticRects);
-
-
 	// Get a pointer to the shared collision world
 	collision::World* world = &collisionManager.GetCollisionWorld();
 
@@ -322,14 +285,6 @@ void Scene::ResolveInitialStaticOverlaps() {
 	const float gateX1 = kEndVX1;
 	const float gateTopY0 = kEndVTopMinY, gateTopY1 = kEndVTopMaxY;
 	const float gateBotY0 = kEndVBotMinY, gateBotY1 = kEndVBotMaxY;
-	// (We intentionally ignore the gap region kEndVGap* – that is walkable.)
-
-	// Benches + counters + bottom strip: pre-build their AABBs in pixel space.
-	std::array<collision::AABB, kStaticRectDefs.size()> benchRects{};
-	for (size_t i = 0; i < kStaticRectDefs.size(); ++i) {
-		const auto& def = kStaticRectDefs[i];
-		benchRects[i] = MakeTileRect(def.tx0, def.ty0, def.tx1, def.ty1);
-	}
 
 	// Walkable outer frame – clamp into this first.
 	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
@@ -367,27 +322,6 @@ void Scene::ResolveInitialStaticOverlaps() {
 		}
 		if (OverlapsRect(box, gateX0, gateX1, gateBotY0, gateBotY1)) {
 			SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
-			box = physics::MakeColliderBox(g, pM);
-		}
-
-		// Benches + ingredient counter + bottom strip
-		for (size_t i = 0; i < benchRects.size(); ++i) {
-			const auto& r = benchRects[i];
-
-			if (!OverlapsRect(box, r.min.x, r.max.x, r.min.y, r.max.y)) {
-				continue;
-			}
-
-			if (i <= 3) {
-				// Four benches: treat as vertical barrier, snap horizontally
-				SnapHorizontallyOutOfBand(box, r.min.x, r.max.x, pM);
-			}
-			else {
-				// Ingredient counter + bottom strip: snap vertically out
-				SnapVerticallyOutOfBand(box, r.min.y, r.max.y, pM);
-			}
-
-			// Rebuild after the snap so subsequent checks use the new position
 			box = physics::MakeColliderBox(g, pM);
 		}
 
