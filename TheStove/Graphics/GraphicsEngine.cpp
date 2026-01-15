@@ -436,15 +436,9 @@ void GraphicsEngine::DrawSceneDockWindow() {
 		// Invisible proxy for hover/click that exactly matches the scene image
 		if (sceneImageSize_.x > 1.0f && sceneImageSize_.y > 1.0f) {
 			ImGui::SetCursorScreenPos(sceneImagePos_);
-			const bool pressed = ImGui::ImageButton(
-				"##SceneImageBtn",
-				(ImTextureID)(intptr_t)mSceneColor,
-				ImVec2(sceneImageSize_.x, sceneImageSize_.y),
-				ImVec2(0, 1),
-				ImVec2(1, 0)
-			);
+			ImGui::InvisibleButton("##SceneImageBtn", sceneImageSize_);
 
-			if (pressed || ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+			if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
 				std::cout << "[Scene] LMB click inside Scene image\n";
 			}
 		}
@@ -673,8 +667,13 @@ ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
 #endif
 }
 
+
 // Default render path
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+	// Keep internal matrices in sync for editor picking + gizmos
+	view = viewMatrix;
+	projection = projectionMatrix;
+
 	// Draw background first
 	if (backgroundObject) {
 		glDisable(GL_DEPTH_TEST);
