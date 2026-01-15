@@ -37,7 +37,7 @@ void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& s
 	}
 
 	// Toggle auxiliary debug visuals
-	if (inputManager.IsKeyJustPressed(GLFW_KEY_T)) {
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_H)) {
 		showAuxDebug = !showAuxDebug;
 
 		std::cout << "[Debug] Auxiliary visuals: "
