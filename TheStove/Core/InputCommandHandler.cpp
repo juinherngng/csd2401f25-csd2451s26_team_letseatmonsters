@@ -28,7 +28,7 @@ void InputCommandHandler::ProcessCommands(InputManager& inputManager,
 
 void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& showAuxDebug) {
 	// Toggle collider visualization
-	if (inputManager.IsKeyJustPressed(GLFW_KEY_R)) {
+	if (inputManager.IsKeyJustPressed(GLFW_KEY_G)) {
 		DebugRenderer::SetEnabled(!DebugRenderer::IsEnabled());
 
 		std::cout << "[DebugRenderer] Collider visibility: "
