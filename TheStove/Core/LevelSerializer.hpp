@@ -32,6 +32,7 @@ struct LevelObject {
 	float rotation{ 0.0f }; // stored in degrees for editor compatibility
 
 	// Collision box (size + local offset)
+	bool hasCollider = true;
 	float colWidth{ 64.0f };
 	float colHeight{ 128.0f };
 	float colOffsetX{ 0.0f };
@@ -41,7 +42,7 @@ struct LevelObject {
 	float speedX{ 0.0f };
 	float speedY{ 0.0f };
 
-	// NEW: approach offset (relative to object center)
+	// Approach offset (relative to object center)
 	float approachOffsetX{ 0.0f };
 	float approachOffsetY{ 0.0f };
 

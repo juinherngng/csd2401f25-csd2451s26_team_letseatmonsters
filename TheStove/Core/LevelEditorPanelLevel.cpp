@@ -169,18 +169,18 @@ namespace {
 			GameObject* g = nullptr;
 
 			// Use "Default" when the saved layer name is empty
-			std::string layerName = obj.layer.empty()?"1":obj.layer;
+			std::string layerName = obj.layer.empty() ? "1" : obj.layer;
 
 			// Spawn animated or static
 			if (obj.animated) {
 				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h },
-											  fullFrame, 0.25f, true, layerName);
+					fullFrame, 0.25f, true, layerName);
 
 				if (obj.texture.find("dino") != std::string::npos) {
 					scene.AttachDinoAnimations(g->GetID());
 
-					const std::string clip = obj.animName.empty()?"IDLE":obj.animName;
+					const std::string clip = obj.animName.empty() ? "IDLE" : obj.animName;
 					scene.SetAnimation(g->GetID(), clip);
 				}
 			}
@@ -208,35 +208,28 @@ namespace {
 			g->SetRotation(glm::radians(rotDeg), { 0, 0, 1 });
 
 			// Collider data
-			g->SetColliderSize({ obj.colWidth, obj.colHeight });
-			g->SetColliderOffset({ obj.colOffsetX, obj.colOffsetY });
-
-			// Fallback collider if missing
-			if (obj.colWidth <= 0.f || obj.colHeight <= 0.f) {
-				const glm::vec3 s = g->GetScaleGLM();
-				g->SetColliderSize({ s.x, s.y });
+			if (!obj.hasCollider) {
+				g->SetColliderSize({ 0.f, 0.f });
 				g->SetColliderOffset({ 0.f, 0.f });
+			}
+			else {
+				g->SetColliderSize({ obj.colWidth, obj.colHeight });
+				g->SetColliderOffset({ obj.colOffsetX, obj.colOffsetY });
+
+				// Fallback only for legacy/bad data (when collider is supposed to exist)
+				if (obj.colWidth <= 0.f || obj.colHeight <= 0.f) {
+					const glm::vec3 s = g->GetScaleGLM();
+					g->SetColliderSize({ s.x, s.y });
+					g->SetColliderOffset({ 0.f, 0.f });
+				}
 			}
 
 			// Track texture path
 			scene.SetObjectTexturePath(g->GetID(), obj.texture);
 
 			// Tag-based special IDs and velocity
-			if (obj.tag == "player") {
-				scene.SetPlayerID(g->GetID());
-			}
-			else if (obj.tag == "npc1") {
-				scene.SetNPC1ID(g->GetID());
-				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
-			}
-			else if (obj.tag == "npc2") {
-				scene.SetNPC2ID(g->GetID());
-				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
-			}
-			else if (obj.tag == "dino") {
-				scene.SetDinoID(g->GetID());
-				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
-			}
+			scene.SetObjectTag(g->GetID(), obj.tag);
+			scene.ApplyTagRules(g->GetID(), obj.tag, obj.speedX, obj.speedY);
 
 			// Store transform and defaults
 			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, 0.0f }, { obj.w, obj.h, 1.0f }, obj.rotation);
@@ -300,24 +293,21 @@ namespace {
 			const auto cof = g->GetColliderOffset();
 			out.colWidth = csz.x;
 			out.colHeight = csz.y;
+			out.hasCollider = (csz.x > 0.f && csz.y > 0.f);
 			out.colOffsetX = cof.x;
 			out.colOffsetY = cof.y;
 
-			// TAG: use the value stored in Defaults as the single source of truth
+			// Use the value stored in Defaults as the single source of truth
 			Scene::Defaults defs = scene.GetDefaults(id);
 
-			// If this object has no stored tag yet, infer it ONCE from special IDs
-			if (defs.tag.empty()) {
-				if (id == scene.GetPlayerID())      defs.tag = "player";
-				else if (id == scene.GetNPC1ID())   defs.tag = "npc1";
-				else if (id == scene.GetNPC2ID())   defs.tag = "npc2";
-				else if (id == scene.GetDinoID())   defs.tag = "dino";
-				else                                defs.tag = "npc"; // generic goat
-
-				scene.SetDefaults(id, defs);
+			// Tag comes from scene
+			std::string tag = scene.GetObjectTag(id);
+			if (tag.empty()) {
+				tag = defs.tag; // fallback if not registered
 			}
 
-			out.tag = defs.tag;
+			out.tag = tag;
+
 			out.approachOffsetX = defs.approachOffset.x;
 			out.approachOffsetY = defs.approachOffset.y;
 
@@ -436,7 +426,7 @@ namespace {
 				// Optional: don't allow deleting base layer "1"
 				if (layerName != "1") {
 					// Move all objects on this layer back to layer 1
-					for (int objID:layer->GetObjects()) {
+					for (int objID : layer->GetObjects()) {
 						scene.AssignObjectToLayer(objID, "1");
 					}
 
@@ -454,7 +444,7 @@ namespace {
 namespace LEPANELLEVEL {
 #ifdef _DEBUG
 	void DrawLevelPanel(LevelEditor& editor, Scene& scene,
-						int& selectedIndex, int& selectedObjectId) {
+		int& selectedIndex, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 
 		if (!ImGui::Begin("Level###LE_Level")) {
@@ -568,7 +558,7 @@ namespace LEPANELLEVEL {
 		ImGui::SameLine();
 
 		// Play
-		if (ImGui::Button(editor.IsPlaying()?"Playing...":"Play")) {
+		if (ImGui::Button(editor.IsPlaying() ? "Playing..." : "Play")) {
 			if (!editor.IsPlaying()) {
 				LevelData& snap = editor.MutablePlaySnapshot();
 				SyncSceneToLevel(scene, snap);
@@ -608,21 +598,21 @@ namespace LEPANELLEVEL {
 		// Remove objects whose layer is currently hidden
 		objectList.erase(
 			std::remove_if(objectList.begin(), objectList.end(),
-						   [&](GameObject* g) {
-			if (!g) {
-				return true;
-			}
-			std::string layerName = scene.GetObjectLayer(g->GetID());
-			Layer* layer = scene.GetLayer(layerName);
-			return (layer && !layer->IsVisible());
-		}),
+				[&](GameObject* g) {
+					if (!g) {
+						return true;
+					}
+					std::string layerName = scene.GetObjectLayer(g->GetID());
+					Layer* layer = scene.GetLayer(layerName);
+					return (layer && !layer->IsVisible());
+				}),
 			objectList.end());
 
 		// Sort by ID so list doesn’t reshuffle when objects move
 		std::sort(objectList.begin(), objectList.end(),
-				  [](GameObject* a, GameObject* b) {
-			return a->GetID() < b->GetID();
-		});
+			[](GameObject* a, GameObject* b) {
+				return a->GetID() < b->GetID();
+			});
 
 		// Keep hierarchy row in sync with selection by ID (click in Scene)
 		if (selectedObjectId != -1) {
@@ -672,8 +662,8 @@ namespace LEPANELLEVEL {
 
 				std::string layer = scene.GetObjectLayer(gid);
 				std::string label = niceName.empty()
-					?("ID " + std::to_string(gid) + " [Layer: " + layer + "]")
-					:(niceName + " (ID " + std::to_string(gid) + ") [Layer: " + layer + "]");
+					? ("ID " + std::to_string(gid) + " [Layer: " + layer + "]")
+					: (niceName + " (ID " + std::to_string(gid) + ") [Layer: " + layer + "]");
 
 				ImGui::PushID(gid);
 				bool isSelected = (selectedObjectId == gid);
@@ -798,16 +788,12 @@ namespace LEPANELLEVEL {
 			}
 
 			char tagBuf[64] = "";
-			if (!defaults.tag.empty()) {
-				std::snprintf(tagBuf, sizeof(tagBuf), "%s", defaults.tag.c_str());
+			{
+				std::string tag = scene.GetObjectTag(id);
+				if (tag.empty()) tag = defaults.tag;
+				std::snprintf(tagBuf, sizeof(tagBuf), "%s", tag.c_str());
 			}
-			// Fallbacks only for objects that don’t have a tag stored yet.
-			else if (id == scene.GetPlayerID()) {
-				std::snprintf(tagBuf, sizeof(tagBuf), "player");
-			}
-			else if (id == scene.GetDinoID()) {
-				std::snprintf(tagBuf, sizeof(tagBuf), "dino");
-			}
+
 
 			glm::vec3 position = obj->GetPositionGLM();
 			glm::vec3 size = obj->GetScaleGLM();
@@ -828,7 +814,8 @@ namespace LEPANELLEVEL {
 
 			auto colliderSize = obj->GetColliderSize();
 			auto colliderOff = obj->GetColliderOffset();
-			glm::vec2 velocity = scene.GetNPCVelocity(id);
+
+			bool colliderEnabled = (colliderSize.x > 0.f && colliderSize.y > 0.f);
 
 			// Helpers with right-click reset
 			auto DragVec2WithReset = [&](const char* label, float* v, ImVec2 d, float speed, auto apply) {
@@ -857,7 +844,7 @@ namespace LEPANELLEVEL {
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("Right-click to reset");
 				}
-			};
+				};
 
 			auto DragFloatWithReset = [&](const char* label, float* v, float d, float speed, auto apply) {
 				bool changed = ImGui::DragFloat(label, v, speed);
@@ -883,7 +870,7 @@ namespace LEPANELLEVEL {
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("Right-click to reset");
 				}
-			};
+				};
 
 			ImGui::Columns(2, nullptr, false);
 			ImGuiStyle& style = ImGui::GetStyle();
@@ -902,7 +889,7 @@ namespace LEPANELLEVEL {
 
 			auto FullWidthNext = []() {
 				ImGui::SetNextItemWidth(-FLT_MIN);
-			};
+				};
 
 			// Texture
 			ImGui::Text("Texture"); ImGui::NextColumn();
@@ -1014,7 +1001,7 @@ namespace LEPANELLEVEL {
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
 				scene.ClampToWalkArea(obj);
-			});
+				});
 			ImGui::NextColumn();
 
 			// Size
@@ -1025,11 +1012,14 @@ namespace LEPANELLEVEL {
 				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
 				scene.ClampToWalkArea(obj);
 
-				colliderSize.x = size.x;
-				colliderSize.y = size.y;
-				obj->SetColliderSize({ colliderSize.x, colliderSize.y });
-				scene.RebuildColliders();
-			});
+				if (colliderEnabled) {
+					colliderSize.x = size.x;
+					colliderSize.y = size.y;
+					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+					scene.RebuildColliders();
+				}
+
+				});
 			ImGui::NextColumn();
 
 			// Animation
@@ -1058,7 +1048,6 @@ namespace LEPANELLEVEL {
 						if (ImGui::BeginCombo("Current", preview)) {
 							for (const std::string& name : animList) {
 								bool selected = (current == name);
-
 								if (ImGui::Selectable(name.c_str(), selected)) {
 									scene.SetAnimation(id, name.c_str());
 								}
@@ -1088,65 +1077,87 @@ namespace LEPANELLEVEL {
 
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
-			});
+				});
 			ImGui::NextColumn();
 
-			// Collider size
-			ImGui::Text("Collider (w,h)"); ImGui::NextColumn();
+			// Collider
+			ImGui::Text("Collider");
+			ImGui::NextColumn();
 			FullWidthNext();
-			DragVec2WithReset("##colsz", &colliderSize.x, ImVec2(defaults.colSize.x, defaults.colSize.y), 1.0f, [&](bool) {
-				obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+
+			if (ImGui::Checkbox("Enable Collider", &colliderEnabled)) {
+				PushUndoSnapshot(editor, scene);
+
+				if (!colliderEnabled) {
+					colliderSize = { 0.f, 0.f };
+					colliderOff = { 0.f, 0.f };
+					obj->SetColliderSize({ 0.f, 0.f });
+					obj->SetColliderOffset({ 0.f, 0.f });
+				}
+				else {
+					// default collider when adding
+					colliderSize = { size.x, size.y };
+					colliderOff = { 0.f, 0.f };
+					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+					obj->SetColliderOffset({ 0.f, 0.f });
+				}
+
 				scene.RebuildColliders();
-			});
-			ImGui::NextColumn();
+			}
 
-			// Collider offset
-			ImGui::Text("Collider offset"); ImGui::NextColumn();
-			FullWidthNext();
-			DragVec2WithReset("##coloff", &colliderOff.x, ImVec2(defaults.colOff.x, defaults.colOff.y), 1.0f, [&](bool) {
-				obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
-				scene.RebuildColliders();
-			});
-			ImGui::NextColumn();
+			if (colliderEnabled) {
+				float avail = ImGui::GetContentRegionAvail().x;
+				float gap = ImGui::GetStyle().ItemInnerSpacing.x;
+				float fieldW = (avail - gap) * 0.5f;
 
-			// Velocity
-			ImGui::Text("Velocity (x,y)"); ImGui::NextColumn();
-			FullWidthNext();
-			DragVec2WithReset("##vel", &velocity.x, ImVec2(defaults.vel.x, defaults.vel.y), 1.0f, [&](bool) {
-				scene.SetNPCVelocity(id, velocity.x, velocity.y);
-			});
+				// Size
+				ImGui::TextUnformatted("Size");
+				// row of 2 fields (x, y)
+				ImGui::PushItemWidth(fieldW);
+				bool sizeChangedX = ImGui::DragFloat("x##col_size_x", &colliderSize.x, 1.0f, 0.0f, 99999.0f);
+				ImGui::SameLine(0.0f, gap);
+				bool sizeChangedY = ImGui::DragFloat("y##col_size_y", &colliderSize.y, 1.0f, 0.0f, 99999.0f);
+				ImGui::PopItemWidth();
+
+				if (sizeChangedX || sizeChangedY) {
+					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+					scene.RebuildColliders();
+				}
+
+				ImGui::Spacing();
+
+				// Offset
+				ImGui::TextUnformatted("Offset");
+				ImGui::PushItemWidth(fieldW);
+				bool offChangedX = ImGui::DragFloat("x##col_off_x", &colliderOff.x, 1.0f, -99999.0f, 99999.0f);
+				ImGui::SameLine(0.0f, gap);
+				bool offChangedY = ImGui::DragFloat("y##col_off_y", &colliderOff.y, 1.0f, -99999.0f, 99999.0f);
+				ImGui::PopItemWidth();
+
+				if (offChangedX || offChangedY) {
+					obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
+					scene.RebuildColliders();
+				}
+			}
+			else {
+				ImGui::TextDisabled("Collider disabled");
+			}
+
 			ImGui::NextColumn();
 
 			ImGui::Columns(1);
 
-			// Apply updated values
-			// scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
-			obj->SetColliderSize({ colliderSize.x, colliderSize.y });
-			obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
-			scene.SetNPCVelocity(id, velocity.x, velocity.y);
-			scene.RebuildColliders();
-
-			// Handle special IDs if tag changed
 			std::string newTag = tagBuf;
-			std::string oldTag = defaults.tag;
 
+			// persist tag in both defaults + scene registry
 			defaults.tag = newTag;
 			scene.SetDefaults(id, defaults);
+			scene.SetObjectTag(id, newTag);
 
-			if (oldTag == "player" && newTag != "player") {
-				scene.SetPlayerID(-1);
-			}
-			if (oldTag == "dino" && newTag != "dino") {
-				scene.SetDinoID(-1);
-			}
+			// centralizes special IDs + velocity rules
+			scene.ApplyTagRules(id, newTag, defaults.vel.x, defaults.vel.y);
 
-			if (newTag == "player") {
-				scene.SetPlayerID(id);
-			}
-			else if (newTag == "dino") {
-				scene.SetDinoID(id);
-			}
-
+			// logic attach remains centralized in scene
 			scene.AttachLogicForTag(id, newTag);
 
 			if (editor.IsPlaying()) {
@@ -1183,14 +1194,14 @@ namespace LEPANELLEVEL {
 			// Prefab dropped to instantiate
 			if (const ImGuiPayload* pp = ImGui::AcceptDragDropPayload("PREFAB_PATH")) {
 				const char* droppedCStr = static_cast<const char*>(pp->Data);
-				const std::string dropped = droppedCStr?std::string(droppedCStr):std::string();
+				const std::string dropped = droppedCStr ? std::string(droppedCStr) : std::string();
 
 				LevelObject data{};
 				if (LEFILEIO::LoadPrefabFromFile(dropped, data)) {
 					// Snapshot BEFORE creating instance from prefab
 					PushUndoSnapshot(editor, scene);
 
-					std::string prefabLayer = data.layer.empty()?"1":data.layer;
+					std::string prefabLayer = data.layer.empty() ? "1" : data.layer;
 					GameObject* g = scene.SpawnStaticSprite(
 						data.texture,
 						{ data.x, data.y, data.z },
@@ -1225,7 +1236,7 @@ namespace LEPANELLEVEL {
 			// Texture dropped to apply to selected
 			if (const ImGuiPayload* tp = ImGui::AcceptDragDropPayload("ASSET_PATH")) {
 				const char* droppedCStr = static_cast<const char*>(tp->Data);
-				const std::string dropped = droppedCStr?std::string(droppedCStr):std::string();
+				const std::string dropped = droppedCStr ? std::string(droppedCStr) : std::string();
 
 				if (selectedObjectId != -1) {
 					// Find the selected object by ID in the render-sorted list
