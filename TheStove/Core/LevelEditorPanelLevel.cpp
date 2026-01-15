@@ -42,6 +42,7 @@
 #include "LevelEditor.hpp"
 #include "LevelEditorFileIO.hpp"
 #include "LevelEditorPrefabLinks.hpp"
+#include "LevelEditorPanelFonts.hpp"  // Include for text object sync
 #include "InputManager.hpp"
 
 
@@ -53,6 +54,75 @@ namespace {
 	// Internal helpers for Level <-> Scene synchronization
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
+
+	// Helper to sync text objects from LevelData to editor state
+	void SyncTextObjectsToEditor(const LevelData& levelIn) {
+		std::vector<LEPANELFONTS::TextObjectData> textObjects;
+		textObjects.reserve(levelIn.textObjects.size());
+		
+		for (const auto& levelText : levelIn.textObjects) {
+			LEPANELFONTS::TextObjectData textData;
+			textData.name = levelText.name;
+			textData.fontName = levelText.fontName;
+			textData.text = levelText.text;
+			textData.x = levelText.x;
+			textData.y = levelText.y;
+			textData.scale = levelText.scale;
+			textData.rotation = levelText.rotation;
+			textData.useBlockRotation = levelText.useBlockRotation;
+			textData.colorR = levelText.colorR;
+			textData.colorG = levelText.colorG;
+			textData.colorB = levelText.colorB;
+			textData.colorA = levelText.colorA;
+			textData.layer = levelText.layer;
+			
+			// Try to load the font if not already loaded
+			if (!levelText.fontName.empty()) {
+				FontSystem::Font* font = ResourceManager::Instance().GetFont(levelText.fontName);
+				if (!font) {
+					// Try to load with a default path - this won't work without the actual path
+					// In practice, fonts should be pre-loaded or the path should be stored
+					std::cout << "[SyncTextObjects] Font '" << levelText.fontName << "' not loaded, text may not render\n";
+				}
+			}
+			
+			textObjects.push_back(textData);
+		}
+		
+		LEPANELFONTS::SetTextObjects(textObjects);
+	}
+	
+	// NEW: Helper to sync text objects from editor state to LevelData
+	void SyncTextObjectsToLevel(LevelData& levelOut) {
+		const auto& textObjects = LEPANELFONTS::GetTextObjects();
+		levelOut.textObjects.clear();
+		levelOut.textObjects.reserve(textObjects.size());
+		
+		for (const auto& textData : textObjects) {
+			LevelTextObject levelText;
+			levelText.name = textData.name;
+			levelText.fontName = textData.fontName;
+			levelText.text = textData.text;
+			levelText.x = textData.x;
+			levelText.y = textData.y;
+			levelText.scale = textData.scale;
+			levelText.rotation = textData.rotation;
+			levelText.useBlockRotation = textData.useBlockRotation;
+			levelText.colorR = textData.colorR;
+			levelText.colorG = textData.colorG;
+			levelText.colorB = textData.colorB;
+			levelText.colorA = textData.colorA;
+			levelText.layer = textData.layer;
+			
+			// Get font size from loaded font if available
+			FontSystem::Font* font = ResourceManager::Instance().GetFont(textData.fontName);
+			if (font) {
+				levelText.fontSize = font->GetFontSize();
+			}
+			
+			levelOut.textObjects.push_back(levelText);
+		}
+	}
 
 #ifdef _DEBUG
 	static constexpr int MAX_UNDO = 50;
@@ -436,7 +506,9 @@ namespace LEPANELLEVEL {
 			LevelData& work = editor.MutableLevel();
 			if (LevelSerializer::Load(editor.levelPath, work)) {
 				scene.ClearAll();
+				LEPANELFONTS::ClearTextObjects();  // Clear text objects before loading
 				SyncLevelToScene(work, scene);
+				SyncTextObjectsToEditor(work);     // Load text objects
 				scene.RebuildColliders();
 				scene.SetSimulationActive(false);
 				scene.ResetResizeBaseline();
@@ -457,7 +529,17 @@ namespace LEPANELLEVEL {
 		if (ImGui::Button("Save Level")) {
 			LevelData& dst = editor.MutableLevel();
 			SyncSceneToLevel(scene, dst);
-			LevelSerializer::Save(editor.levelPath, dst);
+			SyncTextObjectsToLevel(dst);  // Save text objects
+			
+			std::cout << "[LevelPanel] Saving level to: " << editor.levelPath << std::endl;
+			std::cout << "[LevelPanel] Game objects: " << dst.objects.size() << std::endl;
+			std::cout << "[LevelPanel] Text objects: " << dst.textObjects.size() << std::endl;
+			
+			if (LevelSerializer::Save(editor.levelPath, dst)) {
+				std::cout << "[LevelPanel] Level saved successfully!" << std::endl;
+			} else {
+				std::cerr << "[LevelPanel] ERROR: Failed to save level!" << std::endl;
+			}
 		}
 
 		ImGui::SameLine();
@@ -611,6 +693,23 @@ namespace LEPANELLEVEL {
 			}
 
 			ImGui::EndListBox();
+		}
+
+		// Text Objects Section - shows text objects from the Fonts panel
+		{
+			const auto& textObjs = LEPANELFONTS::GetTextObjects();
+			if (!textObjs.empty()) {
+				ImGui::SeparatorText("Text Objects");
+				if (ImGui::BeginListBox("##TextObjectsList", ImVec2(-FLT_MIN, 80.0f))) {
+					for (size_t i = 0; i < textObjs.size(); ++i) {
+						const auto& t = textObjs[i];
+						std::string lbl = t.name + " [" + t.fontName + "] [Layer: " + t.layer + "]";
+						ImGui::Selectable(lbl.c_str(), false, ImGuiSelectableFlags_Disabled);
+					}
+					ImGui::EndListBox();
+				}
+				ImGui::TextDisabled("Edit text objects in the Fonts panel.");
+			}
 		}
 
 		if (editor.IsPlaying()) {

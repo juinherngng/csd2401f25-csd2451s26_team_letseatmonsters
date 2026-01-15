@@ -1007,6 +1007,46 @@ void GraphicsEngine::RenderTextObjects() {
 		return;
 	}
 
+	// Helper to convert layer name to sort key (same as CollectRenderablePointers)
+	auto parseLayerNumber = [](const std::string& s) -> int {
+		if (s.empty()) {
+			return 1; // base layer
+		}
+
+		int result = 0;
+		for (char c : s) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				// Any non-numeric layer name behaves like a very "high" layer
+				return 1000000;
+			}
+
+			result = result * 10 + (c - '0');
+		}
+
+		return result;
+	};
+
+	// Sort text objects by layer (lower layer numbers render first/behind)
+	std::vector<const LEPANELFONTS::TextObjectData*> sortedTextObjects;
+	sortedTextObjects.reserve(textObjects.size());
+	for (const auto& data : textObjects) {
+		sortedTextObjects.push_back(&data);
+	}
+
+	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
+		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
+			int la = parseLayerNumber(a->layer);
+			int lb = parseLayerNumber(b->layer);
+			
+			// Higher layer number = rendered on top (later in draw order)
+			if (la != lb) {
+				return la < lb;
+			}
+			
+			// Same layer: use Y position for depth sorting
+			return a->y < b->y;
+		});
+
 	// Create Text renderers on demand and render
 	for (const auto& data : textObjects) {
 		// Get the font from ResourceManager

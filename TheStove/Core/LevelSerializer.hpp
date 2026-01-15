@@ -50,8 +50,36 @@ struct LevelObject {
 	std::string animName;
 };
 
+// Text object for font-based text rendering in levels
+struct LevelTextObject {
+	// Identification
+	std::string name;            // Display name in editor
+	
+	// Text content
+	std::string text;            // The text to render
+	std::string fontName;		 // Name of the loaded font to use
+	unsigned int fontSize{ 48 }; // Font size (for reloading font if needed)
+	
+	// Transform
+	float x{ 0.0f };
+	float y{ 0.0f };
+	float scale{ 1.0f };
+	float rotation{ 0.0f };		   // Rotation in degrees
+	bool useBlockRotation{ true }; // true = block rotation, false = per-character
+	
+	// Appearance
+	float colorR{ 1.0f };
+	float colorG{ 1.0f };
+	float colorB{ 1.0f };
+	float colorA{ 1.0f };
+	
+	// Layer for rendering order
+	std::string layer{ "1" };
+};
+
 struct LevelData {
 	std::vector<LevelObject> objects{};
+	std::vector<LevelTextObject> textObjects{};  // text objects in the level
 	std::string background; // optional background texture path
 };
 

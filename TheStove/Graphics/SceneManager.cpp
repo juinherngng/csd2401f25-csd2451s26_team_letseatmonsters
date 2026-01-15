@@ -1,6 +1,6 @@
 ﻿/*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:			SceneManager.hpp
+ FILE NAME:			SceneManager.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
