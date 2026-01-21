@@ -18,11 +18,13 @@
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <stb_image.h>
 
 #include "../Core/FontSystem.hpp"
 #include "../Core/LevelEditorPanelFonts.hpp"
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
+
 
 // File-scoped state
 static bool _imguiInitialized = false;
@@ -96,6 +98,7 @@ void GraphicsEngine::Initialize() {
 	renderer.SetClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
 	CreateSceneFBO(kRefW, kRefH);
+	CreatePostFBO(kRefW, kRefH);
 	view = glm::mat4(1.0f);
 
 	LoadDefaultResources();
@@ -166,6 +169,19 @@ void GraphicsEngine::DestroySceneFBO() {
 	}
 }
 
+void GraphicsEngine::DestroyPostFBO() {
+	if (mPostColor) {
+		glDeleteTextures(1, &mPostColor);
+		mPostColor = 0;
+	}
+	if (mPostFBO) {
+		glDeleteFramebuffers(1, &mPostFBO);
+		mPostFBO = 0;
+	}
+	mPostWidth = 0;
+	mPostHeight = 0;
+}
+
 // Create a color and depth FBO for the scene at the given size
 void GraphicsEngine::CreateSceneFBO(int w, int h) {
 	DestroySceneFBO();
@@ -194,6 +210,28 @@ void GraphicsEngine::CreateSceneFBO(int w, int h) {
 	mSceneHeight = h;
 }
 
+void GraphicsEngine::CreatePostFBO(int w, int h) {
+	DestroyPostFBO();
+
+	glGenFramebuffers(1, &mPostFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, mPostFBO);
+
+	glGenTextures(1, &mPostColor);
+	glBindTexture(GL_TEXTURE_2D, mPostColor);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mPostColor, 0);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		std::cerr << "[GraphicsEngine] Post FBO incomplete\n";
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	mPostWidth = w;
+	mPostHeight = h;
+}
+
 // Resize (recreate) the scene FBO if size is valid
 void GraphicsEngine::ResizeSceneFBO(int w, int h) {
 	if (w <= 0 || h <= 0) {
@@ -201,6 +239,7 @@ void GraphicsEngine::ResizeSceneFBO(int w, int h) {
 	}
 
 	CreateSceneFBO(w, h);
+	CreatePostFBO(w, h);
 }
 
 // Bind scene FBO and clear
@@ -310,6 +349,11 @@ void GraphicsEngine::LoadDefaultResources() {
 	resourceManager.LoadShader("shadow",
 							   ResolveShaderPath("../shaders/shadow.vert"),
 							   ResolveShaderPath("../shaders/shadow.frag"));
+
+	// Post-process LUT shader
+	resourceManager.LoadShader("post_lut",
+							   ResolveShaderPath("../shaders/post_lut.vert"),
+							   ResolveShaderPath("../shaders/post_lut.frag"));
 
 	// Load triangle mesh
 	std::vector<float> vertices;
@@ -430,9 +474,10 @@ void GraphicsEngine::DrawSceneDockWindow() {
 		sceneImagePos_ = ImGui::GetCursorScreenPos();
 		sceneImageSize_ = ImVec2(w, h);
 
-		// Draw the FBO texture (v-flipped)
+		// Draw the current display texture (v-flipped to match ImGui)
+		const unsigned int displayTex = GetDisplayColorTexture();
 		ImGui::Image(
-			(ImTextureID)(intptr_t)mSceneColor,
+			(ImTextureID)(intptr_t)displayTex,
 			ImVec2(w, h),
 			ImVec2(0, 1), // uv0
 			ImVec2(1, 0)  // uv1
@@ -474,6 +519,64 @@ void GraphicsEngine::BeginFrame() {
 	ApplyViewport();
 	BeginSceneRender();
 	BeginImGuiFrame();
+}
+
+bool GraphicsEngine::LoadColorLUT(const std::string& name, const std::string& filePath, int lutSize) {
+	stbi_set_flip_vertically_on_load(false);
+	Texture* t = resourceManager.LoadTexture(name, filePath);
+	stbi_set_flip_vertically_on_load(true);
+	if (!t) {
+		std::cerr << "[GraphicsEngine] Failed to load LUT: " << filePath << std::endl;
+		return false;
+	}
+	lutTexture_ = t;
+	lutSize_ = lutSize > 0 ? lutSize : 16;
+	std::cout << "[GraphicsEngine] Loaded LUT '" << name << "' size=" << lutSize_ << " from: " << filePath << std::endl;
+	return true;
+}
+
+unsigned int GraphicsEngine::GetDisplayColorTexture() const {
+	if (lutEnabled_ && lutTexture_ && mPostColor != 0) {
+		return mPostColor;
+	}
+	return mSceneColor;
+}
+
+void GraphicsEngine::ApplyColorGradingIfEnabled() {
+	if (!lutEnabled_ || !lutTexture_ || mPostFBO == 0 || mSceneColor == 0) {
+		return;
+	}
+
+	Shader* post = resourceManager.GetShader("post_lut");
+	Mesh* quad = resourceManager.GetMesh("fullscreen_quad");
+	if (!post || !quad) {
+		return;
+	}
+
+	// Render to post FBO
+	glBindFramebuffer(GL_FRAMEBUFFER, mPostFBO);
+	glViewport(0, 0, mPostWidth, mPostHeight);
+	glDisable(GL_DEPTH_TEST);
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	post->Use();
+	// Bind input scene color
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, mSceneColor);
+	post->SetTexture("u_SceneTex", 0);
+
+	// Bind LUT
+	lutTexture_->Bind(1);
+	post->SetTexture("u_LUT", 1);
+	post->SetInt("u_LUTSize", lutSize_);
+	post->SetFloat("u_Intensity", lutIntensity_);
+
+	// Fullscreen quad in NDC (vertex shader expands -0.5..0.5 to -1..1)
+	quad->Draw();
+
+	// Restore default framebuffer for presentation
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 // Convert current mouse (screen) into scene world coords if within image
@@ -734,24 +837,27 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		}
 	}
 
-	// Unbind scene FBO so default framebuffer can be used for final presentation
+	// Unbind scene FBO so we can post-process and present
 	EndSceneRender();
+
+	// Post-process to mPostFBO if enabled
+	ApplyColorGradingIfEnabled();
 
 #ifdef _DEBUG
 	// Debug: render ImGui dockspace + scene image into ImGui window
 	DrawSceneDockWindow();
 	EndImGuiFrame();
 #else
-	// Release: present the scene FBO to the default framebuffer (GLFW window)
-	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+	// Release: present the (graded or ungraded) texture to the default framebuffer
+	if (screenWidth > 0 && screenHeight > 0) {
+		// Source: choose post or scene FBO
+		const bool usePost = lutEnabled_ && lutTexture_ && (mPostFBO != 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, usePost ? mPostFBO : mSceneFBO);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-		// Source rect: the whole scene FBO
 		const int srcW = mSceneWidth;
 		const int srcH = mSceneHeight;
 
-		// Destination rect: SAME letterboxed region as Resize() + picking
 		const int dstX0 = viewportX_;
 		const int dstY0 = viewportY_;
 		const int dstX1 = viewportX_ + viewportW_;
@@ -817,14 +923,18 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		// Render text objects even if no game objects
 		RenderTextObjects();
 
+		// Finish scene and apply post
 		EndSceneRender();
+		ApplyColorGradingIfEnabled();
+
 #ifdef _DEBUG
 		DrawSceneDockWindow();
 		EndImGuiFrame();
 #else
-		// Blit scene FBO to default framebuffer in Release (guarded)
-		if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+		// Blit graded/ungraded to default framebuffer
+		if (screenWidth > 0 && screenHeight > 0) {
+			const bool usePost = lutEnabled_ && lutTexture_ && (mPostFBO != 0);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, usePost ? mPostFBO : mSceneFBO);
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 			const int srcW = mSceneWidth;
@@ -967,13 +1077,16 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 	// End-of-frame UI and finalization
 	EndSceneRender();
+	ApplyColorGradingIfEnabled();
+
 #ifdef _DEBUG
 	DrawSceneDockWindow();
 	EndImGuiFrame();
 #else
 	// Blit to default framebuffer (guarded) in Release
-	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+	if (screenWidth > 0 && screenHeight > 0) {
+		const bool usePost = lutEnabled_ && lutTexture_ && (mPostFBO != 0);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, usePost ? mPostFBO : mSceneFBO);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
 		const int srcW = mSceneWidth;
@@ -1032,8 +1145,8 @@ void GraphicsEngine::RenderTextObjects() {
 		textRenderer.SetPosition(glm::vec2(data.x, data.y));
 		textRenderer.SetScale(data.scale);
 		textRenderer.SetRotation(data.rotation);
-		textRenderer.SetRotationMode(data.useBlockRotation?
-									 FontSystem::Text::RotationMode::Block:
+		textRenderer.SetRotationMode(data.useBlockRotation ?
+									 FontSystem::Text::RotationMode::Block :
 									 FontSystem::Text::RotationMode::PerCharacter);
 		textRenderer.SetColor(glm::vec4(data.colorR, data.colorG, data.colorB, data.colorA));
 

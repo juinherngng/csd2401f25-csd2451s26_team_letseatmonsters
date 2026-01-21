@@ -99,6 +99,15 @@ void Scene::LoadScene(const std::string& sceneName) {
 
 	// You can keep a background even with an empty level (or move this into JSON later)
 	SetSceneBackground("../assets/Background.png");
+
+	// Enable global color grading (3D LUT packed as 2D strip: width = N*N, height = N)
+	GraphicsEngine& gfx = GetGraphicsEngine();
+
+	// Load a sample LUT and enable it
+	if (gfx.LoadColorLUT("global_lut", "../assets/rgbtable16x1.png", 16)) {
+		gfx.SetColorGradingIntensity(0.2); // 0..1 mix
+		gfx.EnableColorGrading(true);
+	}
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {

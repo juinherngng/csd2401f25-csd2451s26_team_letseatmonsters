@@ -172,3 +172,17 @@ void Shader::SetUVScale(const glm::vec2& scale) const {
 		glUniform2fv(loc, 1, &scale[0]);
 	}
 }
+
+void Shader::SetFloat(const std::string& name, float value) const {
+	GLint loc = glGetUniformLocation(programID, name.c_str());
+	if (loc != -1) {
+		glUniform1f(loc, value);
+	}
+}
+
+void Shader::SetInt(const std::string& name, int value) const {
+	GLint loc = glGetUniformLocation(programID, name.c_str());
+	if (loc != -1) {
+		glUniform1i(loc, value);
+	}
+}

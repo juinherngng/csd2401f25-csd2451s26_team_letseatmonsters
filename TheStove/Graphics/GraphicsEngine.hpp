@@ -18,6 +18,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <vector>
+#include <algorithm>
 
 #include "../Core/System.hpp"
 
@@ -130,6 +131,20 @@ public:
 	// Convert world-space (editor) coordinates to screen-space inside the Scene image
 	ImVec2 WorldToSceneImage(const glm::vec2& world) const;
 
+	// ----- Color grading (LUT) -----
+	void EnableColorGrading(bool enabled) {
+		lutEnabled_ = enabled;
+	}
+	void SetColorGradingIntensity(float intensity) {
+		lutIntensity_ = std::clamp(intensity, 0.0f, 1.0f);
+	}
+	// name is the cache key, filePath the 2D LUT texture (Unity-style layout: width=N*N, height=N)
+	// lutSize is the cube dimension (e.g., 16)
+	bool LoadColorLUT(const std::string& name, const std::string& filePath, int lutSize);
+
+	// Return the currently displayed color texture (scene or post-processed)
+	unsigned int GetDisplayColorTexture() const;
+
 private:
 	// Core state
 	Renderer renderer;
@@ -166,6 +181,15 @@ private:
 	void CreateSceneFBO(int w, int h);
 	void DestroySceneFBO();
 	void ResizeSceneFBO(int w, int h);
+
+	// Post-process FBO (output of LUT grading)
+	unsigned int mPostFBO = 0;
+	unsigned int mPostColor = 0;
+	int mPostWidth = 0;
+	int mPostHeight = 0;
+
+	void CreatePostFBO(int w, int h);
+	void DestroyPostFBO();
 
 	// Scene window rect (for picking)
 	ImVec2 sceneImagePos_{ 0.0f, 0.0f };
@@ -209,4 +233,13 @@ private:
 
 	// Shadows
 	void DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+
+	// LUT state
+	bool lutEnabled_ = false;
+	float lutIntensity_ = 1.0f;
+	Texture* lutTexture_ = nullptr;
+	int lutSize_ = 16;
+
+	// Internal: run LUT post-process into mPostFBO (if enabled)
+	void ApplyColorGradingIfEnabled();
 };

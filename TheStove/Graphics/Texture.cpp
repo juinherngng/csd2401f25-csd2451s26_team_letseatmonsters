@@ -14,7 +14,7 @@
 #include "Texture.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "../extern/stb_image/stb_image.h"
+#include <stb_image.h>
 
 Texture::Texture() : textureID(0), width(0), height(0), channels(0) {
 }
