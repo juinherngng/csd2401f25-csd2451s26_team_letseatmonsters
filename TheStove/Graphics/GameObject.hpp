@@ -59,7 +59,7 @@ public:
 	 */
 	GameObject(int objectID);
 
-	/** @brief Get the GameObject�s unique ID. */
+	/** @brief Get the GameObject's unique ID. */
 	int GetID() const;
 
 	/**
@@ -161,6 +161,32 @@ public:
 		return m_IsMovableByPhysics;
 	}
 
+	// ----- Shadow controls -----
+	void EnableShadow(bool enable) {
+		m_HasShadow = enable;
+	}
+	bool HasShadow() const {
+		return m_HasShadow;
+	}
+	void SetShadowSize(const glm::vec2& size) {
+		m_ShadowSize = size;
+	}
+	glm::vec2 GetShadowSize() const {
+		return m_ShadowSize;
+	}
+	void SetShadowOffset(const glm::vec2& offset) {
+		m_ShadowOffset = offset;
+	}
+	glm::vec2 GetShadowOffset() const {
+		return m_ShadowOffset;
+	}
+	void SetShadowOpacity(float opacity) {
+		m_ShadowOpacity = opacity;
+	}
+	float GetShadowOpacity() const {
+		return m_ShadowOpacity;
+	}
+
 private:
 	Mesh* m_Mesh;
 	Shader* m_Shader;
@@ -186,4 +212,9 @@ private:
 
 	bool m_IsMovableByPhysics = true; // default: objects can be pushed by physics/separation
 
+	// Shadow parameters (simple blob shadow)
+	bool m_HasShadow = false;
+	glm::vec2 m_ShadowSize{ 60.0f, 20.0f };   // width, height in world units
+	glm::vec2 m_ShadowOffset{ 0.0f, 0.0f };   // local offset in world units
+	float m_ShadowOpacity = 0.45f;            // 0..1
 };

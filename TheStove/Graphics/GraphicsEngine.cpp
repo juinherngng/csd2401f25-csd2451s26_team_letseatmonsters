@@ -306,6 +306,11 @@ void GraphicsEngine::LoadDefaultResources() {
 							   ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
 							   ResolveShaderPath("../shaders/animatedsprite.frag"));
 
+	// Shadow blob shader (no texture required)
+	resourceManager.LoadShader("shadow",
+							   ResolveShaderPath("../shaders/shadow.vert"),
+							   ResolveShaderPath("../shaders/shadow.frag"));
+
 	// Load triangle mesh
 	std::vector<float> vertices;
 	GLsizei vertexCount, vertexSize;
@@ -696,6 +701,9 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		glEnable(GL_DEPTH_TEST);
 	}
 
+	// Draw shadows before sprites
+	DrawSpriteShadows(objects, viewMatrix, projectionMatrix);
+
 	// Render all scene objects
 	for (const auto* obj : objects) {
 		if (!obj) continue;
@@ -800,6 +808,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 		glEnable(GL_DEPTH_TEST);
 	}
+
+	// Draw shadows before sprites 
+	DrawSpriteShadows(objects, view, projection);
 
 	// Early out if no objects
 	if (objects.empty()) {
@@ -1032,6 +1043,55 @@ void GraphicsEngine::RenderTextObjects() {
 #else
 	// In release build, text will be rendered from game state
 #endif
+}
+
+// Simple blob shadow pass (draw before sprites)
+void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+	Shader* shadowShader = resourceManager.GetShader("shadow");
+	Mesh* quad = resourceManager.GetMesh("sprite");
+
+	if (!shadowShader || !quad) {
+		return;
+	}
+
+	// Disable depth to avoid writing/occluding sprite depth. Keep alpha blending.
+	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
+	GLboolean depthMask;
+	glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
+	glDepthMask(GL_FALSE);
+
+	shadowShader->Use();
+	shadowShader->SetViewMatrix(viewMatrix);
+	shadowShader->SetProjectionMatrix(projectionMatrix);
+
+	for (const GameObject* obj : objects) {
+		if (!obj || !obj->HasShadow()) continue;
+
+		const glm::vec3 pos = obj->GetPositionGLM();
+		const glm::vec2 size = obj->GetShadowSize();
+		const glm::vec2 off = obj->GetShadowOffset();
+		const float opacity = obj->GetShadowOpacity();
+
+		// Model: place on object's XY with optional offset; keep Z slightly behind if needed
+		glm::mat4 model(1.0f);
+		model = glm::translate(model, glm::vec3(pos.x + off.x, pos.y + off.y, pos.z));
+		model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
+
+		// Ellipse axis compensation so the gradient remains elliptical after non-uniform scale
+		const float axisYOverX = (size.x != 0.0f) ? (size.y / size.x) : 1.0f;
+		shadowShader->SetModelMatrix(model);
+		shadowShader->SetColorTint(glm::vec4(0.0f, 0.0f, 0.0f, opacity));
+		shadowShader->SetUVScale(glm::vec2(1.0f, axisYOverX)); // reuse uniform setter
+
+		quad->Draw();
+	}
+
+	// Restore depth state
+	glDepthMask(depthMask);
+	if (depthWasEnabled) {
+		glEnable(GL_DEPTH_TEST);
+	}
 }
 
 // Free resources and shutdown ImGui

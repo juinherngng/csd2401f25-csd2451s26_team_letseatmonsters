@@ -206,4 +206,7 @@ private:
 
 	// Text rendering
 	void RenderTextObjects();
+
+	// Shadows
+	void DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 };
