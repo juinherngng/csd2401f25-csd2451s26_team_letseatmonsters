@@ -1,4 +1,4 @@
-	/*
+/*
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			Shader.hpp
  PROJECT NAME:		Project GAM200
@@ -32,10 +32,6 @@ public:
 
 	void SetUVOffset(const glm::vec2& offset) const;
 	void SetUVScale(const glm::vec2& scale) const;
-
-	// Uniform setters for LUT
-	void SetFloat(const std::string& name, float value) const;
-	void SetInt(const std::string& name, int value) const;
 
 private:
 	GLuint programID;
