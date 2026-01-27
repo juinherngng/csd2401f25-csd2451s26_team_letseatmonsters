@@ -9,7 +9,7 @@
 					navigation, arrival callbacks, item pick-up/drop behaviour, and sprite facing
 					updates. Provides the public interface used by the Scene and LogicManager.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -86,6 +86,11 @@ private:
     void OnArrived(Scene& scene);                             // Unity: OnArrived() hook
     void UpdateSprite(Scene& scene, GameObject* player, const glm::vec2& moveDir);
 
-    //keep carried item following the player
+    // keep carried item following the player
     void UpdateCarriedItemTransform(Scene& scene);
+
+	// particle footsteps
+	float footstepDistanceAcc_ = 0.0f;
+	bool wasMoving_ = false;
+	float footstepEmitTimer_ = 0.0f;
 };

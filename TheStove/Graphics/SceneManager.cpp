@@ -180,6 +180,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		pendingLevelPath_.clear();
 	}
 
+	// Update runtime particles
+	particleSystem_.Update(deltaTime, entityManager);
+
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 	(void)window;
 
