@@ -143,6 +143,9 @@ void GraphicsEngine::Update(float dt) {
 	// Store dt for performance tracking
 	lastDt = dt;
 
+	// Update transition state machine
+	UpdateTransition(dt);
+
 	// Note: Actual rendering is still called from main loop via BeginFrame/Render/EndFrame
 	// This Update is just for system integration and performance monitoring
 	(void)dt; // Suppress unused parameter warning if no other logic needed
@@ -310,6 +313,11 @@ void GraphicsEngine::LoadDefaultResources() {
 	resourceManager.LoadShader("shadow",
 							   ResolveShaderPath("../shaders/shadow.vert"),
 							   ResolveShaderPath("../shaders/shadow.frag"));
+
+	// Solid color fullscreen overlay shader for transitions
+	resourceManager.LoadShader("screenfade",
+							   ResolveShaderPath("../shaders/screenfade.vert"),
+							   ResolveShaderPath("../shaders/screenfade.frag"));
 
 	// Load triangle mesh
 	std::vector<float> vertices;
@@ -734,6 +742,9 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		}
 	}
 
+	// Draw transition overlay into the scene FBO before unbinding
+	DrawTransitionOverlay();
+
 	// Unbind scene FBO so default framebuffer can be used for final presentation
 	EndSceneRender();
 
@@ -816,6 +827,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	if (objects.empty()) {
 		// Render text objects even if no game objects
 		RenderTextObjects();
+
+		// Draw transition overlay even if empty scene
+		DrawTransitionOverlay();
 
 		EndSceneRender();
 #ifdef _DEBUG
@@ -964,6 +978,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 	// Render text objects on top of scene
 	RenderTextObjects();
+
+	// Draw transition overlay on top of everything in the scene FBO
+	DrawTransitionOverlay();
 
 	// End-of-frame UI and finalization
 	EndSceneRender();
@@ -1115,4 +1132,107 @@ void GraphicsEngine::Shutdown() {
 	}
 #endif
 }
+
+// Transition implementation
+void GraphicsEngine::StartSceneTransition(float fadeOutSeconds, float fadeInSeconds) {
+	if (transitionPhase_ != TransitionPhase::None) {
+		return; // already running
+	}
+	fadeOutTime_ = (fadeOutSeconds <= 0.0f) ? 0.001f : fadeOutSeconds;
+	fadeInTime_ = (fadeInSeconds <= 0.0f) ? 0.001f : fadeInSeconds;
+	transitionPhase_ = TransitionPhase::FadeOut;
+	transitionTimer_ = 0.0f;
+	transitionAlpha_ = 0.0f;
+}
+
+bool GraphicsEngine::IsTransitionActive() const {
+	return transitionPhase_ != TransitionPhase::None;
+}
+
+bool GraphicsEngine::IsAtBlackout() const {
+	return transitionPhase_ == TransitionPhase::Hold;
+}
+
+void GraphicsEngine::ContinueTransitionFadeIn() {
+	if (transitionPhase_ == TransitionPhase::Hold) {
+		transitionPhase_ = TransitionPhase::FadeIn;
+		transitionTimer_ = 0.0f;
+		transitionAlpha_ = 1.0f;
+	}
+}
+
+void GraphicsEngine::UpdateTransition(float dt) {
+	switch (transitionPhase_) {
+		case TransitionPhase::None:
+			transitionAlpha_ = 0.0f;
+			break;
+		case TransitionPhase::FadeOut: {
+			transitionTimer_ += dt;
+			float t = (fadeOutTime_ > 0.0f) ? (transitionTimer_ / fadeOutTime_) : 1.0f;
+			if (t >= 1.0f) {
+				t = 1.0f;
+				transitionPhase_ = TransitionPhase::Hold; // wait for external scene switch
+				transitionTimer_ = 0.0f;
+			}
+			transitionAlpha_ = t; // 0 -> 1
+			break;
+		}
+		case TransitionPhase::Hold:
+			transitionAlpha_ = 1.0f;
+			break;
+		case TransitionPhase::FadeIn: {
+			transitionTimer_ += dt;
+			float t = (fadeInTime_ > 0.0f) ? (transitionTimer_ / fadeInTime_) : 1.0f;
+			if (t >= 1.0f) {
+				t = 1.0f;
+				transitionPhase_ = TransitionPhase::None;
+			}
+			transitionAlpha_ = 1.0f - t; // 1 -> 0
+			break;
+		}
+	}
+}
+
+void GraphicsEngine::DrawTransitionOverlay() {
+	if (transitionPhase_ == TransitionPhase::None || transitionAlpha_ <= 0.0f) {
+		return;
+	}
+
+	Shader* fadeShader = resourceManager.GetShader("screenfade");
+	Mesh* fsq = resourceManager.GetMesh("fullscreen_quad");
+	if (!fadeShader || !fsq) {
+		return;
+	}
+
+	// Build a model that fills the reference canvas (same as background quad)
+	glm::mat4 model(1.0f);
+	model = glm::translate(model, glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
+	model = glm::scale(model, glm::vec3(static_cast<float>(kRefW), static_cast<float>(kRefH), 1.0f));
+
+	// Render a black overlay with alpha
+	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
+	GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+	if (!blendWasEnabled) {
+		glEnable(GL_BLEND);
+	}
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	fadeShader->Use();
+	fadeShader->SetModelMatrix(model);
+	fadeShader->SetViewMatrix(view);
+	fadeShader->SetProjectionMatrix(projection);
+	fadeShader->SetColorTint(glm::vec4(0.0f, 0.0f, 0.0f, transitionAlpha_));
+
+	fsq->Draw();
+
+	// Restore state
+	if (!blendWasEnabled) {
+		glDisable(GL_BLEND);
+	}
+	if (depthWasEnabled) {
+		glEnable(GL_DEPTH_TEST);
+	}
+}
+
 

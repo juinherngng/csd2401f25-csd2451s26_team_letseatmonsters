@@ -130,6 +130,12 @@ public:
 	// Convert world-space (editor) coordinates to screen-space inside the Scene image
 	ImVec2 WorldToSceneImage(const glm::vec2& world) const;
 
+	// Scene Transition 
+	void StartSceneTransition(float fadeOutSeconds = 0.35f, float fadeInSeconds = 0.35f);
+	bool IsTransitionActive() const;
+	bool IsAtBlackout() const;           // true when fade-out finished and overlay is fully opaque
+	void ContinueTransitionFadeIn();     // call once you switched scenes to start fade-in
+
 private:
 	// Core state
 	Renderer renderer;
@@ -209,4 +215,25 @@ private:
 
 	// Shadows
 	void DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+
+	// Transition 
+	enum class TransitionPhase {
+		None,
+		FadeOut,
+		Hold,     // fully black while the caller switches scenes
+		FadeIn
+	};
+
+	TransitionPhase transitionPhase_ = TransitionPhase::None;
+	float fadeOutTime_ = 0.0f;
+	float fadeInTime_ = 0.0f;
+	float transitionTimer_ = 0.0f;
+	float transitionAlpha_ = 0.0f;
+
+	// Cached last used fade times for preview UI (debug only)
+	float dbgFadeOutSeconds_ = 0.35f;
+	float dbgFadeInSeconds_ = 0.35f;
+
+	void UpdateTransition(float dt);
+	void DrawTransitionOverlay();
 };

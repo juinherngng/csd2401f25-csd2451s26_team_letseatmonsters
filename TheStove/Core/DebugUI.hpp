@@ -1,4 +1,4 @@
-/*
+	/*
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			DebugUI.hpp
  PROJECT NAME:		Project GAM200
@@ -104,6 +104,9 @@ namespace Debug {
 		
 		void SetupDefaultLayout();
 
+		// draws transition preview panel
+		void DrawTransitionPanel();
+
 	public:
 		float fps = 0; // FPS 
 		float msperFrame = 0; // MS/frame
@@ -139,6 +142,10 @@ namespace Debug {
 		bool fontSystemInitialized = false;
 		FontSystem::Text text1;
 		FontSystem::Text text2;
+
+		// Transition panel state
+		float mFadeOutSec = 0.35f;
+		float mFadeInSec  = 0.35f;
 	};
 	extern DebuggerApp gDebugger;
 
