@@ -594,7 +594,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 			trailPos.x += perp.x * ((rand()%1000)/1000.0f - 0.5f) * 3.0f;
 			trailPos.y += perp.y * ((rand()%1000)/1000.0f - 0.5f) * 3.0f;
 
-			scene.GetParticleSystem().EmitFootstep(scene.GetEntityManager(), trailPos, afterPos.z);
+			scene.GetParticleSystem().EmitTrail(scene.GetEntityManager(), trailPos, afterPos.z, dir);
 		}
 	}
 	else {
