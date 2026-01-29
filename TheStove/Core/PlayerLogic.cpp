@@ -468,6 +468,10 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
+	if (!scene.IsObjectLayerEnabled(player->GetID())) {
+		return;
+	}
+
 	glm::vec3 beforePos = player->GetPositionGLM();
 	const float physicsDt = scene.GetLastPhysicsDt();
 	const physics::StepController& step = scene.GetStepController();

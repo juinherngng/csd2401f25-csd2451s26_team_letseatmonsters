@@ -279,6 +279,10 @@ public:
 	void AssignObjectToLayer(int id, const std::string& newLayer);
 	void RemoveLayer(const std::string& name);
 
+	// Layer enable/disable helpers
+	bool IsLayerEnabled(const std::string& layerName) const;
+	bool IsObjectLayerEnabled(int objectID) const;
+
 	// World / collision rebuilds
 	void BuildLevelColliders();
 	void RebuildColliders();

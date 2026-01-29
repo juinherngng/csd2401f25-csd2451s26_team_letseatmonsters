@@ -80,6 +80,8 @@ Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& a
 	movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr) {
 	// Allow AnimationManager to find objects
 	animationManager.SetEntityManager(&entityManager);
+	physicsManager.SetScene(this);
+	collisionManager.SetScene(this);
 
 	// Basic default layer used when no explicit layer name is given
 	AddLayer("1");
@@ -366,8 +368,13 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		// Check the layer's visibility flag
 		const std::string layerName = GetObjectLayer(g->GetID());
 		Layer* layer = GetLayer(layerName);
-		if (layer && !layer->IsVisible()) {
-			continue;
+		if (layer) {
+			if (!layer->IsEnabled()) {
+				continue;
+			}
+			if (!layer->IsVisible()) {
+				continue;
+			}
 		}
 
 		out.push_back(g);
@@ -612,6 +619,22 @@ std::string Scene::GetObjectLayer(int objectID) const {
 	}
 
 	return "";
+}
+
+bool Scene::IsLayerEnabled(const std::string& layerName) const {
+	auto it = layers.find(layerName);
+	if (it == layers.end()) {
+		return true;
+	}
+	return it->second.IsEnabled();
+}
+
+bool Scene::IsObjectLayerEnabled(int objectID) const {
+	const std::string layerName = GetObjectLayer(objectID);
+	if (layerName.empty()) {
+		return true;
+	}
+	return IsLayerEnabled(layerName);
 }
 
 void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
