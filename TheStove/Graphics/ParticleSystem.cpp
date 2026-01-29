@@ -10,7 +10,7 @@ static constexpr float TEX_H = 1348.0f;
 
 // Bottom puff row (4 frames), UV rects are (u, v, w, h) with v measured from TOP
 static const std::vector<glm::vec4> kPuffFrames = {
-    // left -> right
+    // left to right
     glm::vec4(0.05597015f, 0.71810089f, 0.05223881f, 0.05341246f),
     glm::vec4(0.23208955f, 0.71587537f, 0.05223881f, 0.05341246f),
     glm::vec4(0.38805970f, 0.71068249f, 0.06268657f, 0.05934718f),
