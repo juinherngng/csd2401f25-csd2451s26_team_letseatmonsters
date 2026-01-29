@@ -41,6 +41,7 @@
 #include "../Core/CustomerTableLogic.hpp"
 #include "../Core/IngredientBoxLogic.hpp"
 #include "../Core/CustomerManagerLogic.hpp"
+#include "../Core/ExitGateLogic.hpp"
 #include "../Core/HowToPlayButtonLogic.hpp"
 
 #include "AnimationManager.hpp"
@@ -230,6 +231,20 @@ public:
 		npcSystem.RegisterLaneNPC(id, laneX);
 	}
 
+	void RegisterExitGate(int id) {
+		exitGateID_ = id;
+		exitGateCached_ = false;
+	}
+
+	Math::Vector2D GetExitGateWorldPos() {
+		if (exitGateID_ < 0) return { 0.f, 0.f };
+		if (GameObject* g = GetGameObjectByID(exitGateID_)) {
+			auto p = g->GetPositionGLM();
+			return { p.x, p.y };
+		}
+		return { 0.f, 0.f };
+	}
+
 	// Texture metadata (LevelEditor / JSON)
 	const std::string& GetObjectTexturePath(int id) const;
 	void SetObjectTexturePath(int id, const std::string& path);
@@ -320,6 +335,9 @@ public:
 	// FPS display rendering
 	void RenderFPSText();
 
+	void RequestDespawn(int id) { pendingDespawns_.push_back(id); }
+
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -354,6 +372,11 @@ private:
 	int dinoID = -1;
 	int otherID = -1;
 	int otherID2 = -1;
+
+	int exitGateID_ = -1;
+	bool exitGateCached_ = false;
+	Math::Vector2D exitGateWorld_{ 0.0f, 0.0f };
+
 
 	std::unordered_map<int, Defaults> defaults_;
 	std::unordered_map<std::string, Layer> layers;
@@ -399,4 +422,7 @@ private:
 	std::unordered_map<int, std::string> mTexturePathByID;
 
 	bool howToPlayOverlayActive_ = false;
+
+	std::vector<int> pendingDespawns_;
+
 };

@@ -37,6 +37,18 @@ void IngredientBoxLogic::ConfigureAsVegetableBox()
     ingredientLayer_ = "3";
 }
 
+void IngredientBoxLogic::ConfigureAsMeatBox()
+{
+    spawnMode_ = BoxSpawnMode::Ingredient;
+    spawnType_ = IngredientType::Meat;
+
+    // You can tweak these if you have different ingredient types later
+    ingredientTexture_ = "../assets/Meat_Ingredient.png";
+    ingredientWidth_ = 64.0f;
+    ingredientHeight_ = 64.0f;
+    ingredientLayer_ = "3";
+}
+
 void IngredientBoxLogic::ConfigureAsPlateBox()
 {
     spawnMode_ = BoxSpawnMode::Plate;
@@ -137,7 +149,9 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene)
         }
 
         // Attach IngredientLogic with the configured ingredient type.
-        logicMgr.AddLogic<IngredientLogic>(itemID, spawnType_);
+        if (auto* ingLogic = logicMgr.AddLogic<IngredientLogic>(itemID, spawnType_)) {
+            ingLogic->Start(scene);
+        }
 
         std::cout << "[IngredientBoxLogic] Spawned INGREDIENT " << itemID
             << " of type=" << static_cast<int>(spawnType_)
@@ -169,9 +183,10 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene)
             scene.SetDefaults(itemID, def);
         }
 
-        // Attach PlateLogic. This assumes PlateLogic has constructor PlateLogic(int ownerID).
-        // If your constructor is different, just adjust this line.
-        logicMgr.AddLogic<PlateLogic>(itemID);
+        if (auto* plateLogic = logicMgr.AddLogic<PlateLogic>(itemID)) {
+            plateLogic->Start(scene);
+        }
+
 
         std::cout << "[IngredientBoxLogic] Spawned PLATE " << itemID
             << " from box " << ownerID << "\n";

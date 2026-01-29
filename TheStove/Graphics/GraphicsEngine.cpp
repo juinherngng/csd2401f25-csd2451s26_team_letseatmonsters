@@ -445,7 +445,7 @@ void GraphicsEngine::DrawSceneDockWindow() {
 			);
 
 			if (pressed || ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-				std::cout << "[Scene] LMB click inside Scene image\n";
+				//std::cout << "[Scene] LMB click inside Scene image\n";
 			}
 		}
 	}

@@ -26,6 +26,8 @@ void PlateLogic::Start(Scene& /*scene*/)
 	ingredients_.clear();
 	dishPrepared_ = false;
 	dishType_ = DishType::PoopDish;
+
+	std::cout << "[PlateLogic] Start owner=" << GetOwnerID() << "\n";
 }
 
 void PlateLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/)

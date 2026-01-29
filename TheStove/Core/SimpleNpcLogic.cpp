@@ -17,6 +17,7 @@
 #include "../Graphics/SceneManager.hpp"
 
 #include "SimpleNpcLogic.hpp"
+#include "random"
 
 void SimpleNpcLogic::Awake(Scene& scene) {
     (void)scene;
@@ -31,7 +32,10 @@ void SimpleNpcLogic::Awake(Scene& scene) {
     hasPaid_ = false;
     eatTimer_ = 0.0f;
     // eatDuration_ already set to 3.0f in the header
-    desiredDishType_ = DishType::VegDish;
+    //desiredDishType_ = RollRandomDish();
+
+    std::cout << "[SimpleNpcLogic] Now ordering dish type = "
+        << static_cast<int>(desiredDishType_) << "\n";
     servedDishType_ = DishType::PoopDish;
 }
 
@@ -64,11 +68,18 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
             pos.y = curPos.y;
             npc->SetPosition(pos);
 
-            // Once arrived, we can keep them there. If later you want them to
-            // go back to patrol, you can call ClearCustomerTableTarget().
+            // If leaving, despawn instead of ordering
+            if (behaviourState_ == BehaviourState::Leaving)
+            {
+                std::cout << "[SimpleNpcLogic] Arrived at exit. NPC will despawn.\n";
+                OnReachedExit(scene);
+                return;
+            }
 
             // Notify customer behaviour FSM ONCE.
             OnSeatedAtTable(scene);
+
+            UpdateCustomerLogic(dt, scene);
 
             return;
         }
@@ -153,7 +164,7 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
         timer = 0.0f;
     }
 
-    UpdateCustomerLogic(dt);
+    UpdateCustomerLogic(dt, scene);
 }
 
 void SimpleNpcLogic::AssignCustomerTable(int tableObjectID)
@@ -175,6 +186,11 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene)
         npcID = owner->GetID();
     }
 
+    if (!dishRolled_) {
+        desiredDishType_ = RollRandomDish();
+        dishRolled_ = true;
+    }
+
     //std::cout << "[SimpleNpcLogic] OnSeatedAtTable, npcID="
     //    << npcID << " state="
     //    << static_cast<int>(behaviourState_) << "\n";
@@ -185,10 +201,6 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene)
     {
         // Start ordering this dish (2 processed veg salad).
         behaviourState_ = BehaviourState::Ordering;
-        desiredDishType_ = DishType::VegDish;
-
-        std::cout << "[SimpleNpcLogic] Now ordering dish type = "
-            << static_cast<int>(desiredDishType_) << "\n";
 
         // Auto-take the order so we move into WaitingForFood right away.
         TakeOrder(scene); // This sets behaviourState_ = WaitingForFood
@@ -221,37 +233,68 @@ void SimpleNpcLogic::OnDishServed(Scene& /*scene*/, DishType dishType)
     dishServed_ = true;
     servedDishType_ = dishType;
 
+    if (servedDishType_ != desiredDishType_) return; // ignore wrong dish need to change to pay 0 and leave
+
     behaviourState_ = BehaviourState::Eating;
     eatTimer_ = 0.0f;
 }
 
-void SimpleNpcLogic::TakePayment(Scene& /*scene*/)
+void SimpleNpcLogic::TakePayment(Scene& scene)
 {
     std::cout << "[SimpleNpcLogic] TakePayment, state="
         << static_cast<int>(behaviourState_) << "\n";
 
-    // Only meaningful if currently paying.
     if (behaviourState_ != BehaviourState::Paying)
         return;
 
     hasPaid_ = true;
     behaviourState_ = BehaviourState::Leaving;
+
+    Math::Vector2D gate = scene.GetExitGateWorldPos();
+    hasCustomerTarget_ = true;
+    customerSeatTarget_ = gate;
+
+    std::cout << "[SimpleNpcLogic] NPC leaving: heading to exit at ("
+        << gate.x << "," << gate.y << ")\n";
+
+    hasCustomerTarget_ = true;
+    //customerSeatTarget_ = exitGateWorldPos_;
+
+    // NOTE: do NOT change customerTableID_ here — you still want to know which table to free.
 }
 
-void SimpleNpcLogic::UpdateCustomerLogic(float dt)
+
+void SimpleNpcLogic::UpdateCustomerLogic(float dt, Scene& scene)
 {
     if (behaviourState_ == BehaviourState::Eating)
     {
         eatTimer_ += dt;
-        std::cout << "SimpleNpcLogic] Eating... timer= " << eatTimer_ << "/" << eatDuration_ << "\n";
+        //std::cout << "SimpleNpcLogic] Eating... timer= " << eatTimer_ << "/" << eatDuration_ << "\n";
+
         if (eatTimer_ >= eatDuration_) {
             eatTimer_ = eatDuration_;
-            finishedDish_ = true;
 
-            std::cout << "[SimpleNpcLogic] Finished eating, switching to Paying\n";
+            if (!finishedDish_)  // <-- make sure it only runs once
+            {
+                finishedDish_ = true;
 
-            // Once done eating, NPC is ready to pay.
-            behaviourState_ = BehaviourState::Paying;
+                // Clear the food from the table now
+                if (customerTableID_ != kInvalidID)
+                {
+                    LogicManager& logicMgr = scene.GetLogicManager();
+                    if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_))
+                    {
+                        table->ClearServedFood(scene);
+                    }
+                }
+
+                std::cout << "[SimpleNpcLogic] Finished eating, switching to Paying\n";
+
+                // Once done eating, NPC is ready to pay.
+                behaviourState_ = BehaviourState::Paying;
+
+                //TakePayment();
+            }
         }
     }
 
@@ -279,4 +322,90 @@ void SimpleNpcLogic::ClearCustomerTableTarget()
     hasCustomerTarget_ = false;
     customerTableID_ = kInvalidID;
     customerSeatTarget_ = Math::Vector2D(0.0f, 0.0f);
+}
+
+void SimpleNpcLogic::CacheExitGatePos(Scene& scene)
+{
+    if (hasExitGatePos_) return;
+
+    LogicManager& logicMgr = scene.GetLogicManager();
+
+    GameObject* me = GetOwner(scene);
+    glm::vec3 myPos = me ? me->GetPositionGLM() : glm::vec3(0.0f);
+
+    bool found = false;
+    float bestDistSq = std::numeric_limits<float>::max();
+
+    for (GameObject* obj : scene.GetAllObjectsRaw())
+    {
+        if (!obj) continue;
+
+        const int id = obj->GetID();
+
+        //identify by logic type
+        ExitGateLogic* gate = logicMgr.GetLogicForObject<ExitGateLogic>(id);
+        if (!gate) continue;
+
+        Math::Vector2D target = gate->GetExitTargetWorld(scene);
+
+        float dx = target.x - myPos.x;
+        float dy = target.y - myPos.y;
+        float distSq = dx * dx + dy * dy;
+
+        if (distSq < bestDistSq) {
+            bestDistSq = distSq;
+            exitGateWorldPos_ = target;
+            found = true;
+        }
+    }
+
+    if (!found) {
+        // fallback
+        exitGateWorldPos_ = Math::Vector2D(50.0f, 50.0f);
+        std::cout << "[SimpleNpcLogic] WARNING: No ExitGateLogic found. Using fallback.\n";
+    }
+    else {
+        std::cout << "[SimpleNpcLogic] Cached exit gate target at ("
+            << exitGateWorldPos_.x << ", " << exitGateWorldPos_.y << ")\n";
+    }
+
+    hasExitGatePos_ = true;
+}
+
+
+void SimpleNpcLogic::OnReachedExit(Scene& scene)
+{
+    if (exitProcessed_) return;
+    exitProcessed_ = true;
+    std::cout << "[SimpleNpcLogic] Reached exit gate. Despawning.\n";
+
+    // Free the customer table
+    if (customerTableID_ != kInvalidID)
+    {
+        LogicManager& logicMgr = scene.GetLogicManager();
+        if (CustomerTableLogic* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_))
+        {
+            table->ClearCustomer();
+        }
+    }
+
+    // Despawn this NPC
+    if (GameObject* npc = GetOwner(scene))
+    {
+        scene.RequestDespawn(npc->GetID());
+    }
+}
+
+DishType SimpleNpcLogic::RollRandomDish()
+{
+    // Replace this pool with the dish types you actually support.
+    // (Using PoopDish just because it exists in your enum right now.)
+    static const DishType kPool[] = {
+        DishType::VegDish,
+        //DishType::PoopDish
+    };
+
+    static std::mt19937 rng{ std::random_device{}() };
+    std::uniform_int_distribution<int> dist(0, (int)(sizeof(kPool) / sizeof(kPool[0])) - 1);
+    return kPool[dist(rng)];
 }

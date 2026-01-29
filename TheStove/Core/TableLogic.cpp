@@ -103,8 +103,8 @@ bool TableLogic::PlaceItem(Scene& scene, int itemID)
 {
     if (!CanAcceptItem(scene, itemID))
     {
-        std::cout << "[TableLogic] PlaceItem FAIL: ownerID=" << GetOwnerID()
-            << " itemID=" << itemID << " (CanAcceptItem == false)\n";
+        //std::cout << "[TableLogic] PlaceItem FAIL: ownerID=" << GetOwnerID()
+        //    << " itemID=" << itemID << " (CanAcceptItem == false)\n";
         return false;
     }
 
@@ -112,7 +112,7 @@ bool TableLogic::PlaceItem(Scene& scene, int itemID)
     GameObject* item = scene.GetGameObjectByID(itemID);
     if (!owner || !item)
     {
-        std::cout << "[TableLogic] PlaceItem FAIL: missing owner or item\n";
+        //std::cout << "[TableLogic] PlaceItem FAIL: missing owner or item\n";
         return false;
     }
 
@@ -125,9 +125,9 @@ bool TableLogic::PlaceItem(Scene& scene, int itemID)
     Math::Vector3D newPos(tablePos.x, tablePos.y, tablePos.z);
     item->SetPosition(newPos);
 
-    std::cout << "[TableLogic] PlaceItem OK: ownerID=" << GetOwnerID()
-        << " now holds itemID=" << itemID
-        << " at pos=(" << tablePos.x << ", " << tablePos.y << ")\n";
+    //std::cout << "[TableLogic] PlaceItem OK: ownerID=" << GetOwnerID()
+    //    << " now holds itemID=" << itemID
+    //    << " at pos=(" << tablePos.x << ", " << tablePos.y << ")\n";
 
     OnItemPlaced(scene, *item);
     return true;
@@ -137,8 +137,8 @@ int TableLogic::TakeItem(Scene& scene)
 {
     if (!HasItem())
     {
-        std::cout << "[TableLogic] TakeItem: ownerID=" << GetOwnerID()
-            << " but table is empty\n";
+        //std::cout << "[TableLogic] TakeItem: ownerID=" << GetOwnerID()
+        //    << " but table is empty\n";
         return kInvalidID;
     }
 
@@ -149,9 +149,9 @@ int TableLogic::TakeItem(Scene& scene)
     if (item)
     {
         Math::Vector3D pos = item->GetPosition();
-        std::cout << "[TableLogic] TakeItem: ownerID=" << GetOwnerID()
-            << " returning itemID=" << resultID
-            << " from pos=(" << pos.x << ", " << pos.y << ")\n";
+        //std::cout << "[TableLogic] TakeItem: ownerID=" << GetOwnerID()
+        //    << " returning itemID=" << resultID
+        //    << " from pos=(" << pos.x << ", " << pos.y << ")\n";
         OnItemTaken(scene, *item);
     }
 
@@ -177,16 +177,16 @@ std::vector<Math::Vector2D> TableLogic::GetApproachPointsWorld(Scene& scene) con
     GameObject* owner = GetOwner(scene);
     if (!owner)
     {
-        std::cout << "[TableLogic] GetApproachPointsWorld: owner is null (ownerID="
-            << GetOwnerID() << ")\n";
+        //std::cout << "[TableLogic] GetApproachPointsWorld: owner is null (ownerID="
+        //    << GetOwnerID() << ")\n";
         return result;
     }
 
     Math::Vector3D tablePos3D = owner->GetPosition();
     Math::Vector2D tablePos2D(tablePos3D.x, tablePos3D.y);
 
-    std::cout << "[TableLogic] GetApproachPointsWorld ownerID=" << GetOwnerID()
-        << " tablePos=(" << tablePos2D.x << ", " << tablePos2D.y << ")\n";
+    //std::cout << "[TableLogic] GetApproachPointsWorld ownerID=" << GetOwnerID()
+    //    << " tablePos=(" << tablePos2D.x << ", " << tablePos2D.y << ")\n";
 
     result.reserve(approachOffsets_.size());
     for (std::size_t i = 0; i < approachOffsets_.size(); ++i)
@@ -195,9 +195,9 @@ std::vector<Math::Vector2D> TableLogic::GetApproachPointsWorld(Scene& scene) con
         Math::Vector2D worldPoint = tablePos2D + localOffset;
         result.push_back(worldPoint);
 
-        std::cout << "  [TableLogic] offset[" << i << "] local=("
-            << localOffset.x << ", " << localOffset.y << ") -> world=("
-            << worldPoint.x << ", " << worldPoint.y << ")\n";
+        //std::cout << "  [TableLogic] offset[" << i << "] local=("
+        //    << localOffset.x << ", " << localOffset.y << ") -> world=("
+        //    << worldPoint.x << ", " << worldPoint.y << ")\n";
     }
 
     return result;
@@ -209,10 +209,10 @@ Math::Vector2D TableLogic::GetClosestApproachPoint(Scene& scene,
     std::vector<Math::Vector2D> worldPoints = GetApproachPointsWorld(scene);
     if (worldPoints.empty())
     {
-        // Fallback: if no approach points, just return the input position.
-        std::cout << "[TableLogic] GetClosestApproachPoint ownerID=" << GetOwnerID()
-            << " has NO approach points, returning from=("
-            << from.x << ", " << from.y << ")\n";
+        //// Fallback: if no approach points, just return the input position.
+        //std::cout << "[TableLogic] GetClosestApproachPoint ownerID=" << GetOwnerID()
+        //    << " has NO approach points, returning from=("
+        //    << from.x << ", " << from.y << ")\n";
         return from;
     }
 
@@ -233,10 +233,10 @@ Math::Vector2D TableLogic::GetClosestApproachPoint(Scene& scene,
         }
     }
 
-    std::cout << "[TableLogic] GetClosestApproachPoint ownerID=" << GetOwnerID()
-        << " from=(" << from.x << ", " << from.y << ") -> index=" << bestIndex
-        << " world=(" << bestPoint.x << ", " << bestPoint.y
-        << ") dist=" << std::sqrt(bestDistSq) << "\n";
+    //std::cout << "[TableLogic] GetClosestApproachPoint ownerID=" << GetOwnerID()
+    //    << " from=(" << from.x << ", " << from.y << ") -> index=" << bestIndex
+    //    << " world=(" << bestPoint.x << ", " << bestPoint.y
+    //    << ") dist=" << std::sqrt(bestDistSq) << "\n";
 
     return bestPoint;
 }

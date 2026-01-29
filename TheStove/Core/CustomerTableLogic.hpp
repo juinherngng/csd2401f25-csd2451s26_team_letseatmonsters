@@ -69,6 +69,11 @@ public:
     // Optional hook to be called when the plate is actually placed and accepted.
     void OnPlateServed(const PlateLogic& plate);
 
+    //Try Take Payment
+    bool TryTakePayment(Scene& scene);
+
+    // Remove the served dish/plate from this table (despawn it and free the table slot).
+    void ClearServedFood(Scene& scene);
 
 protected:
     void OnItemPlaced(Scene& scene, GameObject& item) override;

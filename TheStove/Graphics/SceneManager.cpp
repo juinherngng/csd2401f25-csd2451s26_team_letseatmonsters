@@ -183,6 +183,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 	(void)window;
 
+	for (int id : pendingDespawns_) {
+		DespawnByID(id);
+	}
+	pendingDespawns_.clear();
+
 #ifndef _DEBUG
 	// Update FPS accumulator when enabled (release builds only)
 	if (showFPS_) {
@@ -482,13 +487,13 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 		spriteID = id;
 		animationManager.AttachPlayerAnimations(id);
 	}
-	else if (tag == "npc1" || tag == "npc2") {
-		logicManager.AddLogic<SimpleNpcLogic>(id);
-	}
-	else if (tag == "dino") {
-		logicManager.AddLogic<SimpleNpcLogic>(id);
-		dinoID = id;
-	}
+	//else if (tag == "npc1" || tag == "npc2") {
+	//	logicManager.AddLogic<SimpleNpcLogic>(id);
+	//}
+	//else if (tag == "dino") {
+	//	logicManager.AddLogic<SimpleNpcLogic>(id);
+	//	dinoID = id;
+	//}
 	else if (tag == "table") {
 		logicManager.AddLogic<TableLogic>(id);
 	}
@@ -504,6 +509,11 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	else if (tag == "plate_box") {
 		logicManager.AddLogic<IngredientBoxLogic>(id);
 	}
+	else if (tag == "exit_gate") {
+		logicManager.AddLogic<ExitGateLogic>(id);
+		RegisterExitGate(id); // <--- key line
+	}
+
 	// Menu buttons etc
 	else if (tag == "btn_play") {
 		auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);

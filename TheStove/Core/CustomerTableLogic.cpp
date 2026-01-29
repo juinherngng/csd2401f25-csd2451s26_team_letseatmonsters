@@ -72,9 +72,6 @@ void CustomerTableLogic::Start(Scene& scene)
     }
 }
 
-
-
-
 void CustomerTableLogic::OnDestroy(Scene& scene)
 {
     // If needed, external systems can query that the table is now free.
@@ -114,21 +111,12 @@ bool CustomerTableLogic::CanAcceptItem(Scene& scene, int itemID) const
     return IsCompletedDish(scene, *item);
 }
 
-bool CustomerTableLogic::IsCompletedDish(Scene& /*scene*/, const GameObject& /*item*/) const
+bool CustomerTableLogic::IsCompletedDish(Scene& scene, const GameObject& item) const
 {
-    // Stub implementation.
-    //
-    // Later you can change this to:
-    //   - Check a DishLogic attached to the GameObject.
-    //   - Or inspect some "DishType" / "isEaten" flags.
-    //   - Or check a "Dish" tag.
-
-    // PSEUDO: adapt this to however you fetch PlateLogic for a GameObject.
-    // PlateLogic* plate = scene.GetLogicForObject<PlateLogic>(item.GetID());
-    // if (!plate) return false;
-    //
-    // return CanServeFromPlate(*plate);
-    return true;
+    LogicManager& logicMgr = scene.GetLogicManager();
+    auto* plate = logicMgr.GetLogicForObject<PlateLogic>(item.GetID());
+    if (!plate) return false;
+    return plate->HasPreparedDish();
 }
 
 void CustomerTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
@@ -149,41 +137,30 @@ void CustomerTableLogic::OnItemTaken(Scene& /*scene*/, GameObject& /*item*/)
 
 void CustomerTableLogic::OnDishServed(Scene& scene, GameObject& dish)
 {
-    // Base implementation: do nothing.
-    //
-    // Example of how a more specific version could work in the future:
-    //
-    //   void RestaurantTableLogic::OnDishServed(Scene& scene, GameObject& dish) override {
-    //       auto* customer = scene.GetLogic<CustomerLogic>(GetSeatedCustomerID());
-    //       if (customer) {
-    //           customer->OnDishServed(dish);
-    //       }
-    //   }
-    (void)dish; // We’re not reading the plate contents yet.
-
-    if (!HasSeatedCustomer())
-        return;
+    if (!HasSeatedCustomer()) return;
 
     LogicManager& logicMgr = scene.GetLogicManager();
 
-    // Find the customer logic attached to the seated NPC.
-    SimpleNpcLogic* customerLogic =
-        logicMgr.GetLogicForObject<SimpleNpcLogic>(seatedCustomerID_);
+    auto* plate = logicMgr.GetLogicForObject<PlateLogic>(dish.GetID());
+    auto* customerLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(seatedCustomerID_);
 
-    if (!customerLogic) {
-        std::cout << "[CustomerTableLogic] OnDishServed but no SimpleNpcLogic on customerID="
-            << seatedCustomerID_ << "\n";
-        return;
-    }
+    if (!plate || !customerLogic) return;
+    if (!plate->HasPreparedDish()) return;
 
-    // For now: treat ANY completed dish placed here as the salad we wanted.
-    // If you have real dish detection, plug it in here instead of hardcoding Salad.
-    DishType servedType = DishType::VegDish; // TODO: map from plate/dish object.
+    DishType servedType = plate->GetDishType();
 
-    std::cout << "[CustomerTableLogic] Notifying customer " << seatedCustomerID_
-        << " that dish type=" << static_cast<int>(servedType) << " is served.\n";
+    std::cout << "[CustomerTable] Serve dishType=" << (int)servedType
+        << " desired=" << (int)customerLogic->GetDesiredDishType() << "\n";
 
     customerLogic->OnDishServed(scene, servedType);
+
+    // Optional: if accepted (customer started eating), clear plate so it can be reused
+    if (customerLogic->IsEating()) {
+        plate->ClearPreparedDish();
+
+        // also reset plate sprite if you want
+        // scene.SetObjectTexturePath(dish.GetID(), "../assets/Plate.png");
+    }
 }
 
 
@@ -221,3 +198,45 @@ Math::Vector2D CustomerTableLogic::GetCustomerSeatWorld(Scene& scene) const
         pos3.y + customerSeatOffset_.y);
 }
 
+bool CustomerTableLogic::TryTakePayment(Scene& scene)
+{
+    if (!HasSeatedCustomer()) {
+        return false;
+    }
+
+    LogicManager& logicMgr = scene.GetLogicManager();
+    SimpleNpcLogic* customerLogic =
+        logicMgr.GetLogicForObject<SimpleNpcLogic>(seatedCustomerID_);
+
+    if (!customerLogic) {
+        std::cout << "[CustomerTableLogic] TryTakePayment: no SimpleNpcLogic on customerID="
+            << seatedCustomerID_ << "\n";
+        return false;
+    }
+
+    // Always print state when interacting (super useful for debugging)
+    std::cout << "[CustomerTableLogic] Interact table=" << GetOwnerID()
+        << " customer=" << seatedCustomerID_ << "\n";
+
+    if (!customerLogic->IsPaying()) {
+        return false; // only take payment in Paying state
+    }
+
+    // Player successfully takes payment -> customer becomes Leaving
+    customerLogic->TakePayment(scene);
+
+    std::cout << "[CustomerTableLogic] Payment taken! customer=" << seatedCustomerID_ << "\n";
+
+    return true;
+}
+
+void CustomerTableLogic::ClearServedFood(Scene& scene)
+{
+    // TakeItem() clears heldItemID_ immediately and calls OnItemTaken(...)
+    const int itemID = TakeItem(scene);
+    if (itemID != kInvalidID)
+    {
+        scene.RequestDespawn(itemID);   // dish/plate disappears
+        // std::cout << "[CustomerTableLogic] Cleared served food item " << itemID << "\n";
+    }
+}

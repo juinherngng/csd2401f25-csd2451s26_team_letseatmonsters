@@ -55,6 +55,8 @@ public:
     // Convenience: configure as "vegetable box"
     void ConfigureAsVegetableBox();
 
+    void ConfigureAsMeatBox();
+
     // Convenience: configure as "plate box"
     void ConfigureAsPlateBox();
 

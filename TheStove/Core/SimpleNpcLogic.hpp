@@ -59,6 +59,15 @@ public:
     bool IsWaitingForFood() const { return behaviourState_ == BehaviourState::WaitingForFood; }
     bool IsPaying() const { return behaviourState_ == BehaviourState::Paying; }
     bool IsLeaving() const { return behaviourState_ == BehaviourState::Leaving; }
+    bool IsEating() const { return behaviourState_ == BehaviourState::Eating; }
+    bool IsAtTable(int tableID) const { return customerTableID_ == tableID; }
+
+    void SetLeaving()
+    {
+        behaviourState_ = BehaviourState::Leaving;
+        hasPaid_ = true;
+    }
+
 
     // Interactions from table / player --------------------------------
     // Called when player interacts at the table while this NPC is ORDERING.
@@ -90,6 +99,15 @@ public:
     void ClearCustomerTableTarget();
 
     bool HasCustomerTableTarget() const { return hasCustomerTarget_; }
+
+    // Exit gate target
+    bool           hasExitGatePos_ = false;
+    Math::Vector2D exitGateWorldPos_{ 0.0f, 0.0f };
+    float          exitArriveThreshold_ = 8.0f;
+
+    void CacheExitGatePos(Scene& scene);
+    void OnReachedExit(Scene& scene);
+    DishType GetDesiredDishType() const { return desiredDishType_; }
 
 private:
 	enum class State {
@@ -129,5 +147,9 @@ private:
     float eatDuration_ = 3.0f;   // seconds
 
     // Internal helper to advance the customer eating logic.
-    void UpdateCustomerLogic(float dt);
+    void UpdateCustomerLogic(float dt, Scene& scene);
+
+    bool exitProcessed_ = false;
+    bool dishRolled_ = false;
+    DishType RollRandomDish();
 };

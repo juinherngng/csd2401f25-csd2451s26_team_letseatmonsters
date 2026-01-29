@@ -35,7 +35,7 @@ WorkTableLogic::WorkTableLogic(int ownerID)
 
 void WorkTableLogic::Start(Scene& scene)
 {
-    std::cout << "[WorkTableLogic] Start ownerID=" << GetOwnerID() << "\n";
+    //std::cout << "[WorkTableLogic] Start ownerID=" << GetOwnerID() << "\n";
 
     TableLogic::Start(scene);
 }
@@ -50,8 +50,8 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&)
 
     timer_ += dt;
 
-    std::cout << "[WorkTableLogic] processing... t=" << timer_
-        << "/" << processingTime_ << "\n";
+    //std::cout << "[WorkTableLogic] processing... t=" << timer_
+    //    << "/" << processingTime_ << "\n";
 
     if (timer_ >= processingTime_)
     {
@@ -141,15 +141,15 @@ void WorkTableLogic::CancelProcessing(Scene& /*scene*/)
 
 void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
 {
-    // Auto-start processing when an item is placed.
-    if (!isProcessing_ && IsItemProcessable(scene, item))
-    {
+    IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
+    std::cout << "[WorkTable] placed item=" << item.GetID()
+        << " hasIngredientLogic=" << (ing ? "YES" : "NO") << "\n";
+
+    CancelProcessing(scene); // always reset
+    if (IsItemProcessable(scene, item)) {
         isProcessing_ = true;
         timer_ = 0.0f;
     }
-
-    std::cout << "[WorkTableLogic] Started processing item " << item.GetID()
-        << " on table " << GetOwnerID() << "\n";
 }
 
 void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& item)
@@ -157,9 +157,9 @@ void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& item)
     // If the player removes the item mid-process, cancel.
     if (isProcessing_)
     {
-        std::cout << "[WorkTableLogic] Item " << item.GetID()
-            << " TAKEN while still processing! t=" << processingTime_
-            << "/" << timer_ << "\n";
+        //std::cout << "[WorkTableLogic] Item " << item.GetID()
+        //    << " TAKEN while still processing! t=" << processingTime_
+        //    << "/" << timer_ << "\n";
         CancelProcessing(scene);
     }
 }
@@ -185,17 +185,17 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item)
     IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
     if (!ing)
     {
-        // Not an ingredient – nothing to do.
-        std::cout << "[WorkTableLogic] OnProcessingComplete: item "
-            << item.GetID() << " has no IngredientLogic\n";
+        //// Not an ingredient – nothing to do.
+        //std::cout << "[WorkTableLogic] OnProcessingComplete: item "
+        //    << item.GetID() << " has no IngredientLogic\n";
         return;
     }
 
     // If your rule is “only raw gets processed”, respect that:
     if (!CanProcessIngredient(*ing))
     {
-        std::cout << "[WorkTableLogic] OnProcessingComplete: ingredient "
-            << item.GetID() << " is not processable\n";
+        //std::cout << "[WorkTableLogic] OnProcessingComplete: ingredient "
+        //    << item.GetID() << " is not processable\n";
         return;
     }
 
@@ -213,8 +213,8 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item)
     //  - internally flips Vegetable -> Refined_Veg, Meat -> Refined_Meat, etc.
     CompleteProcessingForIngredient(*ing);
 
-    std::cout << "[WorkTableLogic] Finished processing item " << item.GetID()
-        << ", new type=" << static_cast<int>(ing->GetType()) << "\n";
+    //std::cout << "[WorkTableLogic] Finished processing item " << item.GetID()
+    //    << ", new type=" << static_cast<int>(ing->GetType()) << "\n";
 }
 
 bool WorkTableLogic::CanProcessIngredient(const IngredientLogic& ingredient) const

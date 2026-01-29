@@ -27,6 +27,9 @@ class Scene;
  *  - Pairs them 1:1 in order, calls SeatCustomer() on the table,
  *    and SetCustomerTableTarget() on the NPC so they walk to the seat.
  */
+
+class Scene;
+
 class CustomerManagerSystem {
 public:
     CustomerManagerSystem() = default;
@@ -37,6 +40,22 @@ public:
     /// Reset internal state when the scene is cleared.
     void Reset();
 
+    void SetMaxCustomers(int n) { maxCustomers_ = n; }
+
 private:
-    bool seatedOnce_ = false;
+    int maxCustomers_ = 2;              // start with 2
+    float spawnCooldown_ = 0.5f;        // small delay between spawns
+    float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
+
+    std::vector<int> activeCustomers_;  // ids of customers alive
+    std::vector<int> customerTableIDs_; // ids of customer tables we discovered
+    bool cachedTables_ = false;
+
+    int customerTemplateID_ = -1;
+    bool cachedTemplate_ = false;
+
+    void CacheTables(Scene& scene);
+    void CacheTemplate(Scene& scene);
+    void CleanupDeadCustomers(Scene& scene);
+    bool TrySpawnOne(Scene& scene);
 };
