@@ -281,7 +281,7 @@ public:
 
 	// Layer enable/disable helpers
 	bool IsLayerEnabled(const std::string& layerName) const;
-	bool IsObjectLayerEnabled(int objectID) const;
+	bool IsObjectLayerEnabled(int objectID) const;	
 
 	// World / collision rebuilds
 	void BuildLevelColliders();

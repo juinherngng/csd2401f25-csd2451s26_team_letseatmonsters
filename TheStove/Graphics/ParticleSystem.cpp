@@ -32,10 +32,11 @@ void ParticleSystem::EnsureDefaultFootstepPreset_(EntityManager& em) {
 	dust.name = "FootstepDust";
 	dust.texturePath = "../assets/VFX SpriteSheet.png";
 	dust.frames = kSparkleFrames;
-	dust.frameDuration = 10.0f;
+	dust.animateFrames = false;
+	dust.frameDuration = 0.06f;
 	dust.loop = false;
 
-	dust.poolSize = 256;	
+	dust.poolSize = 256;
 	dust.lifeRange = glm::vec2(0.50f, 0.60f);
 	dust.speedRange = glm::vec2(12.0f, 28.0f);
 	dust.gravityY = 0.0f;
@@ -127,13 +128,32 @@ void ParticleSystem::Emit(const std::string& presetName,
 		if (!pool.initialized) return;
 	}
 
-	if (pool.freeList.empty()) {
-		// Pool exhausted; skip emission (or recycle oldest if you want).
-		return;
-	}
+	size_t idx = 0;
 
-	size_t idx = pool.freeList.back();
-	pool.freeList.pop_back();
+	if (!pool.freeList.empty()) {
+		idx = pool.freeList.back();
+		pool.freeList.pop_back();
+	}
+	else {
+		// Recycle the oldest active particle
+		float bestScore = -1.0f;
+		size_t bestIdx = 0;
+
+		for (size_t i = 0; i < pool.p.size(); ++i) {
+			ParticleInstance& cand = pool.p[i];
+			if (!cand.active || !cand.preset) {
+				continue;
+			}
+
+			float score = (cand.life > 0.0001f) ? (cand.age / cand.life) : cand.age;
+			if (score > bestScore) {
+				bestScore = score;
+				bestIdx = i;
+			}
+		}
+
+		idx = bestIdx;
+	}
 
 	ParticleInstance& p = pool.p[idx];
 	GameObject* obj = em.GetByID(p.id);
@@ -233,8 +253,8 @@ void ParticleSystem::Update(float dt, EntityManager& em) {
 				continue;
 			}
 
-			// Animate
-			if (!preset.frames.empty()) {
+			// Animate (only if enabled)
+			if (preset.animateFrames && preset.frames.size() > 1) {
 				p.frameTimer += dt;
 				while (p.frameTimer >= preset.frameDuration) {
 					p.frameTimer -= preset.frameDuration;
