@@ -10,7 +10,6 @@ DESCRIPTION:		Implements player control logic, including movement, sprite update
 		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
-#include "PlayerLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
 #include "../Core/InputManager.hpp"
 #include "../Core/InputControls.hpp"
@@ -20,9 +19,6 @@ DESCRIPTION:		Implements player control logic, including movement, sprite update
 #include <iostream>
 
 #include "../Core/DebugUI.hpp"
-#include "../Core/InputControls.hpp"
-#include "../Core/InputManager.hpp"
-#include "../Graphics/SceneManager.hpp"
 #include "../Core/PlayerLogic.hpp"
 
 void PlayerLogic::Start(Scene& scene) {
@@ -32,7 +28,7 @@ void PlayerLogic::Start(Scene& scene) {
 	pendingTableID = -1;
 	facingDir = FacingDir::Front;
 
-	GameObject* owner = GetOwner(scene);
+	//GameObject* owner = GetOwner(scene);
 	//std::cout << "[PlayerLogic] Start on object ID "
 	//	<< (owner ? owner->GetID() : -1) << "\n";
 }
@@ -148,7 +144,7 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 		int id = obj->GetID();
 
 		// Debug: does this object have any TableLogic?
-		TableLogic* tableLogic2 = logicMgr.GetLogicForObject<TableLogic>(id);
+		//TableLogic* tableLogic2 = logicMgr.GetLogicForObject<TableLogic>(id);
 		//std::cout << "[ClickDebug] id=" << id
 		//	<< " hasTableLogic=" << (tableLogic2 ? "yes" : "no")
 		//	<< "\n";

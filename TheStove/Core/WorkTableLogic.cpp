@@ -154,6 +154,7 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
 
 void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& item)
 {
+    (void)item;
     // If the player removes the item mid-process, cancel.
     if (isProcessing_)
     {
