@@ -1,5 +1,5 @@
 {
-  "background": "../assets/main_menu.png",
+  "background": "../assets/mainmenu_bg_plain.png",
   "objects": [
     {
       "animated": false,
@@ -60,8 +60,8 @@
       "texture": "../assets/mainmenu_sprite.png",
       "tag": "menu_anim",
       "layer": "1",
-      "x": 380.0,
-      "y": 305.0,
+      "x": 610.0,
+      "y": 388.0,
       "z": 0.0,
       "w": 1024.0,
       "h": 1024.0,
@@ -72,6 +72,24 @@
       "col_offy": 0.0,
       "speed_x": 0.0,
       "speed_y": 0.0
-    }
+    },
+    {
+      "animated": false,
+      "texture": "../assets/menu_logo.png",
+      "tag": "",
+      "layer": "1",
+      "x": 954.0,
+      "y": 190.0,
+      "z": 0.0,
+      "w": 256.0,
+      "h": 256.0,
+      "rotation": 0.0,
+      "col_w": 1.0,
+      "col_h": 1.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0
+    } 
   ]
 }

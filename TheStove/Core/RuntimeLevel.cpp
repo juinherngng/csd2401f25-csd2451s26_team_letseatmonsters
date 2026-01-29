@@ -60,19 +60,29 @@ namespace RuntimeLevel {
 				}
 			} else {
 				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
+				if (!g) {
+					std::cerr << "[RuntimeLevel] Spawn failed: " << obj.texture << std::endl;
+					continue;
+				}
 			}
 
 			// Rotation: degrees in JSON -> radians in engine
 			g->SetRotation(glm::radians(obj.rotation), { 0, 0, 1 });
 
-			// Collider
-			g->SetColliderSize({ obj.colWidth, obj.colHeight });
-			g->SetColliderOffset({ obj.colOffsetX, obj.colOffsetY });
+			// Collider setup honoring has_collider
+			if (obj.hasCollider) {
+				g->SetColliderSize({ obj.colWidth, obj.colHeight });
+				g->SetColliderOffset({ obj.colOffsetX, obj.colOffsetY });
 
-			// Fallback collider if invalid
-			if (obj.colWidth <= 0.f || obj.colHeight <= 0.f) {
-				const glm::vec3 s = g->GetScaleGLM();
-				g->SetColliderSize({ s.x, s.y });
+				// Fallback collider if invalid (kept only when collider is enabled)
+				if (obj.colWidth <= 0.f || obj.colHeight <= 0.f) {
+					const glm::vec3 s = g->GetScaleGLM();
+					g->SetColliderSize({ s.x, s.y });
+					g->SetColliderOffset({ 0.f, 0.f });
+				}
+			} else {
+				// Explicitly clear collider when disabled
+				g->SetColliderSize({ 0.f, 0.f });
 				g->SetColliderOffset({ 0.f, 0.f });
 			}
 
@@ -113,7 +123,11 @@ namespace RuntimeLevel {
 
 			scene.SetDefaults(g->GetID(), defs);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
-			scene.ClampToWalkArea(g);
+
+			// Only clamp objects that have colliders
+			if (obj.hasCollider) {
+				scene.ClampToWalkArea(g);
+			}
 		}
 	}
 

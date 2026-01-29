@@ -267,7 +267,7 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	}
 
 	// Enable shadows and set parameters
-	obj->EnableShadow(true);
+	obj->EnableShadow(false);
 	obj->SetShadowSize(glm::vec2(size.x * 0.8f, size.y * 0.33f)); // ellipse sized to sprite
 	obj->SetShadowOffset(glm::vec2(0.0f, 55.0f));       // sit near feet (tweak per origin)
 	obj->SetShadowOpacity(0.65f);
@@ -931,3 +931,6 @@ void Scene::RenderFPSText() {
 	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 #endif
 }
+
+
+
