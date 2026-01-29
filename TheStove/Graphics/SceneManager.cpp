@@ -26,7 +26,8 @@
 
 #include <Core/RuntimeLevel.hpp>
 #include "../Core/MenuButtonLogic.hpp"
-#include "../Core/PauseButtonLogic.hpp" 
+#include "../Core/PauseButtonLogic.hpp"
+#include "../Core/AudioManager.hpp"
 #include "SceneManager.hpp"
 
 namespace {
@@ -344,6 +345,9 @@ std::vector<GameObject*> Scene::GetAllObjectsRaw() {
 }
 
 void Scene::DespawnByID(int targetID) {
+	// Play destroy audio before removing the object
+	PlayDestroyAudio(targetID);
+
 	logicManager.RemoveAllFor(targetID, *this);
 
 	objectTags_.erase(targetID);
@@ -917,4 +921,117 @@ void Scene::RenderFPSText() {
 	// Restore previous viewport (default framebuffer expects full window viewport)
 	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 #endif
+}
+
+// Audio binding playback helpers
+void Scene::PlaySpawnAudio(int objectId) {
+	if (!audioManager_) return;
+	
+	auto it = defaults_.find(objectId);
+	if (it == defaults_.end()) return;
+	
+	const Defaults& defs = it->second;
+	if (defs.audioOnSpawn.empty()) return;
+	
+	// Check if sound exists and play it
+	if (audioManager_->HasSound(defs.audioOnSpawn)) {
+		// For looping audio, we need to handle it specially
+		// The sound should have been loaded with loop flag from AudioCatalog
+		audioManager_->PlaySound(defs.audioOnSpawn, 1.0f, false);
+		std::cout << "[Scene] Playing spawn audio '" << defs.audioOnSpawn << "' for object " << objectId << std::endl;
+	}
+	else {
+		std::cerr << "[Scene] Spawn audio '" << defs.audioOnSpawn << "' not found in AudioManager" << std::endl;
+	}
+}
+
+void Scene::PlayInteractAudio(int objectId) {
+	if (!audioManager_) return;
+	
+	auto it = defaults_.find(objectId);
+	if (it == defaults_.end()) return;
+	
+	const Defaults& defs = it->second;
+	if (defs.audioOnInteract.empty()) return;
+	
+	if (audioManager_->HasSound(defs.audioOnInteract)) {
+		audioManager_->PlaySound(defs.audioOnInteract, 1.0f, false);
+		std::cout << "[Scene] Playing interact audio '" << defs.audioOnInteract << "' for object " << objectId << std::endl;
+	}
+	else {
+		std::cerr << "[Scene] Interact audio '" << defs.audioOnInteract << "' not found in AudioManager" << std::endl;
+	}
+}
+
+void Scene::PlayDestroyAudio(int objectId) {
+	if (!audioManager_) return;
+	
+	auto it = defaults_.find(objectId);
+	if (it == defaults_.end()) return;
+	
+	const Defaults& defs = it->second;
+	if (defs.audioOnDestroy.empty()) return;
+	
+	if (audioManager_->HasSound(defs.audioOnDestroy)) {
+		audioManager_->PlaySound(defs.audioOnDestroy, 1.0f, false);
+		std::cout << "[Scene] Playing destroy audio '" << defs.audioOnDestroy << "' for object " << objectId << std::endl;
+	}
+	else {
+		std::cerr << "[Scene] Destroy audio '" << defs.audioOnDestroy << "' not found in AudioManager" << std::endl;
+	}
+}
+
+void Scene::PlayProcessingAudio(int objectId) {
+	if (!audioManager_) return;
+	
+	auto it = defaults_.find(objectId);
+	if (it == defaults_.end()) return;
+	
+	const Defaults& defs = it->second;
+	if (defs.audioOnProcessing.empty()) return;
+	
+	if (audioManager_->HasSound(defs.audioOnProcessing)) {
+		audioManager_->PlaySound(defs.audioOnProcessing, 1.0f, false);
+		std::cout << "[Scene] Playing processing audio '" << defs.audioOnProcessing << "' for object " << objectId << std::endl;
+	}
+	else {
+		std::cerr << "[Scene] Processing audio '" << defs.audioOnProcessing << "' not found in AudioManager" << std::endl;
+	}
+}
+
+void Scene::StopProcessingAudio(int objectId) {
+	if (!audioManager_) return;
+	
+	auto it = defaults_.find(objectId);
+	if (it == defaults_.end()) return;
+	
+	const Defaults& defs = it->second;
+	if (defs.audioOnProcessing.empty()) return;
+	
+	if (audioManager_->HasSound(defs.audioOnProcessing)) {
+		audioManager_->StopSound(defs.audioOnProcessing);
+		std::cout << "[Scene] Stopped processing audio '" << defs.audioOnProcessing << "' for object " << objectId << std::endl;
+	}
+}
+
+void Scene::StopAllObjectAudio() {
+	if (!audioManager_) return;
+	
+	// Stop all audio that was bound to objects
+	for (const auto& [id, defs] : defaults_) {
+		if (!defs.audioOnSpawn.empty() && audioManager_->HasSound(defs.audioOnSpawn)) {
+			audioManager_->StopSound(defs.audioOnSpawn);
+		}
+		if (!defs.audioOnInteract.empty() && audioManager_->HasSound(defs.audioOnInteract)) {
+			audioManager_->StopSound(defs.audioOnInteract);
+		}
+		if (!defs.audioOnDestroy.empty() && audioManager_->HasSound(defs.audioOnDestroy)) {
+			audioManager_->StopSound(defs.audioOnDestroy);
+		}
+		if (!defs.audioOnProcessing.empty() && audioManager_->HasSound(defs.audioOnProcessing)) {
+			audioManager_->StopSound(defs.audioOnProcessing);
+		}
+	}
+	
+	std::cout << "[Scene] Stopped all object-bound audio" << std::endl;
 }

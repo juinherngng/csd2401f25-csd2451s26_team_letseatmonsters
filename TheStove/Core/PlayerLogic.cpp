@@ -306,7 +306,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 }
 
 // Unity: OnArrived()
-// For now it�s a stub; later you can branch by what we clicked (tables, spawners, etc.)
+// For now it's a stub; later you can branch by what we clicked (tables, spawners, etc.)
 void PlayerLogic::OnArrived(Scene& scene) {
 	std::cout << "[PlayerLogic] Arrived at destination\n";
 
@@ -617,6 +617,9 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	GameObject* player = GetOwner(scene);
 	if (!player)
 		return;
+
+	// Play interact audio for the table being interacted with
+	scene.PlayInteractAudio(tableObjectID);
 
 	// Get table logic for the clicked/selected GameObject
 	LogicManager& logicMgr = scene.GetLogicManager();

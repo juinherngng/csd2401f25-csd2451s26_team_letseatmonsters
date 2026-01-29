@@ -60,8 +60,8 @@ namespace {
 void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 #ifdef _DEBUG
     // In Debug build this script is currently inert.
-    std::cout << "[HowToPlayButtonLogic] Update called in _DEBUG build, doing nothing. ownerID="
-        << GetOwnerID() << "\n";
+    /*std::cout << "[HowToPlayButtonLogic] Update called in _DEBUG build, doing nothing. ownerID="
+        << GetOwnerID() << "\n";*/
     (void)scene;
     (void)input;
 #else

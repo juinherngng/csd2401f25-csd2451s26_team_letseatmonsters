@@ -181,11 +181,17 @@ namespace {
 			defs.audioOnSpawn = obj.audioOnSpawn;
 			defs.audioOnInteract = obj.audioOnInteract;
 			defs.audioOnDestroy = obj.audioOnDestroy;
+			defs.audioOnProcessing = obj.audioOnProcessing;
 			defs.audioLoop = obj.audioLoop;
 
 			scene.SetDefaults(g->GetID(), defs);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
 			scene.ClampToWalkArea(g);
+
+			// Play spawn audio if configured (only during simulation/play mode)
+			if (scene.IsSimulationActive() && !obj.audioOnSpawn.empty()) {
+				scene.PlaySpawnAudio(g->GetID());
+			}
 		}
 	}
 
@@ -251,6 +257,7 @@ namespace {
 			out.audioOnSpawn = defs.audioOnSpawn;
 			out.audioOnInteract = defs.audioOnInteract;
 			out.audioOnDestroy = defs.audioOnDestroy;
+			out.audioOnProcessing = defs.audioOnProcessing;
 			out.audioLoop = defs.audioLoop;
 
 			// Velocity
@@ -510,10 +517,16 @@ namespace LEPANELLEVEL {
 		// Stop
 		if (ImGui::Button("Stop")) {
 			if (editor.IsPlaying()) {
+				// Stop all object-bound audio before clearing the scene
+				scene.StopAllObjectAudio();
+				
+				// IMPORTANT: Set simulation inactive BEFORE restoring the scene
+				// to prevent spawn audio from playing during restoration
+				scene.SetSimulationActive(false);
+				
 				scene.ClearAll();
 				SyncLevelToScene(editor.MutablePlaySnapshot(), scene);
 				scene.RebuildColliders();
-				scene.SetSimulationActive(false);
 				editor.SetPlaying(false);
 			}
 		}
@@ -1099,9 +1112,10 @@ namespace LEPANELLEVEL {
 									PushUndoSnapshot(editor, scene);
 								}
 								audioBinding = (i == 0) ? "" : audioNames[i];
-								defaults.audioOnSpawn = (label == std::string("On Spawn")) ? audioBinding : defaults.audioOnSpawn;
-								defaults.audioOnInteract = (label == std::string("On Interact")) ? audioBinding : defaults.audioOnInteract;
-								defaults.audioOnDestroy = (label == std::string("On Destroy")) ? audioBinding : defaults.audioOnDestroy;
+								if (label == std::string("On Spawn")) defaults.audioOnSpawn = audioBinding;
+								else if (label == std::string("On Interact")) defaults.audioOnInteract = audioBinding;
+								else if (label == std::string("On Destroy")) defaults.audioOnDestroy = audioBinding;
+								else if (label == std::string("On Processing")) defaults.audioOnProcessing = audioBinding;
 								scene.SetDefaults(id, defaults);
 							}
 							if (isSelected) {
@@ -1121,6 +1135,7 @@ namespace LEPANELLEVEL {
 								if (label == std::string("On Spawn")) defaults.audioOnSpawn = audioBinding;
 								else if (label == std::string("On Interact")) defaults.audioOnInteract = audioBinding;
 								else if (label == std::string("On Destroy")) defaults.audioOnDestroy = audioBinding;
+								else if (label == std::string("On Processing")) defaults.audioOnProcessing = audioBinding;
 								scene.SetDefaults(id, defaults);
 							}
 						}
@@ -1136,6 +1151,7 @@ namespace LEPANELLEVEL {
 						if (label == std::string("On Spawn")) defaults.audioOnSpawn = "";
 						else if (label == std::string("On Interact")) defaults.audioOnInteract = "";
 						else if (label == std::string("On Destroy")) defaults.audioOnDestroy = "";
+						else if (label == std::string("On Processing")) defaults.audioOnProcessing = "";
 						scene.SetDefaults(id, defaults);
 					}
 					if (ImGui::IsItemHovered()) {
@@ -1164,10 +1180,12 @@ namespace LEPANELLEVEL {
 				std::string audioOnSpawn = defaults.audioOnSpawn;
 				std::string audioOnInteract = defaults.audioOnInteract;
 				std::string audioOnDestroy = defaults.audioOnDestroy;
+				std::string audioOnProcessing = defaults.audioOnProcessing;
 
 				DrawAudioSlot("On Spawn", audioOnSpawn, "Audio played when object spawns/loads");
 				DrawAudioSlot("On Interact", audioOnInteract, "Audio played when player interacts");
 				DrawAudioSlot("On Destroy", audioOnDestroy, "Audio played when object is destroyed");
+				DrawAudioSlot("On Processing", audioOnProcessing, "Audio played while work table is processing (loops)");
 
 				// Audio loop checkbox for spawn audio
 				ImGui::Spacing();
@@ -1344,6 +1362,9 @@ namespace LEPANELLEVEL {
 	}
 #endif
 }
+
+
+
 
 
 

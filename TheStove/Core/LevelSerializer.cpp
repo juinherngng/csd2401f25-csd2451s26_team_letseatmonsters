@@ -61,6 +61,7 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.audioOnSpawn = jsonObj.value("audio_on_spawn", "");
 	obj.audioOnInteract = jsonObj.value("audio_on_interact", "");
 	obj.audioOnDestroy = jsonObj.value("audio_on_destroy", "");
+	obj.audioOnProcessing = jsonObj.value("audio_on_processing", "");
 	obj.audioLoop = jsonObj.value("audio_loop", false);
 
 	return obj;
@@ -94,6 +95,7 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "audio_on_spawn", obj.audioOnSpawn },
 		{ "audio_on_interact", obj.audioOnInteract },
 		{ "audio_on_destroy", obj.audioOnDestroy },
+		{ "audio_on_processing", obj.audioOnProcessing },
 		{ "audio_loop", obj.audioLoop }
 	};
 
