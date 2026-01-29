@@ -57,6 +57,8 @@ public:
 
     void ConfigureAsMeatBox();
 
+    void ConfigureAsShroomBox();
+
     // Convenience: configure as "plate box"
     void ConfigureAsPlateBox();
 

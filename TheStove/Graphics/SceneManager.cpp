@@ -483,8 +483,7 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	// ALWAYS wipe old logic from this object
 	logicManager.RemoveAllFor(id, *this);
 
-	std::cout << "[Scene] AttachLogicForTag id=" << id
-		<< " tag='" << tag << "'\n";
+	//std::cout << "[Scene] AttachLogicForTag id=" << id << " tag='" << tag << "'\n";
 
 	// Add only the logic that matches the new tag
 	if (tag == "player") {

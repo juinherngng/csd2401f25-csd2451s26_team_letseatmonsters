@@ -20,8 +20,7 @@ DESCRIPTION:     Defines IngredientBoxLogic, a table-like object that spawns
 #include "../Core/LogicManager.hpp"
 #include <iostream>
 
-IngredientBoxLogic::IngredientBoxLogic(int ownerID)
-    : TableLogic(ownerID)
+IngredientBoxLogic::IngredientBoxLogic(int ownerID) : TableLogic(ownerID)
 {
 }
 
@@ -44,6 +43,18 @@ void IngredientBoxLogic::ConfigureAsMeatBox()
 
     // You can tweak these if you have different ingredient types later
     ingredientTexture_ = "../assets/Meat_Ingredient.png";
+    ingredientWidth_ = 64.0f;
+    ingredientHeight_ = 64.0f;
+    ingredientLayer_ = "3";
+}
+
+void IngredientBoxLogic::ConfigureAsShroomBox()
+{
+    spawnMode_ = BoxSpawnMode::Ingredient;
+    spawnType_ = IngredientType::Shroom;
+
+    // You can tweak these if you have different ingredient types later
+    ingredientTexture_ = "../assets/Mushroom_Ingredient.png";
     ingredientWidth_ = 64.0f;
     ingredientHeight_ = 64.0f;
     ingredientLayer_ = "3";
@@ -75,18 +86,31 @@ void IngredientBoxLogic::Start(Scene& scene)
             << worldPoints[i].x << ", " << worldPoints[i].y << ")\n";
     }
 
-    // -------- Auto-config based on tag --------
-    if (GameObject* owner = GetOwner(scene))
-    {
-        const std::string& tag = scene.GetDefaults(GetOwnerID()).tag;
+    // -------- Auto-config based on tag and texture --------
+    Scene::Defaults def = scene.GetDefaults(GetOwnerID());
+    const std::string& tag = def.tag;
+    const std::string& tex = def.texture;
 
-        if (tag == "ingredient_box")
+    if (tag == "plate_box")
+    {
+        ConfigureAsPlateBox();
+        return;
+    }
+
+    if (tag == "ingredient_box")
+    {
+        // Decide which ingredient box by looking at the BOX texture name
+        if (tex.find("VegIngredientBox") != std::string::npos)
         {
             ConfigureAsVegetableBox();
         }
-        else if (tag == "plate_box")
+        else if (tex.find("MeatIngredientBox") != std::string::npos)
         {
-            ConfigureAsPlateBox();
+            ConfigureAsMeatBox();
+        }
+        else if (tex.find("ShroomIngredientBox") != std::string::npos)
+        {
+            ConfigureAsShroomBox();
         }
         else
         {
@@ -98,6 +122,7 @@ void IngredientBoxLogic::Start(Scene& scene)
         }
     }
 }
+
 
 
 void IngredientBoxLogic::Update(float dt, Scene& scene, InputManager& input)
@@ -155,13 +180,13 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene)
 
         std::cout << "[IngredientBoxLogic] Spawned INGREDIENT " << itemID
             << " of type=" << static_cast<int>(spawnType_)
-            << " from box " << ownerID << "\n";
+            << " from box " << ownerID_ << "\n";
     }
     else // BoxSpawnMode::Plate
     {
         // Spawn a plate
         spawnedObj = scene.SpawnStaticSpriteAtSamePos(
-            ownerID,
+            ownerID_,
             plateTexture_,
             plateWidth_,
             plateHeight_,
@@ -171,7 +196,7 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene)
         if (!spawnedObj)
         {
             std::cout << "[IngredientBoxLogic] Failed to spawn PLATE from box "
-                << ownerID << "\n";
+                << ownerID_ << "\n";
             return -1;
         }
 
@@ -189,7 +214,7 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene)
 
 
         std::cout << "[IngredientBoxLogic] Spawned PLATE " << itemID
-            << " from box " << ownerID << "\n";
+            << " from box " << ownerID_ << "\n";
     }
 
     return itemID;

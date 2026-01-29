@@ -20,17 +20,38 @@ DESCRIPTION:     Implements WorkTableLogic, the type of table that accepts raw
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/GameObject.hpp"
 
+static bool Contains(const std::string& s, const char* sub)
+{
+    return s.find(sub) != std::string::npos;
+}
+
+WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const std::string& texPath) const
+{
+    // Detect by the workstation sprite (the table's texture)
+    if (Contains(texPath, "Cutting_Board")) return StationType::CuttingBoard;
+    if (Contains(texPath, "Grills"))        return StationType::Grill;
+    if (Contains(texPath, "Stove"))         return StationType::Stove;
+    return StationType::Generic;
+}
+
+
+const char* WorkTableLogic::GetProcessedTextureForRaw(IngredientType rawType) const
+{
+    // IMPORTANT: Replace these 2 paths with your actual cooked meat/shroom assets.
+    switch (rawType)
+    {
+    case IngredientType::Vegetable: return "../assets/Cabbage_CUT_Ingredient.png";
+    case IngredientType::Meat:      return "../assets/Meat_CUT_Ingredient.png";
+    case IngredientType::Shroom:    return "../assets/Mushroom_CUT_Ingredient.png";
+    default:                        return "../assets/Cabbage_CUT_Ingredient.png";
+    }
+}
+
 // ------------------- Constructor -------------------
 
-WorkTableLogic::WorkTableLogic(int ownerID)
-    : TableLogic(ownerID)
-    , isProcessing_(false)
-    , processingTime_(3.0f)   // default: 3 seconds to process
-    , timer_(0.0f)
+WorkTableLogic::WorkTableLogic(int ownerID) : TableLogic(ownerID)
 {
-    //ClearApproachOffsets();
 
-    //AddApproachOffset(Math::Vector2D(0.0f, 110.0f));
 }
 
 void WorkTableLogic::Start(Scene& scene)
@@ -38,6 +59,19 @@ void WorkTableLogic::Start(Scene& scene)
     //std::cout << "[WorkTableLogic] Start ownerID=" << GetOwnerID() << "\n";
 
     TableLogic::Start(scene);
+
+    //Figure out what kind of station THIS table is, from its texture
+    Scene::Defaults def = scene.GetDefaults(GetOwnerID());
+    stationType_ = DetectStationTypeFromTexture(def.texture);
+
+    //different speeds per station
+    switch (stationType_)
+    {
+    case StationType::CuttingBoard: processingTime_ = 3.0f; break;
+    case StationType::Grill:        processingTime_ = 5.0f; break;
+    case StationType::Stove:        processingTime_ = 7.0f; break;
+    default:                        processingTime_ = 3.0f; break;
+    }
 }
 
 // ------------------- Update -------------------
@@ -141,9 +175,9 @@ void WorkTableLogic::CancelProcessing(Scene& /*scene*/)
 
 void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
 {
-    IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
-    std::cout << "[WorkTable] placed item=" << item.GetID()
-        << " hasIngredientLogic=" << (ing ? "YES" : "NO") << "\n";
+    //IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
+    //std::cout << "[WorkTable] placed item=" << item.GetID()
+    //    << " hasIngredientLogic=" << (ing ? "YES" : "NO") << "\n";
 
     CancelProcessing(scene); // always reset
     if (IsItemProcessable(scene, item)) {
@@ -200,14 +234,16 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item)
         return;
     }
 
-    // 2) Swap the sprite to the cut cabbage texture
-//    (for now we assume this table is a cutting board for vegetables).
-    item.SetTexture(
-        ResourceManager::Instance().LoadTexture(
-            "../assets/Cabbage_CUT_Ingredient.png",
-            "../assets/Cabbage_CUT_Ingredient.png"
-        )
-    );
+    // Remember RAW type before MarkProcessed changes it
+    IngredientType rawType = ing->GetType();
+
+    // Update logic (raw -> refined)
+    CompleteProcessingForIngredient(*ing);
+
+    // Update sprite based on what was cooked
+    const char* texPath = GetProcessedTextureForRaw(rawType);
+    item.SetTexture(ResourceManager::Instance().LoadTexture(texPath, texPath));
+    scene.SetObjectTexturePath(item.GetID(), texPath);
 
     // This is where the magic happens:
     //  - IngredientLogic::MarkProcessed()
@@ -220,9 +256,17 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item)
 
 bool WorkTableLogic::CanProcessIngredient(const IngredientLogic& ingredient) const
 {
-    // Base rule: only raw ingredients are meaningful to process.
-    // You can relax this if you want "double processing".
-    return ingredient.IsRaw();
+    if (!ingredient.IsRaw())
+        return false;
+
+    // Restrict by station
+    switch (stationType_)
+    {
+    case StationType::CuttingBoard: return ingredient.GetType() == IngredientType::Vegetable;
+    case StationType::Grill:        return ingredient.GetType() == IngredientType::Meat;
+    case StationType::Stove:        return ingredient.GetType() == IngredientType::Shroom;
+    default:                        return true; // Generic accepts any raw ingredient
+    }
 }
 
 bool WorkTableLogic::ProcessIngredientInstant(IngredientLogic& ingredient)
