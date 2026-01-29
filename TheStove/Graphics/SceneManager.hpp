@@ -254,6 +254,11 @@ public:
 		std::string texture;
 		std::string tag;
 		std::string layer;
+		// Audio bindings
+		std::string audioOnSpawn;
+		std::string audioOnInteract;
+		std::string audioOnDestroy;
+		bool audioLoop{ false };
 	};
 
 	void SetDefaults(int id, const Defaults& d) {

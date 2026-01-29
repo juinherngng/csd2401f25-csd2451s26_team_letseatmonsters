@@ -43,6 +43,7 @@
 #include "LevelEditorFileIO.hpp"
 #include "LevelEditorPrefabLinks.hpp"
 #include "InputManager.hpp"
+#include "AudioLoading.hpp"
 
 
 namespace fs = std::filesystem;
@@ -176,6 +177,11 @@ namespace {
 			defs.layer = obj.layer;
 			// NEW: approach offset
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+			// Audio bindings
+			defs.audioOnSpawn = obj.audioOnSpawn;
+			defs.audioOnInteract = obj.audioOnInteract;
+			defs.audioOnDestroy = obj.audioOnDestroy;
+			defs.audioLoop = obj.audioLoop;
 
 			scene.SetDefaults(g->GetID(), defs);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
@@ -201,7 +207,7 @@ namespace {
 			out.animated = scene.HasAnimations(id);
 			out.animName = scene.GetCurrentAnimationName(id);
 
-			// Layer – use the layering system, fall back to "1"
+			// Layer — use the layering system, fall back to "1"
 			out.layer = scene.GetObjectLayer(id);
 			if (out.layer.empty()) {
 				out.layer = "1";
@@ -240,6 +246,12 @@ namespace {
 
 			out.approachOffsetX = defs.approachOffset.x;
 			out.approachOffsetY = defs.approachOffset.y;
+
+			// Audio bindings from defaults
+			out.audioOnSpawn = defs.audioOnSpawn;
+			out.audioOnInteract = defs.audioOnInteract;
+			out.audioOnDestroy = defs.audioOnDestroy;
+			out.audioLoop = defs.audioLoop;
 
 			// Velocity
 			const glm::vec2 v = scene.GetNPCVelocity(id);
@@ -396,7 +408,7 @@ namespace LEPANELLEVEL {
 		ImGui::SameLine();
 
 		if (ImGui::Button("Refresh##levels")) {
-			sLevelFiles = ListJsonFiles("../levels");
+		 sLevelFiles = ListJsonFiles("../levels");
 		}
 
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -1048,6 +1060,134 @@ namespace LEPANELLEVEL {
 
 			ImGui::Columns(1);
 
+			// ========== Audio Bindings Section ==========
+			ImGui::Spacing();
+			if (ImGui::CollapsingHeader("Audio Bindings", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Indent(8.0f);
+
+				// Get available audio assets from catalog
+				const auto& audioAssets = Audio::AudioCatalog::GetAllAssets();
+				
+				// Build list of audio names for combo boxes
+				std::vector<const char*> audioNames;
+				audioNames.push_back("(None)");  // First option to clear binding
+				for (const auto& asset : audioAssets) {
+					audioNames.push_back(asset.name.c_str());
+				}
+
+				// Helper lambda to draw audio slot with combo and drag-drop
+				auto DrawAudioSlot = [&](const char* label, std::string& audioBinding, const char* tooltipText) {
+					ImGui::Text("%s", label);
+					ImGui::SameLine(120.0f);
+					
+					// Find current selection index
+					int currentIdx = 0;
+					for (size_t i = 1; i < audioNames.size(); ++i) {
+						if (audioBinding == audioNames[i]) {
+							currentIdx = static_cast<int>(i);
+							break;
+						}
+					}
+
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+					std::string comboId = std::string("##") + label;
+					if (ImGui::BeginCombo(comboId.c_str(), audioNames[currentIdx])) {
+						for (size_t i = 0; i < audioNames.size(); ++i) {
+							bool isSelected = (currentIdx == static_cast<int>(i));
+							if (ImGui::Selectable(audioNames[i], isSelected)) {
+								if (ImGui::IsItemActivated()) {
+									PushUndoSnapshot(editor, scene);
+								}
+								audioBinding = (i == 0) ? "" : audioNames[i];
+								defaults.audioOnSpawn = (label == std::string("On Spawn")) ? audioBinding : defaults.audioOnSpawn;
+								defaults.audioOnInteract = (label == std::string("On Interact")) ? audioBinding : defaults.audioOnInteract;
+								defaults.audioOnDestroy = (label == std::string("On Destroy")) ? audioBinding : defaults.audioOnDestroy;
+								scene.SetDefaults(id, defaults);
+							}
+							if (isSelected) {
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+						ImGui::EndCombo();
+					}
+
+					// Drag-drop target for audio assets
+					if (ImGui::BeginDragDropTarget()) {
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AUDIO_ASSET")) {
+							const char* droppedName = static_cast<const char*>(payload->Data);
+							if (droppedName) {
+								PushUndoSnapshot(editor, scene);
+								audioBinding = droppedName;
+								if (label == std::string("On Spawn")) defaults.audioOnSpawn = audioBinding;
+								else if (label == std::string("On Interact")) defaults.audioOnInteract = audioBinding;
+								else if (label == std::string("On Destroy")) defaults.audioOnDestroy = audioBinding;
+								scene.SetDefaults(id, defaults);
+							}
+						}
+						ImGui::EndDragDropTarget();
+					}
+
+					// Clear button
+					ImGui::SameLine();
+					std::string clearBtnId = std::string("X##clear_") + label;
+					if (ImGui::Button(clearBtnId.c_str(), ImVec2(20, 0))) {
+						PushUndoSnapshot(editor, scene);
+						audioBinding = "";
+						if (label == std::string("On Spawn")) defaults.audioOnSpawn = "";
+						else if (label == std::string("On Interact")) defaults.audioOnInteract = "";
+						else if (label == std::string("On Destroy")) defaults.audioOnDestroy = "";
+						scene.SetDefaults(id, defaults);
+					}
+					if (ImGui::IsItemHovered()) {
+						ImGui::SetTooltip("Clear audio binding");
+					}
+
+					// Preview button
+					if (!audioBinding.empty()) {
+						ImGui::SameLine();
+						std::string previewBtnId = std::string(">##preview_") + label;
+						if (ImGui::Button(previewBtnId.c_str(), ImVec2(20, 0))) {
+							// Play preview through AudioCatalog
+							// Note: This would need AudioManager access, simplified here
+						}
+						if (ImGui::IsItemHovered()) {
+							ImGui::SetTooltip("Preview audio");
+						}
+					}
+
+					if (ImGui::IsItemHovered() && tooltipText) {
+						ImGui::SetTooltip("%s", tooltipText);
+					}
+				};
+
+				// Get current audio bindings from defaults
+				std::string audioOnSpawn = defaults.audioOnSpawn;
+				std::string audioOnInteract = defaults.audioOnInteract;
+				std::string audioOnDestroy = defaults.audioOnDestroy;
+
+				DrawAudioSlot("On Spawn", audioOnSpawn, "Audio played when object spawns/loads");
+				DrawAudioSlot("On Interact", audioOnInteract, "Audio played when player interacts");
+				DrawAudioSlot("On Destroy", audioOnDestroy, "Audio played when object is destroyed");
+
+				// Audio loop checkbox for spawn audio
+				ImGui::Spacing();
+				bool audioLoop = defaults.audioLoop;
+				if (ImGui::Checkbox("Loop Spawn Audio", &audioLoop)) {
+					PushUndoSnapshot(editor, scene);
+					defaults.audioLoop = audioLoop;
+					scene.SetDefaults(id, defaults);
+				}
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("If checked, the 'On Spawn' audio will loop continuously");
+				}
+
+				ImGui::Spacing();
+				ImGui::TextDisabled("Drag audio from Audio Control panel to slots above");
+
+				ImGui::Unindent(8.0f);
+			}
+			// ========== End Audio Bindings Section ==========
+
 			std::string newTag = tagBuf;
 
 			// persist tag in both defaults + scene registry
@@ -1153,7 +1293,6 @@ namespace LEPANELLEVEL {
 						// Snapshot BEFORE applying new texture
 						PushUndoSnapshot(editor, scene);
 
-						// GameObject* o = objectListForViewport[selectedIndex];
 						const int id2 = o->GetID();
 
 						// Store path in scene metadata
@@ -1205,4 +1344,7 @@ namespace LEPANELLEVEL {
 	}
 #endif
 }
+
+
+
 

@@ -49,6 +49,12 @@ struct LevelObject {
 	// Animation flag
 	bool animated{ false };
 	std::string animName;
+
+	// Audio bindings (names from AudioCatalog)
+	std::string audioOnSpawn;     // Played when object spawns/loads
+	std::string audioOnInteract;  // Played when player interacts with object
+	std::string audioOnDestroy;   // Played when object is destroyed/despawned
+	bool audioLoop{ false };      // Whether audioOnSpawn should loop
 };
 
 struct LevelData {

@@ -57,6 +57,12 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.approachOffsetX = jsonObj.value("approach_offx", 0.0f);
 	obj.approachOffsetY = jsonObj.value("approach_offy", 0.0f);
 
+	// Audio bindings (safe for existing JSON, defaults to empty)
+	obj.audioOnSpawn = jsonObj.value("audio_on_spawn", "");
+	obj.audioOnInteract = jsonObj.value("audio_on_interact", "");
+	obj.audioOnDestroy = jsonObj.value("audio_on_destroy", "");
+	obj.audioLoop = jsonObj.value("audio_loop", false);
+
 	return obj;
 }
 
@@ -81,9 +87,14 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "speed_y", obj.speedY },
 		{ "animated", obj.animated },
 		{ "layer", obj.layer },
-		// NEW: approach offset
-{ "approach_offx", obj.approachOffsetX },
-{ "approach_offy", obj.approachOffsetY }
+		// Approach offset
+		{ "approach_offx", obj.approachOffsetX },
+		{ "approach_offy", obj.approachOffsetY },
+		// Audio bindings
+		{ "audio_on_spawn", obj.audioOnSpawn },
+		{ "audio_on_interact", obj.audioOnInteract },
+		{ "audio_on_destroy", obj.audioOnDestroy },
+		{ "audio_loop", obj.audioLoop }
 	};
 
 	return jsonData;
