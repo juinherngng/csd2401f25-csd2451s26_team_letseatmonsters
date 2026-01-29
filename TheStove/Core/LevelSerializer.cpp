@@ -34,18 +34,26 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 
 	// Stored in degrees for editor friendliness
 	obj.rotation = jsonObj.value("rotation", 0.0f);
+	obj.hasCollider = jsonObj.value("has_collider", true);
 
 	obj.colWidth = jsonObj.value("col_w", 64.0f);
 	obj.colHeight = jsonObj.value("col_h", 128.0f);
 	obj.colOffsetX = jsonObj.value("col_offx", 0.0f);
 	obj.colOffsetY = jsonObj.value("col_offy", 0.0f);
 
+	if (!obj.hasCollider) {
+		obj.colWidth = 0.0f;
+		obj.colHeight = 0.0f;
+		obj.colOffsetX = 0.0f;
+		obj.colOffsetY = 0.0f;
+	}
+
 	obj.speedX = jsonObj.value("speed_x", 0.0f);
 	obj.speedY = jsonObj.value("speed_y", 0.0f);
 
 	obj.animated = jsonObj.value("animated", false);
 
-	// NEW: approach offset (safe for existing JSON, defaults to 0)
+	// Approach offset (safe for existing JSON, defaults to 0)
 	obj.approachOffsetX = jsonObj.value("approach_offx", 0.0f);
 	obj.approachOffsetY = jsonObj.value("approach_offy", 0.0f);
 
@@ -64,6 +72,7 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "w", obj.w },
 		{ "h", obj.h },
 		{ "rotation", obj.rotation },
+		{ "has_collider", obj.hasCollider },
 		{ "col_w", obj.colWidth },
 		{ "col_h", obj.colHeight },
 		{ "col_offx", obj.colOffsetX },

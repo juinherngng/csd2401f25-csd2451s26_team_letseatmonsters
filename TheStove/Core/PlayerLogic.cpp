@@ -7,7 +7,7 @@ AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
 DESCRIPTION:		Implements player control logic, including movement, sprite updates,
 					mouse click handling, item pickup/drop, and scene clamping behavior.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 #include "PlayerLogic.hpp"
@@ -468,6 +468,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
+	glm::vec3 beforePos = player->GetPositionGLM();
 	const float physicsDt = scene.GetLastPhysicsDt();
 	const physics::StepController& step = scene.GetStepController();
 	const bool stepMode = step.enabled;
@@ -541,6 +542,65 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	HandleClickInput(scene, input);
 
 	UpdateMovement(dt, scene);
+
+	// Footstep particles: consistent + at feet
+	glm::vec3 afterPos = player->GetPositionGLM();
+	glm::vec2 moveDelta(afterPos.x - beforePos.x, afterPos.y - beforePos.y);
+
+	// movement intent avoids spam from clamp jitter
+	bool hasIntent =
+		input.IsKeyPressed(GLFW_KEY_A) || input.IsKeyPressed(GLFW_KEY_D) ||
+		input.IsKeyPressed(GLFW_KEY_W) || input.IsKeyPressed(GLFW_KEY_S) ||
+		hasMoveTarget;
+
+	// actual movement distance this frame
+	float dist = std::sqrt(moveDelta.x * moveDelta.x + moveDelta.y * moveDelta.y);
+
+	// ignore micro jitter
+	const float jitterEps = 0.25f;
+	bool actuallyMoved = dist > jitterEps;
+
+	if (hasIntent && actuallyMoved) {
+		// Accumulate distance and emit every N pixels travelled
+		footstepDistanceAcc_ += dist;
+
+		const float stepSpacing = 15.0f; // tune: smaller = more frequent
+		while (footstepDistanceAcc_ >= stepSpacing) {
+			footstepDistanceAcc_ -= stepSpacing;
+
+			// Feet position from collider size
+			glm::vec3 feet = afterPos;
+
+			auto cs = player->GetColliderSize();
+			feet.y += cs.y * 0.4f; // adjust to feet level
+
+			glm::vec2 dir = moveDelta;
+			float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+			if (len > 0.0001f) {
+				dir.x /= len;
+				dir.y /= len;
+			}
+
+			// spawn behind movement direction
+			glm::vec3 trailPos = feet;
+
+			// amount of “behind” in pixels (tune this)
+			const float behind = 20.0f;
+			trailPos.x -= dir.x * behind;
+			trailPos.y -= dir.y * behind;
+
+			// slight sideways jitter so it looks like a trail, not a line
+			glm::vec2 perp(-dir.y, dir.x);
+			trailPos.x += perp.x * ((rand()%1000)/1000.0f - 0.5f) * 3.0f;
+			trailPos.y += perp.y * ((rand()%1000)/1000.0f - 0.5f) * 3.0f;
+
+			scene.GetParticleSystem().EmitFootstep(scene.GetEntityManager(), trailPos, afterPos.z);
+		}
+	}
+	else {
+		// reset when not moving (prevents burst when resuming)
+		footstepDistanceAcc_ = 0.0f;
+	}
 
 	UpdateCarriedItemTransform(scene);
 

@@ -180,6 +180,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		pendingLevelPath_.clear();
 	}
 
+	// Update runtime particles
+	particleSystem_.Update(deltaTime, entityManager);
+
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 	(void)window;
 
@@ -347,6 +350,8 @@ std::vector<GameObject*> Scene::GetAllObjectsRaw() {
 
 void Scene::DespawnByID(int targetID) {
 	logicManager.RemoveAllFor(targetID, *this);
+
+	objectTags_.erase(targetID);
 
 	// Remove from entity manager (handles transforms too)
 	entityManager.DespawnByID(targetID);
@@ -526,6 +531,50 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	}
 	else if (tag == "btn_quit") {
 		logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+	}
+}
+
+void Scene::SetObjectTag(int id, const std::string& tag) {
+	objectTags_[id] = tag;
+}
+
+std::string Scene::GetObjectTag(int id) const {
+	auto it = objectTags_.find(id);
+	if (it != objectTags_.end()) {
+		return it->second;
+	}
+
+	// Fallback: if not stored, try defaults (still not hardcoding IDs)
+	auto defIt = defaults_.find(id);
+	if (defIt != defaults_.end() && !defIt->second.tag.empty()) {
+		return defIt->second.tag;
+	}
+
+	return ""; // unknown/untagged
+}
+
+bool Scene::TagUsesVelocity(const std::string& tag) const {
+	return (tag == "npc1" || tag == "npc2" || tag == "dino");
+}
+
+void Scene::ApplyTagRules(int id, const std::string& tag, float speedX, float speedY) {
+	// Central place for special IDs (so the editor doesn't do string if-else)
+	if (tag == "player") {
+		SetPlayerID(id);
+	}
+	else if (tag == "npc1") {
+		SetNPC1ID(id);
+	}
+	else if (tag == "npc2") {
+		SetNPC2ID(id);
+	}
+	else if (tag == "dino") {
+		SetDinoID(id);
+	}
+
+	// Only apply NPC velocity when this tag actually uses it
+	if (TagUsesVelocity(tag)) {
+		SetNPCVelocity(id, speedX, speedY);
 	}
 }
 
