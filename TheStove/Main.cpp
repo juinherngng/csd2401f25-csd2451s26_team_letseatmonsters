@@ -726,6 +726,11 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		
 		// Initialize to main menu state
 		gsm->InitializeGameState(Framework::GS_Level1, 0.0f);
+		// Ensure menu animations advance even with simulation disabled
+		if (auto* animMgrForcePlay = app.coreEngine->GetSystem<AnimationManager>()) {
+			std::cout << "[Main] Forcing AnimationManager.Play() for main menu animations\n";
+			animMgrForcePlay->Play();
+		}
 	}
 }
 

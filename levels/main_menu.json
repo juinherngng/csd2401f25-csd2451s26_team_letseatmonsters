@@ -54,6 +54,24 @@
       "col_offy": 0.0,
       "speed_x": 0.0,
       "speed_y": 0.0
+    },
+    {
+      "animated": true,
+      "texture": "../assets/mainmenu_sprite.png",
+      "tag": "menu_anim",
+      "layer": "1",
+      "x": 380.0,
+      "y": 305.0,
+      "z": 0.0,
+      "w": 1024.0,
+      "h": 1024.0,
+      "rotation": 0.0,
+      "col_w": 1.0,
+      "col_h": 1.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0
     }
   ]
 }

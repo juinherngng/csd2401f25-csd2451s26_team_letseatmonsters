@@ -468,6 +468,10 @@ void Scene::AttachDinoAnimations(int objID) {
 	animationManager.AttachDinoAnimations(objID);
 }
 
+void Scene::AttachMenuAnimations(int objID) {
+	animationManager.AttachMenuAnimations(objID);
+}
+
 void Scene::MarkAnimated(int id, bool state) {
 	if (!state) {
 		// Turning OFF animation: remove any per-object animation state
