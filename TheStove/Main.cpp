@@ -29,6 +29,7 @@
 #include "Core/Core.hpp"
 #include "Core/DebugUI.hpp"
 #include "Core/FileDropHandler.hpp"
+#include "Core/FilePaths.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/LevelEditorFileIO.hpp"
 #include "Core/MovementManager.hpp"
@@ -597,8 +598,8 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		ResourceManager::Instance().SetAudioManager(audioMgr);
 		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
 
-		// Load audio catalog from SOURCE directory (../../assets from build/Release)
-		const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
+	// Load audio catalog from SOURCE directory (../../assets from build/Release)
+		const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
 		if (!Audio::AudioCatalog::LoadCatalogFromFile(catalogPath))
 		{
 			std::cerr << "Warning: Failed to load audio catalog from " << catalogPath << std::endl;
@@ -716,9 +717,9 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			gsm->SetAudioManager(audioMgrGsm);
 		}
 
-		// Map states to JSON files
-		gsm->RegisterJsonState(Framework::GS_Level1, "../levels/main_menu.json");	// state 0 = menu
-		gsm->RegisterJsonState(Framework::GS_Level2, "../levels/kitchen01.json");	// state 1 = gameplay
+	// Map states to JSON files
+		gsm->RegisterJsonState(Framework::GS_Level1, FilePaths::Levels::MAIN_MENU);	// state 0 = menu
+		gsm->RegisterJsonState(Framework::GS_Level2, FilePaths::Levels::KITCHEN_01);	// state 1 = gameplay
 		
 		// Initialize to main menu state
 		gsm->InitializeGameState(Framework::GS_Level1, 0.0f);

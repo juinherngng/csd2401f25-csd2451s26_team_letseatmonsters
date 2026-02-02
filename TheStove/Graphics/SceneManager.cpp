@@ -28,6 +28,7 @@
 #include "../Core/MenuButtonLogic.hpp"
 #include "../Core/PauseButtonLogic.hpp"
 #include "../Core/AudioManager.hpp"
+#include "../Core/FilePaths.hpp"
 #include "SceneManager.hpp"
 
 namespace {
@@ -90,16 +91,16 @@ void Scene::LoadScene(const std::string& sceneName) {
 	(void)sceneName;
 
 	// Remember which level JSON we're using
-	currentLevelPath_ = "../levels/kitchen01.json";
+	currentLevelPath_ = FilePaths::Levels::KITCHEN_01;
 
 	// Optional: just pre-fill the path field for convenience
-	mLevelEditor.SetPath("../levels/kitchen01.json");
+	mLevelEditor.SetPath(FilePaths::Levels::KITCHEN_01);
 
 	// Ensure we start EMPTY per rubric (no auto-spawned objects)
 	ClearAll();
 
 	// You can keep a background even with an empty level (or move this into JSON later)
-	SetSceneBackground("../assets/Background.png");
+	SetSceneBackground(FilePaths::Textures::BACKGROUND);
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
@@ -128,7 +129,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			// Lazy-load a small font for FPS
 			FontSystem::Font* f = ResourceManager::Instance().GetFont("fps_font");
 			if (!f) {
-				f = FontSystem::FontManager::Instance().LoadFont("fps_font", "../assets/Font/ToThePointRegular-n9y4.ttf", 48);
+                f = FontSystem::FontManager::Instance().LoadFont("fps_font", FilePaths::Fonts::TO_THE_POINT, 48);
 			}
 			if (f) {
 				fpsText_.SetFont(f);
@@ -515,7 +516,7 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	}
 	// Menu buttons etc
 	else if (tag == "btn_play") {
-		auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);
+        auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, FilePaths::Levels::KITCHEN_01, true);
 		if (logic && audioManager_) {
 			logic->SetAudioManager(audioManager_);
 		}
@@ -670,7 +671,7 @@ void Scene::ShowPauseOverlay() {
 	const std::string uiLayer = "999999";
 
 	// Pause overlay background
-	if (GameObject* dim = SpawnStaticSprite("../assets/pause.png",
+    if (GameObject* dim = SpawnStaticSprite(FilePaths::Textures::PAUSE_BG,
 											{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
 											{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
 											uiLayer)) {
@@ -706,9 +707,9 @@ void Scene::ShowPauseOverlay() {
 		}
 	};
 
-	spawnPauseBtn("../assets/continue_s.png", { 967.f, 454.f }, PauseAction::Resume);
-	spawnPauseBtn("../assets/how_s.png", { 967.f, 584.f }, PauseAction::HowToPlay);
-	spawnPauseBtn("../assets/quit_s.png", { 967.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn(FilePaths::Textures::BTN_CONTINUE, { 967.f, 454.f }, PauseAction::Resume);
+	spawnPauseBtn(FilePaths::Textures::BTN_HOW, { 967.f, 584.f }, PauseAction::HowToPlay);
+	spawnPauseBtn(FilePaths::Textures::BTN_QUIT, { 967.f, 714.f }, PauseAction::Quit);
 #endif
 }
 

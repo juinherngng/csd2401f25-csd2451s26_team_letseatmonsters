@@ -25,6 +25,7 @@
 
 #include "Core.hpp"
 #include "DebugUI.hpp"
+#include "FilePaths.hpp"
 
 namespace Debug {
 	DebuggerApp gDebugger;
@@ -108,18 +109,18 @@ namespace Debug {
 			return;
 		}
 
-		// Load fonts from assets folder
+	// Load fonts from assets folder
 		// Load ChrustyRock font
 		FontSystem::Font* fontChrusty = FontSystem::FontManager::Instance().LoadFont(
 			"chrusty", 
-			"../assets/Font/ChrustyRock-ORLA.ttf",
+			FilePaths::Fonts::CHRUSTY_ROCK,
 			48  // Font size
 		);
 
 		// Load ToThePoint font as fallback/default
 		FontSystem::Font* fontToThePoint = FontSystem::FontManager::Instance().LoadFont(
 			"tothepoint", 
-			"../assets/Font/ToThePointRegular-n9y4.ttf",
+			FilePaths::Fonts::TO_THE_POINT,
 			48  // Font size
 		);
 

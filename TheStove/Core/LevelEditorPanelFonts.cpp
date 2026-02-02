@@ -24,6 +24,7 @@
 #include "LevelEditorPanelFonts.hpp"
 #include "LevelEditor.hpp"
 #include "FontSystem.hpp"
+#include "FilePaths.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 
@@ -90,8 +91,8 @@ namespace LEPANELFONTS {
         static std::vector<std::string> sFontFiles;
         static bool sFirstTime = true;
         
-        if (sFirstTime) {
-            std::vector<std::string> paths = {"../assets/Font", "assets/Font"};
+       if (sFirstTime) {
+            std::vector<std::string> paths = {FilePaths::Dirs::FONTS, "assets/Font"};
             for (const auto& path : paths) {
                 auto files = ListTTFFiles(path);
                 sFontFiles.insert(sFontFiles.end(), files.begin(), files.end());
@@ -101,7 +102,7 @@ namespace LEPANELFONTS {
         
         if (ImGui::Button("Refresh##fonts")) {
             sFontFiles.clear();
-            std::vector<std::string> paths = {"../assets/Font", "assets/Font"};
+            std::vector<std::string> paths = {FilePaths::Dirs::FONTS, "assets/Font"};
             for (const auto& path : paths) {
                 auto files = ListTTFFiles(path);
                 sFontFiles.insert(sFontFiles.end(), files.begin(), files.end());
