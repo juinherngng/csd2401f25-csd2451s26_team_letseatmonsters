@@ -106,6 +106,17 @@ namespace RuntimeLevel {
 				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
 			}
 
+			if (g) {
+				// Default shadow off unless specified
+				const bool shadowOn = obj.shadow; // new JSON bool
+				g->EnableShadow(shadowOn);
+
+				// You can keep sizing/offset consistent; they won’t render unless enabled.
+				g->SetShadowSize(glm::vec2(obj.w * 0.8f, obj.h * 0.33f));
+				g->SetShadowOffset(glm::vec2(0.0f, 55.0f));
+				g->SetShadowOpacity(0.65f);
+			}
+
 			// Default metadata
 			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, 0.0f }, { obj.w, obj.h, 1.0f }, obj.rotation);
 

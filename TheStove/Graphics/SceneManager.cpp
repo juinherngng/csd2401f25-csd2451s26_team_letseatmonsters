@@ -266,8 +266,9 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 		InitDefaultCollider(obj);
 	}
 
-	// Enable shadows and set parameters
+	// Disabled by default, controlled by JSON
 	obj->EnableShadow(false);
+
 	obj->SetShadowSize(glm::vec2(size.x * 0.8f, size.y * 0.33f)); // ellipse sized to sprite
 	obj->SetShadowOffset(glm::vec2(0.0f, 55.0f));       // sit near feet (tweak per origin)
 	obj->SetShadowOpacity(0.65f);
@@ -290,8 +291,9 @@ GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
 		InitDefaultCollider(obj);
 	}
 
-	// Enable shadows and set parameters
-	obj->EnableShadow(true);
+	// Disabled by default, controlled by JSON
+	obj->EnableShadow(false);
+
 	obj->SetShadowSize(glm::vec2(size.x * 0.8f, size.y * 0.33f)); // ellipse sized to sprite
 	obj->SetShadowOffset(glm::vec2(0.0f, 55.0f));       // sit near feet (tweak per origin)
 	obj->SetShadowOpacity(0.65f);

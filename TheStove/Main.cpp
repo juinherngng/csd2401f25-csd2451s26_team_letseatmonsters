@@ -142,6 +142,7 @@ static void HandlePauseResume(bool pause) {
 
 	auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>();
 	auto* inputMgr = g_AppState->coreEngine->GetSystem<InputManager>();
+	auto* animMgr = g_AppState->coreEngine->GetSystem<AnimationManager>();
 	Scene* scene = g_AppState->currentScene.get();
 
 	if (pause) {
@@ -190,6 +191,11 @@ static void HandlePauseResume(bool pause) {
 		// Clear any weird lingering input states
 		if (inputMgr) {
 			inputMgr->ClearState();
+		}
+
+		// Resume animations when window resumes focus
+		if (animMgr) {
+			animMgr->Play();
 		}
 	}
 }

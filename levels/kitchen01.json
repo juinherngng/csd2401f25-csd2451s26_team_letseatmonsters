@@ -3,6 +3,7 @@
   "objects": [
     {
       "animated": true,
+      "shadow": true,
       "approach_offx": 0.0,
       "approach_offy": 0.0,
       "col_h": 108.0,
@@ -23,6 +24,7 @@
     },
     {
       "animated": false,
+      "shadow": true,
       "approach_offx": 0.0,
       "approach_offy": 0.0,
       "col_h": 108.0,
@@ -43,6 +45,7 @@
     },
     {
       "animated": false,
+      "shadow": true,
       "approach_offx": 0.0,
       "approach_offy": 0.0,
       "col_h": 108.0,
