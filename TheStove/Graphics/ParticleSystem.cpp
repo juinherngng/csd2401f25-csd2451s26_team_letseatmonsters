@@ -13,6 +13,11 @@ static const std::vector<glm::vec4> kSparkleFrames = {
 	glm::vec4(0.37985075f, 0.38427299f, 0.05074627f, 0.04451039f),
 };
 
+// Full texture (single-frame PNG)
+static const std::vector<glm::vec4> kFullFrame = {
+	glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)
+};
+
 static float lengthSafe(const glm::vec2& v) {
 	return std::sqrt(v.x * v.x + v.y * v.y);
 }
@@ -30,8 +35,8 @@ void ParticleSystem::EnsureDefaultFootstepPreset_(EntityManager& em) {
 
 	Preset dust;
 	dust.name = "FootstepDust";
-	dust.texturePath = "../assets/VFX SpriteSheet.png";
-	dust.frames = kSparkleFrames;
+	dust.texturePath = "../assets/run_vfx.png";
+	dust.frames = kFullFrame;
 	dust.animateFrames = false;
 	dust.frameDuration = 0.06f;
 	dust.loop = false;
