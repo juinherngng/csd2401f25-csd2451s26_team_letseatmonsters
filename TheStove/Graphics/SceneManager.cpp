@@ -515,9 +515,12 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	}
 	else if (tag == "exit_gate") {
 		logicManager.AddLogic<ExitGateLogic>(id);
-		RegisterExitGate(id); // <--- key line
+		RegisterExitGate(id);
 	}
-
+	else if (tag == "trash_box") {
+		logicManager.AddLogic<TrashCanLogic>(id);
+		RegisterExitGate(id);
+	}
 	// Menu buttons etc
 	else if (tag == "btn_play") {
 		auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);

@@ -221,10 +221,9 @@ void SimpleNpcLogic::TakeOrder(Scene& /*scene*/)
     behaviourState_ = BehaviourState::WaitingForFood;
 }
 
-void SimpleNpcLogic::OnDishServed(Scene& /*scene*/, DishType dishType)
+void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType)
 {
-    std::cout << "[SimpleNpcLogic] OnDishServed, dishType="
-        << static_cast<int>(dishType) << "\n";
+    std::cout << "[SimpleNpcLogic] OnDishServed, dishType=" << static_cast<int>(dishType) << "\n";
 
     // Only meaningful if actually waiting for food.
     if (behaviourState_ != BehaviourState::WaitingForFood)
@@ -233,7 +232,27 @@ void SimpleNpcLogic::OnDishServed(Scene& /*scene*/, DishType dishType)
     dishServed_ = true;
     servedDishType_ = dishType;
 
-    if (servedDishType_ != desiredDishType_) return; // ignore wrong dish need to change to pay 0 and leave
+    if (servedDishType_ != desiredDishType_)
+    {
+        // Clear the served food so the table doesn't stay blocked
+        if (customerTableID_ != kInvalidID)
+        {
+            LogicManager& logicMgr = scene.GetLogicManager();
+            if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_))
+            {
+                table->ClearServedFood(scene);
+            }
+        }
+
+        hasPaid_ = false;
+
+        // IMPORTANT: do NOT leave yet — wait in Paying so player can "take payment" (which will be $0)
+        behaviourState_ = BehaviourState::Paying;
+
+        std::cout << "[SimpleNpcLogic] Wrong dish served. Switching to Paying (will pay $0)\n";
+        return;
+    }
+
 
     behaviourState_ = BehaviourState::Eating;
     eatTimer_ = 0.0f;
@@ -402,6 +421,8 @@ DishType SimpleNpcLogic::RollRandomDish()
     // (Using PoopDish just because it exists in your enum right now.)
     static const DishType kPool[] = {
         DishType::VegDish,
+        DishType::MeatDish,
+        DishType::SoupDish
         //DishType::PoopDish
     };
 

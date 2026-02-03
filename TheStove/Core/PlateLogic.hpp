@@ -110,6 +110,8 @@ public:
     void SetFirstIngredientObjectID(int id) { firstIngredientObjectID_ = id; }
     int  GetFirstIngredientObjectID() const { return firstIngredientObjectID_; }
 
+    void ApplyDishVisual(Scene& scene);
+
 protected:
     // Helper that computes the resulting dish type from two refined ingredient types.
     // This corresponds to the big if/else in your Unity Plate.AssembleDish().

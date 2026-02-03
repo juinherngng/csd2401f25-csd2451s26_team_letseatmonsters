@@ -16,6 +16,7 @@ DESCRIPTION:		Implements player control logic, including movement, sprite update
 #include "../Core/TableLogic.hpp"
 #include "../Core/WorkTableLogic.hpp"
 #include "../Core/CustomerTableLogic.hpp"
+#include "../Core/TrashCanLogic.hpp"
 #include <iostream>
 
 #include "../Core/DebugUI.hpp"
@@ -661,6 +662,38 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 		}
 	}
 
+	// --- Special case: Trash can ---
+// If this object is a trash can, placing an item should delete it immediately.
+	if (TrashCanLogic* trash = logicMgr.GetLogicForObject<TrashCanLogic>(tableObjectID))
+	{
+		// Only meaningful if player is holding something
+		if (carriedItemID >= 0)
+		{
+			const int itemToTrash = carriedItemID;
+
+			// Try to "place" it on the trash can (TrashCanLogic will despawn it)
+			if (trash->PlaceItem(scene, itemToTrash))
+			{
+				// Restore collider size if the object still exists this frame
+				// (depending on when despawns are processed)
+				if (hasCarriedItemOriginalColliderSize)
+				{
+					if (GameObject* item = scene.GetGameObjectByID(itemToTrash))
+					{
+						item->SetColliderSize(carriedItemOriginalColliderSize);
+					}
+					hasCarriedItemOriginalColliderSize = false;
+				}
+
+				// Clear carried item
+				carriedItemID = -1;
+			}
+		}
+
+		// Either way, stop here — trash can shouldn't behave like normal tables.
+		return;
+	}
+
 	playerHolding = (carriedItemID >= 0);
 	tableHasItem = table->HasItem();
 
@@ -771,6 +804,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 				if (plate->TryAssembleDish(dishType, consumedTypes))
 				{
 					//std::cout << "  [PlayerLogic] CASE3: Dish assembled on plate\n";
+						// Update visuals based on computed dish type
+					plate->ApplyDishVisual(scene);
 
 					// 1) Destroy the first ingredient that was sitting on the plate (if any)
 					int firstObjID = plate->GetFirstIngredientObjectID();
@@ -787,37 +822,6 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 
 					// We won't restore its collider size because the object is gone.
 					hasCarriedItemOriginalColliderSize = false;
-
-					// (Optional) Clear the stored first ingredient ID since it's gone now
-					// plate->SetFirstIngredientObjectID(-1);
-
-					// 3) Update the plate sprite based on dishType (existing code kept)
-					GameObject* plateObj = scene.GetGameObjectByID(tableItemID);
-					if (plateObj)
-					{
-						const char* texPath = "../assets/Plate_Dish_Default.png";
-
-						switch (dishType)
-						{
-						case DishType::VegDish:
-							texPath = "../assets/Salad.png";
-							break;
-						case DishType::MeatDish:
-							texPath = "../assets/Plate_MeatDish.png";
-							break;
-						case DishType::SoupDish:
-							texPath = "../assets/Plate_SoupDish.png";
-							break;
-						case DishType::PoopDish:
-						default:
-							texPath = "../assets/Plate_PoopDish.png";
-							break;
-						}
-
-						auto tex = ResourceManager::Instance().LoadTexture(texPath, texPath);
-						plateObj->SetTexture(tex);
-						scene.SetObjectTexturePath(tableItemID, texPath);
-					}
 				}
 
 

@@ -439,7 +439,7 @@ void GraphicsEngine::DrawSceneDockWindow() {
 			ImGui::InvisibleButton("##SceneImageBtn", sceneImageSize_);
 
 			if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-				std::cout << "[Scene] LMB click inside Scene image\n";
+				//std::cout << "[Scene] LMB click inside Scene image\n";
 			}
 		}
 	}

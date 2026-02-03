@@ -20,6 +20,7 @@ DESCRIPTION: Implements behaviour for a dining table that can seat a
 #include "../Graphics/GameObject.hpp"
 #include "../Core/LogicManager.hpp"   
 #include "../Core/SimpleNpcLogic.hpp" 
+#include "../Core/Quota.hpp"
 
 CustomerTableLogic::CustomerTableLogic(int ownerID)
     : TableLogic(ownerID)
@@ -214,13 +215,24 @@ bool CustomerTableLogic::TryTakePayment(Scene& scene)
         return false;
     }
 
-    // Always print state when interacting (super useful for debugging)
-    std::cout << "[CustomerTableLogic] Interact table=" << GetOwnerID()
-        << " customer=" << seatedCustomerID_ << "\n";
-
     if (!customerLogic->IsPaying()) {
         return false; // only take payment in Paying state
     }
+
+    // correct dish => pay kCorrectDishPay
+    // wrong dish   => pay 0
+    // -------------------------------------------------------
+    int payment = 0;
+    if (customerLogic->GetServedDishType() == customerLogic->GetDesiredDishType())
+    {
+        payment = Economy::kCorrectDishPay;
+    }
+
+    Economy::AddMoney(scene, payment);
+
+    std::cout << "[CustomerTableLogic] Payment amount=" << payment
+        << " totalMoney=" << Economy::gPlayerMoney
+        << " quota=" << Economy::kQuota << "\n";
 
     // Player successfully takes payment -> customer becomes Leaving
     customerLogic->TakePayment(scene);
