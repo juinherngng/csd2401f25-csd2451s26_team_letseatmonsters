@@ -34,7 +34,13 @@ namespace LEPANELFONTS {
         float rotation;  // Rotation in degrees
         bool useBlockRotation;  // true = block rotation, false = per-character rotation
         float colorR, colorG, colorB, colorA;
+        std::string layer{ "1" };  // Layer for rendering order
     };
     
     const std::vector<TextObjectData>& GetTextObjects();
+    
+    // Functions for level serialization integration
+    void SetTextObjects(const std::vector<TextObjectData>& textObjects);
+    void ClearTextObjects();
+    std::vector<TextObjectData>& GetMutableTextObjects();
 }

@@ -78,6 +78,9 @@ struct ApplicationState {
 	int windowedWidth = 1200;
 	int windowedHeight = 800;
 	bool f11WasDown = false;
+
+	// pending state switch to perform at transition blackout
+	int pendingStateAfterFade = -1;
 };
 
 // Global app state pointer for signal handlers and callbacks
@@ -140,6 +143,7 @@ static void HandlePauseResume(bool pause) {
 
 	auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>();
 	auto* inputMgr = g_AppState->coreEngine->GetSystem<InputManager>();
+	auto* animMgr = g_AppState->coreEngine->GetSystem<AnimationManager>();
 	Scene* scene = g_AppState->currentScene.get();
 
 	if (pause) {
@@ -189,6 +193,11 @@ static void HandlePauseResume(bool pause) {
 		if (inputMgr) {
 			inputMgr->ClearState();
 		}
+
+		// Resume animations when window resumes focus
+		if (animMgr) {
+			animMgr->Play();
+		}
 	}
 }
 
@@ -197,7 +206,7 @@ static void ToggleFullscreen(ApplicationState& app) {
 		return;
 	}
 
-	// If we�re going from windowed to fullscreen
+	// If we’re going from windowed to fullscreen
 	if (!app.isFullscreen) {
 		// Save current windowed position and size
 		glfwGetWindowPos(app.window, &app.windowedPosX, &app.windowedPosY);
@@ -292,6 +301,7 @@ int main() {
 	// Extract directory from full path
 	std::string exePathStr(exePath);
 	size_t lastSlash = exePathStr.find_last_of("\\/");
+
 	if (lastSlash != std::string::npos) {
 		std::string exeDir = exePathStr.substr(0, lastSlash);
 		SetCurrentDirectoryA(exeDir.c_str());
@@ -723,6 +733,11 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		
 		// Initialize to main menu state
 		gsm->InitializeGameState(Framework::GS_Level1, 0.0f);
+		// Ensure menu animations advance even with simulation disabled
+		if (auto* animMgrForcePlay = app.coreEngine->GetSystem<AnimationManager>()) {
+			std::cout << "[Main] Forcing AnimationManager.Play() for main menu animations\n";
+			animMgrForcePlay->Play();
+		}
 	}
 }
 
@@ -785,20 +800,41 @@ static void update(ApplicationState& app) {
 	// Update scene with delta time and window pointer
 	app.currentScene->Update(deltaTime, app.window);
 
-	// Check for pending state changes from menu buttons
+	// Get GraphicsEngine for transitions
+	auto* graphicsEngine = app.coreEngine->GetSystem<GraphicsEngine>();
+
+	// Check for pending state changes from menu buttons:
+	// - Start fade if none running, store the requested new state.
+	// - At blackout, perform the state change, then fade back in.
 	if (app.currentScene->HasPendingStateChange()) {
 		int newState = app.currentScene->GetPendingState();
 		app.currentScene->ClearPendingStateChange();
 
-		std::cout << "[Main] Processing state change request to state: " << newState << std::endl;
-
-		// Trigger the state change through GameStateManager
-		if (auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>()) {
-			std::cout << "[Main] Calling GameStateManager::UpdateGameState(" << newState << ")" << std::endl;
-			gsm->UpdateGameState(newState, deltaTime);
+		if (graphicsEngine && !graphicsEngine->IsTransitionActive()) {
+			graphicsEngine->StartSceneTransition(0.35f, 0.35f);
+			app.pendingStateAfterFade = newState;
+			std::cout << "[Main] Queued state change " << newState << " to run at blackout\n";
+		} else {
+			// If a transition is already active, just overwrite pending
+			app.pendingStateAfterFade = newState;
 		}
-		else {
+	}
+
+	// If we are waiting to switch and we've reached blackout, perform the switch now.
+	if (graphicsEngine && graphicsEngine->IsAtBlackout() && app.pendingStateAfterFade >= 0) {
+		if (auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>()) {
+			std::cout << "[Main] Blackout reached; switching to state " << app.pendingStateAfterFade << std::endl;
+			gsm->UpdateGameState(app.pendingStateAfterFade, deltaTime);
+		} else {
 			std::cerr << "[Main] ERROR: GameStateManager not found!" << std::endl;
+		}
+
+		graphicsEngine->ContinueTransitionFadeIn();
+		app.pendingStateAfterFade = -1;
+
+		// Clear input to avoid carry-over clicks into the new scene
+		if (auto* inputMgr = app.coreEngine->GetSystem<InputManager>()) {
+			inputMgr->ClearState();
 		}
 	}
 

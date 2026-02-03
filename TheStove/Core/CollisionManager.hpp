@@ -26,6 +26,8 @@
 #include "SpatialGrid.hpp"
 #include "System.hpp"
 
+class Scene;
+
  /**
   * @class CollisionManager
   * @brief Broad-phase grid + world collision owner. Rebuilt every frame from EntityManager,
@@ -84,6 +86,10 @@ public:
 
 	void AddStaticRects(const std::vector<collision::AABB>& rects);
 
+	void SetScene(Scene* scene) {
+		scene_ = scene;
+	}
+
 	// Clear both the grid and the world geometry.
 	void Clear();
 
@@ -91,4 +97,6 @@ private:
 	EntityManager* entityManager_ = nullptr;	// Reference to EntityManager (set externally)
 	SpatialGrid spatialGrid_;					// Broad-phase acceleration structure
 	collision::World collisionWorld_;			// Static world used for trimming
+
+	Scene* scene_ = nullptr;
 };

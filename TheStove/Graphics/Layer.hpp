@@ -65,11 +65,23 @@ public:
 		collidable = c;
 	}
 
+	bool IsEnabled() const {
+		return enabled;
+	}
+	void SetEnabled(bool e) {
+		enabled = e;
+		// Optional: if a layer is disabled, it should not be visible/collidable either
+		if (!enabled) {
+			visible = false;
+			collidable = false;
+		}
+	}
+
 private:
 	std::string name;
 	std::vector<int> objectIDs;
 
 	bool visible = true;
 	bool collidable = true;
-
+	bool enabled = true;
 };

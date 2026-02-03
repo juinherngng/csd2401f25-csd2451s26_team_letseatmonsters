@@ -167,13 +167,15 @@ void Scene::ClampToWalkArea(GameObject* obj) {
 		return;
 	}
 
-	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
-	Math::Vector3D p(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
-
-	physics::ClampInsideWalk(walk, obj, p);
-
-	const glm::vec3 pg = toG(p);
-	obj->SetPosition(pg);
+	// Skip clamping for objects whose tag are empty
+	const std::string tag = GetObjectTag(obj->GetID());
+	if (tag == "") {
+		return;
+	}
+	Math::Vector3D pos(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
+	const collision::WalkArea w = GetWalkArea();
+	physics::ClampInsideWalk(w, obj, pos);
+	obj->SetPosition(glm::vec3(pos.x, pos.y, pos.z));
 }
 
 glm::vec2 Scene::ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta) {
