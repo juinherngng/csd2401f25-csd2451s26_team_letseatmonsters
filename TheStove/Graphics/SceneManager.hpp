@@ -194,6 +194,7 @@ public:
 	void SetAnimation(int objID, const std::string& newAnim);
 	void AttachDinoAnimations(int objID);
 	void MarkAnimated(int id, bool state);
+	void AttachMenuAnimations(int objID);
 
 	void GenerateStressTest(int objectCount = 2500);
 	void UpdateAnimationControls();
@@ -297,6 +298,10 @@ public:
 	std::string GetObjectLayer(int objectID) const;
 	void AssignObjectToLayer(int id, const std::string& newLayer);
 	void RemoveLayer(const std::string& name);
+
+	// Layer enable/disable helpers
+	bool IsLayerEnabled(const std::string& layerName) const;
+	bool IsObjectLayerEnabled(int objectID) const;	
 
 	// World / collision rebuilds
 	void BuildLevelColliders();

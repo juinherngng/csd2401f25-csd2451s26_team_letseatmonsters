@@ -26,6 +26,7 @@
 #include "FontSystem.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
+#include "../Graphics/SceneManager.hpp"
 
 namespace fs = std::filesystem;
 
@@ -66,6 +67,34 @@ namespace LEPANELFONTS {
     }
 
     const std::vector<TextObjectData>& GetTextObjects() {
+        return sTextObjects;
+    }
+    
+    // Functions for level serialization integration
+    void SetTextObjects(const std::vector<TextObjectData>& textObjects) {
+        sTextObjects = textObjects;
+        sSelectedTextIndex = -1;
+        
+        // Also ensure fonts used by text objects are tracked
+        for (const auto& textObj : textObjects) {
+            if (!textObj.fontName.empty()) {
+                auto it = std::find(sLoadedFonts.begin(), sLoadedFonts.end(), textObj.fontName);
+                if (it == sLoadedFonts.end()) {
+                    // Check if font is actually loaded in ResourceManager
+                    if (ResourceManager::Instance().GetFont(textObj.fontName)) {
+                        sLoadedFonts.push_back(textObj.fontName);
+                    }
+                }
+            }
+        }
+    }
+    
+    void ClearTextObjects() {
+        sTextObjects.clear();
+        sSelectedTextIndex = -1;
+    }
+    
+    std::vector<TextObjectData>& GetMutableTextObjects() {
         return sTextObjects;
     }
 
@@ -206,6 +235,7 @@ namespace LEPANELFONTS {
             newText.colorG = 1.0f;
             newText.colorB = 1.0f;
             newText.colorA = 1.0f;
+            newText.layer = "1";  // Default layer
             
             sTextObjects.push_back(newText);
             sSelectedTextIndex = static_cast<int>(sTextObjects.size()) - 1;
@@ -223,7 +253,7 @@ namespace LEPANELFONTS {
         if (ImGui::BeginListBox("##TextObjects", ImVec2(-FLT_MIN, 150.0f))) {
             for (int i = 0; i < static_cast<int>(sTextObjects.size()); ++i) {
                 const bool isSelected = (sSelectedTextIndex == i);
-                std::string label = sTextObjects[i].name + " [" + sTextObjects[i].fontName + "]";
+                std::string label = sTextObjects[i].name + " [" + sTextObjects[i].fontName + "] [Layer: " + sTextObjects[i].layer + "]";
                 if (ImGui::Selectable(label.c_str(), isSelected)) {
                     sSelectedTextIndex = i;
                 }
@@ -278,6 +308,40 @@ namespace LEPANELFONTS {
             std::snprintf(textBuf, sizeof(textBuf), "%s", textObj.text.c_str());
             if (ImGui::InputText("##Text", textBuf, IM_ARRAYSIZE(textBuf))) {
                 textObj.text = textBuf;
+            }
+            ImGui::NextColumn();
+
+            // NEW: Layer selection
+            ImGui::TextUnformatted("Layer");
+            ImGui::NextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            {
+                // Build list of available layers from scene
+                std::vector<std::string> layerNames;
+                layerNames.push_back("1"); // Default layer always available
+                
+                const auto& allLayers = scene.GetAllLayers();
+                for (const auto& pair : allLayers) {
+                    const std::string& name = pair.first;
+                    if (name.empty()) continue;
+                    if (std::find(layerNames.begin(), layerNames.end(), name) == layerNames.end()) {
+                        layerNames.push_back(name);
+                    }
+                }
+                std::sort(layerNames.begin(), layerNames.end());
+                
+                if (ImGui::BeginCombo("##Layer", textObj.layer.c_str())) {
+                    for (const std::string& name : layerNames) {
+                        bool isSelected = (textObj.layer == name);
+                        if (ImGui::Selectable(name.c_str(), isSelected)) {
+                            textObj.layer = name;
+                        }
+                        if (isSelected) {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
             }
             ImGui::NextColumn();
 
@@ -344,6 +408,19 @@ namespace LEPANELFONTS {
 #else
     // Release build: provide no-op implementations
     const std::vector<TextObjectData>& GetTextObjects() {
+        static std::vector<TextObjectData> empty;
+        return empty;
+    }
+    
+    void SetTextObjects(const std::vector<TextObjectData>& /*textObjects*/) {
+        // No-op in Release
+    }
+    
+    void ClearTextObjects() {
+        // No-op in Release
+    }
+    
+    std::vector<TextObjectData>& GetMutableTextObjects() {
         static std::vector<TextObjectData> empty;
         return empty;
     }
