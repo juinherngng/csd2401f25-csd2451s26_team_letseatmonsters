@@ -151,9 +151,9 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 
 		// Debug: does this object have any TableLogic?
 		TableLogic* tableLogic2 = logicMgr.GetLogicForObject<TableLogic>(id);
-		std::cout << "[ClickDebug] id=" << id
+		/*std::cout << "[ClickDebug] id=" << id
 			<< " hasTableLogic=" << (tableLogic2 ? "yes" : "no")
-			<< "\n";
+			<< "\n";*/
 
 		// Any table (normal / work / customer / ingredient box) derives from TableLogic
 		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(id);
