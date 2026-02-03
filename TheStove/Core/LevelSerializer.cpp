@@ -57,6 +57,8 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.approachOffsetX = jsonObj.value("approach_offx", 0.0f);
 	obj.approachOffsetY = jsonObj.value("approach_offy", 0.0f);
 
+	obj.shadow = jsonObj.value("shadow", false);
+
 	return obj;
 }
 

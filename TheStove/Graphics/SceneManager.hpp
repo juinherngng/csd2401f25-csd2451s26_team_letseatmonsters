@@ -181,6 +181,7 @@ public:
 	void SetAnimation(int objID, const std::string& newAnim);
 	void AttachDinoAnimations(int objID);
 	void MarkAnimated(int id, bool state);
+	void AttachMenuAnimations(int objID);
 
 	void GenerateStressTest(int objectCount = 2500);
 	void UpdateAnimationControls();

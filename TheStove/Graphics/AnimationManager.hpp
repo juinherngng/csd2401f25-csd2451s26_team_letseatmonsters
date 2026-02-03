@@ -60,6 +60,9 @@ public:
 	void AttachPlayerAnimations(int objectID);
 	void AttachNPCAnimations(int objectID);
 
+	// for menu-specific grid animations (6x5 sprite sheet)
+	void AttachMenuAnimations(int objectID);
+
 	// Animation control
 	void SetAnimation(int objectID, const std::string& animName);
 	std::string GetCurrentAnimation(int objectID) const;
@@ -88,7 +91,10 @@ private:
 
 	bool isPlaying = false;  // Start paused by default
 
-	// Helper: Create standard frame sequences
+	// Helpers: Create standard frame sequences
 	std::vector<glm::vec4> CreateFrameSequence(int startFrame, int endFrame, int totalFrames);
-	std::vector<glm::vec4> CreateFrameSequenceRow(int row, int startCol, int endCol, int totalRows, int totalCols);
+	std::vector<glm::vec4> CreateFrameSequenceRow(int row, int startCol, int endCol, int totalRows = 15, int totalCols = 8);
+
+	// build entire grid sequence (row-major)
+	std::vector<glm::vec4> CreateFullGridSequence(int totalRows, int totalCols);
 };
