@@ -359,6 +359,22 @@ public:
 	// FPS display rendering
 	void RenderFPSText();
 
+	// Cutscene API
+	// Starts a cutscene consisting of image paths played in sequence.
+	// When finished, queues level load to 'levelJsonPath' and sets simulation according to 'activateSimulation'.
+	void StartCutscene(const std::vector<std::string>& imagePaths,
+	                   float holdSecondsPerImage,
+	                   float fadeSeconds,
+	                   const std::string& levelJsonPath,
+	                   bool activateSimulation);
+	
+	void StartCutsceneTransitioned(const std::vector<std::string>& imagePaths,
+	                               const std::string& levelJsonPath,
+	                               bool activateSimulation,
+	                               float fadeOutSeconds = 0.35f,
+	                               float fadeInSeconds = 0.35f,
+								   float holdSeconds = 1.5f);
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -439,4 +455,58 @@ private:
 	std::unordered_map<int, std::string> objectTags_;
 
 	bool howToPlayOverlayActive_ = false;
+
+	// Simple cutscene runner state
+	struct CutsceneState {
+		bool active = false;
+		std::vector<std::string> images;
+		size_t current = 0;
+
+		// timing
+		float holdTime = 1.5f;   // seconds each image is held
+		float fadeTime = 0.5f;   // seconds to fade out/in (cross-fade if supported)
+		float t = 0.0f;          // time accumulator within current phase
+
+		// phase control
+		enum class Phase { FadeIn, Hold, FadeOut } phase = Phase::FadeIn;
+
+		// objects
+		int spriteA = -1;        // current image object
+		int spriteB = -1;        // next image object (for cross-fade)
+		std::string uiLayer = "999998"; // cutscene layer below pause overlay
+
+		// completion
+		std::string targetLevelJson;
+		bool targetActivateSim = true;
+		bool queuedFinalLoad = false;
+
+		// alpha support flag detected on first use
+		bool supportsAlpha = false;
+	} cutscene_;
+
+	struct CutsceneTrans {
+		bool active = false;
+		std::vector<std::string> images;
+		size_t index = 0;
+		std::string uiLayer = "999998";
+		int currentSpriteId = -1;
+		std::string targetLevelJson;
+		bool targetActivateSim = true;
+		float outSeconds = 0.35f;
+		float inSeconds = 0.35f;
+		bool fadeInAfterLoad = false;
+
+		// hold control
+		float holdSeconds = 1.5f;      // how long each image stays after fade-in
+		float holdElapsed = 0.0f;
+		bool holding = false;
+
+		bool awaitingBlackout = false;
+	} cutTrans_;
+
+	// Internal helpers
+	void UpdateCutscene(float dt);
+	void UpdateCutsceneTransitioned(float dt);
+	void CleanupCutsceneObjects();
+	void SetSpriteAlpha(GameObject* obj, float alpha); // no-op if shader lacks alpha tint
 };

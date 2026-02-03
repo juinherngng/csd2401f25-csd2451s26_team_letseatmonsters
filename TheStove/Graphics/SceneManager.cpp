@@ -35,6 +35,7 @@
 #include "../Core/PauseButtonLogic.hpp"
 #include "../Core/AudioManager.hpp"
 #include "SceneManager.hpp"
+#include "GraphicsEngine.hpp"
 
 namespace {
 	// If an object has no collider yet, initialise an AABB that matches its visual size.
@@ -114,6 +115,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 #ifdef _DEBUG
 	UpdateAnimationControls();
 #endif
+
+	// Drive transitioned cutscene every frame so transitions progress
+	UpdateCutsceneTransitioned(deltaTime);
+
 	if (pendingClear_) {
 		ClearAll();
 		RebuildColliders();
@@ -183,6 +188,20 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 				RebuildColliders();
 				SetSimulationActive(pendingLevelSimActive_);
 				inputManager.ClearState(); // avoid stale click replay
+
+				// If we are coming from a cutscene, fade in the new level now
+				if (cutTrans_.fadeInAfterLoad) {
+					auto& gfx = GetGraphicsEngine();
+
+					// Ensure a fade is active; if not, start a fade-in-only transition
+					if (!gfx.IsTransitionActive() || !gfx.IsAtBlackout()) {
+						// outSeconds = 0 starts from the current frame, then we only fade in
+						gfx.StartSceneTransition(0.1f, cutTrans_.inSeconds);
+					}
+
+					gfx.ContinueTransitionFadeIn();
+					cutTrans_.fadeInAfterLoad = false;
+				}
 			}
 		}
 		hasPendingLevel_ = false;
@@ -726,7 +745,7 @@ void Scene::ShowPauseOverlay() {
 	}
 
 	auto spawnPauseBtn = [&](const char* tex, const glm::vec2& pos, PauseAction action) {
-		if (GameObject* b = SpawnStaticSprite(tex, { pos.x, pos.y, 0.0f }, { 300.0f, 100.0f }, uiLayer)) {
+		if (GameObject* b = SpawnStaticSprite(tex, { pos.x, pos.y, 0.0f }, { 350.0f, 100.0f }, uiLayer)) {
 			const int id = b->GetID();
 			pauseOverlayObjectIds_.push_back(id);
 			SetObjectTexturePath(id, tex);
@@ -753,9 +772,9 @@ void Scene::ShowPauseOverlay() {
 		}
 		};
 
-	spawnPauseBtn("../assets/continue_s.png", { 967.f, 454.f }, PauseAction::Resume);
-	spawnPauseBtn("../assets/how_s.png", { 967.f, 584.f }, PauseAction::HowToPlay);
-	spawnPauseBtn("../assets/quit_s.png", { 967.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn("../assets/continue_s.png", { 1300.f, 454.f }, PauseAction::Resume);
+	spawnPauseBtn("../assets/how_s.png", { 1300.f, 584.f }, PauseAction::HowToPlay);
+	spawnPauseBtn("../assets/quit_s.png", { 1300.f, 714.f }, PauseAction::Quit);
 #endif
 }
 
@@ -1081,4 +1100,261 @@ void Scene::StopAllObjectAudio() {
 	}
 	
 	std::cout << "[Scene] Stopped all object-bound audio" << std::endl;
+}
+
+// Cutscene management
+
+void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
+                          float holdSecondsPerImage,
+                          float fadeSeconds,
+                          const std::string& levelJsonPath,
+                          bool activateSimulation) {
+	if (imagePaths.empty()) {
+		// If nothing to show, load level immediately
+		QueueLevelLoad(levelJsonPath, activateSimulation);
+		return;
+	}
+
+	// Clear any existing UI or pause overlays to avoid conflicts
+	HidePauseOverlay();
+
+	// Reset state
+	CleanupCutsceneObjects();
+	cutscene_.active = true;
+	cutscene_.images = imagePaths;
+	cutscene_.current = 0;
+	cutscene_.holdTime = std::max(0.0f, holdSecondsPerImage);
+	cutscene_.fadeTime = std::max(0.0f, fadeSeconds);
+	cutscene_.t = 0.0f;
+	cutscene_.phase = CutsceneState::Phase::FadeIn;
+	cutscene_.targetLevelJson = levelJsonPath;
+	cutscene_.targetActivateSim = activateSimulation;
+	cutscene_.queuedFinalLoad = false;
+
+	// Spawn the first sprite full-screen
+	const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+	const glm::vec2 fullSize{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+
+	if (GameObject* s = SpawnStaticSprite(cutscene_.images[0], center, fullSize, cutscene_.uiLayer)) {
+		cutscene_.spriteA = s->GetID();
+		// Detect alpha support by attempting to set alpha=0 then alpha=1
+		// If shader ignores it, visuals won't change; we still run without fade.
+		// Bring it in with fade-in
+		SetSpriteAlpha(s, 0.0f);
+	} else {
+		// If spawn failed, abort cutscene and load level
+		cutscene_.active = false;
+		QueueLevelLoad(levelJsonPath, activateSimulation);
+	}
+}
+
+void Scene::UpdateCutscene(float dt) {
+	if (!cutscene_.active) return;
+
+	// Helper to get object for id
+	auto getObj = [&](int id) -> GameObject* { return GetGameObjectByID(id); };
+
+	// Advance timers
+	cutscene_.t += dt;
+
+	switch (cutscene_.phase) {
+	case CutsceneState::Phase::FadeIn: {
+		// Fade in spriteA from 0 -> 1
+		float alpha = (cutscene_.fadeTime > 0.0f) ? std::min(1.0f, cutscene_.t / cutscene_.fadeTime) : 1.0f;
+		if (GameObject* a = getObj(cutscene_.spriteA)) {
+			SetSpriteAlpha(a, alpha);
+		}
+		if (alpha >= 1.0f) {
+			cutscene_.phase = CutsceneState::Phase::Hold;
+			cutscene_.t = 0.0f;
+		}
+		break;
+	}
+	case CutsceneState::Phase::Hold: {
+		if (cutscene_.t >= cutscene_.holdTime) {
+			// Prepare next image if any
+			if (cutscene_.current + 1 < cutscene_.images.size()) {
+				// Spawn next spriteB on top (or cross-fade if supported)
+				const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+				const glm::vec2 fullSize{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+				if (GameObject* b = SpawnStaticSprite(cutscene_.images[cutscene_.current + 1], center, fullSize, cutscene_.uiLayer)) {
+					cutscene_.spriteB = b->GetID();
+					// Start with alpha=0 to fade in
+					SetSpriteAlpha(b, 0.0f);
+					cutscene_.phase = CutsceneState::Phase::FadeOut;
+					cutscene_.t = 0.0f;
+				} else {
+					// Could not spawn next; jump to end
+					cutscene_.current = static_cast<size_t>(cutscene_.images.size());
+					cutscene_.phase = CutsceneState::Phase::FadeOut;
+					cutscene_.t = 0.0f;
+				}
+			} else {
+				// Last image finished holding -> end cutscene and load level
+				CleanupCutsceneObjects();
+				cutscene_.active = false;
+				if (!cutscene_.queuedFinalLoad) {
+					cutscene_.queuedFinalLoad = true;
+					QueueLevelLoad(cutscene_.targetLevelJson, cutscene_.targetActivateSim);
+				}
+			}
+		}
+		break;
+	}
+	case CutsceneState::Phase::FadeOut: {
+		// Cross-fade: spriteA goes 1->0, spriteB goes 0->1
+		float tNorm = (cutscene_.fadeTime > 0.0f) ? std::min(1.0f, cutscene_.t / cutscene_.fadeTime) : 1.0f;
+		float alphaA = 1.0f - tNorm;
+		float alphaB = tNorm;
+
+		if (GameObject* a = getObj(cutscene_.spriteA)) SetSpriteAlpha(a, alphaA);
+		if (GameObject* b = getObj(cutscene_.spriteB)) SetSpriteAlpha(b, alphaB);
+
+		if (tNorm >= 1.0f) {
+			// Despawn old A, promote B to A, advance index
+			if (cutscene_.spriteA >= 0) DespawnByID(cutscene_.spriteA);
+			cutscene_.spriteA = cutscene_.spriteB;
+			cutscene_.spriteB = -1;
+			cutscene_.current += 1;
+			cutscene_.phase = CutsceneState::Phase::Hold;
+			cutscene_.t = 0.0f;
+		}
+		break;
+	}
+	}
+}
+
+void Scene::CleanupCutsceneObjects() {
+	if (cutscene_.spriteA >= 0) {
+		DespawnByID(cutscene_.spriteA);
+		cutscene_.spriteA = -1;
+	}
+	if (cutscene_.spriteB >= 0) {
+		DespawnByID(cutscene_.spriteB);
+		cutscene_.spriteB = -1;
+	}
+}
+
+void Scene::SetSpriteAlpha(GameObject* obj, float alpha) {
+	if (!obj) return;
+	// If sprite shader supports a vertex color or uniform tint with alpha,
+	// hook that here. As a safe no-op fallback, we reuse UV rect trick by
+	// slightly shrinking when alpha ~0 to visually hide (not a real fade).
+	// Replace with proper per-sprite color when available.
+	if (alpha <= 0.01f) {
+		// Hide by moving UV to a 0-sized rect (fallback).
+		obj->SetUVRect({ 0.f, 0.f, 0.f, 0.f });
+	} else {
+		// Show full rect.
+		obj->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
+	}
+}
+
+// Call this from MenuButtonLogic on click
+void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths,
+                                      const std::string& levelJsonPath,
+                                      bool activateSimulation,
+                                      float fadeOutSeconds,
+                                      float fadeInSeconds,
+                                      float holdSeconds) {
+    if (imagePaths.empty()) {
+        QueueLevelLoad(levelJsonPath, activateSimulation);
+        return;
+    }
+
+#ifndef _DEBUG
+    SetSimulationActive(false);
+#endif
+    HidePauseOverlay();
+
+    if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
+    cutTrans_ = {};
+    cutTrans_.active = true;
+    cutTrans_.images = imagePaths;
+    cutTrans_.index = 0;
+    cutTrans_.targetLevelJson = levelJsonPath;
+    cutTrans_.targetActivateSim = activateSimulation;
+    cutTrans_.outSeconds = fadeOutSeconds;
+    cutTrans_.inSeconds = fadeInSeconds;
+    cutTrans_.holdSeconds = std::max(0.0f, holdSeconds);
+    cutTrans_.holdElapsed = 0.0f;
+    cutTrans_.holding = false;
+    cutTrans_.awaitingBlackout = false;
+
+    // Note: Do not spawn the first image yet.
+    // Begin initial transition so we go to blackout first.
+    auto* gfx = &GetGraphicsEngine();
+    if (gfx) {
+        gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+        cutTrans_.awaitingBlackout = true;
+    }
+}
+
+void Scene::UpdateCutsceneTransitioned(float dt) {
+    if (!cutTrans_.active) return;
+
+    auto* gfx = &GetGraphicsEngine();
+    if (!gfx) return;
+
+    // If we're holding and no transition is active, advance hold timer
+    if (cutTrans_.holding && !gfx->IsTransitionActive()) {
+        cutTrans_.holdElapsed += dt;
+        if (cutTrans_.holdElapsed >= cutTrans_.holdSeconds) {
+            // Start fade-out toward next image if any
+            if (cutTrans_.index + 1 < cutTrans_.images.size()) {
+                gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+                cutTrans_.awaitingBlackout = true;
+                cutTrans_.holding = false;
+                cutTrans_.holdElapsed = 0.0f;
+            } else {
+                // No next image; queue final load and finish at blackout (handled below)
+                gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+                cutTrans_.awaitingBlackout = true;
+                cutTrans_.holding = false;
+            }
+        }
+    }
+
+    // At blackout: either spawn first cutscene image, swap to next, or handoff to level
+    if (cutTrans_.awaitingBlackout && gfx->IsAtBlackout()) {
+        cutTrans_.awaitingBlackout = false;
+
+        if (cutTrans_.currentSpriteId < 0 && cutTrans_.index == 0) {
+            // First blackout: spawn cutscene #1 and fade in
+            const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+            const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+            if (GameObject* s = SpawnStaticSprite(cutTrans_.images[0], center, full, cutTrans_.uiLayer)) {
+                cutTrans_.currentSpriteId = s->GetID();
+            }
+            gfx->ContinueTransitionFadeIn();
+            cutTrans_.holding = true;
+            cutTrans_.holdElapsed = 0.0f;
+            return;
+        }
+
+        // If next image exists, swap then fade-in
+        if (cutTrans_.index + 1 < cutTrans_.images.size()) {
+            cutTrans_.index += 1;
+
+            if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
+            const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+            const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+            if (GameObject* s = SpawnStaticSprite(cutTrans_.images[cutTrans_.index], center, full, cutTrans_.uiLayer)) {
+                cutTrans_.currentSpriteId = s->GetID();
+            }
+
+            gfx->ContinueTransitionFadeIn();
+            cutTrans_.holding = true;
+            cutTrans_.holdElapsed = 0.0f;
+        } else {
+            // Last blackout: remove sprite, queue level, and mark post-load fade-in
+            if (cutTrans_.currentSpriteId >= 0) {
+                DespawnByID(cutTrans_.currentSpriteId);
+                cutTrans_.currentSpriteId = -1;
+            }
+            cutTrans_.active = false;
+            QueueLevelLoad(cutTrans_.targetLevelJson, cutTrans_.targetActivateSim);
+            cutTrans_.fadeInAfterLoad = true; // handled in Scene::Update after LoadAndBuild
+        }
+    }
 }
