@@ -496,12 +496,25 @@ private:
 		float inSeconds = 0.35f;
 		bool fadeInAfterLoad = false;
 
+		// cross-fade support
+		bool useCrossfade = false;
+		float crossfadeSeconds = 0.75f;
+		float crossfadeT = 0.0f;
+		int nextSpriteId = -1;
+		bool crossfading = false;
+
 		// hold control
 		float holdSeconds = 1.5f;      // how long each image stays after fade-in
 		float holdElapsed = 0.0f;
 		bool holding = false;
 
 		bool awaitingBlackout = false;
+
+		// crossfade index control
+		int crossfadeFromIndex = -1; // -1 = disabled; otherwise crossfade when transitioning to this target index
+
+		// initial fade-in control
+		bool awaitingInitialFadeIn = false;
 	} cutTrans_;
 
 	// Internal helpers

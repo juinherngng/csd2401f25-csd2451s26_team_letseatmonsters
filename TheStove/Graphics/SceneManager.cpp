@@ -1280,14 +1280,17 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
     cutTrans_.holdElapsed = 0.0f;
     cutTrans_.holding = false;
     cutTrans_.awaitingBlackout = false;
+    cutTrans_.awaitingInitialFadeIn = false;
 
-    // Note: Do not spawn the first image yet.
-    // Begin initial transition so we go to blackout first.
-    auto* gfx = &GetGraphicsEngine();
-    if (gfx) {
-        gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
-        cutTrans_.awaitingBlackout = true;
-    }
+    cutTrans_.useCrossfade = true;
+    cutTrans_.crossfadeSeconds = fadeOutSeconds;
+    cutTrans_.crossfadeFromIndex = 5;
+
+	// Note: do not spawn the first image yet.
+    // Start fade-out to blackout, will spawn at blackout and fade-in.
+    auto& gfx = GetGraphicsEngine();
+    gfx.StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+    cutTrans_.awaitingBlackout = true;
 }
 
 void Scene::UpdateCutsceneTransitioned(float dt) {
@@ -1296,18 +1299,54 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
     auto* gfx = &GetGraphicsEngine();
     if (!gfx) return;
 
-    // If we're holding and no transition is active, advance hold timer
+    // Crossfade 5 -> 6 
+    if (cutTrans_.useCrossfade && cutTrans_.crossfading) {
+        cutTrans_.crossfadeT += dt;
+        float tNorm = std::min(1.0f, cutTrans_.crossfadeT / cutTrans_.crossfadeSeconds);
+
+        if (GameObject* a = GetGameObjectByID(cutTrans_.currentSpriteId)) SetSpriteAlpha(a, 1.0f - tNorm);
+        if (GameObject* b = GetGameObjectByID(cutTrans_.nextSpriteId))    SetSpriteAlpha(b, tNorm);
+
+        if (tNorm >= 1.0f) {
+            if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
+            cutTrans_.currentSpriteId = cutTrans_.nextSpriteId;
+            cutTrans_.nextSpriteId = -1;
+            cutTrans_.crossfading = false;
+            cutTrans_.holding = true;
+            cutTrans_.holdElapsed = 0.0f;
+        }
+        return;
+    }
+
+    // Hold timing for subsequent transitions
     if (cutTrans_.holding && !gfx->IsTransitionActive()) {
         cutTrans_.holdElapsed += dt;
         if (cutTrans_.holdElapsed >= cutTrans_.holdSeconds) {
-            // Start fade-out toward next image if any
-            if (cutTrans_.index + 1 < cutTrans_.images.size()) {
-                gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
-                cutTrans_.awaitingBlackout = true;
-                cutTrans_.holding = false;
-                cutTrans_.holdElapsed = 0.0f;
+            const size_t nextIndex = cutTrans_.index + 1;
+            if (nextIndex < cutTrans_.images.size()) {
+                if (cutTrans_.useCrossfade && static_cast<int>(nextIndex) == cutTrans_.crossfadeFromIndex) {
+                    const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+                    const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+                    if (GameObject* b = SpawnStaticSprite(cutTrans_.images[nextIndex], center, full, cutTrans_.uiLayer)) {
+                        cutTrans_.nextSpriteId = b->GetID();
+                        SetSpriteAlpha(b, 0.0f);
+                        cutTrans_.crossfading = true;
+                        cutTrans_.crossfadeT = 0.0f;
+                        cutTrans_.index = nextIndex;
+                        cutTrans_.holding = false;
+                    } else {
+                        gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+                        cutTrans_.awaitingBlackout = true;
+                        cutTrans_.holding = false;
+                        cutTrans_.holdElapsed = 0.0f;
+                    }
+                } else {
+                    gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+                    cutTrans_.awaitingBlackout = true;
+                    cutTrans_.holding = false;
+                    cutTrans_.holdElapsed = 0.0f;
+                }
             } else {
-                // No next image; queue final load and finish at blackout (handled below)
                 gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
                 cutTrans_.awaitingBlackout = true;
                 cutTrans_.holding = false;
@@ -1315,12 +1354,12 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
         }
     }
 
-    // At blackout: either spawn first cutscene image, swap to next, or handoff to level
+    // Blackout handoff: spawn first image or next image, then fade-in and hold
     if (cutTrans_.awaitingBlackout && gfx->IsAtBlackout()) {
         cutTrans_.awaitingBlackout = false;
 
+        // First image case: index==0 and nothing spawned yet
         if (cutTrans_.currentSpriteId < 0 && cutTrans_.index == 0) {
-            // First blackout: spawn cutscene #1 and fade in
             const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
             const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
             if (GameObject* s = SpawnStaticSprite(cutTrans_.images[0], center, full, cutTrans_.uiLayer)) {
@@ -1332,22 +1371,22 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
             return;
         }
 
-        // If next image exists, swap then fade-in
-        if (cutTrans_.index + 1 < cutTrans_.images.size()) {
-            cutTrans_.index += 1;
-
+        const size_t nextIndex = cutTrans_.index + 1;
+        if (nextIndex < cutTrans_.images.size()) {
             if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
+
             const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
             const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
-            if (GameObject* s = SpawnStaticSprite(cutTrans_.images[cutTrans_.index], center, full, cutTrans_.uiLayer)) {
+            if (GameObject* s = SpawnStaticSprite(cutTrans_.images[nextIndex], center, full, cutTrans_.uiLayer)) {
                 cutTrans_.currentSpriteId = s->GetID();
             }
+            cutTrans_.index = nextIndex;
 
             gfx->ContinueTransitionFadeIn();
             cutTrans_.holding = true;
             cutTrans_.holdElapsed = 0.0f;
         } else {
-            // Last blackout: remove sprite, queue level, and mark post-load fade-in
+            // Last blackout → load level, then fade-in after build (existing logic)
             if (cutTrans_.currentSpriteId >= 0) {
                 DespawnByID(cutTrans_.currentSpriteId);
                 cutTrans_.currentSpriteId = -1;
