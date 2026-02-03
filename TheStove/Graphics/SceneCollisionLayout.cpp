@@ -22,20 +22,26 @@
 #include <vector>
 
  // Level constants (reference resolution + tile size)
-static constexpr float kRefW = 1200.0f; // 24 tiles
-static constexpr float kRefH = 900.0f;  // 18 tiles
+static constexpr float kRefW = static_cast<float>(GraphicsEngine::kRefW);
+static constexpr float kRefH = static_cast<float>(GraphicsEngine::kRefH);
+
+// Tile size
 static constexpr float kTile = 50.0f;
+
+// Apply horizontal scaling factor to all X pixel-space values that were authored for 1200px width
+static constexpr float kDesignRefW = 1200.0f;          // original authoring width
+static constexpr float kScaleX = kRefW / kDesignRefW;
 
 // Tile-space definitions
 // Walkable inner rectangle (match to background art) in tiles
-static constexpr float kWalkL_T = 150.0f / kTile;  // bigger number = more to the right
-static constexpr float kWalkR_T = 1300.0f / kTile; 
+static constexpr float kWalkL_T = (150.0f * kScaleX) / kTile; // bigger number = more to the right
+static constexpr float kWalkR_T = (1300.0f * kScaleX) / kTile;
 static constexpr float kWalkT_T = 100.0f / kTile;  // bigger number = more down
 static constexpr float kWalkB_T = 825.0f / kTile;
 
 // Middle divider (vertical split) in tiles
-static constexpr float kWoodX0_T = 563.0f / kTile; // bigger number = more to the right
-static constexpr float kWoodX1_T = 587.0f / kTile;
+static constexpr float kWoodX0_T = (563.0f * kScaleX) / kTile; // bigger number = more to the right
+static constexpr float kWoodX1_T = (587.0f * kScaleX) / kTile;
 static constexpr float kWoodTopMinY_T = 100.0f / kTile;
 static constexpr float kWoodTopMaxY_T = 320.0f / kTile;
 static constexpr float kWoodGapMinY_T = 320.0f / kTile;
@@ -44,8 +50,8 @@ static constexpr float kWoodBotMinY_T = 570.0f / kTile;
 static constexpr float kWoodBotMaxY_T = 825.0f / kTile;
 
 // End-of-stage vertical gate in tiles
-static constexpr float kEndVX0_T = 1080.0f / kTile;
-static constexpr float kEndVX1_T = 1200.0f / kTile;
+static constexpr float kEndVX0_T = (1080.0f * kScaleX) / kTile;
+static constexpr float kEndVX1_T = (1200.0f * kScaleX) / kTile;
 static constexpr float kEndVTopMinY_T = 100.0f / kTile;
 static constexpr float kEndVTopMaxY_T = 320.0f / kTile;
 static constexpr float kEndVGapMinY_T = 320.0f / kTile; 
