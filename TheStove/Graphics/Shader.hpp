@@ -33,6 +33,8 @@ public:
 	void SetUVOffset(const glm::vec2& offset) const;
 	void SetUVScale(const glm::vec2& scale) const;
 
+	GLuint GetProgramID() const { return programID; }
+
 private:
 	GLuint programID;
 

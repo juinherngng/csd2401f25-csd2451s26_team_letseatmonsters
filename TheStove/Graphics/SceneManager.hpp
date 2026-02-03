@@ -48,6 +48,7 @@
 #include "EntityManager.hpp"
 #include "GraphicsEngine.hpp"
 #include "Layer.hpp"
+#include "ParticleSystem.hpp"
 #include "../Core/FontSystem.hpp"
 
  /**
@@ -94,7 +95,7 @@ public:
 	 * @param collisionMgr Reference to the collision manager system.
 	*/
 	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
-		  MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
+		MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
 	// Set AudioManager for UI sounds
 	void SetAudioManager(AudioManager* audioMgr) {
@@ -126,27 +127,27 @@ public:
 	  * @brief Spawns a static sprite with a given texture and size.
 	  */
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
-								  const glm::vec3 position,
-								  const glm::vec2 size = glm::vec2(100.0f, 100.0f),
-								  const std::string& layer = "Not set in JSON");
+		const glm::vec3 position,
+		const glm::vec2 size = glm::vec2(100.0f, 100.0f),
+		const std::string& layer = "Not set in JSON");
 
 	/**
 	 * @brief Spawns an animated sprite with frames and timing.
 	 */
 	GameObject* SpawnAnimatedSprite(const std::string& texturePath,
-									const glm::vec3 position,
-									const glm::vec2 size,
-									const std::vector<glm::vec4> frames,
-									float frameDuration, bool loop,
-									const std::string& layer);
+		const glm::vec3 position,
+		const glm::vec2 size,
+		const std::vector<glm::vec4> frames,
+		float frameDuration, bool loop,
+		const std::string& layer);
 
 	// Spawns a static sprite at the same position as ownerID, with given texture/size/layer.
-// Returns the new GameObject* or nullptr on failure.
+	// Returns the new GameObject* or nullptr on failure.
 	GameObject* SpawnStaticSpriteAtSamePos(int ownerID,
-										   const std::string& texturePath,
-										   float width,
-										   float height,
-										   const std::string& layer);
+		const std::string& texturePath,
+		float width,
+		float height,
+		const std::string& layer);
 
 	/**
 	 * @brief Retrieve a game object by its ID.
@@ -180,6 +181,7 @@ public:
 	void SetAnimation(int objID, const std::string& newAnim);
 	void AttachDinoAnimations(int objID);
 	void MarkAnimated(int id, bool state);
+	void AttachMenuAnimations(int objID);
 
 	void GenerateStressTest(int objectCount = 2500);
 	void UpdateAnimationControls();
@@ -260,7 +262,13 @@ public:
 	}
 	Defaults GetDefaults(int id) const {
 		auto it = defaults_.find(id);
-		return (it != defaults_.end())?it->second:Defaults{};
+		return (it != defaults_.end()) ? it->second : Defaults{};
+	}
+
+	// Particle system
+	ParticleSystem particleSystem_;
+	ParticleSystem& GetParticleSystem() {
+		return particleSystem_;
 	}
 
 	// Layers
@@ -271,6 +279,10 @@ public:
 	std::string GetObjectLayer(int objectID) const;
 	void AssignObjectToLayer(int id, const std::string& newLayer);
 	void RemoveLayer(const std::string& name);
+
+	// Layer enable/disable helpers
+	bool IsLayerEnabled(const std::string& layerName) const;
+	bool IsObjectLayerEnabled(int objectID) const;	
 
 	// World / collision rebuilds
 	void BuildLevelColliders();

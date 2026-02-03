@@ -49,6 +49,9 @@ struct LevelObject {
 	// Animation flag
 	bool animated{ false };
 	std::string animName;
+
+	// Shadow flag
+	bool shadow = false;
 };
 
 // Text object for font-based text rendering in levels

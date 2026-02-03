@@ -15,19 +15,20 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "../Core/MenuButtonLogic.hpp"
+#include "../Core/PauseButtonLogic.hpp" 
+
+#include "SceneManager.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <Core/RuntimeLevel.hpp>
 #include <exception>
 #include <fstream>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <iostream>
 #include <random>
-
-#include <Core/RuntimeLevel.hpp>
-#include "../Core/MenuButtonLogic.hpp"
-#include "../Core/PauseButtonLogic.hpp" 
-#include "SceneManager.hpp"
 
 namespace {
 	// If an object has no collider yet, initialise an AABB that matches its visual size.
@@ -75,11 +76,13 @@ void Scene::SetObjectTexturePath(int id, const std::string& path) {
 
 // Construction / core lifecycle
 Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
-			 MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
+	MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
 	: graphicsEngine(engine), inputManager(inputMgr), animationManager(animMgr),
 	movementManager(moveMgr), physicsManager(physicsMgr), collisionManager(collisionMgr) {
 	// Allow AnimationManager to find objects
 	animationManager.SetEntityManager(&entityManager);
+	physicsManager.SetScene(this);
+	collisionManager.SetScene(this);
 
 	// Basic default layer used when no explicit layer name is given
 	AddLayer("1");
@@ -180,6 +183,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		pendingLevelPath_.clear();
 	}
 
+	// Update runtime particles
+	particleSystem_.Update(deltaTime, entityManager);
+
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 	(void)window;
 
@@ -254,9 +260,9 @@ void Scene::SetPlayerID(int id) {
 }
 
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
-									 const glm::vec3 position,
-									 const glm::vec2 size,
-									 const std::string& layer) {
+	const glm::vec3 position,
+	const glm::vec2 size,
+	const std::string& layer) {
 	GameObject* obj = entityManager.SpawnStaticSprite(texturePath, position, size);
 
 	if (obj) {
@@ -266,15 +272,22 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 		InitDefaultCollider(obj);
 	}
 
+	// Disabled by default, controlled by JSON
+	obj->EnableShadow(false);
+
+	obj->SetShadowSize(glm::vec2(size.x * 0.8f, size.y * 0.33f)); // ellipse sized to sprite
+	obj->SetShadowOffset(glm::vec2(0.0f, 55.0f));       // sit near feet (tweak per origin)
+	obj->SetShadowOpacity(0.65f);
+
 	return obj;
 }
 
 GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
-									   const glm::vec3 position,
-									   const glm::vec2 size,
-									   const std::vector<glm::vec4> frames,
-									   float frameDuration, bool loop,
-									   const std::string& layer) {
+	const glm::vec3 position,
+	const glm::vec2 size,
+	const std::vector<glm::vec4> frames,
+	float frameDuration, bool loop,
+	const std::string& layer) {
 	GameObject* obj = entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
 
 	if (obj) {
@@ -284,14 +297,21 @@ GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
 		InitDefaultCollider(obj);
 	}
 
+	// Disabled by default, controlled by JSON
+	obj->EnableShadow(false);
+
+	obj->SetShadowSize(glm::vec2(size.x * 0.8f, size.y * 0.33f)); // ellipse sized to sprite
+	obj->SetShadowOffset(glm::vec2(0.0f, 55.0f));       // sit near feet (tweak per origin)
+	obj->SetShadowOpacity(0.65f);
+
 	return obj;
 }
 
 GameObject* Scene::SpawnStaticSpriteAtSamePos(int ownerID,
-											  const std::string& texturePath,
-											  float width,
-											  float height,
-											  const std::string& layer) {
+	const std::string& texturePath,
+	float width,
+	float height,
+	const std::string& layer) {
 	GameObject* owner = GetGameObjectByID(ownerID);
 	if (!owner)
 		return nullptr;
@@ -363,8 +383,13 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		// Check the layer's visibility flag
 		const std::string layerName = GetObjectLayer(g->GetID());
 		Layer* layer = GetLayer(layerName);
-		if (layer && !layer->IsVisible()) {
-			continue;
+		if (layer) {
+			if (!layer->IsEnabled()) {
+				continue;
+			}
+			if (!layer->IsVisible()) {
+				continue;
+			}
 		}
 
 		out.push_back(g);
@@ -377,7 +402,7 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		}
 
 		int result = 0;
-		for (char c:s) {
+		for (char c : s) {
 			if (!std::isdigit(static_cast<unsigned char>(c))) {
 				// Any non-numeric layer name behaves like a very "high" layer
 				// so that it draws on top of numeric layers.
@@ -388,26 +413,26 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		}
 
 		return result;
-	};
+		};
 
 	std::sort(
 		out.begin(),
 		out.end(),
 		[&](GameObject* a, GameObject* b) {
-		const std::string laName = GetObjectLayer(a->GetID());
-		const std::string lbName = GetObjectLayer(b->GetID());
+			const std::string laName = GetObjectLayer(a->GetID());
+			const std::string lbName = GetObjectLayer(b->GetID());
 
-		int la = parseLayerNumber(laName);
-		int lb = parseLayerNumber(lbName);
+			int la = parseLayerNumber(laName);
+			int lb = parseLayerNumber(lbName);
 
-		// Different layers: smaller layer number drawn first
-		if (la != lb) {
-			return la > lb;
+			// Different layers: smaller layer number drawn first
+			if (la != lb) {
+				return la > lb;
+			}
+
+			// Same layer - higher Y drawn first (lower on screen appears in front)
+			return a->GetPosition().y > b->GetPosition().y;
 		}
-
-		// Same layer - higher Y drawn first (lower on screen appears in front)
-		return a->GetPosition().y > b->GetPosition().y;
-	}
 	);
 }
 
@@ -417,9 +442,9 @@ void Scene::SetSceneBackground(const std::string& texturePath) {
 }
 
 void Scene::SetTransformFromLevel(int id,
-								  const glm::vec3& pos,
-								  const glm::vec3& scale,
-								  float rotationDeg) {
+	const glm::vec3& pos,
+	const glm::vec3& scale,
+	float rotationDeg) {
 	// Convert degrees to radians ONCE here
 	const float rotationRad = rotationDeg * 3.14159265358979323846f / 180.0f;
 
@@ -454,6 +479,10 @@ void Scene::SetAnimation(int objID, const std::string& animName) {
 
 void Scene::AttachDinoAnimations(int objID) {
 	animationManager.AttachDinoAnimations(objID);
+}
+
+void Scene::AttachMenuAnimations(int objID) {
+	animationManager.AttachMenuAnimations(objID);
 }
 
 void Scene::MarkAnimated(int id, bool state) {
@@ -595,7 +624,7 @@ void Scene::AddLayer(const std::string& name) {
 
 Layer* Scene::GetLayer(const std::string& name) {
 	auto it = layers.find(name);
-	return it != layers.end()?&(it->second):nullptr;
+	return it != layers.end() ? &(it->second) : nullptr;
 }
 
 const std::unordered_map<std::string, Layer>& Scene::GetAllLayers() const {
@@ -609,6 +638,22 @@ std::string Scene::GetObjectLayer(int objectID) const {
 	}
 
 	return "";
+}
+
+bool Scene::IsLayerEnabled(const std::string& layerName) const {
+	auto it = layers.find(layerName);
+	if (it == layers.end()) {
+		return true;
+	}
+	return it->second.IsEnabled();
+}
+
+bool Scene::IsObjectLayerEnabled(int objectID) const {
+	const std::string layerName = GetObjectLayer(objectID);
+	if (layerName.empty()) {
+		return true;
+	}
+	return IsLayerEnabled(layerName);
 }
 
 void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
@@ -664,9 +709,9 @@ void Scene::ShowPauseOverlay() {
 
 	// Pause overlay background
 	if (GameObject* dim = SpawnStaticSprite("../assets/pause.png",
-											{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
-											{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
-											uiLayer)) {
+		{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
+		{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
+		uiLayer)) {
 		pauseOverlayObjectIds_.push_back(dim->GetID());
 		std::cout << "  [Scene] Pause background id=" << dim->GetID() << "\n";
 	}
@@ -678,17 +723,17 @@ void Scene::ShowPauseOverlay() {
 			SetObjectTexturePath(id, tex);
 
 			switch (action) {
-				case PauseAction::Resume:
+			case PauseAction::Resume:
 				logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Resume);
 				std::cout << "  [Scene] Spawned Resume button id=" << id << " with PauseButtonLogic\n";
 				break;
 
-				case PauseAction::HowToPlay:
+			case PauseAction::HowToPlay:
 				logicManager.AddLogic<HowToPlayButtonLogic>(id);
 				std::cout << "  [Scene] Spawned HowToPlay button id=" << id << " with HowToPlayButtonLogic\n";
 				break;
 
-				case PauseAction::Quit:
+			case PauseAction::Quit:
 				logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
 				std::cout << "  [Scene] Spawned Quit button id=" << id << " with PauseButtonLogic\n";
 				break;
@@ -697,7 +742,7 @@ void Scene::ShowPauseOverlay() {
 		else {
 			std::cout << "  [Scene] ERROR: failed to spawn pause button for action=" << (int)action << "\n";
 		}
-	};
+		};
 
 	spawnPauseBtn("../assets/continue_s.png", { 967.f, 454.f }, PauseAction::Resume);
 	spawnPauseBtn("../assets/how_s.png", { 967.f, 584.f }, PauseAction::HowToPlay);
@@ -710,7 +755,7 @@ void Scene::ShowPauseOverlay() {
 void Scene::HidePauseOverlay() {
 #ifndef _DEBUG
 	if (!pauseOverlayActive_) return;
-	for (int id:pauseOverlayObjectIds_) {
+	for (int id : pauseOverlayObjectIds_) {
 		DespawnByID(id);
 	}
 	pauseOverlayObjectIds_.clear();
@@ -778,7 +823,7 @@ void Scene::CreateMenuButtonTexts() {
 				float textWidth = 0.0f;
 				float maxHeight = 0.0f;
 				if (f) {
-					for (char c:label) {
+					for (char c : label) {
 						const FontSystem::Character* ch = f->GetCharacter(c);
 						if (ch) {
 							textWidth += static_cast<float>(ch->advance >> 6);
@@ -915,3 +960,6 @@ void Scene::RenderFPSText() {
 	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 #endif
 }
+
+
+
