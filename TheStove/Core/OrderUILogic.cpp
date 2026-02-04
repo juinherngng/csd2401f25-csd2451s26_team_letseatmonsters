@@ -6,7 +6,7 @@
 #include "../Core/SimpleNpcLogic.hpp"
 #include "../Graphics/ResourceManager.hpp"
 
-#include <algorithm> // sort (optional)
+#include <algorithm>
 
 static void DespawnIfAlive(Scene& scene, int& id)
 {
@@ -28,7 +28,13 @@ const char* OrderUILogic::DishToIconPath(DishType t) const
 void OrderUILogic::Start(Scene& /*scene*/)
 {
     slots_.clear();
-    slots_.resize(kMaxOrders); //vector fixed-size = 4 slots
+    slots_.resize(kMaxOrders);
+
+    for (auto& slot : slots_)
+    {
+        slot.ingredientIconIds.assign(kRecipeCols, -1);
+        slot.stationIconIds.assign(kRecipeCols, -1);
+    }
 }
 
 void OrderUILogic::OnDestroy(Scene& scene)
@@ -39,21 +45,33 @@ void OrderUILogic::OnDestroy(Scene& scene)
 
 glm::vec2 OrderUILogic::SlotTargetPos(int slotIndex) const
 {
+    // NOTE: you used panelSize_.y for x spacing before.
+    // Usually you want panelSize_.x for horizontal spacing.
     return glm::vec2(
-        panelTargetPos_.x + slotIndex * (panelSize_.y + ticketGapY_),
+        panelTargetPos_.x + slotIndex * (panelSize_.x + ticketGapY_),
         panelTargetPos_.y
     );
 }
 
 void OrderUILogic::ClearSlot(Scene& scene, OrderSlot& slot)
 {
-    DespawnIfAlive(scene, slot.iconId);
+    DespawnIfAlive(scene, slot.dishIconId);
+
+    for (int& id : slot.ingredientIconIds) DespawnIfAlive(scene, id);
+    for (int& id : slot.stationIconIds)    DespawnIfAlive(scene, id);
+
     DespawnIfAlive(scene, slot.panelId);
 
     slot.customerId = -1;
     slot.panelSpawned = false;
     slot.lastDish = DishType::PoopDish;
     slot.hasLastDish = false;
+
+    // Keep vectors sized correctly
+    if ((int)slot.ingredientIconIds.size() != kRecipeCols)
+        slot.ingredientIconIds.assign(kRecipeCols, -1);
+    if ((int)slot.stationIconIds.size() != kRecipeCols)
+        slot.stationIconIds.assign(kRecipeCols, -1);
 }
 
 void OrderUILogic::EnsurePanel(Scene& scene, int slotIndex, OrderSlot& slot)
@@ -72,38 +90,78 @@ void OrderUILogic::EnsurePanel(Scene& scene, int slotIndex, OrderSlot& slot)
     slot.panelSpawned = (slot.panelId >= 0);
 }
 
-void OrderUILogic::EnsureIcon(Scene& scene, OrderSlot& slot)
+void OrderUILogic::EnsureSubSprite(Scene& scene, int panelId, int& spriteId,
+    const glm::vec2& offset, const glm::vec2& size,
+    const std::string& layer)
 {
-    if (slot.iconId >= 0 && scene.GetGameObjectByID(slot.iconId))
+    if (spriteId >= 0 && scene.GetGameObjectByID(spriteId))
         return;
 
-    GameObject* panel = scene.GetGameObjectByID(slot.panelId);
+    GameObject* panel = scene.GetGameObjectByID(panelId);
     if (!panel) return;
 
     glm::vec3 p = panel->GetPositionGLM();
 
     if (GameObject* icon = scene.SpawnStaticSprite(
         invisTex_,
-        { p.x + iconOffset_.x, p.y + iconOffset_.y, p.z },
-        iconSize_,
-        iconLayer_))
+        { p.x + offset.x, p.y + offset.y, p.z },
+        size,
+        layer))
     {
-        slot.iconId = icon->GetID();
+        spriteId = icon->GetID();
         icon->SetColliderSize(Math::Vector2D(0.f, 0.f));
-        scene.SetObjectTexturePath(slot.iconId, invisTex_);
+        scene.SetObjectTexturePath(spriteId, invisTex_);
+    }
+}
+
+void OrderUILogic::EnsureDishIcon(Scene& scene, OrderSlot& slot)
+{
+    EnsureSubSprite(scene, slot.panelId, slot.dishIconId, dishOffset_, dishSize_, dishLayer_);
+}
+
+void OrderUILogic::EnsureRecipeIcons(Scene& scene, OrderSlot& slot)
+{
+    // safety: if user forgot to set sizes to 2 in header, don't crash
+    if ((int)ingredientOffsets_.size() < kRecipeCols || (int)stationOffsets_.size() < kRecipeCols)
+        return;
+
+    for (int i = 0; i < kRecipeCols; ++i)
+    {
+        EnsureSubSprite(scene, slot.panelId, slot.ingredientIconIds[i],
+            ingredientOffsets_[i], ingredientSize_, ingredientLayer_);
+
+        EnsureSubSprite(scene, slot.panelId, slot.stationIconIds[i],
+            stationOffsets_[i], stationSize_, stationLayer_);
     }
 }
 
 void OrderUILogic::FollowPanel(Scene& scene, OrderSlot& slot)
 {
-    if (slot.panelId < 0 || slot.iconId < 0) return;
+    if (slot.panelId < 0) return;
 
     GameObject* panel = scene.GetGameObjectByID(slot.panelId);
-    GameObject* icon = scene.GetGameObjectByID(slot.iconId);
-    if (!panel || !icon) return;
+    if (!panel) return;
 
     glm::vec3 p = panel->GetPositionGLM();
-    icon->SetPosition(Math::Vector3D(p.x + iconOffset_.x, p.y + iconOffset_.y, p.z));
+
+    auto move = [&](int spriteId, const glm::vec2& off)
+        {
+            if (spriteId < 0) return;
+            GameObject* go = scene.GetGameObjectByID(spriteId);
+            if (!go) return;
+            go->SetPosition(Math::Vector3D(p.x + off.x, p.y + off.y, p.z));
+        };
+
+    move(slot.dishIconId, dishOffset_);
+
+    for (int i = 0; i < kRecipeCols; ++i)
+    {
+        if (i < (int)ingredientOffsets_.size())
+            move(slot.ingredientIconIds[i], ingredientOffsets_[i]);
+
+        if (i < (int)stationOffsets_.size())
+            move(slot.stationIconIds[i], stationOffsets_[i]);
+    }
 }
 
 void OrderUILogic::SetIconTexture(Scene& scene, int iconId, const char* texPath)
@@ -154,9 +212,68 @@ void OrderUILogic::CollectWaitingOrders(Scene& scene, std::vector<WaitingOrder>&
         }
     }
 
-    // Optional: stable ordering (so new fills are consistent)
     std::sort(outOrders.begin(), outOrders.end(),
         [](const WaitingOrder& a, const WaitingOrder& b) { return a.tableId < b.tableId; });
+}
+
+// ------------------------------------------------------------
+// Recipe Mapping (EDIT THESE PATHS TO YOUR REAL ASSETS)
+// ------------------------------------------------------------
+void OrderUILogic::GetRecipeIconPaths(DishType dish,
+    std::vector<const char*>& outIngredientTex,
+    std::vector<const char*>& outStationTex) const
+{
+    outIngredientTex.clear();
+    outStationTex.clear();
+
+    // Must return up to 2 ingredients and up to 2 stations.
+
+    switch (dish)
+    {
+    case DishType::VegDish:
+        outIngredientTex.push_back("../assets/Cabbage_Ingredient.png");
+        outIngredientTex.push_back("../assets/Cabbage_Ingredient.png");
+        outStationTex.push_back("../assets/Cutting_Board.png");
+        outStationTex.push_back("../assets/Cutting_Board.png");
+        break;
+
+    case DishType::MeatDish:
+        outIngredientTex.push_back("../assets/Meat_Ingredient.png");
+        outIngredientTex.push_back("../assets/Cabbage_Ingredient.png");
+        outStationTex.push_back("../assets/Grills_2.png");
+        outStationTex.push_back("../assets/Cutting_Board.png");
+        break;
+
+    case DishType::SoupDish:
+        outIngredientTex.push_back("../assets/Meat_Ingredient.png");
+        outIngredientTex.push_back("../assets/Mushroom_Ingredient.png");
+        outStationTex.push_back("../assets/Grills_2.png");
+        outStationTex.push_back("../assets/Stove_2.png");
+        break;
+
+    default:
+        // no recipe -> show nothing
+        break;
+    }
+}
+
+void OrderUILogic::UpdateRecipeIcons(Scene& scene, OrderSlot& slot, DishType dish)
+{
+    std::vector<const char*> ing;
+    std::vector<const char*> st;
+    GetRecipeIconPaths(dish, ing, st);
+
+    for (int i = 0; i < kRecipeCols; ++i)
+    {
+        const char* ingTex = (i < (int)ing.size()) ? ing[i] : invisTex_;
+        const char* stTex = (i < (int)st.size()) ? st[i] : invisTex_;
+
+        if (slot.ingredientIconIds[i] >= 0)
+            SetIconTexture(scene, slot.ingredientIconIds[i], ingTex);
+
+        if (slot.stationIconIds[i] >= 0)
+            SetIconTexture(scene, slot.stationIconIds[i], stTex);
+    }
 }
 
 void OrderUILogic::Update(float /*dt*/, Scene& scene, InputManager& /*input*/)
@@ -165,7 +282,6 @@ void OrderUILogic::Update(float /*dt*/, Scene& scene, InputManager& /*input*/)
     orders.reserve(kMaxOrders);
     CollectWaitingOrders(scene, orders);
 
-    // Track which orders are already displayed
     std::vector<bool> used(orders.size(), false);
 
     // 1) Keep existing customers in their slots if they’re still waiting
@@ -177,21 +293,21 @@ void OrderUILogic::Update(float /*dt*/, Scene& scene, InputManager& /*input*/)
         const int idx = FindOrderIndexByCustomer(orders, slot.customerId);
         if (idx < 0)
         {
-            // customer is no longer waiting -> clear slot
             ClearSlot(scene, slot);
             continue;
         }
 
         used[idx] = true;
 
-        // Make sure panel/icon exists
         EnsurePanel(scene, s, slot);
-        EnsureIcon(scene, slot);
+        EnsureDishIcon(scene, slot);
+        EnsureRecipeIcons(scene, slot);
 
-        // Update dish icon if changed
         if (!slot.hasLastDish || slot.lastDish != orders[idx].dish)
         {
-            SetIconTexture(scene, slot.iconId, DishToIconPath(orders[idx].dish));
+            SetIconTexture(scene, slot.dishIconId, DishToIconPath(orders[idx].dish));
+            UpdateRecipeIcons(scene, slot, orders[idx].dish);
+
             slot.lastDish = orders[idx].dish;
             slot.hasLastDish = true;
         }
@@ -204,7 +320,6 @@ void OrderUILogic::Update(float /*dt*/, Scene& scene, InputManager& /*input*/)
     {
         if (used[i]) continue;
 
-        // find an empty slot
         int emptySlot = -1;
         for (int s = 0; s < (int)slots_.size(); ++s)
         {
@@ -216,23 +331,31 @@ void OrderUILogic::Update(float /*dt*/, Scene& scene, InputManager& /*input*/)
         }
 
         if (emptySlot < 0)
-            break; // all slots filled (max 4)
+            break;
 
         OrderSlot& slot = slots_[emptySlot];
+
         slot.customerId = orders[i].customerId;
         slot.lastDish = DishType::PoopDish;
         slot.hasLastDish = false;
         slot.panelSpawned = false;
 
-        EnsurePanel(scene, emptySlot, slot);
-        EnsureIcon(scene, slot);
+        // reset ids to force respawn (optional but safe)
+        slot.panelId = -1;
+        slot.dishIconId = -1;
+        slot.ingredientIconIds.assign(kRecipeCols, -1);
+        slot.stationIconIds.assign(kRecipeCols, -1);
 
-        SetIconTexture(scene, slot.iconId, DishToIconPath(orders[i].dish));
+        EnsurePanel(scene, emptySlot, slot);
+        EnsureDishIcon(scene, slot);
+        EnsureRecipeIcons(scene, slot);
+
+        SetIconTexture(scene, slot.dishIconId, DishToIconPath(orders[i].dish));
+        UpdateRecipeIcons(scene, slot, orders[i].dish);
+
         slot.lastDish = orders[i].dish;
         slot.hasLastDish = true;
 
         FollowPanel(scene, slot);
     }
-
-    // 3) Any remaining empty slots are already cleared, nothing else needed
 }
