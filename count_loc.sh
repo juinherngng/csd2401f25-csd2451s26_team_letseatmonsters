@@ -3,7 +3,7 @@
 # Script to count lines of code modified by a specific author since a given date
 # Usage: ./count_loc.sh [author-name] [--list-files|-l]
 
-SINCE_DATE="2025-12-07"
+SINCE_DATE="2025-12-06"
 AUTHOR="${1:-$(git config user.name)}"
 
 echo "=========================================="
