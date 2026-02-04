@@ -118,7 +118,7 @@ function is_code_line(s) {
 
 # start of a new file diff
 /^diff --git/ {
-    file = $3;                 # b/path
+    file = $4;                 # b/path
     sub("^b/", "", file);
 
     # only track .cpp and .hpp files
