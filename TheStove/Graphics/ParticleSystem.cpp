@@ -1,3 +1,16 @@
+/*
+----------------------------------------------------------------------------------------------------
+ FILE NAME:			ParticleSystem.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+
+ DESCRIPTION:		Implements the ParticleSystem class, handling particle creation, updates,
+					lifetime management, and rendering behavior for in-game visual effects.
+
+		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "EntityManager.hpp"
 #include "GameObject.hpp"
 #include "ParticleSystem.hpp"

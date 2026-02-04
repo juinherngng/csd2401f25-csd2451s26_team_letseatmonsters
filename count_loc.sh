@@ -3,7 +3,7 @@
 # Script to count lines of code modified by a specific author since a given date
 # Usage: ./count_loc.sh [author-name] [--list-files|-l]
 
-SINCE_DATE="2025-11-08"
+SINCE_DATE="2025-12-06"
 AUTHOR="${1:-$(git config user.name)}"
 
 echo "=========================================="
@@ -107,31 +107,18 @@ echo "--------------------------------------------------------------------------
 
 git log --author="$AUTHOR" --since="$SINCE_DATE" -p --no-color \
 | LC_ALL=C awk '
-function is_code_line(s, t) {
-    # blank or whitespace-only -> ignore
-    if (s ~ /^[ \t]*$/) return 0;
-
-    # full-line comments -> ignore
-    if (s ~ /^[ \t]*\/\//) return 0;   # //
-    if (s ~ /^[ \t]*\/\*/) return 0;   # /*
-    if (s ~ /^[ \t]*\*/)  return 0;    #  *
-    if (s ~ /^[ \t]*\*\/[ \t]*$/) return 0; # */
-
-    # lines that are only braces + spaces -> ignore
-    t = s;
-    gsub(/[ \t{}]/, "", t);
-    if (t == "") return 0;
-
-    # require some "code-ish" characters
-    if (s ~ /[A-Za-z0-9_]/) return 1;                # identifiers, numbers
-    if (s ~ /[+\-*/%<>=!&|^~]/) return 1;            # operators
-    if (s ~ /[;:,]/) return 1;                       # statement separators
-    return 0;
+function is_code_line(s) {
+    if (s ~ /^[ \t]*$/) return 0;          # blank
+    if (s ~ /^[ \t]*\/\//) return 0;       # //
+    if (s ~ /^[ \t]*\/\*/) return 0;       # /*
+    if (s ~ /^[ \t]*\*/)  return 0;        #  *
+    if (s ~ /^[ \t]*\*\/[ \t]*$/) return 0;
+    return 1;                               # everything else counts (including { } )
 }
 
 # start of a new file diff
 /^diff --git/ {
-    file = $3;                 # b/path
+    file = $4;                 # b/path
     sub("^b/", "", file);
 
     # only track .cpp and .hpp files

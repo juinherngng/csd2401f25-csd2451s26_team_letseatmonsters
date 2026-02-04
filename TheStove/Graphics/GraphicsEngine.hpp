@@ -30,6 +30,11 @@
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
 
+// Forward declare text object data struct
+namespace LEPANELFONTS {
+	struct TextObjectData;
+}
+
 class GraphicsEngine : public CoreFramework::SystemInterface {
 public:
 	// ----- Lifecycle -----
@@ -212,6 +217,9 @@ private:
 
 	// Text rendering
 	void RenderTextObjects();
+
+	// Render a single text object (used for layered rendering)
+	void RenderSingleTextObject(const LEPANELFONTS::TextObjectData& textData);
 
 	// Shadows
 	void DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);

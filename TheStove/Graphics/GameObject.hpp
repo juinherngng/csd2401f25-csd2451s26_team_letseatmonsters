@@ -191,6 +191,10 @@ public:
 	void SetColorTint(const glm::vec4& tint) { colorTint_ = tint; }
 	const glm::vec4& GetColorTint() const { return colorTint_; }
 
+	// Layer number for rendering order (set by Scene during collection)
+	void SetRenderLayer(int layer) { renderLayer_ = layer; }
+	int GetRenderLayer() const { return renderLayer_; }
+
 private:
 	Mesh* m_Mesh;
 	Shader* m_Shader;
@@ -223,4 +227,6 @@ private:
 	float m_ShadowOpacity = 0.45f;            // 0..1
 
 	glm::vec4 colorTint_{1.0f, 1.0f, 1.0f, 1.0f}; // RGBA tint, 1=opaque
+
+	int renderLayer_ = 1; // Layer number for render ordering
 };

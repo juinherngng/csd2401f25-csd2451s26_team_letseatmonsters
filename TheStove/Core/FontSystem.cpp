@@ -313,6 +313,12 @@ namespace FontSystem
 		if (!m_font || m_text.empty() || !m_renderingSetup)
 			return;
 
+		// Save current blend state
+		GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+		GLint prevBlendSrc, prevBlendDst;
+		glGetIntegerv(GL_BLEND_SRC_ALPHA, &prevBlendSrc);
+		glGetIntegerv(GL_BLEND_DST_ALPHA, &prevBlendDst);
+
 		// Use shader
 		glUseProgram(shaderProgram);
 		
@@ -326,6 +332,10 @@ namespace FontSystem
 		// Enable blending for text transparency
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		// Disable depth testing for text (text should always appear on top within its layer)
+		GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+		glDisable(GL_DEPTH_TEST);
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindVertexArray(m_VAO);
@@ -446,7 +456,18 @@ namespace FontSystem
 
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		glDisable(GL_BLEND);
+		
+		// Restore depth state
+		if (depthWasEnabled) {
+			glEnable(GL_DEPTH_TEST);
+		}
+		
+		// Restore blend state
+		if (!blendWasEnabled) {
+			glDisable(GL_BLEND);
+		} else {
+			glBlendFunc(prevBlendSrc, prevBlendDst);
+		}
 	}
 
 	// ===========================
