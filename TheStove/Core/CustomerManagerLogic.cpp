@@ -18,13 +18,14 @@ DESCRIPTION: Implements a simple scene-level system that manages all
  */
 
 
-#include "../Graphics/SceneManager.hpp"       // for Scene, GetAllObjectsRaw, GetLogicManager
+#include "../Graphics/SceneManager.hpp"
 #include "../Core/LogicManager.hpp"
 #include "../Core/Math.hpp"
 #include "../Core/SimpleNpcLogic.hpp"
 #include "../Core/CustomerTableLogic.hpp"
 #include "../Graphics/GameObject.hpp"
-#include "CustomerManagerLogic.hpp"
+#include "../Core/CustomerOrderUILogic.hpp"
+#include "../Core/CustomerManagerLogic.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -147,6 +148,11 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene)
     if (auto* npcLogic = logicMgr.AddLogic<SimpleNpcLogic>(npcID)) {
         npcLogic->Awake(scene);
         npcLogic->Start(scene);
+    }
+
+    //attach UI logic to the customer
+    if (auto* ui = logicMgr.AddLogic<CustomerOrderUILogic>(npcID)) {
+        ui->Start(scene);
     }
 
     // Seat + assign target

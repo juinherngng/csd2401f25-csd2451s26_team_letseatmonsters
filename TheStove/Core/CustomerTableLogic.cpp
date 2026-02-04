@@ -220,15 +220,22 @@ bool CustomerTableLogic::TryTakePayment(Scene& scene)
     }
 
     // correct dish => pay kCorrectDishPay
-    // wrong dish   => pay 0
+    // wrong dish OR patience timeout => pay 0
     // -------------------------------------------------------
     int payment = 0;
-    if (customerLogic->GetServedDishType() == customerLogic->GetDesiredDishType())
+
+    // If customer logic says "pay $0", override everything
+    if (!customerLogic->WillPayZero())
     {
-        payment = Economy::kCorrectDishPay;
+        // Only pay full amount if they were served the correct dish
+        if (customerLogic->GetServedDishType() == customerLogic->GetDesiredDishType())
+        {
+            payment = Economy::kCorrectDishPay;
+        }
     }
 
     Economy::AddMoney(scene, payment);
+
 
     std::cout << "[CustomerTableLogic] Payment amount=" << payment
         << " totalMoney=" << Economy::gPlayerMoney

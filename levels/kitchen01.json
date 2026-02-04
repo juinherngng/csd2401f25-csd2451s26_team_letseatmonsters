@@ -18,8 +18,8 @@
       "tag": "player",
       "texture": "../assets/mc_sprite.png",
       "w": 108.0,
-      "x": 344.4159851074219,
-      "y": 347.36700439453125,
+      "x": 344,
+      "y": 347,
       "z": 0.0
     },
     {
@@ -45,8 +45,8 @@
     },
     {
       "animated": false,
-      "approach_offx": 0.0,
-      "approach_offy": -110.0,
+      "approach_offx": 80.0,
+      "approach_offy": -100.0,
       "col_h": 90.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -66,8 +66,8 @@
     },
     {
       "animated": false,
-      "approach_offx": 0.0,
-      "approach_offy": -110.0,
+      "approach_offx": 90.0,
+      "approach_offy": -20.0,
       "col_h": 90.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -87,8 +87,8 @@
     },
     {
       "animated": false,
-      "approach_offx": 0.0,
-      "approach_offy": -110.0,
+      "approach_offx": 90.0,
+      "approach_offy": -20.0,
       "col_h": 90.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -109,7 +109,7 @@
     {
       "animated": false,
       "approach_offx": 0.0,
-      "approach_offy": 110.0,
+      "approach_offy": 90.0,
       "col_h": 90.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -124,7 +124,7 @@
       "texture": "../assets/Table_Leg.png",
       "w": 90.0,
       "x": 195.0,
-      "y": 190.8358154296875,
+      "y": 190,
       "z": 0.0
     },
     {
@@ -144,14 +144,14 @@
       "tag": "table",
       "texture": "../assets/Table_Leg.png",
       "w": 90.0,
-      "x": 517.45751953125,
-      "y": 187.316650390625,
+      "x": 517,
+      "y": 187,
       "z": 0.0
     },
     {
       "animated": false,
-      "approach_offx": 90.0,
-      "approach_offy": 0.0,
+      "approach_offx": 70.0,
+      "approach_offy": -20.0,
       "col_h": 156.0,
       "col_offx": 0.0,
       "col_offy": 0.0,
@@ -165,13 +165,13 @@
       "tag": "customer_table",
       "texture": "../assets/Customertable_Topleft.png",
       "w": 70.0,
-      "x": 725.0733032226563,
-      "y": 220.80941772460938,
+      "x": 725,
+      "y": 220,
       "z": 0.0
     },
     {
       "animated": false,
-      "approach_offx": 90.0,
+      "approach_offx": 70.0,
       "approach_offy": 0.0,
       "col_h": 156.0,
       "col_offx": 0.0,
@@ -186,7 +186,49 @@
       "tag": "customer_table",
       "texture": "../assets/Customertable_Bottomleft.png",
       "w": 70.0,
-      "x": 726.8328857421875,
+      "x": 725,
+      "y": 747.0,
+      "z": 0.0
+    },
+    {
+      "animated": false,
+      "approach_offx": 70.0,
+      "approach_offy": -20.0,
+      "col_h": 156.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "col_w": 70.0,
+      "h": 156.0,
+      "has_collider": true,
+      "layer": "1",
+      "rotation": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0,
+      "tag": "customer_table",
+      "texture": "../assets/Customertable_Topleft.png",
+      "w": 70.0,
+      "x": 983,
+      "y": 220,
+      "z": 0.0
+    },
+    {
+      "animated": false,
+      "approach_offx": 70.0,
+      "approach_offy": 0.0,
+      "col_h": 156.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "col_w": 70.0,
+      "h": 156.0,
+      "has_collider": true,
+      "layer": "1",
+      "rotation": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0,
+      "tag": "customer_table",
+      "texture": "../assets/Customertable_Bottomleft.png",
+      "w": 70.0,
+      "x": 983,
       "y": 747.0,
       "z": 0.0
     },
@@ -208,7 +250,7 @@
       "texture": "../assets/Cutting_Board.png",
       "w": 90.0,
       "x": 195.0,
-      "y": 360,
+      "y": 360.0,
       "z": 0.0
     },
     {
@@ -228,7 +270,7 @@
       "tag": "work_table",
       "texture": "../assets/Grills_1.png",
       "w": 90.0,
-      "x": 285.1319885253906,
+      "x": 285,
       "y": 780.0,
       "z": 0.0
     },
@@ -249,7 +291,7 @@
       "tag": "work_table",
       "texture": "../assets/Grills_2.png",
       "w": 90.0,
-      "x": 373.6949768066406,
+      "x": 373,
       "y": 780.0,
       "z": 0.0
     },
@@ -271,7 +313,7 @@
       "texture": "../assets/Stove_1.png",
       "w": 90.0,
       "x": 195.0,
-      "y": 520,
+      "y": 520.0,
       "z": 0.0
     },
     {
@@ -292,7 +334,7 @@
       "texture": "../assets/Stove_2.png",
       "w": 90.0,
       "x": 195.0,
-      "y": 600,
+      "y": 600.0,
       "z": 0.0
     },
     {
@@ -312,8 +354,8 @@
       "tag": "ingredient_box",
       "texture": "../assets/VegIngredientBox.png",
       "w": 80.0,
-      "x": 355.87384033203125,
-      "y": 188.70965576171875,
+      "x": 355,
+      "y": 188,
       "z": 0.0
     },
     {
@@ -333,8 +375,8 @@
       "tag": "ingredient_box",
       "texture": "../assets/MeatIngredientBox.png",
       "w": 80.0,
-      "x": 435.0527648925781,
-      "y": 187.82989501953125,
+      "x": 435,
+      "y": 187,
       "z": 0.0
     },
     {
@@ -354,8 +396,8 @@
       "tag": "ingredient_box",
       "texture": "../assets/ShroomIngredientBox.png",
       "w": 80.0,
-      "x": 278.45458984375,
-      "y": 188.7096710205078,
+      "x": 278,
+      "y": 188,
       "z": 0.0
     },
     {
@@ -375,8 +417,8 @@
       "tag": "plate_box",
       "texture": "../assets/PlateBox.png",
       "w": 90.0,
-      "x": 517,
-      "y": 618,
+      "x": 517.0,
+      "y": 618.0,
       "z": 0.0
     },
     {
@@ -396,8 +438,8 @@
       "tag": "trash_box",
       "texture": "../assets/TrashBox.png",
       "w": 90.0,
-      "x": 517,
-      "y": 708,
+      "x": 517.0,
+      "y": 708.0,
       "z": 0.0
     },
     {
@@ -408,17 +450,17 @@
       "col_offx": 0.0,
       "col_offy": 0.0,
       "col_w": 100.0,
-      "h": 230.76043701171875,
+      "h": 230.0,
       "has_collider": true,
-      "layer": "1",
+      "layer": "3",
       "rotation": 0.0,
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "exit_gate",
-      "texture": "../assets/VegIngredientBox.png",
+      "texture": "../assets/invis.png",
       "w": 100.0,
       "x": 1100.0,
-      "y": 483.2190246582031,
+      "y": 483.0,
       "z": 0.0
     }
   ]

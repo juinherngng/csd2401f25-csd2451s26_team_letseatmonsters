@@ -44,6 +44,7 @@
 #include "../Core/ExitGateLogic.hpp"
 #include "../Core/HowToPlayButtonLogic.hpp"
 #include "../Core/TrashCanLogic.hpp"
+#include "../Core/Quota.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"

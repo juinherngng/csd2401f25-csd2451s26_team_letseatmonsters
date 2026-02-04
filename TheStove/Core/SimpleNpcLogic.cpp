@@ -1,6 +1,6 @@
 /*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:			PlayerLogic.hpp
+ FILE NAME:			SimpleNpcLogic.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
 
@@ -12,12 +12,12 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include <random>
 #include "../Core/Collision.hpp"  // for WalkArea definition
 #include "../Core/Physics.hpp"      // optional, if you want clamp helpers
 #include "../Graphics/SceneManager.hpp"
 
 #include "SimpleNpcLogic.hpp"
-#include "random"
 
 void SimpleNpcLogic::Awake(Scene& scene) {
     (void)scene;
@@ -31,12 +31,12 @@ void SimpleNpcLogic::Awake(Scene& scene) {
     finishedDish_ = false;
     hasPaid_ = false;
     eatTimer_ = 0.0f;
-    // eatDuration_ already set to 3.0f in the header
-    //desiredDishType_ = RollRandomDish();
-
-    std::cout << "[SimpleNpcLogic] Now ordering dish type = "
-        << static_cast<int>(desiredDishType_) << "\n";
     servedDishType_ = DishType::PoopDish;
+
+    patienceRemaining_ = 0.0f;
+    patienceExpired_ = false;
+    payZero_ = false;
+
 }
 
 void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
@@ -167,124 +167,18 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
     UpdateCustomerLogic(dt, scene);
 }
 
-void SimpleNpcLogic::AssignCustomerTable(int tableObjectID)
-{
-    customerTableID_ = tableObjectID;
-
-    std::cout << "[SimpleNpcLogic] AssignCustomerTable tableID=" << tableObjectID << "\n";
-
-    // If currently idle as a customer, start looking for the table.
-    if (behaviourState_ == BehaviourState::Idle) {
-        behaviourState_ = BehaviourState::FindingTable;
-    }
-}
-
-void SimpleNpcLogic::OnSeatedAtTable(Scene& scene)
-{
-    int npcID = -1;
-    if (GameObject* owner = GetOwner(scene)) {
-        npcID = owner->GetID();
-    }
-
-    if (!dishRolled_) {
-        desiredDishType_ = RollRandomDish();
-        dishRolled_ = true;
-    }
-
-    //std::cout << "[SimpleNpcLogic] OnSeatedAtTable, npcID="
-    //    << npcID << " state="
-    //    << static_cast<int>(behaviourState_) << "\n";
-
-    // When NPC reaches its assigned table, it should start ordering.
-    if (behaviourState_ == BehaviourState::FindingTable ||
-        behaviourState_ == BehaviourState::WalkingToTable)
-    {
-        // Start ordering this dish (2 processed veg salad).
-        behaviourState_ = BehaviourState::Ordering;
-
-        // Auto-take the order so we move into WaitingForFood right away.
-        TakeOrder(scene); // This sets behaviourState_ = WaitingForFood
-    }
-}
-
-
-void SimpleNpcLogic::TakeOrder(Scene& /*scene*/)
-{
-    std::cout << "[SimpleNpcLogic] TakeOrder, state="
-        << static_cast<int>(behaviourState_) << "\n";
-
-    // Only meaningful if in ORDERING state.
-    if (behaviourState_ != BehaviourState::Ordering)
-        return;
-
-    orderTaken_ = true;
-    behaviourState_ = BehaviourState::WaitingForFood;
-}
-
-void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType)
-{
-    std::cout << "[SimpleNpcLogic] OnDishServed, dishType=" << static_cast<int>(dishType) << "\n";
-
-    // Only meaningful if actually waiting for food.
-    if (behaviourState_ != BehaviourState::WaitingForFood)
-        return;
-
-    dishServed_ = true;
-    servedDishType_ = dishType;
-
-    if (servedDishType_ != desiredDishType_)
-    {
-        // Clear the served food so the table doesn't stay blocked
-        if (customerTableID_ != kInvalidID)
-        {
-            LogicManager& logicMgr = scene.GetLogicManager();
-            if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_))
-            {
-                table->ClearServedFood(scene);
-            }
-        }
-
-        hasPaid_ = false;
-
-        // IMPORTANT: do NOT leave yet — wait in Paying so player can "take payment" (which will be $0)
-        behaviourState_ = BehaviourState::Paying;
-
-        std::cout << "[SimpleNpcLogic] Wrong dish served. Switching to Paying (will pay $0)\n";
-        return;
-    }
-
-
-    behaviourState_ = BehaviourState::Eating;
-    eatTimer_ = 0.0f;
-}
-
-void SimpleNpcLogic::TakePayment(Scene& scene)
-{
-    std::cout << "[SimpleNpcLogic] TakePayment, state="
-        << static_cast<int>(behaviourState_) << "\n";
-
-    if (behaviourState_ != BehaviourState::Paying)
-        return;
-
-    hasPaid_ = true;
-    behaviourState_ = BehaviourState::Leaving;
-
-    Math::Vector2D gate = scene.GetExitGateWorldPos();
-    hasCustomerTarget_ = true;
-    customerSeatTarget_ = gate;
-
-    std::cout << "[SimpleNpcLogic] NPC leaving: heading to exit at ("
-        << gate.x << "," << gate.y << ")\n";
-
-    hasCustomerTarget_ = true;
-    //customerSeatTarget_ = exitGateWorldPos_;
-
-    // NOTE: do NOT change customerTableID_ here — you still want to know which table to free.
-}
-
-
 void SimpleNpcLogic::UpdateCustomerLogic(float dt, Scene& scene)
 {
+    if (behaviourState_ == BehaviourState::WaitingForFood && orderTaken_ && !dishServed_)
+    {
+        if (!patienceExpired_) {
+            patienceRemaining_ -= dt;
+            if (patienceRemaining_ <= 0.f) {
+                OnPatienceExpired(scene);
+            }
+        }
+    }
+
     if (behaviourState_ == BehaviourState::Eating)
     {
         eatTimer_ += dt;
@@ -319,6 +213,134 @@ void SimpleNpcLogic::UpdateCustomerLogic(float dt, Scene& scene)
 
     // Other behaviour transitions (e.g. auto-leave after paying)
     // can be added here later if you want.
+}
+
+void SimpleNpcLogic::AssignCustomerTable(int tableObjectID)
+{
+    customerTableID_ = tableObjectID;
+
+    std::cout << "[SimpleNpcLogic] AssignCustomerTable tableID=" << tableObjectID << "\n";
+
+    // If currently idle as a customer, start looking for the table.
+    if (behaviourState_ == BehaviourState::Idle) {
+        behaviourState_ = BehaviourState::FindingTable;
+    }
+}
+
+void SimpleNpcLogic::OnSeatedAtTable(Scene& scene)
+{
+    int npcID = -1;
+    if (GameObject* owner = GetOwner(scene)) {
+        npcID = owner->GetID();
+    }
+
+    if (!dishRolled_) {
+        desiredDishType_ = RollRandomDish();
+        dishRolled_ = true;
+
+        std::cout << "[SimpleNpcLogic] Rolled desired dish = "
+            << DishTypeName(desiredDishType_)
+            << " (" << (int)desiredDishType_ << ")\n";
+    }
+
+    //std::cout << "[SimpleNpcLogic] OnSeatedAtTable, npcID="
+    //    << npcID << " state="
+    //    << static_cast<int>(behaviourState_) << "\n";
+
+    // When NPC reaches its assigned table, it should start ordering.
+    if (behaviourState_ == BehaviourState::FindingTable ||
+        behaviourState_ == BehaviourState::WalkingToTable)
+    {
+        // Start ordering this dish (2 processed veg salad).
+        behaviourState_ = BehaviourState::Ordering;
+
+        // Auto-take the order so we move into WaitingForFood right away.
+        TakeOrder(scene); // This sets behaviourState_ = WaitingForFood
+    }
+}
+
+
+void SimpleNpcLogic::TakeOrder(Scene& /*scene*/)
+{
+    std::cout << "[SimpleNpcLogic] TakeOrder, state="
+        << static_cast<int>(behaviourState_) << "\n";
+
+    // Only meaningful if in ORDERING state.
+    if (behaviourState_ != BehaviourState::Ordering)
+        return;
+
+    orderTaken_ = true;
+
+    orderTaken_ = true;
+
+    // Start patience timer now that we are waiting for food
+    patienceRemaining_ = patienceMax_;
+    patienceExpired_ = false;
+    payZero_ = false;
+
+    behaviourState_ = BehaviourState::WaitingForFood;
+}
+
+void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType)
+{
+    std::cout << "[SimpleNpcLogic] OnDishServed, dishType=" << static_cast<int>(dishType) << "\n";
+
+    // Only meaningful if actually waiting for food.
+    if (behaviourState_ != BehaviourState::WaitingForFood)
+        return;
+
+    dishServed_ = true;
+    servedDishType_ = dishType;
+
+    if (servedDishType_ != desiredDishType_)
+    {
+        // Clear the served food so the table doesn't stay blocked
+        if (customerTableID_ != kInvalidID)
+        {
+            LogicManager& logicMgr = scene.GetLogicManager();
+            if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_))
+            {
+                table->ClearServedFood(scene);
+            }
+        }
+
+        hasPaid_ = false;
+        payZero_ = true;
+
+        // IMPORTANT: do NOT leave yet — wait in Paying so player can "take payment" (which will be $0)
+        behaviourState_ = BehaviourState::Paying;
+
+        std::cout << "[SimpleNpcLogic] Wrong dish served. Switching to Paying (will pay $0)\n";
+        return;
+    }
+
+    payZero_ = false;
+    behaviourState_ = BehaviourState::Eating;
+    eatTimer_ = 0.0f;
+}
+
+void SimpleNpcLogic::TakePayment(Scene& scene)
+{
+    std::cout << "[SimpleNpcLogic] TakePayment, state="
+        << static_cast<int>(behaviourState_) << "\n";
+
+    if (behaviourState_ != BehaviourState::Paying)
+        return;
+
+    hasPaid_ = true;
+    behaviourState_ = BehaviourState::Leaving;
+
+    Math::Vector2D gate = scene.GetExitGateWorldPos();
+    hasCustomerTarget_ = true;
+    customerSeatTarget_ = gate;
+
+    std::cout << "[SimpleNpcLogic] NPC leaving: heading to exit at ("
+        << gate.x << "," << gate.y << ")\n";
+
+    hasCustomerTarget_ = true;
+    //customerSeatTarget_ = exitGateWorldPos_;
+
+    // NOTE: do NOT change customerTableID_ here — you still want to know which table to free.
 }
 
 void SimpleNpcLogic::SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos)
@@ -430,3 +452,29 @@ DishType SimpleNpcLogic::RollRandomDish()
     std::uniform_int_distribution<int> dist(0, (int)(sizeof(kPool) / sizeof(kPool[0])) - 1);
     return kPool[dist(rng)];
 }
+
+void SimpleNpcLogic::OnPatienceExpired(Scene& scene)
+{
+    if (patienceExpired_) return;
+
+    patienceExpired_ = true;
+    patienceRemaining_ = 0.f;
+
+    // Same behavior as wrong dish: go to Paying and pay $0
+    payZero_ = true;
+    hasPaid_ = false;
+    behaviourState_ = BehaviourState::Paying;
+
+    // Optional safety: clear served food if anything got stuck
+    if (customerTableID_ != kInvalidID)
+    {
+        LogicManager& logicMgr = scene.GetLogicManager();
+        if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_))
+        {
+            table->ClearServedFood(scene);
+        }
+    }
+
+    std::cout << "[SimpleNpcLogic] Patience expired. Switching to Paying (will pay $0)\n";
+}
+

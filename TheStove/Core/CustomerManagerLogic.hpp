@@ -43,8 +43,8 @@ public:
     void SetMaxCustomers(int n) { maxCustomers_ = n; }
 
 private:
-    int maxCustomers_ = 2;              // start with 2
-    float spawnCooldown_ = 0.5f;        // small delay between spawns
+    int maxCustomers_ = 4;
+    float spawnCooldown_ = 2.0f;        // small delay between spawns
     float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
 
     std::vector<int> activeCustomers_;  // ids of customers alive

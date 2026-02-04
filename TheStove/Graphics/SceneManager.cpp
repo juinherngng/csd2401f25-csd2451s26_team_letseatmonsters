@@ -155,6 +155,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	customerManager_.Update(physicsDt, *this);
 
 	if (simulationActive) {
+		Economy::Update(deltaTime, *this);
+	}
+
+	if (simulationActive) {
 		if (useForces_) {
 			physicsManager.UpdatePhysics(physicsDt, entityManager, inputManager);
 		}

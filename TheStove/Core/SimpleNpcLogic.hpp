@@ -1,6 +1,6 @@
 /*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:			PlayerLogic.hpp
+ FILE NAME:			SimpleNpcLogic.hpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
 
@@ -22,6 +22,18 @@
 class SimpleNpcLogic : public GameObjectLogic {
 public:
 	using GameObjectLogic::GameObjectLogic;
+
+    static const char* DishTypeName(DishType t)
+    {
+        switch (t) {
+        case DishType::MeatDish: return "MeatDish";
+        case DishType::VegDish:  return "VegDish";
+        case DishType::SoupDish: return "SoupDish";
+        case DishType::PoopDish: return "PoopDish";
+        default: return "Unknown";
+        }
+    }
+
 
 	void Awake(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
@@ -109,6 +121,25 @@ public:
     void OnReachedExit(Scene& scene);
     DishType GetDesiredDishType() const { return desiredDishType_; }
 
+    // ===== Patience =====
+    float GetPatienceRemaining() const { return patienceRemaining_; }
+    float GetPatienceMax() const { return patienceMax_; }
+
+    float GetPatienceRatio01() const
+    {
+        if (patienceMax_ <= 0.f) return 0.f;
+        float r = patienceRemaining_ / patienceMax_;
+        if (r < 0.f) r = 0.f;
+        if (r > 1.f) r = 1.f;
+        return r;
+    }
+
+    bool HasPatienceExpired() const { return patienceExpired_; }
+
+    // Unified "will pay $0" for wrong dish OR patience timeout
+    bool WillPayZero() const { return payZero_; }
+
+
 private:
 	enum class State {
 		Idle, MoveUp, MoveDown
@@ -152,4 +183,16 @@ private:
     bool exitProcessed_ = false;
     bool dishRolled_ = false;
     DishType RollRandomDish();
+
+    // ===== Customer patience =====
+    float patienceMax_ = 40.0f;
+    float patienceRemaining_ = 0.0f;
+    bool  patienceExpired_ = false;
+
+    // If true, payment should be $0 (wrong dish OR patience timeout)
+    bool  payZero_ = false;
+
+    // helper
+    void OnPatienceExpired(Scene& scene);
+
 };
