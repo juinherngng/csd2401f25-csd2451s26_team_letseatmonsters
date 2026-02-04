@@ -370,6 +370,24 @@ void AudioManager::ResumeAll() {
 	}
 }
 
+// Pause a specific channel by name
+void AudioManager::PauseChannel(std::string const& name) {
+	auto it = channels.find(name);
+	if (it != channels.end() && it->second) {
+		it->second->setPaused(true);
+		std::cout << "[AudioManager] Paused channel: " << name << std::endl;
+	}
+}
+
+// Resume a specific channel by name
+void AudioManager::ResumeChannel(std::string const& name) {
+	auto it = channels.find(name);
+	if (it != channels.end() && it->second) {
+		it->second->setPaused(false);
+		std::cout << "[AudioManager] Resumed channel: " << name << std::endl;
+	}
+}
+
 void AudioManager::SetMasterVolume(float volume)
 {
 	// Clamp volume between 0.0 and 1.0

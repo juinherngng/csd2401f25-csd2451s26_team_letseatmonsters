@@ -125,6 +125,20 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	UpdateCutsceneTransitioned(deltaTime);
 	UpdateCutscene(deltaTime);
 
+	// Handle pending pause audio (pause channels after fade completes)
+#ifndef _DEBUG
+	if (pauseAudioPending_ && audioManager_) {
+		pauseAudioTimer_ -= deltaTime;
+		if (pauseAudioTimer_ <= 0.0f) {
+			// Fade completed, now pause the channels to stop playback
+			audioManager_->PauseChannel("bgm_MyoonchiDiner_LevelTheme");
+			audioManager_->PauseChannel("bgm_KitchenAmbience");
+			pauseAudioPending_ = false;
+			std::cout << "[Scene] Paused audio channels after fade" << std::endl;
+		}
+	}
+#endif
+
 	if (pendingClear_) {
 		ClearAll();
 		RebuildColliders();
@@ -216,6 +230,24 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 					gfx.ContinueTransitionFadeIn();
 					cutTrans_.fadeInAfterLoad = false;
+
+					// Start level BGM and ambience with fade-in (synced with visual transition)
+					// This is needed because the cutscene bypasses GameStateManager
+#ifndef _DEBUG
+					if (audioManager_) {
+						const float levelBgmFadeIn = 1.0f;
+
+						// Play level theme music with fade-in
+						audioManager_->PlaySound("bgm_MyoonchiDiner_LevelTheme", 0.0f, false);
+						audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", audioManager_->GetBgmVolume(), levelBgmFadeIn);
+						std::cout << "[Scene] Playing level theme music with fade-in after cutscene" << std::endl;
+
+						// Play kitchen ambience at 50% of BGM volume, also with fade-in
+						audioManager_->PlaySound("bgm_KitchenAmbience", 0.0f, false);
+						audioManager_->FadeChannel("bgm_KitchenAmbiance", audioManager_->GetBgmVolume() * 0.5f, levelBgmFadeIn);
+						std::cout << "[Scene] Playing kitchen ambience with fade-in after cutscene" << std::endl;
+					}
+#endif
 				}
 				LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
 			}
@@ -798,6 +830,26 @@ void Scene::ShowPauseOverlay() {
 	// Pause simulation while overlay is active
 	SetSimulationActive(false);
 
+	// Fade out level BGM and ambience when entering pause menu, then pause
+	if (audioManager_) {
+		const float pauseFadeOut = 0.2f; // 200ms fade out for smooth transition
+		
+		// Store current volumes before fading so we can restore them on resume
+		pausedBgmVolume_ = audioManager_->GetBgmVolume();
+		pausedAmbienceVolume_ = audioManager_->GetBgmVolume() * 0.5f;
+		
+		// Fade to 0, the AudioManager will handle the fade over time
+		// We'll pause the channels after the fade completes (handled in Update or via callback)
+		audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", 0.0f, pauseFadeOut);
+		audioManager_->FadeChannel("bgm_KitchenAmbience", 0.0f, pauseFadeOut);
+		
+		// Schedule pause after fade completes
+		pauseAudioPending_ = true;
+		pauseAudioTimer_ = pauseFadeOut;
+		
+		std::cout << "[Scene] Fading out level BGM and ambience for pause menu" << std::endl;
+	}
+
 	const std::string uiLayer = "999999";
 
 	// Pause overlay background
@@ -853,6 +905,24 @@ void Scene::HidePauseOverlay() {
 	}
 	pauseOverlayObjectIds_.clear();
 	pauseOverlayActive_ = false;
+
+	// Cancel any pending pause if we're resuming before fade completed
+	pauseAudioPending_ = false;
+
+	// Resume and fade in level BGM and ambience when leaving pause menu
+	if (audioManager_) {
+		const float pauseFadeIn = 0.2f; // 200ms fade in for smooth transition
+		
+		// Resume channels first (they were paused after fade out)
+		audioManager_->ResumeChannel("bgm_MyoonchiDiner_LevelTheme");
+		audioManager_->ResumeChannel("bgm_KitchenAmbience");
+		
+		// Then fade back to original volumes
+		audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", pausedBgmVolume_, pauseFadeIn);
+		audioManager_->FadeChannel("bgm_KitchenAmbience", pausedAmbienceVolume_, pauseFadeIn);
+		
+		std::cout << "[Scene] Resumed and fading in level BGM and ambience after pause menu" << std::endl;
+	}
 #endif
 }
 
@@ -1355,6 +1425,29 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
     cutTrans_.awaitingBlackout = true;
 }
 
+void Scene::StartCutsceneTransitionedBounded(const std::vector<std::string>& imagePaths,
+                                             const std::vector<bool>& boundaryFlags,
+                                             const std::string& levelJsonPath,
+                                             bool activateSimulation,
+                                             float fadeOutSeconds,
+                                             float fadeInSeconds,
+                                             float holdSeconds,
+                                             int crossfadeFromIndex,
+                                             float crossfadeSeconds) {
+    // Store boundary flags in the static cache so UpdateCutsceneTransitioned can use them
+    sCutsceneBoundaryFlags = boundaryFlags;
+
+    // Delegate to the regular transitioned cutscene with the same parameters
+    StartCutsceneTransitioned(imagePaths,
+                              levelJsonPath,
+                              activateSimulation,
+                              fadeOutSeconds,
+                              fadeInSeconds,
+                              holdSeconds,
+                              crossfadeFromIndex,
+                              crossfadeSeconds);
+}
+
 void Scene::UpdateCutsceneTransitioned(float dt) {
     if (!cutTrans_.active) return;
 
@@ -1442,6 +1535,15 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
                 gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
                 cutTrans_.awaitingBlackout = true;
                 cutTrans_.holding = false;
+
+                // Fade out cutscene BGM as we transition to the level
+#ifndef _DEBUG
+                if (audioManager_) {
+                    const float cutsceneBgmFadeOut = cutTrans_.outSeconds; // Match visual fade-out duration
+                    audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", 0.0f, cutsceneBgmFadeOut);
+                    std::cout << "[Scene] Fading out cutscene BGM as cutscene ends" << std::endl;
+                }
+#endif
             }
         }
     }
@@ -1483,70 +1585,20 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
                 DespawnByID(cutTrans_.currentSpriteId);
                 cutTrans_.currentSpriteId = -1;
             }
+
+            // Stop the cutscene BGM completely before loading the level
+#ifndef _DEBUG
+            if (audioManager_) {
+                audioManager_->StopSound("bgm_MyoonchiDiner_IntroCutscene");
+                std::cout << "[Scene] Stopped cutscene BGM before loading level" << std::endl;
+            }
+#endif
+
             cutTrans_.active = false;
             QueueLevelLoad(cutTrans_.targetLevelJson, cutTrans_.targetActivateSim);
             cutTrans_.fadeInAfterLoad = true; // handled in Scene::Update after LoadAndBuild
         }
     }
-}
-
-void Scene::StartCutsceneTransitionedBounded(const std::vector<std::string>& imagePaths,
-                                             const std::vector<bool>& boundaryFlags,
-                                             const std::string& levelJsonPath,
-                                             bool activateSimulation,
-                                             float fadeOutSeconds,
-                                             float fadeInSeconds,
-                                             float holdSeconds,
-                                             int crossfadeFromIndex,
-                                             float crossfadeSeconds) {
-    if (imagePaths.empty() || imagePaths.size() != boundaryFlags.size()) {
-        QueueLevelLoad(levelJsonPath, activateSimulation);
-        return;
-    }
-
-#ifndef _DEBUG
-    SetSimulationActive(false);
-#endif
-    HidePauseOverlay();
-
-    if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
-    cutTrans_ = {};
-    cutTrans_.active = true;
-    cutTrans_.images = imagePaths;
-    cutTrans_.index = 0;
-    cutTrans_.targetLevelJson = levelJsonPath;
-    cutTrans_.targetActivateSim = activateSimulation;
-    cutTrans_.outSeconds = fadeOutSeconds;
-    cutTrans_.inSeconds = fadeInSeconds;
-    cutTrans_.holdSeconds = std::max(0.0f, holdSeconds);
-    cutTrans_.holdElapsed = 0.0f;
-    cutTrans_.holding = false;
-    cutTrans_.awaitingBlackout = false;
-
-    // Crossfade configuration
-    cutTrans_.useCrossfade = (crossfadeFromIndex >= 0);
-    cutTrans_.crossfadeSeconds = std::max(0.05f, crossfadeSeconds);
-    cutTrans_.crossfadeFromIndex = crossfadeFromIndex;
-
-    // Reuse 'awaitingInitialFadeIn' to simplify state
-    cutTrans_.awaitingInitialFadeIn = false;
-
-    // Store boundaries in a side array via images count alignment
-    sCutsceneBoundaryFlags = boundaryFlags;
-
-	auto& gfx = GetGraphicsEngine();
-	gfx.StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
-	cutTrans_.awaitingBlackout = true;
-
-	// Update logic: handle intra-frame (no transition) vs boundary (transition) vs crossfade
-	struct Local {
-		static bool IsBoundary(size_t nextIndex) {
-			return nextIndex < sCutsceneBoundaryFlags.size() ? sCutsceneBoundaryFlags[nextIndex] : true;
-		}
-	};
-
-	// Wrap existing function with boundary-aware behavior
-	// Replace Scene::UpdateCutsceneTransitioned body with boundary checks
 }
 
 // Order UI slide-in API 

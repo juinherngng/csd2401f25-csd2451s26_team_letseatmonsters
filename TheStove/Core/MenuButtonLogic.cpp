@@ -179,6 +179,10 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
     if (over && input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
         if (audioManager_) {
             audioManager_->PlayUIClickSound();
+            
+            // Fade out main menu BGM during the fade-to-black transition
+            const float menuBgmFadeDuration = 0.35f; // Match the visual fade-out duration
+            audioManager_->FadeChannel("bgm_MyoonchiDiner_MainMenu", 0.0f, menuBgmFadeDuration);
         }
         input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 
@@ -199,6 +203,8 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
         const int crossfadeToIndex = firstFrameIndexChapter6; // zero-based index in flattened frames
         const float crossfadeSeconds = 2.0f;
 
+        // Start cutscene BGM with fade-in after the initial fade-to-black completes
+        // The cutscene will handle playing and fading the intro cutscene music
         scene.StartCutsceneTransitionedBounded(
             frames,
             boundaries,
@@ -209,6 +215,15 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
             holdSeconds,
             crossfadeToIndex,
             crossfadeSeconds);
+        
+        // Start the intro cutscene BGM with fade-in
+        // This plays after the fade-to-black, syncing with the cutscene start
+        if (audioManager_) {
+            const float cutsceneBgmFadeIn = 1.0f; // Fade in over 1 second
+            // Play at volume 0, then fade up (40% louder than normal BGM volume)
+            audioManager_->PlaySound("bgm_MyoonchiDiner_IntroCutscene", 0.0f, false);
+            audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", audioManager_->GetBgmVolume() * 1.4f, cutsceneBgmFadeIn);
+        }
     }
 #endif // _DEBUG
 }
