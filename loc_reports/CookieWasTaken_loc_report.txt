@@ -2,50 +2,54 @@
 Lines of Code Report
 ==========================================
 Author: CookieWasTaken
-Since: 2025-11-08
-Generated: Sun Nov 30 23:02:44 +08 2025
+Since: 2025-12-07
+Generated: Wed Feb  4 19:48:04 +08 2026
 ==========================================
 
-Files Modified: 2 unique files
+Files Modified: 14 unique files
 
-Files Still Exist: 2 files
+Files Still Exist: 14 files
 
 ==========================================
 CODE ANALYSIS - SUMMARY
 Excludes: Comments and Blank Lines
 ==========================================
 
-       2 text files.
-classified 2 files       2 unique files.                              
-       0 files ignored.
-
-github.com/AlDanial/cloc v 1.90  T=0.03 s (76.2 files/s, 7547.4 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.25 s (51.9 files/s, 29725.9 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-CMake                            1             20             17             67
-C/C++ Header                     1             20             30             44
+C++                              9           1176            861           4604
+C/C++ Header                     3            119            143            455
+INI                              1             14              0             73
 -------------------------------------------------------------------------------
-SUM:                             2             40             47            111
+SUM:                            13           1309           1004           5132
 -------------------------------------------------------------------------------
 
 ==========================================
 CODE ANALYSIS - PER FILE (Current State)
 ==========================================
 
-       2 text files.
-classified 2 files       2 unique files.                              
-       0 files ignored.
-
-github.com/AlDanial/cloc v 1.90  T=0.03 s (60.7 files/s, 6012.2 lines/s)
------------------------------------------------------------------------------------------
-File                                                  blank        comment           code
------------------------------------------------------------------------------------------
-CMakeLists.txt                                           20             17             67
-TheStove/Graphics/AnimationManager.hpp                   20             30             44
------------------------------------------------------------------------------------------
-SUM:                                                     40             47            111
------------------------------------------------------------------------------------------
+github.com/AlDanial/cloc v 1.98  T=0.24 s (54.1 files/s, 30955.1 lines/s)
+-------------------------------------------------------------------------------------------------
+File                                                          blank        comment           code
+-------------------------------------------------------------------------------------------------
+TheStove/Graphics/SceneManager.cpp                              248            166           1097
+TheStove/Core/LevelEditorPanelLevel.cpp                         267            142           1061
+TheStove/Graphics/GraphicsEngine.cpp                            228            161            918
+TheStove/Core/PlayerLogic.cpp                                   176            167            523
+TheStove/Graphics/SceneManager.hpp                               89            101            374
+TheStove/Core/LevelEditorPanelFonts.cpp                          66             41            326
+TheStove/Core/LevelEditorPanelAudioControl.cpp                   61             57            245
+TheStove/Core/LevelSerializer.cpp                                42             30            158
+TheStove/Core/WorkTableLogic.cpp                                 47             62            142
+TheStove/Core/HowToPlayButtonLogic.cpp                           41             35            134
+imgui.ini                                                        14              0             73
+TheStove/Core/LevelSerializer.hpp                                21             29             57
+TheStove/Core/LevelEditorPanelFonts.hpp                           9             13             24
+-------------------------------------------------------------------------------------------------
+SUM:                                                           1309           1004           5132
+-------------------------------------------------------------------------------------------------
 
 ==========================================
 GIT CHANGES PER FILE
@@ -53,8 +57,20 @@ GIT CHANGES PER FILE
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-TheStove/Graphics/AnimationManager.hpp                                          2          2          0
-CMakeLists.txt                                                                  2          2          0
+TheStove/Core/LevelEditorPanelLevel.cpp                                       270          8        262
+TheStove/Graphics/SceneManager.cpp                                            119          2        117
+TheStove/Core/LevelSerializer.cpp                                              80          7         73
+TheStove/Core/LevelEditorPanelFonts.cpp                                        78          1         77
+TheStove/Graphics/GraphicsEngine.cpp                                           40          0         40
+TheStove/Core/LevelSerializer.hpp                                              39          4         35
+TheStove/Graphics/SceneManager.hpp                                             20          1         19
+imgui.ini                                                                      17         17          0
+TheStove/Core/LevelEditorPanelAudioControl.cpp                                 13          1         12
+TheStove/Core/WorkTableLogic.cpp                                               11          1         10
+TheStove/Core/LevelEditorPanelFonts.hpp                                         6          0          6
+TheStove/Core/PlayerLogic.cpp                                                   4          1          3
+TheStove/Core/HowToPlayButtonLogic.cpp                                          2          2          0
+assets/Font/AGENCYB.TTF                                                         0          0          0
                                                                                 0          0          0
 --------------------------------------------------------------------------------------------
 
@@ -62,14 +78,26 @@ CMakeLists.txt                                                                  
 GIT COMMIT STATISTICS - TOTAL
 ==========================================
 
-Lines Added:    4
-Lines Deleted:  4
-Net Change:     0
-Total Commits:  2
+Lines Added:    699
+Lines Deleted:  45
+Net Change:     654
+Total Commits:  7
 
 ==========================================
 FILES MODIFIED
 ==========================================
 
-CMakeLists.txt
-TheStove/Graphics/AnimationManager.hpp
+TheStove/Core/HowToPlayButtonLogic.cpp
+TheStove/Core/LevelEditorPanelAudioControl.cpp
+TheStove/Core/LevelEditorPanelFonts.cpp
+TheStove/Core/LevelEditorPanelFonts.hpp
+TheStove/Core/LevelEditorPanelLevel.cpp
+TheStove/Core/LevelSerializer.cpp
+TheStove/Core/LevelSerializer.hpp
+TheStove/Core/PlayerLogic.cpp
+TheStove/Core/WorkTableLogic.cpp
+TheStove/Graphics/GraphicsEngine.cpp
+TheStove/Graphics/SceneManager.cpp
+TheStove/Graphics/SceneManager.hpp
+assets/Font/AGENCYB.TTF
+imgui.ini
