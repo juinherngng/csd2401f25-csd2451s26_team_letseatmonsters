@@ -712,6 +712,12 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	DrawSpriteShadows(objects, viewMatrix, projectionMatrix);
 
 	// Render all scene objects
+	// Disable depth testing for 2D sprites so layering/order controls visibility
+	GLboolean depthWasEnabledSprites = glIsEnabled(GL_DEPTH_TEST);
+	if (depthWasEnabledSprites) {
+		glDisable(GL_DEPTH_TEST);
+	}
+
 	for (const auto* obj : objects) {
 		if (!obj) continue;
 
@@ -836,6 +842,12 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Draw shadows before sprites 
 	DrawSpriteShadows(objects, view, projection);
 
+	// Disable depth testing for 2D sprites (batched)
+	GLboolean depthWasEnabledSprites = glIsEnabled(GL_DEPTH_TEST);
+	if (depthWasEnabledSprites) {
+		glDisable(GL_DEPTH_TEST);
+	}
+
 	// Helper to convert layer name to sort key (same as CollectRenderablePointers in SceneManager)
 	auto parseLayerNumber = [](const std::string& s) -> int {
 		if (s.empty()) {
@@ -867,7 +879,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
 		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
 			int la = parseLayerNumber(a->layer);
-			int lb = parseLayerNumber(b->layer);
+		    int lb = parseLayerNumber(b->layer);
 			
 			// Lower layer number = rendered first (behind)
 			// Higher layer number = rendered later (on top)
@@ -1078,6 +1090,11 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	if (!instanceBatch.empty()) {
 		flushBatch(instanceBatch, currentKey);
 		instanceBatch.clear();
+	}
+
+	// Restore depth state after sprites
+	if (depthWasEnabledSprites) {
+		glEnable(GL_DEPTH_TEST);
 	}
 
 #ifdef _DEBUG

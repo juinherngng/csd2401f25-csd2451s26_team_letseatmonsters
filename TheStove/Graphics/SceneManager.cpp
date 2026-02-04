@@ -131,7 +131,12 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		return;
 	}
 
-	inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager, spriteID, useForces_, showAuxDebug_);
+	// while any cutscene is active, discard input so UI/buttons cannot be pressed (this might need tweaking later, for future cutscenes that need input)
+	if (IsAnyCutsceneActive()) {
+		inputManager.ClearState();
+	} else {
+		inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager, spriteID, useForces_, showAuxDebug_);
+	}
 
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
 		mLevelEditor.Toggle();
@@ -1367,6 +1372,13 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
                 if (isBoundary) {
                     // Crossfade at specific boundary index
                     if (cutTrans_.useCrossfade && static_cast<int>(nextIndex) == cutTrans_.crossfadeFromIndex) {
+
+						// Disable layer 10 object visibility (this is never re-enabled) temp fix for now
+						if (Layer* menuLayer = GetLayer("10")) {
+							menuLayer->SetVisible(false);
+							menuLayer->SetEnabled(false);
+						}
+
                         const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
                         const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
                         const glm::vec3 topCenter{ center.x, center.y, 0.001f };

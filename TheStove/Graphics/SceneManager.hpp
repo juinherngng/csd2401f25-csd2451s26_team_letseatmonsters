@@ -410,6 +410,11 @@ public:
 		const std::string& texturePath = "../assets/Order_UI.png",
 		float slideDuration = 0.45f);
 
+	// Check if any cutscene is active
+	bool IsAnyCutsceneActive() const {
+        return cutscene_.active || cutTrans_.active;
+    }
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
