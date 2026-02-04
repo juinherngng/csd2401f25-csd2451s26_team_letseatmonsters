@@ -34,6 +34,7 @@
 #include "../Core/MenuButtonLogic.hpp"
 #include "../Core/PauseButtonLogic.hpp"
 #include "../Core/AudioManager.hpp"
+#include "../Core/FilePaths.hpp"
 #include "SceneManager.hpp"
 #include "GraphicsEngine.hpp"
 
@@ -99,16 +100,16 @@ void Scene::LoadScene(const std::string& sceneName) {
 	(void)sceneName;
 
 	// Remember which level JSON we're using
-	currentLevelPath_ = "../levels/kitchen01.json";
+	currentLevelPath_ = FilePaths::Levels::KITCHEN_01;
 
 	// Optional: just pre-fill the path field for convenience
-	mLevelEditor.SetPath("../levels/kitchen01.json");
+	mLevelEditor.SetPath(FilePaths::Levels::KITCHEN_01);
 
 	// Ensure we start EMPTY per rubric (no auto-spawned objects)
 	ClearAll();
 
 	// You can keep a background even with an empty level (or move this into JSON later)
-	SetSceneBackground("../assets/Background.png");
+	SetSceneBackground(FilePaths::Textures::BACKGROUND);
 }
 
 void Scene::Update(float deltaTime, GLFWwindow* window) {
@@ -141,7 +142,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			// Lazy-load a small font for FPS
 			FontSystem::Font* f = ResourceManager::Instance().GetFont("fps_font");
 			if (!f) {
-				f = FontSystem::FontManager::Instance().LoadFont("fps_font", "../assets/Font/ToThePointRegular-n9y4.ttf", 48);
+                f = FontSystem::FontManager::Instance().LoadFont("fps_font", FilePaths::Fonts::TO_THE_POINT, 48);
 			}
 			if (f) {
 				fpsText_.SetFont(f);
@@ -426,6 +427,26 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	std::vector<GameObject*> all = entityManager.GetAllObjects();
 	out.reserve(all.size());
 
+	// Helper to convert layer name to sort key
+	auto parseLayerNumber = [](const std::string& s) -> int {
+		if (s.empty()) {
+			return 1; // base layer
+		}
+
+		int result = 0;
+		for (char c : s) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				// Any non-numeric layer name behaves like a very "high" layer
+				// so that it draws on top of numeric layers.
+				return 1000000;
+			}
+
+			result = result * 10 + (c - '0');
+		}
+
+		return result;
+	};
+
 	for (GameObject* g : all) {
 		if (!g) {
 			continue;
@@ -452,46 +473,27 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 			}
 		}
 
+		// Set the render layer on the object for use in GraphicsEngine
+		g->SetRenderLayer(parseLayerNumber(layerName));
+
 		out.push_back(g);
 	}
-
-	// Helper to convert layer name to sort key
-	auto parseLayerNumber = [](const std::string& s) -> int {
-		if (s.empty()) {
-			return 1; // base layer
-		}
-
-		int result = 0;
-		for (char c : s) {
-			if (!std::isdigit(static_cast<unsigned char>(c))) {
-				// Any non-numeric layer name behaves like a very "high" layer
-				// so that it draws on top of numeric layers.
-				return 1000000;
-			}
-
-			result = result * 10 + (c - '0');
-		}
-
-		return result;
-		};
 
 	std::sort(
 		out.begin(),
 		out.end(),
 		[&](GameObject* a, GameObject* b) {
-			const std::string laName = GetObjectLayer(a->GetID());
-			const std::string lbName = GetObjectLayer(b->GetID());
+			int la = a->GetRenderLayer();
+			int lb = b->GetRenderLayer();
 
-			int la = parseLayerNumber(laName);
-			int lb = parseLayerNumber(lbName);
-
-			// Different layers: smaller layer number drawn first
+			// Different layers: smaller layer number drawn first (behind),
+			// higher layer number drawn later (on top)
 			if (la != lb) {
-				return la > lb;
+				return la < lb;
 			}
 
-			// Same layer - higher Y drawn first (lower on screen appears in front)
-			return a->GetPosition().y > b->GetPosition().y;
+			// Same layer - lower Y drawn first (higher on screen appears behind)
+			return a->GetPosition().y < b->GetPosition().y;
 		}
 	);
 }
@@ -597,7 +599,7 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	}
 	// Menu buttons etc
 	else if (tag == "btn_play") {
-		auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);
+        auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, FilePaths::Levels::KITCHEN_01, true);
 		if (logic && audioManager_) {
 			logic->SetAudioManager(audioManager_);
 		}
@@ -768,10 +770,10 @@ void Scene::ShowPauseOverlay() {
 	const std::string uiLayer = "999999";
 
 	// Pause overlay background
-	if (GameObject* dim = SpawnStaticSprite("../assets/pause.png",
-		{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
-		{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
-		uiLayer)) {
+    if (GameObject* dim = SpawnStaticSprite(FilePaths::Textures::PAUSE_BG,
+											{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
+											{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
+											uiLayer)) {
 		pauseOverlayObjectIds_.push_back(dim->GetID());
 		std::cout << "  [Scene] Pause background id=" << dim->GetID() << "\n";
 	}
@@ -804,9 +806,9 @@ void Scene::ShowPauseOverlay() {
 		}
 		};
 
-	spawnPauseBtn("../assets/continue_s.png", { 1300.f, 454.f }, PauseAction::Resume);
-	spawnPauseBtn("../assets/how_s.png", { 1300.f, 584.f }, PauseAction::HowToPlay);
-	spawnPauseBtn("../assets/quit_s.png", { 1300.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn(FilePaths::Textures::BTN_CONTINUE, { 1300.f, 454.f }, PauseAction::Resume);
+	spawnPauseBtn(FilePaths::Textures::BTN_HOW, { 1300.f, 584.f }, PauseAction::HowToPlay);
+	spawnPauseBtn(FilePaths::Textures::BTN_QUIT, { 1300.f, 714.f }, PauseAction::Quit);
 #endif
 }
 

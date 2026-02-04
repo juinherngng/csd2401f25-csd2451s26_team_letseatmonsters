@@ -680,7 +680,6 @@ ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
 #endif
 }
 
-
 // Default render path
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
 	// Keep internal matrices in sync for editor picking + gizmos
@@ -837,10 +836,78 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Draw shadows before sprites 
 	DrawSpriteShadows(objects, view, projection);
 
-	// Early out if no objects
+	// Helper to convert layer name to sort key (same as CollectRenderablePointers in SceneManager)
+	auto parseLayerNumber = [](const std::string& s) -> int {
+		if (s.empty()) {
+			return 1; // base layer
+		}
+
+		int result = 0;
+		for (char c : s) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				// Any non-numeric layer name behaves like a very "high" layer
+				return 1000000;
+			}
+
+			result = result * 10 + (c - '0');
+		}
+
+		return result;
+	};
+
+#ifdef _DEBUG
+	// Get text objects and sort by layer for interleaved rendering
+	const auto& textObjects = LEPANELFONTS::GetTextObjects();
+	std::vector<const LEPANELFONTS::TextObjectData*> sortedTextObjects;
+	sortedTextObjects.reserve(textObjects.size());
+	for (const auto& data : textObjects) {
+		sortedTextObjects.push_back(&data);
+	}
+
+	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
+		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
+			int la = parseLayerNumber(a->layer);
+			int lb = parseLayerNumber(b->layer);
+			
+			// Lower layer number = rendered first (behind)
+			// Higher layer number = rendered later (on top)
+			if (la != lb) {
+				return la < lb;
+			}
+			
+			// Same layer: use depth first, then Y position for sorting
+			if (a->depth != b->depth) {
+				return a->depth < b->depth;
+			}
+			
+			return a->y < b->y;
+		});
+
+	size_t textIndex = 0; // Track which text objects have been rendered
+	int lastProcessedLayer = 0; // Track the last layer we finished processing
+	
+	// Lambda to render text objects up to and including a certain layer
+	auto renderTextUpToLayer = [&](int maxLayerNumber) {
+		while (textIndex < sortedTextObjects.size()) {
+			int textLayer = parseLayerNumber(sortedTextObjects[textIndex]->layer);
+			if (textLayer <= maxLayerNumber) {
+				RenderSingleTextObject(*sortedTextObjects[textIndex]);
+				++textIndex;
+			} else {
+				break; // Text belongs to a higher layer, stop
+			}
+		}
+	};
+#endif
+
+	// Early out if no objects (but still render text)
 	if (objects.empty()) {
-		// Render text objects even if no game objects
-		RenderTextObjects();
+#ifdef _DEBUG
+		// Render all text objects
+		for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
+			RenderSingleTextObject(*sortedTextObjects[i]);
+		}
+#endif
 
 		// Draw transition overlay even if empty scene
 		DrawTransitionOverlay();
@@ -966,9 +1033,28 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 	};
 
-	// Build runs in order
-	for (auto* obj : objects) {
+	// Build runs in order, interleaving text objects at layer boundaries
+	for (size_t objIdx = 0; objIdx < objects.size(); ++objIdx) {
+		auto* obj = objects[objIdx];
 		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
+
+		int objLayer = obj->GetRenderLayer();
+
+#ifdef _DEBUG
+		// When we move to a new (higher) layer, first render text objects
+		// from the previous layers that haven't been rendered yet
+		if (objLayer > lastProcessedLayer) {
+			// Flush current batch before rendering text
+			if (!instanceBatch.empty()) {
+				flushBatch(instanceBatch, currentKey);
+				instanceBatch.clear();
+			}
+			
+			// Render text objects up to and including the previous layer
+			renderTextUpToLayer(objLayer - 1);
+			lastProcessedLayer = objLayer;
+		}
+#endif
 
 		RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
 
@@ -977,6 +1063,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			flushBatch(instanceBatch, currentKey);
 			instanceBatch.clear();
 		}
+		
 		currentKey = key;
 
 		Mesh::InstanceData inst;
@@ -993,6 +1080,14 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		instanceBatch.clear();
 	}
 
+#ifdef _DEBUG
+	// Render remaining text objects (those in layers >= the last game object layer)
+	while (textIndex < sortedTextObjects.size()) {
+		RenderSingleTextObject(*sortedTextObjects[textIndex]);
+		++textIndex;
+	}
+#endif
+
 	// Debug bounding boxes render
 	if (DebugRenderer::IsEnabled()) {
 		glDisable(GL_DEPTH_TEST);
@@ -1004,9 +1099,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		DebugRenderer::Flush(view, projection);
 		glEnable(GL_DEPTH_TEST);
 	}
-
-	// Render text objects on top of scene
-	RenderTextObjects();
 
 	// Draw transition overlay on top of everything in the scene FBO
 	DrawTransitionOverlay();
@@ -1050,6 +1142,48 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
 		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
+	}
+}
+
+// Render a single text object (for layered rendering)
+void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& data) {
+	// Get the font from ResourceManager
+	FontSystem::Font* font = ResourceManager::Instance().GetFont(data.fontName);
+	if (!font) {
+		return;
+	}
+
+	// Save current GL state that text rendering might modify
+	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+	GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+
+	// Create a temporary Text object for rendering
+	FontSystem::Text textRenderer;
+	textRenderer.SetFont(font);
+	textRenderer.SetText(data.text);
+	textRenderer.SetPosition(glm::vec2(data.x, data.y));
+	textRenderer.SetScale(data.scale);
+	textRenderer.SetRotation(data.rotation);
+	textRenderer.SetRotationMode(data.useBlockRotation ?
+								 FontSystem::Text::RotationMode::Block :
+								 FontSystem::Text::RotationMode::PerCharacter);
+	textRenderer.SetColor(glm::vec4(data.colorR, data.colorG, data.colorB, data.colorA));
+
+	// Render using TextRenderer singleton
+	FontSystem::TextRenderer::Instance().RenderText(textRenderer, projection);
+
+	// Restore GL state for subsequent sprite rendering
+	if (depthWasEnabled) {
+		glEnable(GL_DEPTH_TEST);
+	} else {
+		glDisable(GL_DEPTH_TEST);
+	}
+	
+	if (blendWasEnabled) {
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	} else {
+		glDisable(GL_BLEND);
 	}
 }
 
@@ -1104,27 +1238,8 @@ void GraphicsEngine::RenderTextObjects() {
 		});
 
 	// Create Text renderers on demand and render
-	for (const auto& data : textObjects) {
-		// Get the font from ResourceManager
-		FontSystem::Font* font = ResourceManager::Instance().GetFont(data.fontName);
-		if (!font) {
-			continue;
-		}
-
-		// Create a temporary Text object for rendering
-		FontSystem::Text textRenderer;
-		textRenderer.SetFont(font);
-		textRenderer.SetText(data.text);
-		textRenderer.SetPosition(glm::vec2(data.x, data.y));
-		textRenderer.SetScale(data.scale);
-		textRenderer.SetRotation(data.rotation);
-		textRenderer.SetRotationMode(data.useBlockRotation?
-									 FontSystem::Text::RotationMode::Block:
-									 FontSystem::Text::RotationMode::PerCharacter);
-		textRenderer.SetColor(glm::vec4(data.colorR, data.colorG, data.colorB, data.colorA));
-
-		// Render using TextRenderer singleton
-		FontSystem::TextRenderer::Instance().RenderText(textRenderer, projection);
+	for (const auto* data : sortedTextObjects) {
+		RenderSingleTextObject(*data);
 	}
 #else
 	// In release build, text will be rendered from game state
