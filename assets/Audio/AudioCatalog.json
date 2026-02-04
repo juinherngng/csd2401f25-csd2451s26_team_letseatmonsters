@@ -79,6 +79,46 @@
       "name": "sfx_game_over",
       "stream": false,
       "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_step_1.wav",
+      "loop": false,
+      "name": "sfx_step_1",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_put_down.wav",
+      "loop": false,
+      "name": "sfx_put_down",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_payment.wav",
+      "loop": false,
+      "name": "sfx_payment",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_chopping.wav",
+      "loop": false,
+      "name": "sfx_chopping",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/bgm_MyoonchiDiner_IntroCutscene.mp3",
+      "loop": false,
+      "name": "bgm_MyoonchiDiner_IntroCutscene",
+      "stream": false,
+      "volume": 1.0
     }
   ],
   "version": "1.0"
