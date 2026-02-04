@@ -4,6 +4,7 @@
 #include "LevelEditorPanelFonts.hpp"
 
 class Scene;
+class AudioManager;
 
 namespace Economy
 {
@@ -30,6 +31,13 @@ namespace Economy
 
     // Optional: pause timer (e.g., in win/lose screen)
     inline bool gTimerPaused = false;
+
+    // Track which time-based sounds have been played
+    inline bool gPlayed10SecWarning = false;
+    inline bool gPlayed3SecBeep = false;
+    inline bool gPlayed2SecBeep = false;
+    inline bool gPlayed1SecBeep = false;
+    inline bool gPlayedTimeUp = false;
 
     // Put near the top of Economy.hpp/cpp (where Economy lives)
     inline void SyncUI()
@@ -60,6 +68,13 @@ namespace Economy
         gTimeRemaining = kTimeLimitSeconds;
         gTimeUp = false;
         gTimerPaused = false;
+
+        // Reset sound effect flags
+        gPlayed10SecWarning = false;
+        gPlayed3SecBeep = false;
+        gPlayed2SecBeep = false;
+        gPlayed1SecBeep = false;
+        gPlayedTimeUp = false;
 
         SyncUI();
     }
@@ -98,6 +113,9 @@ namespace Economy
         }
     }
 
+    // Forward declaration for audio manager functions
+    void PlayTimerSounds(float prevTime, float currentTime, AudioManager* audioMgr);
+
     inline void Update(float dt, Scene& scene)
     {
         if (gQuotaReached) return;
@@ -105,6 +123,7 @@ namespace Economy
         if (gTimerPaused) return;
         if (dt <= 0.0f) return;
 
+        float prevTime = gTimeRemaining;
         gTimeRemaining -= dt;
 
         if (gTimeRemaining <= 0.0f)

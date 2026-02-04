@@ -194,7 +194,51 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	customerManager_.Update(physicsDt, *this);
 
 	if (simulationActive) {
+		float prevTime = Economy::gTimeRemaining;
 		Economy::Update(deltaTime, *this);
+		
+		// Play timer warning sounds (release mode only)
+#ifndef _DEBUG
+		if (audioManager_) {
+			float currentTime = Economy::gTimeRemaining;
+			
+			// Play sfx_remaining_time when timer reaches 10 seconds
+			if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
+				Economy::gPlayed10SecWarning = true;
+				if (audioManager_->HasSound("sfx_remaining_time")) {
+					audioManager_->PlaySound("sfx_remaining_time", audioManager_->GetVfxVolume(), false);
+				}
+			}
+
+			// Play sfx_beep at 3, 2, and 1 seconds
+			if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
+				Economy::gPlayed3SecBeep = true;
+				if (audioManager_->HasSound("sfx_beep")) {
+					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
+				}
+			}
+			if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
+				Economy::gPlayed2SecBeep = true;
+				if (audioManager_->HasSound("sfx_beep")) {
+					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
+				}
+			}
+			if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
+				Economy::gPlayed1SecBeep = true;
+				if (audioManager_->HasSound("sfx_beep")) {
+					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
+				}
+			}
+
+			// Play sfx_time_up when timer reaches 0
+			if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
+				Economy::gPlayedTimeUp = true;
+				if (audioManager_->HasSound("sfx_time_up")) {
+					audioManager_->PlaySound("sfx_time_up", audioManager_->GetVfxVolume(), false);
+				}
+			}
+		}
+#endif
 	}
 
 	if (simulationActive) {
