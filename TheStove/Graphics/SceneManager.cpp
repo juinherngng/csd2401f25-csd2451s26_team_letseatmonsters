@@ -427,6 +427,26 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	std::vector<GameObject*> all = entityManager.GetAllObjects();
 	out.reserve(all.size());
 
+	// Helper to convert layer name to sort key
+	auto parseLayerNumber = [](const std::string& s) -> int {
+		if (s.empty()) {
+			return 1; // base layer
+		}
+
+		int result = 0;
+		for (char c : s) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				// Any non-numeric layer name behaves like a very "high" layer
+				// so that it draws on top of numeric layers.
+				return 1000000;
+			}
+
+			result = result * 10 + (c - '0');
+		}
+
+		return result;
+	};
+
 	for (GameObject* g : all) {
 		if (!g) {
 			continue;
@@ -453,46 +473,27 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 			}
 		}
 
+		// Set the render layer on the object for use in GraphicsEngine
+		g->SetRenderLayer(parseLayerNumber(layerName));
+
 		out.push_back(g);
 	}
-
-	// Helper to convert layer name to sort key
-	auto parseLayerNumber = [](const std::string& s) -> int {
-		if (s.empty()) {
-			return 1; // base layer
-		}
-
-		int result = 0;
-		for (char c : s) {
-			if (!std::isdigit(static_cast<unsigned char>(c))) {
-				// Any non-numeric layer name behaves like a very "high" layer
-				// so that it draws on top of numeric layers.
-				return 1000000;
-			}
-
-			result = result * 10 + (c - '0');
-		}
-
-		return result;
-		};
 
 	std::sort(
 		out.begin(),
 		out.end(),
 		[&](GameObject* a, GameObject* b) {
-			const std::string laName = GetObjectLayer(a->GetID());
-			const std::string lbName = GetObjectLayer(b->GetID());
+			int la = a->GetRenderLayer();
+			int lb = b->GetRenderLayer();
 
-			int la = parseLayerNumber(laName);
-			int lb = parseLayerNumber(lbName);
-
-			// Different layers: smaller layer number drawn first
+			// Different layers: smaller layer number drawn first (behind),
+			// higher layer number drawn later (on top)
 			if (la != lb) {
-				return la > lb;
+				return la < lb;
 			}
 
-			// Same layer - higher Y drawn first (lower on screen appears in front)
-			return a->GetPosition().y > b->GetPosition().y;
+			// Same layer - lower Y drawn first (higher on screen appears behind)
+			return a->GetPosition().y < b->GetPosition().y;
 		}
 	);
 }
