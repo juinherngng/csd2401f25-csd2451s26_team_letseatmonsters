@@ -3,7 +3,7 @@
 # Script to count lines of code for ALL authors and save to individual files
 # Usage: ./count_loc_all_authors.sh
 
-SINCE_DATE="2025-12-07"
+SINCE_DATE="2025-12-06"
 OUTPUT_DIR="loc_reports"
 
 echo "=========================================="
