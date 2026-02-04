@@ -724,6 +724,9 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		shader->SetViewMatrix(viewMatrix);
 		shader->SetProjectionMatrix(projectionMatrix);
 
+		// set per-object tint (u_Color)
+		shader->SetColorTint(obj->GetColorTint());
+
 		Texture* tex = obj->GetTexture();
 		if (tex) {
 			tex->Bind(0);
@@ -732,7 +735,18 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 
 		Mesh* mesh = obj->GetMesh();
 		if (mesh) {
+			// enable alpha blending for sprite draw
+			GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+			if (!blendWasEnabled) {
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			}
+
 			mesh->Draw();
+
+			if (!blendWasEnabled) {
+				glDisable(GL_BLEND);
+			}
 		}
 
 		if (DebugRenderer::IsEnabled()) {
@@ -879,38 +893,41 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	auto flushBatch = [&](const std::vector<Mesh::InstanceData>& batch, const RenderKey& key) {
 		if (batch.empty() || !key.mesh || !key.shader) return;
 
-		const bool wantsInstancing = batch.size() >= INSTANCING_THRESHOLD;
+		bool wantsInstancing = batch.size() >= INSTANCING_THRESHOLD;
+
+		// Instanced shaders do not carry per-instance tint yet -> fall back when needed
+		bool needsPerInstanceTint = false;
+		for (const auto& inst : batch) {
+			if (inst.colorTint.x != 1.0f || inst.colorTint.y != 1.0f ||
+				inst.colorTint.z != 1.0f || inst.colorTint.w < 0.999f) {
+				needsPerInstanceTint = true;
+				break;
+			}
+		}
 
 		// Map the original shader -> preferred instanced shader 
 		Shader* preferredInstanced = nullptr;
 		if (key.shader == resourceManager.GetShader("staticsprite")) {
 			preferredInstanced = staticsInstShader;
-		}
-		else if (key.shader == animShader) {
+		} else if (key.shader == animShader) {
 			preferredInstanced = animatedInstShader;
 		}
 
-		// If we should and can instance, use instanced path
-		if (wantsInstancing && preferredInstanced) {
-			key.mesh->SetupInstanceBuffer(batch);
+		const bool useInstanced = wantsInstancing && preferredInstanced && !needsPerInstanceTint;
 
+		if (useInstanced) {
+			// existing instanced path (unchanged)
+			key.mesh->SetupInstanceBuffer(batch);
 			preferredInstanced->Use();
 			preferredInstanced->SetViewMatrix(view);
 			preferredInstanced->SetProjectionMatrix(projection);
-
-			if (key.texture) {
-				key.texture->Bind(0);
-				preferredInstanced->SetTexture("u_Texture", 0);
-			}
-
+			if (key.texture) { key.texture->Bind(0); preferredInstanced->SetTexture("u_Texture", 0); }
 			key.mesh->DrawInstanced(key.texture, static_cast<GLsizei>(batch.size()));
-
 			renderStats.drawCalls++;
 			renderStats.totalBatches++;
 			renderStats.instancedObjects += static_cast<int>(batch.size());
-		}
-		else {
-			// Non-instanced fallback: draw each element with original shader so per-object uniforms work
+		} else {
+			// existing non-instanced fallback, but keep tint+blending enabled
 			key.shader->Use();
 			key.shader->SetViewMatrix(view);
 			key.shader->SetProjectionMatrix(projection);
@@ -920,18 +937,29 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 				key.shader->SetTexture("u_Texture", 0);
 			}
 
+			// Enable alpha blending for sprite draws
+			GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+			if (!blendWasEnabled) {
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			}
+
 			for (const auto& inst : batch) {
-				// per-object model matrix
 				key.shader->SetModelMatrix(inst.modelMatrix);
 
-				// If shader is animated (non-instanced), supply UV via uniforms
 				if (key.shader == animShader) {
 					key.shader->SetUVOffset(glm::vec2(inst.uvOffsetScale.x, inst.uvOffsetScale.y));
 					key.shader->SetUVScale(glm::vec2(inst.uvOffsetScale.z, inst.uvOffsetScale.w));
 				}
 
+				key.shader->SetColorTint(inst.colorTint);
+
 				key.mesh->Draw();
 				renderStats.drawCalls++;
+			}
+
+			if (!blendWasEnabled) {
+				glDisable(GL_BLEND);
 			}
 
 			renderStats.totalBatches++;
@@ -955,6 +983,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		inst.modelMatrix = obj->GetModelMatrix();
 		// Always store per-object UV rect in instance data (instanced shader will use it, fallback uses uniforms)
 		inst.uvOffsetScale = obj->GetUVRect();
+		inst.colorTint = obj->GetColorTint();
 		instanceBatch.push_back(inst);
 	}
 

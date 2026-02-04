@@ -1235,19 +1235,14 @@ void Scene::CleanupCutsceneObjects() {
 	}
 }
 
+// Crossfade helper
 void Scene::SetSpriteAlpha(GameObject* obj, float alpha) {
-	if (!obj) return;
-	// If sprite shader supports a vertex color or uniform tint with alpha,
-	// hook that here. As a safe no-op fallback, we reuse UV rect trick by
-	// slightly shrinking when alpha ~0 to visually hide (not a real fade).
-	// Replace with proper per-sprite color when available.
-	if (alpha <= 0.01f) {
-		// Hide by moving UV to a 0-sized rect (fallback).
-		obj->SetUVRect({ 0.f, 0.f, 0.f, 0.f });
-	} else {
-		// Show full rect.
-		obj->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
-	}
+    if (!obj) return;
+    // Clamp and apply as RGBA tint
+    float a = std::clamp(alpha, 0.0f, 1.0f);
+    obj->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, a));
+    // Keep full UV rect so texture is still visible
+    obj->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
 }
 
 // Call this from MenuButtonLogic on click
@@ -1283,7 +1278,7 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
     cutTrans_.awaitingInitialFadeIn = false;
 
     cutTrans_.useCrossfade = true;
-    cutTrans_.crossfadeSeconds = fadeOutSeconds;
+    cutTrans_.crossfadeSeconds = 2.0f;
     cutTrans_.crossfadeFromIndex = 5;
 
 	// Note: do not spawn the first image yet.
@@ -1327,7 +1322,12 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
                 if (cutTrans_.useCrossfade && static_cast<int>(nextIndex) == cutTrans_.crossfadeFromIndex) {
                     const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
                     const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
-                    if (GameObject* b = SpawnStaticSprite(cutTrans_.images[nextIndex], center, full, cutTrans_.uiLayer)) {
+                    // when spawning next for crossfade (5 -> 6)
+                    const glm::vec3 topCenter{ center.x, center.y, 0.001f };
+                    if (GameObject* b = SpawnStaticSprite(cutTrans_.images[nextIndex],
+                                      topCenter,
+                                      full,
+                                      cutTrans_.uiLayer)) {
                         cutTrans_.nextSpriteId = b->GetID();
                         SetSpriteAlpha(b, 0.0f);
                         cutTrans_.crossfading = true;
