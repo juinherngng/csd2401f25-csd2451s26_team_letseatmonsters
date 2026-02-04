@@ -38,6 +38,9 @@
 #include "SceneManager.hpp"
 #include "GraphicsEngine.hpp"
 
+// Cache for boundary flags used by bounded transitioned cutscenes
+static std::vector<bool> sCutsceneBoundaryFlags;
+
 namespace {
 	// If an object has no collider yet, initialise an AABB that matches its visual size.
 	void InitDefaultCollider(GameObject* obj) {
@@ -117,8 +120,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	UpdateAnimationControls();
 #endif
 
-	// Drive transitioned cutscene every frame so transitions progress
+	// Drive both cutscene players every frame so transitions progress
 	UpdateCutsceneTransitioned(deltaTime);
+	UpdateCutscene(deltaTime);
 
 	if (pendingClear_) {
 		ClearAll();
@@ -770,10 +774,10 @@ void Scene::ShowPauseOverlay() {
 	const std::string uiLayer = "999999";
 
 	// Pause overlay background
-    if (GameObject* dim = SpawnStaticSprite(FilePaths::Textures::PAUSE_BG,
-											{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
-											{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
-											uiLayer)) {
+	if (GameObject* dim = SpawnStaticSprite("../assets/paused.png",
+		{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
+		{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
+		uiLayer)) {
 		pauseOverlayObjectIds_.push_back(dim->GetID());
 		std::cout << "  [Scene] Pause background id=" << dim->GetID() << "\n";
 	}
@@ -806,9 +810,9 @@ void Scene::ShowPauseOverlay() {
 		}
 		};
 
-	spawnPauseBtn(FilePaths::Textures::BTN_CONTINUE, { 1300.f, 454.f }, PauseAction::Resume);
-	spawnPauseBtn(FilePaths::Textures::BTN_HOW, { 1300.f, 584.f }, PauseAction::HowToPlay);
-	spawnPauseBtn(FilePaths::Textures::BTN_QUIT, { 1300.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn("../assets/resume_s.png", { 1300.f, 454.f }, PauseAction::Resume);
+	spawnPauseBtn("../assets/how_s.png", { 1300.f, 584.f }, PauseAction::HowToPlay);
+	spawnPauseBtn("../assets/quit_s.png", { 1300.f, 714.f }, PauseAction::Quit);
 #endif
 }
 
@@ -1285,7 +1289,9 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
                                       bool activateSimulation,
                                       float fadeOutSeconds,
                                       float fadeInSeconds,
-                                      float holdSeconds) {
+                                      float holdSeconds,
+                                      int crossfadeFromIndex,
+                                      float crossfadeSeconds) {
     if (imagePaths.empty()) {
         QueueLevelLoad(levelJsonPath, activateSimulation);
         return;
@@ -1311,12 +1317,12 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
     cutTrans_.awaitingBlackout = false;
     cutTrans_.awaitingInitialFadeIn = false;
 
-    cutTrans_.useCrossfade = true;
-    cutTrans_.crossfadeSeconds = 2.0f;
-    cutTrans_.crossfadeFromIndex = 5;
+    // Crossfade configuration
+    cutTrans_.useCrossfade = (crossfadeFromIndex >= 0);
+    cutTrans_.crossfadeSeconds = std::max(0.05f, crossfadeSeconds);
+    cutTrans_.crossfadeFromIndex = crossfadeFromIndex;
 
-	// Note: do not spawn the first image yet.
-    // Start fade-out to blackout, will spawn at blackout and fade-in.
+    // Note: do not spawn the first image yet.
     auto& gfx = GetGraphicsEngine();
     gfx.StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
     cutTrans_.awaitingBlackout = true;
@@ -1353,34 +1359,52 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
         if (cutTrans_.holdElapsed >= cutTrans_.holdSeconds) {
             const size_t nextIndex = cutTrans_.index + 1;
             if (nextIndex < cutTrans_.images.size()) {
-                if (cutTrans_.useCrossfade && static_cast<int>(nextIndex) == cutTrans_.crossfadeFromIndex) {
-                    const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
-                    const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
-                    // when spawning next for crossfade (5 -> 6)
-                    const glm::vec3 topCenter{ center.x, center.y, 0.001f };
-                    if (GameObject* b = SpawnStaticSprite(cutTrans_.images[nextIndex],
-                                      topCenter,
-                                      full,
-                                      cutTrans_.uiLayer)) {
-                        cutTrans_.nextSpriteId = b->GetID();
-                        SetSpriteAlpha(b, 0.0f);
-                        cutTrans_.crossfading = true;
-                        cutTrans_.crossfadeT = 0.0f;
-                        cutTrans_.index = nextIndex;
-                        cutTrans_.holding = false;
+                const bool isBoundary = (nextIndex < sCutsceneBoundaryFlags.size())
+                    ? sCutsceneBoundaryFlags[nextIndex]
+                    : true;
+
+                // Boundary-aware: decide transition vs instantaneous swap
+                if (isBoundary) {
+                    // Crossfade at specific boundary index
+                    if (cutTrans_.useCrossfade && static_cast<int>(nextIndex) == cutTrans_.crossfadeFromIndex) {
+                        const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+                        const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+                        const glm::vec3 topCenter{ center.x, center.y, 0.001f };
+                        if (GameObject* b = SpawnStaticSprite(cutTrans_.images[nextIndex], topCenter, full, cutTrans_.uiLayer)) {
+                            cutTrans_.nextSpriteId = b->GetID();
+                            SetSpriteAlpha(b, 0.0f);
+                            cutTrans_.crossfading = true;
+                            cutTrans_.crossfadeT = 0.0f;
+                            cutTrans_.index = nextIndex;
+                            cutTrans_.holding = false;
+                        } else {
+                            gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+                            cutTrans_.awaitingBlackout = true;
+                            cutTrans_.holding = false;
+                            cutTrans_.holdElapsed = 0.0f;
+                        }
                     } else {
+                        // Normal boundary: use fade-out/in
                         gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
                         cutTrans_.awaitingBlackout = true;
                         cutTrans_.holding = false;
                         cutTrans_.holdElapsed = 0.0f;
                     }
                 } else {
-                    gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
-                    cutTrans_.awaitingBlackout = true;
-                    cutTrans_.holding = false;
+                    // Intra-chapter frame: instantaneous swap without transition
+                    // Spawn next, promote immediately, maintain holding for next frame delay
+                    if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
+                    const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+                    const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+                    if (GameObject* s = SpawnStaticSprite(cutTrans_.images[nextIndex], center, full, cutTrans_.uiLayer)) {
+                        cutTrans_.currentSpriteId = s->GetID();
+                    }
+                    cutTrans_.index = nextIndex;
                     cutTrans_.holdElapsed = 0.0f;
+                    cutTrans_.holding = true; // continue holding sequence for next frame
                 }
             } else {
+                // End: boundary or not, finish with fade and load level
                 gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
                 cutTrans_.awaitingBlackout = true;
                 cutTrans_.holding = false;
@@ -1430,6 +1454,65 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
             cutTrans_.fadeInAfterLoad = true; // handled in Scene::Update after LoadAndBuild
         }
     }
+}
+
+void Scene::StartCutsceneTransitionedBounded(const std::vector<std::string>& imagePaths,
+                                             const std::vector<bool>& boundaryFlags,
+                                             const std::string& levelJsonPath,
+                                             bool activateSimulation,
+                                             float fadeOutSeconds,
+                                             float fadeInSeconds,
+                                             float holdSeconds,
+                                             int crossfadeFromIndex,
+                                             float crossfadeSeconds) {
+    if (imagePaths.empty() || imagePaths.size() != boundaryFlags.size()) {
+        QueueLevelLoad(levelJsonPath, activateSimulation);
+        return;
+    }
+
+#ifndef _DEBUG
+    SetSimulationActive(false);
+#endif
+    HidePauseOverlay();
+
+    if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
+    cutTrans_ = {};
+    cutTrans_.active = true;
+    cutTrans_.images = imagePaths;
+    cutTrans_.index = 0;
+    cutTrans_.targetLevelJson = levelJsonPath;
+    cutTrans_.targetActivateSim = activateSimulation;
+    cutTrans_.outSeconds = fadeOutSeconds;
+    cutTrans_.inSeconds = fadeInSeconds;
+    cutTrans_.holdSeconds = std::max(0.0f, holdSeconds);
+    cutTrans_.holdElapsed = 0.0f;
+    cutTrans_.holding = false;
+    cutTrans_.awaitingBlackout = false;
+
+    // Crossfade configuration
+    cutTrans_.useCrossfade = (crossfadeFromIndex >= 0);
+    cutTrans_.crossfadeSeconds = std::max(0.05f, crossfadeSeconds);
+    cutTrans_.crossfadeFromIndex = crossfadeFromIndex;
+
+    // Reuse 'awaitingInitialFadeIn' to simplify state
+    cutTrans_.awaitingInitialFadeIn = false;
+
+    // Store boundaries in a side array via images count alignment
+    sCutsceneBoundaryFlags = boundaryFlags;
+
+	auto& gfx = GetGraphicsEngine();
+	gfx.StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+	cutTrans_.awaitingBlackout = true;
+
+	// Update logic: handle intra-frame (no transition) vs boundary (transition) vs crossfade
+	struct Local {
+		static bool IsBoundary(size_t nextIndex) {
+			return nextIndex < sCutsceneBoundaryFlags.size() ? sCutsceneBoundaryFlags[nextIndex] : true;
+		}
+	};
+
+	// Wrap existing function with boundary-aware behavior
+	// Replace Scene::UpdateCutsceneTransitioned body with boundary checks
 }
 
 // Order UI slide-in API 
