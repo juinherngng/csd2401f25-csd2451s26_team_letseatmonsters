@@ -5,7 +5,7 @@
 # Example: ./count_loc.sh "John Doe"
 
 # Configuration
-SINCE_DATE="2025-10-13"
+SINCE_DATE="2025-12-07"
 AUTHOR="${1:-$(git config user.name)}"  # Use provided author or current git user
 
 echo "=========================================="

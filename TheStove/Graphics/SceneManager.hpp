@@ -384,16 +384,36 @@ public:
 	                               bool activateSimulation,
 	                               float fadeOutSeconds = 0.35f,
 	                               float fadeInSeconds = 0.35f,
-								   float holdSeconds = 1.5f);
+	                               float holdSeconds = 1.5f,
+	                               int crossfadeFromIndex = -1,           // -1 = disabled; otherwise crossfade when transitioning to this target index
+	                               float crossfadeSeconds = 0.75f);
+
+	// Starts a cutscene with per-frame images. 'boundaryFlags' marks indices where a chapter boundary occurs.
+	// At boundaries, the engine performs fade-out/in (or crossfade when 'crossfadeFromIndex' matches).
+	// Between frames without a boundary, it swaps instantly with no transition (for smooth animation).
+	void StartCutsceneTransitionedBounded(const std::vector<std::string>& imagePaths,
+										  const std::vector<bool>& boundaryFlags,
+										  const std::string& levelJsonPath,
+										  bool activateSimulation,
+										  float fadeOutSeconds = 0.35f,
+										  float fadeInSeconds = 0.35f,
+										  float holdSeconds = 1.0f / 12.0f, // default 12 FPS
+										  int crossfadeFromIndex = -1,
+										  float crossfadeSeconds = 0.75f);
 
 	// Order UI slide-in API
 	// Spawns an Order UI sprite off-screen at the top, then animates it sliding down to target.
 	// Returns spawned object ID or -1 on failure.
 	int TriggerOrderUiSlideIn(const glm::vec2& targetPos,
-	                          const glm::vec2& size,
-	                          const std::string& layer = "3",
-	                          const std::string& texturePath = "../assets/Order_UI.png",
-	                          float slideDuration = 0.45f);
+		const glm::vec2& size,
+		const std::string& layer = "3",
+		const std::string& texturePath = "../assets/Order_UI.png",
+		float slideDuration = 0.45f);
+
+	// Check if any cutscene is active
+	bool IsAnyCutsceneActive() const {
+        return cutscene_.active || cutTrans_.active;
+    }
 
 private:
 	// Engine/input

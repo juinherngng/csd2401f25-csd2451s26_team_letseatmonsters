@@ -2,171 +2,79 @@
 Lines of Code Report
 ==========================================
 Author: Chun Wee
-Since: 2025-11-08
-Generated: Sun Nov 30 23:02:37 +08 2025
+Since: 2025-12-06
+Generated: Wed Feb  4 20:01:32 +08 2026
 ==========================================
 
-Files Modified: 125 unique files
+Files Modified: 43 unique files
 
-Files Still Exist: 123 files
+Files Still Exist: 39 files
 
 ==========================================
 CODE ANALYSIS - SUMMARY
 Excludes: Comments and Blank Lines
 ==========================================
 
-     123 text files.
-classified 123 filesDuplicate file check 123 files (122 known unique)Unique:      100 files                                               123 unique files.                              
-Counting:  100       1 file ignored.
-
-github.com/AlDanial/cloc v 1.90  T=2.48 s (49.2 files/s, 9295.0 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.51 s (70.6 files/s, 24492.9 lines/s)
 -------------------------------------------------------------------------------
 Language                     files          blank        comment           code
 -------------------------------------------------------------------------------
-C++                             55           2856           2172          10177
-C/C++ Header                    58           1162           3011           2677
-JSON                             7              0              0            573
-Bourne Shell                     2             63             32            312
+C++                             16           1717           1175           6630
+C/C++ Header                     9            306            364            984
+Bourne Shell                     4             88             49            443
+JSON                             1              1              0            304
+Text                             5             30              0            303
+INI                              1             14              0             73
 -------------------------------------------------------------------------------
-SUM:                           122           4081           5215          13739
+SUM:                            36           2156           1588           8737
 -------------------------------------------------------------------------------
 
 ==========================================
 CODE ANALYSIS - PER FILE (Current State)
 ==========================================
 
-     123 text files.
-classified 123 filesDuplicate file check 123 files (122 known unique)Unique:      100 files                                               123 unique files.                              
-Counting:  100       1 file ignored.
-
-github.com/AlDanial/cloc v 1.90  T=2.16 s (56.4 files/s, 10650.6 lines/s)
+github.com/AlDanial/cloc v 1.98  T=0.51 s (70.9 files/s, 24627.2 lines/s)
 ---------------------------------------------------------------------------------------------
 File                                                      blank        comment           code
 ---------------------------------------------------------------------------------------------
-TheStove/Core/LevelEditorPanelLevel.cpp                     190            100            788
-TheStove/Graphics/GraphicsEngine.cpp                        172            131            688
-TheStove/Core/LevelEditorPanelAssets.cpp                    167            122            643
-TheStove/Main.cpp                                           183            155            642
-TheStove/Graphics/SceneManager.cpp                          145             88            609
-TheStove/Core/DebugUI.cpp                                   141            113            582
-TheStove/Core/PlayerLogic.cpp                               156            151            491
-TheStove/Core/Math.cpp                                      115             34            385
-TheStove/Graphics/SceneCollisionLayout.cpp                  117             92            375
-TheStove/Core/MovementManager.cpp                            92             66            370
-TheStove/Core/AudioManager.cpp                               99             74            301
-TheStove/Graphics/SceneManager.hpp                           64             71            252
-TheStove/Core/AudioLoading.cpp                               66             34            233
-levels/kitchen01.json                                         0              0            225
-TheStove/Core/LevelEditorPanelPrefabs.cpp                    55             40            200
-TheStove/Core/ConfigManager.cpp                              40             24            194
-TheStove/Core/LevelEditorFileIO.cpp                          58             41            194
-TheStove/Core/SimpleNpcLogic.cpp                             59             43            180
-TheStove/Graphics/AnimationManager.cpp                       59             36            179
-TheStove/Core/Collision.cpp                                  46             32            176
-TheStove/Core/Physics.cpp                                    45             38            171
+TheStove/Graphics/SceneManager.cpp                          248            166           1097
+TheStove/Core/LevelEditorPanelLevel.cpp                     267            142           1061
+TheStove/Graphics/GraphicsEngine.cpp                        228            161            918
+TheStove/Core/LevelEditorPickDrag.cpp                       167             99            804
+TheStove/Core/LevelEditorPanelAssets.cpp                    147            110            576
+TheStove/Core/PlayerLogic.cpp                               176            167            523
+TheStove/Graphics/SceneManager.hpp                           89            101            374
+TheStove/Graphics/SceneCollisionLayout.cpp                  104             80            342
+TheStove/Core/LevelEditorPanelPrefabs.cpp                    87             55            311
+levels/kitchen01.json                                         1              0            304
+TheStove/Graphics/ParticleSystem.cpp                         58             11            248
+loc_reports/Wang_Hua_loc_report.txt                          12              0            182
+TheStove/Core/LevelSerializer.cpp                            42             30            158
 count_loc.sh                                                 29             19            158
-TheStove/Core/GameStateManager.cpp                           33             33            154
+TheStove/Graphics/GraphicsEngine.hpp                         44             40            155
 count_loc_all_authors.sh                                     34             13            154
-levels/kitchen02test.json                                     0              0            148
-TheStove/Core/Message.hpp                                    31             98            142
-TheStove/Core/DebugVisualizer.cpp                            37             28            140
-TheStove/Graphics/GraphicsEngine.hpp                         36             34            133
-TheStove/Core/PlayerController.cpp                           31             28            131
 TheStove/Core/InputManager.cpp                               45             27            130
-TheStove/Graphics/DebugRenderer.cpp                          35             19            126
-TheStove/Core/PhysicsManager.cpp                             41             41            125
-TheStove/Graphics/EntityManager.cpp                          35             21            125
+TheStove/Core/PhysicsManager.cpp                             42             41            129
 TheStove/Core/NpcSystem.cpp                                  37             28            121
-TheStove/Core/Factory.cpp                                    30             33            119
-TheStove/Graphics/Shader.cpp                                 35             20            119
-TheStove/Graphics/ResourceManager.cpp                        36             16            118
-TheStove/Core/Math.hpp                                      108            985            112
-TheStove/Core/RigidBody2D.cpp                                37             31            112
-levels/kitchen02.json                                         0              0            112
-TheStove/Core/DebugUI.hpp                                    45             26            109
-TheStove/Core/LevelEditorPickDrag.cpp                        27             26             95
-TheStove/Graphics/GameObject.cpp                             31             16             95
-TheStove/Core/Forces.cpp                                     27             23             91
-TheStove/Core/LevelSerializer.cpp                            28             22             91
-TheStove/Core/SpatialGrid.cpp                                24             13             83
-TheStove/Graphics/GameObject.hpp                             39             63             82
-TheStove/Core/LogicManager.hpp                               17             13             81
-TheStove/Core/AudioManager.hpp                               32            299             75
-TheStove/Graphics/Mesh.cpp                                   28             19             73
-TheStove/Graphics/Texture.cpp                                23             14             73
-TheStove/Core/Core.cpp                                       23             27             71
-TheStove/Core/MovementManager.hpp                            46             59             68
-TheStove/Core/SimpleNpcLogic.hpp                             32             33             68
-TheStove/Core/MessageBus.hpp                                 20             93             66
-TheStove/Core/CollisionManager.cpp                           22             27             60
-TheStove/Graphics/Animator.hpp                               17             27             60
-TheStove/Graphics/SceneDebug.cpp                             23             23             60
-TheStove/Core/ISerializer.cpp                                13              9             59
-TheStove/Core/Core.hpp                                       21            116             58
-TheStove/Core/GameComponent.hpp                              20             35             58
-TheStove/Core/Transform.cpp                                  20             16             58
-TheStove/Core/Transform.hpp                                  22             25             56
-TheStove/Core/GameStateManager.hpp                           21             19             55
-TheStove/Core/PhysicsManager.hpp                             27             42             55
-TheStove/Graphics/EntityManager.hpp                          16             16             55
-TheStove/Core/TileMap.cpp                                    12             17             51
-TheStove/Core/Forces.hpp                                     23             36             50
-TheStove/Core/PlayerController.hpp                           18             27             48
-TheStove/Graphics/Layer.hpp                                  16             12             47
-TheStove/Core/GOC.hpp                                        27             43             46
-TheStove/Core/InputControls.cpp                              22             29             46
-TheStove/Core/LevelEditor.hpp                                13             29             46
-TheStove/Graphics/ResourceManager.hpp                        19             19             46
+TheStove/Graphics/GameObject.hpp                             42             66            118
+TheStove/Graphics/GameObject.cpp                             31             14             96
+loc_reports/CookieWasTaken_loc_report.txt                    12              0             91
+imgui.ini                                                    14              0             73
+TheStove/Core/CollisionManager.cpp                           25             27             71
+TheStove/count_loc_v2.sh                                     12              7             68
+TheStove/Graphics/ParticleSystem.hpp                         21              9             64
+TheStove/count_loc.sh                                        13             10             63
+TheStove/Core/PhysicsManager.hpp                             28             42             60
+TheStove/Graphics/Layer.hpp                                  16             13             58
+TheStove/Core/LevelSerializer.hpp                            21             29             57
+TheStove/Core/PlayerLogic.hpp                                24             28             53
+TheStove/Core/CollisionManager.hpp                           21             36             45
 TheStove/Core/InputCommandHandler.cpp                        13             17             45
-TheStove/Core/RigidBody2D.hpp                                36             51             45
-TheStove/Graphics/AnimationManager.hpp                       20             30             44
-TheStove/Core/PlayerLogic.hpp                                21             27             43
-TheStove/Core/GOC.cpp                                        14             35             42
-TheStove/Core/CollisionManager.hpp                           18             36             40
-TheStove/Core/InputManager.hpp                               21             35             40
-TheStove/Core/Collision.hpp                                  18             21             39
-TheStove/Core/Physics.hpp                                    13             16             38
-TheStove/Core/LevelEditor.cpp                                12             22             36
-TheStove/Core/AudioLoading.hpp                               18            120             35
-TheStove/Graphics/MeshLoader.cpp                             10             14             35
-TheStove/Core/NpcSystem.hpp                                  17             29             34
-TheStove/Core/GameObjectLogic.hpp                             9             13             32
-TheStove/Core/LevelSerializer.hpp                            13             20             32
-TheStove/Core/SpatialGrid.hpp                                15             21             31
-TheStove/Core/Factory.hpp                                    21             32             29
-TheStove/Graphics/Mesh.hpp                                   16             10             29
-TheStove/Graphics/VertexArray.cpp                            13             13             29
-TheStove/Graphics/Texture.hpp                                10             11             27
-TheStove/Graphics/Shader.hpp                                 12             11             26
-TheStove/Core/InputCommandHandler.hpp                         9             24             25
-TheStove/Core/TileMap.hpp                                    14             21             23
-TheStove/Core/DebugVisualizer.hpp                            14             24             22
-prefabs/my_goat.json                                          0              0             22
-prefabs/my_goat1.json                                         0              0             22
-prefabs/my_goat2.json                                         0              0             22
-prefabs/my_goat3.json                                         0              0             22
-TheStove/Core/ComponentCreator.hpp                           12             22             21
-TheStove/Core/InputControls.hpp                               9             17             18
-TheStove/Graphics/DebugRenderer.hpp                          17             30             18
-TheStove/Core/ISerializer.hpp                                 9              9             17
-TheStove/Core/TestLevel2.cpp                                  8             10             15
-TheStove/Graphics/VertexBuffer.cpp                            7              9             15
-TheStove/Core/System.hpp                                     10             38             14
-TheStove/Core/TestLevel.cpp                                   7             11             14
-TheStove/Graphics/Renderer.cpp                                7             10             13
-TheStove/Graphics/VertexArray.hpp                             7              9             12
-TheStove/Core/LevelEditorPanelLevel.hpp                       6             20             10
-TheStove/Graphics/VertexBuffer.hpp                            6              9             10
-TheStove/Core/LevelEditorPanelAssets.hpp                      5             18              9
-TheStove/Core/LevelEditorPickDrag.hpp                         5             18              9
-TheStove/Graphics/MeshLoader.hpp                              6             10              9
-TheStove/Core/Precompiled.hpp                                 4             10              7
-TheStove/Core/TestLevel.hpp                                   8             10              7
-TheStove/Core/TestLevel2.hpp                                  8             10              7
-TheStove/Graphics/Renderer.hpp                                5              9              7
-TheStove/Core/GameObjectLogic.cpp                             5             11              6
+loc_reports/Chun_Wee_loc_report.txt                           6              0             29
+loc_reports/00_SUMMARY.txt                                    1              0             11
+assets/config.txt                                             1              0              6
 ---------------------------------------------------------------------------------------------
-SUM:                                                       4081           5215          13739
+SUM:                                                       2158           1588           8753
 ---------------------------------------------------------------------------------------------
 
 ==========================================
@@ -175,131 +83,49 @@ GIT CHANGES PER FILE
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-TheStove/Graphics/SceneCollisionLayout.cpp                                    594         44        550
-TheStove/Graphics/SceneManager.cpp                                            560        965       -405
-TheStove/Core/Math.cpp                                                        510        569        -59
-TheStove/Core/LevelEditorPanelLevel.cpp                                       412        103        309
-TheStove/Main.cpp                                                             371        172        199
-TheStove/Core/LevelEditorPanelAssets.cpp                                      309        121        188
-TheStove/Core/AudioManager.hpp                                                302        300          2
-TheStove/Core/DebugUI.cpp                                                     195        267        -72
-TheStove/Graphics/SceneManager.hpp                                            191        211        -20
-TheStove/Graphics/Shader.cpp                                                  110        109          1
-TheStove/Graphics/ResourceManager.cpp                                         110        118         -8
-TheStove/Graphics/SceneDebug.cpp                                              106          0        106
-count_loc.sh                                                                   83          1         82
-TheStove/Core/AudioManager.cpp                                                 82        115        -33
-TheStove/Graphics/Mesh.cpp                                                     81         80          1
-TheStove/Graphics/Texture.cpp                                                  76         75          1
-TheStove/Core/SimpleNpcLogic.cpp                                               74         60         14
-TheStove/Graphics/Layer.hpp                                                    71         39         32
-TheStove/Core/PlayerLogic.cpp                                                  68         25         43
-TheStove/Core/LogicManager.hpp                                                 65         49         16
-TheStove/Core/AudioLoading.cpp                                                 61         94        -33
-TheStove/Graphics/GraphicsEngine.hpp                                           60         29         31
-levels/kitchen01.json                                                          58         58          0
-TheStove/Core/PlayerLogic.hpp                                                  56         32         24
-TheStove/Graphics/Animator.hpp                                                 51         45          6
-TheStove/Graphics/ResourceManager.hpp                                          50         46          4
-TheStove/Core/Message.hpp                                                      46         60        -14
-TheStove/Core/Factory.cpp                                                      43         70        -27
-TheStove/Graphics/MeshLoader.cpp                                               42         42          0
-TheStove/Core/Transform.hpp                                                    42         27         15
-TheStove/Core/Core.cpp                                                         42         51         -9
-TheStove/Core/TileMap.cpp                                                      41         40          1
-TheStove/Core/LevelEditorPickDrag.cpp                                          41         21         20
-TheStove/Core/InputControls.cpp                                                41         55        -14
-TheStove/Core/GameObjectLogic.hpp                                              39         12         27
-TheStove/Graphics/GraphicsEngine.cpp                                           38         33          5
-TheStove/Core/Physics.cpp                                                      37         44         -7
-TheStove/Core/GameComponent.hpp                                                37         39         -2
-TheStove/Graphics/VertexArray.cpp                                              34         32          2
-TheStove/Graphics/EntityManager.hpp                                            33         22         11
-TheStove/Graphics/Texture.hpp                                                  31         25          6
-TheStove/Graphics/GameObject.hpp                                               30         12         18
-TheStove/Core/SimpleNpcLogic.hpp                                               30         11         19
-TheStove/Core/MessageBus.hpp                                                   29         43        -14
-TheStove/Core/InputControls.hpp                                                29         30         -1
-TheStove/Core/ComponentCreator.hpp                                             29         28          1
-TheStove/Core/CollisionManager.hpp                                             28         21          7
-TheStove/Core/Transform.cpp                                                    26         42        -16
-TheStove/Core/Core.hpp                                                         26         18          8
-TheStove/Graphics/EntityManager.cpp                                            25         25          0
-prefabs/my_goat3.json                                                          24          2         22
-TheStove/Core/LevelEditor.hpp                                                  24          9         15
-TheStove/Core/DebugVisualizer.cpp                                              24         24          0
-TheStove/Core/DebugUI.hpp                                                      24         21          3
-TheStove/Graphics/Shader.hpp                                                   23         24         -1
-assets/imgui.ini                                                               22         22          0
-TheStove/Graphics/Mesh.hpp                                                     22         21          1
-TheStove/Core/ISerializer.cpp                                                  22         35        -13
-TheStove/Core/GOC.hpp                                                          22         28         -6
-TheStove/Core/Factory.hpp                                                      22         20          2
-TheStove/Core/PlayerController.hpp                                             21         19          2
-TheStove/Core/LevelSerializer.cpp                                              21          5         16
-TheStove/Core/GOC.cpp                                                          21         30         -9
-TheStove/Core/PhysicsManager.hpp                                               20         17          3
-TheStove/Core/PhysicsManager.cpp                                               20         16          4
-TheStove/Core/LevelEditorPanelPrefabs.cpp                                      19         18          1
-TheStove/Core/Math.hpp                                                         18         11          7
-TheStove/Core/CollisionManager.cpp                                             18         11          7
-TheStove/Core/GameStateManager.hpp                                             17         14          3
-TheStove/Core/GameObjectLogic.cpp                                              17          3         14
-levels/kitchen02test.json                                                      16         17         -1
-TheStove/Core/InputManager.cpp                                                 15          8          7
-TheStove/Graphics/AnimationManager.hpp                                         14         11          3
-TheStove/Core/PlayerController.cpp                                             14         14          0
-TheStove/Core/InputCommandHandler.hpp                                          14         14          0
-TheStove/Core/GameStateManager.cpp                                             14         15         -1
-TheStove/Graphics/VertexArray.hpp                                              13         11          2
-TheStove/Core/RigidBody2D.cpp                                                  13         16         -3
-TheStove/Core/NpcSystem.cpp                                                    13         13          0
-TheStove/Core/DebugVisualizer.hpp                                              13         13          0
-TheStove/Core/MovementManager.hpp                                              12          6          6
-TheStove/Core/LevelEditor.cpp                                                  12         14         -2
-TheStove/Core/InputCommandHandler.cpp                                          12         12          0
-TheStove/Graphics/VertexBuffer.hpp                                             11         10          1
-TheStove/Graphics/VertexBuffer.cpp                                             11         11          0
-TheStove/Graphics/MeshLoader.hpp                                               10         10          0
-TheStove/Graphics/DebugRenderer.cpp                                            10          6          4
-TheStove/Core/System.hpp                                                       10         10          0
-TheStove/Core/RigidBody2D.hpp                                                  10         11         -1
-TheStove/Core/NpcSystem.hpp                                                    10         11         -1
-TheStove/Core/AudioLoading.hpp                                                 10         13         -3
-TheStove/Graphics/Renderer.cpp                                                  9          8          1
-TheStove/Graphics/AnimationManager.cpp                                          9          8          1
-TheStove/Core/MovementManager.cpp                                               9          9          0
-TheStove/Core/ISerializer.hpp                                                   9          9          0
-TheStove/Core/LevelEditorPickDrag.hpp                                           8          4          4
-prefabs/my_goat.json                                                            7          6          1
-TheStove/Core/TileMap.hpp                                                       7          5          2
-TheStove/Core/LevelEditorPanelAssets.hpp                                        7          4          3
-TheStove/Core/Forces.cpp                                                        7          7          0
-TheStove/Core/ConfigManager.cpp                                                 7          7          0
-levels/kitchen02.json                                                           6          6          0
-TheStove/Core/TestLevel2.hpp                                                    6          4          2
-TheStove/Core/TestLevel2.cpp                                                    6          4          2
-TheStove/Core/TestLevel.hpp                                                     6          4          2
-TheStove/Core/TestLevel.cpp                                                     6          5          1
-TheStove/Core/Precompiled.hpp                                                   6          6          0
-TheStove/Core/LevelEditorPanelLevel.hpp                                         6          3          3
-TheStove/Core/InputManager.hpp                                                  6          2          4
-TheStove/Core/SpatialGrid.hpp                                                   5          4          1
-TheStove/Core/LevelEditorFileIO.cpp                                             5          7         -2
-TheStove/Core/Forces.hpp                                                        5          5          0
-prefabs/my_goat2.json                                                           4          3          1
-TheStove/Graphics/Renderer.hpp                                                  4          4          0
-TheStove/Core/Collision.hpp                                                     4          7         -3
-assets/config.txt                                                               3          3          0
-TheStove/Core/SpatialGrid.cpp                                                   3          3          0
-TheStove/Core/Physics.hpp                                                       3          2          1
-TheStove/Core/Collision.cpp                                                     3          3          0
-TheStove/Graphics/GameObject.cpp                                                2          1          1
-TheStove/Graphics/DebugRenderer.hpp                                             2          2          0
-prefabs/my_goat1.json                                                           1          0          1
+TheStove/Core/LevelEditorPickDrag.cpp                                        1471        549        922
+TheStove/Graphics/ParticleSystem.cpp                                          428        111        317
+TheStove/Core/LevelEditorPanelLevel.cpp                                       347        217        130
+TheStove/Graphics/SceneManager.cpp                                            197         96        101
+TheStove/Core/PlayerLogic.cpp                                                 182        117         65
+TheStove/Graphics/ParticleSystem.hpp                                          181         87         94
+TheStove/Core/LevelEditorPanelPrefabs.cpp                                     179         21        158
+loc_reports/Wang_Hua_loc_report.txt                                           131        154        -23
+TheStove/Graphics/GraphicsEngine.cpp                                           93         26         67
+TheStove/Graphics/SceneManager.hpp                                             80         46         34
+loc_reports/Chun_Wee_loc_report.txt                                            64        374       -310
+loc_reports/CookieWasTaken_loc_report.txt                                      61         33         28
+imgui.ini                                                                      58         57          1
+TheStove/Core/PlayerLogic.hpp                                                  42         28         14
+levels/kitchen01.json                                                          34         34          0
+TheStove/Core/LevelEditorPanelAssets.cpp                                       23        122        -99
+TheStove/Graphics/SceneCollisionLayout.cpp                                     20         86        -66
+TheStove/Core/CollisionManager.cpp                                             18          4         14
+TheStove/Graphics/Layer.hpp                                                    13          1         12
+TheStove/Core/PhysicsManager.cpp                                               10          5          5
+TheStove/Core/LevelSerializer.cpp                                              10          1          9
+TheStove/Graphics/GameObject.hpp                                                9          4          5
+TheStove/Core/CollisionManager.hpp                                              8          0          8
+TheStove/Graphics/GraphicsEngine.hpp                                            7          1          6
+TheStove/Core/PhysicsManager.hpp                                                6          0          6
+loc_reports/00_SUMMARY.txt                                                      5          8         -3
+TheStove/Graphics/GameObject.cpp                                                5          6         -1
+TheStove/Core/NpcSystem.cpp                                                     3          3          0
+TheStove/Core/LevelSerializer.hpp                                               2          1          1
+TheStove/Core/InputManager.cpp                                                  2          2          0
+TheStove/Core/InputCommandHandler.cpp                                           2          2          0
 count_loc_all_authors.sh                                                        1          1          0
-TheStove/Core/LevelSerializer.hpp                                               1          1          0
-assets/trash/mc_sprite_front                                                    0          0          0
+count_loc.sh                                                                    1          1          0
+assets/config.txt                                                               1          1          0
+TheStove/count_loc_v2.sh                                                        1          1          0
+TheStove/count_loc.sh                                                           1          1          0
+prefabs/trash/my_goat3.json                                                     0         21        -21
+prefabs/trash/my_goat.json                                                      0         21        -21
+loc_reports/y_chunwee_loc_report.txt                                            0         89        -89
+loc_reports/juinherngng_loc_report.txt                                          0        236       -236
+loc_reports/Yat_Chun_Wee_loc_report.txt                                         0        203       -203
+assets/run_vfx.png                                                              0          0          0
+assets/VFX                                                                      0          0          0
                                                                                 0          0          0
 --------------------------------------------------------------------------------------------
 
@@ -307,137 +133,55 @@ assets/trash/mc_sprite_front                                                    
 GIT COMMIT STATISTICS - TOTAL
 ==========================================
 
-Lines Added:    6396
-Lines Deleted:  5273
-Net Change:     1123
-Total Commits:  31
+Lines Added:    3696
+Lines Deleted:  2771
+Net Change:     925
+Total Commits:  24
 
 ==========================================
 FILES MODIFIED
 ==========================================
 
-TheStove/Core/AudioLoading.cpp
-TheStove/Core/AudioLoading.hpp
-TheStove/Core/AudioManager.cpp
-TheStove/Core/AudioManager.hpp
-TheStove/Core/Collision.cpp
-TheStove/Core/Collision.hpp
 TheStove/Core/CollisionManager.cpp
 TheStove/Core/CollisionManager.hpp
-TheStove/Core/ComponentCreator.hpp
-TheStove/Core/ConfigManager.cpp
-TheStove/Core/Core.cpp
-TheStove/Core/Core.hpp
-TheStove/Core/DebugUI.cpp
-TheStove/Core/DebugUI.hpp
-TheStove/Core/DebugVisualizer.cpp
-TheStove/Core/DebugVisualizer.hpp
-TheStove/Core/Factory.cpp
-TheStove/Core/Factory.hpp
-TheStove/Core/Forces.cpp
-TheStove/Core/Forces.hpp
-TheStove/Core/GOC.cpp
-TheStove/Core/GOC.hpp
-TheStove/Core/GameComponent.hpp
-TheStove/Core/GameObjectLogic.cpp
-TheStove/Core/GameObjectLogic.hpp
-TheStove/Core/GameStateManager.cpp
-TheStove/Core/GameStateManager.hpp
-TheStove/Core/ISerializer.cpp
-TheStove/Core/ISerializer.hpp
 TheStove/Core/InputCommandHandler.cpp
-TheStove/Core/InputCommandHandler.hpp
-TheStove/Core/InputControls.cpp
-TheStove/Core/InputControls.hpp
 TheStove/Core/InputManager.cpp
-TheStove/Core/InputManager.hpp
-TheStove/Core/LevelEditor.cpp
-TheStove/Core/LevelEditor.hpp
-TheStove/Core/LevelEditorFileIO.cpp
 TheStove/Core/LevelEditorPanelAssets.cpp
-TheStove/Core/LevelEditorPanelAssets.hpp
 TheStove/Core/LevelEditorPanelLevel.cpp
-TheStove/Core/LevelEditorPanelLevel.hpp
 TheStove/Core/LevelEditorPanelPrefabs.cpp
 TheStove/Core/LevelEditorPickDrag.cpp
-TheStove/Core/LevelEditorPickDrag.hpp
 TheStove/Core/LevelSerializer.cpp
 TheStove/Core/LevelSerializer.hpp
-TheStove/Core/LogicManager.hpp
-TheStove/Core/Math.cpp
-TheStove/Core/Math.hpp
-TheStove/Core/Message.hpp
-TheStove/Core/MessageBus.hpp
-TheStove/Core/MovementManager.cpp
-TheStove/Core/MovementManager.hpp
 TheStove/Core/NpcSystem.cpp
-TheStove/Core/NpcSystem.hpp
-TheStove/Core/Physics.cpp
-TheStove/Core/Physics.hpp
 TheStove/Core/PhysicsManager.cpp
 TheStove/Core/PhysicsManager.hpp
-TheStove/Core/PlayerController.cpp
-TheStove/Core/PlayerController.hpp
 TheStove/Core/PlayerLogic.cpp
 TheStove/Core/PlayerLogic.hpp
-TheStove/Core/Precompiled.hpp
-TheStove/Core/RigidBody2D.cpp
-TheStove/Core/RigidBody2D.hpp
-TheStove/Core/SimpleNpcLogic.cpp
-TheStove/Core/SimpleNpcLogic.hpp
-TheStove/Core/SpatialGrid.cpp
-TheStove/Core/SpatialGrid.hpp
-TheStove/Core/System.hpp
-TheStove/Core/TestLevel.cpp
-TheStove/Core/TestLevel.hpp
-TheStove/Core/TestLevel2.cpp
-TheStove/Core/TestLevel2.hpp
-TheStove/Core/TileMap.cpp
-TheStove/Core/TileMap.hpp
-TheStove/Core/Transform.cpp
-TheStove/Core/Transform.hpp
-TheStove/Graphics/AnimationManager.cpp
-TheStove/Graphics/AnimationManager.hpp
-TheStove/Graphics/Animator.hpp
-TheStove/Graphics/DebugRenderer.cpp
-TheStove/Graphics/DebugRenderer.hpp
-TheStove/Graphics/EntityManager.cpp
-TheStove/Graphics/EntityManager.hpp
 TheStove/Graphics/GameObject.cpp
 TheStove/Graphics/GameObject.hpp
 TheStove/Graphics/GraphicsEngine.cpp
 TheStove/Graphics/GraphicsEngine.hpp
 TheStove/Graphics/Layer.hpp
-TheStove/Graphics/Mesh.cpp
-TheStove/Graphics/Mesh.hpp
-TheStove/Graphics/MeshLoader.cpp
-TheStove/Graphics/MeshLoader.hpp
-TheStove/Graphics/Renderer.cpp
-TheStove/Graphics/Renderer.hpp
-TheStove/Graphics/ResourceManager.cpp
-TheStove/Graphics/ResourceManager.hpp
+TheStove/Graphics/ParticleSystem.cpp
+TheStove/Graphics/ParticleSystem.hpp
 TheStove/Graphics/SceneCollisionLayout.cpp
-TheStove/Graphics/SceneDebug.cpp
 TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
-TheStove/Graphics/Shader.cpp
-TheStove/Graphics/Shader.hpp
-TheStove/Graphics/Texture.cpp
-TheStove/Graphics/Texture.hpp
-TheStove/Graphics/VertexArray.cpp
-TheStove/Graphics/VertexArray.hpp
-TheStove/Graphics/VertexBuffer.cpp
-TheStove/Graphics/VertexBuffer.hpp
-TheStove/Main.cpp
+TheStove/count_loc.sh
+TheStove/count_loc_v2.sh
+assets/VFX SpriteSheet.png
 assets/config.txt
-assets/imgui.ini
-assets/trash/mc_sprite_front (1).png
+assets/run_vfx.png
 count_loc.sh
 count_loc_all_authors.sh
+imgui.ini
 levels/kitchen01.json
-levels/kitchen02.json
-levels/kitchen02test.json
-prefabs/my_goat.json
-prefabs/my_goat1.json
-prefabs/my_goat2.json
-prefabs/my_goat3.json
+loc_reports/00_SUMMARY.txt
+loc_reports/Chun_Wee_loc_report.txt
+loc_reports/CookieWasTaken_loc_report.txt
+loc_reports/Wang_Hua_loc_report.txt
+loc_reports/Yat_Chun_Wee_loc_report.txt
+loc_reports/juinherngng_loc_report.txt
+loc_reports/y_chunwee_loc_report.txt
+prefabs/trash/my_goat.json
+prefabs/trash/my_goat3.json
