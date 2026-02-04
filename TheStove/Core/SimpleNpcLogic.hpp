@@ -175,7 +175,7 @@ private:
     // Simple "eating" timer: after dish is served, NPC spends some time
     // in Eating state before switching to Paying.
     float eatTimer_ = 0.0f;
-    float eatDuration_ = 20.0f;   // seconds
+    float eatDuration_ = 10.0f;   // seconds
 
     // Internal helper to advance the customer eating logic.
     void UpdateCustomerLogic(float dt, Scene& scene);

@@ -29,6 +29,7 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <iostream>
 #include <random>
+#include <unordered_set>
 
 #include <Core/RuntimeLevel.hpp>
 #include "../Core/MenuButtonLogic.hpp"
@@ -124,6 +125,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Drive both cutscene players every frame so transitions progress
 	UpdateCutsceneTransitioned(deltaTime);
 	UpdateCutscene(deltaTime);
+
+	UpdateLevelTransition();
 
 	// Handle pending pause audio (pause channels after fade completes)
 #ifndef _DEBUG
@@ -294,6 +297,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 #endif
 				}
 				LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
+				Economy::Reset();
 			}
 		}
 		hasPendingLevel_ = false;
@@ -1728,26 +1732,21 @@ void Scene::RenderLevelTextObjects()
 	const auto& objs = LEPANELFONTS::GetTextObjects();
 	if (objs.empty()) return;
 
-#ifndef _DEBUG
-	// If you only want text in gameplay, keep it.
-	// Otherwise remove this guard.
-#endif
+	const bool cutsceneActive = IsAnyCutsceneActive();
+	static const std::unordered_set<std::string> kHudTextNames = {
+		"MoneyText", "QuotaText", "TimerText"
+	};
 
 	glm::mat4 projection = graphicsEngine.GetProjection();
 
-	// Match your FPS rendering viewport logic
 	GLint prevViewport[4];
 	glGetIntegerv(GL_VIEWPORT, prevViewport);
 
 	GLint boundFBO = 0;
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
 
-	if (boundFBO != 0) {
-		glViewport(0, 0, graphicsEngine.GetSceneWidth(), graphicsEngine.GetSceneHeight());
-	}
-	else {
-		graphicsEngine.ApplyViewport();
-	}
+	if (boundFBO != 0) glViewport(0, 0, graphicsEngine.GetSceneWidth(), graphicsEngine.GetSceneHeight());
+	else graphicsEngine.ApplyViewport();
 
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -1755,11 +1754,14 @@ void Scene::RenderLevelTextObjects()
 
 	for (const auto& o : objs)
 	{
+		// ✅ hide HUD text during cutscenes
+		if (cutsceneActive && kHudTextNames.count(o.name)) continue;
+
 		if (o.text.empty()) continue;
 		if (o.fontName.empty()) continue;
 		if (o.colorA <= 0.001f) continue;
 
-		// Respect layer visibility (optional but nice)
+		// (your existing layer visibility check is fine)
 		if (!o.layer.empty()) {
 			Layer* layer = GetLayer(o.layer);
 			if (layer && (!layer->IsEnabled() || !layer->IsVisible()))
@@ -1775,15 +1777,7 @@ void Scene::RenderLevelTextObjects()
 		t.SetColor(glm::vec4(o.colorR, o.colorG, o.colorB, o.colorA));
 		t.SetScale(o.scale);
 		t.SetRotation(o.rotation);
-
-		// IMPORTANT: coordinate system sanity
-		// If your engine uses top-left origin for JSON,
-		// uncomment this conversion:
-		// float y = GraphicsEngine::kRefH - o.y;
-		// t.SetPosition(glm::vec2(o.x, y));
-
 		t.SetPosition(glm::vec2(o.x, o.y));
-
 		t.SetRotationMode(o.useBlockRotation
 			? FontSystem::Text::RotationMode::Block
 			: FontSystem::Text::RotationMode::PerCharacter);
@@ -1795,3 +1789,51 @@ void Scene::RenderLevelTextObjects()
 	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 }
 
+void Scene::StartLevelTransition(const std::string& levelJsonPath,
+	bool activateSimulation,
+	float fadeOutSeconds,
+	float fadeInSeconds)
+{
+	// Avoid double-triggering
+	if (levelTrans_.active) return;
+
+#ifndef _DEBUG
+	// Freeze gameplay immediately
+	SetSimulationActive(false);
+#endif
+	HidePauseOverlay();
+
+	levelTrans_.active = true;
+	levelTrans_.awaitingBlackout = true;
+	levelTrans_.targetJson = levelJsonPath;
+	levelTrans_.targetActivateSim = activateSimulation;
+	levelTrans_.outSec = fadeOutSeconds;
+	levelTrans_.inSec = fadeInSeconds;
+
+	// Reuse existing "fade in after load" behavior that you already have:
+	// Scene::Update checks cutTrans_.fadeInAfterLoad and uses cutTrans_.inSeconds.
+	cutTrans_.inSeconds = fadeInSeconds;
+
+	auto& gfx = GetGraphicsEngine();
+	gfx.StartSceneTransition(fadeOutSeconds, fadeInSeconds);
+}
+
+void Scene::UpdateLevelTransition()
+{
+	if (!levelTrans_.active) return;
+
+	auto& gfx = GetGraphicsEngine();
+
+	// Once we're fully black, queue the load.
+	if (levelTrans_.awaitingBlackout && gfx.IsAtBlackout())
+	{
+		levelTrans_.awaitingBlackout = false;
+
+		QueueLevelLoad(levelTrans_.targetJson, levelTrans_.targetActivateSim);
+
+		// This makes your existing code fade-in right after LoadAndBuild succeeds
+		cutTrans_.fadeInAfterLoad = true;
+
+		levelTrans_.active = false;
+	}
+}

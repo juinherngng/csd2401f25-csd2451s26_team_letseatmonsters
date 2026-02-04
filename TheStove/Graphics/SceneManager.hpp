@@ -616,4 +616,25 @@ private:
 		float inv = 1.0f - x;
 		return 1.0f - inv * inv * inv;
 	}
+
+	public:
+		// Fade-out -> load JSON at blackout -> fade-in
+		void StartLevelTransition(const std::string& levelJsonPath,
+			bool activateSimulation,
+			float fadeOutSeconds = 0.35f,
+			float fadeInSeconds = 0.35f);
+
+private:
+	struct LevelTrans {
+		bool active = false;
+		bool awaitingBlackout = false;
+		std::string targetJson;
+		bool targetActivateSim = false;
+		float outSec = 0.35f;
+		float inSec = 0.35f;
+	} levelTrans_;
+
+	void UpdateLevelTransition();
+
+
 };
