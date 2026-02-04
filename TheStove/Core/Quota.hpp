@@ -98,9 +98,6 @@ namespace Economy
         }
     }
 
-    // Forward declaration for audio manager functions
-    void PlayTimerSounds(float prevTime, float currentTime, AudioManager* audioMgr);
-
     inline void Update(float dt, Scene& scene)
     {
         if (gQuotaReached) return;
@@ -108,7 +105,6 @@ namespace Economy
         if (gTimerPaused) return;
         if (dt <= 0.0f) return;
 
-        float prevTime = gTimeRemaining;
         gTimeRemaining -= dt;
 
         if (gTimeRemaining <= 0.0f)
