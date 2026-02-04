@@ -46,8 +46,6 @@ private:
 
     // Your coin icon path
     const char* coinIconPath_ = "../assets/Coin.png";
-    // Your sad icon path
-    const char* sadIconPath_ = "../assets/SadFace.png";
 
     // --- asset paths ---
     const char* bubbleBGPath_ = "../assets/Customer_Order.png";
@@ -84,7 +82,6 @@ private:
     glm::vec2 payVFXSize_ = { 64.f,  64.f };
     float payVFXRiseSpeed_ = 25.f;        // float upward speed (pixels/sec)
 
-    // REPLACE with your real paths
     const char* happyFacePath_ = "../assets/HappyFace.png";
     const char* sadFacePath_ = "../assets/SadFace.png";
 
