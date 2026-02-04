@@ -181,21 +181,25 @@ namespace Framework {
 				audioManager->PlaySound(currentAudio, audioManager->GetBgmVolume(), false);
 				std::cout << "[GameStateManager] Playing main menu music" << std::endl;
 			}
-		else if (state == Framework::GS_Level2) {
-			// Gameplay level state - play level music and kitchen ambience
-			currentAudio = "bgm_MyoonchiDiner_LevelTheme";
-			audioManager->PlaySound(currentAudio, audioManager->GetBgmVolume(), false);
-			std::cout << "[GameStateManager] Playing level theme music" << std::endl;
+			else if (state == Framework::GS_Level2) {
+				// Gameplay level state - play level music with fade-in (synced with visual transition)
+				currentAudio = "bgm_MyoonchiDiner_LevelTheme";
+				// Start at volume 0 and fade in over 1 second to sync with visual fade-in
+				audioManager->PlaySound(currentAudio, 0.0f, false);
+				const float levelBgmFadeIn = 1.0f;
+				audioManager->FadeChannel(currentAudio, audioManager->GetBgmVolume(), levelBgmFadeIn);
+				std::cout << "[GameStateManager] Playing level theme music with fade-in" << std::endl;
 
-			// Play kitchen ambience at 50% of BGM volume
-			currentAmbience = "bgm_KitchenAmbience";
-			audioManager->PlaySound(currentAmbience, audioManager->GetBgmVolume() * 0.5f, false);
-			std::cout << "[GameStateManager] Playing kitchen ambience" << std::endl;
-		}
-		else {
-			currentAudio.clear();
-			currentAmbience.clear();
-		}
+				// Play kitchen ambience at 50% of BGM volume, also with fade-in
+				currentAmbience = "bgm_KitchenAmbience";
+				audioManager->PlaySound(currentAmbience, 0.0f, false);
+				audioManager->FadeChannel(currentAmbience, audioManager->GetBgmVolume() * 0.5f, levelBgmFadeIn);
+				std::cout << "[GameStateManager] Playing kitchen ambience with fade-in" << std::endl;
+			}
+			else {
+				currentAudio.clear();
+				currentAmbience.clear();
+			}
 		}
 		#endif
 

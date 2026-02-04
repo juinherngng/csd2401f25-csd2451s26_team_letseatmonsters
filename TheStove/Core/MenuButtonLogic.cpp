@@ -220,9 +220,9 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
         // This plays after the fade-to-black, syncing with the cutscene start
         if (audioManager_) {
             const float cutsceneBgmFadeIn = 1.0f; // Fade in over 1 second
-            // Play at volume 0, then fade up
+            // Play at volume 0, then fade up (40% louder than normal BGM volume)
             audioManager_->PlaySound("bgm_MyoonchiDiner_IntroCutscene", 0.0f, false);
-            audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", audioManager_->GetBgmVolume(), cutsceneBgmFadeIn);
+            audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", audioManager_->GetBgmVolume() * 1.4f, cutsceneBgmFadeIn);
         }
     }
 #endif // _DEBUG

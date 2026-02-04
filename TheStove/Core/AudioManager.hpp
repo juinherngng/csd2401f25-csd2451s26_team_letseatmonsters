@@ -356,6 +356,26 @@ public:
 	void PauseAll();   // pause all currently playing sounds/music
 	void ResumeAll();  // resume everything that was paused
 
+	/************************************************************************/
+	/*!
+	\brief
+	Pauses a specific sound channel by name.
+	\param name
+	The name of the sound channel to pause.
+	*/
+	/************************************************************************/
+	void PauseChannel(std::string const& name);
+
+	/************************************************************************/
+	/*!
+	\brief
+	Resumes a specific sound channel by name.
+	\param name
+	The name of the sound channel to resume.
+	*/
+	/************************************************************************/
+	void ResumeChannel(std::string const& name);
+
 private:
 	/************************************************************************/
 	/*!

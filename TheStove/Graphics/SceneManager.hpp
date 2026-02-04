@@ -474,6 +474,12 @@ private:
 	bool pauseOverlayActive_ = false;
 	std::vector<int> pauseOverlayObjectIds_;
 
+	// Pause audio fade state
+	bool pauseAudioPending_ = false;
+	float pauseAudioTimer_ = 0.0f;
+	float pausedBgmVolume_ = 0.0f;
+	float pausedAmbienceVolume_ = 0.0f;
+
 	// Menu button text rendering
 	struct MenuButtonText {
 		FontSystem::Text textObj;
