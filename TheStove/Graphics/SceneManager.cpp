@@ -211,6 +211,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Update runtime particles
 	particleSystem_.Update(deltaTime, entityManager);
 
+	// update any UI slide-in animations regardless of simulation flag
+	UpdateUiSlides(deltaTime);
+
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 	(void)window;
 
@@ -238,6 +241,26 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 	}
 #endif
+
+	// Debug: Trigger Order UI slide-in with L key
+	//if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
+	//	std::cout << "[Scene] O pressed\n";
+	//	// Target is where your static Order UI normally sits in the JSON (x=460, y=64, w=168, h=124, layer="3")
+	//	const glm::vec2 targetPos{ 460.0f, 64.0f };
+	//	const glm::vec2 size{ 168.0f, 124.0f };
+	//	const std::string layer = "3";
+	//	const std::string tex = "../assets/Order_UI.png";
+
+	//	// Slide duration ~0.45s; tweak to taste
+	//	const float duration = 0.45f;
+
+	//	int id = TriggerOrderUiSlideIn(targetPos, size, layer, tex, duration);
+	//	if (id >= 0) {
+	//		std::cout << "[Scene] Order UI slide-in spawned, id=" << id << "\n";
+	//	} else {
+	//		std::cerr << "[Scene] Failed to spawn Order UI slide-in\n";
+	//	}
+	//}
 }
 
 void Scene::ResetResizeBaseline() {
@@ -1405,4 +1428,84 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
             cutTrans_.fadeInAfterLoad = true; // handled in Scene::Update after LoadAndBuild
         }
     }
+}
+
+// Order UI slide-in API 
+int Scene::TriggerOrderUiSlideIn(const glm::vec2& targetPos,
+                                 const glm::vec2& size,
+                                 const std::string& layer,
+                                 const std::string& texturePath,
+                                 float slideDuration) {
+	// Spawn off-screen vertically (just above top)
+	const float offscreenY = -size.y * 0.5f; // slightly above top of reference canvas
+	const glm::vec3 spawnPos{ targetPos.x, offscreenY, 0.0f };
+
+	GameObject* obj = SpawnStaticSprite(texturePath, spawnPos, size, layer);
+	if (!obj) {
+		std::cerr << "[Scene] TriggerOrderUiSlideIn: failed to spawn Order UI\n";
+		return -1;
+	}
+
+	// Ensure it's always visible and not collidable
+	obj->EnableShadow(false);
+	obj->SetColliderSize(Math::Vector2D{ 0.0f, 0.0f });
+	obj->SetColliderOffset(Math::Vector2D{ 0.0f, 0.0f });
+
+	// Register slide
+	UiSlide slide{};
+	slide.objectId = obj->GetID();
+	slide.startPos = glm::vec2(spawnPos.x, spawnPos.y);
+	slide.targetPos = targetPos;
+	slide.t = 0.0f;
+	slide.duration = std::max(0.05f, slideDuration);
+	slide.active = true;
+
+	uiSlides_.push_back(slide);
+
+	// play audio cue here
+	// PlaySpawnAudio(slide.objectId);
+
+	return slide.objectId;
+}
+
+void Scene::UpdateUiSlides(float dt) {
+	if (uiSlides_.empty()) return;
+
+	// We allow slide updates even when simulation is paused,
+	// so UI remains responsive.
+	for (auto& s : uiSlides_) {
+		if (!s.active) continue;
+
+		s.t += dt;
+		const float norm = std::clamp(s.t / s.duration, 0.0f, 1.0f);
+		const float eased = EaseOutCubic(norm);
+
+		const float x = s.startPos.x + (s.targetPos.x - s.startPos.x) * eased;
+		const float y = s.startPos.y + (s.targetPos.y - s.startPos.y) * eased;
+
+		if (GameObject* obj = GetGameObjectByID(s.objectId)) {
+			glm::vec3 p = obj->GetPositionGLM();
+			p.x = x;
+			p.y = y;
+			obj->SetPosition(p);
+		}
+
+		if (norm >= 1.0f) {
+			s.active = false;
+			// Snap to exact target
+			if (GameObject* obj = GetGameObjectByID(s.objectId)) {
+				glm::vec3 p = obj->GetPositionGLM();
+				p.x = s.targetPos.x;
+				p.y = s.targetPos.y;
+				obj->SetPosition(p);
+			}
+		}
+	}
+
+	// Remove finished slides
+	uiSlides_.erase(
+		std::remove_if(uiSlides_.begin(), uiSlides_.end(),
+			[](const UiSlide& s) { return !s.active; }),
+		uiSlides_.end()
+	);
 }

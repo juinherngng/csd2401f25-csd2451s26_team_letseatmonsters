@@ -386,6 +386,15 @@ public:
 	                               float fadeInSeconds = 0.35f,
 								   float holdSeconds = 1.5f);
 
+	// Order UI slide-in API
+	// Spawns an Order UI sprite off-screen at the top, then animates it sliding down to target.
+	// Returns spawned object ID or -1 on failure.
+	int TriggerOrderUiSlideIn(const glm::vec2& targetPos,
+	                          const glm::vec2& size,
+	                          const std::string& layer = "3",
+	                          const std::string& texturePath = "../assets/Order_UI.png",
+	                          float slideDuration = 0.45f);
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -528,9 +537,28 @@ private:
 		bool awaitingInitialFadeIn = false;
 	} cutTrans_;
 
+	// Order UI slide-in state
+	struct UiSlide {
+		int objectId = -1;
+		glm::vec2 startPos{};
+		glm::vec2 targetPos{};
+		float t = 0.0f;
+		float duration = 0.5f;
+		bool active = false;
+	};
+	std::vector<UiSlide> uiSlides_; // multiple parallel slides if needed
+
 	// Internal helpers
 	void UpdateCutscene(float dt);
 	void UpdateCutsceneTransitioned(float dt);
 	void CleanupCutsceneObjects();
 	void SetSpriteAlpha(GameObject* obj, float alpha); // no-op if shader lacks alpha tint
+
+	// Update all active UI slides
+	void UpdateUiSlides(float dt);
+	// Ease-out cubic for snappy drop
+	static float EaseOutCubic(float x) {
+		float inv = 1.0f - x;
+		return 1.0f - inv * inv * inv;
+	}
 };
