@@ -13,6 +13,7 @@
  */
 
 #include <random>
+#include "../Core/AudioManager.hpp"
 #include "../Core/Collision.hpp"  // for WalkArea definition
 #include "../Core/Physics.hpp"      // optional, if you want clamp helpers
 #include "../Graphics/SceneManager.hpp"
@@ -260,7 +261,7 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene)
 }
 
 
-void SimpleNpcLogic::TakeOrder(Scene& /*scene*/)
+void SimpleNpcLogic::TakeOrder(Scene& scene)
 {
     std::cout << "[SimpleNpcLogic] TakeOrder, state="
         << static_cast<int>(behaviourState_) << "\n";
@@ -271,7 +272,12 @@ void SimpleNpcLogic::TakeOrder(Scene& /*scene*/)
 
     orderTaken_ = true;
 
-    orderTaken_ = true;
+    // Play new order sound effect (release mode only)
+#ifndef _DEBUG
+    if (AudioManager* audioMgr = scene.GetAudioManager()) {
+        audioMgr->PlaySound("sfx_new_order", audioMgr->GetVfxVolume() * 0.3f, false);
+    }
+#endif
 
     // Start patience timer now that we are waiting for food
     patienceRemaining_ = patienceMax_;
@@ -326,6 +332,19 @@ void SimpleNpcLogic::TakePayment(Scene& scene)
 
     if (behaviourState_ != BehaviourState::Paying)
         return;
+
+    // Play payment or wrong order sound effect (release mode only)
+#ifndef _DEBUG
+    if (AudioManager* audioMgr = scene.GetAudioManager()) {
+        if (payZero_) {
+            // Wrong order or patience expired - play wrong order sound
+            audioMgr->PlaySound("sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f, false);
+        } else {
+            // Successful order - play payment sound
+            audioMgr->PlaySound("sfx_payment", audioMgr->GetVfxVolume() * 0.3f, false);
+        }
+    }
+#endif
 
     hasPaid_ = true;
     behaviourState_ = BehaviourState::Leaving;
@@ -419,6 +438,13 @@ void SimpleNpcLogic::OnReachedExit(Scene& scene)
     if (exitProcessed_) return;
     exitProcessed_ = true;
     std::cout << "[SimpleNpcLogic] Reached exit gate. Despawning.\n";
+
+    // Play customer leaving sound effect (release mode only)
+#ifndef _DEBUG
+    if (AudioManager* audioMgr = scene.GetAudioManager()) {
+        audioMgr->PlaySound("sfx_customer_leaving", audioMgr->GetVfxVolume() * 0.3f, false);
+    }
+#endif
 
     // Free the customer table
     if (customerTableID_ != kInvalidID)

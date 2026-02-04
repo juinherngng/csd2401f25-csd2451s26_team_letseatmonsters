@@ -19,6 +19,7 @@ DESCRIPTION: Implements a simple scene-level system that manages all
 
 
 #include "../Graphics/SceneManager.hpp"
+#include "../Core/AudioManager.hpp"
 #include "../Core/LogicManager.hpp"
 #include "../Core/Math.hpp"
 #include "../Core/SimpleNpcLogic.hpp"
@@ -166,6 +167,13 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene)
     scene.ClampToWalkArea(npc);
 
     activeCustomers_.push_back(npcID);
+
+    // Play customer entering sound effect (release mode only)
+#ifndef _DEBUG
+    if (AudioManager* audioMgr = scene.GetAudioManager()) {
+        audioMgr->PlaySound("sfx_customer_entering", audioMgr->GetVfxVolume() * 0.3f, false);
+    }
+#endif
 
     std::cout << "[CustomerManager] Spawned customer " << npcID
         << " -> table " << chosenTableID << "\n";

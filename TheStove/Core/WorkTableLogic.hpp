@@ -57,18 +57,19 @@ public:
 
 
 protected:
-        enum class StationType
-    {
-        CuttingBoard, // veg
-        Grill,        // meat
-        Stove,        // shroom
-        Generic
-    };
+    enum class StationType
+{
+    CuttingBoard, // veg
+    Grill,        // meat
+    Stove,        // shroom
+    Generic
+};
 
-    StationType stationType_ = StationType::Generic;
+StationType stationType_ = StationType::Generic;
 
-    StationType DetectStationTypeFromTexture(const std::string& texPath) const;
-    const char* GetProcessedTextureForRaw(IngredientType rawType) const;
+StationType DetectStationTypeFromTexture(const std::string& texPath) const;
+const char* GetProcessedTextureForRaw(IngredientType rawType) const;
+const char* GetProcessingSoundName() const;
 
     // Hooks from TableLogic when item changes.
     void OnItemPlaced(Scene& scene, GameObject& item) override;
