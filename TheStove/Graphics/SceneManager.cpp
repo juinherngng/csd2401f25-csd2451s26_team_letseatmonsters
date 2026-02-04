@@ -831,7 +831,7 @@ void Scene::ShowPauseOverlay() {
 	const std::string uiLayer = "999999";
 
 	// Pause overlay background
-	if (GameObject* dim = SpawnStaticSprite("../assets/paused.png",
+	if (GameObject* dim = SpawnStaticSprite(FilePaths::Textures::PAUSED_BG,
 		{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
 		{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
 		uiLayer)) {
@@ -867,9 +867,9 @@ void Scene::ShowPauseOverlay() {
 		}
 		};
 
-	spawnPauseBtn("../assets/resume_s.png", { 1300.f, 454.f }, PauseAction::Resume);
-	spawnPauseBtn("../assets/how_s.png", { 1300.f, 584.f }, PauseAction::HowToPlay);
-	spawnPauseBtn("../assets/quit_s.png", { 1300.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn(FilePaths::Textures::BTN_RESUME, { 1300.f, 454.f }, PauseAction::Resume);
+	spawnPauseBtn(FilePaths::Textures::BTN_HOW, { 1300.f, 584.f }, PauseAction::HowToPlay);
+	spawnPauseBtn(FilePaths::Textures::BTN_QUIT, { 1300.f, 714.f }, PauseAction::Quit);
 #endif
 }
 
