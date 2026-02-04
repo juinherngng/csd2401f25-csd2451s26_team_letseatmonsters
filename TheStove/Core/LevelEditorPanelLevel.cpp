@@ -1,11 +1,11 @@
 /*
- ----------------------------------------------------------------------------------------------------
- FILE NAME:         LevelEditorPanelLevel.cpp
- PROJECT NAME:      Project GAM200
- AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
- CO-AUTHOR:			Seah Wang Hua, wanghua.seah"@digipen.edu
+----------------------------------------------------------------------------------------------------
+FILE NAME:         LevelEditorPanelLevel.cpp
+PROJECT NAME:      Project GAM200
+AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
+CO-AUTHOR:         Seah Wang Hua, wanghua.seah@digipen.edu
 
- DESCRIPTION:       Implementation of the Level panel.
+DESCRIPTION:       Implementation of the Level panel.
 					- Load/Save levels to JSON
 					- Play/Stop scene simulation
 					- Hierarchy list and object inspector
@@ -485,7 +485,7 @@ namespace LEPANELLEVEL {
 		ImGui::SameLine();
 
 		if (ImGui::Button("Refresh##levels")) {
-		 sLevelFiles = ListJsonFiles("../levels");
+			sLevelFiles = ListJsonFiles("../levels");
 		}
 
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -660,6 +660,7 @@ namespace LEPANELLEVEL {
 
 		// Hierarchy
 		if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200.0f))) {
+			// Game Objects
 			for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
 				GameObject* g = objectList[i];
 				if (!g) {
@@ -701,30 +702,49 @@ namespace LEPANELLEVEL {
 					if (ImGui::Selectable(label.c_str(), isSelected)) {
 						selectedIndex = i;
 						selectedObjectId = gid;
+						// Deselect any text object when selecting a game object
+						LEPANELFONTS::SetSelectedTextIndex(-1);
 					}
 				}
 
 				ImGui::PopID();
 			}
 
-			ImGui::EndListBox();
-		}
+			// Text Objects in Hierarchy (inside the same listbox)
+			{
+				const auto& textObjs = LEPANELFONTS::GetTextObjects();
+				int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
 
-		// Text Objects Section - shows text objects from the Fonts panel
-		{
-			const auto& textObjs = LEPANELFONTS::GetTextObjects();
-			if (!textObjs.empty()) {
-				ImGui::SeparatorText("Text Objects");
-				if (ImGui::BeginListBox("##TextObjectsList", ImVec2(-FLT_MIN, 80.0f))) {
-					for (size_t i = 0; i < textObjs.size(); ++i) {
-						const auto& t = textObjs[i];
-						std::string lbl = t.name + " [" + t.fontName + "] [Layer: " + t.layer + "]";
-						ImGui::Selectable(lbl.c_str(), false, ImGuiSelectableFlags_Disabled);
+				for (size_t i = 0; i < textObjs.size(); ++i) {
+					const auto& t = textObjs[i];
+
+					// Check if layer is visible
+					Layer* layer = scene.GetLayer(t.layer);
+					if (layer && !layer->IsVisible()) {
+						continue;
 					}
-					ImGui::EndListBox();
+
+					std::string lbl = "[Text] " + t.name + " (" + t.fontName + ") [Layer: " + t.layer + "]";
+
+					ImGui::PushID(static_cast<int>(i) + 100000);
+					bool isSelected = (selectedObjectId == -1 && selectedTextIdx == static_cast<int>(i));
+
+					if (editor.IsPlaying()) {
+						ImGui::Selectable(lbl.c_str(), isSelected, ImGuiSelectableFlags_Disabled);
+					}
+					else {
+						if (ImGui::Selectable(lbl.c_str(), isSelected)) {
+							selectedIndex = -1;
+							selectedObjectId = -1;
+							LEPANELFONTS::SetSelectedTextIndex(static_cast<int>(i));
+						}
+					}
+
+					ImGui::PopID();
 				}
-				ImGui::TextDisabled("Edit text objects in the Fonts panel.");
 			}
+
+			ImGui::EndListBox();
 		}
 
 		if (editor.IsPlaying()) {
@@ -818,7 +838,6 @@ namespace LEPANELLEVEL {
 				if (tag.empty()) tag = defaults.tag;
 				std::snprintf(tagBuf, sizeof(tagBuf), "%s", tag.c_str());
 			}
-
 
 			glm::vec3 position = obj->GetPositionGLM();
 			glm::vec3 size = obj->GetScaleGLM();
@@ -1322,6 +1341,179 @@ namespace LEPANELLEVEL {
 				ImGui::EndDisabled();
 			}
 		}
+			// Text Object Inspector - when a text object is selected
+			else {
+				int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
+				auto& textObjs = LEPANELFONTS::GetMutableTextObjects();
+			
+				if (selectedTextIdx >= 0 && selectedTextIdx < static_cast<int>(textObjs.size())) {
+					if (editor.IsPlaying()) {
+						ImGui::BeginDisabled();
+					}
+				
+					LEPANELFONTS::TextObjectData& textObj = textObjs[selectedTextIdx];
+				
+					ImGui::SeparatorText("Text Object Properties");
+					ImGui::TextDisabled("Selected Text: %s", textObj.name.c_str());
+				
+					ImGui::Columns(2, nullptr, false);
+					ImGuiStyle& style = ImGui::GetStyle();
+				
+					float longestLabel = 0.0f;
+					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Name").x);
+					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Font").x);
+					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Text").x);
+					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Layer").x);
+					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position X").x);
+					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position Y").x);
+					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Scale").x);
+					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation").x);
+					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation Mode").x);
+					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Color").x);
+					float labelColWidth = longestLabel + style.ItemInnerSpacing.x * 2.0f + 12.0f;
+					ImGui::SetColumnWidth(0, labelColWidth);
+				
+					auto FullWidthNext = []() {
+					ImGui::SetNextItemWidth(-FLT_MIN);
+					};
+				
+					// Name
+					ImGui::TextUnformatted("Name");
+					ImGui::NextColumn();
+					FullWidthNext();
+					char nameBuf[64];
+					std::snprintf(nameBuf, sizeof(nameBuf), "%s", textObj.name.c_str());
+					if (ImGui::InputText("##TextName", nameBuf, IM_ARRAYSIZE(nameBuf))) {
+						textObj.name = nameBuf;
+					}
+					ImGui::NextColumn();
+				
+					// Font selection
+					ImGui::TextUnformatted("Font");
+					ImGui::NextColumn();
+					FullWidthNext();
+					{
+						// Get list of loaded fonts from LEPANELFONTS
+						const auto& fontNames = LEPANELFONTS::GetLoadedFontNames();
+						if (ImGui::BeginCombo("##TextFont", textObj.fontName.c_str())) {
+							for (const auto& fontName : fontNames) {
+								const bool isSelected = (textObj.fontName == fontName);
+								if (ImGui::Selectable(fontName.c_str(), isSelected)) {
+									textObj.fontName = fontName;
+								}
+								if (isSelected) {
+									ImGui::SetItemDefaultFocus();
+								}
+							}
+							ImGui::EndCombo();
+						}
+					}
+					ImGui::NextColumn();
+				
+					// Text content
+					ImGui::TextUnformatted("Text");
+					ImGui::NextColumn();
+					FullWidthNext();
+					char textBuf[256];
+					std::snprintf(textBuf, sizeof(textBuf), "%s", textObj.text.c_str());
+					if (ImGui::InputText("##TextContent", textBuf, IM_ARRAYSIZE(textBuf))) {
+						textObj.text = textBuf;
+					}
+				ImGui::NextColumn();
+				
+					// Layer selection
+					ImGui::TextUnformatted("Layer");
+					ImGui::NextColumn();
+					FullWidthNext();
+					{
+						std::vector<std::string> layerNames;
+						layerNames.push_back("1");
+					
+						const auto& allLayers = scene.GetAllLayers();
+						for (const auto& pair : allLayers) {
+							const std::string& name = pair.first;
+							if (name.empty()) continue;
+							if (std::find(layerNames.begin(), layerNames.end(), name) == layerNames.end()) {
+							layerNames.push_back(name);
+							}
+						}
+						std::sort(layerNames.begin(), layerNames.end());
+					
+							if (ImGui::BeginCombo("##TextLayer", textObj.layer.c_str())) {
+								for (const std::string& name : layerNames) {
+									bool isSelected = (textObj.layer == name);
+									if (ImGui::Selectable(name.c_str(), isSelected)) {
+										textObj.layer = name;
+										scene.AddLayer(name);
+									}
+									if (isSelected) {
+										ImGui::SetItemDefaultFocus();
+									}
+								}
+								ImGui::EndCombo();
+							}
+					}
+					ImGui::NextColumn();
+				
+					// Position X
+					ImGui::TextUnformatted("Position X");
+					ImGui::NextColumn();
+					FullWidthNext();
+					ImGui::DragFloat("##TextPosX", &textObj.x, 1.0f);
+					ImGui::NextColumn();
+				
+					// Position Y
+					ImGui::TextUnformatted("Position Y");
+					ImGui::NextColumn();
+					FullWidthNext();
+					ImGui::DragFloat("##TextPosY", &textObj.y, 1.0f);
+					ImGui::NextColumn();
+				
+					// Scale
+					ImGui::TextUnformatted("Scale");
+					ImGui::NextColumn();
+					FullWidthNext();
+					ImGui::DragFloat("##TextScale", &textObj.scale, 0.01f, 0.1f, 10.0f);
+					ImGui::NextColumn();
+				
+					// Rotation
+					ImGui::TextUnformatted("Rotation");
+					ImGui::NextColumn();
+					FullWidthNext();
+					ImGui::SliderFloat("##TextRotation", &textObj.rotation, 0.0f, 360.0f, "%.1f deg");
+					ImGui::NextColumn();
+				
+					// Rotation Mode
+					ImGui::TextUnformatted("Rotation Mode");
+					ImGui::NextColumn();
+					FullWidthNext();
+					const char* rotModeItems[] = { "Block (Normal)", "Per-Character (Curved)" };
+					int currentMode = textObj.useBlockRotation ? 0 : 1;
+					if (ImGui::Combo("##TextRotMode", &currentMode, rotModeItems, IM_ARRAYSIZE(rotModeItems))) {
+						textObj.useBlockRotation = (currentMode == 0);
+					}
+					ImGui::NextColumn();
+				
+					// Color
+					ImGui::TextUnformatted("Color");
+					ImGui::NextColumn();
+					FullWidthNext();
+					float color[4] = { textObj.colorR, textObj.colorG, textObj.colorB, textObj.colorA };
+					if (ImGui::ColorEdit4("##TextColor", color)) {
+						textObj.colorR = color[0];
+						textObj.colorG = color[1];
+						textObj.colorB = color[2];
+						textObj.colorA = color[3];
+					}
+					ImGui::NextColumn();
+				
+					ImGui::Columns(1);
+				
+					if (editor.IsPlaying()) {
+						ImGui::EndDisabled();
+					}
+				}
+			}
 
 		// Scene viewport area: DROP-ZONE ONLY (picking/dragging happens on the Scene tab)
 		ImGui::Spacing();
@@ -1461,10 +1653,3 @@ namespace LEPANELLEVEL {
 	}
 #endif
 }
-
-
-
-
-
-
-
