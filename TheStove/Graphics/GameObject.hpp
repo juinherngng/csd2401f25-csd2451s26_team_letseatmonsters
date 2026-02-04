@@ -187,6 +187,10 @@ public:
 		return m_ShadowOpacity;
 	}
 
+	// For cross blending / tinting
+	void SetColorTint(const glm::vec4& tint) { colorTint_ = tint; }
+	const glm::vec4& GetColorTint() const { return colorTint_; }
+
 private:
 	Mesh* m_Mesh;
 	Shader* m_Shader;
@@ -217,4 +221,6 @@ private:
 	glm::vec2 m_ShadowSize{ 60.0f, 20.0f };   // width, height in world units
 	glm::vec2 m_ShadowOffset{ 0.0f, 0.0f };   // local offset in world units
 	float m_ShadowOpacity = 0.45f;            // 0..1
+
+	glm::vec4 colorTint_{1.0f, 1.0f, 1.0f, 1.0f}; // RGBA tint, 1=opaque
 };

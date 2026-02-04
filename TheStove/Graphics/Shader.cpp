@@ -152,11 +152,16 @@ void Shader::SetTexture(const std::string& name, int textureUnit) const {
 	}
 }
 
-void Shader::SetColorTint(const glm::vec4& color) const {
-	GLint location = glGetUniformLocation(programID, "u_ColorTint");
-	if (location != -1) {
-		glUniform4fv(location, 1, glm::value_ptr(color));
-	}
+void Shader::SetColorTint(const glm::vec4& tint) const{
+    const GLint loc = glGetUniformLocation(programID, "u_ColorTint");
+    if (loc != -1) {
+        glUniform4fv(loc, 1, &tint[0]);
+    }
+
+	GLint locColor = glGetUniformLocation(programID, "u_Color");
+    if (locColor != -1) {
+        glUniform4fv(locColor, 1, glm::value_ptr(tint));
+    }
 }
 
 void Shader::SetUVOffset(const glm::vec2& offset) const {

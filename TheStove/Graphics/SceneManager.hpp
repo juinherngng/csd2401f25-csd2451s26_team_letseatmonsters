@@ -274,6 +274,8 @@ public:
 		std::string audioOnDestroy;
 		std::string audioOnProcessing;  // Audio that loops while work table is processing
 		bool audioLoop{ false };
+		// Per-object visibility (default visible)
+		bool visible{ true };
 	};
 
 	void SetDefaults(int id, const Defaults& d) {
@@ -282,6 +284,15 @@ public:
 	Defaults GetDefaults(int id) const {
 		auto it = defaults_.find(id);
 		return (it != defaults_.end()) ? it->second : Defaults{};
+	}
+
+	// Per-object visibility controls 
+	void SetObjectVisible(int id, bool visible) {
+		defaults_[id].visible = visible;
+	}
+	bool IsObjectVisible(int id) const {
+		auto it = defaults_.find(id);
+		return (it != defaults_.end()) ? it->second.visible : true;
 	}
 
 	// Particle system
@@ -358,6 +369,31 @@ public:
 	}
 	// FPS display rendering
 	void RenderFPSText();
+
+	// Cutscene API
+	// Starts a cutscene consisting of image paths played in sequence.
+	// When finished, queues level load to 'levelJsonPath' and sets simulation according to 'activateSimulation'.
+	void StartCutscene(const std::vector<std::string>& imagePaths,
+	                   float holdSecondsPerImage,
+	                   float fadeSeconds,
+	                   const std::string& levelJsonPath,
+	                   bool activateSimulation);
+	
+	void StartCutsceneTransitioned(const std::vector<std::string>& imagePaths,
+	                               const std::string& levelJsonPath,
+	                               bool activateSimulation,
+	                               float fadeOutSeconds = 0.35f,
+	                               float fadeInSeconds = 0.35f,
+								   float holdSeconds = 1.5f);
+
+	// Order UI slide-in API
+	// Spawns an Order UI sprite off-screen at the top, then animates it sliding down to target.
+	// Returns spawned object ID or -1 on failure.
+	int TriggerOrderUiSlideIn(const glm::vec2& targetPos,
+	                          const glm::vec2& size,
+	                          const std::string& layer = "3",
+	                          const std::string& texturePath = "../assets/Order_UI.png",
+	                          float slideDuration = 0.45f);
 
 private:
 	// Engine/input
@@ -439,4 +475,90 @@ private:
 	std::unordered_map<int, std::string> objectTags_;
 
 	bool howToPlayOverlayActive_ = false;
+
+	// Simple cutscene runner state
+	struct CutsceneState {
+		bool active = false;
+		std::vector<std::string> images;
+		size_t current = 0;
+
+		// timing
+		float holdTime = 1.5f;   // seconds each image is held
+		float fadeTime = 0.5f;   // seconds to fade out/in (cross-fade if supported)
+		float t = 0.0f;          // time accumulator within current phase
+
+		// phase control
+		enum class Phase { FadeIn, Hold, FadeOut } phase = Phase::FadeIn;
+
+		// objects
+		int spriteA = -1;        // current image object
+		int spriteB = -1;        // next image object (for cross-fade)
+		std::string uiLayer = "999998"; // cutscene layer below pause overlay
+
+		// completion
+		std::string targetLevelJson;
+		bool targetActivateSim = true;
+		bool queuedFinalLoad = false;
+
+		// alpha support flag detected on first use
+		bool supportsAlpha = false;
+	} cutscene_;
+
+	struct CutsceneTrans {
+		bool active = false;
+		std::vector<std::string> images;
+		size_t index = 0;
+		std::string uiLayer = "999998";
+		int currentSpriteId = -1;
+		std::string targetLevelJson;
+		bool targetActivateSim = true;
+		float outSeconds = 0.35f;
+		float inSeconds = 0.35f;
+		bool fadeInAfterLoad = false;
+
+		// cross-fade support
+		bool useCrossfade = false;
+		float crossfadeSeconds = 0.75f;
+		float crossfadeT = 0.0f;
+		int nextSpriteId = -1;
+		bool crossfading = false;
+
+		// hold control
+		float holdSeconds = 1.5f;      // how long each image stays after fade-in
+		float holdElapsed = 0.0f;
+		bool holding = false;
+
+		bool awaitingBlackout = false;
+
+		// crossfade index control
+		int crossfadeFromIndex = -1; // -1 = disabled; otherwise crossfade when transitioning to this target index
+
+		// initial fade-in control
+		bool awaitingInitialFadeIn = false;
+	} cutTrans_;
+
+	// Order UI slide-in state
+	struct UiSlide {
+		int objectId = -1;
+		glm::vec2 startPos{};
+		glm::vec2 targetPos{};
+		float t = 0.0f;
+		float duration = 0.5f;
+		bool active = false;
+	};
+	std::vector<UiSlide> uiSlides_; // multiple parallel slides if needed
+
+	// Internal helpers
+	void UpdateCutscene(float dt);
+	void UpdateCutsceneTransitioned(float dt);
+	void CleanupCutsceneObjects();
+	void SetSpriteAlpha(GameObject* obj, float alpha); // no-op if shader lacks alpha tint
+
+	// Update all active UI slides
+	void UpdateUiSlides(float dt);
+	// Ease-out cubic for snappy drop
+	static float EaseOutCubic(float x) {
+		float inv = 1.0f - x;
+		return 1.0f - inv * inv * inv;
+	}
 };

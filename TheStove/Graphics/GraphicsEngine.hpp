@@ -121,7 +121,7 @@ public:
 	}
 
 	// Reference render size
-	static constexpr int kRefW = 1200;
+	static constexpr int kRefW = 1600;
 	static constexpr int kRefH = 900;
 
 	// Returns the screen-space rect of the Scene image
@@ -141,7 +141,7 @@ private:
 	Renderer renderer;
 	ResourceManager& resourceManager;
 
-	int screenWidth = 1200;
+	int screenWidth = 1600;
 	int screenHeight = 900;
 
 	// Background rendering

@@ -56,8 +56,12 @@ struct LevelObject {
 	std::string audioOnDestroy;    // Played when object is destroyed/despawned
 	std::string audioOnProcessing; // Played while work table is processing (loops)
 	bool audioLoop{ false };       // Whether audioOnSpawn should loop
+
 	// Shadow flag
-	bool shadow = false;
+	bool shadow{ false };
+
+	// Visibility flag (per-object toggle)
+	bool visible{ true };
 };
 
 // Text object for font-based text rendering in levels
