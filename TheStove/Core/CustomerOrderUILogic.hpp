@@ -35,7 +35,8 @@ private:
     glm::vec2 barOffset_ = { 0.f,  55.f };  // below customer
 
     glm::vec2 bubbleSize_ = { 120.f, 90.f };
-    glm::vec2 dishIconSize_ = { 70.f,  70.f };
+    glm::vec2 dishIconSize_ = { 70.f, 70.f };   // dish wants bigger
+    glm::vec2 coinIconSize_ = { 40.f, 40.f };   // coin wants smaller
 
     glm::vec2 barBGSize_ = { 120.f, 14.f };
     glm::vec2 barFillSize_ = { 112.f, 10.f };  // slightly inset from BG
@@ -73,7 +74,7 @@ private:
     void SpawnPaymentVFX(Scene& scene, const char* path);
     void UpdatePaymentVFX(Scene& scene, float dt);
     void DestroyPaymentVFX(Scene& scene);
-
+    glm::vec2 GetIconSizeForPath(const char* iconPath) const;
 
     // --- payment result VFX ---
     int   payVFX_ID_ = -1;

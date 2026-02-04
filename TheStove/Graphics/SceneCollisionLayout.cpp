@@ -34,7 +34,7 @@ static constexpr float kScaleX = kRefW / kDesignRefW;
 
 // Tile-space definitions
 // Walkable inner rectangle (match to background art) in tiles
-static constexpr float kWalkL_T = (150.0f * kScaleX) / kTile; // bigger number = more to the right
+static constexpr float kWalkL_T = (116.0f * kScaleX) / kTile; // bigger number = more to the right
 static constexpr float kWalkR_T = (1300.0f * kScaleX) / kTile;
 static constexpr float kWalkT_T = 100.0f / kTile;  // bigger number = more down
 static constexpr float kWalkB_T = 825.0f / kTile;

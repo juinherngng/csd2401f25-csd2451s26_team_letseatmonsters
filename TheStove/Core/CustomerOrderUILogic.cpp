@@ -82,9 +82,12 @@ void CustomerOrderUILogic::UpdateIconTexture(Scene& scene, const char* iconPath)
     d.texture = iconPath;
     scene.SetDefaults(bubbleDish_ID_, d);
 
+    //set size depending on icon type
+    glm::vec2 iconSize = GetIconSizeForPath(iconPath);
+    icon->SetScale(glm::vec3(iconSize.x, iconSize.y, 1.0f));
+
     lastIconPath_ = iconPath;
 }
-
 
 void CustomerOrderUILogic::EnsurePatienceBar(Scene& scene)
 {
@@ -266,10 +269,12 @@ void CustomerOrderUILogic::EnsureBubbleIcon(Scene& scene, const char* iconPath)
 
     // Ensure icon exists
     if (bubbleDish_ID_ < 0) {
+        glm::vec2 iconSize = GetIconSizeForPath(iconPath);
+
         if (GameObject* icon = scene.SpawnStaticSprite(
             iconPath,
             { p.x + dishOffset_.x, p.y + dishOffset_.y, p.z },
-            dishIconSize_,
+            iconSize,
             uiLayerTop_))
         {
             bubbleDish_ID_ = icon->GetID();
@@ -278,6 +283,7 @@ void CustomerOrderUILogic::EnsureBubbleIcon(Scene& scene, const char* iconPath)
             lastIconPath_ = iconPath;
         }
     }
+
 
     // If icon path changed (dish <-> coin), update texture
     if (bubbleDish_ID_ >= 0 && lastIconPath_ != iconPath) {
@@ -335,4 +341,12 @@ void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt)
     if (payVFXTimer_ >= payVFXDuration_) {
         DestroyPaymentVFX(scene);
     }
+}
+
+glm::vec2 CustomerOrderUILogic::GetIconSizeForPath(const char* iconPath) const
+{
+    if (!iconPath) return dishIconSize_;
+    // coin should be small, everything else (dish icons) big
+    if (std::string(iconPath) == coinIconPath_) return coinIconSize_;
+    return dishIconSize_;
 }

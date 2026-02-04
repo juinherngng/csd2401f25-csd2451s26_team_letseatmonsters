@@ -90,12 +90,4 @@ namespace Economy
 
     // Helpers (optional)
     inline float GetTimeRemaining() { return gTimeRemaining; }
-    inline float GetTimeRatio01()
-    {
-        if (kTimeLimitSeconds <= 0.0f) return 0.0f;
-        float r = gTimeRemaining / kTimeLimitSeconds;
-        if (r < 0.0f) r = 0.0f;
-        if (r > 1.0f) r = 1.0f;
-        return r;
-    }
 }
