@@ -64,23 +64,8 @@ namespace Economy
         SyncUI();
     }
 
-    // TODO: you will implement this later (switch scene, show win UI, etc.)
-    inline void OnQuotaReached(Scene& scene)
-    {
-        (void)scene;
-        // Example later:
-        // scene.RequestStateChange(WIN_STATE_ID);
-    }
-
-    // TODO: implement this later (switch scene to lose screen, show lose UI, etc.)
-    inline void OnTimeUp(Scene& scene)
-    {
-        (void)scene;
-        // Example later:
-        // scene.RequestStateChange(LOSE_STATE_ID);
-        //
-        // Or whatever your engine uses for switching scene/state.
-    }
+    void OnQuotaReached(Scene& scene);
+    void OnTimeUp(Scene& scene);
 
     inline void AddMoney(Scene& scene, int amount)
     {
