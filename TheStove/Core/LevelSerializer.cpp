@@ -66,6 +66,9 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 
 	obj.shadow = jsonObj.value("shadow", false);
 
+	// Per-object visibility (defaults true for backward compatibility)
+	obj.visible = jsonObj.value("visible", true);
+
 	return obj;
 }
 
@@ -123,7 +126,9 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "audio_on_interact", obj.audioOnInteract },
 		{ "audio_on_destroy", obj.audioOnDestroy },
 		{ "audio_on_processing", obj.audioOnProcessing },
-		{ "audio_loop", obj.audioLoop }
+		{ "audio_loop", obj.audioLoop },
+		// Per-object visibility
+		{ "visible", obj.visible }
 	};
 
 	return jsonData;

@@ -35,6 +35,7 @@
 #include "../Core/PauseButtonLogic.hpp"
 #include "../Core/AudioManager.hpp"
 #include "SceneManager.hpp"
+#include "GraphicsEngine.hpp"
 
 namespace {
 	// If an object has no collider yet, initialise an AABB that matches its visual size.
@@ -114,6 +115,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 #ifdef _DEBUG
 	UpdateAnimationControls();
 #endif
+
+	// Drive transitioned cutscene every frame so transitions progress
+	UpdateCutsceneTransitioned(deltaTime);
+
 	if (pendingClear_) {
 		ClearAll();
 		RebuildColliders();
@@ -187,6 +192,20 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 				RebuildColliders();
 				SetSimulationActive(pendingLevelSimActive_);
 				inputManager.ClearState(); // avoid stale click replay
+
+				// If we are coming from a cutscene, fade in the new level now
+				if (cutTrans_.fadeInAfterLoad) {
+					auto& gfx = GetGraphicsEngine();
+
+					// Ensure a fade is active; if not, start a fade-in-only transition
+					if (!gfx.IsTransitionActive() || !gfx.IsAtBlackout()) {
+						// outSeconds = 0 starts from the current frame, then we only fade in
+						gfx.StartSceneTransition(0.1f, cutTrans_.inSeconds);
+					}
+
+					gfx.ContinueTransitionFadeIn();
+					cutTrans_.fadeInAfterLoad = false;
+				}
 			}
 		}
 		hasPendingLevel_ = false;
@@ -195,6 +214,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	// Update runtime particles
 	particleSystem_.Update(deltaTime, entityManager);
+
+	// update any UI slide-in animations regardless of simulation flag
+	UpdateUiSlides(deltaTime);
 
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 	(void)window;
@@ -228,6 +250,26 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		}
 	}
 #endif
+
+	// Debug: Trigger Order UI slide-in with L key
+	//if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
+	//	std::cout << "[Scene] O pressed\n";
+	//	// Target is where your static Order UI normally sits in the JSON (x=460, y=64, w=168, h=124, layer="3")
+	//	const glm::vec2 targetPos{ 460.0f, 64.0f };
+	//	const glm::vec2 size{ 168.0f, 124.0f };
+	//	const std::string layer = "3";
+	//	const std::string tex = "../assets/Order_UI.png";
+
+	//	// Slide duration ~0.45s; tweak to taste
+	//	const float duration = 0.45f;
+
+	//	int id = TriggerOrderUiSlideIn(targetPos, size, layer, tex, duration);
+	//	if (id >= 0) {
+	//		std::cout << "[Scene] Order UI slide-in spawned, id=" << id << "\n";
+	//	} else {
+	//		std::cerr << "[Scene] Failed to spawn Order UI slide-in\n";
+	//	}
+	//}
 }
 
 void Scene::ResetResizeBaseline() {
@@ -396,6 +438,15 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	for (GameObject* g : all) {
 		if (!g) {
 			continue;
+		}
+
+		// Skip if object is marked invisible in defaults (per-object visibility)
+		const int objId = g->GetID();
+		auto defIt = defaults_.find(objId);
+		if (defIt != defaults_.end()) {
+			if (!defIt->second.visible) {
+				continue;
+			}
 		}
 
 		// Check the layer's visibility flag
@@ -742,7 +793,7 @@ void Scene::ShowPauseOverlay() {
 	}
 
 	auto spawnPauseBtn = [&](const char* tex, const glm::vec2& pos, PauseAction action) {
-		if (GameObject* b = SpawnStaticSprite(tex, { pos.x, pos.y, 0.0f }, { 300.0f, 100.0f }, uiLayer)) {
+		if (GameObject* b = SpawnStaticSprite(tex, { pos.x, pos.y, 0.0f }, { 350.0f, 100.0f }, uiLayer)) {
 			const int id = b->GetID();
 			pauseOverlayObjectIds_.push_back(id);
 			SetObjectTexturePath(id, tex);
@@ -769,9 +820,9 @@ void Scene::ShowPauseOverlay() {
 		}
 		};
 
-	spawnPauseBtn("../assets/continue_s.png", { 967.f, 454.f }, PauseAction::Resume);
-	spawnPauseBtn("../assets/how_s.png", { 967.f, 584.f }, PauseAction::HowToPlay);
-	spawnPauseBtn("../assets/quit_s.png", { 967.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn("../assets/continue_s.png", { 1300.f, 454.f }, PauseAction::Resume);
+	spawnPauseBtn("../assets/how_s.png", { 1300.f, 584.f }, PauseAction::HowToPlay);
+	spawnPauseBtn("../assets/quit_s.png", { 1300.f, 714.f }, PauseAction::Quit);
 #endif
 }
 
@@ -1097,4 +1148,380 @@ void Scene::StopAllObjectAudio() {
 	}
 	
 	std::cout << "[Scene] Stopped all object-bound audio" << std::endl;
+}
+
+// Cutscene management
+
+void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
+                          float holdSecondsPerImage,
+                          float fadeSeconds,
+                          const std::string& levelJsonPath,
+                          bool activateSimulation) {
+	if (imagePaths.empty()) {
+		// If nothing to show, load level immediately
+		QueueLevelLoad(levelJsonPath, activateSimulation);
+		return;
+	}
+
+	// Clear any existing UI or pause overlays to avoid conflicts
+	HidePauseOverlay();
+
+	// Reset state
+	CleanupCutsceneObjects();
+	cutscene_.active = true;
+	cutscene_.images = imagePaths;
+	cutscene_.current = 0;
+	cutscene_.holdTime = std::max(0.0f, holdSecondsPerImage);
+	cutscene_.fadeTime = std::max(0.0f, fadeSeconds);
+	cutscene_.t = 0.0f;
+	cutscene_.phase = CutsceneState::Phase::FadeIn;
+	cutscene_.targetLevelJson = levelJsonPath;
+	cutscene_.targetActivateSim = activateSimulation;
+	cutscene_.queuedFinalLoad = false;
+
+	// Spawn the first sprite full-screen
+	const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+	const glm::vec2 fullSize{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+
+	if (GameObject* s = SpawnStaticSprite(cutscene_.images[0], center, fullSize, cutscene_.uiLayer)) {
+		cutscene_.spriteA = s->GetID();
+		// Detect alpha support by attempting to set alpha=0 then alpha=1
+		// If shader ignores it, visuals won't change; we still run without fade.
+		// Bring it in with fade-in
+		SetSpriteAlpha(s, 0.0f);
+	} else {
+		// If spawn failed, abort cutscene and load level
+		cutscene_.active = false;
+		QueueLevelLoad(levelJsonPath, activateSimulation);
+	}
+}
+
+void Scene::UpdateCutscene(float dt) {
+	if (!cutscene_.active) return;
+
+	// Helper to get object for id
+	auto getObj = [&](int id) -> GameObject* { return GetGameObjectByID(id); };
+
+	// Advance timers
+	cutscene_.t += dt;
+
+	switch (cutscene_.phase) {
+	case CutsceneState::Phase::FadeIn: {
+		// Fade in spriteA from 0 -> 1
+		float alpha = (cutscene_.fadeTime > 0.0f) ? std::min(1.0f, cutscene_.t / cutscene_.fadeTime) : 1.0f;
+		if (GameObject* a = getObj(cutscene_.spriteA)) {
+			SetSpriteAlpha(a, alpha);
+		}
+		if (alpha >= 1.0f) {
+			cutscene_.phase = CutsceneState::Phase::Hold;
+			cutscene_.t = 0.0f;
+		}
+		break;
+	}
+	case CutsceneState::Phase::Hold: {
+		if (cutscene_.t >= cutscene_.holdTime) {
+			// Prepare next image if any
+			if (cutscene_.current + 1 < cutscene_.images.size()) {
+				// Spawn next spriteB on top (or cross-fade if supported)
+				const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+				const glm::vec2 fullSize{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+				if (GameObject* b = SpawnStaticSprite(cutscene_.images[cutscene_.current + 1], center, fullSize, cutscene_.uiLayer)) {
+					cutscene_.spriteB = b->GetID();
+					// Start with alpha=0 to fade in
+					SetSpriteAlpha(b, 0.0f);
+					cutscene_.phase = CutsceneState::Phase::FadeOut;
+					cutscene_.t = 0.0f;
+				} else {
+					// Could not spawn next; jump to end
+					cutscene_.current = static_cast<size_t>(cutscene_.images.size());
+					cutscene_.phase = CutsceneState::Phase::FadeOut;
+					cutscene_.t = 0.0f;
+				}
+			} else {
+				// Last image finished holding -> end cutscene and load level
+				CleanupCutsceneObjects();
+				cutscene_.active = false;
+				if (!cutscene_.queuedFinalLoad) {
+					cutscene_.queuedFinalLoad = true;
+					QueueLevelLoad(cutscene_.targetLevelJson, cutscene_.targetActivateSim);
+				}
+			}
+		}
+		break;
+	}
+	case CutsceneState::Phase::FadeOut: {
+		// Cross-fade: spriteA goes 1->0, spriteB goes 0->1
+		float tNorm = (cutscene_.fadeTime > 0.0f) ? std::min(1.0f, cutscene_.t / cutscene_.fadeTime) : 1.0f;
+		float alphaA = 1.0f - tNorm;
+		float alphaB = tNorm;
+
+		if (GameObject* a = getObj(cutscene_.spriteA)) SetSpriteAlpha(a, alphaA);
+		if (GameObject* b = getObj(cutscene_.spriteB)) SetSpriteAlpha(b, alphaB);
+
+		if (tNorm >= 1.0f) {
+			// Despawn old A, promote B to A, advance index
+			if (cutscene_.spriteA >= 0) DespawnByID(cutscene_.spriteA);
+			cutscene_.spriteA = cutscene_.spriteB;
+			cutscene_.spriteB = -1;
+			cutscene_.current += 1;
+			cutscene_.phase = CutsceneState::Phase::Hold;
+			cutscene_.t = 0.0f;
+		}
+		break;
+	}
+	}
+}
+
+void Scene::CleanupCutsceneObjects() {
+	if (cutscene_.spriteA >= 0) {
+		DespawnByID(cutscene_.spriteA);
+		cutscene_.spriteA = -1;
+	}
+	if (cutscene_.spriteB >= 0) {
+		DespawnByID(cutscene_.spriteB);
+		cutscene_.spriteB = -1;
+	}
+}
+
+// Crossfade helper
+void Scene::SetSpriteAlpha(GameObject* obj, float alpha) {
+    if (!obj) return;
+    // Clamp and apply as RGBA tint
+    float a = std::clamp(alpha, 0.0f, 1.0f);
+    obj->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, a));
+    // Keep full UV rect so texture is still visible
+    obj->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
+}
+
+// Call this from MenuButtonLogic on click
+void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths,
+                                      const std::string& levelJsonPath,
+                                      bool activateSimulation,
+                                      float fadeOutSeconds,
+                                      float fadeInSeconds,
+                                      float holdSeconds) {
+    if (imagePaths.empty()) {
+        QueueLevelLoad(levelJsonPath, activateSimulation);
+        return;
+    }
+
+#ifndef _DEBUG
+    SetSimulationActive(false);
+#endif
+    HidePauseOverlay();
+
+    if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
+    cutTrans_ = {};
+    cutTrans_.active = true;
+    cutTrans_.images = imagePaths;
+    cutTrans_.index = 0;
+    cutTrans_.targetLevelJson = levelJsonPath;
+    cutTrans_.targetActivateSim = activateSimulation;
+    cutTrans_.outSeconds = fadeOutSeconds;
+    cutTrans_.inSeconds = fadeInSeconds;
+    cutTrans_.holdSeconds = std::max(0.0f, holdSeconds);
+    cutTrans_.holdElapsed = 0.0f;
+    cutTrans_.holding = false;
+    cutTrans_.awaitingBlackout = false;
+    cutTrans_.awaitingInitialFadeIn = false;
+
+    cutTrans_.useCrossfade = true;
+    cutTrans_.crossfadeSeconds = 2.0f;
+    cutTrans_.crossfadeFromIndex = 5;
+
+	// Note: do not spawn the first image yet.
+    // Start fade-out to blackout, will spawn at blackout and fade-in.
+    auto& gfx = GetGraphicsEngine();
+    gfx.StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+    cutTrans_.awaitingBlackout = true;
+}
+
+void Scene::UpdateCutsceneTransitioned(float dt) {
+    if (!cutTrans_.active) return;
+
+    auto* gfx = &GetGraphicsEngine();
+    if (!gfx) return;
+
+    // Crossfade 5 -> 6 
+    if (cutTrans_.useCrossfade && cutTrans_.crossfading) {
+        cutTrans_.crossfadeT += dt;
+        float tNorm = std::min(1.0f, cutTrans_.crossfadeT / cutTrans_.crossfadeSeconds);
+
+        if (GameObject* a = GetGameObjectByID(cutTrans_.currentSpriteId)) SetSpriteAlpha(a, 1.0f - tNorm);
+        if (GameObject* b = GetGameObjectByID(cutTrans_.nextSpriteId))    SetSpriteAlpha(b, tNorm);
+
+        if (tNorm >= 1.0f) {
+            if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
+            cutTrans_.currentSpriteId = cutTrans_.nextSpriteId;
+            cutTrans_.nextSpriteId = -1;
+            cutTrans_.crossfading = false;
+            cutTrans_.holding = true;
+            cutTrans_.holdElapsed = 0.0f;
+        }
+        return;
+    }
+
+    // Hold timing for subsequent transitions
+    if (cutTrans_.holding && !gfx->IsTransitionActive()) {
+        cutTrans_.holdElapsed += dt;
+        if (cutTrans_.holdElapsed >= cutTrans_.holdSeconds) {
+            const size_t nextIndex = cutTrans_.index + 1;
+            if (nextIndex < cutTrans_.images.size()) {
+                if (cutTrans_.useCrossfade && static_cast<int>(nextIndex) == cutTrans_.crossfadeFromIndex) {
+                    const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+                    const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+                    // when spawning next for crossfade (5 -> 6)
+                    const glm::vec3 topCenter{ center.x, center.y, 0.001f };
+                    if (GameObject* b = SpawnStaticSprite(cutTrans_.images[nextIndex],
+                                      topCenter,
+                                      full,
+                                      cutTrans_.uiLayer)) {
+                        cutTrans_.nextSpriteId = b->GetID();
+                        SetSpriteAlpha(b, 0.0f);
+                        cutTrans_.crossfading = true;
+                        cutTrans_.crossfadeT = 0.0f;
+                        cutTrans_.index = nextIndex;
+                        cutTrans_.holding = false;
+                    } else {
+                        gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+                        cutTrans_.awaitingBlackout = true;
+                        cutTrans_.holding = false;
+                        cutTrans_.holdElapsed = 0.0f;
+                    }
+                } else {
+                    gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+                    cutTrans_.awaitingBlackout = true;
+                    cutTrans_.holding = false;
+                    cutTrans_.holdElapsed = 0.0f;
+                }
+            } else {
+                gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+                cutTrans_.awaitingBlackout = true;
+                cutTrans_.holding = false;
+            }
+        }
+    }
+
+    // Blackout handoff: spawn first image or next image, then fade-in and hold
+    if (cutTrans_.awaitingBlackout && gfx->IsAtBlackout()) {
+        cutTrans_.awaitingBlackout = false;
+
+        // First image case: index==0 and nothing spawned yet
+        if (cutTrans_.currentSpriteId < 0 && cutTrans_.index == 0) {
+            const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+            const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+            if (GameObject* s = SpawnStaticSprite(cutTrans_.images[0], center, full, cutTrans_.uiLayer)) {
+                cutTrans_.currentSpriteId = s->GetID();
+            }
+            gfx->ContinueTransitionFadeIn();
+            cutTrans_.holding = true;
+            cutTrans_.holdElapsed = 0.0f;
+            return;
+        }
+
+        const size_t nextIndex = cutTrans_.index + 1;
+        if (nextIndex < cutTrans_.images.size()) {
+            if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
+
+            const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+            const glm::vec2 full{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+            if (GameObject* s = SpawnStaticSprite(cutTrans_.images[nextIndex], center, full, cutTrans_.uiLayer)) {
+                cutTrans_.currentSpriteId = s->GetID();
+            }
+            cutTrans_.index = nextIndex;
+
+            gfx->ContinueTransitionFadeIn();
+            cutTrans_.holding = true;
+            cutTrans_.holdElapsed = 0.0f;
+        } else {
+            // Last blackout → load level, then fade-in after build (existing logic)
+            if (cutTrans_.currentSpriteId >= 0) {
+                DespawnByID(cutTrans_.currentSpriteId);
+                cutTrans_.currentSpriteId = -1;
+            }
+            cutTrans_.active = false;
+            QueueLevelLoad(cutTrans_.targetLevelJson, cutTrans_.targetActivateSim);
+            cutTrans_.fadeInAfterLoad = true; // handled in Scene::Update after LoadAndBuild
+        }
+    }
+}
+
+// Order UI slide-in API 
+int Scene::TriggerOrderUiSlideIn(const glm::vec2& targetPos,
+                                 const glm::vec2& size,
+                                 const std::string& layer,
+                                 const std::string& texturePath,
+                                 float slideDuration) {
+	// Spawn off-screen vertically (just above top)
+	const float offscreenY = -size.y * 0.5f; // slightly above top of reference canvas
+	const glm::vec3 spawnPos{ targetPos.x, offscreenY, 0.0f };
+
+	GameObject* obj = SpawnStaticSprite(texturePath, spawnPos, size, layer);
+	if (!obj) {
+		std::cerr << "[Scene] TriggerOrderUiSlideIn: failed to spawn Order UI\n";
+		return -1;
+	}
+
+	// Ensure it's always visible and not collidable
+	obj->EnableShadow(false);
+	obj->SetColliderSize(Math::Vector2D{ 0.0f, 0.0f });
+	obj->SetColliderOffset(Math::Vector2D{ 0.0f, 0.0f });
+
+	// Register slide
+	UiSlide slide{};
+	slide.objectId = obj->GetID();
+	slide.startPos = glm::vec2(spawnPos.x, spawnPos.y);
+	slide.targetPos = targetPos;
+	slide.t = 0.0f;
+	slide.duration = std::max(0.05f, slideDuration);
+	slide.active = true;
+
+	uiSlides_.push_back(slide);
+
+	// play audio cue here
+	// PlaySpawnAudio(slide.objectId);
+
+	return slide.objectId;
+}
+
+void Scene::UpdateUiSlides(float dt) {
+	if (uiSlides_.empty()) return;
+
+	// We allow slide updates even when simulation is paused,
+	// so UI remains responsive.
+	for (auto& s : uiSlides_) {
+		if (!s.active) continue;
+
+		s.t += dt;
+		const float norm = std::clamp(s.t / s.duration, 0.0f, 1.0f);
+		const float eased = EaseOutCubic(norm);
+
+		const float x = s.startPos.x + (s.targetPos.x - s.startPos.x) * eased;
+		const float y = s.startPos.y + (s.targetPos.y - s.startPos.y) * eased;
+
+		if (GameObject* obj = GetGameObjectByID(s.objectId)) {
+			glm::vec3 p = obj->GetPositionGLM();
+			p.x = x;
+			p.y = y;
+			obj->SetPosition(p);
+		}
+
+		if (norm >= 1.0f) {
+			s.active = false;
+			// Snap to exact target
+			if (GameObject* obj = GetGameObjectByID(s.objectId)) {
+				glm::vec3 p = obj->GetPositionGLM();
+				p.x = s.targetPos.x;
+				p.y = s.targetPos.y;
+				obj->SetPosition(p);
+			}
+		}
+	}
+
+	// Remove finished slides
+	uiSlides_.erase(
+		std::remove_if(uiSlides_.begin(), uiSlides_.end(),
+			[](const UiSlide& s) { return !s.active; }),
+		uiSlides_.end()
+	);
 }

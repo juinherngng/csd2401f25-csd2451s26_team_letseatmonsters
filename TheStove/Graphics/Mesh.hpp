@@ -33,6 +33,7 @@ public:
 	struct InstanceData {
 		glm::mat4 modelMatrix;
 		glm::vec4 uvOffsetScale; // x,y offset, z,w scale for UV animation frame
+		glm::vec4 colorTint; // RGBA tint per instance
 	};
 
 	// used GLsizei instead of size_t for vertexSize - juinherng
