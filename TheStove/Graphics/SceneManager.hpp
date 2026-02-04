@@ -274,6 +274,8 @@ public:
 		std::string audioOnDestroy;
 		std::string audioOnProcessing;  // Audio that loops while work table is processing
 		bool audioLoop{ false };
+		// Per-object visibility (default visible)
+		bool visible{ true };
 	};
 
 	void SetDefaults(int id, const Defaults& d) {
@@ -282,6 +284,15 @@ public:
 	Defaults GetDefaults(int id) const {
 		auto it = defaults_.find(id);
 		return (it != defaults_.end()) ? it->second : Defaults{};
+	}
+
+	// Per-object visibility controls 
+	void SetObjectVisible(int id, bool visible) {
+		defaults_[id].visible = visible;
+	}
+	bool IsObjectVisible(int id) const {
+		auto it = defaults_.find(id);
+		return (it != defaults_.end()) ? it->second.visible : true;
 	}
 
 	// Particle system

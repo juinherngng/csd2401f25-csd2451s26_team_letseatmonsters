@@ -408,6 +408,15 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 			continue;
 		}
 
+		// Skip if object is marked invisible in defaults (per-object visibility)
+		const int objId = g->GetID();
+		auto defIt = defaults_.find(objId);
+		if (defIt != defaults_.end()) {
+			if (!defIt->second.visible) {
+				continue;
+			}
+		}
+
 		// Check the layer's visibility flag
 		const std::string layerName = GetObjectLayer(g->GetID());
 		Layer* layer = GetLayer(layerName);

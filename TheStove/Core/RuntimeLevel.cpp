@@ -131,9 +131,17 @@ namespace RuntimeLevel {
 			defs.tag = obj.tag;
 			defs.layer = obj.layer;
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+			defs.visible = obj.visible;
 
 			scene.SetDefaults(g->GetID(), defs);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
+
+			// Allow immediate hide via alpha tint if invisible for visual consistency
+			if (!obj.visible) {
+				scene.SetObjectVisible(g->GetID(), false);
+				// keep object spawned but invisible; alpha tint avoids popping in debug
+				g->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
+			}
 
 			// Only clamp objects that have colliders
 			if (obj.hasCollider) {
