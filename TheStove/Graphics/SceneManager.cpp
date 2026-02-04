@@ -611,6 +611,10 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 		logicManager.AddLogic<TrashCanLogic>(id);
 		RegisterExitGate(id);
 	}
+	else if (tag == "order_ui_logic") {
+		logicManager.AddLogic<OrderUILogic>(id);
+	}
+
 	// Menu buttons etc
 	else if (tag == "btn_play") {
 		auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, "../levels/kitchen01.json", true);
@@ -1448,40 +1452,38 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 
 // Order UI slide-in API 
 int Scene::TriggerOrderUiSlideIn(const glm::vec2& targetPos,
-                                 const glm::vec2& size,
-                                 const std::string& layer,
-                                 const std::string& texturePath,
-                                 float slideDuration) {
-	// Spawn off-screen vertically (just above top)
-	const float offscreenY = -size.y * 0.5f; // slightly above top of reference canvas
-	const glm::vec3 spawnPos{ targetPos.x, offscreenY, 0.0f };
+	const glm::vec2& size,
+	const std::string& layer,
+	const std::string& texturePath,
+	float duration)
+{
+	// spawn off-screen (above)
+	glm::vec2 startPos = { targetPos.x, -size.y * 0.5f };
 
-	GameObject* obj = SpawnStaticSprite(texturePath, spawnPos, size, layer);
-	if (!obj) {
-		std::cerr << "[Scene] TriggerOrderUiSlideIn: failed to spawn Order UI\n";
-		return -1;
-	}
+	GameObject* ui = SpawnStaticSprite(texturePath.c_str(),
+		{ startPos.x, startPos.y, 0.f },
+		size,
+		layer);
+	if (!ui) return -1;
 
-	// Ensure it's always visible and not collidable
-	obj->EnableShadow(false);
-	obj->SetColliderSize(Math::Vector2D{ 0.0f, 0.0f });
-	obj->SetColliderOffset(Math::Vector2D{ 0.0f, 0.0f });
+	const int id = ui->GetID();
 
-	// Register slide
-	UiSlide slide{};
-	slide.objectId = obj->GetID();
-	slide.startPos = glm::vec2(spawnPos.x, spawnPos.y);
-	slide.targetPos = targetPos;
-	slide.t = 0.0f;
-	slide.duration = std::max(0.05f, slideDuration);
-	slide.active = true;
+	// whatever you already do to register the slide...
+	// AddUiSlide(id, startPos, targetPos, duration);
 
-	uiSlides_.push_back(slide);
+	SetObjectTexturePath(id, texturePath);
 
-	// play audio cue here
-	// PlaySpawnAudio(slide.objectId);
+	// REGISTER THE SLIDE
+	UiSlide s;
+	s.objectId = id;
+	s.startPos = startPos;
+	s.targetPos = targetPos;
+	s.t = 0.0f;
+	s.duration = std::max(0.001f, duration);
+	s.active = true;
+	uiSlides_.push_back(s);
 
-	return slide.objectId;
+	return id;
 }
 
 void Scene::UpdateUiSlides(float dt) {
