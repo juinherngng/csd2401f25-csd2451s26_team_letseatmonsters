@@ -126,6 +126,8 @@ public:
 	void ClearAll();
 	void RequestClearAll();
 
+	void RenderLevelTextObjects();
+
 	// Simulation control
 	void SetSimulationActive(bool active);
 	bool IsSimulationActive() const;

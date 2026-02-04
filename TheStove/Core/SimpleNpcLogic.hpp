@@ -149,7 +149,7 @@ private:
 	float timer = 0.0f;
 
 	float idleDuration = 0.5f;   // pause at top/bottom
-	float speed = 100.0f; // pixels per second
+	float speed = 200.0f; // pixels per second
 
     // Which direction we will move next after an Idle
     bool nextMoveUp = false;     // start by moving DOWN
@@ -175,7 +175,7 @@ private:
     // Simple "eating" timer: after dish is served, NPC spends some time
     // in Eating state before switching to Paying.
     float eatTimer_ = 0.0f;
-    float eatDuration_ = 3.0f;   // seconds
+    float eatDuration_ = 20.0f;   // seconds
 
     // Internal helper to advance the customer eating logic.
     void UpdateCustomerLogic(float dt, Scene& scene);
@@ -185,7 +185,7 @@ private:
     DishType RollRandomDish();
 
     // ===== Customer patience =====
-    float patienceMax_ = 40.0f;
+    float patienceMax_ = 45.0f;
     float patienceRemaining_ = 0.0f;
     bool  patienceExpired_ = false;
 

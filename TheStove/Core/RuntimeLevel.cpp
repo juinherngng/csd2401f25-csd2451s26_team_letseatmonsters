@@ -19,6 +19,7 @@
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/ResourceManager.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 
 #include "LevelSerializer.hpp"
 #include "RuntimeLevel.hpp"
@@ -167,6 +168,36 @@ namespace RuntimeLevel {
 
 		BuildSceneFromLevel(data, scene);
 		scene.RebuildColliders();
+
+		std::vector<LEPANELFONTS::TextObjectData> parsedTexts;
+		parsedTexts.reserve(data.textObjects.size());
+
+		for (const auto& t : data.textObjects) {
+			LEPANELFONTS::TextObjectData d;
+			d.name = t.name;
+			d.fontName = t.fontName;
+			d.text = t.text;
+
+			d.x = t.x;
+			d.y = t.y;
+			d.scale = t.scale;
+
+			d.rotation = t.rotation;
+			d.useBlockRotation = t.useBlockRotation;
+
+			d.colorR = t.colorR;
+			d.colorG = t.colorG;
+			d.colorB = t.colorB;
+			d.colorA = t.colorA;
+
+			d.layer = t.layer;
+
+			parsedTexts.push_back(std::move(d));
+	}
+
+		LEPANELFONTS::SetTextObjectsWithScene(parsedTexts, scene);
+
+
 
 #if 0
 		// Create text for menu buttons if this is a menu level

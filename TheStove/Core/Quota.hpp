@@ -1,4 +1,7 @@
 #pragma once
+#include <sstream>
+#include <iomanip>
+#include "LevelEditorPanelFonts.hpp"
 
 class Scene;
 
@@ -17,7 +20,7 @@ namespace Economy
     inline bool gQuotaReached = false;
 
     // Total time allowed (seconds). Adjust as you like.
-    inline constexpr float kTimeLimitSeconds = 120.0f;
+    inline constexpr float kTimeLimitSeconds = 180.0f;
 
     // Remaining time (seconds)
     inline float gTimeRemaining = kTimeLimitSeconds;
@@ -28,6 +31,27 @@ namespace Economy
     // Optional: pause timer (e.g., in win/lose screen)
     inline bool gTimerPaused = false;
 
+    // Put near the top of Economy.hpp/cpp (where Economy lives)
+    inline void SyncUI()
+    {
+        // Money
+        LEPANELFONTS::SetTextByName("MoneyText", "$" + std::to_string(gPlayerMoney));
+
+        // Quota: "current / target"
+        LEPANELFONTS::SetTextByName("QuotaText", "$" + std::to_string(kQuota));
+
+        // Timer: format mm:ss
+        int total = static_cast<int>(gTimeRemaining + 0.999f); // ceil-ish
+        int mm = total / 60;
+        int ss = total % 60;
+
+        std::ostringstream oss;
+        oss << std::setw(2) << std::setfill('0') << mm
+            << ":" << std::setw(2) << std::setfill('0') << ss;
+
+        LEPANELFONTS::SetTextByName("TimerText", oss.str());
+    }
+
     inline void Reset()
     {
         gPlayerMoney = 0;
@@ -36,6 +60,8 @@ namespace Economy
         gTimeRemaining = kTimeLimitSeconds;
         gTimeUp = false;
         gTimerPaused = false;
+
+        SyncUI();
     }
 
     // TODO: you will implement this later (switch scene, show win UI, etc.)
@@ -63,6 +89,8 @@ namespace Economy
 
         gPlayerMoney += amount;
 
+        SyncUI(); // <--- update UI immediately
+
         if (!gQuotaReached && gPlayerMoney >= kQuota)
         {
             gQuotaReached = true;
@@ -72,10 +100,9 @@ namespace Economy
 
     inline void Update(float dt, Scene& scene)
     {
-        if (gQuotaReached) return;      // optional: stop timer if win
-        if (gTimeUp) return;            // already time-up
-        if (gTimerPaused) return;       // paused
-
+        if (gQuotaReached) return;
+        if (gTimeUp) return;
+        if (gTimerPaused) return;
         if (dt <= 0.0f) return;
 
         gTimeRemaining -= dt;
@@ -86,6 +113,8 @@ namespace Economy
             gTimeUp = true;
             OnTimeUp(scene);
         }
+
+        SyncUI(); // <--- update timer every frame (and quota/money too)
     }
 
     // Helpers (optional)

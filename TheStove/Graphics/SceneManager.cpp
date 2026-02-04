@@ -37,6 +37,7 @@
 #include "../Core/FilePaths.hpp"
 #include "SceneManager.hpp"
 #include "GraphicsEngine.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 
 // Cache for boundary flags used by bounded transitioned cutscenes
 static std::vector<bool> sCutsceneBoundaryFlags;
@@ -216,6 +217,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 					gfx.ContinueTransitionFadeIn();
 					cutTrans_.fadeInAfterLoad = false;
 				}
+				LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
 			}
 		}
 		hasPendingLevel_ = false;
@@ -1624,3 +1626,76 @@ void Scene::UpdateUiSlides(float dt) {
 		uiSlides_.end()
 	);
 }
+
+void Scene::RenderLevelTextObjects()
+{
+	const auto& objs = LEPANELFONTS::GetTextObjects();
+	if (objs.empty()) return;
+
+#ifndef _DEBUG
+	// If you only want text in gameplay, keep it.
+	// Otherwise remove this guard.
+#endif
+
+	glm::mat4 projection = graphicsEngine.GetProjection();
+
+	// Match your FPS rendering viewport logic
+	GLint prevViewport[4];
+	glGetIntegerv(GL_VIEWPORT, prevViewport);
+
+	GLint boundFBO = 0;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
+
+	if (boundFBO != 0) {
+		glViewport(0, 0, graphicsEngine.GetSceneWidth(), graphicsEngine.GetSceneHeight());
+	}
+	else {
+		graphicsEngine.ApplyViewport();
+	}
+
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	for (const auto& o : objs)
+	{
+		if (o.text.empty()) continue;
+		if (o.fontName.empty()) continue;
+		if (o.colorA <= 0.001f) continue;
+
+		// Respect layer visibility (optional but nice)
+		if (!o.layer.empty()) {
+			Layer* layer = GetLayer(o.layer);
+			if (layer && (!layer->IsEnabled() || !layer->IsVisible()))
+				continue;
+		}
+
+		FontSystem::Font* font = ResourceManager::Instance().GetFont(o.fontName);
+		if (!font) continue;
+
+		FontSystem::Text t;
+		t.SetFont(font);
+		t.SetText(o.text);
+		t.SetColor(glm::vec4(o.colorR, o.colorG, o.colorB, o.colorA));
+		t.SetScale(o.scale);
+		t.SetRotation(o.rotation);
+
+		// IMPORTANT: coordinate system sanity
+		// If your engine uses top-left origin for JSON,
+		// uncomment this conversion:
+		// float y = GraphicsEngine::kRefH - o.y;
+		// t.SetPosition(glm::vec2(o.x, y));
+
+		t.SetPosition(glm::vec2(o.x, o.y));
+
+		t.SetRotationMode(o.useBlockRotation
+			? FontSystem::Text::RotationMode::Block
+			: FontSystem::Text::RotationMode::PerCharacter);
+
+		FontSystem::TextRenderer::Instance().RenderText(t, projection);
+	}
+
+	glDisable(GL_BLEND);
+	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+}
+
