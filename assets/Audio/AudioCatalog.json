@@ -119,6 +119,14 @@
       "name": "bgm_MyoonchiDiner_IntroCutscene",
       "stream": false,
       "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_customer_leaving.wav",
+      "loop": false,
+      "name": "sfx_customer_leaving",
+      "stream": false,
+      "volume": 1.0
     }
   ],
   "version": "1.0"
