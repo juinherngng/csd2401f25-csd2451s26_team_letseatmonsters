@@ -42,7 +42,9 @@
 #include "LevelEditor.hpp"
 #include "LevelEditorFileIO.hpp"
 #include "LevelEditorPrefabLinks.hpp"
+#include "LevelEditorPanelFonts.hpp"  // Include for text object sync
 #include "InputManager.hpp"
+#include "AudioLoading.hpp"
 
 
 namespace fs = std::filesystem;
@@ -53,6 +55,75 @@ namespace {
 	// Internal helpers for Level <-> Scene synchronization
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
+
+	// Helper to sync text objects from LevelData to editor state
+	void SyncTextObjectsToEditor(const LevelData& levelIn) {
+		std::vector<LEPANELFONTS::TextObjectData> textObjects;
+		textObjects.reserve(levelIn.textObjects.size());
+		
+		for (const auto& levelText : levelIn.textObjects) {
+			LEPANELFONTS::TextObjectData textData;
+			textData.name = levelText.name;
+			textData.fontName = levelText.fontName;
+			textData.text = levelText.text;
+			textData.x = levelText.x;
+			textData.y = levelText.y;
+			textData.scale = levelText.scale;
+			textData.rotation = levelText.rotation;
+			textData.useBlockRotation = levelText.useBlockRotation;
+			textData.colorR = levelText.colorR;
+			textData.colorG = levelText.colorG;
+			textData.colorB = levelText.colorB;
+			textData.colorA = levelText.colorA;
+			textData.layer = levelText.layer;
+			
+			// Try to load the font if not already loaded
+			if (!levelText.fontName.empty()) {
+				FontSystem::Font* font = ResourceManager::Instance().GetFont(levelText.fontName);
+				if (!font) {
+					// Try to load with a default path - this won't work without the actual path
+					// In practice, fonts should be pre-loaded or the path should be stored
+					std::cout << "[SyncTextObjects] Font '" << levelText.fontName << "' not loaded, text may not render\n";
+				}
+			}
+			
+			textObjects.push_back(textData);
+		}
+		
+		LEPANELFONTS::SetTextObjects(textObjects);
+	}
+	
+	// NEW: Helper to sync text objects from editor state to LevelData
+	void SyncTextObjectsToLevel(LevelData& levelOut) {
+		const auto& textObjects = LEPANELFONTS::GetTextObjects();
+		levelOut.textObjects.clear();
+		levelOut.textObjects.reserve(textObjects.size());
+		
+		for (const auto& textData : textObjects) {
+			LevelTextObject levelText;
+			levelText.name = textData.name;
+			levelText.fontName = textData.fontName;
+			levelText.text = textData.text;
+			levelText.x = textData.x;
+			levelText.y = textData.y;
+			levelText.scale = textData.scale;
+			levelText.rotation = textData.rotation;
+			levelText.useBlockRotation = textData.useBlockRotation;
+			levelText.colorR = textData.colorR;
+			levelText.colorG = textData.colorG;
+			levelText.colorB = textData.colorB;
+			levelText.colorA = textData.colorA;
+			levelText.layer = textData.layer;
+			
+			// Get font size from loaded font if available
+			FontSystem::Font* font = ResourceManager::Instance().GetFont(textData.fontName);
+			if (font) {
+				levelText.fontSize = font->GetFontSize();
+			}
+			
+			levelOut.textObjects.push_back(levelText);
+		}
+	}
 
 #ifdef _DEBUG
 	static constexpr int MAX_UNDO = 50;
@@ -176,10 +247,21 @@ namespace {
 			defs.layer = obj.layer;
 			// NEW: approach offset
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+			// Audio bindings
+			defs.audioOnSpawn = obj.audioOnSpawn;
+			defs.audioOnInteract = obj.audioOnInteract;
+			defs.audioOnDestroy = obj.audioOnDestroy;
+			defs.audioOnProcessing = obj.audioOnProcessing;
+			defs.audioLoop = obj.audioLoop;
 
 			scene.SetDefaults(g->GetID(), defs);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
 			scene.ClampToWalkArea(g);
+
+			// Play spawn audio if configured (only during simulation/play mode)
+			if (scene.IsSimulationActive() && !obj.audioOnSpawn.empty()) {
+				scene.PlaySpawnAudio(g->GetID());
+			}
 		}
 	}
 
@@ -201,7 +283,7 @@ namespace {
 			out.animated = scene.HasAnimations(id);
 			out.animName = scene.GetCurrentAnimationName(id);
 
-			// Layer – use the layering system, fall back to "1"
+			// Layer — use the layering system, fall back to "1"
 			out.layer = scene.GetObjectLayer(id);
 			if (out.layer.empty()) {
 				out.layer = "1";
@@ -240,6 +322,13 @@ namespace {
 
 			out.approachOffsetX = defs.approachOffset.x;
 			out.approachOffsetY = defs.approachOffset.y;
+
+			// Audio bindings from defaults
+			out.audioOnSpawn = defs.audioOnSpawn;
+			out.audioOnInteract = defs.audioOnInteract;
+			out.audioOnDestroy = defs.audioOnDestroy;
+			out.audioOnProcessing = defs.audioOnProcessing;
+			out.audioLoop = defs.audioLoop;
 
 			// Velocity
 			const glm::vec2 v = scene.GetNPCVelocity(id);
@@ -396,7 +485,7 @@ namespace LEPANELLEVEL {
 		ImGui::SameLine();
 
 		if (ImGui::Button("Refresh##levels")) {
-			sLevelFiles = ListJsonFiles("../levels");
+		 sLevelFiles = ListJsonFiles("../levels");
 		}
 
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -426,7 +515,9 @@ namespace LEPANELLEVEL {
 			LevelData& work = editor.MutableLevel();
 			if (LevelSerializer::Load(editor.levelPath, work)) {
 				scene.ClearAll();
+				LEPANELFONTS::ClearTextObjects();  // Clear text objects before loading
 				SyncLevelToScene(work, scene);
+				SyncTextObjectsToEditor(work);     // Load text objects
 				scene.RebuildColliders();
 				scene.SetSimulationActive(false);
 				scene.ResetResizeBaseline();
@@ -447,7 +538,17 @@ namespace LEPANELLEVEL {
 		if (ImGui::Button("Save Level")) {
 			LevelData& dst = editor.MutableLevel();
 			SyncSceneToLevel(scene, dst);
-			LevelSerializer::Save(editor.levelPath, dst);
+			SyncTextObjectsToLevel(dst);  // Save text objects
+			
+			std::cout << "[LevelPanel] Saving level to: " << editor.levelPath << std::endl;
+			std::cout << "[LevelPanel] Game objects: " << dst.objects.size() << std::endl;
+			std::cout << "[LevelPanel] Text objects: " << dst.textObjects.size() << std::endl;
+			
+			if (LevelSerializer::Save(editor.levelPath, dst)) {
+				std::cout << "[LevelPanel] Level saved successfully!" << std::endl;
+			} else {
+				std::cerr << "[LevelPanel] ERROR: Failed to save level!" << std::endl;
+			}
 		}
 
 		ImGui::SameLine();
@@ -498,10 +599,16 @@ namespace LEPANELLEVEL {
 		// Stop
 		if (ImGui::Button("Stop")) {
 			if (editor.IsPlaying()) {
+				// Stop all object-bound audio before clearing the scene
+				scene.StopAllObjectAudio();
+				
+				// IMPORTANT: Set simulation inactive BEFORE restoring the scene
+				// to prevent spawn audio from playing during restoration
+				scene.SetSimulationActive(false);
+				
 				scene.ClearAll();
 				SyncLevelToScene(editor.MutablePlaySnapshot(), scene);
 				scene.RebuildColliders();
-				scene.SetSimulationActive(false);
 				editor.SetPlaying(false);
 			}
 		}
@@ -601,6 +708,23 @@ namespace LEPANELLEVEL {
 			}
 
 			ImGui::EndListBox();
+		}
+
+		// Text Objects Section - shows text objects from the Fonts panel
+		{
+			const auto& textObjs = LEPANELFONTS::GetTextObjects();
+			if (!textObjs.empty()) {
+				ImGui::SeparatorText("Text Objects");
+				if (ImGui::BeginListBox("##TextObjectsList", ImVec2(-FLT_MIN, 80.0f))) {
+					for (size_t i = 0; i < textObjs.size(); ++i) {
+						const auto& t = textObjs[i];
+						std::string lbl = t.name + " [" + t.fontName + "] [Layer: " + t.layer + "]";
+						ImGui::Selectable(lbl.c_str(), false, ImGuiSelectableFlags_Disabled);
+					}
+					ImGui::EndListBox();
+				}
+				ImGui::TextDisabled("Edit text objects in the Fonts panel.");
+			}
 		}
 
 		if (editor.IsPlaying()) {
@@ -1048,6 +1172,139 @@ namespace LEPANELLEVEL {
 
 			ImGui::Columns(1);
 
+			// ========== Audio Bindings Section ==========
+			ImGui::Spacing();
+			if (ImGui::CollapsingHeader("Audio Bindings", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::Indent(8.0f);
+
+				// Get available audio assets from catalog
+				const auto& audioAssets = Audio::AudioCatalog::GetAllAssets();
+				
+				// Build list of audio names for combo boxes
+				std::vector<const char*> audioNames;
+				audioNames.push_back("(None)");  // First option to clear binding
+				for (const auto& asset : audioAssets) {
+					audioNames.push_back(asset.name.c_str());
+				}
+
+				// Helper lambda to draw audio slot with combo and drag-drop
+				auto DrawAudioSlot = [&](const char* label, std::string& audioBinding, const char* tooltipText) {
+					ImGui::Text("%s", label);
+					ImGui::SameLine(120.0f);
+					
+					// Find current selection index
+					int currentIdx = 0;
+					for (size_t i = 1; i < audioNames.size(); ++i) {
+						if (audioBinding == audioNames[i]) {
+							currentIdx = static_cast<int>(i);
+							break;
+						}
+					}
+
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+					std::string comboId = std::string("##") + label;
+					if (ImGui::BeginCombo(comboId.c_str(), audioNames[currentIdx])) {
+						for (size_t i = 0; i < audioNames.size(); ++i) {
+							bool isSelected = (currentIdx == static_cast<int>(i));
+							if (ImGui::Selectable(audioNames[i], isSelected)) {
+								if (ImGui::IsItemActivated()) {
+									PushUndoSnapshot(editor, scene);
+								}
+								audioBinding = (i == 0) ? "" : audioNames[i];
+								if (label == std::string("On Spawn")) defaults.audioOnSpawn = audioBinding;
+								else if (label == std::string("On Interact")) defaults.audioOnInteract = audioBinding;
+								else if (label == std::string("On Destroy")) defaults.audioOnDestroy = audioBinding;
+								else if (label == std::string("On Processing")) defaults.audioOnProcessing = audioBinding;
+								scene.SetDefaults(id, defaults);
+							}
+							if (isSelected) {
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+						ImGui::EndCombo();
+					}
+
+					// Drag-drop target for audio assets
+					if (ImGui::BeginDragDropTarget()) {
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AUDIO_ASSET")) {
+							const char* droppedName = static_cast<const char*>(payload->Data);
+							if (droppedName) {
+								PushUndoSnapshot(editor, scene);
+								audioBinding = droppedName;
+								if (label == std::string("On Spawn")) defaults.audioOnSpawn = audioBinding;
+								else if (label == std::string("On Interact")) defaults.audioOnInteract = audioBinding;
+								else if (label == std::string("On Destroy")) defaults.audioOnDestroy = audioBinding;
+								else if (label == std::string("On Processing")) defaults.audioOnProcessing = audioBinding;
+								scene.SetDefaults(id, defaults);
+							}
+						}
+						ImGui::EndDragDropTarget();
+					}
+
+					// Clear button
+					ImGui::SameLine();
+					std::string clearBtnId = std::string("X##clear_") + label;
+					if (ImGui::Button(clearBtnId.c_str(), ImVec2(20, 0))) {
+						PushUndoSnapshot(editor, scene);
+						audioBinding = "";
+						if (label == std::string("On Spawn")) defaults.audioOnSpawn = "";
+						else if (label == std::string("On Interact")) defaults.audioOnInteract = "";
+						else if (label == std::string("On Destroy")) defaults.audioOnDestroy = "";
+						else if (label == std::string("On Processing")) defaults.audioOnProcessing = "";
+						scene.SetDefaults(id, defaults);
+					}
+					if (ImGui::IsItemHovered()) {
+						ImGui::SetTooltip("Clear audio binding");
+					}
+
+					// Preview button
+					if (!audioBinding.empty()) {
+						ImGui::SameLine();
+						std::string previewBtnId = std::string(">##preview_") + label;
+						if (ImGui::Button(previewBtnId.c_str(), ImVec2(20, 0))) {
+							// Play preview through AudioCatalog
+							// Note: This would need AudioManager access, simplified here
+						}
+						if (ImGui::IsItemHovered()) {
+							ImGui::SetTooltip("Preview audio");
+						}
+					}
+
+					if (ImGui::IsItemHovered() && tooltipText) {
+						ImGui::SetTooltip("%s", tooltipText);
+					}
+				};
+
+				// Get current audio bindings from defaults
+				std::string audioOnSpawn = defaults.audioOnSpawn;
+				std::string audioOnInteract = defaults.audioOnInteract;
+				std::string audioOnDestroy = defaults.audioOnDestroy;
+				std::string audioOnProcessing = defaults.audioOnProcessing;
+
+				DrawAudioSlot("On Spawn", audioOnSpawn, "Audio played when object spawns/loads");
+				DrawAudioSlot("On Interact", audioOnInteract, "Audio played when player interacts");
+				DrawAudioSlot("On Destroy", audioOnDestroy, "Audio played when object is destroyed");
+				DrawAudioSlot("On Processing", audioOnProcessing, "Audio played while work table is processing (loops)");
+
+				// Audio loop checkbox for spawn audio
+				ImGui::Spacing();
+				bool audioLoop = defaults.audioLoop;
+				if (ImGui::Checkbox("Loop Spawn Audio", &audioLoop)) {
+					PushUndoSnapshot(editor, scene);
+					defaults.audioLoop = audioLoop;
+					scene.SetDefaults(id, defaults);
+				}
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("If checked, the 'On Spawn' audio will loop continuously");
+				}
+
+				ImGui::Spacing();
+				ImGui::TextDisabled("Drag audio from Audio Control panel to slots above");
+
+				ImGui::Unindent(8.0f);
+			}
+			// ========== End Audio Bindings Section ==========
+
 			std::string newTag = tagBuf;
 
 			// persist tag in both defaults + scene registry
@@ -1153,7 +1410,6 @@ namespace LEPANELLEVEL {
 						// Snapshot BEFORE applying new texture
 						PushUndoSnapshot(editor, scene);
 
-						// GameObject* o = objectListForViewport[selectedIndex];
 						const int id2 = o->GetID();
 
 						// Store path in scene metadata
@@ -1205,4 +1461,10 @@ namespace LEPANELLEVEL {
 	}
 #endif
 }
+
+
+
+
+
+
 

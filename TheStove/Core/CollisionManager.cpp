@@ -14,6 +14,8 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "../Graphics/SceneManager.hpp"
+
 #include "CollisionManager.hpp"
 
  // Constructor
@@ -58,10 +60,22 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 			continue;
 		}
 
+		if (scene_) {
+			const int id = obj->GetID();
+			const std::string layerName = scene_->GetObjectLayer(id);
+			Layer* layer = scene_->GetLayer(layerName);
+
+			if (layer) {
+				if (!layer->IsEnabled()) continue;
+				if (!layer->IsVisible()) continue;
+				if (!layer->IsCollidable()) continue;
+			}
+		}
+
 		// Build AABB from object's position and scale
 		const Math::Vector3D pos(obj->GetPosition().x,
-								 obj->GetPosition().y,
-								 obj->GetPosition().z);
+			obj->GetPosition().y,
+			obj->GetPosition().z);
 		const glm::vec3 scale = obj->GetScaleGLM();
 
 		collision::AABB box = collision::World::makeAABBFromCenter(
@@ -82,8 +96,8 @@ void CollisionManager::Clear() {
 
 // World building
 void CollisionManager::BuildWalls(const collision::WalkArea& walkArea,
-								  const collision::WoodVertical& wood,
-								  const collision::StageEndGateVertical& endGate) {
+	const collision::WoodVertical& wood,
+	const collision::StageEndGateVertical& endGate) {
 	collisionWorld_.build(walkArea, wood, endGate);
 }
 

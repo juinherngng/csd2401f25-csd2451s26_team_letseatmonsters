@@ -3,6 +3,7 @@
 FILE NAME:			PlayerLogic.cpp
 PROJECT NAME:		Project GAM200
 AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
 
 DESCRIPTION:		Implements player control logic, including movement, sprite updates,
 					mouse click handling, item pickup/drop, and scene clamping behavior.
@@ -21,6 +22,15 @@ DESCRIPTION:		Implements player control logic, including movement, sprite update
 
 #include "../Core/DebugUI.hpp"
 #include "../Core/PlayerLogic.hpp"
+#include "../Core/TableLogic.hpp"
+#include "../Core/WorkTableLogic.hpp"
+
+#include "../Graphics/SceneManager.hpp"
+#include "../Graphics/SceneManager.hpp"
+
+#include "PlayerLogic.hpp"
+
+#include <iostream>
 
 void PlayerLogic::Start(Scene& scene) {
 	(void)scene;
@@ -48,10 +58,10 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	// Detect idle/no movement
 	if (glm::length(moveDirRaw) < moveThreshold) {
 		switch (facingDir) {
-			case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
-			case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
-			case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
-			case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
+		case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
+		case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
+		case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
+		case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
 		}
 	}
 	else {
@@ -111,8 +121,7 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 
 	// Only once per click (left mouse)
-	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT))
-	{
+	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		//std::cout << "RETURNING\n";
 		return;
 	}
@@ -260,29 +269,29 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	const auto size = player->GetColliderSize();
 	const auto offset = player->GetColliderOffset();
 
-		// Apply allowed movement
-		// Desired movement for this frame
-		glm::vec2 desiredDelta(dir.x * step, dir.y * step);
-	
-		// Trim against static world (outer frame + wood + gate)
-		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+	// Apply allowed movement
+	// Desired movement for this frame
+	glm::vec2 desiredDelta(dir.x * step, dir.y * step);
 
-		// If we can't move at all (hit a wall and are stuck), treat it as "try to arrive"
-		// and let OnArrived decide if we are close enough to interact.
-		const float allowedLenSq = allowedDelta.x * allowedDelta.x +
-			allowedDelta.y * allowedDelta.y;
-		if (allowedLenSq < 0.0001f) {
-			//std::cout << "[PlayerLogic] MoveTo blocked by collision, invoking OnArrived\n";
+	// Trim against static world (outer frame + wood + gate)
+	glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
 
-			hasMoveTarget = false;
-			if (GameObject* p = GetOwner(scene)) {
-				scene.GetMovementManager().ClearMoveTarget(p->GetID());
-			}
+	// If we can't move at all (hit a wall and are stuck), treat it as "try to arrive"
+	// and let OnArrived decide if we are close enough to interact.
+	const float allowedLenSq = allowedDelta.x * allowedDelta.x +
+		allowedDelta.y * allowedDelta.y;
+	if (allowedLenSq < 0.0001f) {
+		std::cout << "[PlayerLogic] MoveTo blocked by collision, invoking OnArrived\n";
 
-			// This will check distance to the table’s approach point using kInteractRadius
-			OnArrived(scene);
-			return;
+		hasMoveTarget = false;
+		if (GameObject* p = GetOwner(scene)) {
+			scene.GetMovementManager().ClearMoveTarget(p->GetID());
 		}
+
+		// This will check distance to the table’s approach point using kInteractRadius
+		OnArrived(scene);
+		return;
+	}
 
 	pos.x += allowedDelta.x;
 	pos.y += allowedDelta.y;
@@ -303,7 +312,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 }
 
 // Unity: OnArrived()
-// For now it�s a stub; later you can branch by what we clicked (tables, spawners, etc.)
+// For now it's a stub; later you can branch by what we clicked (tables, spawners, etc.)
 void PlayerLogic::OnArrived(Scene& scene) {
 	//std::cout << "[PlayerLogic] Arrived at destination\n";
 
@@ -465,6 +474,10 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
+	if (!scene.IsObjectLayerEnabled(player->GetID())) {
+		return;
+	}
+
 	glm::vec3 beforePos = player->GetPositionGLM();
 	const float physicsDt = scene.GetLastPhysicsDt();
 	const physics::StepController& step = scene.GetStepController();
@@ -505,7 +518,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 		// Desired movement this frame
 		glm::vec2 desiredDelta(inputDir.x * speed * dt,
-							   inputDir.y * speed * dt);
+			inputDir.y * speed * dt);
 
 		// Trim against static world (outer frame + wood + gate)
 		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
@@ -540,9 +553,8 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	UpdateMovement(dt, scene);
 
-	// Footstep particles: consistent + at feet
+	// Footstep trail: path-interpolated emission (prevents gaps at high speed)
 	glm::vec3 afterPos = player->GetPositionGLM();
-	glm::vec2 moveDelta(afterPos.x - beforePos.x, afterPos.y - beforePos.y);
 
 	// movement intent avoids spam from clamp jitter
 	bool hasIntent =
@@ -550,7 +562,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		input.IsKeyPressed(GLFW_KEY_W) || input.IsKeyPressed(GLFW_KEY_S) ||
 		hasMoveTarget;
 
-	// actual movement distance this frame
+	glm::vec2 moveDelta(afterPos.x - beforePos.x, afterPos.y - beforePos.y);
 	float dist = std::sqrt(moveDelta.x * moveDelta.x + moveDelta.y * moveDelta.y);
 
 	// ignore micro jitter
@@ -558,45 +570,68 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	bool actuallyMoved = dist > jitterEps;
 
 	if (hasIntent && actuallyMoved) {
-		// Accumulate distance and emit every N pixels travelled
-		footstepDistanceAcc_ += dist;
+		// Feet position from collider size
+		glm::vec3 feet = afterPos;
+		auto cs = player->GetColliderSize();
+		feet.y += cs.y * 0.4f; // adjust to feet level
 
-		const float stepSpacing = 15.0f; // tune: smaller = more frequent
-		while (footstepDistanceAcc_ >= stepSpacing) {
-			footstepDistanceAcc_ -= stepSpacing;
+		// Move direction (normalized) used for particle velocity shaping
+		glm::vec2 dir = moveDelta;
+		float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+		if (len > 0.0001f) {
+			dir.x /= len;
+			dir.y /= len;
+		}
 
-			// Feet position from collider size
-			glm::vec3 feet = afterPos;
+		// Initialize last point on first valid movement frame
+		if (!hasLastTrailPos_) {
+			lastTrailPos_ = feet;
+			hasLastTrailPos_ = true;
+			trailCarry_ = 0.0f;
+		}
 
-			auto cs = player->GetColliderSize();
-			feet.y += cs.y * 0.4f; // adjust to feet level
+		// Interpolate from lastTrailPos_ to feet, spawn evenly spaced particles
+		glm::vec2 a(lastTrailPos_.x, lastTrailPos_.y);
+		glm::vec2 b(feet.x, feet.y);
+		glm::vec2 d = b - a;
 
-			glm::vec2 dir = moveDelta;
-			float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
-			if (len > 0.0001f) {
-				dir.x /= len;
-				dir.y /= len;
+		float segmentDist = std::sqrt(d.x * d.x + d.y * d.y);
+		if (segmentDist > 0.0001f) {
+			glm::vec2 segDir = d / segmentDist;
+
+			const float spacing = 15.0f; // tune: smaller = denser trail
+			float total = segmentDist + trailCarry_;
+			int count = (int)std::floor(total / spacing);
+
+			// emit along the path
+			for (int i = 0; i < count; ++i) {
+				float along = spacing * (i + 1) - trailCarry_;
+				glm::vec2 p2 = a + segDir * along;
+
+				// spawn behind movement direction
+				glm::vec3 trailPos(p2.x, p2.y, afterPos.z);
+				const float behind = 20.0f;
+				trailPos.x -= dir.x * behind;
+				trailPos.y -= dir.y * behind;
+
+				// slight sideways jitter
+				glm::vec2 perp(-dir.y, dir.x);
+				float jitter = ((std::rand() % 1000) / 1000.0f - 0.5f) * 3.0f;
+				trailPos.x += perp.x * jitter;
+				trailPos.y += perp.y * jitter;
+
+				scene.GetParticleSystem().EmitTrail(scene.GetEntityManager(), trailPos, afterPos.z, dir);
 			}
 
-			// spawn behind movement direction
-			glm::vec3 trailPos = feet;
-
-			// amount of “behind” in pixels (tune this)
-			const float behind = 20.0f;
-			trailPos.x -= dir.x * behind;
-			trailPos.y -= dir.y * behind;
-
-			// slight sideways jitter so it looks like a trail, not a line
-			glm::vec2 perp(-dir.y, dir.x);
-			trailPos.x += perp.x * ((rand()%1000)/1000.0f - 0.5f) * 3.0f;
-			trailPos.y += perp.y * ((rand()%1000)/1000.0f - 0.5f) * 3.0f;
-
-			scene.GetParticleSystem().EmitFootstep(scene.GetEntityManager(), trailPos, afterPos.z);
+			trailCarry_ = total - count * spacing;
 		}
+
+		lastTrailPos_ = feet;
 	}
 	else {
 		// reset when not moving (prevents burst when resuming)
-		footstepDistanceAcc_ = 0.0f;
+		hasLastTrailPos_ = false;
+		trailCarry_ = 0.0f;
 	}
 
 	UpdateCarriedItemTransform(scene);
@@ -614,6 +649,9 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	GameObject* player = GetOwner(scene);
 	if (!player)
 		return;
+
+	// Play interact audio for the table being interacted with
+	scene.PlayInteractAudio(tableObjectID);
 
 	// Get table logic for the clicked/selected GameObject
 	LogicManager& logicMgr = scene.GetLogicManager();
@@ -646,8 +684,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 		}
 
 		int newItemID = box->SpawnIngredient(scene);
-		if (newItemID >= 0)
-		{
+		if (newItemID >= 0) {
 			PickUp(scene, newItemID);  // auto-pickup
 		}
 		return; // Do not fall through to normal table logic
@@ -704,8 +741,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	{
 		//std::cout << "  [PlayerLogic] CASE1: table has item, player empty -> TakeItem + PickUp\n";
 		int itemID = table->TakeItem(scene);
-		if (itemID >= 0)
-		{
+		if (itemID >= 0) {
 			PickUp(scene, itemID);
 		}
 		return;
@@ -756,8 +792,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 		PlateLogic* plate = logicMgr.GetLogicForObject<PlateLogic>(tableItemID);
 		IngredientLogic* ingr = logicMgr.GetLogicForObject<IngredientLogic>(carriedItemID);
 
-		if (plate && ingr)
-		{
+		if (plate && ingr) {
 			// GameObject ID of the ingredient we are currently carrying
 			const int ingredientObjID = ingr->GetOwnerID();
 
@@ -775,8 +810,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 					GameObject* plateObj = scene.GetGameObjectByID(tableItemID);
 					GameObject* ingredientObj = scene.GetGameObjectByID(ingredientObjID);
 
-					if (plateObj && ingredientObj)
-					{
+					if (plateObj && ingredientObj) {
 						glm::vec3 platePos = plateObj->GetPositionGLM();
 
 						// Snap the ingredient sprite onto the plate.
@@ -809,14 +843,12 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 
 					// 1) Destroy the first ingredient that was sitting on the plate (if any)
 					int firstObjID = plate->GetFirstIngredientObjectID();
-					if (firstObjID >= 0)
-					{
+					if (firstObjID >= 0) {
 						scene.DespawnByID(firstObjID);
 					}
 
 					// 2) Destroy the ingredient we just added (the one we were carrying)
-					if (ingredientObjID >= 0 && ingredientObjID != firstObjID)
-					{
+					if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
 						scene.DespawnByID(ingredientObjID);
 					}
 
@@ -845,8 +877,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 }
 
 
-void PlayerLogic::UpdateCarriedItemTransform(Scene& scene)
-{
+void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	if (carriedItemID < 0)
 		return;
 

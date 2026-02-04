@@ -91,6 +91,9 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&)
     {
         timer_ = processingTime_;
         isProcessing_ = false;
+        
+        // Stop processing audio when complete
+        scene.StopProcessingAudio(GetOwnerID());
 
         GameObject* item = scene.GetGameObjectByID(GetHeldItemID());
         if (item)
@@ -165,8 +168,12 @@ void WorkTableLogic::StartProcessing(Scene& scene)
     timer_ = 0.0f;
 }
 
-void WorkTableLogic::CancelProcessing(Scene& /*scene*/)
+void WorkTableLogic::CancelProcessing(Scene& scene)
 {
+    if (isProcessing_) {
+        // Stop processing audio when cancelled
+        scene.StopProcessingAudio(GetOwnerID());
+    }
     isProcessing_ = false;
     timer_ = 0.0f;
 }
@@ -183,6 +190,9 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
     if (IsItemProcessable(scene, item)) {
         isProcessing_ = true;
         timer_ = 0.0f;
+        
+        // Play processing audio for this work table
+        scene.PlayProcessingAudio(GetOwnerID());
     }
 }
 

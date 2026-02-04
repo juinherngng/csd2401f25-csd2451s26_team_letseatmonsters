@@ -100,10 +100,23 @@ public:
 	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
 		MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
-	// Set AudioManager for UI sounds
+	// Set AudioManager for UI sounds and audio bindings
 	void SetAudioManager(AudioManager* audioMgr) {
 		audioManager_ = audioMgr;
 	}
+	
+	// Get AudioManager (for audio bindings playback)
+	AudioManager* GetAudioManager() const {
+		return audioManager_;
+	}
+
+	// Audio binding playback helpers
+	void PlaySpawnAudio(int objectId);
+	void PlayInteractAudio(int objectId);
+	void PlayDestroyAudio(int objectId);
+	void PlayProcessingAudio(int objectId);   // Start looping processing audio
+	void StopProcessingAudio(int objectId);   // Stop processing audio
+	void StopAllObjectAudio();  // Stop all audio bound to objects
 
 	void LoadScene(const std::string& sceneName);
 	void Update(float deltaTime, GLFWwindow* window);
@@ -184,6 +197,7 @@ public:
 	void SetAnimation(int objID, const std::string& newAnim);
 	void AttachDinoAnimations(int objID);
 	void MarkAnimated(int id, bool state);
+	void AttachMenuAnimations(int objID);
 
 	void GenerateStressTest(int objectCount = 2500);
 	void UpdateAnimationControls();
@@ -271,6 +285,12 @@ public:
 		std::string texture;
 		std::string tag;
 		std::string layer;
+		// Audio bindings
+		std::string audioOnSpawn;
+		std::string audioOnInteract;
+		std::string audioOnDestroy;
+		std::string audioOnProcessing;  // Audio that loops while work table is processing
+		bool audioLoop{ false };
 	};
 
 	void SetDefaults(int id, const Defaults& d) {
@@ -295,6 +315,10 @@ public:
 	std::string GetObjectLayer(int objectID) const;
 	void AssignObjectToLayer(int id, const std::string& newLayer);
 	void RemoveLayer(const std::string& name);
+
+	// Layer enable/disable helpers
+	bool IsLayerEnabled(const std::string& layerName) const;
+	bool IsObjectLayerEnabled(int objectID) const;	
 
 	// World / collision rebuilds
 	void BuildLevelColliders();
