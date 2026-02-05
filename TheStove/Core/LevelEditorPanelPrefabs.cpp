@@ -46,6 +46,7 @@ using namespace LEFILEIO;
 using namespace LELINKS;
 
 namespace LEPANELPREFABS {
+#ifdef _DEBUG
 	static LevelObject BuildPrefabFromObject(Scene& scene, GameObject* g) {
 		LevelObject out{};
 
@@ -87,7 +88,6 @@ namespace LEPANELPREFABS {
 		}
 	}
 
-#ifdef _DEBUG
 	// Draw the Prefabs docked window
 	void DrawPrefabsPanel(LevelEditor& editor, Scene& scene, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(

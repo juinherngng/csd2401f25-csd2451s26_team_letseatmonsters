@@ -239,7 +239,7 @@ bool CustomerTableLogic::TryTakePayment(Scene& scene)
         // Only pay full amount if they were served the correct dish
         if (customerLogic->GetServedDishType() == customerLogic->GetDesiredDishType())
         {
-            payment = Economy::kCorrectDishPay * (1.0f + std::clamp(customerLogic->GetPatienceRatioAtServe(), 0.0f, 1.0f));
+            payment = static_cast<int>(Economy::kCorrectDishPay * (1.0f + std::clamp(customerLogic->GetPatienceRatioAtServe(), 0.0f, 1.0f)));
         }
     }
 

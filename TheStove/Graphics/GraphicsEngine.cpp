@@ -1051,6 +1051,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
 
 		int objLayer = obj->GetRenderLayer();
+#ifndef _DEBUG
+		(void)objLayer;
+#endif
 
 #ifdef _DEBUG
 		// When we move to a new (higher) layer, first render text objects
