@@ -2,7 +2,7 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			ISerializer.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
  DESCRIPTION:		Very simple serializer for reading key=value pairs from a text file.
 

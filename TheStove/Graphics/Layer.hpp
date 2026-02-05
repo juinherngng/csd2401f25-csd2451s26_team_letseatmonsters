@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			Layer.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
 
  DESCRIPTION:		The Layer class maintains a collection of game object IDs that belong to this layer.
 					Core functionality includes adding and removing object IDs to/from the layer, retrieving

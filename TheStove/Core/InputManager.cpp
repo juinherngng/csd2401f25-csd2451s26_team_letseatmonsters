@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			InputManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (30%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
 					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:		Implements the InputManager class for handling keyboard and mouse input.

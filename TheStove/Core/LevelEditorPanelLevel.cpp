@@ -2,9 +2,9 @@
 ----------------------------------------------------------------------------------------------------
 FILE NAME:			LevelEditorPanelLevel.cpp
 PROJECT NAME:		Project GAM200
-AUTHOR:				Yat Chun Wee, y.chunwee@digipen.edu
-CO-AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
-					Vu Phan Hung, phanhung.vu@digipen.edu
+AUTHOR:				Yat Chun Wee, y.chunwee@digipen.edu		(70%)
+CO-AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (5%)
+					Vu Phan Hung, phanhung.vu@digipen.edu	(25%)
 
 DESCRIPTION:       Implementation of the Level panel.
 					- Load/Save levels to JSON

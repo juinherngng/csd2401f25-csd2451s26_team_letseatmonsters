@@ -2,14 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         IngreidnetLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION:     Implements IngredientLogic, the behavior script for food
-                 ingredients placed in the world. Tracks ingredient type, raw vs.
-                 processed state, responds to interactions with worktables and
-                 plates, and exposes helper functions to query ingredient state.
-
-
+ DESCRIPTION:       Implements IngredientLogic, the behavior script for food
+                    ingredients placed in the world. Tracks ingredient type, raw vs.
+                    processed state, responds to interactions with worktables and
+                    plates, and exposes helper functions to query ingredient state.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

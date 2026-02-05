@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         IngredientBoxLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
  DESCRIPTION:       Defines IngredientBoxLogic, a table-like object that spawns
                     ingredient items for the player. The box can be configured to

@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         InputCommandHandler.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (50%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(50%)
 
  DESCRIPTION:       Declares InputCommandHandler, which translates high-level keyboard inputs
 					into debug toggles and physics-mode switches (forces vs. kinematic).

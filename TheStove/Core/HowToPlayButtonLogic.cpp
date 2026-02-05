@@ -2,14 +2,13 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         HowToPlayButtonLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION: Handles hover and click behaviour for the “How To Play”
-             button in the main menu. On click, it spawns a fullscreen
-             HowToPlay overlay image; clicking again (or pressing Esc)
-             closes the overlay. Also manages hover texture swapping and
-             ignores input while the overlay is active.
-
+ DESCRIPTION:       Handles hover and click behaviour for the “How To Play”
+                    button in the main menu. On click, it spawns a fullscreen
+                    HowToPlay overlay image; clicking again (or pressing Esc)
+                    closes the overlay. Also manages hover texture swapping and
+                    ignores input while the overlay is active.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
