@@ -4,13 +4,12 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Vu Phan Hung
 
-DESCRIPTION:     Implements WorkTableLogic, the type of table that accepts raw
-                 ingredients, processes them into refined ingredients, and allows
-                 players to interact with workstations for cooking or preparation.
-                 This class overrides base TableLogic behavior to restrict what
-                 items can be placed, manage processing states, and output the
-                 refined ingredient when complete.
-
+ DESCRIPTION:       Implements WorkTableLogic, the type of table that accepts raw
+                    ingredients, processes them into refined ingredients, and allows
+                    players to interact with workstations for cooking or preparation.
+                    This class overrides base TableLogic behavior to restrict what
+                    items can be placed, manage processing states, and output the
+                    refined ingredient when complete.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
