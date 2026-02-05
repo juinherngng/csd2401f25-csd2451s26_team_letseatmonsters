@@ -32,6 +32,8 @@ DESCRIPTION:       Implementation of the Level panel.
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <filesystem>
+#include <windows.h>
 
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
@@ -51,6 +53,33 @@ DESCRIPTION:       Implementation of the Level panel.
 namespace fs = std::filesystem;
 
 using namespace LEFILEIO;
+
+static std::filesystem::path GetExeDir() {
+	char buf[MAX_PATH]{};
+	GetModuleFileNameA(nullptr, buf, MAX_PATH);
+	return std::filesystem::path(buf).parent_path();
+}
+
+static std::filesystem::path FindRepoRoot() {
+	namespace fs = std::filesystem;
+	fs::path p = GetExeDir();
+
+	// Walk upwards until we find BOTH build/ and levels/
+	for (int i = 0; i < 10; ++i) {
+		if (fs::exists(p / "build") && fs::exists(p / "levels")) {
+			return p;
+		}
+
+		if (!p.has_parent_path()) {
+			break;
+		}
+
+		p = p.parent_path();
+	}
+
+	// Fallback (should not happen)
+	return fs::current_path();
+}
 
 namespace {
 	// Internal helpers for Level <-> Scene synchronization
@@ -467,6 +496,13 @@ namespace LEPANELLEVEL {
 		int& selectedIndex, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 
+		// Force "no default level" once per run
+		static bool sClearedDefaultOnce = false;
+		if (!sClearedDefaultOnce) {
+			editor.levelPath.clear();
+			sClearedDefaultOnce = true;
+		}
+
 		if (!ImGui::Begin("Level###LE_Level")) {
 			ImGui::End();
 			return;
@@ -474,41 +510,67 @@ namespace LEPANELLEVEL {
 
 		ImGui::SeparatorText("Level Management");
 
-		// Level path row
-		static char levelPathBuf[256] = "../levels/kitchen01.json";
+		static char levelPathBuf[256] = { 0 };
+
+		// Level path row (ALWAYS use repo_root/levels, not ../levels)
+		static const std::string sLevelsDir = (FindRepoRoot() / "levels").generic_string();
+
+		// Default to repo_root/levels/kitchen01.json
 		if (editor.levelPath.empty()) {
-			editor.levelPath = levelPathBuf;
+			// No default: designer must pick from dropdown
+			levelPathBuf[0] = '\0';
+		}
+		else if (levelPathBuf[0] == '\0') {
+			// If editor.levelPath was set elsewhere, sync display buffer once
+			std::string stem = fs::path(editor.levelPath).stem().string();
+			std::snprintf(levelPathBuf, sizeof(levelPathBuf), "%s", stem.c_str());
 		}
 
-		static std::vector<std::string> sLevelFiles = ListJsonFiles("../levels");
+		// List files from repo_root/levels (can be absolute paths depending on ListJsonFiles)
+		static std::vector<std::string> sLevelFiles = ListJsonFiles(sLevelsDir);
 
 		ImGui::TextUnformatted("Level path");
 		ImGui::SameLine();
 
 		if (ImGui::Button("Refresh##levels")) {
-			sLevelFiles = ListJsonFiles("../levels");
+			sLevelFiles = ListJsonFiles(sLevelsDir);
 		}
 
+		// Combo preview label should show only the current name
+		const std::string currentName = fs::path(editor.levelPath).stem().string();
+
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-		if (ImGui::BeginCombo("##LevelCombo", editor.levelPath.c_str())) {
+		const char* preview = (levelPathBuf[0] == '\0') ? "<select level>" : levelPathBuf;
+		if (ImGui::BeginCombo("##LevelCombo", preview)) {
 			for (size_t i = 0; i < sLevelFiles.size(); ++i) {
-				const bool isSelected = (sLevelFiles[i] == editor.levelPath);
-				if (ImGui::Selectable(sLevelFiles[i].c_str(), isSelected)) {
-					editor.levelPath = sLevelFiles[i];
-					std::snprintf(levelPathBuf, sizeof(levelPathBuf), "%s", editor.levelPath.c_str());
+				const fs::path p(sLevelFiles[i]);
+				const std::string displayName = p.stem().string(); // e.g. "kitchen01"
+
+				const bool isSelected = (displayName == currentName);
+				if (ImGui::Selectable(displayName.c_str(), isSelected)) {
+					// Always set absolute path internally
+					editor.levelPath = (fs::path(sLevelsDir) / (displayName + ".json")).generic_string();
+					std::snprintf(levelPathBuf, sizeof(levelPathBuf), "%s", displayName.c_str());
 				}
 
 				if (isSelected) {
 					ImGui::SetItemDefaultFocus();
 				}
 			}
-
 			ImGui::EndCombo();
 		}
 
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		if (ImGui::InputText("##LevelPathEdit", levelPathBuf, IM_ARRAYSIZE(levelPathBuf))) {
-			editor.levelPath = levelPathBuf;
+			// Accept "kitchen01" or "kitchen01.json" or even a path; normalize to just stem
+			std::string typed = levelPathBuf;
+			std::string stem = fs::path(typed).stem().string();
+
+			// Update buffer to normalized name
+			std::snprintf(levelPathBuf, sizeof(levelPathBuf), "%s", stem.c_str());
+
+			// Always set absolute path internally
+			editor.levelPath = (fs::path(sLevelsDir) / (stem + ".json")).generic_string();
 		}
 
 		// Load
