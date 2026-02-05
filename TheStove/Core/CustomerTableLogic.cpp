@@ -40,6 +40,9 @@ void CustomerTableLogic::Start(Scene& scene)
 
     seatedCustomerID_ = kInvalidID;
 
+    servedFoodLocked_ = false;
+    servedFoodItemID_ = kInvalidID;
+
     GameObject* owner = GetOwner(scene);
     if (!owner)
         return;
@@ -77,6 +80,8 @@ void CustomerTableLogic::OnDestroy(Scene& scene)
 {
     // If needed, external systems can query that the table is now free.
     seatedCustomerID_ = kInvalidID;
+    servedFoodLocked_ = false;
+    servedFoodItemID_ = kInvalidID;
     TableLogic::OnDestroy(scene);
 }
 
@@ -139,6 +144,9 @@ void CustomerTableLogic::OnItemTaken(Scene& /*scene*/, GameObject& /*item*/)
 void CustomerTableLogic::OnDishServed(Scene& scene, GameObject& dish)
 {
     if (!HasSeatedCustomer()) return;
+
+    servedFoodLocked_ = true;
+    servedFoodItemID_ = dish.GetID();
 
     LogicManager& logicMgr = scene.GetLogicManager();
 
@@ -251,6 +259,11 @@ bool CustomerTableLogic::TryTakePayment(Scene& scene)
 
 void CustomerTableLogic::ClearServedFood(Scene& scene)
 {
+
+    // Unlock first
+    servedFoodLocked_ = false;
+    servedFoodItemID_ = kInvalidID;
+
     // TakeItem() clears heldItemID_ immediately and calls OnItemTaken(...)
     const int itemID = TakeItem(scene);
     if (itemID != kInvalidID)
@@ -258,4 +271,14 @@ void CustomerTableLogic::ClearServedFood(Scene& scene)
         scene.RequestDespawn(itemID);   // dish/plate disappears
         // std::cout << "[CustomerTableLogic] Cleared served food item " << itemID << "\n";
     }
+}
+
+int CustomerTableLogic::TakeItem(Scene& scene)
+{
+    // If food has been served on this table, don't allow taking it
+    if (servedFoodLocked_) {
+        return kInvalidID;
+    }
+
+    return TableLogic::TakeItem(scene);
 }

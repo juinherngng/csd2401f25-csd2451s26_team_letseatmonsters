@@ -37,6 +37,10 @@ public:
     void Start(Scene& scene) override;
     void OnDestroy(Scene& scene) override;
 
+
+    // Block taking served food
+    int TakeItem(Scene& scene) override;
+
     // ---- Seating control ----
 
     bool HasSeatedCustomer() const { return seatedCustomerID_ != kInvalidID; }
@@ -95,4 +99,7 @@ protected:
     Math::Vector2D customerSeatOffset_{ 0.0f, 16.0f }; // e.g. in front of table
 
     std::string GetName() const override { return "CustomerTableLogic"; }
+
+    bool servedFoodLocked_ = false;
+    int  servedFoodItemID_ = kInvalidID;
 };
