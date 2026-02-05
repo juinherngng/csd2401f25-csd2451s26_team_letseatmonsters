@@ -592,7 +592,9 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		}
 
 		// Set the render layer on the object for use in GraphicsEngine
-		g->SetRenderLayer(parseLayerNumber(layerName));
+		const std::string& texturePath = GetObjectTexturePath(objId);
+		const bool isFootstepVfx = texturePath.find("run_vfx.png") != std::string::npos;
+		g->SetRenderLayer(isFootstepVfx ? 0 : parseLayerNumber(layerName));
 
 		out.push_back(g);
 	}

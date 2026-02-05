@@ -226,7 +226,7 @@ void AnimationManager::AttachMenuAnimations(int objectID) {
     // Top row first, left-to-right across each row
     std::vector<glm::vec4> fullFrames = CreateFullGridSequenceDir(totalRows, totalCols, /*topFirst=*/true, /*leftToRight=*/true);
 
-    animationSets_[objectID]["FULL"] = AnimationSet{ fullFrames, 0.08f, true };
+    animationSets_[objectID]["FULL"] = AnimationSet{ fullFrames, 0.04f, true };
 
     const auto& clip = animationSets_[objectID]["FULL"];
     anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);

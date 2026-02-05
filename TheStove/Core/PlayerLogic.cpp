@@ -592,8 +592,10 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 		// Feet position from collider size
 		glm::vec3 feet = afterPos;
-		auto cs = player->GetColliderSize();
-		feet.y += cs.y * 0.4f; // adjust to feet level
+		auto co = player->GetColliderOffset();
+		auto scale = player->GetScaleGLM();
+		feet.x += co.x;
+		feet.y += co.y + (scale.y * 0.5f) - 6.0f;
 
 		// Move direction (normalized) used for particle velocity shaping
 		glm::vec2 dir = moveDelta;
