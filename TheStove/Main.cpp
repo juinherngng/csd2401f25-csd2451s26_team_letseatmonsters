@@ -11,7 +11,7 @@
 					Handles window creation, fullscreen toggling, OS-focus pause/resume behaviour,
 					signal handling, and overall application shutdown and cleanup.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

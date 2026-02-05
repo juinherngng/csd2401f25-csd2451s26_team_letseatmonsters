@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorPanelAudioControl.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu (100%)
 
  DESCRIPTION:       Implementation of the Level Editor Audio Control panel.
                     - Volume sliders for all audio assets

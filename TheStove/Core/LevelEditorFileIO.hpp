@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			LevelEditorFileIO.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		Header for Level Editor file I/O utilities.
 					Declares functions for:
@@ -13,7 +13,7 @@
 					- Applying prefab data to scene objects
 					- Loading textures bypassing the cache
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

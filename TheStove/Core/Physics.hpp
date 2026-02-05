@@ -2,12 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			Physics.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		Helpers for collider construction, world clamping, step control,
 					separation responses, lane motion with bounce, and equal-mass elastic collisions.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

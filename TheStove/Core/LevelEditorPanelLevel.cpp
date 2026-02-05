@@ -14,7 +14,7 @@ DESCRIPTION:       Implementation of the Level panel.
 					- Drag-drop prefab/texture instantiation
 					- Keeps LevelData synchronized with Scene state
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
