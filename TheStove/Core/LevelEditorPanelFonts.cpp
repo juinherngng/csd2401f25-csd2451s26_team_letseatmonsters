@@ -64,9 +64,9 @@ namespace {
     {
         // Try multiple likely paths (debug vs release working dir differences)
         const std::vector<std::string> candidates = {
-            "../assets/Font/AGENCYB.ttf",
+            FilePaths::Fonts::AGENCYB,
             "assets/Font/AGENCYB.ttf",
-            std::string(FilePaths::Dirs::FONTS) + "/AGENCYB.ttf"
+            std::string(FilePaths::Dirs::FONTS) + "AGENCYB.ttf"
         };
 
         for (const auto& p : candidates) {
@@ -335,7 +335,12 @@ namespace LEPANELFONTS
 
         ImGui::SeparatorText("Font Management");
 
-        static char fontPathBuf[256] = "../assets/Font/AGENCYB.ttf";
+        static char fontPathBuf[256] = {};
+        static bool fontPathInitialized = false;
+        if (!fontPathInitialized) {
+            std::snprintf(fontPathBuf, sizeof(fontPathBuf), "%s", FilePaths::Fonts::AGENCYB);
+            fontPathInitialized = true;
+        }
         static int  fontSizeBuf = 48;
         static char fontNameBuf[64] = "font1";
 

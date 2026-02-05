@@ -38,6 +38,8 @@ namespace FilePaths {
         constexpr const char* ASSETS_EDITOR  = "../../assets/";
         constexpr const char* PREFABS_EDITOR = "../../prefabs/";
         constexpr const char* AUDIO_EDITOR   = "../../assets/Audio/";
+        constexpr const char* FONTS_EDITOR   = "../../assets/Font/";
+        constexpr const char* LEVELS_EDITOR  = "../../levels/";
     }
 
     // ============================================================================
@@ -78,6 +80,7 @@ namespace FilePaths {
     namespace Fonts {
         constexpr const char* CHRUSTY_ROCK   = "../assets/Font/ChrustyRock-ORLA.ttf";
         constexpr const char* TO_THE_POINT   = "../assets/Font/ToThePointRegular-n9y4.ttf";
+        constexpr const char* AGENCYB        = "../assets/Font/AGENCYB.ttf";
     }
 
     // ============================================================================
