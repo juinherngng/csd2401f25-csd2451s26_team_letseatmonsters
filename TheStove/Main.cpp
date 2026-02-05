@@ -899,7 +899,10 @@ static void draw(ApplicationState& app) {
 	
 	// Render FPS text on top (release only)
 	app.currentScene->RenderFPSText();
+
+#ifndef _DEBUG
 	app.currentScene->RenderLevelTextObjects();
+#endif
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (app.debugApp) {
