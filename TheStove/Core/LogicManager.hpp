@@ -2,13 +2,13 @@
 ----------------------------------------------------------------------------------------------------
 FILE NAME:			LogicManager.hpp
 PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
 DESCRIPTION:		Declares the LogicManager class responsible for managing and updating
                     all GameObjectLogic instances within a scene, including initialization,
                     update cycles, and cleanup.
 
-        All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 #pragma once

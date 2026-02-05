@@ -2,12 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			Collision.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		Declares basic collision primitives (AABB, MTV helpers) and a simple
 					2D collision world that trims desired motion against static walls.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

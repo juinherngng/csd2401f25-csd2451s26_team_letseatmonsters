@@ -2,13 +2,13 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			ParticleSystem.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		Declares the ParticleSystem class responsible for managing particle effects
 					such as footsteps, trails, and visual effects. Provides interfaces for
 					emitting and updating particles within the scene.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
