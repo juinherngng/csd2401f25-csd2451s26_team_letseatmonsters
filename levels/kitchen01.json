@@ -921,7 +921,7 @@
       "name": "MoneyText",
       "rotation": 0.0,
       "scale": 0.520,
-      "text": "$1000",
+      "text": "$0",
       "useBlockRotation": true,
       "x": 92.0,
       "y": 100.0

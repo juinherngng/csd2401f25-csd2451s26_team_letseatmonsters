@@ -34,6 +34,7 @@ public:
         }
     }
 
+    float GetPatienceRatioAtServe() const { return patienceRatioAtServe_; }
 
 	void Awake(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
@@ -194,5 +195,6 @@ private:
 
     // helper
     void OnPatienceExpired(Scene& scene);
+    float patienceRatioAtServe_ = 0.0f; // 0..1 snapshot when correct dish is served
 
 };

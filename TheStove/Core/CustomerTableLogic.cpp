@@ -21,6 +21,7 @@ DESCRIPTION: Implements behaviour for a dining table that can seat a
 #include "../Core/LogicManager.hpp"   
 #include "../Core/SimpleNpcLogic.hpp" 
 #include "../Core/Quota.hpp"
+#include <cmath>
 
 CustomerTableLogic::CustomerTableLogic(int ownerID)
     : TableLogic(ownerID)
@@ -238,7 +239,7 @@ bool CustomerTableLogic::TryTakePayment(Scene& scene)
         // Only pay full amount if they were served the correct dish
         if (customerLogic->GetServedDishType() == customerLogic->GetDesiredDishType())
         {
-            payment = Economy::kCorrectDishPay;
+            payment = Economy::kCorrectDishPay * (1.0f + std::clamp(customerLogic->GetPatienceRatioAtServe(), 0.0f, 1.0f));
         }
     }
 
