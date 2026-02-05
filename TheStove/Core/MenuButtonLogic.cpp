@@ -9,11 +9,12 @@
 					 against button AABB, hover texture transitions using ResourceManager, and triggering a cutscene
 					 followed by JSON level load after left-click.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
 #include "MenuButtonLogic.hpp"
+#include "FilePaths.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
@@ -57,7 +58,8 @@ namespace {
             auto& list = chapters[ch - 1];
             bool any = false;
             for (int f = 1; f <= 300; ++f) {
-                std::string path = "../assets/Cutscenes/Cutscene_starting_" + std::to_string(ch) + "." + std::to_string(f) + ".png";
+                std::string filename = "Cutscene_starting_" + std::to_string(ch) + "." + std::to_string(f) + ".png";
+                std::string path = FilePaths::CutscenePath(filename);
                 if (fs::exists(path)) {
                     list.push_back(path);
                     any = true;
@@ -66,7 +68,8 @@ namespace {
                 }
             }
             if (!any) {
-                list.push_back("../assets/Cutscenes/Cutscene_starting_" + std::to_string(ch) + ".png");
+                std::string filename = "Cutscene_starting_" + std::to_string(ch) + ".png";
+                list.push_back(FilePaths::CutscenePath(filename));
             }
         }
         return chapters;

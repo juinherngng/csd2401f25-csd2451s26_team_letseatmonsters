@@ -104,7 +104,12 @@ namespace LEPANELPREFABS {
 		ImGui::SeparatorText("Prefabs / Archetypes");
 
 	// Prefab path row (combo + input + refresh)
-		static char prefabPathBuf[256] = "../../prefabs/my_goat.json";
+		static char prefabPathBuf[256] = {};
+		static bool prefabPathInitialized = false;
+		if (!prefabPathInitialized) {
+			std::snprintf(prefabPathBuf, sizeof(prefabPathBuf), "%smy_goat.json", FilePaths::Dirs::PREFABS_EDITOR);
+			prefabPathInitialized = true;
+		}
 		static std::vector<std::string> sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
 
 		// Cache for prefab thumbnails (keyed by prefab JSON path)
