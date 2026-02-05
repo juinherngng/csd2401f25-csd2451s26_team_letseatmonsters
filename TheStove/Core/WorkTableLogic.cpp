@@ -225,7 +225,7 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
                 audioMgr->PlaySound(soundName, audioMgr->GetVfxVolume(), false);
                 // Lower volume specifically for cutting board sound
                 if (stationType_ == StationType::CuttingBoard) {
-                    audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.3f);
+                    audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.1f);
                 }
             }
         }

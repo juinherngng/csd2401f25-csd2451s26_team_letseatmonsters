@@ -137,6 +137,8 @@ namespace Economy
         // Stop all gameplay audio immediately
         StopAllGameplayAudio(scene);
 
+        // Note: bgm_win_cutscene will be started by Scene after the initial fade-in completes
+
         std::vector<std::string> frames;
         std::vector<bool> boundaries;
 
@@ -161,8 +163,8 @@ namespace Economy
             boundaries,
             FilePaths::Levels::MAIN_MENU,   // <-- changed from WIN to MAIN_MENU
             false,
-            0.35f,
-            0.35f,
+            2.0f,   // fadeOutSeconds - 2 second fade out for win cutscene
+            0.35f,  // fadeInSeconds
             1.0f / fps,
             -1,
             0.0f
@@ -176,6 +178,16 @@ namespace Economy
 
         // Stop all gameplay audio immediately
         StopAllGameplayAudio(scene);
+
+#ifndef _DEBUG
+        // Play game over sound effect at 50% volume
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            if (audioMgr->HasSound("sfx_game_over")) {
+                audioMgr->PlaySound("sfx_game_over", audioMgr->GetVfxVolume() * 1.0f, false);
+                std::cout << "[Economy] Playing game over sound effect at 50% volume" << std::endl;
+            }
+        }
+#endif
 
         std::vector<std::string> frames;
         std::vector<bool> boundaries;
@@ -204,6 +216,13 @@ namespace Economy
 
 
 }
+
+
+
+
+
+
+
 
 
 
