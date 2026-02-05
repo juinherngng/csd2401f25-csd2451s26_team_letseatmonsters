@@ -37,6 +37,10 @@ public:
     void Start(Scene& scene) override;
     void OnDestroy(Scene& scene) override;
 
+
+    // Block taking served food
+    int TakeItem(Scene& scene) override;
+
     // ---- Seating control ----
 
     bool HasSeatedCustomer() const { return seatedCustomerID_ != kInvalidID; }
@@ -69,6 +73,11 @@ public:
     // Optional hook to be called when the plate is actually placed and accepted.
     void OnPlateServed(const PlateLogic& plate);
 
+    //Try Take Payment
+    bool TryTakePayment(Scene& scene);
+
+    // Remove the served dish/plate from this table (despawn it and free the table slot).
+    void ClearServedFood(Scene& scene);
 
 protected:
     void OnItemPlaced(Scene& scene, GameObject& item) override;
@@ -90,4 +99,7 @@ protected:
     Math::Vector2D customerSeatOffset_{ 0.0f, 16.0f }; // e.g. in front of table
 
     std::string GetName() const override { return "CustomerTableLogic"; }
+
+    bool servedFoodLocked_ = false;
+    int  servedFoodItemID_ = kInvalidID;
 };

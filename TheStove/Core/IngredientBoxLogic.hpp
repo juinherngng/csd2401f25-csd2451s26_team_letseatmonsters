@@ -4,12 +4,11 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Vu Phan Hung
 
-DESCRIPTION:     Defines IngredientBoxLogic, a table-like object that spawns
-                 ingredient items for the player. The box can be configured to
-                 spawn vegetables, meat, mushrooms, or plates depending on the
-                 setup. Provides logic for spawning, clearing, and controlling
-                 which ingredient type appears.
-
+ DESCRIPTION:       Defines IngredientBoxLogic, a table-like object that spawns
+                    ingredient items for the player. The box can be configured to
+                    spawn vegetables, meat, mushrooms, or plates depending on the
+                    setup. Provides logic for spawning, clearing, and controlling
+                    which ingredient type appears.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -54,6 +53,10 @@ public:
 
     // Convenience: configure as "vegetable box"
     void ConfigureAsVegetableBox();
+
+    void ConfigureAsMeatBox();
+
+    void ConfigureAsShroomBox();
 
     // Convenience: configure as "plate box"
     void ConfigureAsPlateBox();

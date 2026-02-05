@@ -29,6 +29,7 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <iostream>
 #include <random>
+#include <unordered_set>
 
 #include <Core/RuntimeLevel.hpp>
 #include "../Core/MenuButtonLogic.hpp"
@@ -37,6 +38,7 @@
 #include "../Core/FilePaths.hpp"
 #include "SceneManager.hpp"
 #include "GraphicsEngine.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 
 // Cache for boundary flags used by bounded transitioned cutscenes
 static std::vector<bool> sCutsceneBoundaryFlags;
@@ -124,6 +126,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	UpdateCutsceneTransitioned(deltaTime);
 	UpdateCutscene(deltaTime);
 
+	UpdateLevelTransition();
+
 	// Handle pending pause audio (pause channels after fade completes)
 #ifndef _DEBUG
 	if (pauseAudioPending_ && audioManager_) {
@@ -193,6 +197,54 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	customerManager_.Update(physicsDt, *this);
 
 	if (simulationActive) {
+		float prevTime = Economy::gTimeRemaining;
+		Economy::Update(deltaTime, *this);
+		
+		// Play timer warning sounds (release mode only)
+#ifndef _DEBUG
+		if (audioManager_) {
+			float currentTime = Economy::gTimeRemaining;
+			
+			// Play sfx_remaining_time when timer reaches 10 seconds
+			if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
+				Economy::gPlayed10SecWarning = true;
+				if (audioManager_->HasSound("sfx_remaining_time")) {
+					audioManager_->PlaySound("sfx_remaining_time", audioManager_->GetVfxVolume(), false);
+				}
+			}
+
+			// Play sfx_beep at 3, 2, and 1 seconds
+			if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
+				Economy::gPlayed3SecBeep = true;
+				if (audioManager_->HasSound("sfx_beep")) {
+					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
+				}
+			}
+			if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
+				Economy::gPlayed2SecBeep = true;
+				if (audioManager_->HasSound("sfx_beep")) {
+					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
+				}
+			}
+			if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
+				Economy::gPlayed1SecBeep = true;
+				if (audioManager_->HasSound("sfx_beep")) {
+					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
+				}
+			}
+
+			// Play sfx_time_up when timer reaches 0
+			if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
+				Economy::gPlayedTimeUp = true;
+				if (audioManager_->HasSound("sfx_time_up")) {
+					audioManager_->PlaySound("sfx_time_up", audioManager_->GetVfxVolume(), false);
+				}
+			}
+		}
+#endif
+	}
+
+	if (simulationActive) {
 		if (useForces_) {
 			physicsManager.UpdatePhysics(physicsDt, entityManager, inputManager);
 		}
@@ -226,24 +278,44 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 					gfx.ContinueTransitionFadeIn();
 					cutTrans_.fadeInAfterLoad = false;
 
-					// Start level BGM and ambience with fade-in (synced with visual transition)
-					// This is needed because the cutscene bypasses GameStateManager
+					// Check if we're loading main menu (from win/lose cutscene)
+					// If simulation is NOT active, this is likely the main menu
+					// Re-enable layer 10 only when returning to main menu from win/lose
 #ifndef _DEBUG
+					if (!pendingLevelSimActive_) {
+						// Re-enable layer 10 for main menu buttons (was disabled during intro cutscene)
+						if (Layer* menuLayer = GetLayer("10")) {
+							menuLayer->SetVisible(true);
+							menuLayer->SetEnabled(true);
+							std::cout << "[Scene] Re-enabled layer 10 for main menu after win/lose cutscene" << std::endl;
+						}
+					}
+
 					if (audioManager_) {
-						const float levelBgmFadeIn = 1.0f;
+						if (!pendingLevelSimActive_) {
+							// Loading main menu - play main menu BGM
+							audioManager_->PlaySound("bgm_MyoonchiDiner_MainMenu", audioManager_->GetBgmVolume(), false);
+							std::cout << "[Scene] Playing main menu BGM after win/lose cutscene" << std::endl;
+						}
+						else {
+							// Loading gameplay level - play level theme with fade-in
+							const float levelBgmFadeIn = 1.0f;
 
-						// Play level theme music with fade-in
-						audioManager_->PlaySound("bgm_MyoonchiDiner_LevelTheme", 0.0f, false);
-						audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", audioManager_->GetBgmVolume(), levelBgmFadeIn);
-						std::cout << "[Scene] Playing level theme music with fade-in after cutscene" << std::endl;
+							// Play level theme music with fade-in
+							audioManager_->PlaySound("bgm_MyoonchiDiner_LevelTheme", 0.0f, false);
+							audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", audioManager_->GetBgmVolume(), levelBgmFadeIn);
+							std::cout << "[Scene] Playing level theme music with fade-in after cutscene" << std::endl;
 
-						// Play kitchen ambience at 50% of BGM volume, also with fade-in
-						audioManager_->PlaySound("bgm_KitchenAmbience", 0.0f, false);
-						audioManager_->FadeChannel("bgm_KitchenAmbiance", audioManager_->GetBgmVolume() * 0.5f, levelBgmFadeIn);
-						std::cout << "[Scene] Playing kitchen ambience with fade-in after cutscene" << std::endl;
+							// Play kitchen ambience at 50% of BGM volume, also with fade-in
+							audioManager_->PlaySound("bgm_KitchenAmbience", 0.0f, false);
+							audioManager_->FadeChannel("bgm_KitchenAmbience", audioManager_->GetBgmVolume() * 0.5f, levelBgmFadeIn);
+							std::cout << "[Scene] Playing kitchen ambience with fade-in after cutscene" << std::endl;
+						}
 					}
 #endif
 				}
+				LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
+				//Economy::Reset();
 			}
 		}
 		hasPendingLevel_ = false;
@@ -258,6 +330,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 	(void)window;
+
+	for (int id : pendingDespawns_) {
+		DespawnByID(id);
+	}
+	pendingDespawns_.clear();
 
 #ifndef _DEBUG
 	// Update FPS accumulator when enabled (release builds only)
@@ -515,7 +592,9 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		}
 
 		// Set the render layer on the object for use in GraphicsEngine
-		g->SetRenderLayer(parseLayerNumber(layerName));
+		const std::string& texturePath = GetObjectTexturePath(objId);
+		const bool isFootstepVfx = texturePath.find("run_vfx.png") != std::string::npos;
+		g->SetRenderLayer(isFootstepVfx ? 0 : parseLayerNumber(layerName));
 
 		out.push_back(g);
 	}
@@ -607,8 +686,7 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	// ALWAYS wipe old logic from this object
 	logicManager.RemoveAllFor(id, *this);
 
-	std::cout << "[Scene] AttachLogicForTag id=" << id
-		<< " tag='" << tag << "'\n";
+	//std::cout << "[Scene] AttachLogicForTag id=" << id << " tag='" << tag << "'\n";
 
 	// Add only the logic that matches the new tag
 	if (tag == "player") {
@@ -616,13 +694,13 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 		spriteID = id;
 		animationManager.AttachPlayerAnimations(id);
 	}
-	else if (tag == "npc1" || tag == "npc2") {
-		logicManager.AddLogic<SimpleNpcLogic>(id);
-	}
-	else if (tag == "dino") {
-		logicManager.AddLogic<SimpleNpcLogic>(id);
-		dinoID = id;
-	}
+	//else if (tag == "npc1" || tag == "npc2") {
+	//	logicManager.AddLogic<SimpleNpcLogic>(id);
+	//}
+	//else if (tag == "dino") {
+	//	logicManager.AddLogic<SimpleNpcLogic>(id);
+	//	dinoID = id;
+	//}
 	else if (tag == "table") {
 		logicManager.AddLogic<TableLogic>(id);
 	}
@@ -638,6 +716,18 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	else if (tag == "plate_box") {
 		logicManager.AddLogic<IngredientBoxLogic>(id);
 	}
+	else if (tag == "exit_gate") {
+		logicManager.AddLogic<ExitGateLogic>(id);
+		RegisterExitGate(id);
+	}
+	else if (tag == "trash_box") {
+		logicManager.AddLogic<TrashCanLogic>(id);
+		RegisterExitGate(id);
+	}
+	else if (tag == "order_ui_logic") {
+		logicManager.AddLogic<OrderUILogic>(id);
+	}
+
 	// Menu buttons etc
 	else if (tag == "btn_play") {
         auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, FilePaths::Levels::KITCHEN_01, true);
@@ -1540,6 +1630,20 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
             gfx->ContinueTransitionFadeIn();
             cutTrans_.holding = true;
             cutTrans_.holdElapsed = 0.0f;
+            
+            // Start win cutscene BGM after initial fade-in (when first image appears)
+            // Check if this is the win cutscene by looking at the image paths
+#ifndef _DEBUG
+            if (audioManager_ && !cutTrans_.images.empty()) {
+                const std::string& firstImage = cutTrans_.images[0];
+                if (firstImage.find("Win") != std::string::npos || firstImage.find("daychange") != std::string::npos) {
+                    if (audioManager_->HasSound("bgm_win_cutscene")) {
+                        audioManager_->PlaySound("bgm_win_cutscene", audioManager_->GetBgmVolume(), false);
+                        std::cout << "[Scene] Playing win cutscene BGM after initial fade-in" << std::endl;
+                    }
+                }
+            }
+#endif
             return;
         }
 
@@ -1569,6 +1673,18 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
             if (audioManager_) {
                 audioManager_->StopSound("bgm_MyoonchiDiner_IntroCutscene");
                 std::cout << "[Scene] Stopped cutscene BGM before loading level" << std::endl;
+                
+                // Fade out game over sound effect if it's playing (from lose cutscene)
+                if (audioManager_->HasSound("sfx_gameover")) {
+                    audioManager_->FadeChannel("sfx_gameover", 0.0f, cutTrans_.outSeconds);
+                    std::cout << "[Scene] Fading out game over SFX before loading level" << std::endl;
+                }
+                
+                // Fade out win cutscene music if it's playing (from win cutscene)
+                if (audioManager_->HasSound("bgm_win_cutscene")) {
+                    audioManager_->FadeChannel("bgm_win_cutscene", 0.0f, cutTrans_.outSeconds);
+                    std::cout << "[Scene] Fading out win cutscene BGM before loading level" << std::endl;
+                }
             }
 #endif
 
@@ -1581,40 +1697,38 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 
 // Order UI slide-in API 
 int Scene::TriggerOrderUiSlideIn(const glm::vec2& targetPos,
-                                 const glm::vec2& size,
-                                 const std::string& layer,
-                                 const std::string& texturePath,
-                                 float slideDuration) {
-	// Spawn off-screen vertically (just above top)
-	const float offscreenY = -size.y * 0.5f; // slightly above top of reference canvas
-	const glm::vec3 spawnPos{ targetPos.x, offscreenY, 0.0f };
+	const glm::vec2& size,
+	const std::string& layer,
+	const std::string& texturePath,
+	float duration)
+{
+	// spawn off-screen (above)
+	glm::vec2 startPos = { targetPos.x, -size.y * 0.5f };
 
-	GameObject* obj = SpawnStaticSprite(texturePath, spawnPos, size, layer);
-	if (!obj) {
-		std::cerr << "[Scene] TriggerOrderUiSlideIn: failed to spawn Order UI\n";
-		return -1;
-	}
+	GameObject* ui = SpawnStaticSprite(texturePath.c_str(),
+		{ startPos.x, startPos.y, 0.f },
+		size,
+		layer);
+	if (!ui) return -1;
 
-	// Ensure it's always visible and not collidable
-	obj->EnableShadow(false);
-	obj->SetColliderSize(Math::Vector2D{ 0.0f, 0.0f });
-	obj->SetColliderOffset(Math::Vector2D{ 0.0f, 0.0f });
+	const int id = ui->GetID();
 
-	// Register slide
-	UiSlide slide{};
-	slide.objectId = obj->GetID();
-	slide.startPos = glm::vec2(spawnPos.x, spawnPos.y);
-	slide.targetPos = targetPos;
-	slide.t = 0.0f;
-	slide.duration = std::max(0.05f, slideDuration);
-	slide.active = true;
+	// whatever you already do to register the slide...
+	// AddUiSlide(id, startPos, targetPos, duration);
 
-	uiSlides_.push_back(slide);
+	SetObjectTexturePath(id, texturePath);
 
-	// play audio cue here
-	// PlaySpawnAudio(slide.objectId);
+	// REGISTER THE SLIDE
+	UiSlide s;
+	s.objectId = id;
+	s.startPos = startPos;
+	s.targetPos = targetPos;
+	s.t = 0.0f;
+	s.duration = std::max(0.001f, duration);
+	s.active = true;
+	uiSlides_.push_back(s);
 
-	return slide.objectId;
+	return id;
 }
 
 void Scene::UpdateUiSlides(float dt) {
@@ -1657,4 +1771,116 @@ void Scene::UpdateUiSlides(float dt) {
 			[](const UiSlide& s) { return !s.active; }),
 		uiSlides_.end()
 	);
+}
+
+void Scene::RenderLevelTextObjects()
+{
+	const auto& objs = LEPANELFONTS::GetTextObjects();
+	if (objs.empty()) return;
+
+	const bool cutsceneActive = IsAnyCutsceneActive();
+	const bool pauseActive = IsPauseOverlayActive();
+	static const std::unordered_set<std::string> kHudTextNames = {
+		"MoneyText", "QuotaText", "TimerText"
+	};
+
+	glm::mat4 projection = graphicsEngine.GetProjection();
+
+	GLint prevViewport[4];
+	glGetIntegerv(GL_VIEWPORT, prevViewport);
+
+	GLint boundFBO = 0;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
+
+	if (boundFBO != 0) glViewport(0, 0, graphicsEngine.GetSceneWidth(), graphicsEngine.GetSceneHeight());
+	else graphicsEngine.ApplyViewport();
+
+	glDisable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	for (const auto& o : objs)
+	{
+		// Hide HUD text during cutscenes or pause overlay
+		if ((cutsceneActive || pauseActive) && kHudTextNames.count(o.name)) continue;
+
+		if (o.text.empty()) continue;
+		if (o.fontName.empty()) continue;
+		if (o.colorA <= 0.001f) continue;
+
+		// (your existing layer visibility check is fine)
+		if (!o.layer.empty()) {
+			Layer* layer = GetLayer(o.layer);
+			if (layer && (!layer->IsEnabled() || !layer->IsVisible()))
+				continue;
+		}
+
+		FontSystem::Font* font = ResourceManager::Instance().GetFont(o.fontName);
+		if (!font) continue;
+
+		FontSystem::Text t;
+		t.SetFont(font);
+		t.SetText(o.text);
+		t.SetColor(glm::vec4(o.colorR, o.colorG, o.colorB, o.colorA));
+		t.SetScale(o.scale);
+		t.SetRotation(o.rotation);
+		t.SetPosition(glm::vec2(o.x, o.y));
+		t.SetRotationMode(o.useBlockRotation
+			? FontSystem::Text::RotationMode::Block
+			: FontSystem::Text::RotationMode::PerCharacter);
+
+		FontSystem::TextRenderer::Instance().RenderText(t, projection);
+	}
+
+	glDisable(GL_BLEND);
+	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+}
+
+void Scene::StartLevelTransition(const std::string& levelJsonPath,
+	bool activateSimulation,
+	float fadeOutSeconds,
+	float fadeInSeconds)
+{
+	// Avoid double-triggering
+	if (levelTrans_.active) return;
+
+#ifndef _DEBUG
+	// Freeze gameplay immediately
+	SetSimulationActive(false);
+#endif
+	HidePauseOverlay();
+
+	levelTrans_.active = true;
+	levelTrans_.awaitingBlackout = true;
+	levelTrans_.targetJson = levelJsonPath;
+	levelTrans_.targetActivateSim = activateSimulation;
+	levelTrans_.outSec = fadeOutSeconds;
+	levelTrans_.inSec = fadeInSeconds;
+
+	// Reuse existing "fade in after load" behavior that you already have:
+	// Scene::Update checks cutTrans_.fadeInAfterLoad and uses cutTrans_.inSeconds.
+	cutTrans_.inSeconds = fadeInSeconds;
+
+	auto& gfx = GetGraphicsEngine();
+	gfx.StartSceneTransition(levelTrans_.outSec, levelTrans_.inSec);
+}
+
+void Scene::UpdateLevelTransition()
+{
+	if (!levelTrans_.active) return;
+
+	auto& gfx = GetGraphicsEngine();
+
+	// Once we're fully black, queue the load.
+	if (levelTrans_.awaitingBlackout && gfx.IsAtBlackout())
+	{
+		levelTrans_.awaitingBlackout = false;
+
+		QueueLevelLoad(levelTrans_.targetJson, levelTrans_.targetActivateSim);
+
+		// This makes your existing code fade-in right after LoadAndBuild succeeds
+		cutTrans_.fadeInAfterLoad = true;
+
+		levelTrans_.active = false;
+	}
 }

@@ -41,7 +41,11 @@
 #include "../Core/CustomerTableLogic.hpp"
 #include "../Core/IngredientBoxLogic.hpp"
 #include "../Core/CustomerManagerLogic.hpp"
+#include "../Core/ExitGateLogic.hpp"
 #include "../Core/HowToPlayButtonLogic.hpp"
+#include "../Core/TrashCanLogic.hpp"
+#include "../Core/Quota.hpp"
+#include "../Core/OrderUILogic.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"
@@ -121,6 +125,8 @@ public:
 	void DrawUI();
 	void ClearAll();
 	void RequestClearAll();
+
+	void RenderLevelTextObjects();
 
 	// Simulation control
 	void SetSimulationActive(bool active);
@@ -253,6 +259,20 @@ public:
 		npcSystem.RegisterLaneNPC(id, laneX);
 	}
 
+	void RegisterExitGate(int id) {
+		exitGateID_ = id;
+		exitGateCached_ = false;
+	}
+
+	Math::Vector2D GetExitGateWorldPos() {
+		if (exitGateID_ < 0) return { 0.f, 0.f };
+		if (GameObject* g = GetGameObjectByID(exitGateID_)) {
+			auto p = g->GetPositionGLM();
+			return { p.x, p.y };
+		}
+		return { 0.f, 0.f };
+	}
+
 	// Texture metadata (LevelEditor / JSON)
 	const std::string& GetObjectTexturePath(int id) const;
 	void SetObjectTexturePath(int id, const std::string& path);
@@ -370,6 +390,8 @@ public:
 	// FPS display rendering
 	void RenderFPSText();
 
+	void RequestDespawn(int id) { pendingDespawns_.push_back(id); }
+
 	// Cutscene API
 	// Starts a cutscene consisting of image paths played in sequence.
 	// When finished, queues level load to 'levelJsonPath' and sets simulation according to 'activateSimulation'.
@@ -450,6 +472,11 @@ private:
 	int otherID = -1;
 	int otherID2 = -1;
 
+	int exitGateID_ = -1;
+	bool exitGateCached_ = false;
+	Math::Vector2D exitGateWorld_{ 0.0f, 0.0f };
+
+
 	std::unordered_map<int, Defaults> defaults_;
 	std::unordered_map<std::string, Layer> layers;
 
@@ -501,6 +528,8 @@ private:
 	std::unordered_map<int, std::string> objectTags_;
 
 	bool howToPlayOverlayActive_ = false;
+
+	std::vector<int> pendingDespawns_;
 
 	// Simple cutscene runner state
 	struct CutsceneState {
@@ -587,4 +616,25 @@ private:
 		float inv = 1.0f - x;
 		return 1.0f - inv * inv * inv;
 	}
+
+	public:
+		// Fade-out -> load JSON at blackout -> fade-in
+		void StartLevelTransition(const std::string& levelJsonPath,
+			bool activateSimulation,
+			float fadeOutSeconds = 0.35f,
+			float fadeInSeconds = 0.35f);
+
+private:
+	struct LevelTrans {
+		bool active = false;
+		bool awaitingBlackout = false;
+		std::string targetJson;
+		bool targetActivateSim = false;
+		float outSec = 0.35f;
+		float inSec = 0.35f;
+	} levelTrans_;
+
+	void UpdateLevelTransition();
+
+
 };

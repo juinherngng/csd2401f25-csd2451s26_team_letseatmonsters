@@ -107,10 +107,10 @@
     {
       "category": "sfx",
       "filepath": "../../assets/Audio/sfx_chopping.wav",
-      "loop": false,
+      "loop": true,
       "name": "sfx_chopping",
       "stream": false,
-      "volume": 1.0
+      "volume": 0.30000001192092896
     },
     {
       "category": "bgm",
@@ -157,6 +157,38 @@
       "filepath": "../../assets/Audio/Wrong order.wav",
       "loop": false,
       "name": "Wrong order",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_time_up.wav",
+      "loop": false,
+      "name": "sfx_time_up",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_remaining_time.wav",
+      "loop": false,
+      "name": "sfx_remaining_time",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_win.wav",
+      "loop": false,
+      "name": "sfx_win",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/bgm_win_cutscene.mp3",
+      "loop": false,
+      "name": "bgm_win_cutscene",
       "stream": false,
       "volume": 1.0
     }

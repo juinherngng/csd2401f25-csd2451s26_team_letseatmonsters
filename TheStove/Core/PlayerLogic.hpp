@@ -66,7 +66,7 @@ private:
 	// Movement state
 	glm::vec2 moveTarget{ 0.f, 0.f };
 	bool  hasMoveTarget{ false };
-	float moveSpeed{ 200.f };  // pixels/sec � tune later
+	float moveSpeed{ 220.f };  // pixels/sec
 
 	// Facing / sprite state
 	enum class FacingDir {

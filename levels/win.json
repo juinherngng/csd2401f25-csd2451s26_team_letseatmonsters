@@ -1,0 +1,24 @@
+{
+  "background": "../assets/Cabbage_CUT_Ingredient.png",
+  "objects": [
+        {
+      "animated": false,
+      "texture": "../assets/quit_s.png",
+      "tag": "btn_quit",
+      "layer": "10",
+      "x": 1300.0,
+      "y": 714.0,
+      "z": 0.0,
+      "w": 350.0,
+      "h": 100.0,
+      "rotation": 0.0,
+      "has_collider": false,
+      "col_w": 256.0,
+      "col_h": 96.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0
+    } 
+  ]
+}

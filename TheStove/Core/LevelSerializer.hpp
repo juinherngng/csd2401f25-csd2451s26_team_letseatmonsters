@@ -91,6 +91,15 @@ struct LevelTextObject {
 	std::string layer{ "1" };
 };
 
+struct TextObjectData {
+	std::string name;
+	std::string fontName;
+	std::string text;
+	float x = 0.0f;
+	float y = 0.0f;
+	float scale = 1.0f;
+};
+
 struct LevelData {
 	std::vector<LevelObject> objects{};
 	std::vector<LevelTextObject> textObjects{};  // text objects in the level

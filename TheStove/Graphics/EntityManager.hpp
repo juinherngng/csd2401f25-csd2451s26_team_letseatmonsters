@@ -27,6 +27,12 @@ public:
 	EntityManager() = default;
 	~EntityManager() = default;
 
+	EntityManager(const EntityManager&) = delete;
+	EntityManager& operator=(const EntityManager&) = delete;
+
+	EntityManager(EntityManager&&) noexcept = default;
+	EntityManager& operator=(EntityManager&&) noexcept = default;
+
 	// Spawning
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
 								  const glm::vec3& pos,
