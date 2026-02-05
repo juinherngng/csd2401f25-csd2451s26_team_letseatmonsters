@@ -10,7 +10,7 @@
 					and writes back to an attached Transform. Designed to be used with a
 					ForceRegistry and simple steering forces (seek, drag, gravity).
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
