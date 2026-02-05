@@ -3,7 +3,7 @@
  FILE NAME:         LevelEditorFileIO.cpp
  PROJECT NAME:      Project GAM200
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
- CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu
+ CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:       File I/O helpers used by the Level Editor:
 					- Native file open dialog (Windows)

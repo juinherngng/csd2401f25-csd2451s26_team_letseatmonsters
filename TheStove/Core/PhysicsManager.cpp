@@ -4,7 +4,7 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
  DESCRIPTION:       Implements PhysicsManager. Integrates simple force-based movement
 					(seek/arrive + drag), applies damping, and trims movement against

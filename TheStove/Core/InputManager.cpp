@@ -4,7 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:		Implements the InputManager class for handling keyboard and mouse input.
 

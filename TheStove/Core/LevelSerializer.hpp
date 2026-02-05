@@ -4,6 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
  CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu (30%)
 
  DESCRIPTION:		JSON-based (de)serialization for level data used by the editor/runtime.
 

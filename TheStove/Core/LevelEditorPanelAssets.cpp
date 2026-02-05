@@ -3,7 +3,7 @@
  FILE NAME:         LevelEditorPanelAssets.cpp
  PROJECT NAME:      Project GAM200
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
- CO-AUTHORS:        Ng Juin Herng, juinherng.ng@digipen.edu
+ CO-AUTHORS:        Ng Juin Herng, juinherng.ng@digipen.edu (30%)
 
  DESCRIPTION:       Implementation of the Level Editor Assets panel.
 					- Import Texture / Import Prefab / Import Audio (native dialog)

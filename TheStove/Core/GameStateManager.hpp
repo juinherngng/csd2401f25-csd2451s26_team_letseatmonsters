@@ -4,7 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Darren Toh, darren.toh@digipen.edu
  CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
 
  DESCRIPTION:		This file defines the GameState enumeration and the GameStateManager system responsible for
   					controlling the game’s high-level state machine (e.g. main menu, gameplay, quit). It declares

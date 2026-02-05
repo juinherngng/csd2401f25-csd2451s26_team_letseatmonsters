@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         Quota.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung (90%)
+ CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:       Defines the Economy namespace, which tracks player money,
                     win quota, and remaining time, and synchronizes these values

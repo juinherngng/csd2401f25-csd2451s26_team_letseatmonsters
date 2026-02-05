@@ -4,7 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:		Centralized keyboard/mouse input state tracker with edge detection.
 					- Polls GLFW each frame and mirrors common key/mouse states.

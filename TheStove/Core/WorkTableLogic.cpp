@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         WorkTableLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung (90%)
+ CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:       Implements WorkTableLogic, the type of table that accepts raw
                     ingredients, processes them into refined ingredients, and allows

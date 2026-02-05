@@ -4,7 +4,7 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Darren Toh, darren.toh@digipen.edu
  CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+					Ng Juin Herng, juinherng.ng@digipen.edu (40%)
 
  DESCRIPTION:		This file implements the logic for first-time initialization, per-frame updates, and transitions
  					between states, preferring JSON-driven runtime level loading when mappings are registered, with a 
