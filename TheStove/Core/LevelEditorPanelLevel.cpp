@@ -540,8 +540,8 @@ namespace LEPANELLEVEL {
 		const std::string currentName = fs::path(editor.levelPath).stem().string();
 
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-		const char* preview = (levelPathBuf[0] == '\0') ? "<select level>" : levelPathBuf;
-		if (ImGui::BeginCombo("##LevelCombo", preview)) {
+		const char* comboPreview = (levelPathBuf[0] == '\0') ? "<select level>" : levelPathBuf;
+		if (ImGui::BeginCombo("##LevelCombo", comboPreview)) {
 			for (size_t i = 0; i < sLevelFiles.size(); ++i) {
 				const fs::path p(sLevelFiles[i]);
 				const std::string displayName = p.stem().string(); // e.g. "kitchen01"
