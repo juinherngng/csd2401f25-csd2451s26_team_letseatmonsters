@@ -278,21 +278,39 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 					gfx.ContinueTransitionFadeIn();
 					cutTrans_.fadeInAfterLoad = false;
 
-					// Start level BGM and ambience with fade-in (synced with visual transition)
-					// This is needed because the cutscene bypasses GameStateManager
+					// Check if we're loading main menu (from win/lose cutscene)
+					// If simulation is NOT active, this is likely the main menu
+					// Re-enable layer 10 only when returning to main menu from win/lose
 #ifndef _DEBUG
+					if (!pendingLevelSimActive_) {
+						// Re-enable layer 10 for main menu buttons (was disabled during intro cutscene)
+						if (Layer* menuLayer = GetLayer("10")) {
+							menuLayer->SetVisible(true);
+							menuLayer->SetEnabled(true);
+							std::cout << "[Scene] Re-enabled layer 10 for main menu after win/lose cutscene" << std::endl;
+						}
+					}
+
 					if (audioManager_) {
-						const float levelBgmFadeIn = 1.0f;
+						if (!pendingLevelSimActive_) {
+							// Loading main menu - play main menu BGM
+							audioManager_->PlaySound("bgm_MyoonchiDiner_MainMenu", audioManager_->GetBgmVolume(), false);
+							std::cout << "[Scene] Playing main menu BGM after win/lose cutscene" << std::endl;
+						}
+						else {
+							// Loading gameplay level - play level theme with fade-in
+							const float levelBgmFadeIn = 1.0f;
 
-						// Play level theme music with fade-in
-						audioManager_->PlaySound("bgm_MyoonchiDiner_LevelTheme", 0.0f, false);
-						audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", audioManager_->GetBgmVolume(), levelBgmFadeIn);
-						std::cout << "[Scene] Playing level theme music with fade-in after cutscene" << std::endl;
+							// Play level theme music with fade-in
+							audioManager_->PlaySound("bgm_MyoonchiDiner_LevelTheme", 0.0f, false);
+							audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", audioManager_->GetBgmVolume(), levelBgmFadeIn);
+							std::cout << "[Scene] Playing level theme music with fade-in after cutscene" << std::endl;
 
-						// Play kitchen ambience at 50% of BGM volume, also with fade-in
-						audioManager_->PlaySound("bgm_KitchenAmbience", 0.0f, false);
-						audioManager_->FadeChannel("bgm_KitchenAmbiance", audioManager_->GetBgmVolume() * 0.5f, levelBgmFadeIn);
-						std::cout << "[Scene] Playing kitchen ambience with fade-in after cutscene" << std::endl;
+							// Play kitchen ambience at 50% of BGM volume, also with fade-in
+							audioManager_->PlaySound("bgm_KitchenAmbience", 0.0f, false);
+							audioManager_->FadeChannel("bgm_KitchenAmbience", audioManager_->GetBgmVolume() * 0.5f, levelBgmFadeIn);
+							std::cout << "[Scene] Playing kitchen ambience with fade-in after cutscene" << std::endl;
+						}
 					}
 #endif
 				}
@@ -1733,6 +1751,7 @@ void Scene::RenderLevelTextObjects()
 	if (objs.empty()) return;
 
 	const bool cutsceneActive = IsAnyCutsceneActive();
+	const bool pauseActive = IsPauseOverlayActive();
 	static const std::unordered_set<std::string> kHudTextNames = {
 		"MoneyText", "QuotaText", "TimerText"
 	};
@@ -1754,8 +1773,8 @@ void Scene::RenderLevelTextObjects()
 
 	for (const auto& o : objs)
 	{
-		// ✅ hide HUD text during cutscenes
-		if (cutsceneActive && kHudTextNames.count(o.name)) continue;
+		// Hide HUD text during cutscenes or pause overlay
+		if ((cutsceneActive || pauseActive) && kHudTextNames.count(o.name)) continue;
 
 		if (o.text.empty()) continue;
 		if (o.fontName.empty()) continue;
