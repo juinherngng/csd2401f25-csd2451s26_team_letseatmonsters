@@ -13,6 +13,27 @@ namespace Economy
 {
     namespace
     {
+        static void BuildLoseFramesAndBoundaries(std::vector<std::string>& outFrames,
+            std::vector<bool>& outFlags,
+            const std::string& baseFolder)
+        {
+            namespace fs = std::filesystem;
+
+            outFrames.clear();
+            outFlags.clear();
+
+            for (int ch = 1; ch <= 6; ++ch)
+            {
+                std::string path = baseFolder + "/Cutscene_gameover" + std::to_string(ch) + ".png";
+                if (fs::exists(path))
+                {
+                    outFrames.push_back(path);
+                    outFlags.push_back(true); // each chapter is a boundary (fade between chapters)
+                }
+            }
+        }
+
+
         // Supports BOTH patterns:
         //   A) baseFolder/prefix + chapter + "." + frame + ".png"   (e.g. Cutscene_gameover1.1.png)
         //   B) baseFolder/prefix + chapter + ".png"               (e.g. Cutscene_gameover1.png)
@@ -113,7 +134,7 @@ namespace Economy
             frames,
             boundaries,
             FilePaths::Levels::MAIN_MENU,   // <-- changed from WIN to MAIN_MENU
-            true,
+            false,
             0.35f,
             0.35f,
             1.0f / fps,
@@ -130,35 +151,30 @@ namespace Economy
         std::vector<std::string> frames;
         std::vector<bool> boundaries;
 
-        const float fps = 4.0f;
-        const float chapterHoldSeconds = 1.5f;
+        BuildLoseFramesAndBoundaries(frames, boundaries, "../assets/Lose");
+        boundaries.assign(frames.size(), false); // no fade between images
 
-        BuildTimedFramesAndBoundaries(
-            frames, boundaries,
-            chapterHoldSeconds, fps,
-            "../assets/Lose",
-            "Cutscene_gameover"
-        );
-
-        // If no frames, go straight to MAIN MENU
         if (frames.empty()) {
-            scene.StartLevelTransition(FilePaths::Levels::MAIN_MENU, false, 0.35f, 0.35f);
+            scene.StartLevelTransition(FilePaths::Levels::MAIN_MENU, true, 0.35f, 0.35f);
             return;
         }
 
         scene.StartCutsceneTransitionedBounded(
             frames,
             boundaries,
-            FilePaths::Levels::MAIN_MENU,   // <-- changed from LOSE to MAIN_MENU
-            true,
+            FilePaths::Levels::MAIN_MENU,
+            false,              // activateSimulation on main menu load
             0.35f,
             0.35f,
-            1.0f / fps,
+            1.0f, // IMPORTANT: hold whole chapter image, not 1/fps
             -1,
             0.0f
         );
     }
 
 
+
 }
+
+
 

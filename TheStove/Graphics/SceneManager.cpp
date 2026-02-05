@@ -253,7 +253,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 #endif
 				}
 				LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
-				Economy::Reset();
+				//Economy::Reset();
 			}
 		}
 		hasPendingLevel_ = false;
