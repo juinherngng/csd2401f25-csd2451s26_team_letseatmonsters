@@ -17,6 +17,7 @@ DESCRIPTION:     Implements WorkTableLogic, the type of table that accepts raw
  */
 
 #include "WorkTableLogic.hpp"
+#include "../Core/AudioManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/GameObject.hpp"
 
@@ -44,6 +45,17 @@ const char* WorkTableLogic::GetProcessedTextureForRaw(IngredientType rawType) co
     case IngredientType::Meat:      return "../assets/Meat_CUT_Ingredient.png";
     case IngredientType::Shroom:    return "../assets/Mushroom_CUT_Ingredient.png";
     default:                        return "../assets/Cabbage_CUT_Ingredient.png";
+    }
+}
+
+const char* WorkTableLogic::GetProcessingSoundName() const
+{
+    switch (stationType_)
+    {
+    case StationType::CuttingBoard: return "sfx_chopping";
+    case StationType::Grill:        return "sfx_grill";
+    case StationType::Stove:        return "sfx_boiling_sound";
+    default:                        return nullptr;
     }
 }
 
@@ -92,8 +104,15 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&)
         timer_ = processingTime_;
         isProcessing_ = false;
         
-        // Stop processing audio when complete
-        scene.StopProcessingAudio(GetOwnerID());
+        // Stop station-specific processing sound when complete (release mode only)
+#ifndef _DEBUG
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            const char* soundName = GetProcessingSoundName();
+            if (soundName && audioMgr->HasSound(soundName)) {
+                audioMgr->StopSound(soundName);
+            }
+        }
+#endif
 
         GameObject* item = scene.GetGameObjectByID(GetHeldItemID());
         if (item)
@@ -171,8 +190,15 @@ void WorkTableLogic::StartProcessing(Scene& scene)
 void WorkTableLogic::CancelProcessing(Scene& scene)
 {
     if (isProcessing_) {
-        // Stop processing audio when cancelled
-        scene.StopProcessingAudio(GetOwnerID());
+        // Stop station-specific processing sound when cancelled (release mode only)
+#ifndef _DEBUG
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            const char* soundName = GetProcessingSoundName();
+            if (soundName && audioMgr->HasSound(soundName)) {
+                audioMgr->StopSound(soundName);
+            }
+        }
+#endif
     }
     isProcessing_ = false;
     timer_ = 0.0f;
@@ -191,8 +217,19 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
         isProcessing_ = true;
         timer_ = 0.0f;
         
-        // Play processing audio for this work table
-        scene.PlayProcessingAudio(GetOwnerID());
+        // Play station-specific processing sound (release mode only)
+#ifndef _DEBUG
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            const char* soundName = GetProcessingSoundName();
+            if (soundName && audioMgr->HasSound(soundName)) {
+                audioMgr->PlaySound(soundName, audioMgr->GetVfxVolume(), false);
+                // Lower volume specifically for cutting board sound
+                if (stationType_ == StationType::CuttingBoard) {
+                    audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.3f);
+                }
+            }
+        }
+#endif
     }
 }
 

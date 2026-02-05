@@ -12,6 +12,7 @@ DESCRIPTION:		Implements player control logic, including movement, sprite update
 ----------------------------------------------------------------------------------------------------
 */
 #include "../Graphics/SceneManager.hpp"
+#include "../Core/AudioManager.hpp"
 #include "../Core/InputManager.hpp"
 #include "../Core/InputControls.hpp"
 #include "../Core/TableLogic.hpp"
@@ -384,6 +385,13 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 
 	carriedItemID = itemID;
 
+	// Play UI click sound for pickup feedback (release mode only)
+#ifndef _DEBUG
+	if (AudioManager* audioMgr = scene.GetAudioManager()) {
+		audioMgr->PlaySound("ui_click", audioMgr->GetVfxVolume() * 0.2f, false);
+	}
+#endif
+
 	//std::cout << "[PlayerLogic] PickUp item " << itemID << "\n";
 
 	// Save original collider size
@@ -570,6 +578,18 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	bool actuallyMoved = dist > jitterEps;
 
 	if (hasIntent && actuallyMoved) {
+		// Play footstep sound at regular intervals (release mode only)
+#ifndef _DEBUG
+		footstepEmitTimer_ += dt;
+		const float footstepInterval = 0.3f; // seconds between footstep sounds
+		if (footstepEmitTimer_ >= footstepInterval) {
+			footstepEmitTimer_ = 0.0f;
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				audioMgr->PlaySound("sfx_step_1", audioMgr->GetVfxVolume() * 0.04f, false);
+			}
+		}
+#endif
+
 		// Feet position from collider size
 		glm::vec3 feet = afterPos;
 		auto cs = player->GetColliderSize();
@@ -632,6 +652,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		// reset when not moving (prevents burst when resuming)
 		hasLastTrailPos_ = false;
 		trailCarry_ = 0.0f;
+		footstepEmitTimer_ = 0.0f; // reset footstep timer when stopped
 	}
 
 	UpdateCarriedItemTransform(scene);
@@ -766,6 +787,13 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 					hasCarriedItemOriginalColliderSize = false;
 				}
 				carriedItemID = -1;
+
+				// Play put down sound effect (release mode only)
+#ifndef _DEBUG
+				if (AudioManager* audioMgr = scene.GetAudioManager()) {
+					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.2f, false);
+				}
+#endif
 			}
 			else
 			{
@@ -860,6 +888,13 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 				// Either way, we are no longer carrying this item
 				carriedItemID = -1;
 				//std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient; carriedItem cleared\n";
+
+				// Play put down sound effect (release mode only)
+#ifndef _DEBUG
+				if (AudioManager* audioMgr = scene.GetAudioManager()) {
+					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.2f, false);
+				}
+#endif
 			}
 			else
 			{

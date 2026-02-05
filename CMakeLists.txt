@@ -44,6 +44,17 @@ add_executable(LetsEatMonsters ${CMAKE_CURRENT_LIST_DIR}/TheStove/main.cpp)
 
 target_link_libraries(LetsEatMonsters PRIVATE TheStove)
 
+# Hide console window in Release builds (Windows subsystem instead of Console)
+if(WIN32)
+    set_target_properties(LetsEatMonsters PROPERTIES
+        WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>
+    )
+    # Use mainCRTStartup entry point so we can keep using int main() instead of WinMain
+    target_link_options(LetsEatMonsters PRIVATE
+        $<$<NOT:$<CONFIG:Debug>>:/ENTRY:mainCRTStartup>
+    )
+endif()
+
 # Set C++ standard for the build
 set_property(TARGET LetsEatMonsters PROPERTY CXX_STANDARD 20)
 

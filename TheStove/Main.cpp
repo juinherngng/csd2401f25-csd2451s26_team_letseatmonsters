@@ -608,8 +608,14 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		ResourceManager::Instance().SetAudioManager(audioMgr);
 		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
 
-	// Load audio catalog from SOURCE directory (../../assets from build/Release)
+	// Load audio catalog - use appropriate path based on build type
+	#ifdef _DEBUG
+		// Debug builds run from build/Debug, need to go up two levels to find source assets
 		const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
+	#else
+		// Release builds use runtime path (one level up from exe to assets folder)
+		const std::string catalogPath = FilePaths::Audio::CATALOG;
+	#endif
 		if (!Audio::AudioCatalog::LoadCatalogFromFile(catalogPath))
 		{
 			std::cerr << "Warning: Failed to load audio catalog from " << catalogPath << std::endl;

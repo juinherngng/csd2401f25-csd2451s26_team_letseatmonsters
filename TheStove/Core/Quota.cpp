@@ -1,5 +1,6 @@
 #include "../Core/Quota.hpp"
 #include "../Graphics/SceneManager.hpp"
+#include "../Core/AudioManager.hpp"
 #include "FilePaths.hpp"
 
 #include <string>
@@ -104,12 +105,37 @@ namespace Economy
                 }
             }
         }
+
+        // Helper to stop all gameplay audio before cutscene
+        static void StopAllGameplayAudio(Scene& scene)
+        {
+#ifndef _DEBUG
+            if (AudioManager* audioMgr = scene.GetAudioManager()) {
+                // Stop level BGM and ambience
+                audioMgr->StopSound("bgm_MyoonchiDiner_LevelTheme");
+                audioMgr->StopSound("bgm_KitchenAmbience");
+                
+                // Stop all processing sounds (work table sounds)
+                audioMgr->StopSound("sfx_chopping");
+                audioMgr->StopSound("sfx_grill");
+                audioMgr->StopSound("sfx_boiling_sound");
+                
+                // Stop any other looping gameplay sounds
+                scene.StopAllObjectAudio();
+                
+                std::cout << "[Economy] Stopped all gameplay audio for win/lose cutscene" << std::endl;
+            }
+#endif
+        }
     }
 
     void OnQuotaReached(Scene& scene)
     {
         if (gTimerPaused) return;
         gTimerPaused = true;
+
+        // Stop all gameplay audio immediately
+        StopAllGameplayAudio(scene);
 
         std::vector<std::string> frames;
         std::vector<bool> boundaries;
@@ -126,7 +152,7 @@ namespace Economy
 
         // If no frames, go straight to MAIN MENU
         if (frames.empty()) {
-            scene.StartLevelTransition(FilePaths::Levels::MAIN_MENU, false, 0.35f, 0.35f);
+            scene.RequestStateChange(0); // GS_Level1 = main menu
             return;
         }
 
@@ -148,6 +174,9 @@ namespace Economy
         if (gTimerPaused) return;
         gTimerPaused = true;
 
+        // Stop all gameplay audio immediately
+        StopAllGameplayAudio(scene);
+
         std::vector<std::string> frames;
         std::vector<bool> boundaries;
 
@@ -155,7 +184,7 @@ namespace Economy
         boundaries.assign(frames.size(), false); // no fade between images
 
         if (frames.empty()) {
-            scene.StartLevelTransition(FilePaths::Levels::MAIN_MENU, true, 0.35f, 0.35f);
+            scene.RequestStateChange(0); // GS_Level1 = main menu
             return;
         }
 
