@@ -1,15 +1,15 @@
 /*
 ----------------------------------------------------------------------------------------------------
- FILE NAME:          Quota.cpp
- PROJECT NAME:       Project GAM200
- AUTHOR:             Vu Phan Hung (90%)
- CO-AUTHOR:          Ng Juin Herng, juinherng.ng@digipen.edu (20%)
+ FILE NAME:         Quota.cpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (80%)
+ CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (20%)
 
  DESCRIPTION:       Defines the Economy namespace, which tracks player money,
                     win quota, and remaining time, and synchronizes these values
                     with the game UI and win/lose conditions.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+         All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

@@ -2,8 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			RigidBody2D.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (20%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu	  (80%)
 
  DESCRIPTION:		Declares a lightweight 2D rigid body component that stores linear state
 					(velocity, mass, damping), accumulates forces/impulses, integrates motion,

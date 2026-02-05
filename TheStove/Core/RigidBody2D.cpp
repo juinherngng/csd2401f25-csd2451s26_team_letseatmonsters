@@ -2,14 +2,14 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			RigidBody2D.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (25%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu   (75%)
 
  DESCRIPTION:		Implements RigidBody2D. Accumulates forces, integrates velocity with
 					exponential damping, optionally applies gravity/legacy acceleration,
 					and writes motion to the owner's Transform.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

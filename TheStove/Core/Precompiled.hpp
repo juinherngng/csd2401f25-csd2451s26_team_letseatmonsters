@@ -2,7 +2,7 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:          Precompiled.hpp
  PROJECT NAME:       Project GAM200
- AUTHOR:             Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:             Ng Juin Herng, juinherng.ng@digipen.edu (100%)
 
  DESCRIPTION:        Precompiled header for commonly used system and third-party includes.
 					 Includes OpenGL, GLFW, GLM, and ImGui headers for faster compilation.

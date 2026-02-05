@@ -2,7 +2,7 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			TileMap.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Darren Toh, darren.toh@digipen.edu
+ AUTHOR:			Darren Toh, darren.toh@digipen.edu (100%)
 
  DESCRIPTION:		Header file with member function declaration to construct and read from class MapData
 					containing a 2D vector of Int, which serves

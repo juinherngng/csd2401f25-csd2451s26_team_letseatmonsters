@@ -2,10 +2,10 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SceneManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Vu Phan Hung, phanhung.vu@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu (15%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (35%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(15%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (15%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (35%)
 
  DESCRIPTION:		Implements the Scene class, which is responsible for the high-level
 					management, coordination, and per-frame updating of all entities, systems,

@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SceneManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Vu Phan Hung, phanhung.vu@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (15%)
 					Ng Juin Herng, juinherng.ng@digipen.edu (15%)
 
  DESCRIPTION:		Declares the SceneManager (Scene) class, which orchestrates the lifecycle and
