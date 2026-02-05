@@ -90,6 +90,9 @@ struct LevelTextObject {
 	
 	// Layer for rendering order
 	std::string layer{ "1" };
+
+	// Visibility flag (per-object toggle)
+	bool visible{ true };
 };
 
 struct TextObjectData {

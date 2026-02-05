@@ -907,6 +907,7 @@
       "scale": 0.520,
       "text": "03:00",
       "useBlockRotation": true,
+      "visible": true,
       "x": 93.0,
       "y": 35.0
     },
@@ -923,6 +924,7 @@
       "scale": 0.520,
       "text": "$0",
       "useBlockRotation": true,
+      "visible": true,
       "x": 92.0,
       "y": 100.0
     },
@@ -939,6 +941,7 @@
       "scale": 0.520,
       "text": "$300",
       "useBlockRotation": true,
+      "visible": true,
       "x": 266.0,
       "y": 52.0
     }
