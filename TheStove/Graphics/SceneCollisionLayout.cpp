@@ -178,6 +178,14 @@ void Scene::ClampToWalkArea(GameObject* obj) {
 	if (tag == "") {
 		return;
 	}
+
+	// Skip clamping for non - collidable layers
+	const std::string layerName = GetObjectLayer(obj->GetID());
+	Layer* layer = GetLayer(layerName);
+	if (layer && !layer->IsCollidable()) {
+		return;
+	}
+
 	Math::Vector3D pos(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
 	const collision::WalkArea w = GetWalkArea();
 	physics::ClampInsideWalk(w, obj, pos);
@@ -301,6 +309,19 @@ void Scene::ResolveInitialStaticOverlaps() {
 
 	for (GameObject* g : objs) {
 		if (!g) {
+			continue;
+		}
+
+		// Skip UI / non-collidable layers
+		const std::string layerName = GetObjectLayer(g->GetID());
+		Layer* layer = GetLayer(layerName);
+		if (layer && !layer->IsCollidable()) {
+			continue;
+		}
+
+		// (Optional but consistent) also skip empty-tag objects like ClampToWalkArea does
+		const std::string tag = GetObjectTag(g->GetID());
+		if (tag == "") {
 			continue;
 		}
 
