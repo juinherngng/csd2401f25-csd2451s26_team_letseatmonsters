@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         ExitGateLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
  DESCRIPTION:       Declares the ExitGateLogic component, which defines the world-space
                     exit target for NPCs and provides an optional positional offset.

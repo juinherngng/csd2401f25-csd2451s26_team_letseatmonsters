@@ -2,9 +2,15 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CollisionManager.hpp
  PROJECT NAME:      Project GAM200
+<<<<<<< Updated upstream
  AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
 					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+=======
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (20%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(55%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (25%)
+>>>>>>> Stashed changes
 
  DESCRIPTION:       Declares CollisionManager. Owns a static collision::World and a dynamic
 					spatial grid of GameObjects, rebuilds broad-phase data every frame, and

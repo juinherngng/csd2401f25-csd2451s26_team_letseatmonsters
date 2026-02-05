@@ -1,9 +1,15 @@
-	/*
+/*
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			DebugUI.hpp
  PROJECT NAME:		Project GAM200
+<<<<<<< Updated upstream
  AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu
  CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (20%)
+=======
+ AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu	(40%)
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+					Seah Wang Hua, wanghua.seah"digipen.edu (50%)
+>>>>>>> Stashed changes
 
  DESCRIPTION:		The declarations of functions for the debugger window.
 

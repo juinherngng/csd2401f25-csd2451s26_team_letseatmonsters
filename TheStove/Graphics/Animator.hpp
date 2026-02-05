@@ -1,15 +1,15 @@
 /*
 ----------------------------------------------------------------------------------------------------
- FILE NAME:			Animation.hpp
+ FILE NAME:			Animator.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
- DESCRIPTION:		 Declares the Animator2D helper class, which manages simple 2D sprite animations using a list
-    				 of UV frames. The animator advances frames over time based on a configurable frame duration,
-    				 supports looping or one-shot playback, and exposes the current frame’s UV rectangle for use
-    				 by the renderer.
+ DESCRIPTION:		Declares the Animator2D helper class, which manages simple 2D sprite animations using a list
+    				of UV frames. The animator advances frames over time based on a configurable frame duration,
+    				supports looping or one-shot playback, and exposes the current frame’s UV rectangle for use
+    				by the renderer.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

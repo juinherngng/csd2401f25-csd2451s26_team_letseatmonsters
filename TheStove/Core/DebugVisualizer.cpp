@@ -2,8 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GraphicsEngine.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
 
  DESCRIPTION:		Implements the DebugVisualizer static helper used to draw
 					collider rectangles, player path lines, spatial grid outlines,

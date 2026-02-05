@@ -1,11 +1,18 @@
-	/*
+/*
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			DebugUI.cpp
  PROJECT NAME:		Project GAM200
+<<<<<<< Updated upstream
  AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu
  CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (30%)
 					Seah Wang Hua, wanghua.seah"digipen.edu
 
+=======
+ AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu    (15%)
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (65%)
+					Seah Wang Hua, wanghua.seah"digipen.edu (20%)
+					
+>>>>>>> Stashed changes
  DESCRIPTION:		The definitions of functions for the debugger window.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.

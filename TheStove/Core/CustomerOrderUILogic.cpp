@@ -2,11 +2,11 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CustomerOrderUILogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION: Defines the CustomerOrderUILogic component, responsible for displaying
-              and updating customer order UI elements such as the order bubble,
-              patience bar, and payment result feedback attached to a customer.
+ DESCRIPTION:       Defines the CustomerOrderUILogic component, responsible for displaying
+                    and updating customer order UI elements such as the order bubble,
+                    patience bar, and payment result feedback attached to a customer.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

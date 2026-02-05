@@ -2,6 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CustomerManagerlogic.cpp
  PROJECT NAME:      Project GAM200
+<<<<<<< Updated upstream
  AUTHOR:            Vu Phan Hung
  CO-AUTHORS:        Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
@@ -12,7 +13,14 @@ DESCRIPTION: Implements a simple scene-level system that manages all
 
 
 
+=======
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+>>>>>>> Stashed changes
 
+ DESCRIPTION:       Implements a simple scene-level system that manages all
+                    customers in the level. It assigns customers to available
+                    CustomerTableLogic tables, gives them target seating
+                    positions, and coordinates table–customer pairing at runtime.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
