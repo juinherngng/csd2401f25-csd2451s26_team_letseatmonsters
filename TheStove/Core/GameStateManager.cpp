@@ -2,13 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameStateManager.cpp
  PROJECT NAME:		Project GAM200
-<<<<<<< Updated upstream
- AUTHOR:			Darren Toh, darren.toh@digipen.edu
- CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu
-=======
  AUTHOR:			Darren Toh, darren.toh@digipen.edu		(20%)
  CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu (40%)
->>>>>>> Stashed changes
 					Ng Juin Herng, juinherng.ng@digipen.edu (40%)
 
  DESCRIPTION:		This file implements the logic for first-time initialization, per-frame updates, and transitions

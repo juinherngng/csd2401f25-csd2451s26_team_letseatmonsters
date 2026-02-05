@@ -2,15 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GraphicsEngine.cpp
  PROJECT NAME:		Project GAM200
-<<<<<<< Updated upstream
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu(10%)
-=======
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
 					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
->>>>>>> Stashed changes
 
  DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
 					and batched instanced rendering of GameObjects.
