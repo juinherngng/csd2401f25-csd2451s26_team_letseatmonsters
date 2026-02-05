@@ -12,7 +12,7 @@ namespace Economy
     inline int gPlayerMoney = 0;
 
     // Win quota
-    inline constexpr int kQuota = 300;
+    inline constexpr int kQuota = 200;
 
     // How much a correct dish pays (tweak anytime)
     inline constexpr int kCorrectDishPay = 50;

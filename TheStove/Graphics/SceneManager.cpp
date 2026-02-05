@@ -1630,6 +1630,20 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
             gfx->ContinueTransitionFadeIn();
             cutTrans_.holding = true;
             cutTrans_.holdElapsed = 0.0f;
+            
+            // Start win cutscene BGM after initial fade-in (when first image appears)
+            // Check if this is the win cutscene by looking at the image paths
+#ifndef _DEBUG
+            if (audioManager_ && !cutTrans_.images.empty()) {
+                const std::string& firstImage = cutTrans_.images[0];
+                if (firstImage.find("Win") != std::string::npos || firstImage.find("daychange") != std::string::npos) {
+                    if (audioManager_->HasSound("bgm_win_cutscene")) {
+                        audioManager_->PlaySound("bgm_win_cutscene", audioManager_->GetBgmVolume(), false);
+                        std::cout << "[Scene] Playing win cutscene BGM after initial fade-in" << std::endl;
+                    }
+                }
+            }
+#endif
             return;
         }
 
@@ -1659,6 +1673,18 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
             if (audioManager_) {
                 audioManager_->StopSound("bgm_MyoonchiDiner_IntroCutscene");
                 std::cout << "[Scene] Stopped cutscene BGM before loading level" << std::endl;
+                
+                // Fade out game over sound effect if it's playing (from lose cutscene)
+                if (audioManager_->HasSound("sfx_gameover")) {
+                    audioManager_->FadeChannel("sfx_gameover", 0.0f, cutTrans_.outSeconds);
+                    std::cout << "[Scene] Fading out game over SFX before loading level" << std::endl;
+                }
+                
+                // Fade out win cutscene music if it's playing (from win cutscene)
+                if (audioManager_->HasSound("bgm_win_cutscene")) {
+                    audioManager_->FadeChannel("bgm_win_cutscene", 0.0f, cutTrans_.outSeconds);
+                    std::cout << "[Scene] Fading out win cutscene BGM before loading level" << std::endl;
+                }
             }
 #endif
 
@@ -1836,7 +1862,7 @@ void Scene::StartLevelTransition(const std::string& levelJsonPath,
 	cutTrans_.inSeconds = fadeInSeconds;
 
 	auto& gfx = GetGraphicsEngine();
-	gfx.StartSceneTransition(fadeOutSeconds, fadeInSeconds);
+	gfx.StartSceneTransition(levelTrans_.outSec, levelTrans_.inSec);
 }
 
 void Scene::UpdateLevelTransition()

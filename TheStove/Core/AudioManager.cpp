@@ -313,28 +313,39 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 	// Get the sound
 	FMOD::Sound* sound = GetSound(name);
 
-	if (!sound) return;
+	if (!sound) {
+		std::cerr << "[AudioManager] PlaySound: Sound '" << name << "' not found in loaded sounds!" << std::endl;
+		return;
+	}
 
 	FMOD::Channel* channel = nullptr;
 	FMOD_RESULT result = system->playSound(sound, nullptr, paused, &channel);
 	CheckError(result, "playSound: " + name);
 
 	// set volume based on type, multiplied by master volume
+	// If caller provided a specific volume (not default 1.0f), use it directly
+	// Otherwise, use category-based volume
 	if (result == FMOD_OK && channel) 
 	{
 		float finalVolume = volume * masterVolume;
 
-		if (name.find("bgm") != std::string::npos) 
-		{
-			finalVolume = bgmVolume * masterVolume;
-		}
-		else if(name.find("sfx") != std::string::npos || name.find("vfx") != std::string::npos) 
-		{
-			finalVolume = vfxVolume * masterVolume;
+		// Only override with category volume if caller used default volume (1.0f)
+		// This allows explicit volume control when needed (e.g., sfx_gameover at 50%)
+		if (volume >= 0.999f && volume <= 1.001f) {
+			if (name.find("bgm") != std::string::npos) 
+			{
+				finalVolume = bgmVolume * masterVolume;
+			}
+			else if(name.find("sfx") != std::string::npos || name.find("vfx") != std::string::npos) 
+			{
+				finalVolume = vfxVolume * masterVolume;
+			}
 		}
 
 		channel->setVolume(finalVolume);
 		channels[name] = channel;
+		
+		std::cout << "[AudioManager] Playing sound '" << name << "' at volume " << finalVolume << std::endl;
 	}
 }
 
