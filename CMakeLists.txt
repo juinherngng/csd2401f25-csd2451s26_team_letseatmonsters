@@ -28,6 +28,13 @@ file(GLOB_RECURSE SOURCE_FILES
 # Create a static library target for game engine/core code
 add_library(TheStove STATIC ${SOURCE_FILES})
 
+# Enable precompiled headers for faster builds (CMake 3.16+)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+    target_precompile_headers(TheStove PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/Precompiled.hpp
+    )
+endif()
+
 # Include directories for the project
 target_include_directories(TheStove PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/TheStove
@@ -110,6 +117,9 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(TheStove PRIVATE -Wall)
     target_compile_options(LetsEatMonsters PRIVATE -Wall)
 elseif (MSVC)
-    target_compile_options(TheStove PRIVATE /W4 /WX-)
-    target_compile_options(LetsEatMonsters PRIVATE /W4 /WX-)
+    # /W4 = Warning level 4
+    # /MP = Multi-processor compilation (parallel builds)
+    # /Gm- = Disable minimal rebuild (incompatible with /MP but /MP is faster)
+    target_compile_options(TheStove PRIVATE /W4 /WX- /MP)
+    target_compile_options(LetsEatMonsters PRIVATE /W4 /WX- /MP)
 endif()

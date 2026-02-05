@@ -201,6 +201,9 @@ void WorkTableLogic::CancelProcessing(Scene& scene)
     }
     isProcessing_ = false;
     timer_ = 0.0f;
+#ifdef _DEBUG
+    (void)scene;
+#endif
 }
 
 // ------------------- TableLogic hooks -------------------

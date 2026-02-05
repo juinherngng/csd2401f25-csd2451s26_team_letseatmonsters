@@ -287,6 +287,9 @@ void SimpleNpcLogic::TakeOrder(Scene& scene)
     payZero_ = false;
 
     behaviourState_ = BehaviourState::WaitingForFood;
+#ifdef _DEBUG
+    (void)scene;
+#endif
 }
 
 void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType)

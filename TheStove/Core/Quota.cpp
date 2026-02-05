@@ -126,6 +126,9 @@ namespace Economy
                 std::cout << "[Economy] Stopped all gameplay audio for win/lose cutscene" << std::endl;
             }
 #endif
+#ifdef _DEBUG
+            (void)scene;
+#endif
         }
     }
 
