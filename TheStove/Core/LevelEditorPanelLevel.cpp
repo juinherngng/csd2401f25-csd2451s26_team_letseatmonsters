@@ -54,6 +54,7 @@ namespace fs = std::filesystem;
 
 using namespace LEFILEIO;
 
+#ifdef _DEBUG
 static std::filesystem::path GetExeDir() {
 	char buf[MAX_PATH]{};
 	GetModuleFileNameA(nullptr, buf, MAX_PATH);
@@ -80,6 +81,7 @@ static std::filesystem::path FindRepoRoot() {
 	// Fallback (should not happen)
 	return fs::current_path();
 }
+#endif
 
 namespace {
 	// Internal helpers for Level <-> Scene synchronization

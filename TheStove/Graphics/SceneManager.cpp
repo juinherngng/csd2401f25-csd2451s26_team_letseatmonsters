@@ -199,6 +199,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	if (simulationActive) {
 		float prevTime = Economy::gTimeRemaining;
 		Economy::Update(deltaTime, *this);
+#ifdef _DEBUG
+		(void)prevTime;
+#endif
 		
 		// Play timer warning sounds (release mode only)
 #ifndef _DEBUG
