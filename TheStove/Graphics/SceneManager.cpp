@@ -175,11 +175,17 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 				fpsText_.SetFont(f);
 				fpsText_.SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)); // yellow for visibility
 				fpsText_.SetScale(1.5f); // 1.5x size for better visibility
-				fpsText_.SetPosition(glm::vec2(10.0f, 60.0f)); // Move down to avoid clipping
+				// Position will be set dynamically in update loop to align to right side
 				fpsAccumTime_ = 0.0f;
 				fpsAccumFrames_ = 0;
 				fpsValue_ = 60; // Start with a visible value
-				fpsText_.SetText(std::string("FPS: ") + std::to_string(fpsValue_));
+				std::string fpsStr = std::string("FPS: ") + std::to_string(fpsValue_);
+				fpsText_.SetText(fpsStr);
+				// Set initial position on the right side
+				float estimatedTextWidth = static_cast<float>(fpsStr.length()) * 20.0f * fpsText_.GetScale();
+				float rightPadding = 20.0f;
+				float topPadding = 60.0f;
+				fpsText_.SetPosition(glm::vec2(static_cast<float>(GraphicsEngine::kRefW) - estimatedTextWidth - rightPadding, topPadding));
 			}
 		}
 	}
@@ -349,7 +355,15 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			fpsValue_ = static_cast<int>(avg + 0.5f);
 			fpsAccumTime_ = 0.0f;
 			fpsAccumFrames_ = 0;
-			fpsText_.SetText(std::string("FPS: ") + std::to_string(fpsValue_));
+			std::string fpsStr = std::string("FPS: ") + std::to_string(fpsValue_);
+			fpsText_.SetText(fpsStr);
+
+			// Position FPS text on the right side of the screen
+			// Use reference canvas width (kRefW) since projection uses reference space
+			float estimatedTextWidth = static_cast<float>(fpsStr.length()) * 20.0f * fpsText_.GetScale();
+			float rightPadding = 20.0f;
+			float topPadding = 60.0f;
+			fpsText_.SetPosition(glm::vec2(static_cast<float>(GraphicsEngine::kRefW) - estimatedTextWidth - rightPadding, topPadding));
 		}
 	}
 #endif
