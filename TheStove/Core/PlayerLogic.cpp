@@ -1,29 +1,37 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			PlayerLogic.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
+ FILE NAME:			PlayerLogic.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (80%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu	  (20%)
 
-DESCRIPTION:		Implements player control logic, including movement, sprite updates,
+ DESCRIPTION:		Implements player control logic, including movement, sprite updates,
 					mouse click handling, item pickup/drop, and scene clamping behavior.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
-#include "PlayerLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
+#include "../Core/AudioManager.hpp"
 #include "../Core/InputManager.hpp"
 #include "../Core/InputControls.hpp"
 #include "../Core/TableLogic.hpp"
 #include "../Core/WorkTableLogic.hpp"
 #include "../Core/CustomerTableLogic.hpp"
+#include "../Core/TrashCanLogic.hpp"
 #include <iostream>
 
 #include "../Core/DebugUI.hpp"
-#include "../Core/InputControls.hpp"
-#include "../Core/InputManager.hpp"
-#include "../Graphics/SceneManager.hpp"
 #include "../Core/PlayerLogic.hpp"
+#include "../Core/TableLogic.hpp"
+#include "../Core/WorkTableLogic.hpp"
+
+#include "../Graphics/SceneManager.hpp"
+#include "../Graphics/SceneManager.hpp"
+
+#include "PlayerLogic.hpp"
+
+#include <iostream>
 
 void PlayerLogic::Start(Scene& scene) {
 	(void)scene;
@@ -32,9 +40,9 @@ void PlayerLogic::Start(Scene& scene) {
 	pendingTableID = -1;
 	facingDir = FacingDir::Front;
 
-	GameObject* owner = GetOwner(scene);
-	std::cout << "[PlayerLogic] Start on object ID "
-		<< (owner ? owner->GetID() : -1) << "\n";
+	//GameObject* owner = GetOwner(scene);
+	//std::cout << "[PlayerLogic] Start on object ID "
+	//	<< (owner ? owner->GetID() : -1) << "\n";
 }
 
 // Decide and apply sprite based on movement direction
@@ -51,10 +59,10 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	// Detect idle/no movement
 	if (glm::length(moveDirRaw) < moveThreshold) {
 		switch (facingDir) {
-			case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
-			case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
-			case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
-			case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
+		case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
+		case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
+		case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
+		case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
 		}
 	}
 	else {
@@ -91,7 +99,7 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 	GameObject* player = GetOwner(scene);
 
-	std::cout << "[PlayerLogic] MoveTo(" << dest.x << ", " << dest.y << ")\n";
+	//std::cout << "[PlayerLogic] MoveTo(" << dest.x << ", " << dest.y << ")\n";
 
 	if (player) {
 		glm::vec3 pos3 = player->GetPositionGLM();
@@ -114,8 +122,7 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 
 	// Only once per click (left mouse)
-	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT))
-	{
+	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		//std::cout << "RETURNING\n";
 		return;
 	}
@@ -127,11 +134,11 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 
 	if (!scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld)) {
 		// Mouse not over scene viewport, ignore click
-		std::cout << "[PlayerLogic] Mouse not over scene viewport\n";
+		//std::cout << "[PlayerLogic] Mouse not over scene viewport\n";
 		return;
 	}
 
-	std::cout << "[PlayerLogic] Click world = (" << mouseWorld.x << ", " << mouseWorld.y << ")\n";
+	//std::cout << "[PlayerLogic] Click world = (" << mouseWorld.x << ", " << mouseWorld.y << ")\n";
 
 	// ----------------------------------------------------------
 	// 1) Raycast: check if click is on any table-like object
@@ -148,10 +155,10 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 		int id = obj->GetID();
 
 		// Debug: does this object have any TableLogic?
-		TableLogic* tableLogic2 = logicMgr.GetLogicForObject<TableLogic>(id);
-		std::cout << "[ClickDebug] id=" << id
-			<< " hasTableLogic=" << (tableLogic2 ? "yes" : "no")
-			<< "\n";
+		//TableLogic* tableLogic2 = logicMgr.GetLogicForObject<TableLogic>(id);
+		//std::cout << "[ClickDebug] id=" << id
+		//	<< " hasTableLogic=" << (tableLogic2 ? "yes" : "no")
+		//	<< "\n";
 
 		// Any table (normal / work / customer / ingredient box) derives from TableLogic
 		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(id);
@@ -191,7 +198,7 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 	// 2) If we clicked a table, move to its approach point
 	// ----------------------------------------------------------
 	if (clickedTableID >= 0 && clickedTableLogic) {
-		std::cout << "[PlayerLogic] Click hit table id " << clickedTableID << "\n";
+		//std::cout << "[PlayerLogic] Click hit table id " << clickedTableID << "\n";
 		pendingTableID = clickedTableID;
 
 		// Player current world position
@@ -202,8 +209,8 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 		Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
 
 		// Debug: where are we actually going?
-		std::cout << "[PlayerLogic] Moving to approach point for table " << clickedTableID
-			<< " at (" << approach.x << ", " << approach.y << ")\n";
+		//std::cout << "[PlayerLogic] Moving to approach point for table " << clickedTableID
+		//	<< " at (" << approach.x << ", " << approach.y << ")\n";
 
 		// Convert to glm::vec2 for MoveTo
 		glm::vec2 target(approach.x, approach.y);
@@ -212,8 +219,8 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 	else {
 		// No table hit: just move to the clicked position as before
 		pendingTableID = -1;
-		std::cout << "[PlayerLogic] No table clicked, moving to raw mouse ("
-			<< mouseWorld.x << ", " << mouseWorld.y << ")\n";
+		//std::cout << "[PlayerLogic] No table clicked, moving to raw mouse ("
+		//	<< mouseWorld.x << ", " << mouseWorld.y << ")\n";
 		MoveTo(scene, mouseWorld);
 	}
 }
@@ -263,29 +270,29 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	const auto size = player->GetColliderSize();
 	const auto offset = player->GetColliderOffset();
 
-		// Apply allowed movement
-		// Desired movement for this frame
-		glm::vec2 desiredDelta(dir.x * step, dir.y * step);
-	
-		// Trim against static world (outer frame + wood + gate)
-		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+	// Apply allowed movement
+	// Desired movement for this frame
+	glm::vec2 desiredDelta(dir.x * step, dir.y * step);
 
-		// If we can't move at all (hit a wall and are stuck), treat it as "try to arrive"
-		// and let OnArrived decide if we are close enough to interact.
-		const float allowedLenSq = allowedDelta.x * allowedDelta.x +
-			allowedDelta.y * allowedDelta.y;
-		if (allowedLenSq < 0.0001f) {
-			std::cout << "[PlayerLogic] MoveTo blocked by collision, invoking OnArrived\n";
+	// Trim against static world (outer frame + wood + gate)
+	glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
 
-			hasMoveTarget = false;
-			if (GameObject* p = GetOwner(scene)) {
-				scene.GetMovementManager().ClearMoveTarget(p->GetID());
-			}
+	// If we can't move at all (hit a wall and are stuck), treat it as "try to arrive"
+	// and let OnArrived decide if we are close enough to interact.
+	const float allowedLenSq = allowedDelta.x * allowedDelta.x +
+		allowedDelta.y * allowedDelta.y;
+	if (allowedLenSq < 0.0001f) {
+		std::cout << "[PlayerLogic] MoveTo blocked by collision, invoking OnArrived\n";
 
-			// This will check distance to the table’s approach point using kInteractRadius
-			OnArrived(scene);
-			return;
+		hasMoveTarget = false;
+		if (GameObject* p = GetOwner(scene)) {
+			scene.GetMovementManager().ClearMoveTarget(p->GetID());
 		}
+
+		// This will check distance to the table’s approach point using kInteractRadius
+		OnArrived(scene);
+		return;
+	}
 
 	pos.x += allowedDelta.x;
 	pos.y += allowedDelta.y;
@@ -306,9 +313,9 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 }
 
 // Unity: OnArrived()
-// For now it�s a stub; later you can branch by what we clicked (tables, spawners, etc.)
+// For now it's a stub; later you can branch by what we clicked (tables, spawners, etc.)
 void PlayerLogic::OnArrived(Scene& scene) {
-	std::cout << "[PlayerLogic] Arrived at destination\n";
+	//std::cout << "[PlayerLogic] Arrived at destination\n";
 
 	if (pendingTableID < 0)
 		return;
@@ -337,9 +344,9 @@ void PlayerLogic::OnArrived(Scene& scene) {
 		float dy = pPos.y - approach.y;
 		distSq = dx * dx + dy * dy;
 
-		std::cout << "[PlayerLogic] Dist to table APPROACH point: "
-			<< std::sqrt(distSq)
-			<< " (approach=(" << approach.x << ", " << approach.y << "))\n";
+		//std::cout << "[PlayerLogic] Dist to table APPROACH point: "
+		//	<< std::sqrt(distSq)
+		//	<< " (approach=(" << approach.x << ", " << approach.y << "))\n";
 	}
 	else {
 		// Fallback: no TableLogic (shouldn’t really happen for tables)
@@ -348,21 +355,21 @@ void PlayerLogic::OnArrived(Scene& scene) {
 		float dy = pPos.y - tPos.y;
 		distSq = dx * dx + dy * dy;
 
-		std::cout << "[PlayerLogic] Dist to table ORIGIN (fallback): "
-			<< std::sqrt(distSq) << "\n";
+		//std::cout << "[PlayerLogic] Dist to table ORIGIN (fallback): "
+		//	<< std::sqrt(distSq) << "\n";
 	}
 
 	// Interaction radius around the approach point
 	constexpr float kInteractRadius = 67.0f;  // tweak to taste
 
 	if (distSq <= kInteractRadius * kInteractRadius) {
-		std::cout << "[PlayerLogic] Close enough to table " << pendingTableID
-			<< " (approach), performing interaction\n";
+		//std::cout << "[PlayerLogic] Close enough to table " << pendingTableID
+		//	<< " (approach), performing interaction\n";
 		InteractWithTable(scene, pendingTableID);
 	}
 	else {
-		std::cout << "[PlayerLogic] Arrived near click, but too far from table approach (dist="
-			<< std::sqrt(distSq) << ")\n";
+		//std::cout << "[PlayerLogic] Arrived near click, but too far from table approach (dist="
+		//	<< std::sqrt(distSq) << ")\n";
 	}
 
 	pendingTableID = -1;
@@ -378,7 +385,14 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 
 	carriedItemID = itemID;
 
-	std::cout << "[PlayerLogic] PickUp item " << itemID << "\n";
+	// Play UI click sound for pickup feedback (release mode only)
+#ifndef _DEBUG
+	if (AudioManager* audioMgr = scene.GetAudioManager()) {
+		audioMgr->PlaySound("ui_click", audioMgr->GetVfxVolume() * 0.05f, false);
+	}
+#endif
+
+	//std::cout << "[PlayerLogic] PickUp item " << itemID << "\n";
 
 	// Save original collider size
 	carriedItemOriginalColliderSize = item->GetColliderSize();
@@ -401,12 +415,12 @@ void PlayerLogic::Drop(Scene& scene) {
 	GameObject* player = GetOwner(scene);
 	GameObject* item = scene.GetGameObjectByID(carriedItemID);
 	if (!player || !item) {
-		std::cout << "[PlayerLogic] Drop failed, invalid item or player. Clearing carriedItemID.\n";
+		//std::cout << "[PlayerLogic] Drop failed, invalid item or player. Clearing carriedItemID.\n";
 		carriedItemID = -1;
 		return;
 	}
 
-	std::cout << "[PlayerLogic] Drop item " << carriedItemID << "\n";
+	//std::cout << "[PlayerLogic] Drop item " << carriedItemID << "\n";
 
 	if (hasCarriedItemOriginalColliderSize) {
 		item->SetColliderSize(carriedItemOriginalColliderSize);
@@ -468,6 +482,11 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
+	if (!scene.IsObjectLayerEnabled(player->GetID())) {
+		return;
+	}
+
+	glm::vec3 beforePos = player->GetPositionGLM();
 	const float physicsDt = scene.GetLastPhysicsDt();
 	const physics::StepController& step = scene.GetStepController();
 	const bool stepMode = step.enabled;
@@ -479,7 +498,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 		// Debug: prove we still see the key
 		if (input.IsKeyJustPressed(GLFW_KEY_P)) {
-			std::cout << "[PlayerLogic] P pressed (step mode, frozen)\n";
+			//std::cout << "[PlayerLogic] P pressed (step mode, frozen)\n";
 		}
 
 		return; // skip movement while paused
@@ -507,7 +526,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 		// Desired movement this frame
 		glm::vec2 desiredDelta(inputDir.x * speed * dt,
-							   inputDir.y * speed * dt);
+			inputDir.y * speed * dt);
 
 		// Trim against static world (outer frame + wood + gate)
 		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
@@ -542,58 +561,197 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	UpdateMovement(dt, scene);
 
+	// Footstep trail: path-interpolated emission (prevents gaps at high speed)
+	glm::vec3 afterPos = player->GetPositionGLM();
+
+	// movement intent avoids spam from clamp jitter
+	bool hasIntent =
+		input.IsKeyPressed(GLFW_KEY_A) || input.IsKeyPressed(GLFW_KEY_D) ||
+		input.IsKeyPressed(GLFW_KEY_W) || input.IsKeyPressed(GLFW_KEY_S) ||
+		hasMoveTarget;
+
+	glm::vec2 moveDelta(afterPos.x - beforePos.x, afterPos.y - beforePos.y);
+	float dist = std::sqrt(moveDelta.x * moveDelta.x + moveDelta.y * moveDelta.y);
+
+	// ignore micro jitter
+	const float jitterEps = 0.25f;
+	bool actuallyMoved = dist > jitterEps;
+
+	if (hasIntent && actuallyMoved) {
+		// Play footstep sound at regular intervals (release mode only)
+#ifndef _DEBUG
+		footstepEmitTimer_ += dt;
+		const float footstepInterval = 0.3f; // seconds between footstep sounds
+		if (footstepEmitTimer_ >= footstepInterval) {
+			footstepEmitTimer_ = 0.0f;
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				audioMgr->PlaySound("sfx_step_1", audioMgr->GetVfxVolume() * 0.04f, false);
+			}
+		}
+#endif
+
+		// Feet position from collider size
+		glm::vec3 feet = afterPos;
+		auto co = player->GetColliderOffset();
+		auto scale = player->GetScaleGLM();
+		feet.x += co.x;
+		feet.y += co.y + (scale.y * 0.5f) - 6.0f;
+
+		// Move direction (normalized) used for particle velocity shaping
+		glm::vec2 dir = moveDelta;
+		float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+		if (len > 0.0001f) {
+			dir.x /= len;
+			dir.y /= len;
+		}
+
+		// Initialize last point on first valid movement frame
+		if (!hasLastTrailPos_) {
+			lastTrailPos_ = feet;
+			hasLastTrailPos_ = true;
+			trailCarry_ = 0.0f;
+		}
+
+		// Interpolate from lastTrailPos_ to feet, spawn evenly spaced particles
+		glm::vec2 a(lastTrailPos_.x, lastTrailPos_.y);
+		glm::vec2 b(feet.x, feet.y);
+		glm::vec2 d = b - a;
+
+		float segmentDist = std::sqrt(d.x * d.x + d.y * d.y);
+		if (segmentDist > 0.0001f) {
+			glm::vec2 segDir = d / segmentDist;
+
+			const float spacing = 15.0f; // tune: smaller = denser trail
+			float total = segmentDist + trailCarry_;
+			int count = (int)std::floor(total / spacing);
+
+			// emit along the path
+			for (int i = 0; i < count; ++i) {
+				float along = spacing * (i + 1) - trailCarry_;
+				glm::vec2 p2 = a + segDir * along;
+
+				// spawn behind movement direction
+				glm::vec3 trailPos(p2.x, p2.y, afterPos.z);
+				const float behind = 20.0f;
+				trailPos.x -= dir.x * behind;
+				trailPos.y -= dir.y * behind;
+
+				// slight sideways jitter
+				glm::vec2 perp(-dir.y, dir.x);
+				float jitter = ((std::rand() % 1000) / 1000.0f - 0.5f) * 3.0f;
+				trailPos.x += perp.x * jitter;
+				trailPos.y += perp.y * jitter;
+
+				scene.GetParticleSystem().EmitTrail(scene.GetEntityManager(), trailPos, afterPos.z, dir);
+			}
+
+			trailCarry_ = total - count * spacing;
+		}
+
+		lastTrailPos_ = feet;
+	}
+	else {
+		// reset when not moving (prevents burst when resuming)
+		hasLastTrailPos_ = false;
+		trailCarry_ = 0.0f;
+		footstepEmitTimer_ = 0.0f; // reset footstep timer when stopped
+	}
+
 	UpdateCarriedItemTransform(scene);
 
 	// Debug key to prove script is running
 	if (input.IsKeyJustPressed(GLFW_KEY_P)) {
-		std::cout << "[PlayerLogic] P pressed\n";
+		//std::cout << "[PlayerLogic] P pressed\n";
 	}
 }
 
 void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 {
-	std::cout << "[PlayerLogic] InteractWithTable tableID=" << tableObjectID << "\n";
+	//std::cout << "[PlayerLogic] InteractWithTable tableID=" << tableObjectID << "\n";
 
 	GameObject* player = GetOwner(scene);
 	if (!player)
 		return;
+
+	// Play interact audio for the table being interacted with
+	scene.PlayInteractAudio(tableObjectID);
 
 	// Get table logic for the clicked/selected GameObject
 	LogicManager& logicMgr = scene.GetLogicManager();
 	TableLogic* table = logicMgr.GetLogicForObject<TableLogic>(tableObjectID);
 	if (!table)
 	{
-		std::cout << "[PlayerLogic] InteractWithTable: no TableLogic found on that object\n";
+		//std::cout << "[PlayerLogic] InteractWithTable: no TableLogic found on that object\n";
 		return;
 	}
 
 	bool playerHolding = (carriedItemID >= 0);
 	bool tableHasItem = table->HasItem();
 
-	std::cout << "  [PlayerLogic] state: playerHolding=" << playerHolding
-		<< " carriedItemID=" << carriedItemID
-		<< " tableHasItem=" << tableHasItem
-		<< " tableHeldItemID=" << (tableHasItem ? table->GetHeldItemID() : -1)
-		<< "\n";
+	//std::cout << "  [PlayerLogic] state: playerHolding=" << playerHolding
+	//	<< " carriedItemID=" << carriedItemID
+	//	<< " tableHasItem=" << tableHasItem
+	//	<< " tableHeldItemID=" << (tableHasItem ? table->GetHeldItemID() : -1)
+	//	<< "\n";
 
 	// --- Special case: Ingredient box ---
 	if (IngredientBoxLogic* box = logicMgr.GetLogicForObject<IngredientBoxLogic>(tableObjectID))
 	{
-		std::cout << "  [PlayerLogic] This table is an IngredientBox\n";
+		//std::cout << "  [PlayerLogic] This table is an IngredientBox\n";
 
 		if (carriedItemID >= 0)
 		{
-			std::cout << "  [PlayerLogic] Already holding item " << carriedItemID
-				<< ", ignoring ingredient box\n";
+			//std::cout << "  [PlayerLogic] Already holding item " << carriedItemID
+			//	<< ", ignoring ingredient box\n";
 			return;
 		}
 
 		int newItemID = box->SpawnIngredient(scene);
-		if (newItemID >= 0)
-		{
+		if (newItemID >= 0) {
 			PickUp(scene, newItemID);  // auto-pickup
 		}
 		return; // Do not fall through to normal table logic
+	}
+
+	// --- Special case: Customer table payment ---
+	if (CustomerTableLogic* ctable = logicMgr.GetLogicForObject<CustomerTableLogic>(tableObjectID))
+	{
+		// If the customer is in Paying state, consume the click and stop here.
+		if (ctable->TryTakePayment(scene)) {
+			return;
+		}
+	}
+
+	// --- Special case: Trash can ---
+// If this object is a trash can, placing an item should delete it immediately.
+	if (TrashCanLogic* trash = logicMgr.GetLogicForObject<TrashCanLogic>(tableObjectID))
+	{
+		// Only meaningful if player is holding something
+		if (carriedItemID >= 0)
+		{
+			const int itemToTrash = carriedItemID;
+
+			// Try to "place" it on the trash can (TrashCanLogic will despawn it)
+			if (trash->PlaceItem(scene, itemToTrash))
+			{
+				// Restore collider size if the object still exists this frame
+				// (depending on when despawns are processed)
+				if (hasCarriedItemOriginalColliderSize)
+				{
+					if (GameObject* item = scene.GetGameObjectByID(itemToTrash))
+					{
+						item->SetColliderSize(carriedItemOriginalColliderSize);
+					}
+					hasCarriedItemOriginalColliderSize = false;
+				}
+
+				// Clear carried item
+				carriedItemID = -1;
+			}
+		}
+
+		// Either way, stop here — trash can shouldn't behave like normal tables.
+		return;
 	}
 
 	playerHolding = (carriedItemID >= 0);
@@ -604,10 +762,9 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	// -------------------------------------------------------
 	if (!playerHolding && tableHasItem)
 	{
-		std::cout << "  [PlayerLogic] CASE1: table has item, player empty -> TakeItem + PickUp\n";
+		//std::cout << "  [PlayerLogic] CASE1: table has item, player empty -> TakeItem + PickUp\n";
 		int itemID = table->TakeItem(scene);
-		if (itemID >= 0)
-		{
+		if (itemID >= 0) {
 			PickUp(scene, itemID);
 		}
 		return;
@@ -618,24 +775,36 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	// -------------------------------------------------------
 	if (playerHolding && !tableHasItem)
 	{
-		std::cout << "  [PlayerLogic] CASE2: player holding " << carriedItemID
-			<< ", table empty -> PlaceItem\n";
+		//std::cout << "  [PlayerLogic] CASE2: player holding " << carriedItemID
+		//	<< ", table empty -> PlaceItem\n";
 
 		if (table->CanAcceptItem(scene, carriedItemID))
 		{
 			if (table->PlaceItem(scene, carriedItemID))
 			{
-				std::cout << "  [PlayerLogic] CASE2: PlaceItem success, clearing carriedItem\n";
+				//std::cout << "  [PlayerLogic] CASE2: PlaceItem success, clearing carriedItem\n";
+				if (hasCarriedItemOriginalColliderSize) {
+					if (GameObject* item = scene.GetGameObjectByID(carriedItemID))
+						item->SetColliderSize(carriedItemOriginalColliderSize);
+					hasCarriedItemOriginalColliderSize = false;
+				}
 				carriedItemID = -1;
+
+				// Play put down sound effect (release mode only)
+#ifndef _DEBUG
+				if (AudioManager* audioMgr = scene.GetAudioManager()) {
+					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
+				}
+#endif
 			}
 			else
 			{
-				std::cout << "  [PlayerLogic] CASE2: PlaceItem FAILED\n";
+				//std::cout << "  [PlayerLogic] CASE2: PlaceItem FAILED\n";
 			}
 		}
 		else
 		{
-			std::cout << "  [PlayerLogic] CASE2: CanAcceptItem = false\n";
+			//std::cout << "  [PlayerLogic] CASE2: CanAcceptItem = false\n";
 		}
 		return;
 	}
@@ -646,15 +815,14 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	// -------------------------------------------------------
 	if (playerHolding && tableHasItem)
 	{
-		std::cout << "  [PlayerLogic] CASE3: both player & table have items -> try plate+ingredient combo\n";
+		//std::cout << "  [PlayerLogic] CASE3: both player & table have items -> try plate+ingredient combo\n";
 
 		const int tableItemID = table->GetHeldItemID();
 
 		PlateLogic* plate = logicMgr.GetLogicForObject<PlateLogic>(tableItemID);
 		IngredientLogic* ingr = logicMgr.GetLogicForObject<IngredientLogic>(carriedItemID);
 
-		if (plate && ingr)
-		{
+		if (plate && ingr) {
 			// GameObject ID of the ingredient we are currently carrying
 			const int ingredientObjID = ingr->GetOwnerID();
 
@@ -664,7 +832,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 			bool consumedNow = false;
 			if (plate->TryAddIngredient(*ingr, consumedNow))
 			{
-				std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient type\n";
+				//std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient type\n";
 
 				// --- VISUAL: first ingredient goes onto the plate visually ---
 				if (ingredientCountBefore == 0) // this is the first ingredient on this plate
@@ -672,8 +840,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 					GameObject* plateObj = scene.GetGameObjectByID(tableItemID);
 					GameObject* ingredientObj = scene.GetGameObjectByID(ingredientObjID);
 
-					if (plateObj && ingredientObj)
-					{
+					if (plateObj && ingredientObj) {
 						glm::vec3 platePos = plateObj->GetPositionGLM();
 
 						// Snap the ingredient sprite onto the plate.
@@ -700,79 +867,54 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 				std::vector<IngredientType> consumedTypes;
 				if (plate->TryAssembleDish(dishType, consumedTypes))
 				{
-					std::cout << "  [PlayerLogic] CASE3: Dish assembled on plate\n";
+					//std::cout << "  [PlayerLogic] CASE3: Dish assembled on plate\n";
+						// Update visuals based on computed dish type
+					plate->ApplyDishVisual(scene);
 
 					// 1) Destroy the first ingredient that was sitting on the plate (if any)
 					int firstObjID = plate->GetFirstIngredientObjectID();
-					if (firstObjID >= 0)
-					{
+					if (firstObjID >= 0) {
 						scene.DespawnByID(firstObjID);
 					}
 
 					// 2) Destroy the ingredient we just added (the one we were carrying)
-					if (ingredientObjID >= 0 && ingredientObjID != firstObjID)
-					{
+					if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
 						scene.DespawnByID(ingredientObjID);
 					}
 
 					// We won't restore its collider size because the object is gone.
 					hasCarriedItemOriginalColliderSize = false;
-
-					// (Optional) Clear the stored first ingredient ID since it's gone now
-					// plate->SetFirstIngredientObjectID(-1);
-
-					// 3) Update the plate sprite based on dishType (existing code kept)
-					GameObject* plateObj = scene.GetGameObjectByID(tableItemID);
-					if (plateObj)
-					{
-						const char* texPath = "../assets/Plate_Dish_Default.png";
-
-						switch (dishType)
-						{
-						case DishType::VegDish:
-							texPath = "../assets/Salad.png";
-							break;
-						case DishType::MeatDish:
-							texPath = "../assets/Plate_MeatDish.png";
-							break;
-						case DishType::SoupDish:
-							texPath = "../assets/Plate_SoupDish.png";
-							break;
-						case DishType::PoopDish:
-						default:
-							texPath = "../assets/Plate_PoopDish.png";
-							break;
-						}
-
-						auto tex = ResourceManager::Instance().LoadTexture(texPath, texPath);
-						plateObj->SetTexture(tex);
-						scene.SetObjectTexturePath(tableItemID, texPath);
-					}
 				}
 
 
 				// Either way, we are no longer carrying this item
 				carriedItemID = -1;
-				std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient; carriedItem cleared\n";
+				//std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient; carriedItem cleared\n";
+
+				// Play put down sound effect (release mode only)
+#ifndef _DEBUG
+				if (AudioManager* audioMgr = scene.GetAudioManager()) {
+					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
+				}
+#endif
 			}
 			else
 			{
-				std::cout << "  [PlayerLogic] CASE3: plate REJECTED ingredient\n";
+				//std::cout << "  [PlayerLogic] CASE3: plate REJECTED ingredient\n";
 			}
 			return;
 		}
 
 
-		std::cout << "  [PlayerLogic] CASE3: no (plate,ingredient) combo found\n";
+		//std::cout << "  [PlayerLogic] CASE3: no (plate,ingredient) combo found\n";
 		return;
 	}
 
-	std::cout << "  [PlayerLogic] No case matched, doing nothing.\n";
+	//std::cout << "  [PlayerLogic] No case matched, doing nothing.\n";
 }
 
 
-void PlayerLogic::UpdateCarriedItemTransform(Scene& scene)
-{
+void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	if (carriedItemID < 0)
 		return;
 

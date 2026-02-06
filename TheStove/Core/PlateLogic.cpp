@@ -2,13 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         PlateLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION:     Implements PlateLogic, which manages the assembly of processed
-                 ingredients into completed dishes. Handles ingredient validation,
-                 dish-recipe matching, storing ingredient types, and determining
-                 the final dish output (VegDish, MeatDish, SoupDish, etc.).
-
+ DESCRIPTION:		Implements PlateLogic, which manages the assembly of processed
+					ingredients into completed dishes. Handles ingredient validation,
+					dish-recipe matching, storing ingredient types, and determining
+					the final dish output (VegDish, MeatDish, SoupDish, etc.).
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -16,6 +15,36 @@ DESCRIPTION:     Implements PlateLogic, which manages the assembly of processed
 
 #include "PlateLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
+
+static const char* GetDishTexturePath(DishType t)
+{
+	switch (t)
+	{
+	case DishType::VegDish:  return "../assets/Salad.png";
+	case DishType::MeatDish: return "../assets/Meat.png";
+	case DishType::SoupDish: return "../assets/Soup.png";
+	case DishType::PoopDish: return "../assets/PoopDish.png";
+	default:                return "../assets/PoopDish.png";
+	}
+}
+
+void PlateLogic::ApplyDishVisual(Scene& scene)
+{
+	GameObject* plateObj = scene.GetGameObjectByID(GetOwnerID());
+	if (!plateObj) return;
+
+	const char* texPath = GetDishTexturePath(dishType_);
+
+	plateObj->SetTexture(ResourceManager::Instance().LoadTexture(texPath, texPath));
+	scene.SetObjectTexturePath(GetOwnerID(), texPath);
+
+	// Keep Defaults in sync too (important in your engine)
+	Scene::Defaults d = scene.GetDefaults(GetOwnerID());
+	d.texture = texPath;
+	scene.SetDefaults(GetOwnerID(), d);
+}
+
+
 
 PlateLogic::PlateLogic(int ownerID) : GameObjectLogic(ownerID), dishPrepared_(false), dishType_(DishType::PoopDish), firstIngredientObjectID_(-1) // default
 {
@@ -26,6 +55,8 @@ void PlateLogic::Start(Scene& /*scene*/)
 	ingredients_.clear();
 	dishPrepared_ = false;
 	dishType_ = DishType::PoopDish;
+
+	std::cout << "[PlateLogic] Start owner=" << GetOwnerID() << "\n";
 }
 
 void PlateLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/)

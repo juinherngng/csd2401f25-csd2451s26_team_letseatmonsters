@@ -2,8 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			DebugUI.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu
- CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu	(30%)
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (20%)
+					Seah Wang Hua, wanghua.seah"digipen.edu (50%)
 
  DESCRIPTION:		The declarations of functions for the debugger window.
 
@@ -104,6 +105,9 @@ namespace Debug {
 		
 		void SetupDefaultLayout();
 
+		// draws transition preview panel
+		void DrawTransitionPanel();
+
 	public:
 		float fps = 0; // FPS 
 		float msperFrame = 0; // MS/frame
@@ -139,6 +143,10 @@ namespace Debug {
 		bool fontSystemInitialized = false;
 		FontSystem::Text text1;
 		FontSystem::Text text2;
+
+		// Transition panel state
+		float mFadeOutSec = 0.35f;
+		float mFadeInSec  = 0.35f;
 	};
 	extern DebuggerApp gDebugger;
 

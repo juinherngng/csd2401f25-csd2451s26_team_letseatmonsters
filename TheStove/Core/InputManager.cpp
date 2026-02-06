@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			InputManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (30%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:		Implements the InputManager class for handling keyboard and mouse input.
 
@@ -74,7 +74,7 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 		GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN,
 		GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D,
 		// physics dt, collider, points/lines, force, level editor
-		GLFW_KEY_P, GLFW_KEY_R, GLFW_KEY_T, GLFW_KEY_F, GLFW_KEY_L,
+		GLFW_KEY_P, GLFW_KEY_G, GLFW_KEY_H, GLFW_KEY_F, GLFW_KEY_L,
 		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3,
 		GLFW_KEY_ESCAPE,
 		GLFW_KEY_F1  // FPS display toggle in Release

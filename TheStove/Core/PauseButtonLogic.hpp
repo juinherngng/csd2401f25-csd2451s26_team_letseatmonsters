@@ -2,12 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			PauseButtonLogic.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
  DESCRIPTION:		 Declares the PauseButtonLogic component class, which manages pause menu button
 					 interactions (Resume, How-To-Play, Quit) with hover states.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

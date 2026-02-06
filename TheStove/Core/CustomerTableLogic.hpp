@@ -2,14 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CustomerTableLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION: Declares the CustomerTableLogic class, representing a
-             table that can seat a customer. Exposes API for checking
-             occupancy, assigning customers, and retrieving seat
-             transforms used by the AI.
-
-
+ DESCRIPTION:       Declares the CustomerTableLogic class, representing a
+                    table that can seat a customer. Exposes API for checking
+                    occupancy, assigning customers, and retrieving seat
+                    transforms used by the AI.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -36,6 +34,10 @@ public:
 
     void Start(Scene& scene) override;
     void OnDestroy(Scene& scene) override;
+
+
+    // Block taking served food
+    int TakeItem(Scene& scene) override;
 
     // ---- Seating control ----
 
@@ -69,6 +71,11 @@ public:
     // Optional hook to be called when the plate is actually placed and accepted.
     void OnPlateServed(const PlateLogic& plate);
 
+    //Try Take Payment
+    bool TryTakePayment(Scene& scene);
+
+    // Remove the served dish/plate from this table (despawn it and free the table slot).
+    void ClearServedFood(Scene& scene);
 
 protected:
     void OnItemPlaced(Scene& scene, GameObject& item) override;
@@ -90,4 +97,7 @@ protected:
     Math::Vector2D customerSeatOffset_{ 0.0f, 16.0f }; // e.g. in front of table
 
     std::string GetName() const override { return "CustomerTableLogic"; }
+
+    bool servedFoodLocked_ = false;
+    int  servedFoodItemID_ = kInvalidID;
 };

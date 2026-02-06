@@ -2,14 +2,14 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			AnimationManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (90%)
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:	    Declares AnimationManager, which manages 2D sprite animations for game objects,
 					updating frame UVs based on Animator2D components. Supports play/pause control
 					and registering animation sets for different entity types.
 
-        All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -60,6 +60,9 @@ public:
 	void AttachPlayerAnimations(int objectID);
 	void AttachNPCAnimations(int objectID);
 
+	// for menu-specific grid animations (6x5 sprite sheet)
+	void AttachMenuAnimations(int objectID);
+
 	// Animation control
 	void SetAnimation(int objectID, const std::string& animName);
 	std::string GetCurrentAnimation(int objectID) const;
@@ -88,7 +91,10 @@ private:
 
 	bool isPlaying = false;  // Start paused by default
 
-	// Helper: Create standard frame sequences
+	// Helpers: Create standard frame sequences
 	std::vector<glm::vec4> CreateFrameSequence(int startFrame, int endFrame, int totalFrames);
-	std::vector<glm::vec4> CreateFrameSequenceRow(int row, int startCol, int endCol, int totalRows, int totalCols);
+	std::vector<glm::vec4> CreateFrameSequenceRow(int row, int startCol, int endCol, int totalRows = 15, int totalCols = 8);
+
+	// build entire grid sequence (row-major)
+	std::vector<glm::vec4> CreateFullGridSequence(int totalRows, int totalCols);
 };

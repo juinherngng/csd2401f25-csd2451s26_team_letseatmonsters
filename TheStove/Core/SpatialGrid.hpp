@@ -2,14 +2,14 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SpatialGrid.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		Uniform 2D spatial hash grid for broad-phase queries.
 					- Insert() associates a GameObject with the grid cells overlapped by its AABB.
 					- Query() returns unique candidates overlapping the query AABB (+ 1-cell neighbors).
 					- QueryPoint() returns candidates in the cell containing a point.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

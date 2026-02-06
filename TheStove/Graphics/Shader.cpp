@@ -2,11 +2,11 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			Shader.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
  DESCRIPTION:		Implements shader file loading, compilation, linking, use(), and uniform helpers.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -152,11 +152,16 @@ void Shader::SetTexture(const std::string& name, int textureUnit) const {
 	}
 }
 
-void Shader::SetColorTint(const glm::vec4& color) const {
-	GLint location = glGetUniformLocation(programID, "u_ColorTint");
-	if (location != -1) {
-		glUniform4fv(location, 1, glm::value_ptr(color));
-	}
+void Shader::SetColorTint(const glm::vec4& tint) const{
+    const GLint loc = glGetUniformLocation(programID, "u_ColorTint");
+    if (loc != -1) {
+        glUniform4fv(loc, 1, &tint[0]);
+    }
+
+	GLint locColor = glGetUniformLocation(programID, "u_Color");
+    if (locColor != -1) {
+        glUniform4fv(locColor, 1, glm::value_ptr(tint));
+    }
 }
 
 void Shader::SetUVOffset(const glm::vec2& offset) const {

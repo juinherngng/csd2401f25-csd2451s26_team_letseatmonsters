@@ -2,11 +2,11 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			AudioManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
 
  DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -355,6 +355,26 @@ public:
 
 	void PauseAll();   // pause all currently playing sounds/music
 	void ResumeAll();  // resume everything that was paused
+
+	/************************************************************************/
+	/*!
+	\brief
+	Pauses a specific sound channel by name.
+	\param name
+	The name of the sound channel to pause.
+	*/
+	/************************************************************************/
+	void PauseChannel(std::string const& name);
+
+	/************************************************************************/
+	/*!
+	\brief
+	Resumes a specific sound channel by name.
+	\param name
+	The name of the sound channel to resume.
+	*/
+	/************************************************************************/
+	void ResumeChannel(std::string const& name);
 
 private:
 	/************************************************************************/

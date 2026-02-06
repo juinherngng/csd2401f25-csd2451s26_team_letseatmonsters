@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CollisionManager.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(40%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
 
  DESCRIPTION:       Implements CollisionManager. Rebuilds a spatial grid of scene objects each frame,
 					builds/owns world collision geometry, resolves step trimming, and exposes broad-
@@ -13,6 +13,8 @@
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
+
+#include "../Graphics/SceneManager.hpp"
 
 #include "CollisionManager.hpp"
 
@@ -58,10 +60,22 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 			continue;
 		}
 
+		if (scene_) {
+			const int id = obj->GetID();
+			const std::string layerName = scene_->GetObjectLayer(id);
+			Layer* layer = scene_->GetLayer(layerName);
+
+			if (layer) {
+				if (!layer->IsEnabled()) continue;
+				if (!layer->IsVisible()) continue;
+				if (!layer->IsCollidable()) continue;
+			}
+		}
+
 		// Build AABB from object's position and scale
 		const Math::Vector3D pos(obj->GetPosition().x,
-								 obj->GetPosition().y,
-								 obj->GetPosition().z);
+			obj->GetPosition().y,
+			obj->GetPosition().z);
 		const glm::vec3 scale = obj->GetScaleGLM();
 
 		collision::AABB box = collision::World::makeAABBFromCenter(
@@ -82,8 +96,8 @@ void CollisionManager::Clear() {
 
 // World building
 void CollisionManager::BuildWalls(const collision::WalkArea& walkArea,
-								  const collision::WoodVertical& wood,
-								  const collision::StageEndGateVertical& endGate) {
+	const collision::WoodVertical& wood,
+	const collision::StageEndGateVertical& endGate) {
 	collisionWorld_.build(walkArea, wood, endGate);
 }
 

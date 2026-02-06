@@ -11,7 +11,7 @@
 					Handles window creation, fullscreen toggling, OS-focus pause/resume behaviour,
 					signal handling, and overall application shutdown and cleanup.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -29,6 +29,7 @@
 #include "Core/Core.hpp"
 #include "Core/DebugUI.hpp"
 #include "Core/FileDropHandler.hpp"
+#include "Core/FilePaths.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/LevelEditorFileIO.hpp"
 #include "Core/MovementManager.hpp"
@@ -77,6 +78,9 @@ struct ApplicationState {
 	int windowedWidth = 1200;
 	int windowedHeight = 800;
 	bool f11WasDown = false;
+
+	// pending state switch to perform at transition blackout
+	int pendingStateAfterFade = -1;
 };
 
 // Global app state pointer for signal handlers and callbacks
@@ -139,6 +143,7 @@ static void HandlePauseResume(bool pause) {
 
 	auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>();
 	auto* inputMgr = g_AppState->coreEngine->GetSystem<InputManager>();
+	auto* animMgr = g_AppState->coreEngine->GetSystem<AnimationManager>();
 	Scene* scene = g_AppState->currentScene.get();
 
 	if (pause) {
@@ -188,6 +193,11 @@ static void HandlePauseResume(bool pause) {
 		if (inputMgr) {
 			inputMgr->ClearState();
 		}
+
+		// Resume animations when window resumes focus
+		if (animMgr) {
+			animMgr->Play();
+		}
 	}
 }
 
@@ -196,7 +206,7 @@ static void ToggleFullscreen(ApplicationState& app) {
 		return;
 	}
 
-	// If we�re going from windowed to fullscreen
+	// If we’re going from windowed to fullscreen
 	if (!app.isFullscreen) {
 		// Save current windowed position and size
 		glfwGetWindowPos(app.window, &app.windowedPosX, &app.windowedPosY);
@@ -291,6 +301,7 @@ int main() {
 	// Extract directory from full path
 	std::string exePathStr(exePath);
 	size_t lastSlash = exePathStr.find_last_of("\\/");
+
 	if (lastSlash != std::string::npos) {
 		std::string exeDir = exePathStr.substr(0, lastSlash);
 		SetCurrentDirectoryA(exeDir.c_str());
@@ -597,8 +608,14 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		ResourceManager::Instance().SetAudioManager(audioMgr);
 		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
 
-		// Load audio catalog from SOURCE directory (../../assets from build/Release)
-		const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
+	// Load audio catalog - use appropriate path based on build type
+	#ifdef _DEBUG
+		// Debug builds run from build/Debug, need to go up two levels to find source assets
+		const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
+	#else
+		// Release builds use runtime path (one level up from exe to assets folder)
+		const std::string catalogPath = FilePaths::Audio::CATALOG;
+	#endif
 		if (!Audio::AudioCatalog::LoadCatalogFromFile(catalogPath))
 		{
 			std::cerr << "Warning: Failed to load audio catalog from " << catalogPath << std::endl;
@@ -716,12 +733,17 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			gsm->SetAudioManager(audioMgrGsm);
 		}
 
-		// Map states to JSON files
-		gsm->RegisterJsonState(Framework::GS_Level1, "../levels/main_menu.json");	// state 0 = menu
-		gsm->RegisterJsonState(Framework::GS_Level2, "../levels/kitchen01.json");	// state 1 = gameplay
+	// Map states to JSON files
+		gsm->RegisterJsonState(Framework::GS_Level1, FilePaths::Levels::MAIN_MENU);	// state 0 = menu
+		gsm->RegisterJsonState(Framework::GS_Level2, FilePaths::Levels::KITCHEN_01);	// state 1 = gameplay
 		
 		// Initialize to main menu state
 		gsm->InitializeGameState(Framework::GS_Level1, 0.0f);
+		// Ensure menu animations advance even with simulation disabled
+		if (auto* animMgrForcePlay = app.coreEngine->GetSystem<AnimationManager>()) {
+			std::cout << "[Main] Forcing AnimationManager.Play() for main menu animations\n";
+			animMgrForcePlay->Play();
+		}
 	}
 }
 
@@ -784,20 +806,41 @@ static void update(ApplicationState& app) {
 	// Update scene with delta time and window pointer
 	app.currentScene->Update(deltaTime, app.window);
 
-	// Check for pending state changes from menu buttons
+	// Get GraphicsEngine for transitions
+	auto* graphicsEngine = app.coreEngine->GetSystem<GraphicsEngine>();
+
+	// Check for pending state changes from menu buttons:
+	// - Start fade if none running, store the requested new state.
+	// - At blackout, perform the state change, then fade back in.
 	if (app.currentScene->HasPendingStateChange()) {
 		int newState = app.currentScene->GetPendingState();
 		app.currentScene->ClearPendingStateChange();
 
-		std::cout << "[Main] Processing state change request to state: " << newState << std::endl;
-
-		// Trigger the state change through GameStateManager
-		if (auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>()) {
-			std::cout << "[Main] Calling GameStateManager::UpdateGameState(" << newState << ")" << std::endl;
-			gsm->UpdateGameState(newState, deltaTime);
+		if (graphicsEngine && !graphicsEngine->IsTransitionActive()) {
+			graphicsEngine->StartSceneTransition(0.35f, 0.35f);
+			app.pendingStateAfterFade = newState;
+			std::cout << "[Main] Queued state change " << newState << " to run at blackout\n";
+		} else {
+			// If a transition is already active, just overwrite pending
+			app.pendingStateAfterFade = newState;
 		}
-		else {
+	}
+
+	// If we are waiting to switch and we've reached blackout, perform the switch now.
+	if (graphicsEngine && graphicsEngine->IsAtBlackout() && app.pendingStateAfterFade >= 0) {
+		if (auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>()) {
+			std::cout << "[Main] Blackout reached; switching to state " << app.pendingStateAfterFade << std::endl;
+			gsm->UpdateGameState(app.pendingStateAfterFade, deltaTime);
+		} else {
 			std::cerr << "[Main] ERROR: GameStateManager not found!" << std::endl;
+		}
+
+		graphicsEngine->ContinueTransitionFadeIn();
+		app.pendingStateAfterFade = -1;
+
+		// Clear input to avoid carry-over clicks into the new scene
+		if (auto* inputMgr = app.coreEngine->GetSystem<InputManager>()) {
+			inputMgr->ClearState();
 		}
 	}
 
@@ -856,6 +899,10 @@ static void draw(ApplicationState& app) {
 	
 	// Render FPS text on top (release only)
 	app.currentScene->RenderFPSText();
+
+#ifndef _DEBUG
+	app.currentScene->RenderLevelTextObjects();
+#endif
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (app.debugApp) {

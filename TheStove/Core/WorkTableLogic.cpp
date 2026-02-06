@@ -2,42 +2,88 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         WorkTableLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (90%)
+ CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
-DESCRIPTION:     Implements WorkTableLogic, the type of table that accepts raw
-                 ingredients, processes them into refined ingredients, and allows
-                 players to interact with workstations for cooking or preparation.
-                 This class overrides base TableLogic behavior to restrict what
-                 items can be placed, manage processing states, and output the
-                 refined ingredient when complete.
-
+ DESCRIPTION:       Implements WorkTableLogic, the type of table that accepts raw
+                    ingredients, processes them into refined ingredients, and allows
+                    players to interact with workstations for cooking or preparation.
+                    This class overrides base TableLogic behavior to restrict what
+                    items can be placed, manage processing states, and output the
+                    refined ingredient when complete.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
 #include "WorkTableLogic.hpp"
+#include "../Core/AudioManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/GameObject.hpp"
 
+static bool Contains(const std::string& s, const char* sub)
+{
+    return s.find(sub) != std::string::npos;
+}
+
+WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const std::string& texPath) const
+{
+    // Detect by the workstation sprite (the table's texture)
+    if (Contains(texPath, "Cutting_Board")) return StationType::CuttingBoard;
+    if (Contains(texPath, "Grills"))        return StationType::Grill;
+    if (Contains(texPath, "Stove"))         return StationType::Stove;
+    return StationType::Generic;
+}
+
+
+const char* WorkTableLogic::GetProcessedTextureForRaw(IngredientType rawType) const
+{
+    // IMPORTANT: Replace these 2 paths with your actual cooked meat/shroom assets.
+    switch (rawType)
+    {
+    case IngredientType::Vegetable: return "../assets/Cabbage_CUT_Ingredient.png";
+    case IngredientType::Meat:      return "../assets/Meat_CUT_Ingredient.png";
+    case IngredientType::Shroom:    return "../assets/Mushroom_CUT_Ingredient.png";
+    default:                        return "../assets/Cabbage_CUT_Ingredient.png";
+    }
+}
+
+const char* WorkTableLogic::GetProcessingSoundName() const
+{
+    switch (stationType_)
+    {
+    case StationType::CuttingBoard: return "sfx_chopping";
+    case StationType::Grill:        return "sfx_grill";
+    case StationType::Stove:        return "sfx_boiling_sound";
+    default:                        return nullptr;
+    }
+}
+
 // ------------------- Constructor -------------------
 
-WorkTableLogic::WorkTableLogic(int ownerID)
-    : TableLogic(ownerID)
-    , isProcessing_(false)
-    , processingTime_(3.0f)   // default: 3 seconds to process
-    , timer_(0.0f)
+WorkTableLogic::WorkTableLogic(int ownerID) : TableLogic(ownerID)
 {
-    //ClearApproachOffsets();
 
-    //AddApproachOffset(Math::Vector2D(0.0f, 110.0f));
 }
 
 void WorkTableLogic::Start(Scene& scene)
 {
-    std::cout << "[WorkTableLogic] Start ownerID=" << GetOwnerID() << "\n";
+    //std::cout << "[WorkTableLogic] Start ownerID=" << GetOwnerID() << "\n";
 
     TableLogic::Start(scene);
+
+    //Figure out what kind of station THIS table is, from its texture
+    Scene::Defaults def = scene.GetDefaults(GetOwnerID());
+    stationType_ = DetectStationTypeFromTexture(def.texture);
+
+    //different speeds per station
+    switch (stationType_)
+    {
+    case StationType::CuttingBoard: processingTime_ = 3.0f; break;
+    case StationType::Grill:        processingTime_ = 5.0f; break;
+    case StationType::Stove:        processingTime_ = 7.0f; break;
+    default:                        processingTime_ = 3.0f; break;
+    }
 }
 
 // ------------------- Update -------------------
@@ -50,13 +96,23 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&)
 
     timer_ += dt;
 
-    std::cout << "[WorkTableLogic] processing... t=" << timer_
-        << "/" << processingTime_ << "\n";
+    //std::cout << "[WorkTableLogic] processing... t=" << timer_
+    //    << "/" << processingTime_ << "\n";
 
     if (timer_ >= processingTime_)
     {
         timer_ = processingTime_;
         isProcessing_ = false;
+        
+        // Stop station-specific processing sound when complete (release mode only)
+#ifndef _DEBUG
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            const char* soundName = GetProcessingSoundName();
+            if (soundName && audioMgr->HasSound(soundName)) {
+                audioMgr->StopSound(soundName);
+            }
+        }
+#endif
 
         GameObject* item = scene.GetGameObjectByID(GetHeldItemID());
         if (item)
@@ -131,35 +187,64 @@ void WorkTableLogic::StartProcessing(Scene& scene)
     timer_ = 0.0f;
 }
 
-void WorkTableLogic::CancelProcessing(Scene& /*scene*/)
+void WorkTableLogic::CancelProcessing(Scene& scene)
 {
+    if (isProcessing_) {
+        // Stop station-specific processing sound when cancelled (release mode only)
+#ifndef _DEBUG
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            const char* soundName = GetProcessingSoundName();
+            if (soundName && audioMgr->HasSound(soundName)) {
+                audioMgr->StopSound(soundName);
+            }
+        }
+#endif
+    }
     isProcessing_ = false;
     timer_ = 0.0f;
+#ifdef _DEBUG
+    (void)scene;
+#endif
 }
 
 // ------------------- TableLogic hooks -------------------
 
 void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
 {
-    // Auto-start processing when an item is placed.
-    if (!isProcessing_ && IsItemProcessable(scene, item))
-    {
+    //IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
+    //std::cout << "[WorkTable] placed item=" << item.GetID()
+    //    << " hasIngredientLogic=" << (ing ? "YES" : "NO") << "\n";
+
+    CancelProcessing(scene); // always reset
+    if (IsItemProcessable(scene, item)) {
         isProcessing_ = true;
         timer_ = 0.0f;
+        
+        // Play station-specific processing sound (release mode only)
+#ifndef _DEBUG
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            const char* soundName = GetProcessingSoundName();
+            if (soundName && audioMgr->HasSound(soundName)) {
+                audioMgr->PlaySound(soundName, audioMgr->GetVfxVolume(), false);
+                // Lower volume specifically for cutting board sound
+                if (stationType_ == StationType::CuttingBoard) {
+                    audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.2f);
+                }
+            }
+        }
+#endif
     }
-
-    std::cout << "[WorkTableLogic] Started processing item " << item.GetID()
-        << " on table " << GetOwnerID() << "\n";
 }
 
 void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& item)
 {
+    (void)item;
     // If the player removes the item mid-process, cancel.
     if (isProcessing_)
     {
-        std::cout << "[WorkTableLogic] Item " << item.GetID()
-            << " TAKEN while still processing! t=" << processingTime_
-            << "/" << timer_ << "\n";
+        //std::cout << "[WorkTableLogic] Item " << item.GetID()
+        //    << " TAKEN while still processing! t=" << processingTime_
+        //    << "/" << timer_ << "\n";
         CancelProcessing(scene);
     }
 }
@@ -185,43 +270,53 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item)
     IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
     if (!ing)
     {
-        // Not an ingredient – nothing to do.
-        std::cout << "[WorkTableLogic] OnProcessingComplete: item "
-            << item.GetID() << " has no IngredientLogic\n";
+        //// Not an ingredient – nothing to do.
+        //std::cout << "[WorkTableLogic] OnProcessingComplete: item "
+        //    << item.GetID() << " has no IngredientLogic\n";
         return;
     }
 
     // If your rule is “only raw gets processed”, respect that:
     if (!CanProcessIngredient(*ing))
     {
-        std::cout << "[WorkTableLogic] OnProcessingComplete: ingredient "
-            << item.GetID() << " is not processable\n";
+        //std::cout << "[WorkTableLogic] OnProcessingComplete: ingredient "
+        //    << item.GetID() << " is not processable\n";
         return;
     }
 
-    // 2) Swap the sprite to the cut cabbage texture
-//    (for now we assume this table is a cutting board for vegetables).
-    item.SetTexture(
-        ResourceManager::Instance().LoadTexture(
-            "../assets/Cabbage_CUT_Ingredient.png",
-            "../assets/Cabbage_CUT_Ingredient.png"
-        )
-    );
+    // Remember RAW type before MarkProcessed changes it
+    IngredientType rawType = ing->GetType();
+
+    // Update logic (raw -> refined)
+    CompleteProcessingForIngredient(*ing);
+
+    // Update sprite based on what was cooked
+    const char* texPath = GetProcessedTextureForRaw(rawType);
+    item.SetTexture(ResourceManager::Instance().LoadTexture(texPath, texPath));
+    scene.SetObjectTexturePath(item.GetID(), texPath);
 
     // This is where the magic happens:
     //  - IngredientLogic::MarkProcessed()
     //  - internally flips Vegetable -> Refined_Veg, Meat -> Refined_Meat, etc.
     CompleteProcessingForIngredient(*ing);
 
-    std::cout << "[WorkTableLogic] Finished processing item " << item.GetID()
-        << ", new type=" << static_cast<int>(ing->GetType()) << "\n";
+    //std::cout << "[WorkTableLogic] Finished processing item " << item.GetID()
+    //    << ", new type=" << static_cast<int>(ing->GetType()) << "\n";
 }
 
 bool WorkTableLogic::CanProcessIngredient(const IngredientLogic& ingredient) const
 {
-    // Base rule: only raw ingredients are meaningful to process.
-    // You can relax this if you want "double processing".
-    return ingredient.IsRaw();
+    if (!ingredient.IsRaw())
+        return false;
+
+    // Restrict by station
+    switch (stationType_)
+    {
+    case StationType::CuttingBoard: return ingredient.GetType() == IngredientType::Vegetable;
+    case StationType::Grill:        return ingredient.GetType() == IngredientType::Meat;
+    case StationType::Stove:        return ingredient.GetType() == IngredientType::Shroom;
+    default:                        return true; // Generic accepts any raw ingredient
+    }
 }
 
 bool WorkTableLogic::ProcessIngredientInstant(IngredientLogic& ingredient)

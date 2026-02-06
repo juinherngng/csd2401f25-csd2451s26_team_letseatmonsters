@@ -2,7 +2,7 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameComponent.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
  DESCRIPTION:		Base class for all attachable components in the GameObject-Component (GOC)
 					architecture. Provides lifecycle methods (Initialize, Start, Update,

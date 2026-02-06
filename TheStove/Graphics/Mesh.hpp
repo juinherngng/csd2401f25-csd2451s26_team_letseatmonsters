@@ -2,11 +2,11 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			Mesh.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
  DESCRIPTION:		Lightweight wrapper for a VAO + VBO with fixed vertex layouts and draw helpers.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -33,6 +33,7 @@ public:
 	struct InstanceData {
 		glm::mat4 modelMatrix;
 		glm::vec4 uvOffsetScale; // x,y offset, z,w scale for UV animation frame
+		glm::vec4 colorTint; // RGBA tint per instance
 	};
 
 	// used GLsizei instead of size_t for vertexSize - juinherng

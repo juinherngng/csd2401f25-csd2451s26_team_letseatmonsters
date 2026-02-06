@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameObject.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
 
  DESCRIPTION:		Defines the GameObject class, representing any renderable or interactable
 					entity in the game world. Every GameObject contains references to mesh, shader,
@@ -20,11 +20,11 @@
 
 #include "../Core/Math.hpp"
 
+#include "Animator.hpp"
 #include "DebugRenderer.hpp"
 #include "Mesh.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
-#include "Animator.hpp"
 
  /**
   * @class GameObject
@@ -59,7 +59,7 @@ public:
 	 */
 	GameObject(int objectID);
 
-	/** @brief Get the GameObject�s unique ID. */
+	/** @brief Get the GameObject's unique ID. */
 	int GetID() const;
 
 	/**
@@ -90,6 +90,8 @@ public:
 	 * @param axis         Axis to rotate around.
 	 */
 	void SetRotation(float angleRadians, const glm::vec3& axis);
+
+	float m_RotationAngle = 0.0f;
 
 	void SetVelocity(const Math::Vector2D& velocity);
 	Math::Vector2D GetVelocity() const;
@@ -152,9 +154,46 @@ public:
 	bool IsAnimated() const;
 
 	// Physics / pushability flag
-	void SetMovableByPhysics(bool movable) { m_IsMovableByPhysics = movable; }
-	bool IsMovableByPhysics() const { return m_IsMovableByPhysics; }
+	void SetMovableByPhysics(bool movable) {
+		m_IsMovableByPhysics = movable;
+	}
+	bool IsMovableByPhysics() const {
+		return m_IsMovableByPhysics;
+	}
 
+	// ----- Shadow controls -----
+	void EnableShadow(bool enable) {
+		m_HasShadow = enable;
+	}
+	bool HasShadow() const {
+		return m_HasShadow;
+	}
+	void SetShadowSize(const glm::vec2& size) {
+		m_ShadowSize = size;
+	}
+	glm::vec2 GetShadowSize() const {
+		return m_ShadowSize;
+	}
+	void SetShadowOffset(const glm::vec2& offset) {
+		m_ShadowOffset = offset;
+	}
+	glm::vec2 GetShadowOffset() const {
+		return m_ShadowOffset;
+	}
+	void SetShadowOpacity(float opacity) {
+		m_ShadowOpacity = opacity;
+	}
+	float GetShadowOpacity() const {
+		return m_ShadowOpacity;
+	}
+
+	// For cross blending / tinting
+	void SetColorTint(const glm::vec4& tint) { colorTint_ = tint; }
+	const glm::vec4& GetColorTint() const { return colorTint_; }
+
+	// Layer number for rendering order (set by Scene during collection)
+	void SetRenderLayer(int layer) { renderLayer_ = layer; }
+	int GetRenderLayer() const { return renderLayer_; }
 
 private:
 	Mesh* m_Mesh;
@@ -181,4 +220,13 @@ private:
 
 	bool m_IsMovableByPhysics = true; // default: objects can be pushed by physics/separation
 
+	// Shadow parameters (simple blob shadow)
+	bool m_HasShadow = false;
+	glm::vec2 m_ShadowSize{ 60.0f, 20.0f };   // width, height in world units
+	glm::vec2 m_ShadowOffset{ 0.0f, 0.0f };   // local offset in world units
+	float m_ShadowOpacity = 0.45f;            // 0..1
+
+	glm::vec4 colorTint_{1.0f, 1.0f, 1.0f, 1.0f}; // RGBA tint, 1=opaque
+
+	int renderLayer_ = 1; // Layer number for render ordering
 };

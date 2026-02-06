@@ -2,15 +2,15 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         NpcSystem.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (65%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(35%)
 
  DESCRIPTION:       Implements NPCSystem. Updates lane-bound NPCs (Y-lane with bounce)
 					and generic NPCs (free planar). Performs simple pairwise elastic
 					collisions within each subgroup and clamps positions to the
 					walkable area.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -21,9 +21,9 @@
 #include "NPCSystem.hpp"
 
 void NPCSystem::Update(float deltaTime, EntityManager& entityManager, CollisionManager& collisionManager, const collision::WalkArea& walkArea) {
-	//UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
-	//HandleNPCCollisions(entityManager);
-	//UpdateGenericNPCs(deltaTime, entityManager, walkArea);
+	/*UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
+	HandleNPCCollisions(entityManager);
+	UpdateGenericNPCs(deltaTime, entityManager, walkArea);*/
 	(void)deltaTime;
 	(void)entityManager;
 	(void)collisionManager;

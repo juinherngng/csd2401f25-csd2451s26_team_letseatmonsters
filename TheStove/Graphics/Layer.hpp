@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			Layer.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
 
  DESCRIPTION:		The Layer class maintains a collection of game object IDs that belong to this layer.
 					Core functionality includes adding and removing object IDs to/from the layer, retrieving
@@ -65,11 +65,23 @@ public:
 		collidable = c;
 	}
 
+	bool IsEnabled() const {
+		return enabled;
+	}
+	void SetEnabled(bool e) {
+		enabled = e;
+		// Optional: if a layer is disabled, it should not be visible/collidable either
+		if (!enabled) {
+			visible = false;
+			collidable = false;
+		}
+	}
+
 private:
 	std::string name;
 	std::vector<int> objectIDs;
 
 	bool visible = true;
 	bool collidable = true;
-
+	bool enabled = true;
 };

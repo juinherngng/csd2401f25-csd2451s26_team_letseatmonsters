@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         WorkTableLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (90%)
+ CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:       Declares CustomerManagerSystem, a simple scene-level system that pairs
                     SimpleNpcLogic "customers" with CustomerTableLogic tables and assigns them
@@ -57,6 +58,20 @@ public:
 
 
 protected:
+    enum class StationType
+{
+    CuttingBoard, // veg
+    Grill,        // meat
+    Stove,        // shroom
+    Generic
+};
+
+StationType stationType_ = StationType::Generic;
+
+StationType DetectStationTypeFromTexture(const std::string& texPath) const;
+const char* GetProcessedTextureForRaw(IngredientType rawType) const;
+const char* GetProcessingSoundName() const;
+
     // Hooks from TableLogic when item changes.
     void OnItemPlaced(Scene& scene, GameObject& item) override;
     void OnItemTaken(Scene& scene, GameObject& item) override;
@@ -74,7 +89,6 @@ protected:
     // Optional helper that derived tables (e.g. Stove, CuttingBoard) can call
     // when the timer finishes and they have direct access to the ingredient logic.
     void CompleteProcessingForIngredient(IngredientLogic& ingredient);
-
 
     bool  isProcessing_ = false;
     float processingTime_ = 3.0f;  // seconds needed to process an ingredient

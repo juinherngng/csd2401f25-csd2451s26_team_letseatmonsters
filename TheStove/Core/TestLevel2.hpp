@@ -2,7 +2,7 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			TestLevel2.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Darren Toh, darren.toh@digipen.edu
+ AUTHOR:			Darren Toh, darren.toh@digipen.edu (100%)
 
  DESCRIPTION:		Header file Test state for GameStateManager. This script contains definitions for Init, Update
 					and Exit functions specific to this level. To be Updated with calls to more components.

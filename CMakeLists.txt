@@ -28,6 +28,13 @@ file(GLOB_RECURSE SOURCE_FILES
 # Create a static library target for game engine/core code
 add_library(TheStove STATIC ${SOURCE_FILES})
 
+# Enable precompiled headers for faster builds (CMake 3.16+)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+    target_precompile_headers(TheStove PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/Precompiled.hpp
+    )
+endif()
+
 # Include directories for the project
 target_include_directories(TheStove PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/TheStove
@@ -43,6 +50,17 @@ set_property(TARGET TheStove PROPERTY CXX_STANDARD 20)
 add_executable(LetsEatMonsters ${CMAKE_CURRENT_LIST_DIR}/TheStove/main.cpp)
 
 target_link_libraries(LetsEatMonsters PRIVATE TheStove)
+
+# Hide console window in Release builds (Windows subsystem instead of Console)
+if(WIN32)
+    set_target_properties(LetsEatMonsters PROPERTIES
+        WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>
+    )
+    # Use mainCRTStartup entry point so we can keep using int main() instead of WinMain
+    target_link_options(LetsEatMonsters PRIVATE
+        $<$<NOT:$<CONFIG:Debug>>:/ENTRY:mainCRTStartup>
+    )
+endif()
 
 # Set C++ standard for the build
 set_property(TARGET LetsEatMonsters PROPERTY CXX_STANDARD 20)
@@ -99,6 +117,9 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(TheStove PRIVATE -Wall)
     target_compile_options(LetsEatMonsters PRIVATE -Wall)
 elseif (MSVC)
-    target_compile_options(TheStove PRIVATE /W4 /WX-)
-    target_compile_options(LetsEatMonsters PRIVATE /W4 /WX-)
+    # /W4 = Warning level 4
+    # /MP = Multi-processor compilation (parallel builds)
+    # /Gm- = Disable minimal rebuild (incompatible with /MP but /MP is faster)
+    target_compile_options(TheStove PRIVATE /W4 /WX- /MP)
+    target_compile_options(LetsEatMonsters PRIVATE /W4 /WX- /MP)
 endif()

@@ -2,9 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			DebugUI.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu
- CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
-					Seah Wang Hua, wanghua.seah"digipen.edu
+ AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu    (15%)
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (65%)
+					Seah Wang Hua, wanghua.seah"digipen.edu (20%)
 
  DESCRIPTION:		The definitions of functions for the debugger window.
 
@@ -25,6 +25,7 @@
 
 #include "Core.hpp"
 #include "DebugUI.hpp"
+#include "FilePaths.hpp"
 
 namespace Debug {
 	DebuggerApp gDebugger;
@@ -108,18 +109,18 @@ namespace Debug {
 			return;
 		}
 
-		// Load fonts from assets folder
+	// Load fonts from assets folder
 		// Load ChrustyRock font
 		FontSystem::Font* fontChrusty = FontSystem::FontManager::Instance().LoadFont(
 			"chrusty", 
-			"../assets/Font/ChrustyRock-ORLA.ttf",
+			FilePaths::Fonts::CHRUSTY_ROCK,
 			48  // Font size
 		);
 
 		// Load ToThePoint font as fallback/default
 		FontSystem::Font* fontToThePoint = FontSystem::FontManager::Instance().LoadFont(
 			"tothepoint", 
-			"../assets/Font/ToThePointRegular-n9y4.ttf",
+			FilePaths::Fonts::TO_THE_POINT,
 			48  // Font size
 		);
 
@@ -230,6 +231,7 @@ namespace Debug {
 								   ImGuiCond_FirstUseEver);
 
 		// Minimal, clean padding for this window
+		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 6.0f));
@@ -612,8 +614,11 @@ namespace Debug {
 		}
 
 		ImGui::End();
-
 		ImGui::PopStyleVar(3);
+
+		// Render the transition panel (make it appear)
+		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
+		DrawTransitionPanel();
 
 		// Show the debug log infomation window
 		// Only show debug log if we can safely call ImGui
@@ -623,6 +628,7 @@ namespace Debug {
 		catch (...) {
 			// Ignore any ImGui errors in debug log
 		}
+
 	}
 
 	// Currently not in use
@@ -822,6 +828,51 @@ namespace Debug {
 
 		layoutInitialized = true;
 		std::cout << "Default ImGui layout initialized successfully!\n";
+	}
+
+	void DebuggerApp::DrawTransitionPanel() {
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	// Use the correct member and explicit type to avoid deduction issues
+	GraphicsEngine* gfx = coreEngine ? coreEngine->GetSystem<GraphicsEngine>() : nullptr;
+	if (!gfx) {
+		ImGui::Begin("Transition Preview");
+		ImGui::TextColored(ImVec4(1,0.4f,0.4f,1), "GraphicsEngine system not found.");
+		ImGui::End();
+		return;
+	}
+
+	ImGui::Begin("Transition Preview");
+
+	// Status
+	const bool active = gfx->IsTransitionActive();
+	ImGui::Text("Active: %s", active ? "Yes" : "No");
+	ImGui::Text("At Blackout: %s", gfx->IsAtBlackout() ? "Yes" : "No");
+
+	// Controls
+	ImGui::Separator();
+	ImGui::SliderFloat("Fade Out (s)", &mFadeOutSec, 0.0f, 2.0f);
+	ImGui::SliderFloat("Fade In (s)",  &mFadeInSec,  0.0f, 2.0f);
+
+	if (ImGui::Button("Start Transition")) {
+		gfx->StartSceneTransition(mFadeOutSec, mFadeInSec);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Force Blackout")) {
+		// Simulate blackout: start transition with zero fade-out then immediately continue
+		gfx->StartSceneTransition(0.0f, mFadeInSec);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Continue Fade-In")) {
+		gfx->ContinueTransitionFadeIn();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Cancel")) {
+		// Simple cancel: start transition with zero durations to clear state
+		gfx->StartSceneTransition(0.0f, 0.0f);
+	}
+
+	ImGui::End();
+#endif
 	}
 }
 

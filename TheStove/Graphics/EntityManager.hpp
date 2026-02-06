@@ -2,12 +2,12 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			EntityManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
  DESCRIPTION:		This file declares the EntityManager class, a core engine system responsible for
 					creating, storing, and managing all GameObjects in a level or scene.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -26,6 +26,12 @@ class EntityManager {
 public:
 	EntityManager() = default;
 	~EntityManager() = default;
+
+	EntityManager(const EntityManager&) = delete;
+	EntityManager& operator=(const EntityManager&) = delete;
+
+	EntityManager(EntityManager&&) noexcept = default;
+	EntityManager& operator=(EntityManager&&) noexcept = default;
 
 	// Spawning
 	GameObject* SpawnStaticSprite(const std::string& texturePath,

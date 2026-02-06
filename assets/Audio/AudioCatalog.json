@@ -79,6 +79,118 @@
       "name": "sfx_game_over",
       "stream": false,
       "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_step_1.wav",
+      "loop": false,
+      "name": "sfx_step_1",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_put_down.wav",
+      "loop": false,
+      "name": "sfx_put_down",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_payment.wav",
+      "loop": false,
+      "name": "sfx_payment",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_chopping.wav",
+      "loop": true,
+      "name": "sfx_chopping",
+      "stream": false,
+      "volume": 0.30000001192092896
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/bgm_MyoonchiDiner_IntroCutscene.mp3",
+      "loop": false,
+      "name": "bgm_MyoonchiDiner_IntroCutscene",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_customer_leaving.wav",
+      "loop": false,
+      "name": "sfx_customer_leaving",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_customer_entering.wav",
+      "loop": false,
+      "name": "sfx_customer_entering",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_new_order.wav",
+      "loop": false,
+      "name": "sfx_new_order",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_grill.wav",
+      "loop": false,
+      "name": "sfx_grill",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "other",
+      "filepath": "../../assets/Audio/Wrong order.wav",
+      "loop": false,
+      "name": "Wrong order",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_time_up.wav",
+      "loop": false,
+      "name": "sfx_time_up",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_remaining_time.wav",
+      "loop": false,
+      "name": "sfx_remaining_time",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_win.wav",
+      "loop": false,
+      "name": "sfx_win",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/bgm_win_cutscene.mp3",
+      "loop": false,
+      "name": "bgm_win_cutscene",
+      "stream": false,
+      "volume": 1.0
     }
   ],
   "version": "1.0"

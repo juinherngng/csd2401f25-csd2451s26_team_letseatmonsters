@@ -2,12 +2,11 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         HowToPlayButtonLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION: Declares the HowToPlayButtonLogic class, including data
-             required for hover detection, overlay spawning, texture
-             swapping, and tracking which instance owns the overlay.
-
+ DESCRIPTION:       Declares the HowToPlayButtonLogic class, including data
+                    required for hover detection, overlay spawning, texture
+                    swapping, and tracking which instance owns the overlay.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

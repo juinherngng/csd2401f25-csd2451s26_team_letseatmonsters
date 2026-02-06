@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         PhysicsManager.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu	(45%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(50%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
  DESCRIPTION:       Implements PhysicsManager. Integrates simple force-based movement
 					(seek/arrive + drag), applies damping, and trims movement against
@@ -18,6 +18,8 @@
 
 #include <cmath>
 #include <iostream>
+
+#include "../Graphics/SceneManager.hpp"
 
 #include "PhysicsManager.hpp"
 
@@ -50,8 +52,8 @@ void PhysicsManager::SetCollisionWorld(collision::World* world) {
 
 // Top-level physics update
 void PhysicsManager::UpdatePhysics(float physicsDt,
-								   EntityManager& entityManager,
-								   InputManager& inputManager) {
+	EntityManager& entityManager,
+	InputManager& inputManager) {
 	(void)inputManager; // currently unused; kept for signature compatibility
 
 	// Scene already decided if physics runs this frame via physicsDt.
@@ -61,6 +63,9 @@ void PhysicsManager::UpdatePhysics(float physicsDt,
 
 	// Update all entities with physics enabled.
 	for (auto& [entityID, state] : physicsStates_) {
+		if (scene_ && !scene_->IsObjectLayerEnabled(entityID)) {
+			continue;
+		}
 		IntegrateEntity(entityID, physicsDt, entityManager);
 	}
 }
@@ -68,7 +73,7 @@ void PhysicsManager::UpdatePhysics(float physicsDt,
 // Public control API
 void PhysicsManager::EnablePhysics(int entityID, float mass) {
 	PhysicsState state;
-	state.invMass = (mass > 0.0f)?(1.0f / mass):0.0f;
+	state.invMass = (mass > 0.0f) ? (1.0f / mass) : 0.0f;
 	state.damping = 0.98f;
 	state.velocity = { 0.0f, 0.0f };
 	state.forceAccum = { 0.0f, 0.0f };
@@ -131,7 +136,7 @@ void PhysicsManager::IntegrateEntity(int entityID, float dt, EntityManager& enti
 		else if (distance > 1e-4f) {
 			// Apply capped acceleration in the target direction
 			Math::Vector2D direction = toTarget * (1.0f / distance);
-			float mass = (state.invMass > 0.0f)?(1.0f / state.invMass):1.0f;
+			float mass = (state.invMass > 0.0f) ? (1.0f / state.invMass) : 1.0f;
 			state.forceAccum = state.forceAccum + (direction * (SEEK_MAX_ACCEL * mass));
 		}
 	}
@@ -176,7 +181,7 @@ void PhysicsManager::IntegrateEntity(int entityID, float dt, EntityManager& enti
 			const auto impacted = [](const Math::Vector2D& d, const Math::Vector2D& a) {
 				constexpr float EPS = 1e-4f;
 				return (std::fabs(d.x - a.x) > EPS) || (std::fabs(d.y - a.y) > EPS);
-			};
+				};
 
 			if (impacted(desiredDelta, allowedDelta)) {
 				// Clear physics seek target

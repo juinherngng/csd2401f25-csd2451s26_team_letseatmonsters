@@ -2,17 +2,17 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SceneManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Vu Phan Hung, phanhung.vu@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (15%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (15%)
 
  DESCRIPTION:		Declares the SceneManager (Scene) class, which orchestrates the lifecycle and
 					high-level coordination of all major systems within a game scene. This includes:
 					entity creation and management, event handling, physics and collision simulation,
 					animation control, input processing, and rendering pipeline integration.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -41,13 +41,18 @@
 #include "../Core/CustomerTableLogic.hpp"
 #include "../Core/IngredientBoxLogic.hpp"
 #include "../Core/CustomerManagerLogic.hpp"
+#include "../Core/ExitGateLogic.hpp"
 #include "../Core/HowToPlayButtonLogic.hpp"
+#include "../Core/TrashCanLogic.hpp"
+#include "../Core/Quota.hpp"
+#include "../Core/OrderUILogic.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"
 #include "EntityManager.hpp"
 #include "GraphicsEngine.hpp"
 #include "Layer.hpp"
+#include "ParticleSystem.hpp"
 #include "../Core/FontSystem.hpp"
 
  /**
@@ -70,11 +75,19 @@ public:
 	collision::World& GetCollisionWorld();
 	const collision::World& GetCollisionWorld() const;
 
-	PlayerController& GetPlayerController() { return playerController; }
-	const PlayerController& GetPlayerController() const { return playerController; }
+	PlayerController& GetPlayerController() {
+		return playerController;
+	}
+	const PlayerController& GetPlayerController() const {
+		return playerController;
+	}
 
-	LogicManager& GetLogicManager() { return logicManager; }
-	const LogicManager& GetLogicManager() const { return logicManager; }
+	LogicManager& GetLogicManager() {
+		return logicManager;
+	}
+	const LogicManager& GetLogicManager() const {
+		return logicManager;
+	}
 
 	/**
 	 * @brief Construct a new Scene object.
@@ -88,8 +101,23 @@ public:
 	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
 		MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
-	// Set AudioManager for UI sounds
-	void SetAudioManager(AudioManager* audioMgr) { audioManager_ = audioMgr; }
+	// Set AudioManager for UI sounds and audio bindings
+	void SetAudioManager(AudioManager* audioMgr) {
+		audioManager_ = audioMgr;
+	}
+	
+	// Get AudioManager (for audio bindings playback)
+	AudioManager* GetAudioManager() const {
+		return audioManager_;
+	}
+
+	// Audio binding playback helpers
+	void PlaySpawnAudio(int objectId);
+	void PlayInteractAudio(int objectId);
+	void PlayDestroyAudio(int objectId);
+	void PlayProcessingAudio(int objectId);   // Start looping processing audio
+	void StopProcessingAudio(int objectId);   // Stop processing audio
+	void StopAllObjectAudio();  // Stop all audio bound to objects
 
 	void LoadScene(const std::string& sceneName);
 	void Update(float deltaTime, GLFWwindow* window);
@@ -97,6 +125,8 @@ public:
 	void DrawUI();
 	void ClearAll();
 	void RequestClearAll();
+
+	void RenderLevelTextObjects();
 
 	// Simulation control
 	void SetSimulationActive(bool active);
@@ -131,7 +161,7 @@ public:
 		const std::string& layer);
 
 	// Spawns a static sprite at the same position as ownerID, with given texture/size/layer.
-// Returns the new GameObject* or nullptr on failure.
+	// Returns the new GameObject* or nullptr on failure.
 	GameObject* SpawnStaticSpriteAtSamePos(int ownerID,
 		const std::string& texturePath,
 		float width,
@@ -170,12 +200,21 @@ public:
 	void SetAnimation(int objID, const std::string& newAnim);
 	void AttachDinoAnimations(int objID);
 	void MarkAnimated(int id, bool state);
+	void AttachMenuAnimations(int objID);
 
 	void GenerateStressTest(int objectCount = 2500);
 	void UpdateAnimationControls();
 
 	// Tag-based logic helpers
 	void AttachLogicForTag(int id, const std::string& tag);
+
+	// Centralized tag metadata
+	void SetObjectTag(int id, const std::string& tag);
+	std::string GetObjectTag(int id) const;
+
+	// Centralized tag rules
+	void ApplyTagRules(int id, const std::string& tag, float speedX, float speedY);
+	bool TagUsesVelocity(const std::string& tag) const;
 
 	// ID / role helpers
 	void SetPlayerID(int id);
@@ -220,6 +259,20 @@ public:
 		npcSystem.RegisterLaneNPC(id, laneX);
 	}
 
+	void RegisterExitGate(int id) {
+		exitGateID_ = id;
+		exitGateCached_ = false;
+	}
+
+	Math::Vector2D GetExitGateWorldPos() {
+		if (exitGateID_ < 0) return { 0.f, 0.f };
+		if (GameObject* g = GetGameObjectByID(exitGateID_)) {
+			auto p = g->GetPositionGLM();
+			return { p.x, p.y };
+		}
+		return { 0.f, 0.f };
+	}
+
 	// Texture metadata (LevelEditor / JSON)
 	const std::string& GetObjectTexturePath(int id) const;
 	void SetObjectTexturePath(int id, const std::string& path);
@@ -235,6 +288,14 @@ public:
 		std::string texture;
 		std::string tag;
 		std::string layer;
+		// Audio bindings
+		std::string audioOnSpawn;
+		std::string audioOnInteract;
+		std::string audioOnDestroy;
+		std::string audioOnProcessing;  // Audio that loops while work table is processing
+		bool audioLoop{ false };
+		// Per-object visibility (default visible)
+		bool visible{ true };
 	};
 
 	void SetDefaults(int id, const Defaults& d) {
@@ -245,6 +306,21 @@ public:
 		return (it != defaults_.end()) ? it->second : Defaults{};
 	}
 
+	// Per-object visibility controls 
+	void SetObjectVisible(int id, bool visible) {
+		defaults_[id].visible = visible;
+	}
+	bool IsObjectVisible(int id) const {
+		auto it = defaults_.find(id);
+		return (it != defaults_.end()) ? it->second.visible : true;
+	}
+
+	// Particle system
+	ParticleSystem particleSystem_;
+	ParticleSystem& GetParticleSystem() {
+		return particleSystem_;
+	}
+
 	// Layers
 	void AddLayer(const std::string& name);
 	Layer* GetLayer(const std::string& name);
@@ -253,6 +329,10 @@ public:
 	std::string GetObjectLayer(int objectID) const;
 	void AssignObjectToLayer(int id, const std::string& newLayer);
 	void RemoveLayer(const std::string& name);
+
+	// Layer enable/disable helpers
+	bool IsLayerEnabled(const std::string& layerName) const;
+	bool IsObjectLayerEnabled(int objectID) const;	
 
 	// World / collision rebuilds
 	void BuildLevelColliders();
@@ -301,21 +381,72 @@ public:
 #endif
 
 	// How-to-play overlay state
-	void SetHowToPlayOverlayActive(bool active) { howToPlayOverlayActive_ = active; }
-	bool IsHowToPlayOverlayActive() const { return howToPlayOverlayActive_; }
+	void SetHowToPlayOverlayActive(bool active) {
+		howToPlayOverlayActive_ = active;
+	}
+	bool IsHowToPlayOverlayActive() const {
+		return howToPlayOverlayActive_;
+	}
 	// FPS display rendering
 	void RenderFPSText();
 
+	void RequestDespawn(int id) { pendingDespawns_.push_back(id); }
+
+	// Cutscene API
+	// Starts a cutscene consisting of image paths played in sequence.
+	// When finished, queues level load to 'levelJsonPath' and sets simulation according to 'activateSimulation'.
+	void StartCutscene(const std::vector<std::string>& imagePaths,
+	                   float holdSecondsPerImage,
+	                   float fadeSeconds,
+	                   const std::string& levelJsonPath,
+	                   bool activateSimulation);
+	
+	void StartCutsceneTransitioned(const std::vector<std::string>& imagePaths,
+	                               const std::string& levelJsonPath,
+	                               bool activateSimulation,
+	                               float fadeOutSeconds = 0.35f,
+	                               float fadeInSeconds = 0.35f,
+	                               float holdSeconds = 1.5f,
+	                               int crossfadeFromIndex = -1,           // -1 = disabled; otherwise crossfade when transitioning to this target index
+	                               float crossfadeSeconds = 0.75f);
+
+	// Starts a cutscene with per-frame images. 'boundaryFlags' marks indices where a chapter boundary occurs.
+	// At boundaries, the engine performs fade-out/in (or crossfade when 'crossfadeFromIndex' matches).
+	// Between frames without a boundary, it swaps instantly with no transition (for smooth animation).
+	void StartCutsceneTransitionedBounded(const std::vector<std::string>& imagePaths,
+										  const std::vector<bool>& boundaryFlags,
+										  const std::string& levelJsonPath,
+										  bool activateSimulation,
+										  float fadeOutSeconds = 0.35f,
+										  float fadeInSeconds = 0.35f,
+										  float holdSeconds = 1.0f / 12.0f, // default 12 FPS
+										  int crossfadeFromIndex = -1,
+										  float crossfadeSeconds = 0.75f);
+
+	// Order UI slide-in API
+	// Spawns an Order UI sprite off-screen at the top, then animates it sliding down to target.
+	// Returns spawned object ID or -1 on failure.
+	int TriggerOrderUiSlideIn(const glm::vec2& targetPos,
+		const glm::vec2& size,
+		const std::string& layer = "3",
+		const std::string& texturePath = "../assets/Order_UI.png",
+		float slideDuration = 0.45f);
+
+	// Check if any cutscene is active
+	bool IsAnyCutsceneActive() const {
+        return cutscene_.active || cutTrans_.active;
+    }
+
 private:
-// Engine/input
-GraphicsEngine& graphicsEngine;
-EntityManager entityManager;
-LogicManager logicManager;
-InputManager& inputManager;				// Changed from owned instance to reference
-AnimationManager& animationManager;		// Changed from owned instance to reference
-MovementManager& movementManager;		// Changed from owned instance to reference
-CollisionManager& collisionManager;		// Changed from owned instance to reference
-PhysicsManager& physicsManager;			// Changed from owned instance to reference
+	// Engine/input
+	GraphicsEngine& graphicsEngine;
+	EntityManager entityManager;
+	LogicManager logicManager;
+	InputManager& inputManager;				// Changed from owned instance to reference
+	AnimationManager& animationManager;		// Changed from owned instance to reference
+	MovementManager& movementManager;		// Changed from owned instance to reference
+	CollisionManager& collisionManager;		// Changed from owned instance to reference
+	PhysicsManager& physicsManager;			// Changed from owned instance to reference
 
 	// Audio for UI sounds
 	AudioManager* audioManager_ = nullptr;
@@ -341,6 +472,11 @@ PhysicsManager& physicsManager;			// Changed from owned instance to reference
 	int otherID = -1;
 	int otherID2 = -1;
 
+	int exitGateID_ = -1;
+	bool exitGateCached_ = false;
+	Math::Vector2D exitGateWorld_{ 0.0f, 0.0f };
+
+
 	std::unordered_map<int, Defaults> defaults_;
 	std::unordered_map<std::string, Layer> layers;
 
@@ -365,6 +501,12 @@ PhysicsManager& physicsManager;			// Changed from owned instance to reference
 	bool pauseOverlayActive_ = false;
 	std::vector<int> pauseOverlayObjectIds_;
 
+	// Pause audio fade state
+	bool pauseAudioPending_ = false;
+	float pauseAudioTimer_ = 0.0f;
+	float pausedBgmVolume_ = 0.0f;
+	float pausedAmbienceVolume_ = 0.0f;
+
 	// Menu button text rendering
 	struct MenuButtonText {
 		FontSystem::Text textObj;
@@ -383,6 +525,116 @@ PhysicsManager& physicsManager;			// Changed from owned instance to reference
 
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;
+	std::unordered_map<int, std::string> objectTags_;
 
 	bool howToPlayOverlayActive_ = false;
+
+	std::vector<int> pendingDespawns_;
+
+	// Simple cutscene runner state
+	struct CutsceneState {
+		bool active = false;
+		std::vector<std::string> images;
+		size_t current = 0;
+
+		// timing
+		float holdTime = 1.5f;   // seconds each image is held
+		float fadeTime = 0.5f;   // seconds to fade out/in (cross-fade if supported)
+		float t = 0.0f;          // time accumulator within current phase
+
+		// phase control
+		enum class Phase { FadeIn, Hold, FadeOut } phase = Phase::FadeIn;
+
+		// objects
+		int spriteA = -1;        // current image object
+		int spriteB = -1;        // next image object (for cross-fade)
+		std::string uiLayer = "999998"; // cutscene layer below pause overlay
+
+		// completion
+		std::string targetLevelJson;
+		bool targetActivateSim = true;
+		bool queuedFinalLoad = false;
+
+		// alpha support flag detected on first use
+		bool supportsAlpha = false;
+	} cutscene_;
+
+	struct CutsceneTrans {
+		bool active = false;
+		std::vector<std::string> images;
+		size_t index = 0;
+		std::string uiLayer = "999998";
+		int currentSpriteId = -1;
+		std::string targetLevelJson;
+		bool targetActivateSim = true;
+		float outSeconds = 0.35f;
+		float inSeconds = 0.35f;
+		bool fadeInAfterLoad = false;
+
+		// cross-fade support
+		bool useCrossfade = false;
+		float crossfadeSeconds = 0.75f;
+		float crossfadeT = 0.0f;
+		int nextSpriteId = -1;
+		bool crossfading = false;
+
+		// hold control
+		float holdSeconds = 1.5f;      // how long each image stays after fade-in
+		float holdElapsed = 0.0f;
+		bool holding = false;
+
+		bool awaitingBlackout = false;
+
+		// crossfade index control
+		int crossfadeFromIndex = -1; // -1 = disabled; otherwise crossfade when transitioning to this target index
+
+		// initial fade-in control
+		bool awaitingInitialFadeIn = false;
+	} cutTrans_;
+
+	// Order UI slide-in state
+	struct UiSlide {
+		int objectId = -1;
+		glm::vec2 startPos{};
+		glm::vec2 targetPos{};
+		float t = 0.0f;
+		float duration = 0.5f;
+		bool active = false;
+	};
+	std::vector<UiSlide> uiSlides_; // multiple parallel slides if needed
+
+	// Internal helpers
+	void UpdateCutscene(float dt);
+	void UpdateCutsceneTransitioned(float dt);
+	void CleanupCutsceneObjects();
+	void SetSpriteAlpha(GameObject* obj, float alpha); // no-op if shader lacks alpha tint
+
+	// Update all active UI slides
+	void UpdateUiSlides(float dt);
+	// Ease-out cubic for snappy drop
+	static float EaseOutCubic(float x) {
+		float inv = 1.0f - x;
+		return 1.0f - inv * inv * inv;
+	}
+
+	public:
+		// Fade-out -> load JSON at blackout -> fade-in
+		void StartLevelTransition(const std::string& levelJsonPath,
+			bool activateSimulation,
+			float fadeOutSeconds = 0.35f,
+			float fadeInSeconds = 0.35f);
+
+private:
+	struct LevelTrans {
+		bool active = false;
+		bool awaitingBlackout = false;
+		std::string targetJson;
+		bool targetActivateSim = false;
+		float outSec = 0.35f;
+		float inSec = 0.35f;
+	} levelTrans_;
+
+	void UpdateLevelTransition();
+
+
 };

@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorPanelPrefabs.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:       Implementation of the Level Editor Prefabs panel.
 					- Select/refresh prefab paths
@@ -10,7 +10,7 @@
 					- Instantiate a new object from a prefab
 					- Propagate prefab changes to all linked instances
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <unordered_map>
 
 #ifdef _DEBUG
 #include <imgui.h>
@@ -37,6 +38,7 @@
 #include "LevelEditorPanelPrefabs.hpp"
 #include "LevelEditorPrefabLinks.hpp"
 #include "LevelSerializer.hpp"
+#include "FilePaths.hpp"
 
 namespace fs = std::filesystem;
 
@@ -44,6 +46,41 @@ using namespace LEFILEIO;
 using namespace LELINKS;
 
 namespace LEPANELPREFABS {
+#ifdef _DEBUG
+	static LevelObject BuildPrefabFromObject(Scene& scene, GameObject* g) {
+		LevelObject out{};
+
+		out.texture = scene.GetObjectTexturePath(g->GetID());
+
+		const glm::vec3 p = g->GetPositionGLM();
+		const glm::vec3 s = g->GetScaleGLM();
+
+		out.x = p.x;
+		out.y = p.y;
+		out.z = p.z;
+		out.w = s.x;
+		out.h = s.y;
+
+		out.rotation = glm::degrees(g->GetRotationAngleZ());
+
+		const auto csz = g->GetColliderSize();
+		const auto cof = g->GetColliderOffset();
+
+		out.colWidth = csz.x;
+		out.colHeight = csz.y;
+		out.colOffsetX = cof.x;
+		out.colOffsetY = cof.y;
+
+		out.animated = scene.HasAnimations(g->GetID());
+		out.layer = scene.GetObjectLayer(g->GetID());
+
+		const glm::vec2 v = scene.GetNPCVelocity(g->GetID());
+		out.speedX = v.x;
+		out.speedY = v.y;
+
+		return out;
+	}
+
 	// Ensure a .json extension for save paths
 	static inline void EnsureJsonExt(std::string& path) {
 		if (fs::path(path).extension().empty()) {
@@ -51,7 +88,6 @@ namespace LEPANELPREFABS {
 		}
 	}
 
-#ifdef _DEBUG
 	// Draw the Prefabs docked window
 	void DrawPrefabsPanel(LevelEditor& editor, Scene& scene, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(
@@ -67,15 +103,49 @@ namespace LEPANELPREFABS {
 
 		ImGui::SeparatorText("Prefabs / Archetypes");
 
-		// Prefab path row (combo + input + refresh)
-		static char prefabPathBuf[256] = "../prefabs/my_goat.json";
-		static std::vector<std::string> sPrefabs = ListJsonFiles("../prefabs");
+	// Prefab path row (combo + input + refresh)
+		static char prefabPathBuf[256] = {};
+		static bool prefabPathInitialized = false;
+		if (!prefabPathInitialized) {
+			std::snprintf(prefabPathBuf, sizeof(prefabPathBuf), "%smy_goat.json", FilePaths::Dirs::PREFABS_EDITOR);
+			prefabPathInitialized = true;
+		}
+		static std::vector<std::string> sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+
+		// Cache for prefab thumbnails (keyed by prefab JSON path)
+		static std::unordered_map<std::string, Texture*> sPrefabPreviewCache;
 
 		ImGui::TextUnformatted("Prefab path");
 		ImGui::SameLine();
 
 		if (ImGui::Button("Refresh##pf")) {
-			sPrefabs = ListJsonFiles("../prefabs");
+			sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("Import Prefab...")) {
+			const std::string picked =
+				OpenFileDialog("JSON files\0*.json\0All files\0*.*\0");
+
+			if (!picked.empty()) {
+				const std::string targetDir = FilePaths::Dirs::PREFABS_EDITOR;
+
+				const std::string projPath = CopyFileIntoProjectUnique(picked, targetDir);
+
+				if (!projPath.empty()) {
+					// Rebuild list in this panel
+					sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+
+					// Optional: auto-select the imported prefab in the combo
+					fs::path filename = fs::path(projPath).filename();
+					std::string displayPath = std::string(FilePaths::Dirs::PREFABS_EDITOR) + filename.string();
+					std::snprintf(prefabPathBuf,
+								  sizeof(prefabPathBuf),
+								  "%s",
+								  displayPath.c_str());
+				}
+			}
 		}
 
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -101,6 +171,93 @@ namespace LEPANELPREFABS {
 		EnsureJsonExt(prefabPath);
 		const bool prefabExists = fs::exists(prefabPath);
 
+		// Prefab list
+		ImGui::Spacing();
+		ImGui::SeparatorText("Prefab Library");
+
+		if (ImGui::Button("Refresh##pf_list")) {
+			sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+			sPrefabPreviewCache.clear();
+		}
+
+		// Scrollable area for prefab thumbnails + paths
+		ImGui::BeginChild("##PrefabList", ImVec2(0, 200.0f), true);
+
+		bool refreshPrefabs = false;
+		const float iconSize = 32.0f;
+
+		for (const auto& path : sPrefabs) {
+			ImGui::PushID(path.c_str());
+
+			// Fetch or build a thumbnail for this prefab
+			Texture* previewTex = nullptr;
+			auto it = sPrefabPreviewCache.find(path);
+			if (it != sPrefabPreviewCache.end()) {
+				previewTex = it->second;
+			}
+			else {
+				LevelObject data{};
+				if (LoadPrefabFromFile(path, data) && !data.texture.empty()) {
+					previewTex = LoadTextureBypassingCache(data.texture);
+				}
+
+				// Cache even nullptr so we don't keep trying failed loads
+				sPrefabPreviewCache[path] = previewTex;
+			}
+
+			// Draw thumbnail
+			if (previewTex) {
+				ImTextureID texID = (ImTextureID)(intptr_t)previewTex->GetID();
+				ImGui::Image(texID,
+							 ImVec2(iconSize, iconSize),
+							 ImVec2(0, 1),
+							 ImVec2(1, 0));
+				ImGui::SameLine();
+			}
+
+			// Highlight currently selected prefab (the one in prefabPathBuf)
+			bool isSelected = (std::strcmp(prefabPathBuf, path.c_str()) == 0);
+			if (ImGui::Selectable(path.c_str(), isSelected,
+								  0, ImVec2(0.0f, iconSize))) {
+				// Clicking on list item updates the active prefab path
+				std::snprintf(prefabPathBuf,
+							  sizeof(prefabPathBuf),
+							  "%s", path.c_str());
+			}
+
+			// Drag source: other panels can accept "PREFAB_PATH"
+			if (ImGui::BeginDragDropSource()) {
+				ImGui::SetDragDropPayload("PREFAB_PATH",
+										  path.c_str(),
+										  path.size() + 1);
+				ImGui::TextUnformatted("Prefab");
+				ImGui::TextWrapped("%s", path.c_str());
+				ImGui::EndDragDropSource();
+			}
+
+			// Right-click: soft delete
+			if (ImGui::BeginPopupContextItem(
+				(std::string("ctx_prefab##") + path).c_str())) {
+				if (ImGui::MenuItem("Delete")) {
+					if (MoveToTrash(path)) {
+						refreshPrefabs = true;
+						sPrefabPreviewCache.erase(path);
+					}
+				}
+				ImGui::EndPopup();
+			}
+
+			ImGui::PopID();
+		}
+
+		if (refreshPrefabs) {
+			sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+			sPrefabPreviewCache.clear();
+		}
+
+		ImGui::EndChild();
+
+		// Existing spacing + separator
 		ImGui::Spacing();
 		ImGui::Separator();
 		ImGui::Spacing();
@@ -163,11 +320,11 @@ namespace LEPANELPREFABS {
 					// Layer
 					out.layer = scene.GetObjectLayer(selectedObjectId);
 
-					// Save and refresh list
+				// Save and refresh list
 					std::string savePath = prefabPath;
 					if (SavePrefabToFile(savePath, out)) {
 						std::snprintf(prefabPathBuf, sizeof(prefabPathBuf), "%s", savePath.c_str());
-						sPrefabs = ListJsonFiles("../prefabs");
+						sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
 
 						// Link this instance to the prefab we just saved
 						PrefabLinkByID[selectedObjectId] = savePath;
@@ -262,20 +419,28 @@ namespace LEPANELPREFABS {
 		if (ImGui::Button("Propagate prefab changes")) {
 			if (prefabExists) {
 				LevelObject data{};
-				if (LoadPrefabFromFile(prefabPath, data)) {
-					std::vector<GameObject*> objs; scene.CollectRenderablePointers(objs);
+				if (prefabExists && selectedObjectId >= 0) {
+					GameObject* src = scene.GetGameObjectByID(selectedObjectId);
+					if (src) {
+						// Build prefab based on UPDATED editor values
+						LevelObject updated = BuildPrefabFromObject(scene, src);
 
-					for (auto* g : objs) {
-						if (g == nullptr) {
-							continue;
-						}
+						// Save updated prefab JSON
+						SavePrefabToFile(prefabPath, updated);
 
-						const int gid = g->GetID();
-						auto it = PrefabLinkByID.find(gid);
+						// Apply to all linked instances
+						std::vector<GameObject*> objs;
+						scene.CollectRenderablePointers(objs);
 
-						if (it != PrefabLinkByID.end() && it->second == prefabPath) {
-							// Keep current position/Z; apply refreshed prefab data
-							ApplyPrefabToObjectKeepPosition(data, scene, g);
+						for (auto* g : objs) {
+							if (!g) continue;
+
+							const int gid = g->GetID();
+							auto it = PrefabLinkByID.find(gid);
+
+							if (it != PrefabLinkByID.end() && it->second == prefabPath) {
+								ApplyPrefabToObjectKeepPosition(updated, scene, g);
+							}
 						}
 					}
 				}
@@ -292,4 +457,3 @@ namespace LEPANELPREFABS {
 #endif
 
 }
-

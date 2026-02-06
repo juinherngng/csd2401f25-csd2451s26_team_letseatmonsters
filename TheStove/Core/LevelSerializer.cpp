@@ -2,12 +2,13 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			LevelSerializer.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
- CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(40%)
+ CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu	(20%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (40%)
 
  DESCRIPTION:		Handles saving and loading of LevelData to and from JSON files.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -34,20 +35,65 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 
 	// Stored in degrees for editor friendliness
 	obj.rotation = jsonObj.value("rotation", 0.0f);
+	obj.hasCollider = jsonObj.value("has_collider", true);
 
 	obj.colWidth = jsonObj.value("col_w", 64.0f);
 	obj.colHeight = jsonObj.value("col_h", 128.0f);
 	obj.colOffsetX = jsonObj.value("col_offx", 0.0f);
 	obj.colOffsetY = jsonObj.value("col_offy", 0.0f);
 
+	if (!obj.hasCollider) {
+		obj.colWidth = 0.0f;
+		obj.colHeight = 0.0f;
+		obj.colOffsetX = 0.0f;
+		obj.colOffsetY = 0.0f;
+	}
+
 	obj.speedX = jsonObj.value("speed_x", 0.0f);
 	obj.speedY = jsonObj.value("speed_y", 0.0f);
 
 	obj.animated = jsonObj.value("animated", false);
 
-	// NEW: approach offset (safe for existing JSON, defaults to 0)
+	// Approach offset (safe for existing JSON, defaults to 0)
 	obj.approachOffsetX = jsonObj.value("approach_offx", 0.0f);
 	obj.approachOffsetY = jsonObj.value("approach_offy", 0.0f);
+
+	// Audio bindings (safe for existing JSON, defaults to empty)
+	obj.audioOnSpawn = jsonObj.value("audio_on_spawn", "");
+	obj.audioOnInteract = jsonObj.value("audio_on_interact", "");
+	obj.audioOnDestroy = jsonObj.value("audio_on_destroy", "");
+	obj.audioOnProcessing = jsonObj.value("audio_on_processing", "");
+	obj.audioLoop = jsonObj.value("audio_loop", false);
+
+	obj.shadow = jsonObj.value("shadow", false);
+
+	// Per-object visibility (defaults true for backward compatibility)
+	obj.visible = jsonObj.value("visible", true);
+
+	return obj;
+}
+
+// Read a text object from JSON
+static LevelTextObject ReadTextObject(const json& jsonObj) {
+	LevelTextObject obj{};
+
+	obj.name = jsonObj.value("name", "");
+	obj.text = jsonObj.value("text", "");
+	obj.fontName = jsonObj.value("fontName", "");
+	obj.fontSize = jsonObj.value("fontSize", 48u);
+
+	obj.x = jsonObj.value("x", 0.0f);
+	obj.y = jsonObj.value("y", 0.0f);
+	obj.scale = jsonObj.value("scale", 1.0f);
+	obj.rotation = jsonObj.value("rotation", 0.0f);
+	obj.useBlockRotation = jsonObj.value("useBlockRotation", true);
+
+	obj.colorR = jsonObj.value("colorR", 1.0f);
+	obj.colorG = jsonObj.value("colorG", 1.0f);
+	obj.colorB = jsonObj.value("colorB", 1.0f);
+	obj.colorA = jsonObj.value("colorA", 1.0f);
+
+	obj.layer = jsonObj.value("layer", "1");
 
 	return obj;
 }
@@ -64,6 +110,7 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "w", obj.w },
 		{ "h", obj.h },
 		{ "rotation", obj.rotation },
+		{ "has_collider", obj.hasCollider },
 		{ "col_w", obj.colWidth },
 		{ "col_h", obj.colHeight },
 		{ "col_offx", obj.colOffsetX },
@@ -72,9 +119,40 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "speed_y", obj.speedY },
 		{ "animated", obj.animated },
 		{ "layer", obj.layer },
-		// NEW: approach offset
-{ "approach_offx", obj.approachOffsetX },
-{ "approach_offy", obj.approachOffsetY }
+		// Approach offset
+		{ "approach_offx", obj.approachOffsetX },
+		{ "approach_offy", obj.approachOffsetY },
+		// Audio bindings
+		{ "audio_on_spawn", obj.audioOnSpawn },
+		{ "audio_on_interact", obj.audioOnInteract },
+		{ "audio_on_destroy", obj.audioOnDestroy },
+		{ "audio_on_processing", obj.audioOnProcessing },
+		{ "audio_loop", obj.audioLoop },
+		// Per-object visibility
+		{ "visible", obj.visible }
+	};
+
+	return jsonData;
+}
+
+// Converts a LevelTextObject to JSON
+static json WriteTextObject(const LevelTextObject& obj) {
+	json jsonData = {
+		{ "name", obj.name },
+		{ "text", obj.text },
+		{ "fontName", obj.fontName },
+		{ "fontSize", obj.fontSize },
+		{ "x", obj.x },
+		{ "y", obj.y },
+		{ "scale", obj.scale },
+		{ "rotation", obj.rotation },
+		{ "useBlockRotation", obj.useBlockRotation },
+		{ "colorR", obj.colorR },
+		{ "colorG", obj.colorG },
+		{ "colorB", obj.colorB },
+		{ "colorA", obj.colorA },
+		{ "layer", obj.layer },
+		{ "visible", obj.visible }
 	};
 
 	return jsonData;
@@ -91,17 +169,23 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	file >> jsonData;
 
 	outLevel.objects.clear();
+	outLevel.textObjects.clear();
 	outLevel.background.clear();
 
 	// optional background
 	outLevel.background = jsonData.value("background", "");
 
-	if (!jsonData.contains("objects")) {
-		return true; // valid: level with just background
+	if (jsonData.contains("objects")) {
+		for (auto& jsonObj : jsonData["objects"]) {
+			outLevel.objects.push_back(ReadLevelObject(jsonObj));
+		}
 	}
 
-	for (auto& jsonObj : jsonData["objects"]) {
-		outLevel.objects.push_back(ReadLevelObject(jsonObj));
+	// Load text objects if present
+	if (jsonData.contains("textObjects")) {
+		for (auto& jsonObj : jsonData["textObjects"]) {
+			outLevel.textObjects.push_back(ReadTextObject(jsonObj));
+		}
 	}
 
 	return true;
@@ -114,8 +198,12 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	{
 		std::ifstream in(path);
 		if (in) {
-			try { in >> jsonData; }
-			catch (...) { jsonData = json::object(); }
+			try {
+				in >> jsonData;
+			}
+			catch (...) {
+				jsonData = json::object();
+			}
 		}
 	}
 
@@ -132,6 +220,13 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	jsonData["objects"] = json::array();
 	for (const auto& obj : inLevel.objects) {
 		jsonData["objects"].push_back(WriteLevelObject(obj));
+	}
+
+	// NEW: Replace the "textObjects" array
+	jsonData["textObjects"] = json::array();
+
+	for (const auto& textObj : inLevel.textObjects) {
+		jsonData["textObjects"].push_back(WriteTextObject(textObj));
 	}
 
 	std::ofstream file(path);

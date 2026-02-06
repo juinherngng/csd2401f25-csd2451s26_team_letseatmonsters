@@ -2,11 +2,11 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			AudioLoading.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
 
  DESCRIPTION:		Implementation of JSON-based audio catalog with serialization.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -34,6 +34,23 @@ namespace Audio {
 		return normalized;
 	}
 
+	// Helper function to convert editor paths to runtime paths for release builds
+	// Editor paths: ../../assets/Audio/file.mp3 (from build/Release)
+	// Runtime paths: ../assets/Audio/file.mp3 (from release/ folder)
+	static std::string ConvertToRuntimePath(const std::string& path) {
+		std::string result = path;
+		
+		// Convert ../../assets/ to ../assets/ for release builds
+		const std::string editorPrefix = "../../assets/";
+		const std::string runtimePrefix = "../assets/";
+		
+		if (result.find(editorPrefix) == 0) {
+			result = runtimePrefix + result.substr(editorPrefix.length());
+		}
+		
+		return result;
+	}
+
 	bool AudioCatalog::LoadCatalogFromFile(const std::string& catalogPath) {
 		std::cout << "AudioCatalog: Loading catalog from " << catalogPath << "..." << std::endl;
 		
@@ -52,6 +69,13 @@ namespace Audio {
 			std::cerr << "  [LoadCatalog] Attempted to read from: " << absolutePath << std::endl;
 			return false;
 		}
+
+		// Determine if we need to convert paths (release builds use shorter paths)
+		#ifdef _DEBUG
+		const bool convertPaths = false;
+		#else
+		const bool convertPaths = true;
+		#endif
 
 		try {
 			json catalogJson;
@@ -73,6 +97,11 @@ namespace Audio {
 					// Normalize the filepath when loading from JSON
 					std::string rawPath = assetJson.value("filepath", "");
 					asset.filepath = NormalizeAudioPath(rawPath);
+					
+					// Convert editor paths to runtime paths for release builds
+					if (convertPaths) {
+						asset.filepath = ConvertToRuntimePath(asset.filepath);
+					}
 
 					asset.loop = assetJson.value("loop", false);
 					asset.stream = assetJson.value("stream", false);

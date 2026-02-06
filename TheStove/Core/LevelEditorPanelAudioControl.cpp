@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorPanelAudioControl.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu (100%)
 
  DESCRIPTION:       Implementation of the Level Editor Audio Control panel.
                     - Volume sliders for all audio assets
@@ -267,8 +267,20 @@ namespace LEPANELAUDIOCONTROL {
 
                     bool isPlaying = (currentlyPlaying == asset->name);
 
-                    // Asset name
+                    // Asset name (make it draggable)
                     ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.8f, 1.0f), "%s", asset->name.c_str());
+                    
+                    // Make the asset name a drag source for binding to game objects
+                    if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+                        // Store the asset name as payload
+                        ImGui::SetDragDropPayload("AUDIO_ASSET", asset->name.c_str(), asset->name.size() + 1);
+                        
+                        // Show preview while dragging
+                        ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "Bind: %s", asset->name.c_str());
+                        ImGui::TextDisabled("Drop on object's audio slot");
+                        
+                        ImGui::EndDragDropSource();
+                    }
                     
                     // Play/Stop button
                     if (isPlaying) {

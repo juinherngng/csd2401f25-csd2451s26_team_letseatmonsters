@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CollisionManager.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (20%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(55%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (25%)
 
  DESCRIPTION:       Declares CollisionManager. Owns a static collision::World and a dynamic
 					spatial grid of GameObjects, rebuilds broad-phase data every frame, and
@@ -25,6 +25,8 @@
 #include "Math.hpp"
 #include "SpatialGrid.hpp"
 #include "System.hpp"
+
+class Scene;
 
  /**
   * @class CollisionManager
@@ -84,6 +86,10 @@ public:
 
 	void AddStaticRects(const std::vector<collision::AABB>& rects);
 
+	void SetScene(Scene* scene) {
+		scene_ = scene;
+	}
+
 	// Clear both the grid and the world geometry.
 	void Clear();
 
@@ -91,4 +97,6 @@ private:
 	EntityManager* entityManager_ = nullptr;	// Reference to EntityManager (set externally)
 	SpatialGrid spatialGrid_;					// Broad-phase acceleration structure
 	collision::World collisionWorld_;			// Static world used for trimming
+
+	Scene* scene_ = nullptr;
 };

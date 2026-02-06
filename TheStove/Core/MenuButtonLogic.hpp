@@ -2,14 +2,14 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			MenuButtonLogic.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (95%)
+ CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
  DESCRIPTION:		 Declares the MenuButtonLogic component class, which provides interactive 
 					 button behavior for menu GameObjects including hover texture swapping and 
 					 deferred level loading via Scene::QueueLevelLoad when clicked.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

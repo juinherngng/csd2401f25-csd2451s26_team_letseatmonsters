@@ -2,15 +2,13 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         IngredientBoxLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION:     Defines IngredientBoxLogic, a table-like object that spawns
-                 ingredient items for the player. The box can be configured to
-                 spawn vegetables, meat, mushrooms, or plates depending on the
-                 setup. Provides logic for spawning, clearing, and controlling
-                 which ingredient type appears.
-
-
+ DESCRIPTION:       Defines IngredientBoxLogic, a table-like object that spawns
+                    ingredient items for the player. The box can be configured to
+                    spawn vegetables, meat, mushrooms, or plates depending on the
+                    setup. Provides logic for spawning, clearing, and controlling
+                    which ingredient type appears.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -20,8 +18,7 @@ DESCRIPTION:     Defines IngredientBoxLogic, a table-like object that spawns
 #include "../Core/LogicManager.hpp"
 #include <iostream>
 
-IngredientBoxLogic::IngredientBoxLogic(int ownerID)
-    : TableLogic(ownerID)
+IngredientBoxLogic::IngredientBoxLogic(int ownerID) : TableLogic(ownerID)
 {
 }
 
@@ -32,6 +29,30 @@ void IngredientBoxLogic::ConfigureAsVegetableBox()
 
     // You can tweak these if you have different ingredient types later
     ingredientTexture_ = "../assets/Cabbage_Ingredient.png";
+    ingredientWidth_ = 64.0f;
+    ingredientHeight_ = 64.0f;
+    ingredientLayer_ = "3";
+}
+
+void IngredientBoxLogic::ConfigureAsMeatBox()
+{
+    spawnMode_ = BoxSpawnMode::Ingredient;
+    spawnType_ = IngredientType::Meat;
+
+    // You can tweak these if you have different ingredient types later
+    ingredientTexture_ = "../assets/Meat_Ingredient.png";
+    ingredientWidth_ = 64.0f;
+    ingredientHeight_ = 64.0f;
+    ingredientLayer_ = "3";
+}
+
+void IngredientBoxLogic::ConfigureAsShroomBox()
+{
+    spawnMode_ = BoxSpawnMode::Ingredient;
+    spawnType_ = IngredientType::Shroom;
+
+    // You can tweak these if you have different ingredient types later
+    ingredientTexture_ = "../assets/Mushroom_Ingredient.png";
     ingredientWidth_ = 64.0f;
     ingredientHeight_ = 64.0f;
     ingredientLayer_ = "3";
@@ -63,18 +84,31 @@ void IngredientBoxLogic::Start(Scene& scene)
             << worldPoints[i].x << ", " << worldPoints[i].y << ")\n";
     }
 
-    // -------- Auto-config based on tag --------
-    if (GameObject* owner = GetOwner(scene))
-    {
-        const std::string& tag = scene.GetDefaults(GetOwnerID()).tag;
+    // -------- Auto-config based on tag and texture --------
+    Scene::Defaults def = scene.GetDefaults(GetOwnerID());
+    const std::string& tag = def.tag;
+    const std::string& tex = def.texture;
 
-        if (tag == "ingredient_box")
+    if (tag == "plate_box")
+    {
+        ConfigureAsPlateBox();
+        return;
+    }
+
+    if (tag == "ingredient_box")
+    {
+        // Decide which ingredient box by looking at the BOX texture name
+        if (tex.find("VegIngredientBox") != std::string::npos)
         {
             ConfigureAsVegetableBox();
         }
-        else if (tag == "plate_box")
+        else if (tex.find("MeatIngredientBox") != std::string::npos)
         {
-            ConfigureAsPlateBox();
+            ConfigureAsMeatBox();
+        }
+        else if (tex.find("ShroomIngredientBox") != std::string::npos)
+        {
+            ConfigureAsShroomBox();
         }
         else
         {
@@ -86,6 +120,7 @@ void IngredientBoxLogic::Start(Scene& scene)
         }
     }
 }
+
 
 
 void IngredientBoxLogic::Update(float dt, Scene& scene, InputManager& input)
@@ -137,17 +172,19 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene)
         }
 
         // Attach IngredientLogic with the configured ingredient type.
-        logicMgr.AddLogic<IngredientLogic>(itemID, spawnType_);
+        if (auto* ingLogic = logicMgr.AddLogic<IngredientLogic>(itemID, spawnType_)) {
+            ingLogic->Start(scene);
+        }
 
         std::cout << "[IngredientBoxLogic] Spawned INGREDIENT " << itemID
             << " of type=" << static_cast<int>(spawnType_)
-            << " from box " << ownerID << "\n";
+            << " from box " << ownerID_ << "\n";
     }
     else // BoxSpawnMode::Plate
     {
         // Spawn a plate
         spawnedObj = scene.SpawnStaticSpriteAtSamePos(
-            ownerID,
+            ownerID_,
             plateTexture_,
             plateWidth_,
             plateHeight_,
@@ -157,7 +194,7 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene)
         if (!spawnedObj)
         {
             std::cout << "[IngredientBoxLogic] Failed to spawn PLATE from box "
-                << ownerID << "\n";
+                << ownerID_ << "\n";
             return -1;
         }
 
@@ -169,12 +206,13 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene)
             scene.SetDefaults(itemID, def);
         }
 
-        // Attach PlateLogic. This assumes PlateLogic has constructor PlateLogic(int ownerID).
-        // If your constructor is different, just adjust this line.
-        logicMgr.AddLogic<PlateLogic>(itemID);
+        if (auto* plateLogic = logicMgr.AddLogic<PlateLogic>(itemID)) {
+            plateLogic->Start(scene);
+        }
+
 
         std::cout << "[IngredientBoxLogic] Spawned PLATE " << itemID
-            << " from box " << ownerID << "\n";
+            << " from box " << ownerID_ << "\n";
     }
 
     return itemID;

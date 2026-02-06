@@ -2,14 +2,14 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GraphicsEngine.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
 
  DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
 					and batched instanced rendering of GameObjects.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -19,10 +19,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-#include "GraphicsEngine.hpp"
-#include "MeshLoader.hpp"
 #include "../Core/FontSystem.hpp"
 #include "../Core/LevelEditorPanelFonts.hpp"
+#include "GraphicsEngine.hpp"
+#include "MeshLoader.hpp"
 
 // File-scoped state
 static bool _imguiInitialized = false;
@@ -142,6 +142,9 @@ void GraphicsEngine::Initialize() {
 void GraphicsEngine::Update(float dt) {
 	// Store dt for performance tracking
 	lastDt = dt;
+
+	// Update transition state machine
+	UpdateTransition(dt);
 
 	// Note: Actual rendering is still called from main loop via BeginFrame/Render/EndFrame
 	// This Update is just for system integration and performance monitoring
@@ -306,6 +309,16 @@ void GraphicsEngine::LoadDefaultResources() {
 							   ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
 							   ResolveShaderPath("../shaders/animatedsprite.frag"));
 
+	// Shadow blob shader (no texture required)
+	resourceManager.LoadShader("shadow",
+							   ResolveShaderPath("../shaders/shadow.vert"),
+							   ResolveShaderPath("../shaders/shadow.frag"));
+
+	// Solid color fullscreen overlay shader for transitions
+	resourceManager.LoadShader("screenfade",
+							   ResolveShaderPath("../shaders/screenfade.vert"),
+							   ResolveShaderPath("../shaders/screenfade.frag"));
+
 	// Load triangle mesh
 	std::vector<float> vertices;
 	GLsizei vertexCount, vertexSize;
@@ -436,16 +449,10 @@ void GraphicsEngine::DrawSceneDockWindow() {
 		// Invisible proxy for hover/click that exactly matches the scene image
 		if (sceneImageSize_.x > 1.0f && sceneImageSize_.y > 1.0f) {
 			ImGui::SetCursorScreenPos(sceneImagePos_);
-			const bool pressed = ImGui::ImageButton(
-				"##SceneImageBtn",
-				(ImTextureID)(intptr_t)mSceneColor,
-				ImVec2(sceneImageSize_.x, sceneImageSize_.y),
-				ImVec2(0, 1),
-				ImVec2(1, 0)
-			);
+			ImGui::InvisibleButton("##SceneImageBtn", sceneImageSize_);
 
-			if (pressed || ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-				std::cout << "[Scene] LMB click inside Scene image\n";
+			if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+				//std::cout << "[Scene] LMB click inside Scene image\n";
 			}
 		}
 	}
@@ -564,7 +571,9 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 #else
 	// Release: compute from GLFW mouse and letterboxed viewport
 	GLFWwindow* win = glfwGetCurrentContext();
-	if (!win) { return false; }
+	if (!win) {
+		return false;
+	}
 
 	// Mouse in window space
 	double mx, my;
@@ -575,7 +584,7 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 	const float vy = static_cast<float>(viewportY_);
 	const float vw = static_cast<float>(viewportW_);
 	const float vh = static_cast<float>(viewportH_);
-	if (mx < vx || my < vy || mx > (vx + vw) || my > (vy + vh)) {
+	if (mx < vx || my < vy || mx >(vx + vw) || my >(vy + vh)) {
 		return false;
 	}
 
@@ -605,8 +614,78 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 #endif
 }
 
+void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
+#ifdef _DEBUG
+	outPos = sceneImagePos_;
+	outSize = sceneImageSize_;
+#else
+	// In release we render directly to the GLFW window. Keep it simple:
+	outPos = ImVec2(0.0f, 0.0f);
+	outSize = ImVec2(static_cast<float>(viewportW_),
+					 static_cast<float>(viewportH_));
+#endif
+}
+
+ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
+#ifdef _DEBUG
+	// Reconstruct the Scene image rect the same way as in GetMouseWorldInScene
+	ImVec2 imgPos = sceneImagePos_;
+	ImVec2 imgSize = sceneImageSize_;
+
+	if (imgSize.x <= 1.0f || imgSize.y <= 1.0f) {
+		// Fallback if Scene window wasn't drawn yet this frame
+		ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
+		if (sceneWin) {
+			const ImRect c = sceneWin->InnerRect;
+			const float availW = c.GetWidth();
+			const float availH = c.GetHeight();
+			const float targetAspect = float(kRefW) / float(kRefH);
+
+			float w = availW, h = availH;
+			const float r = w / h;
+			if (r > targetAspect) {
+				w = h * targetAspect;
+			}
+			else {
+				h = w / targetAspect;
+			}
+
+			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f,
+							c.Min.y + (availH - h) * 0.5f);
+			imgSize = ImVec2(w, h);
+		}
+	}
+
+	glm::vec4 world4(world.x, world.y, 0.0f, 1.0f);
+	glm::vec4 clip = projection * view * world4;
+
+	if (clip.w == 0.0f) {
+		// Avoid division by zero; put it off-screen.
+		return ImVec2(-10000.0f, -10000.0f);
+	}
+
+	glm::vec3 ndc = glm::vec3(clip) / clip.w;
+
+	const float u = (ndc.x * 0.5f) + 0.5f;
+	const float v = (-ndc.y * 0.5f) + 0.5f;
+
+	const float localX = u * imgSize.x;
+	const float localY = v * imgSize.y;
+
+	return ImVec2(imgPos.x + localX, imgPos.y + localY);
+#else
+	// In release builds the editor UI is disabled; this is only used in Debug.
+	(void)world;
+	return ImVec2(0.0f, 0.0f);
+#endif
+}
+
 // Default render path
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+	// Keep internal matrices in sync for editor picking + gizmos
+	view = viewMatrix;
+	projection = projectionMatrix;
+
 	// Draw background first
 	if (backgroundObject) {
 		glDisable(GL_DEPTH_TEST);
@@ -629,7 +708,16 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		glEnable(GL_DEPTH_TEST);
 	}
 
+	// Draw shadows before sprites
+	DrawSpriteShadows(objects, viewMatrix, projectionMatrix);
+
 	// Render all scene objects
+	// Disable depth testing for 2D sprites so layering/order controls visibility
+	GLboolean depthWasEnabledSprites = glIsEnabled(GL_DEPTH_TEST);
+	if (depthWasEnabledSprites) {
+		glDisable(GL_DEPTH_TEST);
+	}
+
 	for (const auto* obj : objects) {
 		if (!obj) continue;
 
@@ -641,6 +729,9 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		shader->SetViewMatrix(viewMatrix);
 		shader->SetProjectionMatrix(projectionMatrix);
 
+		// set per-object tint (u_Color)
+		shader->SetColorTint(obj->GetColorTint());
+
 		Texture* tex = obj->GetTexture();
 		if (tex) {
 			tex->Bind(0);
@@ -649,7 +740,18 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 
 		Mesh* mesh = obj->GetMesh();
 		if (mesh) {
+			// enable alpha blending for sprite draw
+			GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+			if (!blendWasEnabled) {
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			}
+
 			mesh->Draw();
+
+			if (!blendWasEnabled) {
+				glDisable(GL_BLEND);
+			}
 		}
 
 		if (DebugRenderer::IsEnabled()) {
@@ -658,6 +760,9 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 			glEnable(GL_DEPTH_TEST);
 		}
 	}
+
+	// Draw transition overlay into the scene FBO before unbinding
+	DrawTransitionOverlay();
 
 	// Unbind scene FBO so default framebuffer can be used for final presentation
 	EndSceneRender();
@@ -734,11 +839,91 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	// Early out if no objects
+	// Draw shadows before sprites 
+	DrawSpriteShadows(objects, view, projection);
+
+	// Disable depth testing for 2D sprites (batched)
+	GLboolean depthWasEnabledSprites = glIsEnabled(GL_DEPTH_TEST);
+	if (depthWasEnabledSprites) {
+		glDisable(GL_DEPTH_TEST);
+	}
+
+	// Helper to convert layer name to sort key (same as CollectRenderablePointers in SceneManager)
+	auto parseLayerNumber = [](const std::string& s) -> int {
+		if (s.empty()) {
+			return 1; // base layer
+		}
+
+		int result = 0;
+		for (char c : s) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				// Any non-numeric layer name behaves like a very "high" layer
+				return 1000000;
+			}
+
+			result = result * 10 + (c - '0');
+		}
+
+		return result;
+	};
+
+#ifdef _DEBUG
+	// Get text objects and sort by layer for interleaved rendering
+	const auto& textObjects = LEPANELFONTS::GetTextObjects();
+	std::vector<const LEPANELFONTS::TextObjectData*> sortedTextObjects;
+	sortedTextObjects.reserve(textObjects.size());
+	for (const auto& data : textObjects) {
+		sortedTextObjects.push_back(&data);
+	}
+
+	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
+		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
+			int la = parseLayerNumber(a->layer);
+		    int lb = parseLayerNumber(b->layer);
+			
+			// Lower layer number = rendered first (behind)
+			// Higher layer number = rendered later (on top)
+			if (la != lb) {
+				return la < lb;
+			}
+			
+			// Same layer: use depth first, then Y position for sorting
+			if (a->depth != b->depth) {
+				return a->depth < b->depth;
+			}
+			
+			return a->y < b->y;
+		});
+
+	size_t textIndex = 0; // Track which text objects have been rendered
+	int lastProcessedLayer = 0; // Track the last layer we finished processing
+	
+	// Lambda to render text objects up to and including a certain layer
+	auto renderTextUpToLayer = [&](int maxLayerNumber) {
+		while (textIndex < sortedTextObjects.size()) {
+			int textLayer = parseLayerNumber(sortedTextObjects[textIndex]->layer);
+			if (textLayer <= maxLayerNumber) {
+				RenderSingleTextObject(*sortedTextObjects[textIndex]);
+				++textIndex;
+			} else {
+				break; // Text belongs to a higher layer, stop
+			}
+		}
+	};
+#endif
+
+	// Early out if no objects (but still render text)
 	if (objects.empty()) {
-		// Render text objects even if no game objects
-		RenderTextObjects();
-		
+#ifdef _DEBUG
+		// Render all text objects
+		for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
+			RenderSingleTextObject(*sortedTextObjects[i]);
+		}
+#endif
+
+		// Draw transition overlay even if empty scene
+		DrawTransitionOverlay();
+
 		EndSceneRender();
 #ifdef _DEBUG
 		DrawSceneDockWindow();
@@ -787,38 +972,41 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	auto flushBatch = [&](const std::vector<Mesh::InstanceData>& batch, const RenderKey& key) {
 		if (batch.empty() || !key.mesh || !key.shader) return;
 
-		const bool wantsInstancing = batch.size() >= INSTANCING_THRESHOLD;
+		bool wantsInstancing = batch.size() >= INSTANCING_THRESHOLD;
+
+		// Instanced shaders do not carry per-instance tint yet -> fall back when needed
+		bool needsPerInstanceTint = false;
+		for (const auto& inst : batch) {
+			if (inst.colorTint.x != 1.0f || inst.colorTint.y != 1.0f ||
+				inst.colorTint.z != 1.0f || inst.colorTint.w < 0.999f) {
+				needsPerInstanceTint = true;
+				break;
+			}
+		}
 
 		// Map the original shader -> preferred instanced shader 
 		Shader* preferredInstanced = nullptr;
 		if (key.shader == resourceManager.GetShader("staticsprite")) {
 			preferredInstanced = staticsInstShader;
-		}
-		else if (key.shader == animShader) {
+		} else if (key.shader == animShader) {
 			preferredInstanced = animatedInstShader;
 		}
 
-		// If we should and can instance, use instanced path
-		if (wantsInstancing && preferredInstanced) {
-			key.mesh->SetupInstanceBuffer(batch);
+		const bool useInstanced = wantsInstancing && preferredInstanced && !needsPerInstanceTint;
 
+		if (useInstanced) {
+			// existing instanced path (unchanged)
+			key.mesh->SetupInstanceBuffer(batch);
 			preferredInstanced->Use();
 			preferredInstanced->SetViewMatrix(view);
 			preferredInstanced->SetProjectionMatrix(projection);
-
-			if (key.texture) {
-				key.texture->Bind(0);
-				preferredInstanced->SetTexture("u_Texture", 0);
-			}
-
+			if (key.texture) { key.texture->Bind(0); preferredInstanced->SetTexture("u_Texture", 0); }
 			key.mesh->DrawInstanced(key.texture, static_cast<GLsizei>(batch.size()));
-
 			renderStats.drawCalls++;
 			renderStats.totalBatches++;
 			renderStats.instancedObjects += static_cast<int>(batch.size());
-		}
-		else {
-			// Non-instanced fallback: draw each element with original shader so per-object uniforms work
+		} else {
+			// existing non-instanced fallback, but keep tint+blending enabled
 			key.shader->Use();
 			key.shader->SetViewMatrix(view);
 			key.shader->SetProjectionMatrix(projection);
@@ -828,27 +1016,60 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 				key.shader->SetTexture("u_Texture", 0);
 			}
 
+			// Enable alpha blending for sprite draws
+			GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+			if (!blendWasEnabled) {
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			}
+
 			for (const auto& inst : batch) {
-				// per-object model matrix
 				key.shader->SetModelMatrix(inst.modelMatrix);
 
-				// If shader is animated (non-instanced), supply UV via uniforms
 				if (key.shader == animShader) {
 					key.shader->SetUVOffset(glm::vec2(inst.uvOffsetScale.x, inst.uvOffsetScale.y));
 					key.shader->SetUVScale(glm::vec2(inst.uvOffsetScale.z, inst.uvOffsetScale.w));
 				}
 
+				key.shader->SetColorTint(inst.colorTint);
+
 				key.mesh->Draw();
 				renderStats.drawCalls++;
+			}
+
+			if (!blendWasEnabled) {
+				glDisable(GL_BLEND);
 			}
 
 			renderStats.totalBatches++;
 		}
 	};
 
-	// Build runs in order
-	for (auto* obj : objects) {
+	// Build runs in order, interleaving text objects at layer boundaries
+	for (size_t objIdx = 0; objIdx < objects.size(); ++objIdx) {
+		auto* obj = objects[objIdx];
 		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
+
+		int objLayer = obj->GetRenderLayer();
+#ifndef _DEBUG
+		(void)objLayer;
+#endif
+
+#ifdef _DEBUG
+		// When we move to a new (higher) layer, first render text objects
+		// from the previous layers that haven't been rendered yet
+		if (objLayer > lastProcessedLayer) {
+			// Flush current batch before rendering text
+			if (!instanceBatch.empty()) {
+				flushBatch(instanceBatch, currentKey);
+				instanceBatch.clear();
+			}
+			
+			// Render text objects up to and including the previous layer
+			renderTextUpToLayer(objLayer - 1);
+			lastProcessedLayer = objLayer;
+		}
+#endif
 
 		RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
 
@@ -857,12 +1078,14 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			flushBatch(instanceBatch, currentKey);
 			instanceBatch.clear();
 		}
+		
 		currentKey = key;
 
 		Mesh::InstanceData inst;
 		inst.modelMatrix = obj->GetModelMatrix();
 		// Always store per-object UV rect in instance data (instanced shader will use it, fallback uses uniforms)
 		inst.uvOffsetScale = obj->GetUVRect();
+		inst.colorTint = obj->GetColorTint();
 		instanceBatch.push_back(inst);
 	}
 
@@ -871,6 +1094,19 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		flushBatch(instanceBatch, currentKey);
 		instanceBatch.clear();
 	}
+
+	// Restore depth state after sprites
+	if (depthWasEnabledSprites) {
+		glEnable(GL_DEPTH_TEST);
+	}
+
+#ifdef _DEBUG
+	// Render remaining text objects (those in layers >= the last game object layer)
+	while (textIndex < sortedTextObjects.size()) {
+		RenderSingleTextObject(*sortedTextObjects[textIndex]);
+		++textIndex;
+	}
+#endif
 
 	// Debug bounding boxes render
 	if (DebugRenderer::IsEnabled()) {
@@ -884,8 +1120,8 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	// Render text objects on top of scene
-	RenderTextObjects();
+	// Draw transition overlay on top of everything in the scene FBO
+	DrawTransitionOverlay();
 
 	// End-of-frame UI and finalization
 	EndSceneRender();
@@ -929,53 +1165,165 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	}
 }
 
+// Render a single text object (for layered rendering)
+void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& data) {
+	// Get the font from ResourceManager
+	FontSystem::Font* font = ResourceManager::Instance().GetFont(data.fontName);
+	if (!font) {
+		return;
+	}
+
+	// Save current GL state that text rendering might modify
+	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+	GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+
+	// Create a temporary Text object for rendering
+	FontSystem::Text textRenderer;
+	textRenderer.SetFont(font);
+	textRenderer.SetText(data.text);
+	textRenderer.SetPosition(glm::vec2(data.x, data.y));
+	textRenderer.SetScale(data.scale);
+	textRenderer.SetRotation(data.rotation);
+	textRenderer.SetRotationMode(data.useBlockRotation ?
+								 FontSystem::Text::RotationMode::Block :
+								 FontSystem::Text::RotationMode::PerCharacter);
+	textRenderer.SetColor(glm::vec4(data.colorR, data.colorG, data.colorB, data.colorA));
+
+	// Render using TextRenderer singleton
+	FontSystem::TextRenderer::Instance().RenderText(textRenderer, projection);
+
+	// Restore GL state for subsequent sprite rendering
+	if (depthWasEnabled) {
+		glEnable(GL_DEPTH_TEST);
+	} else {
+		glDisable(GL_DEPTH_TEST);
+	}
+	
+	if (blendWasEnabled) {
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	} else {
+		glDisable(GL_BLEND);
+	}
+}
+
 // Render text objects
 void GraphicsEngine::RenderTextObjects() {
 #ifdef _DEBUG
 	// In debug builds, get text from the editor panel
 	const auto& textObjects = LEPANELFONTS::GetTextObjects();
-	
+
 	if (textObjects.empty()) {
 		return;
 	}
-	
-	// Create Text renderers on demand and render
-	for (const auto& data : textObjects) {
-		// Get the font from ResourceManager
-		FontSystem::Font* font = ResourceManager::Instance().GetFont(data.fontName);
-		if (!font) {
-			continue;
+
+	// Helper to convert layer name to sort key (same as CollectRenderablePointers)
+	auto parseLayerNumber = [](const std::string& s) -> int {
+		if (s.empty()) {
+			return 1; // base layer
 		}
-		
-		// Create a temporary Text object for rendering
-		FontSystem::Text textRenderer;
-		textRenderer.SetFont(font);
-		textRenderer.SetText(data.text);
-		textRenderer.SetPosition(glm::vec2(data.x, data.y));
-		textRenderer.SetScale(data.scale);
-		textRenderer.SetRotation(data.rotation);
-		textRenderer.SetRotationMode(data.useBlockRotation ? 
-			FontSystem::Text::RotationMode::Block : 
-			FontSystem::Text::RotationMode::PerCharacter);
-		textRenderer.SetColor(glm::vec4(data.colorR, data.colorG, data.colorB, data.colorA));
-		
-		// Render using TextRenderer singleton
-		FontSystem::TextRenderer::Instance().RenderText(textRenderer, projection);
+
+		int result = 0;
+		for (char c : s) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				// Any non-numeric layer name behaves like a very "high" layer
+				return 1000000;
+			}
+
+			result = result * 10 + (c - '0');
+		}
+
+		return result;
+	};
+
+	// Sort text objects by layer (lower layer numbers render first/behind)
+	std::vector<const LEPANELFONTS::TextObjectData*> sortedTextObjects;
+	sortedTextObjects.reserve(textObjects.size());
+	for (const auto& data : textObjects) {
+		sortedTextObjects.push_back(&data);
+	}
+
+	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
+		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
+			int la = parseLayerNumber(a->layer);
+			int lb = parseLayerNumber(b->layer);
+			
+			// Higher layer number = rendered on top (later in draw order)
+			if (la != lb) {
+				return la < lb;
+			}
+			
+			// Same layer: use Y position for depth sorting
+			return a->y < b->y;
+		});
+
+	// Create Text renderers on demand and render
+	for (const auto* data : sortedTextObjects) {
+		RenderSingleTextObject(*data);
 	}
 #else
 	// In release build, text will be rendered from game state
 #endif
 }
 
+// Simple blob shadow pass (draw before sprites)
+void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+	Shader* shadowShader = resourceManager.GetShader("shadow");
+	Mesh* quad = resourceManager.GetMesh("sprite");
+
+	if (!shadowShader || !quad) {
+		return;
+	}
+
+	// Disable depth to avoid writing/occluding sprite depth. Keep alpha blending.
+	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
+	GLboolean depthMask;
+	glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
+	glDepthMask(GL_FALSE);
+
+	shadowShader->Use();
+	shadowShader->SetViewMatrix(viewMatrix);
+	shadowShader->SetProjectionMatrix(projectionMatrix);
+
+	for (const GameObject* obj : objects) {
+		if (!obj || !obj->HasShadow()) continue;
+
+		const glm::vec3 pos = obj->GetPositionGLM();
+		const glm::vec2 size = obj->GetShadowSize();
+		const glm::vec2 off = obj->GetShadowOffset();
+		const float opacity = obj->GetShadowOpacity();
+
+		// Model: place on object's XY with optional offset; keep Z slightly behind if needed
+		glm::mat4 model(1.0f);
+		model = glm::translate(model, glm::vec3(pos.x + off.x, pos.y + off.y, pos.z));
+		model = glm::scale(model, glm::vec3(size.x, size.y, 1.0f));
+
+		// Ellipse axis compensation so the gradient remains elliptical after non-uniform scale
+		const float axisYOverX = (size.x != 0.0f) ? (size.y / size.x) : 1.0f;
+		shadowShader->SetModelMatrix(model);
+		shadowShader->SetColorTint(glm::vec4(0.0f, 0.0f, 0.0f, opacity));
+		shadowShader->SetUVScale(glm::vec2(1.0f, axisYOverX)); // reuse uniform setter
+
+		quad->Draw();
+	}
+
+	// Restore depth state
+	glDepthMask(depthMask);
+	if (depthWasEnabled) {
+		glEnable(GL_DEPTH_TEST);
+	}
+}
+
 // Free resources and shutdown ImGui
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
 	DebugRenderer::Shutdown();
-	
+
 	// Shutdown FontSystem
 	FontSystem::TextRenderer::Instance().Shutdown();
 	FontSystem::FontManager::Instance().Shutdown();
-	
+
 	resourceManager.Clear();
 
 #ifdef _DEBUG
@@ -988,4 +1336,107 @@ void GraphicsEngine::Shutdown() {
 	}
 #endif
 }
+
+// Transition implementation
+void GraphicsEngine::StartSceneTransition(float fadeOutSeconds, float fadeInSeconds) {
+	if (transitionPhase_ != TransitionPhase::None) {
+		return; // already running
+	}
+	fadeOutTime_ = (fadeOutSeconds <= 0.0f) ? 0.001f : fadeOutSeconds;
+	fadeInTime_ = (fadeInSeconds <= 0.0f) ? 0.001f : fadeInSeconds;
+	transitionPhase_ = TransitionPhase::FadeOut;
+	transitionTimer_ = 0.0f;
+	transitionAlpha_ = 0.0f;
+}
+
+bool GraphicsEngine::IsTransitionActive() const {
+	return transitionPhase_ != TransitionPhase::None;
+}
+
+bool GraphicsEngine::IsAtBlackout() const {
+	return transitionPhase_ == TransitionPhase::Hold;
+}
+
+void GraphicsEngine::ContinueTransitionFadeIn() {
+	if (transitionPhase_ == TransitionPhase::Hold) {
+		transitionPhase_ = TransitionPhase::FadeIn;
+		transitionTimer_ = 0.0f;
+		transitionAlpha_ = 1.0f;
+	}
+}
+
+void GraphicsEngine::UpdateTransition(float dt) {
+	switch (transitionPhase_) {
+		case TransitionPhase::None:
+			transitionAlpha_ = 0.0f;
+			break;
+		case TransitionPhase::FadeOut: {
+			transitionTimer_ += dt;
+			float t = (fadeOutTime_ > 0.0f) ? (transitionTimer_ / fadeOutTime_) : 1.0f;
+			if (t >= 1.0f) {
+				t = 1.0f;
+				transitionPhase_ = TransitionPhase::Hold; // wait for external scene switch
+				transitionTimer_ = 0.0f;
+			}
+			transitionAlpha_ = t; // 0 -> 1
+			break;
+		}
+		case TransitionPhase::Hold:
+			transitionAlpha_ = 1.0f;
+			break;
+		case TransitionPhase::FadeIn: {
+			transitionTimer_ += dt;
+			float t = (fadeInTime_ > 0.0f) ? (transitionTimer_ / fadeInTime_) : 1.0f;
+			if (t >= 1.0f) {
+				t = 1.0f;
+				transitionPhase_ = TransitionPhase::None;
+			}
+			transitionAlpha_ = 1.0f - t; // 1 -> 0
+			break;
+		}
+	}
+}
+
+void GraphicsEngine::DrawTransitionOverlay() {
+	if (transitionPhase_ == TransitionPhase::None || transitionAlpha_ <= 0.0f) {
+		return;
+	}
+
+	Shader* fadeShader = resourceManager.GetShader("screenfade");
+	Mesh* fsq = resourceManager.GetMesh("fullscreen_quad");
+	if (!fadeShader || !fsq) {
+		return;
+	}
+
+	// Build a model that fills the reference canvas (same as background quad)
+	glm::mat4 model(1.0f);
+	model = glm::translate(model, glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
+	model = glm::scale(model, glm::vec3(static_cast<float>(kRefW), static_cast<float>(kRefH), 1.0f));
+
+	// Render a black overlay with alpha
+	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
+	GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+	if (!blendWasEnabled) {
+		glEnable(GL_BLEND);
+	}
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	fadeShader->Use();
+	fadeShader->SetModelMatrix(model);
+	fadeShader->SetViewMatrix(view);
+	fadeShader->SetProjectionMatrix(projection);
+	fadeShader->SetColorTint(glm::vec4(0.0f, 0.0f, 0.0f, transitionAlpha_));
+
+	fsq->Draw();
+
+	// Restore state
+	if (!blendWasEnabled) {
+		glDisable(GL_BLEND);
+	}
+	if (depthWasEnabled) {
+		glEnable(GL_DEPTH_TEST);
+	}
+}
+
 

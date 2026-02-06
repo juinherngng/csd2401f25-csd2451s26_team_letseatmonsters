@@ -2,13 +2,13 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			RuntimeLevel.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
  DESCRIPTION:		Implements RuntimeLevel utilities to parse LevelData JSON, spawn animated/static GameObjects with
 					proper layers/tags/colliders/animations, set scene backgrounds, rebuild colliders, and store object
 					metadata for runtime level loading. (For use outside of editor only.)
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -19,6 +19,7 @@
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/ResourceManager.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 
 #include "LevelSerializer.hpp"
 #include "RuntimeLevel.hpp"
@@ -27,42 +28,62 @@ namespace RuntimeLevel {
 	void BuildSceneFromLevel(const LevelData& levelIn, Scene& scene) {
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
-
-			// Fallback layer
 			std::string layerName = obj.layer.empty() ? "1" : obj.layer;
 
-			// Spawn as animated or static (runtime: rely on texture naming convention where needed)
 			if (obj.animated) {
 				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
-				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h },
-					fullFrame, 0.25f, true, layerName);
+				g = scene.SpawnAnimatedSprite(
+					obj.texture,
+					{ obj.x, obj.y, 0.0f },
+					{ obj.w, obj.h },
+					fullFrame,
+					0.25f, // initial frame duration; real duration comes from SetFrames
+					true,
+					layerName
+				);
 
-				if (g && obj.texture.find("dino") != std::string::npos) {
-					scene.AttachDinoAnimations(g->GetID());
-					const std::string clip = obj.animName.empty() ? "IDLE" : obj.animName;
-					scene.SetAnimation(g->GetID(), clip);
+				if (!g) {
+					std::cerr << "[RuntimeLevel] Spawn failed: " << obj.texture << std::endl;
+					continue;
 				}
-			}
-			else {
-				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
-			}
 
-			if (!g) {
-				std::cerr << "[RuntimeLevel] Spawn failed: " << obj.texture << std::endl;
-				continue;
+				// Menu animation: 6x5 sheet, separate from dino/goat
+				if (obj.tag == "menu_anim") {
+					// Use AnimationManager via Scene helper APIs
+					scene.AttachMenuAnimations(g->GetID());
+					// Choose the full-sheet looping clip (or allow obj.animName to override)
+					scene.SetAnimation(g->GetID(), obj.animName.empty() ? "FULL" : obj.animName);
+				}
+				// Existing cases (unchanged)
+				else if (obj.texture.find("dino") != std::string::npos || obj.tag == "dino") {
+					scene.AttachDinoAnimations(g->GetID());
+					scene.SetAnimation(g->GetID(), obj.animName.empty() ? "IDLE" : obj.animName);
+				}
+			} else {
+				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
+				if (!g) {
+					std::cerr << "[RuntimeLevel] Spawn failed: " << obj.texture << std::endl;
+					continue;
+				}
 			}
 
 			// Rotation: degrees in JSON -> radians in engine
 			g->SetRotation(glm::radians(obj.rotation), { 0, 0, 1 });
 
-			// Collider
-			g->SetColliderSize({ obj.colWidth, obj.colHeight });
-			g->SetColliderOffset({ obj.colOffsetX, obj.colOffsetY });
+			// Collider setup honoring has_collider
+			if (obj.hasCollider) {
+				g->SetColliderSize({ obj.colWidth, obj.colHeight });
+				g->SetColliderOffset({ obj.colOffsetX, obj.colOffsetY });
 
-			// Fallback collider if invalid
-			if (obj.colWidth <= 0.f || obj.colHeight <= 0.f) {
-				const glm::vec3 s = g->GetScaleGLM();
-				g->SetColliderSize({ s.x, s.y });
+				// Fallback collider if invalid (kept only when collider is enabled)
+				if (obj.colWidth <= 0.f || obj.colHeight <= 0.f) {
+					const glm::vec3 s = g->GetScaleGLM();
+					g->SetColliderSize({ s.x, s.y });
+					g->SetColliderOffset({ 0.f, 0.f });
+				}
+			} else {
+				// Explicitly clear collider when disabled
+				g->SetColliderSize({ 0.f, 0.f });
 				g->SetColliderOffset({ 0.f, 0.f });
 			}
 
@@ -86,6 +107,17 @@ namespace RuntimeLevel {
 				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
 			}
 
+			if (g) {
+				// Default shadow off unless specified
+				const bool shadowOn = obj.shadow; // new JSON bool
+				g->EnableShadow(shadowOn);
+
+				// You can keep sizing/offset consistent; they won’t render unless enabled.
+				g->SetShadowSize(glm::vec2(obj.w * 0.8f, obj.h * 0.33f));
+				g->SetShadowOffset(glm::vec2(0.0f, 55.0f));
+				g->SetShadowOpacity(0.65f);
+			}
+
 			// Default metadata
 			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, 0.0f }, { obj.w, obj.h, 1.0f }, obj.rotation);
 
@@ -100,10 +132,22 @@ namespace RuntimeLevel {
 			defs.tag = obj.tag;
 			defs.layer = obj.layer;
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+			defs.visible = obj.visible;
 
 			scene.SetDefaults(g->GetID(), defs);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
-			scene.ClampToWalkArea(g);
+
+			// Allow immediate hide via alpha tint if invisible for visual consistency
+			if (!obj.visible) {
+				scene.SetObjectVisible(g->GetID(), false);
+				// keep object spawned but invisible; alpha tint avoids popping in debug
+				g->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.0f));
+			}
+
+			// Only clamp objects that have colliders
+			if (obj.hasCollider) {
+				scene.ClampToWalkArea(g);
+			}
 		}
 	}
 
@@ -124,6 +168,36 @@ namespace RuntimeLevel {
 
 		BuildSceneFromLevel(data, scene);
 		scene.RebuildColliders();
+
+		std::vector<LEPANELFONTS::TextObjectData> parsedTexts;
+		parsedTexts.reserve(data.textObjects.size());
+
+		for (const auto& t : data.textObjects) {
+			LEPANELFONTS::TextObjectData d;
+			d.name = t.name;
+			d.fontName = t.fontName;
+			d.text = t.text;
+
+			d.x = t.x;
+			d.y = t.y;
+			d.scale = t.scale;
+
+			d.rotation = t.rotation;
+			d.useBlockRotation = t.useBlockRotation;
+
+			d.colorR = t.colorR;
+			d.colorG = t.colorG;
+			d.colorB = t.colorB;
+			d.colorA = t.colorA;
+
+			d.layer = t.layer;
+
+			parsedTexts.push_back(std::move(d));
+	}
+
+		LEPANELFONTS::SetTextObjectsWithScene(parsedTexts, scene);
+
+
 
 #if 0
 		// Create text for menu buttons if this is a menu level

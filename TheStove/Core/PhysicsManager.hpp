@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         PhysicsManager.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu	(30%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(65%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
  DESCRIPTION:       Declares PhysicsManager, a lightweight force-based integrator that updates
 					per-entity velocity/position, supports seek/arrive targets, simple drag, and
@@ -30,6 +30,8 @@
 #include "Physics.hpp"
 #include "System.hpp"
 
+class Scene;
+
  /**
   * @brief Lightweight force-based physics for entities.
   *
@@ -51,6 +53,9 @@ public:
 	// Set EntityManager and InputManager references (must be called after construction)
 	void SetEntityManager(EntityManager* entityMgr);
 	void SetInputManager(InputManager* inputMgr);
+	void SetScene(Scene* scene) {
+		scene_ = scene;
+	}
 
 	// World collision/trim resolver used to clamp movement each step.
 	void SetCollisionWorld(collision::World* world);
@@ -114,6 +119,7 @@ private:
 	MovementManager* movement_ = nullptr;
 	EntityManager* entityManager_ = nullptr;
 	InputManager* inputManager_ = nullptr;
+	Scene* scene_ = nullptr;
 
 	// Constants
 	static constexpr float SEEK_MAX_ACCEL = 600.0f;

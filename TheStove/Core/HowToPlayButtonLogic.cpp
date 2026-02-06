@@ -2,20 +2,20 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         HowToPlayButtonLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION: Handles hover and click behaviour for the “How To Play”
-             button in the main menu. On click, it spawns a fullscreen
-             HowToPlay overlay image; clicking again (or pressing Esc)
-             closes the overlay. Also manages hover texture swapping and
-             ignores input while the overlay is active.
-
+ DESCRIPTION:       Handles hover and click behaviour for the “How To Play”
+                    button in the main menu. On click, it spawns a fullscreen
+                    HowToPlay overlay image; clicking again (or pressing Esc)
+                    closes the overlay. Also manages hover texture swapping and
+                    ignores input while the overlay is active.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
 #include "HowToPlayButtonLogic.hpp"
+#include "FilePaths.hpp"
 
 #include <iostream> // <-- for debug logs
 
@@ -60,8 +60,8 @@ namespace {
 void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 #ifdef _DEBUG
     // In Debug build this script is currently inert.
-    std::cout << "[HowToPlayButtonLogic] Update called in _DEBUG build, doing nothing. ownerID="
-        << GetOwnerID() << "\n";
+    /*std::cout << "[HowToPlayButtonLogic] Update called in _DEBUG build, doing nothing. ownerID="
+        << GetOwnerID() << "\n";*/
     (void)scene;
     (void)input;
 #else
@@ -187,7 +187,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
     const float h = static_cast<float>(GraphicsEngine::kRefH);
 
     GameObject* img = scene.SpawnStaticSprite(
-        "../assets/HowToPlay.png",             // change path if needed
+        FilePaths::Textures::HOW_TO_PLAY,      // change path if needed
         { w * 0.5f, h * 0.5f, 0.0f },          // center
         { w, h },                              // full screen
         uiLayer);
