@@ -388,7 +388,7 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	// Play UI click sound for pickup feedback (release mode only)
 #ifndef _DEBUG
 	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		audioMgr->PlaySound("ui_click", audioMgr->GetVfxVolume() * 0.2f, false);
+		audioMgr->PlaySound("ui_click", audioMgr->GetVfxVolume() * 0.05f, false);
 	}
 #endif
 
@@ -793,7 +793,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 				// Play put down sound effect (release mode only)
 #ifndef _DEBUG
 				if (AudioManager* audioMgr = scene.GetAudioManager()) {
-					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.2f, false);
+					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
 				}
 #endif
 			}
@@ -894,7 +894,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 				// Play put down sound effect (release mode only)
 #ifndef _DEBUG
 				if (AudioManager* audioMgr = scene.GetAudioManager()) {
-					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.2f, false);
+					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
 				}
 #endif
 			}
