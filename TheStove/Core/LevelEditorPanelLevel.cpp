@@ -1633,6 +1633,7 @@ namespace LEPANELLEVEL {
 						for (const std::string& name : layerNames) {
 							bool isSelected = (textObj.layer == name);
 							if (ImGui::Selectable(name.c_str(), isSelected)) {
+								PushUndoSnapshot(editor, scene);
 								textObj.layer = name;
 								scene.AddLayer(name);
 							}
