@@ -18,6 +18,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 #include "GameObject.hpp"
 #include "ResourceManager.hpp" 
@@ -56,6 +57,9 @@ public:
 	void DespawnByID(int id);
 	void Clear();
 
+	// Register a callback invoked when an entity is despawned. Callback receives the despawned id.
+	void RegisterDespawnCallback(const std::function<void(int)>& cb);
+
 	// Transform tracking (mirrors your existing maps)
 	void SetPosition(int id, const glm::vec3& pos) {
 		spritePositions_[id] = pos;
@@ -81,6 +85,9 @@ private:
 	std::vector<std::unique_ptr<GameObject>> sceneObjects_;
 	std::vector<int> freeIDs_;
 	int nextID_ = 0;
+
+	// Callbacks invoked when an entity is despawned. Signature: void(int id)
+	std::vector<std::function<void(int)>> despawnCbs_;
 
 	// Transform maps 
 	std::unordered_map<int, glm::vec3> spritePositions_;

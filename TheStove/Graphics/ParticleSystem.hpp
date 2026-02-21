@@ -18,8 +18,11 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <random>
+#include <cstdint>
 
 class EntityManager;
+class GameObject;
 
 class ParticleSystem {
 public:
@@ -60,6 +63,9 @@ public:
 
 		// Physics/collision
 		bool disableColliders = true;
+
+		// Per-preset RNG (seeded at registration time for reproducible behavior)
+		std::mt19937 rng{ std::random_device{}() };
 	};
 
 	void RegisterPreset(const Preset& preset, EntityManager& em);
@@ -78,7 +84,9 @@ public:
 private:
 	struct ParticleInstance {
 		int id = -1;
+		GameObject* obj = nullptr;
 		bool active = false;
+		bool inFreeList = false;
 		const Preset* preset = nullptr;
 
 		glm::vec2 vel{ 0.0f, 0.0f };
@@ -100,9 +108,26 @@ private:
 	std::unordered_map<std::string, Preset> presets_;
 	std::unordered_map<std::string, Pool> pools_;
 
+	std::mt19937 rng_{ std::random_device{}() };
+
+	// Whether we've registered callbacks with the EntityManager
+	bool callbackRegistered_ = false;
+
 	void EnsureDefaultFootstepPreset_(EntityManager& em);
 	void InitPool_(const Preset& preset, EntityManager& em);
 
+	// Initialize the particle system with the EntityManager. Registers callbacks
+	// and performs one-time setup. Call once at startup.
+	void Init(EntityManager& em);
+
+	// Called by EntityManager when an entity is despawned so we can clear cached pointers
+	void OnEntityDespawned(int id);
+
+	// Seed the RNG for deterministic particle behavior (useful for tests/replays)
+	void SetSeed(uint32_t seed);
+
 	float rand01_();
+	float rand01_(std::mt19937& r);
 	float randRange_(float a, float b);
+	float randRange_(float a, float b, std::mt19937& r);
 };
