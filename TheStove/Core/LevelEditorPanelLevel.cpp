@@ -599,6 +599,28 @@ namespace LEPANELLEVEL {
 
 		ImGui::SameLine();
 
+		// New scene
+		if (ImGui::Button("New Scene")) {
+			scene.StopAllObjectAudio();
+			scene.SetSimulationActive(false);
+			scene.ClearAll();
+			scene.RebuildColliders();
+			scene.ResetResizeBaseline();
+
+			editor.SetPlaying(false);
+			LEPANELFONTS::ClearTextObjects();
+
+			LevelData& fresh = editor.MutableLevel();
+			fresh.objects.clear();
+			fresh.textObjects.clear();
+			fresh.background.clear();
+
+			selectedIndex = -1;
+			selectedObjectId = -1;
+		}
+
+		ImGui::SameLine();
+
 		// Save
 		if (ImGui::Button("Save Level")) {
 			LevelData& dst = editor.MutableLevel();
@@ -675,6 +697,17 @@ namespace LEPANELLEVEL {
 				SyncLevelToScene(editor.MutablePlaySnapshot(), scene);
 				scene.RebuildColliders();
 				editor.SetPlaying(false);
+			}
+		}
+
+		ImGui::SameLine();
+
+		// Pause/Resume while in play mode
+		const bool isSimActive = scene.IsSimulationActive();
+		const char* pauseLabel = isSimActive ? "Pause" : "Resume";
+		if (ImGui::Button(pauseLabel)) {
+			if (editor.IsPlaying()) {
+				scene.SetSimulationActive(!isSimActive);
 			}
 		}
 
