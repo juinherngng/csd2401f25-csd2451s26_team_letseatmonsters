@@ -108,9 +108,34 @@ namespace LEPANELPREFABS {
 		return NormalizePrefabPath(lhs) == NormalizePrefabPath(rhs);
 	}
 
+	static std::string ResolveLevelsDirectoryForPropagation() {
+		std::error_code ec;
+
+		fs::path probe = fs::current_path(ec);
+		if (!ec) {
+			for (int i = 0; i < 10; ++i) {
+				const fs::path buildDir = probe / "build";
+				const fs::path levelsDir = probe / "levels";
+
+				if (fs::exists(buildDir, ec) && fs::is_directory(buildDir, ec) &&
+					fs::exists(levelsDir, ec) && fs::is_directory(levelsDir, ec)) {
+					return levelsDir.lexically_normal().generic_string();
+				}
+
+				if (!probe.has_parent_path()) {
+					break;
+				}
+
+				probe = probe.parent_path();
+			}
+		}
+
+		return FilePaths::Dirs::LEVELS_EDITOR;
+	}
+
 	static int PropagatePrefabToAllLevelFiles(const std::string& prefabPath, const LevelObject& updatedPrefab) {
 		int totalObjectsUpdated = 0;
-		const std::vector<std::string> levelFiles = ListJsonFiles(FilePaths::Dirs::LEVELS_EDITOR);
+		const std::vector<std::string> levelFiles = ListJsonFiles(ResolveLevelsDirectoryForPropagation());
 
 		for (const auto& levelPath : levelFiles) {
 			LevelData levelData{};
