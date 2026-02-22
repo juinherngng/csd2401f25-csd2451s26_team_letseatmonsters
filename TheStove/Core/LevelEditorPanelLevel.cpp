@@ -482,18 +482,21 @@ namespace {
 		// New layer creation
 		ImGui::TextUnformatted("Create a new layer:");
 		static char newLayerBuf[64] = "";
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5f);
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 88.0f);
 		ImGui::InputText("##NewLayerName", newLayerBuf, IM_ARRAYSIZE(newLayerBuf));
 		ImGui::SameLine();
 
-		if (ImGui::Button("Add Layer") && newLayerBuf[0] != '\0') {
+		if (ImGui::Button("Add", ImVec2(56.0f, 0.0f)) && newLayerBuf[0] != '\0') {
 			scene.AddLayer(newLayerBuf);
 			newLayerBuf[0] = '\0';
 		}
 
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("Add layer");
+		}
+
 		ImGui::Separator();
 		ImGui::TextUnformatted("Existing layers:");
-		ImGui::Separator();
 
 		const auto& layerMap = scene.GetAllLayers();
 		if (layerMap.empty()) {
@@ -507,6 +510,11 @@ namespace {
 		for (const auto& pair : layerMap) {
 			sorted.emplace_back(pair.first, &pair.second);
 		}
+
+		std::sort(sorted.begin(), sorted.end(),
+			[](const auto& lhs, const auto& rhs) {
+				return lhs.first < rhs.first;
+			});
 
 		for (const auto& entry : sorted) {
 			const std::string& layerName = entry.first;
@@ -523,45 +531,63 @@ namespace {
 
 			// Layer name
 			ImGui::TextUnformatted(layerName.c_str());
-			ImGui::SameLine(180.0f);
-
-			// Visible checkbox
-			if (ImGui::Checkbox("Visible", &visible)) {
+			ImGui::SameLine();
+			ImGui::TextDisabled("(%d)", count);
+			ImGui::SameLine();
+			if (ImGui::Checkbox("V", &visible)) {
 				layer->SetVisible(visible);
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Layer visibility");
 			}
 
 			ImGui::SameLine();
 
 			// Collisions checkbox
-			if (ImGui::Checkbox("Collisions", &collidable)) {
+			if (ImGui::Checkbox("C", &collidable)) {
 				layer->SetCollidable(collidable);
 			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Layer collisions");
+			}
 
-			ImGui::SameLine();
-			ImGui::TextDisabled("(%d objects)", count);
-
-			// Assign + Delete buttons
 			if (selectedObjectId != -1) {
-				ImGui::SameLine();
-				if (ImGui::Button("Assign selected")) {
+				if (ImGui::SmallButton("Assign")) {
 					scene.AssignObjectToLayer(selectedObjectId, layerName);
 				}
 			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("Delete")) {
-				// Optional: don't allow deleting base layer "1"
-				if (layerName != "1") {
-					// Move all objects on this layer back to layer 1
-					for (int objID : layer->GetObjects()) {
-						scene.AssignObjectToLayer(objID, "1");
-					}
-
-					scene.RemoveLayer(layerName);
-				}
+			else {
+				ImGui::BeginDisabled();
+				ImGui::SmallButton("Assign");
+				ImGui::EndDisabled();
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Assign selected object to this layer");
 			}
 
+			ImGui::SameLine();
+			if (layerName == "1") {
+				ImGui::BeginDisabled();
+				ImGui::SmallButton("Del");
+				ImGui::EndDisabled();
+			}
+			else if (ImGui::SmallButton("Del")) {
+				for (int objID : layer->GetObjects()) {
+					scene.AssignObjectToLayer(objID, "1");
+				}
+				scene.RemoveLayer(layerName);
+			}
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Delete layer (moves objects to layer 1)");
+			}
+
+			ImGui::Separator();
 			ImGui::PopID();
+		}
+
+		if (selectedObjectId == -1) {
+			ImGui::TextDisabled("Select an object to enable Assign.");
 		}
 	}
 #endif // _DEBUG
@@ -651,87 +677,6 @@ namespace LEPANELLEVEL {
 			editor.levelPath = (fs::path(sLevelsDir) / (stem + ".json")).generic_string();
 		}
 
-		// Load
-		if (ImGui::Button("Load Level")) {
-			LevelData& work = editor.MutableLevel();
-			if (LevelSerializer::Load(editor.levelPath, work)) {
-				scene.ClearAll();
-				LEPANELFONTS::ClearTextObjects();  // Clear text objects before loading
-				SyncLevelToScene(work, scene);
-				SyncTextObjectsToEditor(work);     // Load text objects
-				scene.RebuildColliders();
-				scene.SetSimulationActive(false);
-				scene.ResetResizeBaseline();
-
-				if (!work.background.empty()) {
-					scene.SetSceneBackground(work.background);
-				}
-
-				editor.SetPlaying(false);
-				selectedIndex = -1;
-				selectedObjectId = -1;
-				ClearUndoHistory();
-			}
-		}
-
-		ImGui::SameLine();
-
-		// New scene
-		if (ImGui::Button("New Scene")) {
-			scene.StopAllObjectAudio();
-			scene.SetSimulationActive(false);
-			scene.ClearAll();
-			scene.RebuildColliders();
-			scene.ResetResizeBaseline();
-
-			editor.SetPlaying(false);
-			LEPANELFONTS::ClearTextObjects();
-
-			LevelData& fresh = editor.MutableLevel();
-			fresh.objects.clear();
-			fresh.textObjects.clear();
-			fresh.background.clear();
-
-			selectedIndex = -1;
-			selectedObjectId = -1;
-			ClearUndoHistory();
-		}
-
-		ImGui::SameLine();
-
-		// Save
-		if (ImGui::Button("Save Level")) {
-			LevelData& dst = editor.MutableLevel();
-			SyncSceneToLevel(scene, dst);
-			SyncTextObjectsToLevel(dst);  // Save text objects
-
-			std::cout << "[LevelPanel] Saving level to: " << editor.levelPath << std::endl;
-			std::cout << "[LevelPanel] Game objects: " << dst.objects.size() << std::endl;
-			std::cout << "[LevelPanel] Text objects: " << dst.textObjects.size() << std::endl;
-
-			if (LevelSerializer::Save(editor.levelPath, dst)) {
-				std::cout << "[LevelPanel] Level saved successfully!" << std::endl;
-			}
-			else {
-				std::cerr << "[LevelPanel] ERROR: Failed to save level!" << std::endl;
-			}
-		}
-
-		// Undo/Redo are editor-only operations. While simulation is running,
-		// disable the controls so runtime changes are not mixed into edit history.
-		ImGui::BeginDisabled(editor.IsPlaying());
-
-		ImGui::SameLine();
-
-		// Undo
-		if (ImGui::Button("Undo")) {
-			if (PerformUndo(editor, scene)) {
-				// visually reset selection
-				selectedIndex = -1;
-				selectedObjectId = -1;
-			}
-		}
-
 		// Ctrl+Z keyboard shortcut for Undo (same as button)
 		ImGuiIO& io = ImGui::GetIO();
 		if (!editor.IsPlaying() &&
@@ -756,23 +701,98 @@ namespace LEPANELLEVEL {
 			}
 		}
 
-		ImGui::SameLine();
+		// Level actions in a compact grid to reduce horizontal crowding
+		if (ImGui::BeginTable("##LevelActionsGrid", 4, ImGuiTableFlags_SizingStretchSame)) {
+			// Row 1
+			ImGui::TableNextRow();
 
-		// Redo
-		if (ImGui::Button("Redo")) {
-			if (PerformRedo(editor, scene)) {
-				selectedIndex = -1;
-				selectedObjectId = -1;
+			ImGui::TableSetColumnIndex(0);
+			if (ImGui::Button("Load Level", ImVec2(-FLT_MIN, 0.0f))) {
+				LevelData& work = editor.MutableLevel();
+				if (LevelSerializer::Load(editor.levelPath, work)) {
+					scene.ClearAll();
+					LEPANELFONTS::ClearTextObjects();  // Clear text objects before loading
+					SyncLevelToScene(work, scene);
+					SyncTextObjectsToEditor(work);     // Load text objects
+					scene.RebuildColliders();
+					scene.SetSimulationActive(false);
+					scene.ResetResizeBaseline();
+
+					if (!work.background.empty()) {
+						scene.SetSceneBackground(work.background);
+					}
+
+					editor.SetPlaying(false);
+					selectedIndex = -1;
+					selectedObjectId = -1;
+					ClearUndoHistory();
+				}
 			}
-		}
 
-		ImGui::EndDisabled();
+			ImGui::TableSetColumnIndex(1);
+			if (ImGui::Button("New Scene", ImVec2(-FLT_MIN, 0.0f))) {
+				scene.StopAllObjectAudio();
+				scene.SetSimulationActive(false);
+				scene.ClearAll();
+				scene.RebuildColliders();
+				scene.ResetResizeBaseline();
 
-		ImGui::SameLine();
+				editor.SetPlaying(false);
+				LEPANELFONTS::ClearTextObjects();
 
-		// Play
-		if (ImGui::Button(editor.IsPlaying() ? "Playing..." : "Play")) {
-			if (!editor.IsPlaying()) {
+				LevelData& fresh = editor.MutableLevel();
+				fresh.objects.clear();
+				fresh.textObjects.clear();
+				fresh.background.clear();
+				ClearUndoHistory();
+			}
+
+			ImGui::TableSetColumnIndex(2);
+			if (ImGui::Button("Save Level", ImVec2(-FLT_MIN, 0.0f))) {
+				LevelData& dst = editor.MutableLevel();
+				SyncSceneToLevel(scene, dst);
+				SyncTextObjectsToLevel(dst);  // Save text objects
+
+				std::cout << "[LevelPanel] Saving level to: " << editor.levelPath << std::endl;
+				std::cout << "[LevelPanel] Game objects: " << dst.objects.size() << std::endl;
+				std::cout << "[LevelPanel] Text objects: " << dst.textObjects.size() << std::endl;
+
+				if (LevelSerializer::Save(editor.levelPath, dst)) {
+					std::cout << "[LevelPanel] Level saved successfully!" << std::endl;
+				}
+				else {
+					std::cerr << "[LevelPanel] ERROR: Failed to save level!" << std::endl;
+				}
+			}
+
+			ImGui::TableSetColumnIndex(3);
+			ImGui::BeginDisabled(editor.IsPlaying());
+			if (ImGui::Button("Undo", ImVec2(-FLT_MIN, 0.0f))) {
+				if (PerformUndo(editor, scene)) {
+					selectedIndex = -1;
+					selectedObjectId = -1;
+				}
+			}
+
+			ImGui::EndDisabled();
+
+			// Row 2
+			ImGui::TableNextRow();
+
+			ImGui::TableSetColumnIndex(0);
+			ImGui::BeginDisabled(editor.IsPlaying());
+			if (ImGui::Button("Redo", ImVec2(-FLT_MIN, 0.0f))) {
+				if (PerformRedo(editor, scene)) {
+					selectedIndex = -1;
+					selectedObjectId = -1;
+				}
+			}
+
+			ImGui::EndDisabled();
+
+			ImGui::TableSetColumnIndex(1);
+			ImGui::BeginDisabled(editor.IsPlaying());
+			if (ImGui::Button("Play", ImVec2(-FLT_MIN, 0.0f))) {
 				LevelData& snap = editor.MutablePlaySnapshot();
 				SyncSceneToLevel(scene, snap);
 
@@ -786,18 +806,14 @@ namespace LEPANELLEVEL {
 				scene.RebuildColliders();
 				scene.ResolveInitialStaticOverlaps();
 			}
-		}
 
-		ImGui::SameLine();
+			ImGui::EndDisabled();
 
-		// Stop
-		if (ImGui::Button("Stop")) {
-			if (editor.IsPlaying()) {
+			ImGui::TableSetColumnIndex(2);
+			ImGui::BeginDisabled(!editor.IsPlaying());
+			if (ImGui::Button("Stop", ImVec2(-FLT_MIN, 0.0f))) {
 				// Stop all object-bound audio before clearing the scene
 				scene.StopAllObjectAudio();
-
-				// IMPORTANT: Set simulation inactive BEFORE restoring the scene
-				// to prevent spawn audio from playing during restoration
 				scene.SetSimulationActive(false);
 
 				scene.ClearAll();
@@ -805,17 +821,20 @@ namespace LEPANELLEVEL {
 				scene.RebuildColliders();
 				editor.SetPlaying(false);
 			}
-		}
 
-		ImGui::SameLine();
+			ImGui::EndDisabled();
 
-		// Pause/Resume while in play mode
-		const bool isSimActive = scene.IsSimulationActive();
-		const char* pauseLabel = isSimActive ? "Pause" : "Resume";
-		if (ImGui::Button(pauseLabel)) {
-			if (editor.IsPlaying()) {
+			ImGui::TableSetColumnIndex(3);
+			const bool isSimActive = scene.IsSimulationActive();
+			const char* pauseLabel = isSimActive ? "Pause" : "Resume";
+			ImGui::BeginDisabled(!editor.IsPlaying());
+			if (ImGui::Button(pauseLabel, ImVec2(-FLT_MIN, 0.0f))) {
 				scene.SetSimulationActive(!isSimActive);
 			}
+
+			ImGui::EndDisabled();
+
+			ImGui::EndTable();
 		}
 
 		DrawLayerManager(scene, selectedObjectId);
@@ -1881,7 +1900,7 @@ namespace LEPANELLEVEL {
 
 			ImGui::EndDragDropTarget();
 		}
-	
+
 		ImGui::End();
 	}
 
