@@ -1,0 +1,221 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:         LevelEditorPanelConfig.cpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
+
+ DESCRIPTION:       Implementation of the Level Editor Config panel.
+					- Supports editing config.txt settings in the editor
+					- Applies audio settings live through AudioManager
+					- Persists window/audio defaults for the next startup
+
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
+#include "LevelEditorPanelConfig.hpp"
+
+#include <filesystem>
+#include <string>
+
+#include "AudioManager.hpp"
+#include "ConfigManager.hpp"
+#include "Core.hpp"
+#include "LevelEditor.hpp"
+
+#include "../Graphics/GraphicsEngine.hpp"
+
+#ifdef _DEBUG
+#include <imgui.h>
+#endif
+
+namespace CoreFramework {
+	class CoreEngine;
+}
+
+struct ApplicationState {
+	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
+};
+
+extern ApplicationState* g_AppState;
+
+namespace {
+	std::string ResolveConfigPath() {
+		namespace fs = std::filesystem;
+
+		const fs::path cwd = fs::current_path();
+		const fs::path candidates[] = {
+			cwd / "../../assets/config.txt",
+			cwd / "../assets/config.txt",
+			cwd / "assets/config.txt",
+			cwd / "config.txt"
+		};
+
+		for (const auto& path : candidates) {
+			std::error_code ec;
+			if (fs::exists(path, ec)) {
+				return path.lexically_normal().string();
+			}
+		}
+
+		// Fallback to the most common source-tree path.
+		return (cwd / "../../assets/config.txt").lexically_normal().string();
+	}
+}
+
+namespace LEPANELCONFIG {
+#ifdef _DEBUG
+	void DrawConfigPanel(LevelEditor& editor, Scene& scene) {
+		(void)editor;
+		(void)scene;
+
+		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
+
+		if (!ImGui::Begin("Config###LE_Config")) {
+			ImGui::End();
+			return;
+		}
+
+		static bool loaded = false;
+		static std::string configPath;
+		static ConfigManager::Settings settings{};
+
+		if (!loaded) {
+			configPath = ResolveConfigPath();
+			settings = ConfigManager::LoadFromAssetsOrDefaults();
+			ConfigManager::Validate(settings);
+			loaded = true;
+		}
+
+		ImGui::SeparatorText("Config File");
+		ImGui::TextWrapped("Path: %s", configPath.c_str());
+
+		if (ImGui::Button("Reload From File")) {
+			ConfigManager::Settings reloaded = settings;
+			if (ConfigManager::Load(configPath, reloaded)) {
+				settings = reloaded;
+				ConfigManager::Validate(settings);
+				ImGui::OpenPopup("Config Reloaded");
+			}
+			else {
+				ImGui::OpenPopup("Config Reload Failed");
+			}
+		}
+
+		if (ImGui::BeginPopupModal("Config Reloaded", nullptr,
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+			ImGui::Text("Config reloaded successfully.");
+			if (ImGui::Button("OK", ImVec2(120, 0))) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginPopupModal("Config Reload Failed", nullptr,
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+			ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Failed to load config file.");
+			if (ImGui::Button("OK", ImVec2(120, 0))) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::SeparatorText("Display Settings");
+
+		int width = settings.resolution.width;
+		int height = settings.resolution.height;
+		if (ImGui::InputInt("Window Width", &width)) {
+			settings.resolution.width = width;
+		}
+
+		if (ImGui::InputInt("Window Height", &height)) {
+			settings.resolution.height = height;
+		}
+
+		ImGui::Checkbox("Fullscreen", &settings.fullscreen);
+
+		ImGui::SeparatorText("Audio Settings");
+		ImGui::SliderFloat("Master Volume", &settings.masterVolume, 0.0f, 1.0f, "%.2f");
+		ImGui::SliderFloat("BGM Volume", &settings.bgmVolume, 0.0f, 1.0f, "%.2f");
+		ImGui::SliderFloat("VFX Volume", &settings.vfxVolume, 0.0f, 1.0f, "%.2f");
+
+		ConfigManager::Validate(settings);
+
+		if (ImGui::Button("Apply Audio Runtime", ImVec2(170, 0))) {
+			if (g_AppState && g_AppState->coreEngine) {
+				if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
+					audioMgr->ApplySettings(settings);
+					ImGui::OpenPopup("Audio Applied");
+				}
+				else {
+					ImGui::OpenPopup("Audio Apply Failed");
+				}
+			}
+			else {
+				ImGui::OpenPopup("Audio Apply Failed");
+			}
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Save Config", ImVec2(120, 0))) {
+			if (ConfigManager::Save(configPath, settings)) {
+				ImGui::OpenPopup("Config Saved");
+			}
+			else {
+				ImGui::OpenPopup("Config Save Failed");
+			}
+		}
+
+		ImGui::TextDisabled("Display changes are saved for next startup.");
+
+		if (ImGui::BeginPopupModal("Audio Applied", nullptr,
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+			ImGui::Text("Applied audio settings at runtime.");
+			if (ImGui::Button("OK", ImVec2(120, 0))) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginPopupModal("Audio Apply Failed", nullptr,
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+			ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Audio manager unavailable.");
+			if (ImGui::Button("OK", ImVec2(120, 0))) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginPopupModal("Config Saved", nullptr,
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+			ImGui::Text("Config saved successfully.");
+			if (ImGui::Button("OK", ImVec2(120, 0))) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginPopupModal("Config Save Failed", nullptr,
+			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+			ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Failed to save config file.");
+			if (ImGui::Button("OK", ImVec2(120, 0))) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::End();
+	}
+#else
+	void DrawConfigPanel(LevelEditor& editor, Scene& scene) {
+		(void)editor;
+		(void)scene;
+	}
+#endif
+}
