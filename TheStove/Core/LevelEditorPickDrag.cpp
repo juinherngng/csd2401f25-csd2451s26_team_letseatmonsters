@@ -163,6 +163,26 @@ namespace LEPICKDRAG {
 		outBR = TransformLocal(hx, hy);
 	}
 
+	static bool IsPointInsideObjectBounds(const glm::vec2& pointWorld,
+		const glm::vec3& objPos,
+		const glm::vec3& objScale,
+		float objRotDeg) {
+		const float halfX = 0.5f * objScale.x;
+		const float halfY = 0.5f * objScale.y;
+
+		glm::vec2 local = pointWorld - glm::vec2{ objPos.x, objPos.y };
+
+		const float rotRad = glm::radians(objRotDeg);
+		const float c = std::cos(-rotRad);
+		const float s = std::sin(-rotRad);
+
+		const float localX = local.x * c - local.y * s;
+		const float localY = local.x * s + local.y * c;
+
+		return (localX >= -halfX && localX <= halfX) &&
+			(localY >= -halfY && localY <= halfY);
+	}
+
 	static bool GetColliderBoxWorld(GameObject* obj,
 									glm::vec3& outCenter,
 									glm::vec3& outSize) {
@@ -648,13 +668,9 @@ namespace LEPICKDRAG {
 
 					const glm::vec3 pos = g->GetPositionGLM();
 					const glm::vec3 sz = g->GetScaleGLM();
+					const float rotDeg = glm::degrees(g->GetRotationAngleZ());
 
-					const float hx = 0.5f * sz.x;
-					const float hy = 0.5f * sz.y;
-
-					const bool inside =
-						(mouseWorld.x >= pos.x - hx && mouseWorld.x <= pos.x + hx) &&
-						(mouseWorld.y >= pos.y - hy && mouseWorld.y <= pos.y + hy);
+					const bool inside = IsPointInsideObjectBounds(mouseWorld, pos, sz, rotDeg);
 
 					if (inside) {
 						pickedIndex = i;
