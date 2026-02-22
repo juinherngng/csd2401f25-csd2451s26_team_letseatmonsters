@@ -166,6 +166,10 @@ namespace {
 
 	// Take a snapshot of the current Scene into LevelData and push onto the stack.
 	static void PushUndoSnapshot(LevelEditor& editor, Scene& scene) {
+		if (editor.IsPlaying()) {
+			return;
+		}
+
 		LevelData snap{};
 		SyncSceneToLevel(scene, snap);
 		SyncTextObjectsToLevel(snap);
@@ -184,7 +188,7 @@ namespace {
 
 	// Pop last snapshot and restore it into the Scene.
 	static bool PerformUndo(LevelEditor& editor, Scene& scene) {
-		if (sUndoStack.empty()) {
+		if (editor.IsPlaying() || sUndoStack.empty()) {
 			return false;
 		}
 
@@ -214,7 +218,7 @@ namespace {
 
 	// Pop last redo snapshot and restore it into the Scene.
 	static bool PerformRedo(LevelEditor& editor, Scene& scene) {
-		if (sRedoStack.empty()) {
+		if (editor.IsPlaying() || sRedoStack.empty()) {
 			return false;
 		}
 
@@ -713,6 +717,10 @@ namespace LEPANELLEVEL {
 			}
 		}
 
+		// Undo/Redo are editor-only operations. While simulation is running,
+		// disable the controls so runtime changes are not mixed into edit history.
+		ImGui::BeginDisabled(editor.IsPlaying());
+
 		ImGui::SameLine();
 
 		// Undo
@@ -757,6 +765,8 @@ namespace LEPANELLEVEL {
 				selectedObjectId = -1;
 			}
 		}
+
+		ImGui::EndDisabled();
 
 		ImGui::SameLine();
 
@@ -1871,7 +1881,7 @@ namespace LEPANELLEVEL {
 
 			ImGui::EndDragDropTarget();
 		}
-
+	
 		ImGui::End();
 	}
 

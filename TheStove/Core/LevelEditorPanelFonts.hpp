@@ -31,12 +31,12 @@ namespace LEPANELFONTS {
         std::string text;
         float x{ 0.0f }, y{ 0.0f };
         float scale{ 1.0f };
-        float rotation{ 0.0f };  // Rotation in degrees
-        bool useBlockRotation{ true };  // true = block rotation, false = per-character rotation
+        float rotation{ 0.0f };        // Rotation in degrees
+        bool useBlockRotation{ true }; // true = block rotation, false = per-character rotation
         float colorR{1.0f}, colorG{ 1.0f }, colorB{ 1.0f }, colorA{ 1.0f };
-        std::string layer{ "1" };  // Layer for rendering order
-        bool visible{ true };  // Per-text visibility
-        float depth{ 0.0f };  // Depth within layer (higher = rendered on top)
+        std::string layer{ "1" };      // Layer for rendering order
+        bool visible{ true };          // Per-text visibility
+        float depth{ 0.0f };           // Depth within layer (higher = rendered on top)
     };
     
     const std::vector<TextObjectData>& GetTextObjects();
