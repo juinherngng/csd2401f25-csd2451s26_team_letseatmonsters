@@ -108,6 +108,7 @@ namespace {
 			textData.colorB = levelText.colorB;
 			textData.colorA = levelText.colorA;
 			textData.layer = levelText.layer;
+			textData.visible = levelText.visible;
 
 			// Try to load the font if not already loaded
 			if (!levelText.fontName.empty()) {
@@ -146,6 +147,7 @@ namespace {
 			levelText.colorB = textData.colorB;
 			levelText.colorA = textData.colorA;
 			levelText.layer = textData.layer;
+			levelText.visible = textData.visible;
 
 			// Get font size from loaded font if available
 			FontSystem::Font* font = ResourceManager::Instance().GetFont(textData.fontName);
@@ -240,6 +242,10 @@ namespace {
 		return true;
 	}
 #endif // _DEBUG
+	static void ClearUndoHistory() {
+		sUndoStack.clear();
+		sRedoStack.clear();
+	}
 
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
@@ -254,7 +260,7 @@ namespace {
 			// Spawn animated or static
 			if (obj.animated) {
 				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
-				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h },
+				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, obj.z }, { obj.w, obj.h },
 					fullFrame, 0.25f, true, layerName);
 
 				if (obj.texture.find("dino") != std::string::npos) {
@@ -265,7 +271,7 @@ namespace {
 				}
 			}
 			else {
-				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
+				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, obj.z }, { obj.w, obj.h }, layerName);
 			}
 
 			if (!g) {
@@ -286,6 +292,7 @@ namespace {
 
 			// Apply to object
 			g->SetRotation(glm::radians(rotDeg), { 0, 0, 1 });
+			g->EnableShadow(obj.shadow);
 
 			// Collider data
 			if (!obj.hasCollider) {
@@ -312,10 +319,10 @@ namespace {
 			scene.ApplyTagRules(g->GetID(), obj.tag, obj.speedX, obj.speedY);
 
 			// Store transform and defaults
-			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, 0.0f }, { obj.w, obj.h, 1.0f }, obj.rotation);
+			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, obj.z }, { obj.w, obj.h, 1.0f }, obj.rotation);
 
 			Scene::Defaults defs{};
-			defs.pos = { obj.x, obj.y, 0.0f };
+			defs.pos = { obj.x, obj.y, obj.z };
 			defs.size = { obj.w, obj.h };
 			defs.rot = obj.rotation;
 			defs.colSize = { obj.colWidth, obj.colHeight };
@@ -324,8 +331,10 @@ namespace {
 			defs.texture = obj.texture;
 			defs.tag = obj.tag;
 			defs.layer = obj.layer;
-			// NEW: approach offset
+
+			// Approach offset
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+
 			// Audio bindings
 			defs.audioOnSpawn = obj.audioOnSpawn;
 			defs.audioOnInteract = obj.audioOnInteract;
@@ -333,7 +342,10 @@ namespace {
 			defs.audioOnProcessing = obj.audioOnProcessing;
 			defs.audioLoop = obj.audioLoop;
 
+			defs.visible = obj.visible;
+
 			scene.SetDefaults(g->GetID(), defs);
+			scene.SetObjectVisible(g->GetID(), obj.visible);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
 			scene.ClampToWalkArea(g);
 
@@ -379,6 +391,7 @@ namespace {
 
 			out.x = pos.x;
 			out.y = pos.y;
+			out.z = pos.z;
 			out.w = size.x;
 			out.h = size.y;
 			out.rotation = rotDeg;
@@ -412,6 +425,9 @@ namespace {
 			out.audioOnDestroy = defs.audioOnDestroy;
 			out.audioOnProcessing = defs.audioOnProcessing;
 			out.audioLoop = defs.audioLoop;
+
+			out.shadow = g->HasShadow();
+			out.visible = scene.IsObjectVisible(id);
 
 			// Velocity
 			const glm::vec2 v = scene.GetNPCVelocity(id);
@@ -650,6 +666,7 @@ namespace LEPANELLEVEL {
 				editor.SetPlaying(false);
 				selectedIndex = -1;
 				selectedObjectId = -1;
+				ClearUndoHistory();
 			}
 		}
 
@@ -673,6 +690,7 @@ namespace LEPANELLEVEL {
 
 			selectedIndex = -1;
 			selectedObjectId = -1;
+			ClearUndoHistory();
 		}
 
 		ImGui::SameLine();
