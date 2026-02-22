@@ -189,7 +189,10 @@ void Scene::ClampToWalkArea(GameObject* obj) {
 	Math::Vector3D pos(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
 	const collision::WalkArea w = GetWalkArea();
 	physics::ClampInsideWalk(w, obj, pos);
-	obj->SetPosition(glm::vec3(pos.x, pos.y, pos.z));
+
+	const glm::vec3 clampedPos(pos.x, pos.y, pos.z);
+	obj->SetPosition(clampedPos);
+	entityManager.SetPosition(obj->GetID(), clampedPos);
 }
 
 glm::vec2 Scene::ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta) {

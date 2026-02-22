@@ -143,8 +143,8 @@ namespace LEPICKDRAG {
 									glm::vec2& outTR,
 									glm::vec2& outBL,
 									glm::vec2& outBR) {
-		const float hx = 0.5f * scale.x;
-		const float hy = 0.5f * scale.y;
+		const float hx = 0.5f * std::abs(scale.x);
+		const float hy = 0.5f * std::abs(scale.y);
 
 		const float rotRad = glm::radians(rotDeg);
 		const float c = std::cos(rotRad);
@@ -167,8 +167,8 @@ namespace LEPICKDRAG {
 		const glm::vec3& objPos,
 		const glm::vec3& objScale,
 		float objRotDeg) {
-		const float halfX = 0.5f * objScale.x;
-		const float halfY = 0.5f * objScale.y;
+		const float halfX = 0.5f * std::abs(objScale.x);
+		const float halfY = 0.5f * std::abs(objScale.y);
 
 		glm::vec2 local = pointWorld - glm::vec2{ objPos.x, objPos.y };
 
@@ -398,8 +398,8 @@ namespace LEPICKDRAG {
 					ImVec2 tl = gfx.WorldToSceneImage(worldTL);
 					ImVec2 tr = gfx.WorldToSceneImage(worldTR);
 
-					const float hx = 0.5f * sz.x;
-					const float hy = 0.5f * sz.y;
+					const float hx = 0.5f * std::abs(sz.x);
+					const float hy = 0.5f * std::abs(sz.y);
 
 					// Screen-space AABB that matches the yellow rect
 					ImVec2 rectMin{
@@ -1057,8 +1057,8 @@ namespace LEPICKDRAG {
 				// Rotation circle (Rotate tool only)
 				if (sGizmoMode == GizmoMode::Transform &&
 					sCurrentTool == TransformTool::Rotate) {
-					const float hxLocal = 0.5f * sz.x;
-					const float hyLocal = 0.5f * sz.y;
+					const float hxLocal = 0.5f * std::abs(sz.x);
+					const float hyLocal = 0.5f * std::abs(sz.y);
 
 					const float radiusWorld = std::max(hxLocal, hyLocal) * 1.3f;
 					glm::vec2  worldCirclePoint{ pos.x + radiusWorld, pos.y };
