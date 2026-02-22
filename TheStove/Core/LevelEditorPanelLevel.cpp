@@ -243,6 +243,8 @@ namespace {
 
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
+		LELINKS::PrefabLinkByID.clear();
+
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
 
@@ -335,6 +337,10 @@ namespace {
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
 			scene.ClampToWalkArea(g);
 
+			if (!obj.prefabPath.empty()) {
+				LELINKS::PrefabLinkByID[g->GetID()] = obj.prefabPath;
+			}
+
 			// Play spawn audio if configured (only during simulation/play mode)
 			if (scene.IsSimulationActive() && !obj.audioOnSpawn.empty()) {
 				scene.PlaySpawnAudio(g->GetID());
@@ -411,6 +417,11 @@ namespace {
 			const glm::vec2 v = scene.GetNPCVelocity(id);
 			out.speedX = v.x;
 			out.speedY = v.y;
+
+			auto prefabIt = LELINKS::PrefabLinkByID.find(id);
+			if (prefabIt != LELINKS::PrefabLinkByID.end()) {
+				out.prefabPath = prefabIt->second;
+			}
 
 			levelOut.objects.push_back(out);
 		}

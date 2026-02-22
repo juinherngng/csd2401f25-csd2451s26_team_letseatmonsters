@@ -23,6 +23,7 @@ struct LevelObject {
 	std::string texture;
 	std::string tag;
 	std::string layer;
+	std::string prefabPath;
 
 	// Transform (z used for sort/layering if applicable)
 	float x{ 0.0f };

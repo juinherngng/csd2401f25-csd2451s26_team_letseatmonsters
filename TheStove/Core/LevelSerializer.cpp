@@ -26,6 +26,7 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.texture = jsonObj.value("texture", "");
 	obj.tag = jsonObj.value("tag", "");
 	obj.layer = jsonObj.value("layer", "");
+	obj.prefabPath = jsonObj.value("prefab_path", "");
 
 	obj.x = jsonObj.value("x", 0.0f);
 	obj.y = jsonObj.value("y", 0.0f);
@@ -104,6 +105,7 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "texture", obj.texture },
 		{ "tag", obj.tag },
 		{ "layer", obj.layer},
+		{ "prefab_path", obj.prefabPath },
 		{ "x", obj.x },
 		{ "y", obj.y },
 		{ "z", obj.z },
