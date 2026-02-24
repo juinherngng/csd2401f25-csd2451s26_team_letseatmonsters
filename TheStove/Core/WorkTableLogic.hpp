@@ -54,6 +54,11 @@ public:
     // Convenience: immediately mark an ingredient as processed, bypassing the timer.
     // Useful for testing or for instant-process tables.
     bool ProcessIngredientInstant(IngredientLogic& ingredient);
+    // WorkTableLogic.hpp
+    bool LocksPlayerMovementWhileProcessing() const
+    {
+        return stationType_ == StationType::CuttingBoard;
+    }
 
 
 protected:

@@ -14,7 +14,7 @@ DESCRIPTION:     Implements PlateLogic, which manages the assembly of processed
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "PlateLogic.hpp"
+#include "../Core/PlateLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
 
 static const char* GetDishTexturePath(DishType t)
@@ -63,6 +63,19 @@ void PlateLogic::Start(Scene& /*scene*/)
 void PlateLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/)
 {
 	// No per-frame logic needed yet.
+}
+
+void PlateLogic::OnDestroy(Scene& scene)
+{
+	// If this plate had an attached ingredient visual, delete it too.
+	if (firstIngredientObjectID_ >= 0)
+	{
+		if (scene.GetGameObjectByID(firstIngredientObjectID_))
+		{
+			scene.DespawnByID(firstIngredientObjectID_);
+		}
+		firstIngredientObjectID_ = -1;
+	}
 }
 
 bool PlateLogic::CanAcceptIngredientType(IngredientType type) const

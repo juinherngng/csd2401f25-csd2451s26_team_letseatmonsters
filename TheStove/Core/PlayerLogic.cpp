@@ -491,6 +491,22 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	const physics::StepController& step = scene.GetStepController();
 	const bool stepMode = step.enabled;
 
+	// --- NEW: lock movement if we're using cutting board ---
+	UpdateStationLock(scene);
+
+	if (movementLocked_) {
+		// Ensure we don't keep any stale move target
+		hasMoveTarget = false;
+		scene.GetMovementManager().ClearMoveTarget(player->GetID());
+
+		// Stay idle (keeps facing direction from last movement)
+		UpdateSprite(scene, player, glm::vec2(0.f, 0.f));
+
+		// Still keep held item visually attached
+		UpdateCarriedItemTransform(scene);
+		return;
+	}
+
 	if (stepMode && physicsDt <= 0.0f) {
 		// Optional: still allow click selection while frozen
 		//std::cout << "HANDLE CLICK INPUT FREONZE\n";
@@ -804,6 +820,14 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 		{
 			//std::cout << "  [PlayerLogic] CASE2: CanAcceptItem = false\n";
 		}
+		// --- NEW: if this is a cutting board and it started processing, lock player movement ---
+		if (WorkTableLogic* wt = logicMgr.GetLogicForObject<WorkTableLogic>(tableObjectID))
+		{
+			if (wt->LocksPlayerMovementWhileProcessing() && wt->IsProcessing())
+			{
+				BeginStationLock(scene, tableObjectID);
+			}
+		}
 		return;
 	}
 
@@ -847,6 +871,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 
 						// Remember which GameObject is now visually sitting on this plate
 						plate->SetFirstIngredientObjectID(ingredientObjID);
+						ingredientObj->SetColliderSize(Math::Vector2D(0.f, 0.f));
+						ingredientObj->SetMovableByPhysics(false);
 					}
 				}
 
@@ -873,6 +899,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 					int firstObjID = plate->GetFirstIngredientObjectID();
 					if (firstObjID >= 0) {
 						scene.DespawnByID(firstObjID);
+						plate->SetFirstIngredientObjectID(-1);
 					}
 
 					// 2) Destroy the ingredient we just added (the one we were carrying)
@@ -929,10 +956,64 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 		p.y + carryOffset.y,
 		p.z));
 
+	// If the carried item is a plate with 1 ingredient attached visually, move that ingredient too.
+	if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(carriedItemID))
+	{
+		const int child = plate->GetFirstIngredientObjectID();
+		if (child >= 0 && !plate->HasPreparedDish())
+		{
+			if (GameObject* ingObj = scene.GetGameObjectByID(child))
+			{
+				// Follow the plate exactly (same position as plate)
+				glm::vec3 platePos = item->GetPositionGLM();
+				ingObj->SetPosition(platePos);
+
+				// Make sure it doesn't collide / get pushed
+				ingObj->SetColliderSize(Math::Vector2D(0.f, 0.f));
+				ingObj->SetMovableByPhysics(false);
+			}
+		}
+	}
+
 	////Optional debug
 	//std::cout << "[PlayerLogic] Updating carried item " << carriedItemID
 	//	<< " to follow player at (" << p.x + carryOffset.x << ", "
 	//	<< p.y + carryOffset.y << ")\n";
 }
 
+void PlayerLogic::BeginStationLock(Scene& scene, int tableID)
+{
+	movementLocked_ = true;
+	lockedTableID_ = tableID;
 
+	// Stop any click-to-move immediately
+	hasMoveTarget = false;
+
+	if (GameObject* p = GetOwner(scene)) {
+		scene.GetMovementManager().ClearMoveTarget(p->GetID());
+	}
+}
+
+void PlayerLogic::EndStationLock()
+{
+	movementLocked_ = false;
+	lockedTableID_ = -1;
+}
+
+void PlayerLogic::UpdateStationLock(Scene& scene)
+{
+	if (!movementLocked_)
+		return;
+
+	// If the table vanished, unlock
+	if (lockedTableID_ < 0) {
+		EndStationLock();
+		return;
+	}
+
+	// Only remain locked while the cutting board is actively processing
+	WorkTableLogic* wt = scene.GetLogicManager().GetLogicForObject<WorkTableLogic>(lockedTableID_);
+	if (!wt || !wt->LocksPlayerMovementWhileProcessing() || !wt->IsProcessing()) {
+		EndStationLock();
+	}
+}

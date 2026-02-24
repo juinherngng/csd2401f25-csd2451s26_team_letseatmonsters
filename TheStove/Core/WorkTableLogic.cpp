@@ -284,9 +284,6 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item)
     // Remember RAW type before MarkProcessed changes it
     IngredientType rawType = ing->GetType();
 
-    // Update logic (raw -> refined)
-    CompleteProcessingForIngredient(*ing);
-
     // Update sprite based on what was cooked
     const char* texPath = GetProcessedTextureForRaw(rawType);
     item.SetTexture(ResourceManager::Instance().LoadTexture(texPath, texPath));

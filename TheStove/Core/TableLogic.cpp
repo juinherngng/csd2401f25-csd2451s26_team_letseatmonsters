@@ -15,7 +15,9 @@ DESCRIPTION:     Implements the base class TableLogic, providing shared behavior
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "TableLogic.hpp"
+#include "../Core/TableLogic.hpp"
+#include "../Core/LogicManager.hpp"
+#include "../Core/PlateLogic.hpp"
 #include "../Graphics/SceneManager.hpp"   // for Scene interface (GetGameObjectByID, etc.)
 #include "../Graphics/GameObject.hpp"
 #include <iostream>
@@ -124,7 +126,20 @@ bool TableLogic::PlaceItem(Scene& scene, int itemID)
     Math::Vector3D tablePos = owner->GetPosition();
     Math::Vector3D newPos(tablePos.x, tablePos.y, tablePos.z);
     item->SetPosition(newPos);
+    // If this item is a plate with an attached ingredient visual, move it too.
+    if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(itemID))
+    {
+        const int child = plate->GetFirstIngredientObjectID();
 
+        // Only relevant for "partial plate" visuals (not after dish assembled)
+        if (child >= 0 && !plate->HasPreparedDish())
+        {
+            if (GameObject* ingObj = scene.GetGameObjectByID(child))
+            {
+                ingObj->SetPosition(newPos);
+            }
+        }
+    }
     //std::cout << "[TableLogic] PlaceItem OK: ownerID=" << GetOwnerID()
     //    << " now holds itemID=" << itemID
     //    << " at pos=(" << tablePos.x << ", " << tablePos.y << ")\n";

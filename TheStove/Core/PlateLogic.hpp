@@ -17,9 +17,9 @@ DESCRIPTION:     Implements PlateLogic, which manages the assembly of processed
 #pragma once
 
 #include <vector>
-#include "GameObjectLogic.hpp"
-#include "FoodTypes.hpp"
-#include "IngredientLogic.hpp"
+#include "../Core/GameObjectLogic.hpp"
+#include "../Core/FoodTypes.hpp"
+#include "../Core/IngredientLogic.hpp"
 
 // PlateLogic
 //  - Represents a plate that can accept refined ingredients and assemble them into a dish.
@@ -35,6 +35,7 @@ public:
 
     void Start(Scene& scene) override;
     void Update(float dt, Scene& scene, InputManager& input) override;
+    void OnDestroy(Scene& scene) override;
 
     // ----- Ingredient placement -----
 
