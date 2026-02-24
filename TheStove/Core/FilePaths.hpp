@@ -2,7 +2,7 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:         FilePaths.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu (100%)
 
  DESCRIPTION:       Centralized file path constants for all game assets.
 
@@ -32,11 +32,14 @@ namespace FilePaths {
         constexpr const char* PREFABS     = "../prefabs/";
         constexpr const char* FONTS       = "../assets/Font/";
         constexpr const char* AUDIO       = "../assets/Audio/";
+        constexpr const char* CUTSCENES   = "../assets/Cutscenes/";
 
         // Relative to deeper directories (used by editor panels running from build/Release)
         constexpr const char* ASSETS_EDITOR  = "../../assets/";
         constexpr const char* PREFABS_EDITOR = "../../prefabs/";
         constexpr const char* AUDIO_EDITOR   = "../../assets/Audio/";
+        constexpr const char* FONTS_EDITOR   = "../../assets/Font/";
+        constexpr const char* LEVELS_EDITOR  = "../../levels/";
     }
 
     // ============================================================================
@@ -58,9 +61,14 @@ namespace FilePaths {
 
         // UI - Pause Menu
         constexpr const char* PAUSE_BG     = "../assets/pause.png";
+        constexpr const char* PAUSED_BG    = "../assets/paused.png";
         constexpr const char* BTN_CONTINUE = "../assets/continue_s.png";
+        constexpr const char* BTN_RESUME   = "../assets/resume_s.png";
         constexpr const char* BTN_HOW      = "../assets/how_s.png";
         constexpr const char* BTN_QUIT     = "../assets/quit_s.png";
+
+        // UI - How To Play
+        constexpr const char* HOW_TO_PLAY  = "../assets/HowToPlay.png";
 
         // Placeholder/Debug
         constexpr const char* PLACEHOLDER  = "../assets/mc_sprite_front.png";
@@ -72,6 +80,7 @@ namespace FilePaths {
     namespace Fonts {
         constexpr const char* CHRUSTY_ROCK   = "../assets/Font/ChrustyRock-ORLA.ttf";
         constexpr const char* TO_THE_POINT   = "../assets/Font/ToThePointRegular-n9y4.ttf";
+        constexpr const char* AGENCYB        = "../assets/Font/AGENCYB.ttf";
     }
 
     // ============================================================================
@@ -158,6 +167,20 @@ namespace FilePaths {
      /************************************************************************/
     inline std::string AudioPath(const std::string& filename) {
         return std::string(Dirs::AUDIO) + filename;
+    }
+
+     /************************************************************************/
+     /*!
+     \brief
+     Constructs a full path to a cutscene file.
+     \param filename
+     The cutscene filename (e.g., "Cutscene_starting_1.png")
+     \return
+     Full relative path (e.g., "../assets/Cutscenes/Cutscene_starting_1.png")
+     */
+     /************************************************************************/
+    inline std::string CutscenePath(const std::string& filename) {
+        return std::string(Dirs::CUTSCENES) + filename;
     }
 
 } // namespace FilePaths

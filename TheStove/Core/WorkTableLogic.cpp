@@ -2,15 +2,15 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         WorkTableLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (90%)
+ CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
-DESCRIPTION:     Implements WorkTableLogic, the type of table that accepts raw
-                 ingredients, processes them into refined ingredients, and allows
-                 players to interact with workstations for cooking or preparation.
-                 This class overrides base TableLogic behavior to restrict what
-                 items can be placed, manage processing states, and output the
-                 refined ingredient when complete.
-
+ DESCRIPTION:       Implements WorkTableLogic, the type of table that accepts raw
+                    ingredients, processes them into refined ingredients, and allows
+                    players to interact with workstations for cooking or preparation.
+                    This class overrides base TableLogic behavior to restrict what
+                    items can be placed, manage processing states, and output the
+                    refined ingredient when complete.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -202,6 +202,9 @@ void WorkTableLogic::CancelProcessing(Scene& scene)
     }
     isProcessing_ = false;
     timer_ = 0.0f;
+#ifdef _DEBUG
+    (void)scene;
+#endif
 }
 
 // ------------------- TableLogic hooks -------------------
@@ -225,7 +228,7 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
                 audioMgr->PlaySound(soundName, audioMgr->GetVfxVolume(), false);
                 // Lower volume specifically for cutting board sound
                 if (stationType_ == StationType::CuttingBoard) {
-                    audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.3f);
+                    audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.2f);
                 }
             }
         }

@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameObject.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
 
  DESCRIPTION:		Implements the GameObject class, which encapsulates the state, transform, and
 					rendering details for every entity that appears in the scene.

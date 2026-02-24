@@ -2,12 +2,12 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			EntityManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
  DESCRIPTION:		This file implements the EntityManager class's core logic for creation and
 					lifecycle management of GameObjects.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -140,23 +140,45 @@ void EntityManager::DespawnByID(int id) {
 		return obj && obj->GetID() == id;
 	});
 	if (it != sceneObjects_.end()) {
-		sceneObjects_.erase(it);
-		spritePositions_.erase(id);
-		spriteScales_.erase(id);
-		spriteRotations_.erase(id);
-		texturePathByID_.erase(id);
-		ReleaseID(id);
+        sceneObjects_.erase(it);
+        spritePositions_.erase(id);
+        spriteScales_.erase(id);
+        spriteRotations_.erase(id);
+        texturePathByID_.erase(id);
+        // Notify listeners
+        for (const auto& cb : despawnCbs_) {
+			if (cb) {
+				cb(id);
+			}
+        }
+        ReleaseID(id);
 	}
 }
 
 void EntityManager::Clear() {
-	sceneObjects_.clear();
-	spritePositions_.clear();
-	spriteScales_.clear();
-	spriteRotations_.clear();
-	texturePathByID_.clear();
-	freeIDs_.clear();
-	nextID_ = 0;
+    // Notify callbacks for each existing ID before clearing
+    for (const auto& obj : sceneObjects_) {
+        if (obj) {
+            int id = obj->GetID();
+            for (const auto& cb : despawnCbs_) {
+				if (cb) {
+					cb(id);
+				}
+            }
+        }
+    }
+
+    sceneObjects_.clear();
+    spritePositions_.clear();
+    spriteScales_.clear();
+    spriteRotations_.clear();
+    texturePathByID_.clear();
+    freeIDs_.clear();
+    nextID_ = 0;
+}
+
+void EntityManager::RegisterDespawnCallback(const std::function<void(int)>& cb) {
+    despawnCbs_.push_back(cb);
 }
 
 glm::vec3 EntityManager::GetPosition(int id) const {

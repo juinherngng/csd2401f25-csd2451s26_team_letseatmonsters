@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorPickDrag.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:       Implementation of picking/dragging behavior for the Level Editor.
 					- Converts mouse to world-space (via GraphicsEngine)
@@ -143,8 +143,8 @@ namespace LEPICKDRAG {
 									glm::vec2& outTR,
 									glm::vec2& outBL,
 									glm::vec2& outBR) {
-		const float hx = 0.5f * scale.x;
-		const float hy = 0.5f * scale.y;
+		const float hx = 0.5f * std::abs(scale.x);
+		const float hy = 0.5f * std::abs(scale.y);
 
 		const float rotRad = glm::radians(rotDeg);
 		const float c = std::cos(rotRad);
@@ -161,6 +161,26 @@ namespace LEPICKDRAG {
 		outTR = TransformLocal(hx, -hy);
 		outBL = TransformLocal(-hx, hy);
 		outBR = TransformLocal(hx, hy);
+	}
+
+	static bool IsPointInsideObjectBounds(const glm::vec2& pointWorld,
+		const glm::vec3& objPos,
+		const glm::vec3& objScale,
+		float objRotDeg) {
+		const float halfX = 0.5f * std::abs(objScale.x);
+		const float halfY = 0.5f * std::abs(objScale.y);
+
+		glm::vec2 local = pointWorld - glm::vec2{ objPos.x, objPos.y };
+
+		const float rotRad = glm::radians(objRotDeg);
+		const float c = std::cos(-rotRad);
+		const float s = std::sin(-rotRad);
+
+		const float localX = local.x * c - local.y * s;
+		const float localY = local.x * s + local.y * c;
+
+		return (localX >= -halfX && localX <= halfX) &&
+			(localY >= -halfY && localY <= halfY);
 	}
 
 	static bool GetColliderBoxWorld(GameObject* obj,
@@ -378,8 +398,8 @@ namespace LEPICKDRAG {
 					ImVec2 tl = gfx.WorldToSceneImage(worldTL);
 					ImVec2 tr = gfx.WorldToSceneImage(worldTR);
 
-					const float hx = 0.5f * sz.x;
-					const float hy = 0.5f * sz.y;
+					const float hx = 0.5f * std::abs(sz.x);
+					const float hy = 0.5f * std::abs(sz.y);
 
 					// Screen-space AABB that matches the yellow rect
 					ImVec2 rectMin{
@@ -648,13 +668,9 @@ namespace LEPICKDRAG {
 
 					const glm::vec3 pos = g->GetPositionGLM();
 					const glm::vec3 sz = g->GetScaleGLM();
+					const float rotDeg = glm::degrees(g->GetRotationAngleZ());
 
-					const float hx = 0.5f * sz.x;
-					const float hy = 0.5f * sz.y;
-
-					const bool inside =
-						(mouseWorld.x >= pos.x - hx && mouseWorld.x <= pos.x + hx) &&
-						(mouseWorld.y >= pos.y - hy && mouseWorld.y <= pos.y + hy);
+					const bool inside = IsPointInsideObjectBounds(mouseWorld, pos, sz, rotDeg);
 
 					if (inside) {
 						pickedIndex = i;
@@ -1041,8 +1057,8 @@ namespace LEPICKDRAG {
 				// Rotation circle (Rotate tool only)
 				if (sGizmoMode == GizmoMode::Transform &&
 					sCurrentTool == TransformTool::Rotate) {
-					const float hxLocal = 0.5f * sz.x;
-					const float hyLocal = 0.5f * sz.y;
+					const float hxLocal = 0.5f * std::abs(sz.x);
+					const float hyLocal = 0.5f * std::abs(sz.y);
 
 					const float radiusWorld = std::max(hxLocal, hyLocal) * 1.3f;
 					glm::vec2  worldCirclePoint{ pos.x + radiusWorld, pos.y };

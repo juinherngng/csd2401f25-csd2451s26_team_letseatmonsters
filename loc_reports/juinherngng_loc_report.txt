@@ -1,0 +1,78 @@
+==========================================
+Lines of Code Report (Diff-based)
+==========================================
+Author: juinherngng
+Since: 2025-12-06
+Generated: Thu Feb  5 18:56:36 +08 2026
+==========================================
+
+==========================================
+ACTUAL CODE CHANGES PER FILE (NO BLANKS/COMMENTS)
+==========================================
+Tracked extensions: .cpp .hpp .h .c
+
+File                                                                        Added    Deleted        Net
+--------------------------------------------------------------------------------------------
+TheStove/Core/LevelEditorPanelLevel.cpp                                       173         21        152
+TheStove/Core/FilePaths.hpp                                                    88          0         88
+TheStove/Graphics/SceneManager.cpp                                             69         18         51
+TheStove/Core/LevelEditorPanelFonts.cpp                                        49          3         46
+TheStove/Core/WorkTableLogic.cpp                                               38          3         35
+TheStove/Core/PlayerLogic.cpp                                                  27          0         27
+TheStove/Core/SimpleNpcLogic.cpp                                               21          2         19
+TheStove/Core/Quota.cpp                                                        21          4         17
+TheStove/Core/Quota.hpp                                                        13          2         11
+TheStove/Core/MenuButtonLogic.cpp                                               7          0          7
+TheStove/Core/CustomerManagerLogic.cpp                                          6          0          6
+TheStove/Core/LevelEditorPanelFonts.hpp                                         5          0          5
+TheStove/Main.cpp                                                               4          3          1
+TheStove/Core/WorkTableLogic.hpp                                               11         10          1
+TheStove/Core/LevelEditorPanelPrefabs.cpp                                       9          8          1
+TheStove/Core/LevelEditorPanelAssets.cpp                                       17         16          1
+TheStove/Core/DebugUI.cpp                                                       3          2          1
+--------------------------------------------------------------------------------------------
+
+==========================================
+ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
+==========================================
+Lines Added:    561
+Lines Deleted:  92
+Net Change:     469
+Total Commits:  15
+
+==========================================
+FILES MODIFIED (RAW - ANY TYPE)
+==========================================
+
+CMakeLists.txt
+TheStove/Core/CustomerManagerLogic.cpp
+TheStove/Core/DebugUI.cpp
+TheStove/Core/FilePaths.hpp
+TheStove/Core/LevelEditorPanelAssets.cpp
+TheStove/Core/LevelEditorPanelFonts.cpp
+TheStove/Core/LevelEditorPanelFonts.hpp
+TheStove/Core/LevelEditorPanelLevel.cpp
+TheStove/Core/LevelEditorPanelPrefabs.cpp
+TheStove/Core/MenuButtonLogic.cpp
+TheStove/Core/PlayerLogic.cpp
+TheStove/Core/Quota.cpp
+TheStove/Core/Quota.hpp
+TheStove/Core/SimpleNpcLogic.cpp
+TheStove/Core/WorkTableLogic.cpp
+TheStove/Core/WorkTableLogic.hpp
+TheStove/Graphics/SceneManager.cpp
+TheStove/Main.cpp
+assets/Audio/AudioCatalog.json
+assets/Audio/Wrong order.wav
+assets/Audio/bgm_MyoonchiDiner_IntroCutscene.mp3
+assets/Audio/sfx_chopping.wav
+assets/Audio/sfx_customer_entering.wav
+assets/Audio/sfx_customer_leaving.wav
+assets/Audio/sfx_grill.wav
+assets/Audio/sfx_new_order.wav
+assets/Audio/sfx_payment.wav
+assets/Audio/sfx_put_down.wav
+assets/Audio/sfx_remaining_time.wav
+assets/Audio/sfx_step_1.wav
+assets/Audio/sfx_time_up.wav
+imgui.ini

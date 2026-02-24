@@ -1,9 +1,10 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:         LevelEditorPanelLevel.cpp
-PROJECT NAME:      Project GAM200
-AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
-CO-AUTHOR:         Seah Wang Hua, wanghua.seah@digipen.edu
+FILE NAME:			LevelEditorPanelLevel.cpp
+PROJECT NAME:		Project GAM200
+AUTHOR:				Yat Chun Wee, y.chunwee@digipen.edu		(70%)
+CO-AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (5%)
+					Vu Phan Hung, phanhung.vu@digipen.edu	(25%)
 
 DESCRIPTION:       Implementation of the Level panel.
 					- Load/Save levels to JSON
@@ -13,7 +14,7 @@ DESCRIPTION:       Implementation of the Level panel.
 					- Drag-drop prefab/texture instantiation
 					- Keeps LevelData synchronized with Scene state
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -31,6 +32,8 @@ DESCRIPTION:       Implementation of the Level panel.
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <filesystem>
+#include <windows.h>
 
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
@@ -51,6 +54,35 @@ namespace fs = std::filesystem;
 
 using namespace LEFILEIO;
 
+#ifdef _DEBUG
+static std::filesystem::path GetExeDir() {
+	char buf[MAX_PATH]{};
+	GetModuleFileNameA(nullptr, buf, MAX_PATH);
+	return std::filesystem::path(buf).parent_path();
+}
+
+static std::filesystem::path FindRepoRoot() {
+	namespace fs = std::filesystem;
+	fs::path p = GetExeDir();
+
+	// Walk upwards until we find BOTH build/ and levels/
+	for (int i = 0; i < 10; ++i) {
+		if (fs::exists(p / "build") && fs::exists(p / "levels")) {
+			return p;
+		}
+
+		if (!p.has_parent_path()) {
+			break;
+		}
+
+		p = p.parent_path();
+	}
+
+	// Fallback (should not happen)
+	return fs::current_path();
+}
+#endif
+
 namespace {
 	// Internal helpers for Level <-> Scene synchronization
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
@@ -60,7 +92,7 @@ namespace {
 	void SyncTextObjectsToEditor(const LevelData& levelIn) {
 		std::vector<LEPANELFONTS::TextObjectData> textObjects;
 		textObjects.reserve(levelIn.textObjects.size());
-		
+
 		for (const auto& levelText : levelIn.textObjects) {
 			LEPANELFONTS::TextObjectData textData;
 			textData.name = levelText.name;
@@ -76,7 +108,8 @@ namespace {
 			textData.colorB = levelText.colorB;
 			textData.colorA = levelText.colorA;
 			textData.layer = levelText.layer;
-			
+			textData.visible = levelText.visible;
+
 			// Try to load the font if not already loaded
 			if (!levelText.fontName.empty()) {
 				FontSystem::Font* font = ResourceManager::Instance().GetFont(levelText.fontName);
@@ -86,19 +119,19 @@ namespace {
 					std::cout << "[SyncTextObjects] Font '" << levelText.fontName << "' not loaded, text may not render\n";
 				}
 			}
-			
+
 			textObjects.push_back(textData);
 		}
-		
+
 		LEPANELFONTS::SetTextObjects(textObjects);
 	}
-	
+
 	// NEW: Helper to sync text objects from editor state to LevelData
 	void SyncTextObjectsToLevel(LevelData& levelOut) {
 		const auto& textObjects = LEPANELFONTS::GetTextObjects();
 		levelOut.textObjects.clear();
 		levelOut.textObjects.reserve(textObjects.size());
-		
+
 		for (const auto& textData : textObjects) {
 			LevelTextObject levelText;
 			levelText.name = textData.name;
@@ -114,13 +147,14 @@ namespace {
 			levelText.colorB = textData.colorB;
 			levelText.colorA = textData.colorA;
 			levelText.layer = textData.layer;
-			
+			levelText.visible = textData.visible;
+
 			// Get font size from loaded font if available
 			FontSystem::Font* font = ResourceManager::Instance().GetFont(textData.fontName);
 			if (font) {
 				levelText.fontSize = font->GetFontSize();
 			}
-			
+
 			levelOut.textObjects.push_back(levelText);
 		}
 	}
@@ -128,16 +162,25 @@ namespace {
 #ifdef _DEBUG
 	static constexpr int MAX_UNDO = 50;
 	static std::vector<LevelData> sUndoStack;
+	static std::vector<LevelData> sRedoStack;
 
 	// Take a snapshot of the current Scene into LevelData and push onto the stack.
 	static void PushUndoSnapshot(LevelEditor& editor, Scene& scene) {
+		if (editor.IsPlaying()) {
+			return;
+		}
+
 		LevelData snap{};
 		SyncSceneToLevel(scene, snap);
+		SyncTextObjectsToLevel(snap);
 
 		sUndoStack.push_back(snap);
 		if (sUndoStack.size() > MAX_UNDO) {
 			sUndoStack.erase(sUndoStack.begin());
 		}
+
+		// New user action invalidates redo history
+		sRedoStack.clear();
 
 		// Keep the editor's working LevelData in sync with the scene
 		editor.MutableLevel() = snap;
@@ -145,8 +188,17 @@ namespace {
 
 	// Pop last snapshot and restore it into the Scene.
 	static bool PerformUndo(LevelEditor& editor, Scene& scene) {
-		if (sUndoStack.empty()) {
+		if (editor.IsPlaying() || sUndoStack.empty()) {
 			return false;
+		}
+
+		// Capture current state as the target for redo
+		LevelData current{};
+		SyncSceneToLevel(scene, current);
+		SyncTextObjectsToLevel(current);
+		sRedoStack.push_back(current);
+		if (sRedoStack.size() > MAX_UNDO) {
+			sRedoStack.erase(sRedoStack.begin());
 		}
 
 		LevelData snap = sUndoStack.back();
@@ -159,13 +211,50 @@ namespace {
 
 		editor.SetPlaying(false);
 		editor.MutableLevel() = snap;
+		SyncTextObjectsToEditor(snap);
+
+		return true;
+	}
+
+	// Pop last redo snapshot and restore it into the Scene.
+	static bool PerformRedo(LevelEditor& editor, Scene& scene) {
+		if (editor.IsPlaying() || sRedoStack.empty()) {
+			return false;
+		}
+
+		// Current state becomes new undo point
+		LevelData current{};
+		SyncSceneToLevel(scene, current);
+		SyncTextObjectsToLevel(current);
+		sUndoStack.push_back(current);
+		if (sUndoStack.size() > MAX_UNDO) {
+			sUndoStack.erase(sUndoStack.begin());
+		}
+
+		LevelData snap = sRedoStack.back();
+		sRedoStack.pop_back();
+
+		scene.ClearAll();
+		SyncLevelToScene(snap, scene);
+		scene.RebuildColliders();
+		scene.SetSimulationActive(false);
+
+		editor.SetPlaying(false);
+		editor.MutableLevel() = snap;
+		SyncTextObjectsToEditor(snap);
 
 		return true;
 	}
 #endif // _DEBUG
+	static void ClearUndoHistory() {
+		sUndoStack.clear();
+		sRedoStack.clear();
+	}
 
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
+		LELINKS::PrefabLinkByID.clear();
+
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
 
@@ -175,7 +264,7 @@ namespace {
 			// Spawn animated or static
 			if (obj.animated) {
 				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
-				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h },
+				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, obj.z }, { obj.w, obj.h },
 					fullFrame, 0.25f, true, layerName);
 
 				if (obj.texture.find("dino") != std::string::npos) {
@@ -186,7 +275,7 @@ namespace {
 				}
 			}
 			else {
-				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
+				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, obj.z }, { obj.w, obj.h }, layerName);
 			}
 
 			if (!g) {
@@ -207,6 +296,7 @@ namespace {
 
 			// Apply to object
 			g->SetRotation(glm::radians(rotDeg), { 0, 0, 1 });
+			g->EnableShadow(obj.shadow);
 
 			// Collider data
 			if (!obj.hasCollider) {
@@ -233,10 +323,10 @@ namespace {
 			scene.ApplyTagRules(g->GetID(), obj.tag, obj.speedX, obj.speedY);
 
 			// Store transform and defaults
-			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, 0.0f }, { obj.w, obj.h, 1.0f }, obj.rotation);
+			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, obj.z }, { obj.w, obj.h, 1.0f }, obj.rotation);
 
 			Scene::Defaults defs{};
-			defs.pos = { obj.x, obj.y, 0.0f };
+			defs.pos = { obj.x, obj.y, obj.z };
 			defs.size = { obj.w, obj.h };
 			defs.rot = obj.rotation;
 			defs.colSize = { obj.colWidth, obj.colHeight };
@@ -245,8 +335,10 @@ namespace {
 			defs.texture = obj.texture;
 			defs.tag = obj.tag;
 			defs.layer = obj.layer;
-			// NEW: approach offset
+
+			// Approach offset
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+
 			// Audio bindings
 			defs.audioOnSpawn = obj.audioOnSpawn;
 			defs.audioOnInteract = obj.audioOnInteract;
@@ -254,9 +346,16 @@ namespace {
 			defs.audioOnProcessing = obj.audioOnProcessing;
 			defs.audioLoop = obj.audioLoop;
 
+			defs.visible = obj.visible;
+
 			scene.SetDefaults(g->GetID(), defs);
+			scene.SetObjectVisible(g->GetID(), obj.visible);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
 			scene.ClampToWalkArea(g);
+
+			if (!obj.prefabPath.empty()) {
+				LELINKS::PrefabLinkByID[g->GetID()] = obj.prefabPath;
+			}
 
 			// Play spawn audio if configured (only during simulation/play mode)
 			if (scene.IsSimulationActive() && !obj.audioOnSpawn.empty()) {
@@ -296,6 +395,7 @@ namespace {
 
 			out.x = pos.x;
 			out.y = pos.y;
+			out.z = pos.z;
 			out.w = size.x;
 			out.h = size.y;
 			out.rotation = rotDeg;
@@ -330,10 +430,18 @@ namespace {
 			out.audioOnProcessing = defs.audioOnProcessing;
 			out.audioLoop = defs.audioLoop;
 
+			out.shadow = g->HasShadow();
+			out.visible = scene.IsObjectVisible(id);
+
 			// Velocity
 			const glm::vec2 v = scene.GetNPCVelocity(id);
 			out.speedX = v.x;
 			out.speedY = v.y;
+
+			auto prefabIt = LELINKS::PrefabLinkByID.find(id);
+			if (prefabIt != LELINKS::PrefabLinkByID.end()) {
+				out.prefabPath = prefabIt->second;
+			}
 
 			levelOut.objects.push_back(out);
 		}
@@ -374,18 +482,21 @@ namespace {
 		// New layer creation
 		ImGui::TextUnformatted("Create a new layer:");
 		static char newLayerBuf[64] = "";
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5f);
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 88.0f);
 		ImGui::InputText("##NewLayerName", newLayerBuf, IM_ARRAYSIZE(newLayerBuf));
 		ImGui::SameLine();
 
-		if (ImGui::Button("Add Layer") && newLayerBuf[0] != '\0') {
+		if (ImGui::Button("Add", ImVec2(56.0f, 0.0f)) && newLayerBuf[0] != '\0') {
 			scene.AddLayer(newLayerBuf);
 			newLayerBuf[0] = '\0';
 		}
 
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("Add layer");
+		}
+
 		ImGui::Separator();
 		ImGui::TextUnformatted("Existing layers:");
-		ImGui::Separator();
 
 		const auto& layerMap = scene.GetAllLayers();
 		if (layerMap.empty()) {
@@ -399,6 +510,11 @@ namespace {
 		for (const auto& pair : layerMap) {
 			sorted.emplace_back(pair.first, &pair.second);
 		}
+
+		std::sort(sorted.begin(), sorted.end(),
+			[](const auto& lhs, const auto& rhs) {
+				return lhs.first < rhs.first;
+			});
 
 		for (const auto& entry : sorted) {
 			const std::string& layerName = entry.first;
@@ -415,45 +531,63 @@ namespace {
 
 			// Layer name
 			ImGui::TextUnformatted(layerName.c_str());
-			ImGui::SameLine(180.0f);
-
-			// Visible checkbox
-			if (ImGui::Checkbox("Visible", &visible)) {
+			ImGui::SameLine();
+			ImGui::TextDisabled("(%d)", count);
+			ImGui::SameLine();
+			if (ImGui::Checkbox("V", &visible)) {
 				layer->SetVisible(visible);
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Layer visibility");
 			}
 
 			ImGui::SameLine();
 
 			// Collisions checkbox
-			if (ImGui::Checkbox("Collisions", &collidable)) {
+			if (ImGui::Checkbox("C", &collidable)) {
 				layer->SetCollidable(collidable);
 			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Layer collisions");
+			}
 
-			ImGui::SameLine();
-			ImGui::TextDisabled("(%d objects)", count);
-
-			// Assign + Delete buttons
 			if (selectedObjectId != -1) {
-				ImGui::SameLine();
-				if (ImGui::Button("Assign selected")) {
+				if (ImGui::SmallButton("Assign")) {
 					scene.AssignObjectToLayer(selectedObjectId, layerName);
 				}
 			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("Delete")) {
-				// Optional: don't allow deleting base layer "1"
-				if (layerName != "1") {
-					// Move all objects on this layer back to layer 1
-					for (int objID : layer->GetObjects()) {
-						scene.AssignObjectToLayer(objID, "1");
-					}
-
-					scene.RemoveLayer(layerName);
-				}
+			else {
+				ImGui::BeginDisabled();
+				ImGui::SmallButton("Assign");
+				ImGui::EndDisabled();
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Assign selected object to this layer");
 			}
 
+			ImGui::SameLine();
+			if (layerName == "1") {
+				ImGui::BeginDisabled();
+				ImGui::SmallButton("Del");
+				ImGui::EndDisabled();
+			}
+			else if (ImGui::SmallButton("Del")) {
+				for (int objID : layer->GetObjects()) {
+					scene.AssignObjectToLayer(objID, "1");
+				}
+				scene.RemoveLayer(layerName);
+			}
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Delete layer (moves objects to layer 1)");
+			}
+
+			ImGui::Separator();
 			ImGui::PopID();
+		}
+
+		if (selectedObjectId == -1) {
+			ImGui::TextDisabled("Select an object to enable Assign.");
 		}
 	}
 #endif // _DEBUG
@@ -466,6 +600,13 @@ namespace LEPANELLEVEL {
 		int& selectedIndex, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 
+		// Force "no default level" once per run
+		static bool sClearedDefaultOnce = false;
+		if (!sClearedDefaultOnce) {
+			editor.levelPath.clear();
+			sClearedDefaultOnce = true;
+		}
+
 		if (!ImGui::Begin("Level###LE_Level")) {
 			ImGui::End();
 			return;
@@ -473,93 +614,67 @@ namespace LEPANELLEVEL {
 
 		ImGui::SeparatorText("Level Management");
 
-		// Level path row
-		static char levelPathBuf[256] = "../levels/kitchen01.json";
+		static char levelPathBuf[256] = { 0 };
+
+		// Level path row (ALWAYS use repo_root/levels, not ../levels)
+		static const std::string sLevelsDir = (FindRepoRoot() / "levels").generic_string();
+
+		// Default to repo_root/levels/kitchen01.json
 		if (editor.levelPath.empty()) {
-			editor.levelPath = levelPathBuf;
+			// No default: designer must pick from dropdown
+			levelPathBuf[0] = '\0';
+		}
+		else if (levelPathBuf[0] == '\0') {
+			// If editor.levelPath was set elsewhere, sync display buffer once
+			std::string stem = fs::path(editor.levelPath).stem().string();
+			std::snprintf(levelPathBuf, sizeof(levelPathBuf), "%s", stem.c_str());
 		}
 
-		static std::vector<std::string> sLevelFiles = ListJsonFiles("../levels");
+		// List files from repo_root/levels (can be absolute paths depending on ListJsonFiles)
+		static std::vector<std::string> sLevelFiles = ListJsonFiles(sLevelsDir);
 
 		ImGui::TextUnformatted("Level path");
 		ImGui::SameLine();
 
 		if (ImGui::Button("Refresh##levels")) {
-			sLevelFiles = ListJsonFiles("../levels");
+			sLevelFiles = ListJsonFiles(sLevelsDir);
 		}
 
+		// Combo preview label should show only the current name
+		const std::string currentName = fs::path(editor.levelPath).stem().string();
+
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-		if (ImGui::BeginCombo("##LevelCombo", editor.levelPath.c_str())) {
+		const char* comboPreview = (levelPathBuf[0] == '\0') ? "<select level>" : levelPathBuf;
+		if (ImGui::BeginCombo("##LevelCombo", comboPreview)) {
 			for (size_t i = 0; i < sLevelFiles.size(); ++i) {
-				const bool isSelected = (sLevelFiles[i] == editor.levelPath);
-				if (ImGui::Selectable(sLevelFiles[i].c_str(), isSelected)) {
-					editor.levelPath = sLevelFiles[i];
-					std::snprintf(levelPathBuf, sizeof(levelPathBuf), "%s", editor.levelPath.c_str());
+				const fs::path p(sLevelFiles[i]);
+				const std::string displayName = p.stem().string(); // e.g. "kitchen01"
+
+				const bool isSelected = (displayName == currentName);
+				if (ImGui::Selectable(displayName.c_str(), isSelected)) {
+					// Always set absolute path internally
+					editor.levelPath = (fs::path(sLevelsDir) / (displayName + ".json")).generic_string();
+					std::snprintf(levelPathBuf, sizeof(levelPathBuf), "%s", displayName.c_str());
 				}
 
 				if (isSelected) {
 					ImGui::SetItemDefaultFocus();
 				}
 			}
-
 			ImGui::EndCombo();
 		}
 
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		if (ImGui::InputText("##LevelPathEdit", levelPathBuf, IM_ARRAYSIZE(levelPathBuf))) {
-			editor.levelPath = levelPathBuf;
-		}
+			// Accept "kitchen01" or "kitchen01.json" or even a path; normalize to just stem
+			std::string typed = levelPathBuf;
+			std::string stem = fs::path(typed).stem().string();
 
-		// Load
-		if (ImGui::Button("Load Level")) {
-			LevelData& work = editor.MutableLevel();
-			if (LevelSerializer::Load(editor.levelPath, work)) {
-				scene.ClearAll();
-				LEPANELFONTS::ClearTextObjects();  // Clear text objects before loading
-				SyncLevelToScene(work, scene);
-				SyncTextObjectsToEditor(work);     // Load text objects
-				scene.RebuildColliders();
-				scene.SetSimulationActive(false);
-				scene.ResetResizeBaseline();
+			// Update buffer to normalized name
+			std::snprintf(levelPathBuf, sizeof(levelPathBuf), "%s", stem.c_str());
 
-				if (!work.background.empty()) {
-					scene.SetSceneBackground(work.background);
-				}
-
-				editor.SetPlaying(false);
-				selectedIndex = -1;
-				selectedObjectId = -1;
-			}
-		}
-
-		ImGui::SameLine();
-
-		// Save
-		if (ImGui::Button("Save Level")) {
-			LevelData& dst = editor.MutableLevel();
-			SyncSceneToLevel(scene, dst);
-			SyncTextObjectsToLevel(dst);  // Save text objects
-			
-			std::cout << "[LevelPanel] Saving level to: " << editor.levelPath << std::endl;
-			std::cout << "[LevelPanel] Game objects: " << dst.objects.size() << std::endl;
-			std::cout << "[LevelPanel] Text objects: " << dst.textObjects.size() << std::endl;
-			
-			if (LevelSerializer::Save(editor.levelPath, dst)) {
-				std::cout << "[LevelPanel] Level saved successfully!" << std::endl;
-			} else {
-				std::cerr << "[LevelPanel] ERROR: Failed to save level!" << std::endl;
-			}
-		}
-
-		ImGui::SameLine();
-
-		// Undo
-		if (ImGui::Button("Undo")) {
-			if (PerformUndo(editor, scene)) {
-				// visually reset selection
-				selectedIndex = -1;
-				selectedObjectId = -1;
-			}
+			// Always set absolute path internally
+			editor.levelPath = (fs::path(sLevelsDir) / (stem + ".json")).generic_string();
 		}
 
 		// Ctrl+Z keyboard shortcut for Undo (same as button)
@@ -567,6 +682,7 @@ namespace LEPANELLEVEL {
 		if (!editor.IsPlaying() &&
 			!io.WantCaptureKeyboard &&
 			(io.KeyCtrl || io.KeySuper) &&
+			!io.KeyShift &&
 			ImGui::IsKeyPressed(ImGuiKey_Z)) {
 			if (PerformUndo(editor, scene)) {
 				selectedIndex = -1;
@@ -574,13 +690,115 @@ namespace LEPANELLEVEL {
 			}
 		}
 
-		ImGui::SameLine();
+		// Ctrl+Y or Ctrl+Shift+Z keyboard shortcuts for Redo
+		if (!editor.IsPlaying() &&
+			!io.WantCaptureKeyboard &&
+			(io.KeyCtrl || io.KeySuper) &&
+			(ImGui::IsKeyPressed(ImGuiKey_Y) || (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)))) {
+			if (PerformRedo(editor, scene)) {
+				selectedIndex = -1;
+				selectedObjectId = -1;
+			}
+		}
 
-		// Play
-		if (ImGui::Button(editor.IsPlaying() ? "Playing..." : "Play")) {
-			if (!editor.IsPlaying()) {
+		// Level actions in a compact grid to reduce horizontal crowding
+		if (ImGui::BeginTable("##LevelActionsGrid", 4, ImGuiTableFlags_SizingStretchSame)) {
+			// Row 1
+			ImGui::TableNextRow();
+
+			ImGui::TableSetColumnIndex(0);
+			if (ImGui::Button("Load Level", ImVec2(-FLT_MIN, 0.0f))) {
+				scene.StopAllObjectAudio();
+				scene.SetSimulationActive(false);
+				editor.SetPlaying(false);
+
+				LevelData& work = editor.MutableLevel();
+				if (LevelSerializer::Load(editor.levelPath, work)) {
+					scene.ClearAll();
+					LEPANELFONTS::ClearTextObjects();  // Clear text objects before loading
+					SyncLevelToScene(work, scene);
+					SyncTextObjectsToEditor(work);     // Load text objects
+					scene.RebuildColliders();
+					scene.SetSimulationActive(false);
+					scene.ResetResizeBaseline();
+
+					if (!work.background.empty()) {
+						scene.SetSceneBackground(work.background);
+					}
+
+					selectedIndex = -1;
+					selectedObjectId = -1;
+					ClearUndoHistory();
+				}
+			}
+
+			ImGui::TableSetColumnIndex(1);
+			if (ImGui::Button("New Scene", ImVec2(-FLT_MIN, 0.0f))) {
+				scene.StopAllObjectAudio();
+				scene.SetSimulationActive(false);
+				scene.ClearAll();
+				scene.RebuildColliders();
+				scene.ResetResizeBaseline();
+
+				editor.SetPlaying(false);
+				LEPANELFONTS::ClearTextObjects();
+
+				LevelData& fresh = editor.MutableLevel();
+				fresh.objects.clear();
+				fresh.textObjects.clear();
+				fresh.background.clear();
+				ClearUndoHistory();
+			}
+
+			ImGui::TableSetColumnIndex(2);
+			if (ImGui::Button("Save Level", ImVec2(-FLT_MIN, 0.0f))) {
+				LevelData& dst = editor.MutableLevel();
+				SyncSceneToLevel(scene, dst);
+				SyncTextObjectsToLevel(dst);  // Save text objects
+
+				std::cout << "[LevelPanel] Saving level to: " << editor.levelPath << std::endl;
+				std::cout << "[LevelPanel] Game objects: " << dst.objects.size() << std::endl;
+				std::cout << "[LevelPanel] Text objects: " << dst.textObjects.size() << std::endl;
+
+				if (LevelSerializer::Save(editor.levelPath, dst)) {
+					std::cout << "[LevelPanel] Level saved successfully!" << std::endl;
+				}
+				else {
+					std::cerr << "[LevelPanel] ERROR: Failed to save level!" << std::endl;
+				}
+			}
+
+			ImGui::TableSetColumnIndex(3);
+			ImGui::BeginDisabled(editor.IsPlaying());
+			if (ImGui::Button("Undo", ImVec2(-FLT_MIN, 0.0f))) {
+				if (PerformUndo(editor, scene)) {
+					selectedIndex = -1;
+					selectedObjectId = -1;
+				}
+			}
+
+			ImGui::EndDisabled();
+
+			// Row 2
+			ImGui::TableNextRow();
+
+			ImGui::TableSetColumnIndex(0);
+			ImGui::BeginDisabled(editor.IsPlaying());
+			if (ImGui::Button("Redo", ImVec2(-FLT_MIN, 0.0f))) {
+				if (PerformRedo(editor, scene)) {
+					selectedIndex = -1;
+					selectedObjectId = -1;
+				}
+			}
+
+			ImGui::EndDisabled();
+
+			ImGui::TableSetColumnIndex(1);
+			ImGui::BeginDisabled(editor.IsPlaying());
+			if (ImGui::Button("Play", ImVec2(-FLT_MIN, 0.0f))) {
 				LevelData& snap = editor.MutablePlaySnapshot();
 				SyncSceneToLevel(scene, snap);
+				SyncTextObjectsToLevel(snap);
 
 				editor.SetPlaying(true);
 				selectedIndex = -1;
@@ -592,25 +810,36 @@ namespace LEPANELLEVEL {
 				scene.RebuildColliders();
 				scene.ResolveInitialStaticOverlaps();
 			}
-		}
 
-		ImGui::SameLine();
+			ImGui::EndDisabled();
 
-		// Stop
-		if (ImGui::Button("Stop")) {
-			if (editor.IsPlaying()) {
+			ImGui::TableSetColumnIndex(2);
+			ImGui::BeginDisabled(!editor.IsPlaying());
+			if (ImGui::Button("Stop", ImVec2(-FLT_MIN, 0.0f))) {
 				// Stop all object-bound audio before clearing the scene
 				scene.StopAllObjectAudio();
-				
-				// IMPORTANT: Set simulation inactive BEFORE restoring the scene
-				// to prevent spawn audio from playing during restoration
 				scene.SetSimulationActive(false);
-				
+
 				scene.ClearAll();
 				SyncLevelToScene(editor.MutablePlaySnapshot(), scene);
+				SyncTextObjectsToEditor(editor.MutablePlaySnapshot());
 				scene.RebuildColliders();
 				editor.SetPlaying(false);
 			}
+
+			ImGui::EndDisabled();
+
+			ImGui::TableSetColumnIndex(3);
+			const bool isSimActive = scene.IsSimulationActive();
+			const char* pauseLabel = isSimActive ? "Pause" : "Resume";
+			ImGui::BeginDisabled(!editor.IsPlaying());
+			if (ImGui::Button(pauseLabel, ImVec2(-FLT_MIN, 0.0f))) {
+				scene.SetSimulationActive(!isSimActive);
+			}
+
+			ImGui::EndDisabled();
+
+			ImGui::EndTable();
 		}
 
 		DrawLayerManager(scene, selectedObjectId);
@@ -1093,6 +1322,7 @@ namespace LEPANELLEVEL {
 							for (const std::string& name : animList) {
 								bool selected = (current == name);
 								if (ImGui::Selectable(name.c_str(), selected)) {
+									PushUndoSnapshot(editor, scene);
 									scene.SetAnimation(id, name.c_str());
 								}
 
@@ -1159,9 +1389,15 @@ namespace LEPANELLEVEL {
 				// row of 2 fields (x, y)
 				ImGui::PushItemWidth(fieldW);
 				bool sizeChangedX = ImGui::DragFloat("x##col_size_x", &colliderSize.x, 1.0f, 0.0f, 99999.0f);
+				bool sizeActivatedX = ImGui::IsItemActivated();
 				ImGui::SameLine(0.0f, gap);
 				bool sizeChangedY = ImGui::DragFloat("y##col_size_y", &colliderSize.y, 1.0f, 0.0f, 99999.0f);
+				bool sizeActivatedY = ImGui::IsItemActivated();
 				ImGui::PopItemWidth();
+
+				if (sizeActivatedX || sizeActivatedY) {
+					PushUndoSnapshot(editor, scene);
+				}
 
 				if (sizeChangedX || sizeChangedY) {
 					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
@@ -1174,9 +1410,15 @@ namespace LEPANELLEVEL {
 				ImGui::TextUnformatted("Offset");
 				ImGui::PushItemWidth(fieldW);
 				bool offChangedX = ImGui::DragFloat("x##col_off_x", &colliderOff.x, 1.0f, -99999.0f, 99999.0f);
+				bool offActivatedX = ImGui::IsItemActivated();
 				ImGui::SameLine(0.0f, gap);
 				bool offChangedY = ImGui::DragFloat("y##col_off_y", &colliderOff.y, 1.0f, -99999.0f, 99999.0f);
+				bool offActivatedY = ImGui::IsItemActivated();
 				ImGui::PopItemWidth();
+
+				if (offActivatedX || offActivatedY) {
+					PushUndoSnapshot(editor, scene);
+				}
 
 				if (offChangedX || offChangedY) {
 					obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
@@ -1198,7 +1440,7 @@ namespace LEPANELLEVEL {
 
 				// Get available audio assets from catalog
 				const auto& audioAssets = Audio::AudioCatalog::GetAllAssets();
-				
+
 				// Build list of audio names for combo boxes
 				std::vector<const char*> audioNames;
 				audioNames.push_back("(None)");  // First option to clear binding
@@ -1210,7 +1452,7 @@ namespace LEPANELLEVEL {
 				auto DrawAudioSlot = [&](const char* label, std::string& audioBinding, const char* tooltipText) {
 					ImGui::Text("%s", label);
 					ImGui::SameLine(120.0f);
-					
+
 					// Find current selection index
 					int currentIdx = 0;
 					for (size_t i = 1; i < audioNames.size(); ++i) {
@@ -1292,7 +1534,7 @@ namespace LEPANELLEVEL {
 					if (ImGui::IsItemHovered() && tooltipText) {
 						ImGui::SetTooltip("%s", tooltipText);
 					}
-				};
+					};
 
 				// Get current audio bindings from defaults
 				std::string audioOnSpawn = defaults.audioOnSpawn;
@@ -1341,179 +1583,207 @@ namespace LEPANELLEVEL {
 				ImGui::EndDisabled();
 			}
 		}
-			// Text Object Inspector - when a text object is selected
-			else {
-				int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
-				auto& textObjs = LEPANELFONTS::GetMutableTextObjects();
-			
-				if (selectedTextIdx >= 0 && selectedTextIdx < static_cast<int>(textObjs.size())) {
-					if (editor.IsPlaying()) {
-						ImGui::BeginDisabled();
-					}
-				
-					LEPANELFONTS::TextObjectData& textObj = textObjs[selectedTextIdx];
-				
-					ImGui::SeparatorText("Text Object Properties");
-					ImGui::TextDisabled("Selected Text: %s", textObj.name.c_str());
-				
-					ImGui::Columns(2, nullptr, false);
-					ImGuiStyle& style = ImGui::GetStyle();
-				
-					float longestLabel = 0.0f;
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Name").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Font").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Text").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Layer").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position X").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position Y").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Scale").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation Mode").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Color").x);
-					float labelColWidth = longestLabel + style.ItemInnerSpacing.x * 2.0f + 12.0f;
-					ImGui::SetColumnWidth(0, labelColWidth);
-				
-					auto FullWidthNext = []() {
+		// Text Object Inspector - when a text object is selected
+		else {
+			int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
+			auto& textObjs = LEPANELFONTS::GetMutableTextObjects();
+
+			if (selectedTextIdx >= 0 && selectedTextIdx < static_cast<int>(textObjs.size())) {
+				if (editor.IsPlaying()) {
+					ImGui::BeginDisabled();
+				}
+
+				LEPANELFONTS::TextObjectData& textObj = textObjs[selectedTextIdx];
+
+				ImGui::SeparatorText("Text Object Properties");
+				ImGui::TextDisabled("Selected Text: %s", textObj.name.c_str());
+
+				ImGui::Columns(2, nullptr, false);
+				ImGuiStyle& style = ImGui::GetStyle();
+
+				float longestLabel = 0.0f;
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Name").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Font").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Text").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Layer").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position X").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position Y").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Scale").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation Mode").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Color").x);
+				float labelColWidth = longestLabel + style.ItemInnerSpacing.x * 2.0f + 12.0f;
+				ImGui::SetColumnWidth(0, labelColWidth);
+
+				auto FullWidthNext = []() {
 					ImGui::SetNextItemWidth(-FLT_MIN);
 					};
-				
-					// Name
-					ImGui::TextUnformatted("Name");
-					ImGui::NextColumn();
-					FullWidthNext();
-					char nameBuf[64];
-					std::snprintf(nameBuf, sizeof(nameBuf), "%s", textObj.name.c_str());
-					if (ImGui::InputText("##TextName", nameBuf, IM_ARRAYSIZE(nameBuf))) {
-						textObj.name = nameBuf;
-					}
-					ImGui::NextColumn();
-				
-					// Font selection
-					ImGui::TextUnformatted("Font");
-					ImGui::NextColumn();
-					FullWidthNext();
-					{
-						// Get list of loaded fonts from LEPANELFONTS
-						const auto& fontNames = LEPANELFONTS::GetLoadedFontNames();
-						if (ImGui::BeginCombo("##TextFont", textObj.fontName.c_str())) {
-							for (const auto& fontName : fontNames) {
-								const bool isSelected = (textObj.fontName == fontName);
-								if (ImGui::Selectable(fontName.c_str(), isSelected)) {
-									textObj.fontName = fontName;
-								}
-								if (isSelected) {
-									ImGui::SetItemDefaultFocus();
-								}
-							}
-							ImGui::EndCombo();
-						}
-					}
-					ImGui::NextColumn();
-				
-					// Text content
-					ImGui::TextUnformatted("Text");
-					ImGui::NextColumn();
-					FullWidthNext();
-					char textBuf[256];
-					std::snprintf(textBuf, sizeof(textBuf), "%s", textObj.text.c_str());
-					if (ImGui::InputText("##TextContent", textBuf, IM_ARRAYSIZE(textBuf))) {
-						textObj.text = textBuf;
-					}
+
+				// Name
+				ImGui::TextUnformatted("Name");
 				ImGui::NextColumn();
-				
-					// Layer selection
-					ImGui::TextUnformatted("Layer");
-					ImGui::NextColumn();
-					FullWidthNext();
-					{
-						std::vector<std::string> layerNames;
-						layerNames.push_back("1");
-					
-						const auto& allLayers = scene.GetAllLayers();
-						for (const auto& pair : allLayers) {
-							const std::string& name = pair.first;
-							if (name.empty()) continue;
-							if (std::find(layerNames.begin(), layerNames.end(), name) == layerNames.end()) {
-							layerNames.push_back(name);
+				FullWidthNext();
+				char nameBuf[64];
+				std::snprintf(nameBuf, sizeof(nameBuf), "%s", textObj.name.c_str());
+				if (ImGui::InputText("##TextName", nameBuf, IM_ARRAYSIZE(nameBuf))) {
+					textObj.name = nameBuf;
+				}
+
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+
+				ImGui::NextColumn();
+
+				// Font selection
+				ImGui::TextUnformatted("Font");
+				ImGui::NextColumn();
+				FullWidthNext();
+				{
+					// Get list of loaded fonts from LEPANELFONTS
+					const auto& fontNames = LEPANELFONTS::GetLoadedFontNames();
+					if (ImGui::BeginCombo("##TextFont", textObj.fontName.c_str())) {
+						for (const auto& fontName : fontNames) {
+							const bool isSelected = (textObj.fontName == fontName);
+							if (ImGui::Selectable(fontName.c_str(), isSelected)) {
+								PushUndoSnapshot(editor, scene);
+								textObj.fontName = fontName;
+							}
+							if (isSelected) {
+								ImGui::SetItemDefaultFocus();
 							}
 						}
-						std::sort(layerNames.begin(), layerNames.end());
-					
-							if (ImGui::BeginCombo("##TextLayer", textObj.layer.c_str())) {
-								for (const std::string& name : layerNames) {
-									bool isSelected = (textObj.layer == name);
-									if (ImGui::Selectable(name.c_str(), isSelected)) {
-										textObj.layer = name;
-										scene.AddLayer(name);
-									}
-									if (isSelected) {
-										ImGui::SetItemDefaultFocus();
-									}
-								}
-								ImGui::EndCombo();
-							}
-					}
-					ImGui::NextColumn();
-				
-					// Position X
-					ImGui::TextUnformatted("Position X");
-					ImGui::NextColumn();
-					FullWidthNext();
-					ImGui::DragFloat("##TextPosX", &textObj.x, 1.0f);
-					ImGui::NextColumn();
-				
-					// Position Y
-					ImGui::TextUnformatted("Position Y");
-					ImGui::NextColumn();
-					FullWidthNext();
-					ImGui::DragFloat("##TextPosY", &textObj.y, 1.0f);
-					ImGui::NextColumn();
-				
-					// Scale
-					ImGui::TextUnformatted("Scale");
-					ImGui::NextColumn();
-					FullWidthNext();
-					ImGui::DragFloat("##TextScale", &textObj.scale, 0.01f, 0.1f, 10.0f);
-					ImGui::NextColumn();
-				
-					// Rotation
-					ImGui::TextUnformatted("Rotation");
-					ImGui::NextColumn();
-					FullWidthNext();
-					ImGui::SliderFloat("##TextRotation", &textObj.rotation, 0.0f, 360.0f, "%.1f deg");
-					ImGui::NextColumn();
-				
-					// Rotation Mode
-					ImGui::TextUnformatted("Rotation Mode");
-					ImGui::NextColumn();
-					FullWidthNext();
-					const char* rotModeItems[] = { "Block (Normal)", "Per-Character (Curved)" };
-					int currentMode = textObj.useBlockRotation ? 0 : 1;
-					if (ImGui::Combo("##TextRotMode", &currentMode, rotModeItems, IM_ARRAYSIZE(rotModeItems))) {
-						textObj.useBlockRotation = (currentMode == 0);
-					}
-					ImGui::NextColumn();
-				
-					// Color
-					ImGui::TextUnformatted("Color");
-					ImGui::NextColumn();
-					FullWidthNext();
-					float color[4] = { textObj.colorR, textObj.colorG, textObj.colorB, textObj.colorA };
-					if (ImGui::ColorEdit4("##TextColor", color)) {
-						textObj.colorR = color[0];
-						textObj.colorG = color[1];
-						textObj.colorB = color[2];
-						textObj.colorA = color[3];
-					}
-					ImGui::NextColumn();
-				
-					ImGui::Columns(1);
-				
-					if (editor.IsPlaying()) {
-						ImGui::EndDisabled();
+						ImGui::EndCombo();
 					}
 				}
+				ImGui::NextColumn();
+
+				// Text content
+				ImGui::TextUnformatted("Text");
+				ImGui::NextColumn();
+				FullWidthNext();
+				char textBuf[256];
+				std::snprintf(textBuf, sizeof(textBuf), "%s", textObj.text.c_str());
+				if (ImGui::InputText("##TextContent", textBuf, IM_ARRAYSIZE(textBuf))) {
+					textObj.text = textBuf;
+				}
+
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+
+				ImGui::NextColumn();
+
+				// Layer selection
+				ImGui::TextUnformatted("Layer");
+				ImGui::NextColumn();
+				FullWidthNext();
+				{
+					std::vector<std::string> layerNames;
+					layerNames.push_back("1");
+
+					const auto& allLayers = scene.GetAllLayers();
+					for (const auto& pair : allLayers) {
+						const std::string& name = pair.first;
+						if (name.empty()) continue;
+						if (std::find(layerNames.begin(), layerNames.end(), name) == layerNames.end()) {
+							layerNames.push_back(name);
+						}
+					}
+					std::sort(layerNames.begin(), layerNames.end());
+
+					if (ImGui::BeginCombo("##TextLayer", textObj.layer.c_str())) {
+						for (const std::string& name : layerNames) {
+							bool isSelected = (textObj.layer == name);
+							if (ImGui::Selectable(name.c_str(), isSelected)) {
+								PushUndoSnapshot(editor, scene);
+								textObj.layer = name;
+								scene.AddLayer(name);
+							}
+							if (isSelected) {
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+						ImGui::EndCombo();
+					}
+				}
+				ImGui::NextColumn();
+
+				// Position X
+				ImGui::TextUnformatted("Position X");
+				ImGui::NextColumn();
+				FullWidthNext();
+				ImGui::DragFloat("##TextPosX", &textObj.x, 1.0f);
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+				ImGui::NextColumn();
+
+				// Position Y
+				ImGui::TextUnformatted("Position Y");
+				ImGui::NextColumn();
+				FullWidthNext();
+				ImGui::DragFloat("##TextPosY", &textObj.y, 1.0f);
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+				ImGui::NextColumn();
+
+				// Scale
+				ImGui::TextUnformatted("Scale");
+				ImGui::NextColumn();
+				FullWidthNext();
+				ImGui::DragFloat("##TextScale", &textObj.scale, 0.01f, 0.1f, 10.0f);
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+				ImGui::NextColumn();
+
+				// Rotation
+				ImGui::TextUnformatted("Rotation");
+				ImGui::NextColumn();
+				FullWidthNext();
+				ImGui::SliderFloat("##TextRotation", &textObj.rotation, 0.0f, 360.0f, "%.1f deg");
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+				ImGui::NextColumn();
+
+				// Rotation Mode
+				ImGui::TextUnformatted("Rotation Mode");
+				ImGui::NextColumn();
+				FullWidthNext();
+				const char* rotModeItems[] = { "Block (Normal)", "Per-Character (Curved)" };
+				int currentMode = textObj.useBlockRotation ? 0 : 1;
+				if (ImGui::Combo("##TextRotMode", &currentMode, rotModeItems, IM_ARRAYSIZE(rotModeItems))) {
+					PushUndoSnapshot(editor, scene);
+					textObj.useBlockRotation = (currentMode == 0);
+				}
+				ImGui::NextColumn();
+
+				// Color
+				ImGui::TextUnformatted("Color");
+				ImGui::NextColumn();
+				FullWidthNext();
+				float color[4] = { textObj.colorR, textObj.colorG, textObj.colorB, textObj.colorA };
+				if (ImGui::ColorEdit4("##TextColor", color)) {
+					textObj.colorR = color[0];
+					textObj.colorG = color[1];
+					textObj.colorB = color[2];
+					textObj.colorA = color[3];
+				}
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+				ImGui::NextColumn();
+
+				ImGui::Columns(1);
+
+				if (editor.IsPlaying()) {
+					ImGui::EndDisabled();
+				}
 			}
+		}
 
 		// Scene viewport area: DROP-ZONE ONLY (picking/dragging happens on the Scene tab)
 		ImGui::Spacing();

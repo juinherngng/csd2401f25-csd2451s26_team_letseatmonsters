@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			Forces.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		Declares a simple force system for 2D rigid bodies:
 					- IForceGenerator: interface for all force sources
@@ -12,7 +12,7 @@
 					- ConstantForce:   applies a fixed world-space force each step
 					- SeekForce:       seek/arrive steering toward a target with deadzone
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

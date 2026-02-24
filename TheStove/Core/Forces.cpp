@@ -2,12 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			Forces.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		Implements the force system (registry + generators). Each generator applies
 					its force to a body during UpdateForce; the registry iterates all pairs.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

@@ -1,145 +1,50 @@
 ==========================================
-Lines of Code Report
+Lines of Code Report (Diff-based)
 ==========================================
 Author: Wang Hua
 Since: 2025-12-06
-Generated: Wed Feb  4 20:01:36 +08 2026
+Generated: Thu Feb  5 18:56:32 +08 2026
 ==========================================
 
-Files Modified: 50 unique files
-
-Files Still Exist: 46 files
-
 ==========================================
-CODE ANALYSIS - SUMMARY
-Excludes: Comments and Blank Lines
+ACTUAL CODE CHANGES PER FILE (NO BLANKS/COMMENTS)
 ==========================================
-
-github.com/AlDanial/cloc v 1.98  T=0.57 s (50.9 files/s, 16509.9 lines/s)
--------------------------------------------------------------------------------
-Language                     files          blank        comment           code
--------------------------------------------------------------------------------
-C++                             12           1315           1019           4959
-C/C++ Header                     8            294            317            919
-JSON                             2              1              0            404
-INI                              1             14              0             73
-GLSL                             5             22              4             55
-Text                             1              1              0              6
--------------------------------------------------------------------------------
-SUM:                            29           1647           1340           6416
--------------------------------------------------------------------------------
-
-==========================================
-CODE ANALYSIS - PER FILE (Current State)
-==========================================
-
-github.com/AlDanial/cloc v 1.98  T=0.55 s (52.4 files/s, 16997.1 lines/s)
-----------------------------------------------------------------------------------------------
-File                                                       blank        comment           code
-----------------------------------------------------------------------------------------------
-TheStove/Graphics/SceneManager.cpp                           248            166           1097
-TheStove/Graphics/GraphicsEngine.cpp                         228            161            918
-TheStove/Main.cpp                                            189            163            664
-TheStove/Core/DebugUI.cpp                                    148            119            619
-TheStove/Core/PlayerLogic.cpp                                176            167            523
-TheStove/Graphics/SceneManager.hpp                            89            101            374
-TheStove/Graphics/SceneCollisionLayout.cpp                   104             80            342
-levels/kitchen01.json                                          1              0            304
-TheStove/Graphics/AnimationManager.cpp                        73             42            230
-TheStove/Core/LevelSerializer.cpp                             42             30            158
-TheStove/Graphics/GraphicsEngine.hpp                          44             40            155
-TheStove/Core/RuntimeLevel.cpp                                27             29            124
-TheStove/Graphics/Shader.cpp                                  36             20            123
-TheStove/Graphics/GameObject.hpp                              42             66            118
-TheStove/Core/DebugUI.hpp                                     47             28            112
-levels/main_menu.json                                          0              0            100
-TheStove/Core/MenuButtonLogic.cpp                             21             28             88
-TheStove/Graphics/Texture.cpp                                 23             14             73
-imgui.ini                                                     14              0             73
-TheStove/Core/LevelSerializer.hpp                             21             29             57
-TheStove/Graphics/AnimationManager.hpp                        22             32             46
-TheStove/Graphics/Mesh.hpp                                    16             10             30
-TheStove/Graphics/Shader.hpp                                  13             11             27
-TheStove/Graphics/shaders/shadow.frag                          6              3             15
-TheStove/Graphics/shaders/shadow.vert                          4              0             12
-TheStove/Graphics/shaders/staticsprite.frag                    6              1             11
-TheStove/Graphics/shaders/screenfade.vert                      3              0             10
-TheStove/Graphics/shaders/screenfade.frag                      3              0              7
-assets/config.txt                                              1              0              6
-----------------------------------------------------------------------------------------------
-SUM:                                                        1647           1340           6416
-----------------------------------------------------------------------------------------------
-
-==========================================
-GIT CHANGES PER FILE
-==========================================
+Tracked extensions: .cpp .hpp .h .c
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-TheStove/Graphics/SceneManager.cpp                                            502         54        448
-TheStove/Graphics/GraphicsEngine.cpp                                          370        161        209
-imgui.ini                                                                     168        162          6
-TheStove/Graphics/SceneManager.hpp                                            123          0        123
-levels/kitchen01.json                                                          99         19         80
-TheStove/Core/MenuButtonLogic.cpp                                              77         66         11
-TheStove/Graphics/AnimationManager.cpp                                         72          1         71
-TheStove/Core/RuntimeLevel.cpp                                                 66         23         43
-TheStove/Graphics/GraphicsEngine.hpp                                           65         35         30
-levels/main_menu.json                                                          58         17         41
-TheStove/Core/DebugUI.cpp                                                      52          2         50
-TheStove/Main.cpp                                                              44          8         36
-TheStove/Graphics/GameObject.hpp                                               38          1         37
-TheStove/Graphics/shaders/post_lut.frag                                        25         25          0
-TheStove/Graphics/shaders/shadow.frag                                          24          0         24
-TheStove/Graphics/Shader.cpp                                                   24         19          5
-TheStove/Graphics/SceneCollisionLayout.cpp                                     23         15          8
-TheStove/Graphics/shaders/shadow.vert                                          16          0         16
-TheStove/Graphics/shaders/screenfade.vert                                      13          0         13
-TheStove/Graphics/shaders/post_lut.vert                                        12         12          0
-TheStove/Graphics/shaders/screenfade.frag                                      10          0         10
-TheStove/Graphics/Shader.hpp                                                    8          6          2
-TheStove/Graphics/AnimationManager.hpp                                          8          2          6
-TheStove/Core/LevelSerializer.hpp                                               8          1          7
-TheStove/Core/LevelSerializer.cpp                                               8          1          7
-TheStove/Core/DebugUI.hpp                                                       8          1          7
-TheStove/Graphics/shaders/staticsprite.frag                                     4          5         -1
-TheStove/Graphics/Texture.cpp                                                   2          2          0
-TheStove/Core/PlayerLogic.cpp                                                   2          2          0
-assets/config.txt                                                               1          1          0
+TheStove/Graphics/SceneManager.cpp                                            447         57        390
+TheStove/Graphics/GraphicsEngine.cpp                                          282        116        166
+TheStove/Graphics/SceneManager.hpp                                            101          5         96
+TheStove/Core/MenuButtonLogic.cpp                                             202        120         82
+TheStove/Graphics/AnimationManager.cpp                                         53          2         51
+TheStove/Core/DebugUI.cpp                                                      37          0         37
+TheStove/Core/RuntimeLevel.cpp                                                 49         17         32
+TheStove/Graphics/GameObject.hpp                                               31          0         31
+TheStove/Main.cpp                                                              27          5         22
+TheStove/Graphics/GraphicsEngine.hpp                                           42         22         20
+TheStove/Graphics/SceneCollisionLayout.cpp                                     18         13          5
+TheStove/Graphics/Shader.cpp                                                   21         17          4
+TheStove/Core/LevelSerializer.cpp                                               4          1          3
+TheStove/Core/DebugUI.hpp                                                       3          0          3
+TheStove/Graphics/AnimationManager.hpp                                          3          1          2
+TheStove/Core/LevelSerializer.hpp                                               3          1          2
+TheStove/Graphics/Shader.hpp                                                    3          2          1
 TheStove/Graphics/Mesh.hpp                                                      1          0          1
-assets/rgbtable16x1.png                                                         0          0          0
-assets/pause.png                                                                0          0          0
-assets/menu_logo.png                                                            0          0          0
-assets/mainmenu_sprite.png                                                      0          0          0
-assets/mainmenu_bg_plain.png                                                    0          0          0
-assets/lut_sepia.png                                                            0          0          0
-assets/Time.png                                                                 0          0          0
-assets/Rock_UI.png                                                              0          0          0
-assets/Pause_button.png                                                         0          0          0
-assets/Order_UI.png                                                             0          0          0
-assets/Goal_UI.png                                                              0          0          0
-assets/Goal                                                                     0          0          0
-assets/Font/AGENCYB.ttf                                                         0          0          0
-assets/Cutscene_starting_6.png                                                  0          0          0
-assets/Cutscene_starting_5.png                                                  0          0          0
-assets/Cutscene_starting_4.png                                                  0          0          0
-assets/Cutscene_starting_3.png                                                  0          0          0
-assets/Cutscene_starting_2.png                                                  0          0          0
-assets/Cutscene_starting_1.png                                                  0          0          0
-                                                                                0          0          0
+TheStove/Core/PlayerLogic.cpp                                                   5          4          1
+TheStove/Graphics/Texture.cpp                                                   2          2          0
 --------------------------------------------------------------------------------------------
 
 ==========================================
-GIT COMMIT STATISTICS - TOTAL
+ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-
-Lines Added:    1931
-Lines Deleted:  641
-Net Change:     1290
-Total Commits:  16
+Lines Added:    1334
+Lines Deleted:  385
+Net Change:     949
+Total Commits:  21
 
 ==========================================
-FILES MODIFIED
+FILES MODIFIED (RAW - ANY TYPE)
 ==========================================
 
 TheStove/Core/DebugUI.cpp
@@ -175,6 +80,24 @@ assets/Cutscene_starting_3.png
 assets/Cutscene_starting_4.png
 assets/Cutscene_starting_5.png
 assets/Cutscene_starting_6.png
+assets/Cutscenes/Cutscene_starting_1.1.png
+assets/Cutscenes/Cutscene_starting_1.2.png
+assets/Cutscenes/Cutscene_starting_1.3.png
+assets/Cutscenes/Cutscene_starting_2.1.png
+assets/Cutscenes/Cutscene_starting_2.2.png
+assets/Cutscenes/Cutscene_starting_2.3.png
+assets/Cutscenes/Cutscene_starting_3.1.png
+assets/Cutscenes/Cutscene_starting_3.2.png
+assets/Cutscenes/Cutscene_starting_3.3.png
+assets/Cutscenes/Cutscene_starting_4.1.png
+assets/Cutscenes/Cutscene_starting_4.2.png
+assets/Cutscenes/Cutscene_starting_4.3.png
+assets/Cutscenes/Cutscene_starting_5.1.png
+assets/Cutscenes/Cutscene_starting_5.2.png
+assets/Cutscenes/Cutscene_starting_5.3.png
+assets/Cutscenes/Cutscene_starting_6.1.png
+assets/Cutscenes/Cutscene_starting_6.2.png
+assets/Cutscenes/Cutscene_starting_6.3.png
 assets/Font/AGENCYB.ttf
 assets/Goal UI.png
 assets/Goal_UI.png
@@ -188,6 +111,9 @@ assets/mainmenu_bg_plain.png
 assets/mainmenu_sprite.png
 assets/menu_logo.png
 assets/pause.png
+assets/paused.png
+assets/resume_h.png
+assets/resume_s.png
 assets/rgbtable16x1.png
 imgui.ini
 levels/kitchen01.json

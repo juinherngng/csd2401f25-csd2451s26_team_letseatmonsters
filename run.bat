@@ -35,9 +35,41 @@ echo Configuring CMake project and importing dependencies...
 echo This may take a while for the first run as dependencies are downloaded...
 echo.
 
-cmake .. -G "Visual Studio 17 2022" -A x64
+REM Auto-detect Visual Studio version using vswhere
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+set VS_GENERATOR=
+
+if exist "%VSWHERE%" (
+    for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -property catalog_productLineVersion 2^>nul`) do set VS_VERSION=%%i
+)
+
+if "%VS_VERSION%"=="2022" (
+    set "VS_GENERATOR=Visual Studio 17 2022"
+    goto :run_cmake
+)
+if "%VS_VERSION%"=="2019" (
+    set "VS_GENERATOR=Visual Studio 16 2019"
+    goto :run_cmake
+)
+
+REM Fallback: let CMake auto-detect
+echo Could not detect Visual Studio version, letting CMake choose...
+set VS_GENERATOR=
+
+:run_cmake
+if "%VS_GENERATOR%"=="" (
+    cmake .. -A x64
+) else (
+    echo Using generator: %VS_GENERATOR%
+    cmake .. -G "%VS_GENERATOR%" -A x64
+)
+
 if %errorlevel% neq 0 (
+    echo.
     echo ERROR: CMake configuration failed
+    echo.
+    echo Make sure you have Visual Studio installed with C++ development tools.
+    echo Supported versions: Visual Studio 2019 or 2022
     cd ..
     pause
     exit /b 1

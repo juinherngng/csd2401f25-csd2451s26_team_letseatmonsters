@@ -175,6 +175,22 @@
       "name": "sfx_remaining_time",
       "stream": false,
       "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_win.wav",
+      "loop": false,
+      "name": "sfx_win",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/bgm_win_cutscene.mp3",
+      "loop": false,
+      "name": "bgm_win_cutscene",
+      "stream": false,
+      "volume": 1.0
     }
   ],
   "version": "1.0"

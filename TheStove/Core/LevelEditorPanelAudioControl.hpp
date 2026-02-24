@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorPanelAudioControl.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu (100%)
 
  DESCRIPTION:       Header for Level Editor Audio Control panel.
                     Provides real-time volume control for playing audio.

@@ -1,10 +1,10 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			Core.hpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Ng Juin Herng, juinherng.ng@digipen.edu
+ FILE NAME:			Core.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
 
-DESCRIPTION:		The core engine managing the game loop, systems, and messaging.
+ DESCRIPTION:		The core engine managing the game loop, systems, and messaging.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------

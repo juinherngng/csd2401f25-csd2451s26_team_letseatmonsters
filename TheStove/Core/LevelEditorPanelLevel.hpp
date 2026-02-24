@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorPanelLevel.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:       Level panel for the Level Editor.
 					- Load/Save level JSON files

@@ -2,9 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameStateManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Darren Toh, darren.toh@digipen.edu
- CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Darren Toh, darren.toh@digipen.edu		(20%)
+ CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (40%)
 
  DESCRIPTION:		This file implements the logic for first-time initialization, per-frame updates, and transitions
  					between states, preferring JSON-driven runtime level loading when mappings are registered, with a 
@@ -12,7 +12,7 @@
 					activation timing, tracks pause state to pause/resume audio in gameplay, and controls state-based
 					playback and cleanup of background music and ambience through the injected AudioManager instance.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

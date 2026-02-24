@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         PhysicsManager.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu	(30%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(65%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
  DESCRIPTION:       Declares PhysicsManager, a lightweight force-based integrator that updates
 					per-entity velocity/position, supports seek/arrive targets, simple drag, and

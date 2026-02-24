@@ -2,17 +2,17 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SceneManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Vu Phan Hung, phanhung.vu@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (15%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (15%)
 
  DESCRIPTION:		Declares the SceneManager (Scene) class, which orchestrates the lifecycle and
 					high-level coordination of all major systems within a game scene. This includes:
 					entity creation and management, event handling, physics and collision simulation,
 					animation control, input processing, and rendering pipeline integration.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

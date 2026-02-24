@@ -1,14 +1,14 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			PlayerLogic.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Vu Phan Hung, phanhung.vu@digipen.edu
-CO-AUTHORS:			Yat Chun Wee, y.chunwee@digipen.edu
+ FILE NAME:			PlayerLogic.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (80%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu	  (20%)
 
-DESCRIPTION:		Implements player control logic, including movement, sprite updates,
+ DESCRIPTION:		Implements player control logic, including movement, sprite updates,
 					mouse click handling, item pickup/drop, and scene clamping behavior.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 #include "../Graphics/SceneManager.hpp"
@@ -388,7 +388,7 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	// Play UI click sound for pickup feedback (release mode only)
 #ifndef _DEBUG
 	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		audioMgr->PlaySound("ui_click", audioMgr->GetVfxVolume() * 0.2f, false);
+		audioMgr->PlaySound("ui_click", audioMgr->GetVfxVolume() * 0.05f, false);
 	}
 #endif
 
@@ -608,8 +608,10 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 		// Feet position from collider size
 		glm::vec3 feet = afterPos;
-		auto cs = player->GetColliderSize();
-		feet.y += cs.y * 0.4f; // adjust to feet level
+		auto co = player->GetColliderOffset();
+		auto scale = player->GetScaleGLM();
+		feet.x += co.x;
+		feet.y += co.y + (scale.y * 0.5f) - 6.0f;
 
 		// Move direction (normalized) used for particle velocity shaping
 		glm::vec2 dir = moveDelta;
@@ -807,7 +809,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 				// Play put down sound effect (release mode only)
 #ifndef _DEBUG
 				if (AudioManager* audioMgr = scene.GetAudioManager()) {
-					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.2f, false);
+					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
 				}
 #endif
 			}
@@ -919,7 +921,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 				// Play put down sound effect (release mode only)
 #ifndef _DEBUG
 				if (AudioManager* audioMgr = scene.GetAudioManager()) {
-					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.2f, false);
+					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
 				}
 #endif
 			}

@@ -2,11 +2,11 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			MeshLoader.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
  DESCRIPTION:		Interleaved vertex data, plus vertexCount and vertexSize for Mesh creation.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

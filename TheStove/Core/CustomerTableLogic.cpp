@@ -2,13 +2,13 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CustomerTableLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION: Implements behaviour for a dining table that can seat a
-             customer. Handles table state (occupied/free), seat
-             positions, communication with CustomerManagerLogic, and
-             interactions such as placing dishes or checking whether a
-             customer is served.
+ DESCRIPTION:       Implements behaviour for a dining table that can seat a
+                    customer. Handles table state (occupied/free), seat
+                    positions, communication with CustomerManagerLogic, and
+                    interactions such as placing dishes or checking whether a
+                    customer is served.
 
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
@@ -21,6 +21,7 @@ DESCRIPTION: Implements behaviour for a dining table that can seat a
 #include "../Core/LogicManager.hpp"   
 #include "../Core/SimpleNpcLogic.hpp" 
 #include "../Core/Quota.hpp"
+#include <cmath>
 
 CustomerTableLogic::CustomerTableLogic(int ownerID)
     : TableLogic(ownerID)
@@ -39,6 +40,9 @@ void CustomerTableLogic::Start(Scene& scene)
     TableLogic::Start(scene);
 
     seatedCustomerID_ = kInvalidID;
+
+    servedFoodLocked_ = false;
+    servedFoodItemID_ = kInvalidID;
 
     GameObject* owner = GetOwner(scene);
     if (!owner)
@@ -77,6 +81,8 @@ void CustomerTableLogic::OnDestroy(Scene& scene)
 {
     // If needed, external systems can query that the table is now free.
     seatedCustomerID_ = kInvalidID;
+    servedFoodLocked_ = false;
+    servedFoodItemID_ = kInvalidID;
     TableLogic::OnDestroy(scene);
 }
 
@@ -139,6 +145,9 @@ void CustomerTableLogic::OnItemTaken(Scene& /*scene*/, GameObject& /*item*/)
 void CustomerTableLogic::OnDishServed(Scene& scene, GameObject& dish)
 {
     if (!HasSeatedCustomer()) return;
+
+    servedFoodLocked_ = true;
+    servedFoodItemID_ = dish.GetID();
 
     LogicManager& logicMgr = scene.GetLogicManager();
 
@@ -230,7 +239,7 @@ bool CustomerTableLogic::TryTakePayment(Scene& scene)
         // Only pay full amount if they were served the correct dish
         if (customerLogic->GetServedDishType() == customerLogic->GetDesiredDishType())
         {
-            payment = Economy::kCorrectDishPay;
+            payment = static_cast<int>(Economy::kCorrectDishPay * (1.0f + std::clamp(customerLogic->GetPatienceRatioAtServe(), 0.0f, 1.0f)));
         }
     }
 
@@ -251,6 +260,11 @@ bool CustomerTableLogic::TryTakePayment(Scene& scene)
 
 void CustomerTableLogic::ClearServedFood(Scene& scene)
 {
+
+    // Unlock first
+    servedFoodLocked_ = false;
+    servedFoodItemID_ = kInvalidID;
+
     // TakeItem() clears heldItemID_ immediately and calls OnItemTaken(...)
     const int itemID = TakeItem(scene);
     if (itemID != kInvalidID)
@@ -258,4 +272,14 @@ void CustomerTableLogic::ClearServedFood(Scene& scene)
         scene.RequestDespawn(itemID);   // dish/plate disappears
         // std::cout << "[CustomerTableLogic] Cleared served food item " << itemID << "\n";
     }
+}
+
+int CustomerTableLogic::TakeItem(Scene& scene)
+{
+    // If food has been served on this table, don't allow taking it
+    if (servedFoodLocked_) {
+        return kInvalidID;
+    }
+
+    return TableLogic::TakeItem(scene);
 }

@@ -2,7 +2,7 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			InputControls.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu
+ AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu (100%)
 
  DESCRIPTION:		Input Control function declarations.
 

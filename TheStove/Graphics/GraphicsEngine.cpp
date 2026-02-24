@@ -2,14 +2,14 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GraphicsEngine.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
 
  DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
 					and batched instanced rendering of GameObjects.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -1051,6 +1051,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
 
 		int objLayer = obj->GetRenderLayer();
+#ifndef _DEBUG
+		(void)objLayer;
+#endif
 
 #ifdef _DEBUG
 		// When we move to a new (higher) layer, first render text objects

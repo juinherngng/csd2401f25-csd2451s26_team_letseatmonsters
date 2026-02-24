@@ -2,14 +2,14 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			AnimationManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (90%)
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:	    Implements AnimationManager. Manages 2D sprite animations for game objects,
 					updating frame UVs based on Animator2D components. Supports play/pause
 					control and registering animation sets for different entity types.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -226,7 +226,7 @@ void AnimationManager::AttachMenuAnimations(int objectID) {
     // Top row first, left-to-right across each row
     std::vector<glm::vec4> fullFrames = CreateFullGridSequenceDir(totalRows, totalCols, /*topFirst=*/true, /*leftToRight=*/true);
 
-    animationSets_[objectID]["FULL"] = AnimationSet{ fullFrames, 0.08f, true };
+    animationSets_[objectID]["FULL"] = AnimationSet{ fullFrames, 0.04f, true };
 
     const auto& clip = animationSets_[objectID]["FULL"];
     anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);

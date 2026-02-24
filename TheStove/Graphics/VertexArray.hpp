@@ -2,11 +2,11 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			VertexArray.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
  DESCRIPTION:		RAII wrapper around a GL Vertex Array Object; manages attribute binding.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

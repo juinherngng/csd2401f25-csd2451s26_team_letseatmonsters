@@ -2,13 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CustomerManagerLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION: Declares the CustomerManagerLogic system, which is
-             responsible for pairing customers with tables, assigning
-             seating targets, and maintaining runtime customer–table
-             relationships.
-
+ DESCRIPTION:       Declares the CustomerManagerLogic system, which is
+                    responsible for pairing customers with tables, assigning
+                    seating targets, and maintaining runtime customer–table
+                    relationships.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

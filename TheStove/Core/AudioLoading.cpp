@@ -2,11 +2,11 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			AudioLoading.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
 
  DESCRIPTION:		Implementation of JSON-based audio catalog with serialization.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

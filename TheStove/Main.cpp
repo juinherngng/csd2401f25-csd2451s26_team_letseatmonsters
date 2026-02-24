@@ -11,7 +11,7 @@
 					Handles window creation, fullscreen toggling, OS-focus pause/resume behaviour,
 					signal handling, and overall application shutdown and cleanup.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -899,7 +899,10 @@ static void draw(ApplicationState& app) {
 	
 	// Render FPS text on top (release only)
 	app.currentScene->RenderFPSText();
+
+#ifndef _DEBUG
 	app.currentScene->RenderLevelTextObjects();
+#endif
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (app.debugApp) {

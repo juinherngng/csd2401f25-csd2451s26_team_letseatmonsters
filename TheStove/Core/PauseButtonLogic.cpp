@@ -2,13 +2,13 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			PauseButtonLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
  DESCRIPTION:		Implements PauseButtonLogic::Update for release builds only, providing AABB mouse click registering logic,
 					hover texture swapping, and button actions logic: resume simulation/hide overlay, load settings JSON,
 					or close GLFW window on Quit.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

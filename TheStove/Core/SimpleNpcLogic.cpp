@@ -2,13 +2,13 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SimpleNpcLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
  DESCRIPTION:		Implements the SimpleNpcLogic behaviour, including timed idle-to-move state
 					transitions, vertical patrolling based on authored velocity, walk-area clamping,
 					and automatic direction reversal when hitting boundaries.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -37,6 +37,7 @@ void SimpleNpcLogic::Awake(Scene& scene) {
     patienceRemaining_ = 0.0f;
     patienceExpired_ = false;
     payZero_ = false;
+    patienceRatioAtServe_ = 0.0f;
 
 }
 
@@ -271,6 +272,7 @@ void SimpleNpcLogic::TakeOrder(Scene& scene)
         return;
 
     orderTaken_ = true;
+    patienceRatioAtServe_ = 1.0f; // starts full; will be snapshotted on serve
 
     // Play new order sound effect (release mode only)
 #ifndef _DEBUG
@@ -285,6 +287,9 @@ void SimpleNpcLogic::TakeOrder(Scene& scene)
     payZero_ = false;
 
     behaviourState_ = BehaviourState::WaitingForFood;
+#ifdef _DEBUG
+    (void)scene;
+#endif
 }
 
 void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType)
@@ -297,6 +302,14 @@ void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType)
 
     dishServed_ = true;
     servedDishType_ = dishType;
+
+    // Snapshot patience % at the moment the dish is served (remaining/max)
+    if (patienceMax_ > 0.0f) {
+        patienceRatioAtServe_ = std::clamp(patienceRemaining_ / patienceMax_, 0.0f, 1.0f);
+    }
+    else {
+        patienceRatioAtServe_ = 0.0f;
+    }
 
     if (servedDishType_ != desiredDishType_)
     {
@@ -485,6 +498,7 @@ void SimpleNpcLogic::OnPatienceExpired(Scene& scene)
 
     patienceExpired_ = true;
     patienceRemaining_ = 0.f;
+    patienceRatioAtServe_ = 0.0f;
 
     // Same behavior as wrong dish: go to Paying and pay $0
     payZero_ = true;

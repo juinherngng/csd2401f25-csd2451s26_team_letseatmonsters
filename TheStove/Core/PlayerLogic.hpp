@@ -2,14 +2,14 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			PlayerLogic.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (60%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu   (40%)
 
  DESCRIPTION:		Declares the PlayerLogic script that handles player movement, click-to-move
 					navigation, arrival callbacks, item pick-up/drop behaviour, and sprite facing
 					updates. Provides the public interface used by the Scene and LogicManager.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

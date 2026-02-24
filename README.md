@@ -1,12 +1,12 @@
-# Project GAM200
-Game Name to be updated at a later date
+# Project GAM250
+Myoonchi Diner
 
 # Team Lets Eat Monsters
 Team Members:
 1. Seah Wang Hua        (wanghua.seah@digipen.edu)  RTIS
 2. Yat Chun Wee         (y.chunwee@digipen.edu)     RTIS
-3. Darren Toh           (darren.toh@digipen.edu)    IMGD
-4. Glenn Yeo Yi Heng    (g.yeo@digipen.edu)         IMGD
+3. Darren Toh           (darren.toh@digipen.edu)    IMGD (Dropped Out)
+4. Glenn Yeo Yi Heng    (g.yeo@digipen.edu)         IMGD (Dropped Out)
 5. Ng Juin Herng        (juinherng.ng@digipen.edu)  IMGD
 6. Vu Phan Hung         (phanhung.vu@digipen.edu)   IMGD
 7. Loo Shi Ya           (s.loo@digipen.edu)         BFA

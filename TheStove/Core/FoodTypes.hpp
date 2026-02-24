@@ -2,13 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         FoodTypes.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
-DESCRIPTION: Declares enumerations for food-related types used in the
-             game (e.g., DishType, IngredientType). Centralises all
-             food type definitions for use by DishLogic, IngredientBoxLogic,
-             and customer/table systems.
-
+ DESCRIPTION:       Declares enumerations for food-related types used in the
+                    game (e.g., DishType, IngredientType). Centralises all
+                    food type definitions for use by DishLogic, IngredientBoxLogic,
+                    and customer/table systems.
 
          All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

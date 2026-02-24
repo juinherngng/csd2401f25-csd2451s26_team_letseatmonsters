@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         MovementManager.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (50%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(40%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:       Implements MovementManager. Updates player WASD and click-to-move, NPC patrols,
 					and passive velocity-based motion. Uses world trimming to resolve step movement

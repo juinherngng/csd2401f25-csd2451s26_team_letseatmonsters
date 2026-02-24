@@ -1,3 +1,18 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:         Quota.hpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (90%)
+ CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+
+ DESCRIPTION:       Defines the Economy namespace, which tracks player money,
+                    win quota, and remaining time, and synchronizes these values
+                    with the game UI and win/lose conditions.
+
+         All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #pragma once
 #include <sstream>
 #include <iomanip>
@@ -12,7 +27,7 @@ namespace Economy
     inline int gPlayerMoney = 0;
 
     // Win quota
-    inline constexpr int kQuota = 300;
+    inline constexpr int kQuota = 200;
 
     // How much a correct dish pays (tweak anytime)
     inline constexpr int kCorrectDishPay = 50;

@@ -2,12 +2,13 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			LevelSerializer.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
- CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(40%)
+ CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu	(20%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (40%)
 
  DESCRIPTION:		Handles saving and loading of LevelData to and from JSON files.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -25,6 +26,7 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.texture = jsonObj.value("texture", "");
 	obj.tag = jsonObj.value("tag", "");
 	obj.layer = jsonObj.value("layer", "");
+	obj.prefabPath = jsonObj.value("prefab_path", "");
 
 	obj.x = jsonObj.value("x", 0.0f);
 	obj.y = jsonObj.value("y", 0.0f);
@@ -75,25 +77,25 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 // Read a text object from JSON
 static LevelTextObject ReadTextObject(const json& jsonObj) {
 	LevelTextObject obj{};
-	
+
 	obj.name = jsonObj.value("name", "");
 	obj.text = jsonObj.value("text", "");
 	obj.fontName = jsonObj.value("fontName", "");
 	obj.fontSize = jsonObj.value("fontSize", 48u);
-	
+
 	obj.x = jsonObj.value("x", 0.0f);
 	obj.y = jsonObj.value("y", 0.0f);
 	obj.scale = jsonObj.value("scale", 1.0f);
 	obj.rotation = jsonObj.value("rotation", 0.0f);
 	obj.useBlockRotation = jsonObj.value("useBlockRotation", true);
-	
+
 	obj.colorR = jsonObj.value("colorR", 1.0f);
 	obj.colorG = jsonObj.value("colorG", 1.0f);
 	obj.colorB = jsonObj.value("colorB", 1.0f);
 	obj.colorA = jsonObj.value("colorA", 1.0f);
-	
+
 	obj.layer = jsonObj.value("layer", "1");
-	
+
 	return obj;
 }
 
@@ -103,6 +105,7 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "texture", obj.texture },
 		{ "tag", obj.tag },
 		{ "layer", obj.layer},
+		{ "prefab_path", obj.prefabPath },
 		{ "x", obj.x },
 		{ "y", obj.y },
 		{ "z", obj.z },
@@ -150,9 +153,10 @@ static json WriteTextObject(const LevelTextObject& obj) {
 		{ "colorG", obj.colorG },
 		{ "colorB", obj.colorB },
 		{ "colorA", obj.colorA },
-		{ "layer", obj.layer }
+		{ "layer", obj.layer },
+		{ "visible", obj.visible }
 	};
-	
+
 	return jsonData;
 }
 
@@ -196,8 +200,12 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	{
 		std::ifstream in(path);
 		if (in) {
-			try { in >> jsonData; }
-			catch (...) { jsonData = json::object(); }
+			try {
+				in >> jsonData;
+			}
+			catch (...) {
+				jsonData = json::object();
+			}
 		}
 	}
 

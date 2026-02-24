@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorPickDrag.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:       Picking & dragging helpers for the Level Editor.
 					- Convert mouse to scene/world coordinates

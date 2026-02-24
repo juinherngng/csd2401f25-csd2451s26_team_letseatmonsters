@@ -2,10 +2,10 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SceneManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Vu Phan Hung, phanhung.vu@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (35%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(15%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (15%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (35%)
 
  DESCRIPTION:		Implements the Scene class, which is responsible for the high-level
 					management, coordination, and per-frame updating of all entities, systems,
@@ -175,11 +175,17 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 				fpsText_.SetFont(f);
 				fpsText_.SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)); // yellow for visibility
 				fpsText_.SetScale(1.5f); // 1.5x size for better visibility
-				fpsText_.SetPosition(glm::vec2(10.0f, 60.0f)); // Move down to avoid clipping
+				// Position will be set dynamically in update loop to align to right side
 				fpsAccumTime_ = 0.0f;
 				fpsAccumFrames_ = 0;
 				fpsValue_ = 60; // Start with a visible value
-				fpsText_.SetText(std::string("FPS: ") + std::to_string(fpsValue_));
+				std::string fpsStr = std::string("FPS: ") + std::to_string(fpsValue_);
+				fpsText_.SetText(fpsStr);
+				// Set initial position on the right side
+				float estimatedTextWidth = static_cast<float>(fpsStr.length()) * 20.0f * fpsText_.GetScale();
+				float rightPadding = 20.0f;
+				float topPadding = 60.0f;
+				fpsText_.SetPosition(glm::vec2(static_cast<float>(GraphicsEngine::kRefW) - estimatedTextWidth - rightPadding, topPadding));
 			}
 		}
 	}
@@ -199,6 +205,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	if (simulationActive) {
 		float prevTime = Economy::gTimeRemaining;
 		Economy::Update(deltaTime, *this);
+#ifdef _DEBUG
+		(void)prevTime;
+#endif
 		
 		// Play timer warning sounds (release mode only)
 #ifndef _DEBUG
@@ -346,7 +355,15 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			fpsValue_ = static_cast<int>(avg + 0.5f);
 			fpsAccumTime_ = 0.0f;
 			fpsAccumFrames_ = 0;
-			fpsText_.SetText(std::string("FPS: ") + std::to_string(fpsValue_));
+			std::string fpsStr = std::string("FPS: ") + std::to_string(fpsValue_);
+			fpsText_.SetText(fpsStr);
+
+			// Position FPS text on the right side of the screen
+			// Use reference canvas width (kRefW) since projection uses reference space
+			float estimatedTextWidth = static_cast<float>(fpsStr.length()) * 20.0f * fpsText_.GetScale();
+			float rightPadding = 20.0f;
+			float topPadding = 60.0f;
+			fpsText_.SetPosition(glm::vec2(static_cast<float>(GraphicsEngine::kRefW) - estimatedTextWidth - rightPadding, topPadding));
 		}
 	}
 #endif
@@ -592,7 +609,9 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		}
 
 		// Set the render layer on the object for use in GraphicsEngine
-		g->SetRenderLayer(parseLayerNumber(layerName));
+		const std::string& texturePath = GetObjectTexturePath(objId);
+		const bool isFootstepVfx = texturePath.find("run_vfx.png") != std::string::npos;
+		g->SetRenderLayer(isFootstepVfx ? 0 : parseLayerNumber(layerName));
 
 		out.push_back(g);
 	}
@@ -919,7 +938,7 @@ void Scene::ShowPauseOverlay() {
 	const std::string uiLayer = "999999";
 
 	// Pause overlay background
-	if (GameObject* dim = SpawnStaticSprite("../assets/paused.png",
+	if (GameObject* dim = SpawnStaticSprite(FilePaths::Textures::PAUSED_BG,
 		{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
 		{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
 		uiLayer)) {
@@ -955,9 +974,9 @@ void Scene::ShowPauseOverlay() {
 		}
 		};
 
-	spawnPauseBtn("../assets/resume_s.png", { 1300.f, 454.f }, PauseAction::Resume);
-	spawnPauseBtn("../assets/how_s.png", { 1300.f, 584.f }, PauseAction::HowToPlay);
-	spawnPauseBtn("../assets/quit_s.png", { 1300.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn(FilePaths::Textures::BTN_RESUME, { 1300.f, 454.f }, PauseAction::Resume);
+	spawnPauseBtn(FilePaths::Textures::BTN_HOW, { 1300.f, 584.f }, PauseAction::HowToPlay);
+	spawnPauseBtn(FilePaths::Textures::BTN_QUIT, { 1300.f, 714.f }, PauseAction::Quit);
 #endif
 }
 
@@ -1628,6 +1647,20 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
             gfx->ContinueTransitionFadeIn();
             cutTrans_.holding = true;
             cutTrans_.holdElapsed = 0.0f;
+            
+            // Start win cutscene BGM after initial fade-in (when first image appears)
+            // Check if this is the win cutscene by looking at the image paths
+#ifndef _DEBUG
+            if (audioManager_ && !cutTrans_.images.empty()) {
+                const std::string& firstImage = cutTrans_.images[0];
+                if (firstImage.find("Win") != std::string::npos || firstImage.find("daychange") != std::string::npos) {
+                    if (audioManager_->HasSound("bgm_win_cutscene")) {
+                        audioManager_->PlaySound("bgm_win_cutscene", audioManager_->GetBgmVolume(), false);
+                        std::cout << "[Scene] Playing win cutscene BGM after initial fade-in" << std::endl;
+                    }
+                }
+            }
+#endif
             return;
         }
 
@@ -1657,6 +1690,18 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
             if (audioManager_) {
                 audioManager_->StopSound("bgm_MyoonchiDiner_IntroCutscene");
                 std::cout << "[Scene] Stopped cutscene BGM before loading level" << std::endl;
+                
+                // Fade out game over sound effect if it's playing (from lose cutscene)
+                if (audioManager_->HasSound("sfx_gameover")) {
+                    audioManager_->FadeChannel("sfx_gameover", 0.0f, cutTrans_.outSeconds);
+                    std::cout << "[Scene] Fading out game over SFX before loading level" << std::endl;
+                }
+                
+                // Fade out win cutscene music if it's playing (from win cutscene)
+                if (audioManager_->HasSound("bgm_win_cutscene")) {
+                    audioManager_->FadeChannel("bgm_win_cutscene", 0.0f, cutTrans_.outSeconds);
+                    std::cout << "[Scene] Fading out win cutscene BGM before loading level" << std::endl;
+                }
             }
 #endif
 
@@ -1834,7 +1879,7 @@ void Scene::StartLevelTransition(const std::string& levelJsonPath,
 	cutTrans_.inSeconds = fadeInSeconds;
 
 	auto& gfx = GetGraphicsEngine();
-	gfx.StartSceneTransition(fadeOutSeconds, fadeInSeconds);
+	gfx.StartSceneTransition(levelTrans_.outSec, levelTrans_.inSec);
 }
 
 void Scene::UpdateLevelTransition()

@@ -2,12 +2,13 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			ParticleSystem.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		Implements the ParticleSystem class, handling particle creation, updates,
+					Call Init once where ParticleSystem is created to register presets.
 					lifetime management, and rendering behavior for in-game visual effects.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -17,7 +18,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
+#include <iostream>
 
 // Sparkle row (3 frames) - V corrected for OpenGL (bottom-left origin)
 static const std::vector<glm::vec4> kSparkleFrames = {
@@ -32,15 +33,25 @@ static const std::vector<glm::vec4> kFullFrame = {
 };
 
 static float lengthSafe(const glm::vec2& v) {
-	return std::sqrt(v.x * v.x + v.y * v.y);
+	return glm::length(v);
+}
+
+void ParticleSystem::SetSeed(uint32_t seed) {
+	rng_.seed(seed);
+	std::uniform_int_distribution<uint32_t> sd(0, 0xFFFFFFFFu);
+	for (auto& kv : presets_) {
+		kv.second.rng.seed(sd(rng_));
+	}
 }
 
 float ParticleSystem::rand01_() {
-	return static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+	std::uniform_real_distribution<float> d(0.0f, 1.0f);
+	return d(rng_);
 }
 
 float ParticleSystem::randRange_(float a, float b) {
-	return a + (b - a) * rand01_();
+	std::uniform_real_distribution<float> d(a, b);
+	return d(rng_);
 }
 
 void ParticleSystem::EnsureDefaultFootstepPreset_(EntityManager& em) {
@@ -85,6 +96,8 @@ void ParticleSystem::InitPool_(const Preset& preset, EntityManager& em) {
 
 	// Pre-spawn particle GameObjects once. Keep them "inactive" by scaling to 0.
 	const glm::vec3 hiddenPos(0.0f, 0.0f, -1000.0f);
+	// Keep track of created IDs so we can clean up on failure
+	std::vector<int> createdIDs;
 
 	for (size_t i = 0; i < preset.poolSize; ++i) {
 		GameObject* obj = em.SpawnAnimatedSprite(
@@ -97,7 +110,14 @@ void ParticleSystem::InitPool_(const Preset& preset, EntityManager& em) {
 		);
 
 		if (!obj) {
+			// Cleanup any previously created objects to avoid leaking
+			for (int cid : createdIDs) {
+				em.DespawnByID(cid);
+			}
+			pool.p.clear();
+			pool.freeList.clear();
 			pool.initialized = false;
+			std::cerr << "ParticleSystem::InitPool_ failed to spawn animated sprite for preset '" << preset.name << "'\n";
 			return;
 		}
 
@@ -112,18 +132,58 @@ void ParticleSystem::InitPool_(const Preset& preset, EntityManager& em) {
 		}
 
 		pool.p[i].id = obj->GetID();
+		pool.p[i].obj = obj;
 		pool.p[i].active = false;
 		pool.p[i].preset = &presets_.at(preset.name);
+		pool.p[i].inFreeList = true;
 
 		pool.freeList.push_back(i);
+		createdIDs.push_back(pool.p[i].id);
 	}
 
 	pool.initialized = true;
 }
 
 void ParticleSystem::RegisterPreset(const Preset& preset, EntityManager& em) {
+	// Ensure callbacks are registered
+	Init(em);
+
+	// Copy preset and seed its RNG from the system RNG for reproducible but varied presets
 	presets_[preset.name] = preset;
+	// Seed the preset RNG with a random value from the system RNG
+	std::uniform_int_distribution<uint32_t> sd(0, 0xFFFFFFFFu);
+	presets_[preset.name].rng.seed(sd(rng_));
 	InitPool_(presets_.at(preset.name), em);
+}
+
+void ParticleSystem::Init(EntityManager& em) {
+	if (callbackRegistered_) return;
+	em.RegisterDespawnCallback([this](int id) { this->OnEntityDespawned(id); });
+	callbackRegistered_ = true;
+}
+
+void ParticleSystem::OnEntityDespawned(int id) {
+	// Walk all pools and clear any cached pointers matching the despawned id
+	for (auto& kv : pools_) {
+		Pool& pool = kv.second;
+		for (auto& pi : pool.p) {
+			if (pi.id == id) {
+				pi.obj = nullptr;
+				// Mark id as invalid so we don't try to resolve it again
+				pi.id = -1;
+			}
+		}
+	}
+}
+
+float ParticleSystem::rand01_(std::mt19937& r) {
+	std::uniform_real_distribution<float> d(0.0f, 1.0f);
+	return d(r);
+}
+
+float ParticleSystem::randRange_(float a, float b, std::mt19937& r) {
+	std::uniform_real_distribution<float> d(a, b);
+	return d(r);
 }
 
 void ParticleSystem::Emit(const std::string& presetName,
@@ -151,6 +211,10 @@ void ParticleSystem::Emit(const std::string& presetName,
 	if (!pool.freeList.empty()) {
 		idx = pool.freeList.back();
 		pool.freeList.pop_back();
+		// Mark as removed from free list
+		if (idx < pool.p.size()) {
+			pool.p[idx].inFreeList = false;
+		}
 	}
 	else {
 		// Recycle the oldest active particle
@@ -174,36 +238,46 @@ void ParticleSystem::Emit(const std::string& presetName,
 	}
 
 	ParticleInstance& p = pool.p[idx];
-	GameObject* obj = em.GetByID(p.id);
+	GameObject* obj = p.obj ? p.obj : em.GetByID(p.id);
 	if (!obj) {
+		// If the cached pointer is invalid, mark pool for re-init and recycle
 		pool.initialized = false;
-		pool.freeList.push_back(idx);
+		if (idx < pool.p.size() && !pool.p[idx].inFreeList) {
+			pool.freeList.push_back(idx);
+			pool.p[idx].inFreeList = true;
+		}
 		return;
 	}
 
 	p.active = true;
 	p.preset = &preset;
 	p.age = 0.0f;
-	p.life = randRange_(preset.lifeRange.x, preset.lifeRange.y);
+	// Ensure this instance is not marked free
+	p.inFreeList = false;
+
+	// Use per-preset RNG if available to make preset behavior reproducible
+	std::mt19937& prng = preset.rng;
+	p.life = randRange_(preset.lifeRange.x, preset.lifeRange.y, prng);
 	p.frame = 0;
 	p.frameTimer = 0.0f;
 
-	float size = randRange_(preset.sizeRange.x, preset.sizeRange.y);
+	float size = randRange_(preset.sizeRange.x, preset.sizeRange.y, prng);
 	p.baseSize = size;
 
 	glm::vec3 spawnPos = pos;
-	spawnPos.x += randRange_(-preset.spawnJitter.x, preset.spawnJitter.x);
-	spawnPos.y += randRange_(-preset.spawnJitter.y, preset.spawnJitter.y);
+	spawnPos.x += randRange_(-preset.spawnJitter.x, preset.spawnJitter.x, prng);
+	spawnPos.y += randRange_(-preset.spawnJitter.y, preset.spawnJitter.y, prng);
 	spawnPos.z = baseZ + preset.zOffset;
+
+	// Update cached pointer in case we resolved via GetByID
+	p.obj = obj;
 
 	obj->SetPosition(spawnPos);
 	obj->SetScale(glm::vec3(size * preset.startScaleMul, size * preset.startScaleMul, 1.0f));
 	if (!preset.frames.empty()) {
 		// Pick a random frame (sparkle 1/2/3) and keep it (no animation needed)
-		p.frame = static_cast<int>(rand01_() * preset.frames.size());
-		if (p.frame >= static_cast<int>(preset.frames.size())) {
-			p.frame = static_cast<int>(preset.frames.size()) - 1;
-		}
+		std::uniform_int_distribution<int> fd(0, static_cast<int>(preset.frames.size()) - 1);
+		p.frame = fd(prng);
 		obj->SetUVRect(preset.frames[static_cast<size_t>(p.frame)]);
 	}
 
@@ -219,13 +293,13 @@ void ParticleSystem::Emit(const std::string& presetName,
 
 		glm::vec2 perp(-dir.y, dir.x);
 		v += (-dir) * preset.backwardSpeed;
-		v += perp * randRange_(-preset.sidewaysSpeed, preset.sidewaysSpeed);
-		v.x += randRange_(-preset.randomSpeedJitter, preset.randomSpeedJitter);
-		v.y += randRange_(-preset.randomSpeedJitter, preset.randomSpeedJitter);
+		v += perp * randRange_(-preset.sidewaysSpeed, preset.sidewaysSpeed, prng);
+		v.x += randRange_(-preset.randomSpeedJitter, preset.randomSpeedJitter, prng);
+		v.y += randRange_(-preset.randomSpeedJitter, preset.randomSpeedJitter, prng);
 	}
 	else {
-		float sp = randRange_(preset.speedRange.x, preset.speedRange.y);
-		v = glm::vec2(randRange_(-1.0f, 1.0f), -1.0f);
+		float sp = randRange_(preset.speedRange.x, preset.speedRange.y, prng);
+		v = glm::vec2(randRange_(-1.0f, 1.0f, prng), -1.0f);
 		float l = lengthSafe(v);
 		if (l > 0.0001f) {
 			v /= l;
@@ -242,6 +316,13 @@ void ParticleSystem::Update(float dt, EntityManager& em) {
 		return;
 	}
 
+	// Clamp very large dt (e.g. when debugging or after a hitch) to avoid
+	// particles moving or animating too far in a single frame.
+	const float kMaxDt = 1.0f / 30.0f;
+	if (dt > kMaxDt) {
+		dt = kMaxDt;
+	}
+
 	for (auto& kv : pools_) {
 		Pool& pool = kv.second;
 		if (!pool.initialized) continue;
@@ -254,12 +335,17 @@ void ParticleSystem::Update(float dt, EntityManager& em) {
 
 			const Preset& preset = *p.preset;
 
-			GameObject* obj = em.GetByID(p.id);
+			GameObject* obj = p.obj ? p.obj : em.GetByID(p.id);
 			if (!obj) {
 				p.active = false;
-				pool.freeList.push_back(i);
+				if (!p.inFreeList) {
+					pool.freeList.push_back(i);
+					p.inFreeList = true;
+				}
 				continue;
 			}
+			// Cache resolved pointer
+			p.obj = obj;
 
 			p.age += dt;
 			if (p.age >= p.life) {
@@ -267,31 +353,36 @@ void ParticleSystem::Update(float dt, EntityManager& em) {
 				p.active = false;
 				obj->SetScale(glm::vec3(0.0f, 0.0f, 1.0f));
 				obj->SetPosition(glm::vec3(0.0f, 0.0f, -1000.0f));
-				pool.freeList.push_back(i);
+				if (!p.inFreeList) {
+					pool.freeList.push_back(i);
+					p.inFreeList = true;
+				}
 				continue;
 			}
 
 			// Animate (only if enabled)
 			if (preset.animateFrames && preset.frames.size() > 1) {
 				p.frameTimer += dt;
-				while (p.frameTimer >= preset.frameDuration) {
-					p.frameTimer -= preset.frameDuration;
-					p.frame++;
+				if (preset.frameDuration > 1e-6f) {
+					while (p.frameTimer >= preset.frameDuration) {
+						p.frameTimer -= preset.frameDuration;
+						p.frame++;
 
-					if (preset.loop) {
-						if (p.frame >= (int)preset.frames.size()) {
-							p.frame = 0;
+						if (preset.loop) {
+							if (p.frame >= (int)preset.frames.size()) {
+								p.frame = 0;
+							}
 						}
-					}
-					else {
-						if (p.frame >= (int)preset.frames.size()) {
-							p.frame = (int)preset.frames.size() - 1;
+						else {
+							if (p.frame >= (int)preset.frames.size()) {
+								p.frame = (int)preset.frames.size() - 1;
+							}
 						}
-					}
 
-					obj->SetUVRect(preset.frames[(size_t)p.frame]);
-					if (!preset.loop && p.frame == (int)preset.frames.size() - 1) {
-						break;
+						obj->SetUVRect(preset.frames[(size_t)p.frame]);
+						if (!preset.loop && p.frame == (int)preset.frames.size() - 1) {
+							break;
+						}
 					}
 				}
 			}

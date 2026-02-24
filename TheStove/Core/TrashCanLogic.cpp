@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         TrashCanLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
  DESCRIPTION:       Implements TrashCanLogic.
                     Any item placed on the trash can is immediately despawned.

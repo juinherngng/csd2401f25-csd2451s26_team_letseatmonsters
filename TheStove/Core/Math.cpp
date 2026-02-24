@@ -2,7 +2,7 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			Math.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
 
  DESCRIPTION:		Math library definitions.
 

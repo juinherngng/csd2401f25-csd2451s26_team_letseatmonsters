@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CollisionManager.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(40%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
 
  DESCRIPTION:       Implements CollisionManager. Rebuilds a spatial grid of scene objects each frame,
 					builds/owns world collision geometry, resolves step trimming, and exposes broad-

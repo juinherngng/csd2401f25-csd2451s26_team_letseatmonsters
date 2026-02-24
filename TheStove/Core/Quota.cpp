@@ -1,3 +1,18 @@
+/*
+----------------------------------------------------------------------------------------------------
+ FILE NAME:         Quota.cpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (80%)
+ CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (20%)
+
+ DESCRIPTION:       Defines the Economy namespace, which tracks player money,
+                    win quota, and remaining time, and synchronizes these values
+                    with the game UI and win/lose conditions.
+
+         All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #include "../Core/Quota.hpp"
 #include "../Graphics/SceneManager.hpp"
 #include "../Core/AudioManager.hpp"
@@ -126,6 +141,9 @@ namespace Economy
                 std::cout << "[Economy] Stopped all gameplay audio for win/lose cutscene" << std::endl;
             }
 #endif
+#ifdef _DEBUG
+            (void)scene;
+#endif
         }
     }
 
@@ -136,6 +154,8 @@ namespace Economy
 
         // Stop all gameplay audio immediately
         StopAllGameplayAudio(scene);
+
+        // Note: bgm_win_cutscene will be started by Scene after the initial fade-in completes
 
         std::vector<std::string> frames;
         std::vector<bool> boundaries;
@@ -161,8 +181,8 @@ namespace Economy
             boundaries,
             FilePaths::Levels::MAIN_MENU,   // <-- changed from WIN to MAIN_MENU
             false,
-            0.35f,
-            0.35f,
+            2.0f,   // fadeOutSeconds - 2 second fade out for win cutscene
+            0.35f,  // fadeInSeconds
             1.0f / fps,
             -1,
             0.0f
@@ -176,6 +196,16 @@ namespace Economy
 
         // Stop all gameplay audio immediately
         StopAllGameplayAudio(scene);
+
+#ifndef _DEBUG
+        // Play game over sound effect at 50% volume
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            if (audioMgr->HasSound("sfx_game_over")) {
+                audioMgr->PlaySound("sfx_game_over", audioMgr->GetVfxVolume() * 1.0f, false);
+                std::cout << "[Economy] Playing game over sound effect at 50% volume" << std::endl;
+            }
+        }
+#endif
 
         std::vector<std::string> frames;
         std::vector<bool> boundaries;
@@ -204,6 +234,13 @@ namespace Economy
 
 
 }
+
+
+
+
+
+
+
 
 
 

@@ -2,13 +2,13 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SimpleNpcLogic.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
  DESCRIPTION:		Declares the SimpleNpcLogic script used for basic NPC behaviour. Defines the
 					movement states, timing values, and direction flags used to drive simple
 					up-down patrolling logic. Inherits from GameObjectLogic.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -34,6 +34,7 @@ public:
         }
     }
 
+    float GetPatienceRatioAtServe() const { return patienceRatioAtServe_; }
 
 	void Awake(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
@@ -194,5 +195,6 @@ private:
 
     // helper
     void OnPatienceExpired(Scene& scene);
+    float patienceRatioAtServe_ = 0.0f; // 0..1 snapshot when correct dish is served
 
 };

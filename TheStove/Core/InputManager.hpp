@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			InputManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu
-					Ng Juin Herng, juinherng.ng@digipen.edu
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (30%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:		Centralized keyboard/mouse input state tracker with edge detection.
 					- Polls GLFW each frame and mirrors common key/mouse states.

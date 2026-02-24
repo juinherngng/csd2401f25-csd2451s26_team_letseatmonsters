@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         WorkTableLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (90%)
+ CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:       Declares CustomerManagerSystem, a simple scene-level system that pairs
                     SimpleNpcLogic "customers" with CustomerTableLogic tables and assigns them

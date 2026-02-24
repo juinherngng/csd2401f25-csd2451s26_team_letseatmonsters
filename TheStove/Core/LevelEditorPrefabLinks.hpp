@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorPrefabLinks.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:       Central registry mapping scene object IDs to their prefab file paths.
 					Used by the Level Editor to:

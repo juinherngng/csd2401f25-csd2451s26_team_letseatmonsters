@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         SceneCollisionLayout.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:       Implements Scene methods and helpers related to:
 					- Level reference resolution (ref <-> framebuffer)
@@ -178,10 +178,21 @@ void Scene::ClampToWalkArea(GameObject* obj) {
 	if (tag == "") {
 		return;
 	}
+
+	// Skip clamping for non - collidable layers
+	const std::string layerName = GetObjectLayer(obj->GetID());
+	Layer* layer = GetLayer(layerName);
+	if (layer && !layer->IsCollidable()) {
+		return;
+	}
+
 	Math::Vector3D pos(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
 	const collision::WalkArea w = GetWalkArea();
 	physics::ClampInsideWalk(w, obj, pos);
-	obj->SetPosition(glm::vec3(pos.x, pos.y, pos.z));
+
+	const glm::vec3 clampedPos(pos.x, pos.y, pos.z);
+	obj->SetPosition(clampedPos);
+	entityManager.SetPosition(obj->GetID(), clampedPos);
 }
 
 glm::vec2 Scene::ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta) {
@@ -301,6 +312,19 @@ void Scene::ResolveInitialStaticOverlaps() {
 
 	for (GameObject* g : objs) {
 		if (!g) {
+			continue;
+		}
+
+		// Skip UI / non-collidable layers
+		const std::string layerName = GetObjectLayer(g->GetID());
+		Layer* layer = GetLayer(layerName);
+		if (layer && !layer->IsCollidable()) {
+			continue;
+		}
+
+		// (Optional but consistent) also skip empty-tag objects like ClampToWalkArea does
+		const std::string tag = GetObjectTag(g->GetID());
+		if (tag == "") {
 			continue;
 		}
 
