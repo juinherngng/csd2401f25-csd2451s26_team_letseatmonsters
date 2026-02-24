@@ -31,7 +31,7 @@ namespace Debug {
 	DebuggerApp gDebugger;
 
 	// Constructor
-	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, coreEngine{ nullptr }, openedDebugger{ false }, isInitialised{ false } {
+	DebuggerApp::DebuggerApp() : debugWindow{ nullptr }, coreEngine{ nullptr }, openedDebugger{ true }, isInitialised{ false } {
 		crashlogFile.open("Debug_Log.txt", std::ios::app); // Set to append mode
 
 		if (crashlogFile.is_open()) {
