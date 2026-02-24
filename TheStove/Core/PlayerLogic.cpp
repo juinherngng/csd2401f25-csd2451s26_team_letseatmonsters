@@ -522,7 +522,6 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	glm::vec3 pos3 = player->GetPositionGLM();
 	glm::vec2 inputDir(0.f, 0.f);
-	float speed = 200.0f;
 
 	// Get keyboard input
 	if (input.IsKeyPressed(GLFW_KEY_A)) inputDir.x -= 1.f;
@@ -541,8 +540,8 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		}
 
 		// Desired movement this frame
-		glm::vec2 desiredDelta(inputDir.x * speed * dt,
-			inputDir.y * speed * dt);
+		glm::vec2 desiredDelta(inputDir.x * moveSpeed * dt,
+			inputDir.y * moveSpeed * dt);
 
 		// Trim against static world (outer frame + wood + gate)
 		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
