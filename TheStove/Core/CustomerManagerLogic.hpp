@@ -31,19 +31,32 @@ class Scene;
 
 class CustomerManagerSystem {
 public:
+    /**
+     * @brief Construct a customer manager with default spawn and cap settings.
+     */
     CustomerManagerSystem() = default;
 
-    /// Called each frame from Scene::Update. Seats customers once.
+    /**
+      * @brief Run per-frame customer management.
+      * @param dt Delta time for the current frame in seconds.
+      * @param scene Scene context used for table discovery, spawning, and cleanup.
+      */
     void Update(float dt, Scene& scene);
 
-    /// Reset internal state when the scene is cleared.
+    /**
+     * @brief Reset all cached state when the active scene is cleared/reloaded.
+     */
     void Reset();
 
+    /**
+     * @brief Set the maximum number of simultaneously active customers.
+     * @param n Hard cap applied by the spawn logic.
+     */
     void SetMaxCustomers(int n) { maxCustomers_ = n; }
 
 private:
     int maxCustomers_ = 4;
-    float spawnCooldown_ = 10.0f;        // small delay between spawns
+    float spawnCooldown_ = 10.0f;       // small delay between spawns
     float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
 
     std::vector<int> activeCustomers_;  // ids of customers alive
@@ -53,8 +66,18 @@ private:
     int customerTemplateID_ = -1;
     bool cachedTemplate_ = false;
 
+    /** @brief Discover and cache all customer-table entity IDs in the scene. */
     void CacheTables(Scene& scene);
+
+    /** @brief Discover and cache the customer template/prefab entity ID. */
     void CacheTemplate(Scene& scene);
+
+    /** @brief Remove stale/dead customer IDs from the active customer list. */
     void CleanupDeadCustomers(Scene& scene);
+
+    /**
+     * @brief Attempt to spawn exactly one customer if capacity/cooldown allows.
+     * @return True when one customer is spawned successfully, false otherwise.
+     */
     bool TrySpawnOne(Scene& scene);
 };

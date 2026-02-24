@@ -1,6 +1,6 @@
 /*
 ----------------------------------------------------------------------------------------------------
- FILE NAME:			EntityManager.cpp
+ FILE NAME:			EntityManager.hpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
@@ -25,7 +25,10 @@
 
 class EntityManager {
 public:
+	/** @brief Construct an empty entity manager. */
 	EntityManager() = default;
+
+	/** @brief Destroy the entity manager and owned entities. */
 	~EntityManager() = default;
 
 	EntityManager(const EntityManager&) = delete;
@@ -34,11 +37,27 @@ public:
 	EntityManager(EntityManager&&) noexcept = default;
 	EntityManager& operator=(EntityManager&&) noexcept = default;
 
-	// Spawning
+	/**
+	 * @brief Spawn a static sprite object.
+	 * @param texturePath Source texture file path.
+	 * @param pos World position for the sprite.
+	 * @param size 2D sprite size.
+	 * @return Pointer to the spawned GameObject.
+	 */
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
 								  const glm::vec3& pos,
 								  const glm::vec2& size);
 
+	/**
+	 * @brief Spawn an animated sprite object.
+	 * @param texturePath Source texture file path.
+	 * @param pos World position for the sprite.
+	 * @param size 2D sprite size.
+	 * @param frames UV frame rectangles for animation.
+	 * @param frameDuration Seconds each frame should stay visible.
+	 * @param loop Whether animation repeats after the final frame.
+	 * @return Pointer to the spawned GameObject.
+	 */
 	GameObject* SpawnAnimatedSprite(const std::string& texturePath,
 									const glm::vec3& pos,
 									const glm::vec2& size,
@@ -46,39 +65,56 @@ public:
 									float frameDuration,
 									bool loop);
 
-	// Lookup GameObject pointer by its unique ID.
+	/** @brief Lookup a GameObject by its unique ID. */
 	GameObject* GetByID(int id);
+
+	/** @brief Return raw pointers to all currently alive objects. */
 	std::vector<GameObject*> GetAllObjects();
+
+	/** @brief Return the total number of alive objects. */
 	size_t GetObjectCount() const {
 		return sceneObjects_.size();
 	}
 
-	// Despawning
+	/** @brief Despawn a GameObject by ID and trigger despawn callbacks. */
 	void DespawnByID(int id);
+
+	/** @brief Despawn all objects and reset manager-owned bookkeeping. */
 	void Clear();
 
-	// Register a callback invoked when an entity is despawned. Callback receives the despawned id.
+	/** @brief Register a callback invoked whenever an entity is despawned. */
 	void RegisterDespawnCallback(const std::function<void(int)>& cb);
 
-	// Transform tracking (mirrors your existing maps)
+	/** @brief Update cached position for an object ID. */
 	void SetPosition(int id, const glm::vec3& pos) {
 		spritePositions_[id] = pos;
 	}
+
+	/** @brief Update cached scale for an object ID. */
 	void SetScale(int id, const glm::vec3& scale) {
 		spriteScales_[id] = scale;
 	}
+
+	/** @brief Update cached rotation for an object ID. */
 	void SetRotation(int id, float rot) {
 		spriteRotations_[id] = rot;
 	}
 
+	/** @brief Read cached position for an object ID. */
 	glm::vec3 GetPosition(int id) const;
+
+	/** @brief Read cached scale for an object ID. */
 	glm::vec3 GetScale(int id) const;
+
+	/** @brief Read cached rotation for an object ID. */
 	float GetRotation(int id) const;
 
-	// Texture path tracking
+	/** @brief Cache texture path used by an object ID. */
 	void SetTexturePath(int id, const std::string& path) {
 		texturePathByID_[id] = path;
 	}
+
+	/** @brief Read cached texture path for an object ID. */
 	const std::string& GetTexturePath(int id) const;
 
 private:
@@ -95,6 +131,9 @@ private:
 	std::unordered_map<int, float> spriteRotations_;
 	std::unordered_map<int, std::string> texturePathByID_;
 
+	/** @brief Acquire a reusable ID, or allocate a new one if needed. */
 	int AcquireID();
+
+	/** @brief Return an ID to the free-list for future reuse. */
 	void ReleaseID(int id);
 };

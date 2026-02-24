@@ -18,22 +18,40 @@
 
 class Shader {
 public:
+	/** @brief Build a shader program from vertex and fragment shader files. */
 	Shader(const std::string& vertexFile, const std::string& fragmentFile);
+
+	/** @brief Release the OpenGL shader program. */
 	~Shader();
 
+	/** @brief Bind this shader program for subsequent draw calls. */
 	void Use() const;
 
-	// Set uniforms by cached location
+	/** @brief Set model matrix uniform. */
 	void SetModelMatrix(const glm::mat4& mat) const;
-	void SetViewMatrix(const glm::mat4& mat) const;
-	void SetProjectionMatrix(const glm::mat4& mat) const;
-	void SetTexture(const std::string& name, int textureUnit) const;
-	void SetColorTint(const glm::vec4& color) const;  // For tinting textures
 
+	/** @brief Set view matrix uniform. */
+	void SetViewMatrix(const glm::mat4& mat) const;
+
+	/** @brief Set projection matrix uniform. */
+	void SetProjectionMatrix(const glm::mat4& mat) const;
+
+	/** @brief Bind a sampler uniform name to a texture unit index. */
+	void SetTexture(const std::string& name, int textureUnit) const;
+
+	/** @brief Set RGBA tint multiplier for textured rendering. */
+	void SetColorTint(const glm::vec4& color) const; // For tinting textures
+
+	/** @brief Set UV offset for atlas/animation sampling. */
 	void SetUVOffset(const glm::vec2& offset) const;
+
+	/** @brief Set UV scale for atlas/animation sampling. */
 	void SetUVScale(const glm::vec2& scale) const;
 
-	GLuint GetProgramID() const { return programID; }
+	/** @brief Access the raw OpenGL program ID. */
+	GLuint GetProgramID() const {
+		return programID;
+	}
 
 private:
 	GLuint programID;
@@ -43,9 +61,15 @@ private:
 	GLint uniformViewMatrix;
 	GLint uniformProjMatrix;
 
+	/** @brief Cache required uniform locations from the linked program. */
 	void InitUniforms();
 
+	/** @brief Read an entire text file into memory. */
 	std::string ReadFile(const std::string& filepath);
+
+	/** @brief Compile one GLSL shader stage and return its object ID. */
 	GLuint CompileShader(GLenum type, const std::string& source);
+
+	/** @brief Link compiled shader stages into a complete program. */
 	GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 };
