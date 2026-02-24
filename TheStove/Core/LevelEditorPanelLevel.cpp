@@ -708,6 +708,10 @@ namespace LEPANELLEVEL {
 
 			ImGui::TableSetColumnIndex(0);
 			if (ImGui::Button("Load Level", ImVec2(-FLT_MIN, 0.0f))) {
+				scene.StopAllObjectAudio();
+				scene.SetSimulationActive(false);
+				editor.SetPlaying(false);
+
 				LevelData& work = editor.MutableLevel();
 				if (LevelSerializer::Load(editor.levelPath, work)) {
 					scene.ClearAll();
@@ -722,7 +726,6 @@ namespace LEPANELLEVEL {
 						scene.SetSceneBackground(work.background);
 					}
 
-					editor.SetPlaying(false);
 					selectedIndex = -1;
 					selectedObjectId = -1;
 					ClearUndoHistory();
@@ -795,6 +798,7 @@ namespace LEPANELLEVEL {
 			if (ImGui::Button("Play", ImVec2(-FLT_MIN, 0.0f))) {
 				LevelData& snap = editor.MutablePlaySnapshot();
 				SyncSceneToLevel(scene, snap);
+				SyncTextObjectsToLevel(snap);
 
 				editor.SetPlaying(true);
 				selectedIndex = -1;
@@ -818,6 +822,7 @@ namespace LEPANELLEVEL {
 
 				scene.ClearAll();
 				SyncLevelToScene(editor.MutablePlaySnapshot(), scene);
+				SyncTextObjectsToEditor(editor.MutablePlaySnapshot());
 				scene.RebuildColliders();
 				editor.SetPlaying(false);
 			}
