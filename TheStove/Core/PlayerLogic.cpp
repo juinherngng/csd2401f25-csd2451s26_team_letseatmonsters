@@ -385,6 +385,10 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 		return;
 
 	carriedItemID = itemID;
+	
+	// Store original layer so we can restore on drop
+	carriedItemOriginalLayer_ = scene.GetObjectLayer(itemID);
+	hasCarriedItemOriginalLayer_ = true;
 
 	// Play UI click sound for pickup feedback (release mode only)
 #ifndef _DEBUG
@@ -427,6 +431,9 @@ void PlayerLogic::Drop(Scene& scene) {
 		item->SetColliderSize(carriedItemOriginalColliderSize);
 		hasCarriedItemOriginalColliderSize = false;
 	}
+
+	// Restore original layer so it goes back to normal rendering order
+	RestoreCarriedItemLayer(scene, carriedItemID);
 
 	glm::vec3 p = player->GetPositionGLM();
 	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple �in front� drop
@@ -767,6 +774,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 					hasCarriedItemOriginalColliderSize = false;
 				}
 
+				RestoreCarriedItemLayer(scene, itemToTrash);
+
 				// Clear carried item
 				carriedItemID = -1;
 			}
@@ -810,6 +819,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 						item->SetColliderSize(carriedItemOriginalColliderSize);
 					hasCarriedItemOriginalColliderSize = false;
 				}
+				// R	estore original layer so it goes back to normal rendering order on the table
+				RestoreCarriedItemLayer(scene, carriedItemID);
 				carriedItemID = -1;
 
 				// Play put down sound effect (release mode only)
@@ -883,6 +894,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 						ingredientObj->SetMovableByPhysics(false);
 					}
 				}
+
+				RestoreCarriedItemLayer(scene, carriedItemID);
 
 				//// If at some point TryAddIngredient decides to consume immediately,
 				//// we still support that (currently outConsumedNow is always false).
@@ -959,10 +972,17 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	if (!item)
 		return;
 
+	const glm::vec2 carry = GetCarryOffsetForFacing();
 	glm::vec3 p = player->GetPositionGLM();
-	item->SetPosition(glm::vec3(p.x + carryOffset.x,
-		p.y + carryOffset.y,
+	item->SetPosition(glm::vec3(p.x + carry.x,
+		p.y + carry.y,
 		p.z));
+
+	// Base sort order for carried item
+	item->SetRenderSortOrder(0);
+
+	// Layer adjustment so the carried item renders above the player sprite
+	ApplyCarryLayer(scene, carriedItemID);
 
 	// If the carried item is a plate with 1 ingredient attached visually, move that ingredient too.
 	if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(carriedItemID))
@@ -976,6 +996,16 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 				glm::vec3 platePos = item->GetPositionGLM();
 				ingObj->SetPosition(platePos);
 
+				// Also adjust layer to match the plate's layer offset (so it renders above the plate)
+				const std::string playerLayer = scene.GetObjectLayer(player->GetID());
+				const std::string childLayer = GetCarryChildLayerForFacing(playerLayer);
+				if (!childLayer.empty()) {
+					scene.AssignObjectToLayer(child, childLayer);
+				}
+
+				// Ensure stable ordering above the plate
+				ingObj->SetRenderSortOrder(1);
+
 				// Make sure it doesn't collide / get pushed
 				ingObj->SetColliderSize(Math::Vector2D(0.f, 0.f));
 				ingObj->SetMovableByPhysics(false);
@@ -983,7 +1013,7 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 		}
 	}
 
-	////Optional debug
+	// Debug
 	//std::cout << "[PlayerLogic] Updating carried item " << carriedItemID
 	//	<< " to follow player at (" << p.x + carryOffset.x << ", "
 	//	<< p.y + carryOffset.y << ")\n";
@@ -1055,4 +1085,130 @@ void PlayerLogic::EnsureChopAnimation(Scene& scene, GameObject* player)
 	if (currentAnimation != "CHOP") {
 		scene.SetAnimation(player->GetID(), "CHOP");
 	}
+}
+
+glm::vec2 PlayerLogic::GetCarryOffsetForFacing() const
+{
+	switch (facingDir) {
+	case FacingDir::Front: return carryOffsetFront_;
+	case FacingDir::Back:  return carryOffsetBack_;
+	case FacingDir::Left:  return carryOffsetLeft_;
+	case FacingDir::Right: return carryOffsetRight_;
+	default:               return carryOffset;
+	}
+}
+
+void PlayerLogic::ApplyCarryLayer(Scene& scene, int itemID)
+{
+	if (!hasCarriedItemOriginalLayer_) {
+		return;
+	}
+
+	GameObject* player = GetOwner(scene);
+	if (!player) {
+		return;
+	}
+
+	const std::string playerLayer = scene.GetObjectLayer(player->GetID());
+	const std::string desiredLayer = GetCarryLayerForFacing(playerLayer);
+	if (desiredLayer.empty()) {
+		return;
+	}
+
+	const std::string currentLayer = scene.GetObjectLayer(itemID);
+	if (currentLayer != desiredLayer) {
+		scene.AssignObjectToLayer(itemID, desiredLayer);
+	}
+}
+
+void PlayerLogic::RestoreCarriedItemLayer(Scene& scene, int itemID)
+{
+	if (!hasCarriedItemOriginalLayer_) {
+		return;
+	}
+
+	if (scene.GetGameObjectByID(itemID)) {
+		scene.AssignObjectToLayer(itemID, carriedItemOriginalLayer_);
+		if (GameObject* item = scene.GetGameObjectByID(itemID)) {
+			item->SetRenderSortOrder(0);
+		}
+	}
+
+	// If this is a plate with an ingredient visually attached, restore the ingredient's layer and order too.
+	if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(itemID)) {
+		const int child = plate->GetFirstIngredientObjectID();
+		if (child >= 0) {
+			const std::string childLayer = GetChildLayerAbove(carriedItemOriginalLayer_);
+			if (!childLayer.empty()) {
+				scene.AssignObjectToLayer(child, childLayer);
+			}
+			if (GameObject* ingObj = scene.GetGameObjectByID(child)) {
+				ingObj->SetRenderSortOrder(1);
+			}
+		}
+	}
+
+	carriedItemOriginalLayer_.clear();
+	hasCarriedItemOriginalLayer_ = false;
+}
+
+namespace {
+	bool TryParseLayerNumber(const std::string& layer, int& outValue) {
+		if (layer.empty()) {
+			return false;
+		}
+
+		int value = 0;
+		for (char c : layer) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				return false;
+			}
+			value = value * 10 + (c - '0');
+		}
+
+		outValue = value;
+		return true;
+	}
+}
+
+std::string PlayerLogic::GetCarryLayerForFacing(const std::string& baseLayer) const
+{
+	int value = 0;
+	if (!TryParseLayerNumber(baseLayer, value)) {
+		return baseLayer;
+	}
+
+	const int offset = (facingDir == FacingDir::Front) ? 1 : -2;
+	int target = value + offset;
+	if (target < 0) {
+		target = 0;
+	}
+
+	return std::to_string(target);
+}
+
+std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& baseLayer) const
+{
+	int value = 0;
+	if (!TryParseLayerNumber(baseLayer, value)) {
+		return baseLayer;
+	}
+
+	const int offset = (facingDir == FacingDir::Front) ? 2 : -1;
+	int target = value + offset;
+	if (target < 0) {
+		target = 0;
+	}
+
+	return std::to_string(target);
+}
+
+std::string PlayerLogic::GetChildLayerAbove(const std::string& baseLayer) const
+{
+	int value = 0;
+	if (!TryParseLayerNumber(baseLayer, value)) {
+		return baseLayer;
+	}
+
+	return std::to_string(value + 1);
 }

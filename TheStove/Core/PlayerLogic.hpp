@@ -79,7 +79,17 @@ private:
 	int pendingTableID = -1;   // table we intend to interact with after moving
 
 	// Offset where the carried item should appear relative to the player
+	// X: positive = right, negative = left.
+	// Y: smaller = up(since W subtracts from y), larger = down.
 	glm::vec2 carryOffset{ 0.f, -32.f };
+	glm::vec2 carryOffsetFront_{ 1.f, 26.f };
+	glm::vec2 carryOffsetBack_{ 1.f, 13.f };
+	glm::vec2 carryOffsetLeft_{ -24.f, 25.f };
+	glm::vec2 carryOffsetRight_{ 24.f, 25.f };
+
+	// Store original layer of the carried item (so we can restore on drop)
+	std::string carriedItemOriginalLayer_;
+	bool hasCarriedItemOriginalLayer_{ false };
 
 	// Store original collider size of the carried item (so we can restore on drop)
 	Math::Vector2D carriedItemOriginalColliderSize{ 0.f, 0.f };
@@ -90,6 +100,14 @@ private:
 	void UpdateMovement(float dt, Scene& scene);              // Unity: NavMeshAgent movement
 	void OnArrived(Scene& scene);                             // Unity: OnArrived() hook
 	void UpdateSprite(Scene& scene, GameObject* player, const glm::vec2& moveDir);
+	glm::vec2 GetCarryOffsetForFacing() const;
+
+	// Layer management for carried item (to render above player)
+	std::string GetCarryLayerForFacing(const std::string& baseLayer) const;
+	std::string GetCarryChildLayerForFacing(const std::string& baseLayer) const;
+	std::string GetChildLayerAbove(const std::string& baseLayer) const;
+	void ApplyCarryLayer(Scene& scene, int itemID);
+	void RestoreCarriedItemLayer(Scene& scene, int itemID);
 
 	// keep carried item following the player
 	void UpdateCarriedItemTransform(Scene& scene);

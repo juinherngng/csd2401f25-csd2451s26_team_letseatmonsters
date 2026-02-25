@@ -629,7 +629,14 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 				return la < lb;
 			}
 
-			// Same layer - lower Y drawn first (higher on screen appears behind)
+			// Same layer: use explicit sort order first
+			int sa = a->GetRenderSortOrder();
+			int sb = b->GetRenderSortOrder();
+			if (sa != sb) {
+				return sa < sb;
+			}
+
+			// Same layer & same sort order - lower Y drawn first (higher on screen appears behind)
 			return a->GetPosition().y < b->GetPosition().y;
 		}
 	);

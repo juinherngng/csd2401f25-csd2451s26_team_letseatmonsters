@@ -195,6 +195,10 @@ public:
 	void SetRenderLayer(int layer) { renderLayer_ = layer; }
 	int GetRenderLayer() const { return renderLayer_; }
 
+	// Secondary render order within the same layer (higher draws later)
+	void SetRenderSortOrder(int order) { renderSortOrder_ = order; }
+	int GetRenderSortOrder() const { return renderSortOrder_; }
+
 private:
 	Mesh* m_Mesh;
 	Shader* m_Shader;
@@ -229,4 +233,5 @@ private:
 	glm::vec4 colorTint_{1.0f, 1.0f, 1.0f, 1.0f}; // RGBA tint, 1=opaque
 
 	int renderLayer_ = 1; // Layer number for render ordering
+	int renderSortOrder_ = 0; // Tie-breaker for render ordering within a layer
 };
