@@ -110,4 +110,6 @@ private:
 	void BeginStationLock(Scene& scene, int tableID);
 	void EndStationLock();
 	void UpdateStationLock(Scene& scene);
+	bool ShouldPlayChopAnimation(Scene& scene) const;
+	void EnsureChopAnimation(Scene& scene, GameObject* player);
 };

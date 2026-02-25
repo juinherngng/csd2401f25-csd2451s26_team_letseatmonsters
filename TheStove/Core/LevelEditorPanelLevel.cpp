@@ -245,11 +245,12 @@ namespace {
 
 		return true;
 	}
-#endif // _DEBUG
+
 	static void ClearUndoHistory() {
 		sUndoStack.clear();
 		sRedoStack.clear();
 	}
+#endif // _DEBUG
 
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {

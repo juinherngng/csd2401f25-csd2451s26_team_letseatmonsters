@@ -113,6 +113,13 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 	std::vector<glm::vec4> leftWalkFrames = CreateFrameSequenceRow(8, 0, 7, 15, 8);
 	std::vector<glm::vec4> rightWalkFrames = CreateFrameSequenceRow(7, 0, 7, 15, 8);
 
+	std::vector<glm::vec4> backCarryFrames = CreateFrameSequenceRow(6, 0, 7, 15, 8);
+	std::vector<glm::vec4> leftCarryFrames = CreateFrameSequenceRow(5, 0, 7, 15, 8);
+	std::vector<glm::vec4> rightCarryFrames = CreateFrameSequenceRow(4, 0, 7, 15, 8);
+	std::vector<glm::vec4> frontCarryFrames = CreateFrameSequenceRow(3, 0, 7, 15, 8);
+
+	std::vector<glm::vec4> choppingFrames = CreateFrameSequenceRow(2, 0, 4, 15, 8);
+
 	animationSets_[objectID]["IDLE_FRONT"] = AnimationSet{ frontIdleFrames, 0.15f, true };
 	animationSets_[objectID]["IDLE_BACK"] = AnimationSet{ backIdleFrames, 0.15f, true };
 	animationSets_[objectID]["IDLE_LEFT"] = AnimationSet{ leftIdleFrames, 0.15f, true };
@@ -122,6 +129,13 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 	animationSets_[objectID]["WALK_BACK"] = AnimationSet{ backWalkFrames, 0.15f, true };
 	animationSets_[objectID]["WALK_LEFT"] = AnimationSet{ leftWalkFrames, 0.15f, true };
 	animationSets_[objectID]["WALK_RIGHT"] = AnimationSet{ rightWalkFrames, 0.15f, true };
+
+	animationSets_[objectID]["CARRY_BACK"] = AnimationSet{ backCarryFrames, 0.15f, true };
+	animationSets_[objectID]["CARRY_LEFT"] = AnimationSet{ leftCarryFrames, 0.15f, true };
+	animationSets_[objectID]["CARRY_RIGHT"] = AnimationSet{ rightCarryFrames, 0.15f, true };
+	animationSets_[objectID]["CARRY_FRONT"] = AnimationSet{ frontCarryFrames, 0.15f, true };
+
+	animationSets_[objectID]["CHOP"] = AnimationSet{ choppingFrames, 0.05f, true };
 
 	const auto& idleAnim = animationSets_[objectID]["IDLE_FRONT"];
 	anim.SetFrames(idleAnim.frames, idleAnim.frameDuration, idleAnim.loop);

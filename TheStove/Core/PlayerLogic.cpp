@@ -52,6 +52,7 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 
 	const float moveThreshold = 0.01f;
 	std::string desiredAnimation;
+	const bool isHolding = carriedItemID >= 0;
 
 	float absX = std::abs(moveDirRaw.x);
 	float absY = std::abs(moveDirRaw.y);
@@ -59,30 +60,30 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	// Detect idle/no movement
 	if (glm::length(moveDirRaw) < moveThreshold) {
 		switch (facingDir) {
-		case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
-		case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
-		case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
-		case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
+		case FacingDir::Right: desiredAnimation = isHolding ? "CARRY_RIGHT" : "IDLE_RIGHT"; break;
+		case FacingDir::Left:  desiredAnimation = isHolding ? "CARRY_LEFT"  : "IDLE_LEFT";  break;
+		case FacingDir::Front: desiredAnimation = isHolding ? "CARRY_FRONT" : "IDLE_FRONT"; break;
+		case FacingDir::Back:  desiredAnimation = isHolding ? "CARRY_BACK"  : "IDLE_BACK";  break;
 		}
 	}
 	else {
 		if (absX > absY) {
 			if (moveDirRaw.x > 0.0f) {
-				desiredAnimation = "WALK_RIGHT";
+				desiredAnimation = isHolding ? "CARRY_RIGHT" : "WALK_RIGHT";
 				facingDir = FacingDir::Right;
 			}
 			else {
-				desiredAnimation = "WALK_LEFT";
+				desiredAnimation = isHolding ? "CARRY_LEFT" : "WALK_LEFT";
 				facingDir = FacingDir::Left;
 			}
 		}
 		else {
 			if (moveDirRaw.y > 0.0f) {
-				desiredAnimation = "WALK_FRONT";
+				desiredAnimation = isHolding ? "CARRY_FRONT" : "WALK_FRONT";
 				facingDir = FacingDir::Front;
 			}
 			else {
-				desiredAnimation = "WALK_BACK";
+				desiredAnimation = isHolding ? "CARRY_BACK" : "WALK_BACK";
 				facingDir = FacingDir::Back;
 			}
 		}
@@ -491,7 +492,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	const physics::StepController& step = scene.GetStepController();
 	const bool stepMode = step.enabled;
 
-	// --- NEW: lock movement if we're using cutting board ---
+	// --- Lock movement if we're using cutting board ---
 	UpdateStationLock(scene);
 
 	if (movementLocked_) {
@@ -499,8 +500,14 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		hasMoveTarget = false;
 		scene.GetMovementManager().ClearMoveTarget(player->GetID());
 
-		// Stay idle (keeps facing direction from last movement)
-		UpdateSprite(scene, player, glm::vec2(0.f, 0.f));
+		// Check if we should be playing the chopping animation (only if we're locked to a work table and it's currently processing)
+		if (ShouldPlayChopAnimation(scene)) {
+			EnsureChopAnimation(scene, player);
+		}
+		else {
+			// Stay idle (keeps facing direction from last movement)
+			UpdateSprite(scene, player, glm::vec2(0.f, 0.f));
+		}
 
 		// Still keep held item visually attached
 		UpdateCarriedItemTransform(scene);
@@ -990,8 +997,13 @@ void PlayerLogic::BeginStationLock(Scene& scene, int tableID)
 	// Stop any click-to-move immediately
 	hasMoveTarget = false;
 
+	// Also clear any existing move target from the movement manager to be safe
 	if (GameObject* p = GetOwner(scene)) {
 		scene.GetMovementManager().ClearMoveTarget(p->GetID());
+		// Check if we should be playing the chopping animation right away (in case the table is already processing)	
+		if (ShouldPlayChopAnimation(scene)) {
+			EnsureChopAnimation(scene, p);
+		}
 	}
 }
 
@@ -1016,5 +1028,31 @@ void PlayerLogic::UpdateStationLock(Scene& scene)
 	WorkTableLogic* wt = scene.GetLogicManager().GetLogicForObject<WorkTableLogic>(lockedTableID_);
 	if (!wt || !wt->LocksPlayerMovementWhileProcessing() || !wt->IsProcessing()) {
 		EndStationLock();
+	}
+}
+
+bool PlayerLogic::ShouldPlayChopAnimation(Scene& scene) const
+{
+	if (lockedTableID_ < 0) {
+		return false;
+	}
+
+	WorkTableLogic* wt = scene.GetLogicManager().GetLogicForObject<WorkTableLogic>(lockedTableID_);
+	if (!wt) {
+		return false;
+	}
+
+	return wt->LocksPlayerMovementWhileProcessing() && wt->IsProcessing();
+}
+
+void PlayerLogic::EnsureChopAnimation(Scene& scene, GameObject* player)
+{
+	if (!player) {
+		return;
+	}
+
+	const std::string currentAnimation = scene.GetCurrentAnimationName(player->GetID());
+	if (currentAnimation != "CHOP") {
+		scene.SetAnimation(player->GetID(), "CHOP");
 	}
 }
