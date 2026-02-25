@@ -204,14 +204,15 @@ void AnimationManager::AttachCustomersAnimations(int objectID) {
 	auto idleFront = CreateFrameSequenceRow(idleFrontRow, 0, 7, kTotalRows, kTotalCols);
 	auto idleLeft = CreateFrameSequenceRow(idleLeftRow, 0, 7, kTotalRows, kTotalCols);
 	auto idleRight = CreateFrameSequenceRow(idleRightRow, 0, 7, kTotalRows, kTotalCols);
+	auto idleBack = CreateFrameSequenceRow(idleFrontRow, 0, 7, kTotalRows, kTotalCols);
 
 	auto walkFront = CreateFrameSequenceRow(walkFrontRow, 0, 7, kTotalRows, kTotalCols);
 	auto walkBack = CreateFrameSequenceRow(walkBackRow, 0, 7, kTotalRows, kTotalCols);
 	auto walkLeft = CreateFrameSequenceRow(walkLeftRow, 0, 7, kTotalRows, kTotalCols);
 	auto walkRight = CreateFrameSequenceRow(walkRightRow, 0, 7, kTotalRows, kTotalCols);
 
-	auto eatLeft = CreateFrameSequenceRow(eatLeftRow, 0, 7, kTotalRows, kTotalCols);
-	auto eatRight = CreateFrameSequenceRow(eatRightRow, 0, 7, kTotalRows, kTotalCols);
+	auto eatLeft = CreateFrameSequenceRow(eatLeftRow, 0, 4, kTotalRows, kTotalCols);
+	auto eatRight = CreateFrameSequenceRow(eatRightRow, 0, 4, kTotalRows, kTotalCols);
 
 	// ----- Register animation sets -----
 	// Tune durations to taste

@@ -90,6 +90,9 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 
             UpdateCustomerLogic(dt, scene);
 
+            //force animation to update for seated states using table-facing
+            UpdateNpcAnimation(scene, npc, glm::vec2(0.0f, 0.0f));
+
             return;
         }
         else {
@@ -230,6 +233,31 @@ void SimpleNpcLogic::UpdateCustomerLogic(float dt, Scene& scene)
 
     // Other behaviour transitions (e.g. auto-leave after paying)
     // can be added here later if you want.
+}
+
+static SimpleNpcLogic::FacingDir FacingFromDelta(const glm::vec2& d)
+{
+    // Prefer left/right if horizontal dominates, else front/back
+    if (std::abs(d.x) > std::abs(d.y))
+        return (d.x > 0.0f) ? SimpleNpcLogic::FacingDir::Right : SimpleNpcLogic::FacingDir::Left;
+
+    // +Y is down in your game -> "Front"
+    return (d.y > 0.0f) ? SimpleNpcLogic::FacingDir::Front : SimpleNpcLogic::FacingDir::Back;
+}
+
+bool SimpleNpcLogic::TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const
+{
+    if (customerTableID_ == kInvalidID) return false;
+
+    GameObject* me = GetOwner(scene);
+    GameObject* tableObj = scene.GetGameObjectByID(customerTableID_);
+    if (!me || !tableObj) return false;
+
+    glm::vec3 mp = me->GetPositionGLM();
+    glm::vec3 tp = tableObj->GetPositionGLM();
+
+    outDelta = glm::vec2(tp.x - mp.x, tp.y - mp.y);
+    return true;
 }
 
 void SimpleNpcLogic::AssignCustomerTable(int tableObjectID)
@@ -542,34 +570,58 @@ void SimpleNpcLogic::UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm
 
     const float absX = std::abs(moveDelta.x);
     const float absY = std::abs(moveDelta.y);
-
     const bool moving = (absX > epsX) || (absY > epsY);
 
-    // ===== 1) Decide facing direction =====
-    // Rule: if X movement exists -> Left/Right always.
-    // Otherwise use Y for Front/Back.
-    if (moving)
+    // --- Decide whether to face by movement or by table ---
+    const bool movementFacing =
+        (behaviourState_ == BehaviourState::WalkingToTable) ||
+        (behaviourState_ == BehaviourState::Leaving);
+
+    glm::vec2 tableDelta{};
+    const bool hasTable = TryGetDeltaToTable(scene, tableDelta);
+
+    // 1) Decide facingDir_
+    if (movementFacing)
     {
-        if (absX > epsX)
+        // walking/leaving: use movement-based facing (your current behavior)
+        if (moving)
         {
-            facingDir_ = (moveDelta.x > 0.0f) ? FacingDir::Right : FacingDir::Left;
+            if (absX > epsX)
+                facingDir_ = (moveDelta.x > 0.0f) ? FacingDir::Right : FacingDir::Left;
+            else
+                facingDir_ = (moveDelta.y > 0.0f) ? FacingDir::Front : FacingDir::Back;
         }
-        else
+    }
+    else
+    {
+        // all other states: face toward the table (if we have one)
+        if (hasTable)
         {
-            // +Y = Front (down), -Y = Back (up)
-            facingDir_ = (moveDelta.y > 0.0f) ? FacingDir::Front : FacingDir::Back;
+            facingDir_ = FacingFromDelta(tableDelta);
+        }
+        else if (moving)
+        {
+            // fallback if table missing
+            if (absX > epsX)
+                facingDir_ = (moveDelta.x > 0.0f) ? FacingDir::Right : FacingDir::Left;
+            else
+                facingDir_ = (moveDelta.y > 0.0f) ? FacingDir::Front : FacingDir::Back;
         }
     }
 
     std::string desired;
 
-    // ===== 2) Choose animation clip =====
-    // Eating uses eat clips (you only have left/right for eating)
+    // 2) Choose animation clip
     if (behaviourState_ == BehaviourState::Eating)
     {
-        desired = (facingDir_ == FacingDir::Left) ? "EAT_LEFT" : "EAT_RIGHT";
+        // only have left/right eat, so pick based on table X when possible
+        if (facingDir_ == FacingDir::Left) desired = "EAT_LEFT";
+        else if (facingDir_ == FacingDir::Right) desired = "EAT_RIGHT";
+        else if (hasTable && std::abs(tableDelta.x) > 0.001f)
+            desired = (tableDelta.x < 0.0f) ? "EAT_LEFT" : "EAT_RIGHT";
+        else
+            desired = "EAT_RIGHT";
     }
-    // If we're moving (to table, leaving, patrol, etc), use WALK clips
     else if (moving)
     {
         switch (facingDir_)
@@ -580,7 +632,6 @@ void SimpleNpcLogic::UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm
         case FacingDir::Right: desired = "WALK_RIGHT"; break;
         }
     }
-    // Otherwise idle
     else
     {
         switch (facingDir_)
@@ -588,13 +639,12 @@ void SimpleNpcLogic::UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm
         case FacingDir::Left:  desired = "IDLE_LEFT";  break;
         case FacingDir::Right: desired = "IDLE_RIGHT"; break;
         case FacingDir::Front: desired = "IDLE_FRONT"; break;
-        case FacingDir::Back:  desired = "IDLE_FRONT"; break; // fallback since no IDLE_BACK
+        case FacingDir::Back:  desired = "IDLE_BACK";  break;
         }
     }
 
     const std::string current = scene.GetCurrentAnimationName(npc->GetID());
     if (current != desired)
-    {
         scene.SetAnimation(npc->GetID(), desired);
-    }
 }
+

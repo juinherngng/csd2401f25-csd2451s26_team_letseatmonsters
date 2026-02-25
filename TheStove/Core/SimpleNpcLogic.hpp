@@ -142,7 +142,8 @@ public:
 
     // Unified "will pay $0" for wrong dish OR patience timeout
     bool WillPayZero() const { return payZero_; }
-
+    enum class FacingDir { Front, Back, Left, Right };
+    FacingDir facingDir_ = FacingDir::Front;
 
 private:
 	enum class State {
@@ -159,8 +160,7 @@ private:
     bool nextMoveUp = false;     // start by moving DOWN
 
     // --- Animation facing direction ---
-    enum class FacingDir { Front, Back, Left, Right };
-    FacingDir facingDir_ = FacingDir::Front;
+
 
     // ===================== New customer state data ====================
     static constexpr int kInvalidID = -1;
@@ -203,5 +203,5 @@ private:
     // helper
     void OnPatienceExpired(Scene& scene);
     float patienceRatioAtServe_ = 0.0f; // 0..1 snapshot when correct dish is served
-
+    bool TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const;
 };
