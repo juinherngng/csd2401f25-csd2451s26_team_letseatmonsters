@@ -381,7 +381,7 @@ void WorkTableLogic::SpawnProcessingVfx(Scene& scene)
     // Put it on a higher layer than the table (simple version: hardcode a top-ish layer)
     std::string vfxLayer = "50";
 
-    GameObject* vfx = scene.SpawnAnimatedSprite(tex, vfxPos, glm::vec2(128, 128),
+    GameObject* vfx = scene.SpawnAnimatedSprite(tex, vfxPos, glm::vec2(170, 230),
         dummyFrames, 0.1f, true, vfxLayer);
 
     if (!vfx) return;
