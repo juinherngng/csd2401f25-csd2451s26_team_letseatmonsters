@@ -230,7 +230,7 @@ void AnimationManager::AttachWorkVfxCutAnimations(int objectID)
 {
 	Animator2D& anim = animators_[objectID];
 
-	auto frames = CreateFrameSequenceRow(1, 0, 3, 5, 5);
+	auto frames = CreateFrameSequenceRow(1, 0, 3, 6, 6);
 	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
 
 	const auto& clip = animationSets_[objectID]["LOOP"];
@@ -243,7 +243,7 @@ void AnimationManager::AttachWorkVfxGrillAnimations(int objectID)
 {
 	Animator2D& anim = animators_[objectID];
 
-	auto frames = CreateFrameSequenceRow(3, 0, 3, 5, 5);
+	auto frames = CreateFrameSequenceRow(4, 0, 3, 6, 6);
 	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
 
 	const auto& clip = animationSets_[objectID]["LOOP"];
@@ -256,7 +256,7 @@ void AnimationManager::AttachWorkVfxStoveAnimations(int objectID)
 {
 	Animator2D& anim = animators_[objectID];
 
-	auto frames = CreateFrameSequenceRow(4, 0, 3, 5, 5);
+	auto frames = CreateFrameSequenceRow(5, 0, 3, 6, 6);
 	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
 
 	const auto& clip = animationSets_[objectID]["LOOP"];

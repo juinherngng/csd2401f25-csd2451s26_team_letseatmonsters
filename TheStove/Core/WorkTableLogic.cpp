@@ -97,8 +97,10 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&)
         return;
 
     timer_ += dt;
+
     if(isProcessing_)
     UpdateProcessingVfxTransform(scene);
+
     //std::cout << "[WorkTableLogic] processing... t=" << timer_
     //    << "/" << processingTime_ << "\n";
 
@@ -106,6 +108,7 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&)
     {
         timer_ = processingTime_;
         isProcessing_ = false;
+        DespawnProcessingVfx(scene);
         
         // Stop station-specific processing sound when complete (release mode only)
 #ifndef _DEBUG

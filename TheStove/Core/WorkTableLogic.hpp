@@ -102,7 +102,7 @@ protected:
 	std::string GetName() const override { return "WorkTableLogic"; }
 
 	int vfxObjectID_ = -1;
-	glm::vec2 vfxOffset_{ 0.0f, -60.0f }; // tweak per station if needed
+	glm::vec2 vfxOffset_{ 0.0f, -25.0f }; // tweak per station if needed
 
 	void SpawnProcessingVfx(Scene& scene);
 	void DespawnProcessingVfx(Scene& scene);
