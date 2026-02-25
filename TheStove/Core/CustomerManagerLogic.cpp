@@ -126,27 +126,32 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene)
     Math::Vector2D spawn2 = scene.GetExitGateWorldPos();
     glm::vec3 spawnPos{ spawn2.x, spawn2.y, 0.0f };
 
-    GameObject* npc = scene.SpawnStaticSprite(
+    // Spawn an ANIMATED sprite so UVRect animation actually works
+    std::vector<glm::vec4> dummyFrames = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
+
+    GameObject* npc = scene.SpawnAnimatedSprite(
         prof.texture,
         spawnPos,
         prof.size,
+        dummyFrames,
+        0.1f,   // doesn't matter much; AnimationManager will drive frames
+        true,
         prof.layer
     );
     if (!npc) return false;
 
     const int npcID = npc->GetID();
 
+    // Tag + attach logic/animations the same way JSON spawning does
+    scene.SetObjectTag(npcID, "customer_template");
+    scene.AttachLogicForTag(npcID, "customer_template");
+    if (!npc) return false;
+
     // Apply collider/profile settings
     npc->SetColliderSize(Math::Vector2D(prof.colSize.x, prof.colSize.y));
     npc->SetColliderOffset(Math::Vector2D(prof.colOff.x, prof.colOff.y));
     scene.SetNPCVelocity(npcID, prof.vel.x, prof.vel.y);
     scene.SetObjectTexturePath(npcID, prof.texture);
-
-    // Give it logic
-    if (auto* npcLogic = logicMgr.AddLogic<SimpleNpcLogic>(npcID)) {
-        npcLogic->Awake(scene);
-        npcLogic->Start(scene);
-    }
 
     //attach UI logic to the customer
     if (auto* ui = logicMgr.AddLogic<CustomerOrderUILogic>(npcID)) {

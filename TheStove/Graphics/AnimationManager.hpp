@@ -59,6 +59,10 @@ public:
 	void AttachDinoAnimations(int objectID);
 	void AttachPlayerAnimations(int objectID);
 	void AttachNPCAnimations(int objectID);
+	void AttachCustomersAnimations(int objectID);
+	void AttachWorkVfxGrillAnimations(int objectID);
+	void AttachWorkVfxCutAnimations(int objectID);
+	void AttachWorkVfxStoveAnimations(int objectID);
 
 	// for menu-specific grid animations (6x5 sprite sheet)
 	void AttachMenuAnimations(int objectID);

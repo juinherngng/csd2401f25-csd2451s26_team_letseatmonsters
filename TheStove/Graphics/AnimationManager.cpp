@@ -165,6 +165,106 @@ void AnimationManager::AttachNPCAnimations(int objectID) {
 	anim.Play();
 }
 
+void AnimationManager::AttachCustomersAnimations(int objectID) {
+	Animator2D& anim = animators_[objectID];
+	constexpr int kTotalRows = 9;
+	constexpr int kTotalCols = 8;
+
+	// ----- Choose rows for each animation -----
+	//idle
+	const int idleFrontRow = 8;
+	const int idleLeftRow = 5;
+	const int idleRightRow = 3;
+
+	//walk
+	const int walkFrontRow = 7;
+	const int walkBackRow = 6;
+	const int walkLeftRow = 1;
+	const int walkRightRow = 0;
+
+	//eat
+	const int eatLeftRow = 4;
+	const int eatRightRow = 2;
+
+	// ----- Build frame lists -----
+	auto idleFront = CreateFrameSequenceRow(idleFrontRow, 0, 7, kTotalRows, kTotalCols);
+	auto idleLeft = CreateFrameSequenceRow(idleLeftRow, 0, 7, kTotalRows, kTotalCols);
+	auto idleRight = CreateFrameSequenceRow(idleRightRow, 0, 7, kTotalRows, kTotalCols);
+
+	auto walkFront = CreateFrameSequenceRow(walkFrontRow, 0, 7, kTotalRows, kTotalCols);
+	auto walkBack = CreateFrameSequenceRow(walkBackRow, 0, 7, kTotalRows, kTotalCols);
+	auto walkLeft = CreateFrameSequenceRow(walkLeftRow, 0, 7, kTotalRows, kTotalCols);
+	auto walkRight = CreateFrameSequenceRow(walkRightRow, 0, 7, kTotalRows, kTotalCols);
+
+	auto eatLeft = CreateFrameSequenceRow(eatLeftRow, 0, 7, kTotalRows, kTotalCols);
+	auto eatRight = CreateFrameSequenceRow(eatRightRow, 0, 7, kTotalRows, kTotalCols);
+
+	// ----- Register animation sets -----
+	// Tune durations to taste
+	const float idleDur = 0.15f;
+	const float walkDur = 0.12f;
+	const float eatDur = 0.15f;
+
+	animationSets_[objectID]["IDLE_FRONT"] = { idleFront, idleDur, true };
+	animationSets_[objectID]["IDLE_LEFT"] = { idleLeft,  idleDur, true };
+	animationSets_[objectID]["IDLE_RIGHT"] = { idleRight, idleDur, true };
+
+	animationSets_[objectID]["WALK_FRONT"] = { walkFront, walkDur, true };
+	animationSets_[objectID]["WALK_BACK"] = { walkBack, walkDur, true };
+	animationSets_[objectID]["WALK_LEFT"] = { walkLeft,  walkDur, true };
+	animationSets_[objectID]["WALK_RIGHT"] = { walkRight, walkDur, true };
+
+	animationSets_[objectID]["EAT_LEFT"] = { eatLeft,   eatDur,  true };
+	animationSets_[objectID]["EAT_RIGHT"] = { eatRight,  eatDur,  true };
+
+	// Set default animation
+	const auto& clip = animationSets_[objectID]["IDLE_FRONT"];
+	anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
+	currentAnimations_[objectID] = "IDLE_FRONT";
+	anim.Play();
+
+	std::cout << "[AnimationManager] Attached NPC animations to object " << objectID << std::endl;
+}
+
+void AnimationManager::AttachWorkVfxCutAnimations(int objectID)
+{
+	Animator2D& anim = animators_[objectID];
+
+	auto frames = CreateFrameSequenceRow(1, 0, 3, 5, 5);
+	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
+
+	const auto& clip = animationSets_[objectID]["LOOP"];
+	anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
+	currentAnimations_[objectID] = "LOOP";
+	anim.Play();
+}
+
+void AnimationManager::AttachWorkVfxGrillAnimations(int objectID)
+{
+	Animator2D& anim = animators_[objectID];
+
+	auto frames = CreateFrameSequenceRow(3, 0, 3, 5, 5);
+	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
+
+	const auto& clip = animationSets_[objectID]["LOOP"];
+	anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
+	currentAnimations_[objectID] = "LOOP";
+	anim.Play();
+}
+
+void AnimationManager::AttachWorkVfxStoveAnimations(int objectID)
+{
+	Animator2D& anim = animators_[objectID];
+
+	auto frames = CreateFrameSequenceRow(4, 0, 3, 5, 5);
+	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
+
+	const auto& clip = animationSets_[objectID]["LOOP"];
+	anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
+	currentAnimations_[objectID] = "LOOP";
+	anim.Play();
+}
+
 std::vector<glm::vec4> AnimationManager::CreateFullGridSequence(int totalRows, int totalCols) {
 	std::vector<glm::vec4> frames;
 	frames.reserve(static_cast<size_t>(totalRows * totalCols));

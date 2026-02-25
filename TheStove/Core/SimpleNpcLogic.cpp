@@ -52,6 +52,8 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 
     glm::vec3 pos = npc->GetPositionGLM();
 
+    glm::vec3 prevPos = npc->GetPositionGLM();
+
     // ===================== CASE 1: HAS CUSTOMER TABLE =====================
     if (hasCustomerTarget_) {
         // Move directly toward the assigned seat position.
@@ -70,11 +72,16 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
             pos.y = curPos.y;
             npc->SetPosition(pos);
 
+            glm::vec3 newPos = npc->GetPositionGLM();
+            glm::vec2 moveDelta(newPos.x - prevPos.x, newPos.y - prevPos.y);
+            UpdateNpcAnimation(scene, npc, moveDelta);
+
             // If leaving, despawn instead of ordering
             if (behaviourState_ == BehaviourState::Leaving)
             {
                 std::cout << "[SimpleNpcLogic] Arrived at exit. NPC will despawn.\n";
                 OnReachedExit(scene);
+
                 return;
             }
 
@@ -105,6 +112,10 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
                 glm::vec3 afterClamp = npc->GetPositionGLM();
                 (void)beforeClamp;
                 (void)afterClamp;
+
+                glm::vec3 newPos = npc->GetPositionGLM();
+                glm::vec2 moveDelta(newPos.x - prevPos.x, newPos.y - prevPos.y);
+                UpdateNpcAnimation(scene, npc, moveDelta);
 
                 return; // skip patrol logic
             }
@@ -165,6 +176,10 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
         state = State::Idle;
         timer = 0.0f;
     }
+
+    glm::vec3 newPos = npc->GetPositionGLM();
+    glm::vec2 moveDelta(newPos.x - prevPos.x, newPos.y - prevPos.y);
+    UpdateNpcAnimation(scene, npc, moveDelta);
 
     UpdateCustomerLogic(dt, scene);
 }
@@ -518,3 +533,68 @@ void SimpleNpcLogic::OnPatienceExpired(Scene& scene)
     std::cout << "[SimpleNpcLogic] Patience expired. Switching to Paying (will pay $0)\n";
 }
 
+void SimpleNpcLogic::UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm::vec2& moveDelta)
+{
+    if (!npc) return;
+
+    const float epsX = 0.01f;
+    const float epsY = 0.01f;
+
+    const float absX = std::abs(moveDelta.x);
+    const float absY = std::abs(moveDelta.y);
+
+    const bool moving = (absX > epsX) || (absY > epsY);
+
+    // ===== 1) Decide facing direction =====
+    // Rule: if X movement exists -> Left/Right always.
+    // Otherwise use Y for Front/Back.
+    if (moving)
+    {
+        if (absX > epsX)
+        {
+            facingDir_ = (moveDelta.x > 0.0f) ? FacingDir::Right : FacingDir::Left;
+        }
+        else
+        {
+            // +Y = Front (down), -Y = Back (up)
+            facingDir_ = (moveDelta.y > 0.0f) ? FacingDir::Front : FacingDir::Back;
+        }
+    }
+
+    std::string desired;
+
+    // ===== 2) Choose animation clip =====
+    // Eating uses eat clips (you only have left/right for eating)
+    if (behaviourState_ == BehaviourState::Eating)
+    {
+        desired = (facingDir_ == FacingDir::Left) ? "EAT_LEFT" : "EAT_RIGHT";
+    }
+    // If we're moving (to table, leaving, patrol, etc), use WALK clips
+    else if (moving)
+    {
+        switch (facingDir_)
+        {
+        case FacingDir::Front: desired = "WALK_FRONT"; break;
+        case FacingDir::Back:  desired = "WALK_BACK";  break;
+        case FacingDir::Left:  desired = "WALK_LEFT";  break;
+        case FacingDir::Right: desired = "WALK_RIGHT"; break;
+        }
+    }
+    // Otherwise idle
+    else
+    {
+        switch (facingDir_)
+        {
+        case FacingDir::Left:  desired = "IDLE_LEFT";  break;
+        case FacingDir::Right: desired = "IDLE_RIGHT"; break;
+        case FacingDir::Front: desired = "IDLE_FRONT"; break;
+        case FacingDir::Back:  desired = "IDLE_FRONT"; break; // fallback since no IDLE_BACK
+        }
+    }
+
+    const std::string current = scene.GetCurrentAnimationName(npc->GetID());
+    if (current != desired)
+    {
+        scene.SetAnimation(npc->GetID(), desired);
+    }
+}

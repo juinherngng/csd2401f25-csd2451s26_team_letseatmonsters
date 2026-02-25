@@ -711,19 +711,19 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 		spriteID = id;
 		animationManager.AttachPlayerAnimations(id);
 	}
-	//else if (tag == "npc1" || tag == "npc2") {
-	//	logicManager.AddLogic<SimpleNpcLogic>(id);
-	//}
-	//else if (tag == "dino") {
-	//	logicManager.AddLogic<SimpleNpcLogic>(id);
-	//	dinoID = id;
-	//}
+	else if (tag == "customer_template") {
+		logicManager.AddLogic<SimpleNpcLogic>(id);
+		animationManager.AttachCustomersAnimations(id);
+	}
 	else if (tag == "table") {
 		logicManager.AddLogic<TableLogic>(id);
 	}
 	else if (tag == "work_table") {
 		logicManager.AddLogic<WorkTableLogic>(id);
 	}
+	else if (tag == "work_vfx_cut") { animationManager.AttachWorkVfxCutAnimations(id); }
+	else if (tag == "work_vfx_grill") { animationManager.AttachWorkVfxGrillAnimations(id); }
+	else if (tag == "work_vfx_stove") { animationManager.AttachWorkVfxStoveAnimations(id); }
 	else if (tag == "customer_table") {
 		logicManager.AddLogic<CustomerTableLogic>(id);
 	}

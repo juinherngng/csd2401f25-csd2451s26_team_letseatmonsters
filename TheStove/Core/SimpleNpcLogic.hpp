@@ -18,6 +18,7 @@
 #include "FoodTypes.hpp"
 #include "Math.hpp"
 #include <iostream>
+#include <glm/glm.hpp>
 
 class SimpleNpcLogic : public GameObjectLogic {
 public:
@@ -57,6 +58,8 @@ public:
         Paying,
         Leaving
     };
+
+    void UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm::vec2& moveDelta);
 
     // Table assignment -------------------------------------------------
     void AssignCustomerTable(int tableObjectID);  // call when you pick a table
@@ -154,6 +157,10 @@ private:
 
     // Which direction we will move next after an Idle
     bool nextMoveUp = false;     // start by moving DOWN
+
+    // --- Animation facing direction ---
+    enum class FacingDir { Front, Back, Left, Right };
+    FacingDir facingDir_ = FacingDir::Front;
 
     // ===================== New customer state data ====================
     static constexpr int kInvalidID = -1;

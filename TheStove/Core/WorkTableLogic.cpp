@@ -90,12 +90,15 @@ void WorkTableLogic::Start(Scene& scene)
 
 void WorkTableLogic::Update(float dt, Scene& scene, InputManager&)
 {
+    if (!scene.IsSimulationActive()) return;
+
     // Only do anything if we have an item and are currently processing
     if (!isProcessing_ || !HasItem())
         return;
 
     timer_ += dt;
-
+    if(isProcessing_)
+    UpdateProcessingVfxTransform(scene);
     //std::cout << "[WorkTableLogic] processing... t=" << timer_
     //    << "/" << processingTime_ << "\n";
 
@@ -202,6 +205,7 @@ void WorkTableLogic::CancelProcessing(Scene& scene)
     }
     isProcessing_ = false;
     timer_ = 0.0f;
+    DespawnProcessingVfx(scene);
 #ifdef _DEBUG
     (void)scene;
 #endif
@@ -219,7 +223,7 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item)
     if (IsItemProcessable(scene, item)) {
         isProcessing_ = true;
         timer_ = 0.0f;
-        
+        SpawnProcessingVfx(scene);
         // Play station-specific processing sound (release mode only)
 #ifndef _DEBUG
         if (AudioManager* audioMgr = scene.GetAudioManager()) {
@@ -330,4 +334,83 @@ void WorkTableLogic::CompleteProcessingForIngredient(IngredientLogic& ingredient
     // This is the actual "logic" of processing:
     // raw -> refined, via IngredientLogic.
     ingredient.MarkProcessed();
+}
+
+const char* WorkTableLogic::GetVfxTextureForStation() const
+{
+    switch (stationType_)
+    {
+    case StationType::CuttingBoard: return "../assets/VFX SpriteSheet.png";
+    case StationType::Grill:        return "../assets/VFX SpriteSheet.png";
+    case StationType::Stove:        return "../assets/VFX SpriteSheet.png";
+    default:                        return nullptr;
+    }
+}
+
+const char* WorkTableLogic::GetVfxTagForStation() const
+{
+    switch (stationType_)
+    {
+    case StationType::CuttingBoard: return "work_vfx_cut";
+    case StationType::Grill:        return "work_vfx_grill";
+    case StationType::Stove:        return "work_vfx_stove";
+    default:                        return nullptr;
+    }
+}
+
+void WorkTableLogic::SpawnProcessingVfx(Scene& scene)
+{
+    if (vfxObjectID_ >= 0) return;
+
+    const char* tex = GetVfxTextureForStation();
+    const char* tag = GetVfxTagForStation();
+    if (!tex || !tag) return;
+
+    GameObject* table = scene.GetGameObjectByID(GetOwnerID());
+    if (!table) return;
+
+    glm::vec3 tp = table->GetPositionGLM();
+    glm::vec3 vfxPos{ tp.x + vfxOffset_.x, tp.y + vfxOffset_.y, tp.z + 0.001f };
+
+    // Create an animated sprite so AnimationManager can drive UVs
+    std::vector<glm::vec4> dummyFrames = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
+
+    // Put it on a higher layer than the table (simple version: hardcode a top-ish layer)
+    std::string vfxLayer = "50";
+
+    GameObject* vfx = scene.SpawnAnimatedSprite(tex, vfxPos, glm::vec2(128, 128),
+        dummyFrames, 0.1f, true, vfxLayer);
+
+    if (!vfx) return;
+
+    vfxObjectID_ = vfx->GetID();
+
+    // no collisions / no physics / no shadow
+    vfx->SetColliderSize(Math::Vector2D(0.f, 0.f));
+    vfx->SetColliderOffset(Math::Vector2D(0.f, 0.f));
+    vfx->SetMovableByPhysics(false);
+    vfx->EnableShadow(false);
+
+    // Tag + attach ONLY animations (via Scene::AttachLogicForTag)
+    scene.SetObjectTag(vfxObjectID_, tag);
+    scene.AttachLogicForTag(vfxObjectID_, tag);
+}
+
+void WorkTableLogic::DespawnProcessingVfx(Scene& scene)
+{
+    if (vfxObjectID_ < 0) return;
+    scene.RequestDespawn(vfxObjectID_);
+    vfxObjectID_ = -1;
+}
+
+void WorkTableLogic::UpdateProcessingVfxTransform(Scene& scene)
+{
+    if (vfxObjectID_ < 0) return;
+
+    GameObject* table = scene.GetGameObjectByID(GetOwnerID());
+    GameObject* vfx = scene.GetGameObjectByID(vfxObjectID_);
+    if (!table || !vfx) return;
+
+    glm::vec3 tp = table->GetPositionGLM();
+    vfx->SetPosition(glm::vec3(tp.x + vfxOffset_.x, tp.y + vfxOffset_.y, tp.z + 0.001f));
 }
