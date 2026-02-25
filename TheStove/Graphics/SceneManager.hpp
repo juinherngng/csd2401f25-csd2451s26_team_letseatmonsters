@@ -635,6 +635,6 @@ private:
 	} levelTrans_;
 
 	void UpdateLevelTransition();
-
+	void SkipActiveCutscene();
 
 };

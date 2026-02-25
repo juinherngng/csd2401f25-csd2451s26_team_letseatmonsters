@@ -77,7 +77,8 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 		GLFW_KEY_P, GLFW_KEY_G, GLFW_KEY_H, GLFW_KEY_F, GLFW_KEY_L,
 		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3,
 		GLFW_KEY_ESCAPE,
-		GLFW_KEY_F1  // FPS display toggle in Release
+		GLFW_KEY_F1,  // FPS display toggle in Release
+		GLFW_KEY_SPACE
 	};
 
 	// If ImGui wants the keyboard, clear key states so gameplay won't react

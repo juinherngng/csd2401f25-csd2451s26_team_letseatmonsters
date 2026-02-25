@@ -149,8 +149,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		return;
 	}
 
-	// while any cutscene is active, discard input so UI/buttons cannot be pressed (this might need tweaking later, for future cutscenes that need input)
+	// while any cutscene is active, allow space to skip, then discard input
 	if (IsAnyCutsceneActive()) {
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_SPACE)) {
+			SkipActiveCutscene();
+		}
 		inputManager.ClearState();
 	} else {
 		inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager, spriteID, useForces_, showAuxDebug_);
@@ -1906,5 +1909,40 @@ void Scene::UpdateLevelTransition()
 		cutTrans_.fadeInAfterLoad = true;
 
 		levelTrans_.active = false;
+	}
+}
+
+// Called from MenuButtonLogic when player clicks spacebar (to skip) during cutscene
+void Scene::SkipActiveCutscene() {
+	if (cutTrans_.active) {
+		auto& gfx = GetGraphicsEngine();
+		if (!gfx.IsTransitionActive()) {
+			gfx.StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+		}
+
+		cutTrans_.awaitingBlackout = true;
+		cutTrans_.holding = false;
+		cutTrans_.crossfading = false;
+		cutTrans_.holdElapsed = 0.0f;
+
+		if (!cutTrans_.images.empty()) {
+			cutTrans_.index = cutTrans_.images.size() - 1;
+		}
+
+#ifndef _DEBUG
+		if (audioManager_) {
+			audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", 0.0f, cutTrans_.outSeconds);
+		}
+#endif
+	}
+
+	if (cutscene_.active) {
+		CleanupCutsceneObjects();
+		cutscene_.active = false;
+
+		if (!cutscene_.queuedFinalLoad) {
+			cutscene_.queuedFinalLoad = true;
+			QueueLevelLoad(cutscene_.targetLevelJson, cutscene_.targetActivateSim);
+		}
 	}
 }

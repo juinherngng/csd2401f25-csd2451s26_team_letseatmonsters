@@ -101,4 +101,7 @@ private:
 
 	// build entire grid sequence (row-major)
 	std::vector<glm::vec4> CreateFullGridSequence(int totalRows, int totalCols);
+
+	// Flip existing frames horizontally (for mirrored animations)
+	std::vector<glm::vec4> CreateFlippedFramesX(const std::vector<glm::vec4>& frames);
 };
