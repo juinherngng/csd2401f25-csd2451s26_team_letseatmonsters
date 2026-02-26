@@ -50,7 +50,7 @@ private:
 
     glm::vec2 bubbleSize_ = { 120.f, 90.f };
     glm::vec2 dishIconSize_ = { 70.f, 70.f };   // dish wants bigger
-    glm::vec2 coinIconSize_ = { 40.f, 40.f };   // coin wants smaller
+    glm::vec2 coinIconSize_ = { 60.f, 60.f };   // coin wants smaller
 
     glm::vec2 barBGSize_ = { 120.f, 14.f };
     glm::vec2 barFillSize_ = { 112.f, 10.f };  // slightly inset from BG
@@ -59,7 +59,7 @@ private:
     std::string lastIconPath_;
 
     // Your coin icon path
-    const char* coinIconPath_ = "../assets/Coin.png";
+    const char* coinIconPath_ = "../assets/Reaction_Money.png";
 
     // --- asset paths ---
     const char* bubbleBGPath_ = "../assets/Customer_Order.png";
@@ -96,8 +96,8 @@ private:
     glm::vec2 payVFXSize_ = { 64.f,  64.f };
     float payVFXRiseSpeed_ = 25.f;        // float upward speed (pixels/sec)
 
-    const char* happyFacePath_ = "../assets/HappyFace.png";
-    const char* sadFacePath_ = "../assets/SadFace.png";
+    const char* happyFacePath_ = "../assets/Reaction_Happy_Face.png";
+    const char* sadFacePath_ = "../assets/Reaction_Angry_Face.png";
 
     // Track previous BehaviourState as int (avoid including SimpleNpcLogic in header)
     int prevBehaviourState_ = -1;

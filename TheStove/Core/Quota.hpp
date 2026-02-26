@@ -36,7 +36,7 @@ namespace Economy
     inline bool gQuotaReached = false;
 
     // Total time allowed (seconds). Adjust as you like.
-    inline constexpr float kTimeLimitSeconds = 180.0f;
+    inline constexpr float kTimeLimitSeconds = 180;
 
     // Remaining time (seconds)
     inline float gTimeRemaining = kTimeLimitSeconds;

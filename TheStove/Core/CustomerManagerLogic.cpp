@@ -87,11 +87,26 @@ void CustomerManagerSystem::CacheTemplate(Scene& scene)
 }
 
 
-void CustomerManagerSystem::CleanupDeadCustomers(Scene& scene) {
+void CustomerManagerSystem::CleanupDeadCustomers(Scene& scene)
+{
+    LogicManager& logicMgr = scene.GetLogicManager();
+
     activeCustomers_.erase(
         std::remove_if(activeCustomers_.begin(), activeCustomers_.end(),
-            [&](int id) {
-                return scene.GetGameObjectByID(id) == nullptr;
+            [&](int id)
+            {
+                // Despawned -> remove
+                if (scene.GetGameObjectByID(id) == nullptr)
+                    return true;
+
+                // Leaving customers no longer count toward active cap (table already freed)
+                if (auto* npc = logicMgr.GetLogicForObject<SimpleNpcLogic>(id))
+                {
+                    if (npc->IsLeaving())
+                        return true;
+                }
+
+                return false;
             }),
         activeCustomers_.end()
     );

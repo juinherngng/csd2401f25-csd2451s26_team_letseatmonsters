@@ -356,7 +356,7 @@ void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType)
 
     if (servedDishType_ != desiredDishType_)
     {
-        // Clear the served food so the table doesn't stay blocked
+        // Clear served food so table isn't blocked
         if (customerTableID_ != kInvalidID)
         {
             LogicManager& logicMgr = scene.GetLogicManager();
@@ -366,13 +366,13 @@ void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType)
             }
         }
 
-        hasPaid_ = false;
         payZero_ = true;
+        hasPaid_ = false; // doesn't matter much, BeginLeaveToExit sets hasPaid_=true
+        patienceRatioAtServe_ = 0.0f;
 
-        // IMPORTANT: do NOT leave yet — wait in Paying so player can "take payment" (which will be $0)
-        behaviourState_ = BehaviourState::Paying;
+        std::cout << "[SimpleNpcLogic] Wrong dish served. Leaving immediately (pay $0)\n";
 
-        std::cout << "[SimpleNpcLogic] Wrong dish served. Switching to Paying (will pay $0)\n";
+        BeginLeaveToExit(scene, true); // free table NOW
         return;
     }
 
@@ -543,10 +543,13 @@ void SimpleNpcLogic::OnPatienceExpired(Scene& scene)
     patienceRemaining_ = 0.f;
     patienceRatioAtServe_ = 0.0f;
 
-    // Same behavior as wrong dish: go to Paying and pay $0
     payZero_ = true;
-    hasPaid_ = false;
-    behaviourState_ = BehaviourState::Paying;
+    hasPaid_ = false; // BeginLeaveToExit will set it true
+    behaviourState_ = BehaviourState::WaitingForFood; // (optional, just for clarity)
+
+    std::cout << "[SimpleNpcLogic] Patience expired. Leaving immediately (pay $0)\n";
+
+    BeginLeaveToExit(scene, true);
 
     // Optional safety: clear served food if anything got stuck
     if (customerTableID_ != kInvalidID)
@@ -648,3 +651,40 @@ void SimpleNpcLogic::UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm
         scene.SetAnimation(npc->GetID(), desired);
 }
 
+void SimpleNpcLogic::BeginLeaveToExit(Scene& scene, bool freeTableImmediately)
+{
+    // If already leaving, don't re-trigger
+    if (behaviourState_ == BehaviourState::Leaving)
+        return;
+
+#ifndef _DEBUG
+    // Optional: play "wrong order" sound immediately when leaving unhappy
+    if (payZero_) {
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            audioMgr->PlaySound("sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f, false);
+        }
+    }
+#endif
+
+    hasPaid_ = true; // "payment processed" (even if $0)
+    behaviourState_ = BehaviourState::Leaving;
+
+    // Walk to exit
+    Math::Vector2D gate = scene.GetExitGateWorldPos();
+    hasCustomerTarget_ = true;
+    customerSeatTarget_ = gate;
+
+    // Free the table RIGHT NOW so another customer can take it
+    if (freeTableImmediately && customerTableID_ != kInvalidID)
+    {
+        LogicManager& logicMgr = scene.GetLogicManager();
+        if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_))
+        {
+            table->ClearCustomer();
+        }
+
+        // IMPORTANT:
+        // Prevent OnReachedExit() from clearing a NEW customer seated later.
+        customerTableID_ = kInvalidID;
+    }
+}

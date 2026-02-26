@@ -204,4 +204,6 @@ private:
     void OnPatienceExpired(Scene& scene);
     float patienceRatioAtServe_ = 0.0f; // 0..1 snapshot when correct dish is served
     bool TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const;
+
+    void BeginLeaveToExit(Scene& scene, bool freeTableImmediately);
 };
