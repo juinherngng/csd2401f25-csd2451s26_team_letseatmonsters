@@ -26,23 +26,23 @@
 #include "../Core/TableLogic.hpp"
 #include "../Core/WorkTableLogic.hpp"
 
-#include "../Graphics/SceneManager.hpp"
-#include "../Graphics/SceneManager.hpp"
-
 #include "PlayerLogic.hpp"
 
 #include <iostream>
 
-void PlayerLogic::Start(Scene& scene) {
+void PlayerLogic::Start(Scene& scene)
+{
 	(void)scene;
 	hasMoveTarget = false;
 	carriedItemID = -1;
 	pendingTableID = -1;
 	facingDir = FacingDir::Front;
+	moveMode_ = MoveMode::None;
 
-	//GameObject* owner = GetOwner(scene);
-	//std::cout << "[PlayerLogic] Start on object ID "
-	//	<< (owner ? owner->GetID() : -1) << "\n";
+	pathPoints_.clear();
+	pathIndex_ = 0;
+	finalTarget_ = glm::vec2(0.0f, 0.0f);
+	directPathCheckTimer_ = 0.0f;
 }
 
 // Decide and apply sprite based on movement direction
@@ -61,9 +61,9 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	if (glm::length(moveDirRaw) < moveThreshold) {
 		switch (facingDir) {
 		case FacingDir::Right: desiredAnimation = isHolding ? "IDLE_RIGHT_CARRY" : "IDLE_RIGHT"; break;
-		case FacingDir::Left:  desiredAnimation = isHolding ? "IDLE_LEFT_CARRY"  : "IDLE_LEFT";  break;
+		case FacingDir::Left:  desiredAnimation = isHolding ? "IDLE_LEFT_CARRY" : "IDLE_LEFT";  break;
 		case FacingDir::Front: desiredAnimation = isHolding ? "IDLE_FRONT" : "IDLE_FRONT"; break;			// Using normal idle for front since we dont have idle front carry animations yet
-		case FacingDir::Back:  desiredAnimation = isHolding ? "IDLE_BACK"  : "IDLE_BACK";  break;			// Using normal idle for back since we dont have idle back carry animations yet
+		case FacingDir::Back:  desiredAnimation = isHolding ? "IDLE_BACK" : "IDLE_BACK";  break;			// Using normal idle for back since we dont have idle back carry animations yet
 		}
 	}
 	else {
@@ -96,28 +96,80 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	}
 }
 
-// Unity: Move(Vector3 dest)
-void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
-	GameObject* player = GetOwner(scene);
+void PlayerLogic::MoveDirect(const glm::vec2& dest)
+{
+	const float kRetargetEpsSq = 16.0f * 16.0f;
 
-	//std::cout << "[PlayerLogic] MoveTo(" << dest.x << ", " << dest.y << ")\n";
-
-	if (player) {
-		glm::vec3 pos3 = player->GetPositionGLM();
-		glm::vec2 pos(pos3.x, pos3.y);
-		glm::vec2 delta = dest - pos;
-
-		// Update sprite immediately based on click direction
-		UpdateSprite(scene, player, delta);
-
-		//scene.GetMovementManager().SetMoveTarget(player->GetID(), dest);
+	if (hasMoveTarget && moveMode_ == MoveMode::Direct) {
+		glm::vec2 d = dest - finalTarget_;
+		if ((d.x * d.x + d.y * d.y) <= kRetargetEpsSq) {
+			return;
+		}
 	}
 
+	finalTarget_ = dest;
 	moveTarget = dest;
+	pathPoints_.clear();
+	pathIndex_ = 0;
 	hasMoveTarget = true;
+	moveMode_ = MoveMode::Direct;
+}
 
-	//auto& movement = scene.GetMovementManager(); // hypothetical accessor
-	//movement.SetMoveTarget(player->GetID(), dest);
+void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest)
+{
+	GameObject* player = GetOwner(scene);
+	if (!player)
+		return;
+
+	glm::vec2 snappedDest = dest;
+
+	// Snap interactable destinations to the nearest walkable cell center
+	scene.GetNearestNavigationCellCenterForObject(player->GetID(), dest, snappedDest);
+
+	const float kRetargetEpsSq = 16.0f * 16.0f;
+
+	if (hasMoveTarget && moveMode_ == MoveMode::Pathfinding) {
+		glm::vec2 d = snappedDest - finalTarget_;
+		if ((d.x * d.x + d.y * d.y) <= kRetargetEpsSq) {
+			return;
+		}
+	}
+
+	finalTarget_ = snappedDest;
+	pathPoints_.clear();
+	pathIndex_ = 0;
+	hasMoveTarget = false;
+	moveMode_ = MoveMode::Pathfinding;
+
+	const glm::vec3 pos3 = player->GetPositionGLM();
+	const glm::vec2 startPos(pos3.x, pos3.y);
+
+	if (!scene.FindPathForObject(player->GetID(), startPos, finalTarget_, pathPoints_)) {
+		std::cout << "[PlayerLogic] No path found.\n";
+		pendingTableID = -1;
+		moveMode_ = MoveMode::None;
+		return;
+	}
+
+	while (!pathPoints_.empty()) {
+		glm::vec2 d = pathPoints_.front() - startPos;
+		const float kSkipWaypointRadius = 18.0f;
+		if ((d.x * d.x + d.y * d.y) <= kSkipWaypointRadius * kSkipWaypointRadius) {
+			pathPoints_.erase(pathPoints_.begin());
+		}
+		else {
+			break;
+		}
+	}
+
+	if (pathPoints_.empty()) {
+		moveMode_ = MoveMode::None;
+		OnArrived(scene);
+		return;
+	}
+
+	hasMoveTarget = true;
+	moveTarget = pathPoints_[0];
 }
 
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
@@ -199,30 +251,39 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 	// 2) If we clicked a table, move to its approach point
 	// ----------------------------------------------------------
 	if (clickedTableID >= 0 && clickedTableLogic) {
-		//std::cout << "[PlayerLogic] Click hit table id " << clickedTableID << "\n";
 		pendingTableID = clickedTableID;
 
-		// Player current world position
 		glm::vec3 playerPos3 = player->GetPositionGLM();
-		Math::Vector2D from(playerPos3.x, playerPos3.y);
+		glm::vec2 start(playerPos3.x, playerPos3.y);
 
-		// Ask the table for the best approach point, in WORLD space
+		Math::Vector2D from(playerPos3.x, playerPos3.y);
 		Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
 
-		// Debug: where are we actually going?
-		//std::cout << "[PlayerLogic] Moving to approach point for table " << clickedTableID
-		//	<< " at (" << approach.x << ", " << approach.y << ")\n";
-
-		// Convert to glm::vec2 for MoveTo
 		glm::vec2 target(approach.x, approach.y);
-		MoveTo(scene, target);
+
+		// snap interactable target to nearest walkable cell center
+		glm::vec2 snappedTarget = target;
+		scene.GetNearestNavigationCellCenterForObject(player->GetID(), target, snappedTarget);
+
+		if (scene.HasDirectPathForObject(player->GetID(), start, snappedTarget)) {
+			MoveDirect(snappedTarget);
+		}
+		else {
+			MoveTo(scene, target); // MoveTo will snap internally anyway
+		}
 	}
 	else {
-		// No table hit: just move to the clicked position as before
 		pendingTableID = -1;
-		//std::cout << "[PlayerLogic] No table clicked, moving to raw mouse ("
-		//	<< mouseWorld.x << ", " << mouseWorld.y << ")\n";
-		MoveTo(scene, mouseWorld);
+
+		glm::vec3 playerPos3 = player->GetPositionGLM();
+		glm::vec2 start(playerPos3.x, playerPos3.y);
+
+		if (scene.HasDirectPathForObject(player->GetID(), start, mouseWorld)) {
+			MoveDirect(mouseWorld);
+		}
+		else {
+			MoveTo(scene, mouseWorld);
+		}
 	}
 }
 
@@ -239,25 +300,160 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	glm::vec3 pos3 = player->GetPositionGLM();
 	glm::vec2 pos(pos3.x, pos3.y);
 
-	glm::vec2 dir = moveTarget - pos;
-	const float distSq = dir.x * dir.x + dir.y * dir.y;
+	// -------------------------------------------------
+// LIVE SHORTCUT CHECK:
+// while following an A* path, if final target is now
+// directly reachable, switch immediately to direct mode
+// -------------------------------------------------
+	if (moveMode_ == MoveMode::Pathfinding) {
+		directPathCheckTimer_ -= dt;
 
-	const float arriveRadius = 4.0f;      // pixels (tweak)
+		if (directPathCheckTimer_ <= 0.0f) {
+			directPathCheckTimer_ = kDirectPathCheckInterval;
+
+			if (scene.HasDirectPathForObject(player->GetID(), pos, finalTarget_)) {
+				moveMode_ = MoveMode::Direct;
+				moveTarget = finalTarget_;
+				pathPoints_.clear();
+				pathIndex_ = 0;
+				hasMoveTarget = true;
+			}
+		}
+	}
+
+	const float arriveRadius = 6.0f;
 	const float arriveRadiusSq = arriveRadius * arriveRadius;
 
-	// ReachedDestination()
-	if (distSq <= arriveRadiusSq) {
-		hasMoveTarget = false;
+	// ---------------------------
+	// DIRECT FREE MOVEMENT MODE
+	// ---------------------------
+	if (moveMode_ == MoveMode::Direct)
+	{
+		moveTarget = finalTarget_;
 
-		if (GameObject* player_ = GetOwner(scene)) {
-			scene.GetMovementManager().ClearMoveTarget(player_->GetID());
+		glm::vec2 dir = moveTarget - pos;
+		float distSq = dir.x * dir.x + dir.y * dir.y;
+
+		if (distSq <= arriveRadiusSq) {
+			hasMoveTarget = false;
+			moveMode_ = MoveMode::None;
+			pathPoints_.clear();
+			pathIndex_ = 0;
+
+			if (GameObject* p = GetOwner(scene)) {
+				scene.GetMovementManager().ClearMoveTarget(p->GetID());
+			}
+
+			OnArrived(scene);
+			return;
+		}
+
+		float dist = std::sqrt(distSq);
+		if (dist > 0.0001f) {
+			dir.x /= dist;
+			dir.y /= dist;
+		}
+
+		float step = moveSpeed * dt;
+		if (step > dist)
+			step = dist;
+
+		glm::vec2 desiredDelta(dir.x * step, dir.y * step);
+		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+
+		const float allowedLenSq =
+			allowedDelta.x * allowedDelta.x +
+			allowedDelta.y * allowedDelta.y;
+
+		if (allowedLenSq < 0.0001f) {
+			std::vector<glm::vec2> newPath;
+
+			if (scene.FindPathForObject(player->GetID(), pos, finalTarget_, newPath)) {
+				pathPoints_ = newPath;
+				pathIndex_ = 0;
+				moveMode_ = MoveMode::Pathfinding;
+				hasMoveTarget = !pathPoints_.empty();
+
+				while (!pathPoints_.empty()) {
+					glm::vec2 d = pathPoints_.front() - pos;
+					if ((d.x * d.x + d.y * d.y) <= arriveRadiusSq) {
+						pathPoints_.erase(pathPoints_.begin());
+					}
+					else {
+						break;
+					}
+				}
+
+				if (!pathPoints_.empty()) {
+					moveTarget = pathPoints_.front();
+					return;
+				}
+			}
+
+			hasMoveTarget = false;
+			moveMode_ = MoveMode::None;
+			pathPoints_.clear();
+			pathIndex_ = 0;
+			pendingTableID = -1;
+
+			if (GameObject* p = GetOwner(scene)) {
+				scene.GetMovementManager().ClearMoveTarget(p->GetID());
+			}
+			return;
+		}
+
+		pos.x += allowedDelta.x;
+		pos.y += allowedDelta.y;
+
+		player->SetPosition(glm::vec3(pos.x, pos.y, pos3.z));
+		scene.ClampToWalkArea(player);
+
+		UpdateSprite(scene, player, allowedDelta);
+		return;
+	}
+
+	// ---------------------------
+	// PATHFINDING MODE
+	// ---------------------------
+	if (pathPoints_.empty()) {
+		hasMoveTarget = false;
+		moveMode_ = MoveMode::None;
+		return;
+	}
+
+	// Advance waypoint(s) if already reached
+	while (pathIndex_ < pathPoints_.size()) {
+		glm::vec2 toWaypoint = pathPoints_[pathIndex_] - pos;
+		float distSq = toWaypoint.x * toWaypoint.x + toWaypoint.y * toWaypoint.y;
+
+		if (distSq <= arriveRadiusSq) {
+			++pathIndex_;
+		}
+		else {
+			break;
+		}
+	}
+
+	if (pathIndex_ >= pathPoints_.size()) {
+		hasMoveTarget = false;
+		moveMode_ = MoveMode::None;
+		pathPoints_.clear();
+		pathIndex_ = 0;
+
+		if (GameObject* p = GetOwner(scene)) {
+			scene.GetMovementManager().ClearMoveTarget(p->GetID());
 		}
 
 		OnArrived(scene);
 		return;
 	}
 
-	const float dist = std::sqrt(distSq);
+	moveTarget = pathPoints_[pathIndex_];
+
+	glm::vec2 dir = moveTarget - pos;
+	float distSq = dir.x * dir.x + dir.y * dir.y;
+	float dist = std::sqrt(distSq);
+
 	if (dist > 0.0001f) {
 		dir.x /= dist;
 		dir.y /= dist;
@@ -267,31 +463,47 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	if (step > dist)
 		step = dist;
 
-	// --- NEW: ask CollisionWorld how much of this step is allowed ---
-	const auto size = player->GetColliderSize();
-	const auto offset = player->GetColliderOffset();
-
-	// Apply allowed movement
-	// Desired movement for this frame
 	glm::vec2 desiredDelta(dir.x * step, dir.y * step);
-
-	// Trim against static world (outer frame + wood + gate)
 	glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
 
-	// If we can't move at all (hit a wall and are stuck), treat it as "try to arrive"
-	// and let OnArrived decide if we are close enough to interact.
-	const float allowedLenSq = allowedDelta.x * allowedDelta.x +
+	const float allowedLenSq =
+		allowedDelta.x * allowedDelta.x +
 		allowedDelta.y * allowedDelta.y;
+
 	if (allowedLenSq < 0.0001f) {
-		std::cout << "[PlayerLogic] MoveTo blocked by collision, invoking OnArrived\n";
+		std::vector<glm::vec2> newPath;
+
+		if (scene.FindPathForObject(player->GetID(), pos, finalTarget_, newPath)) {
+			pathPoints_ = newPath;
+			pathIndex_ = 0;
+
+			while (!pathPoints_.empty()) {
+				glm::vec2 d = pathPoints_.front() - pos;
+				if ((d.x * d.x + d.y * d.y) <= arriveRadiusSq) {
+					pathPoints_.erase(pathPoints_.begin());
+				}
+				else {
+					break;
+				}
+			}
+
+			if (!pathPoints_.empty()) {
+				moveTarget = pathPoints_.front();
+				return;
+			}
+		}
+
+		std::cout << "[PlayerLogic] Path blocked and repath failed.\n";
 
 		hasMoveTarget = false;
+		moveMode_ = MoveMode::None;
+		pathPoints_.clear();
+		pathIndex_ = 0;
+		pendingTableID = -1;
+
 		if (GameObject* p = GetOwner(scene)) {
 			scene.GetMovementManager().ClearMoveTarget(p->GetID());
 		}
-
-		// This will check distance to the table’s approach point using kInteractRadius
-		OnArrived(scene);
 		return;
 	}
 
@@ -299,17 +511,22 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	pos.y += allowedDelta.y;
 
 	player->SetPosition(glm::vec3(pos.x, pos.y, pos3.z));
-	scene.ClampToWalkArea(player); // still keep outer-frame clamp
+	scene.ClampToWalkArea(player);
 
-	// Use allowedDelta as movement direction for the sprite
-	glm::vec2 moveDir(allowedDelta.x, allowedDelta.y);
-	UpdateSprite(scene, player, moveDir);
+	UpdateSprite(scene, player, allowedDelta);
 
-	// Debug path line from player to target
 	if (DebugRenderer::IsEnabled() && hasMoveTarget) {
-		glm::vec3 from = player->GetPositionGLM();
-		glm::vec3 to(moveTarget.x, moveTarget.y, from.z);
-		DebugRenderer::DrawLine(from, to, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::vec2 prev(pos.x, pos.y);
+
+		for (std::size_t i = pathIndex_; i < pathPoints_.size(); ++i) {
+			glm::vec2 next = pathPoints_[i];
+			DebugRenderer::DrawLine(
+				glm::vec3(prev.x, prev.y, pos3.z),
+				glm::vec3(next.x, next.y, pos3.z),
+				glm::vec3(0.0f, 1.0f, 0.0f)
+			);
+			prev = next;
+		}
 	}
 }
 
@@ -374,7 +591,7 @@ void PlayerLogic::OnArrived(Scene& scene) {
 	}
 
 	pendingTableID = -1;
-}
+	}
 
 
 // Unity: PickUp(GameObject item) � here by engine ID
@@ -385,7 +602,7 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 		return;
 
 	carriedItemID = itemID;
-	
+
 	// Store original layer so we can restore on drop
 	carriedItemOriginalLayer_ = scene.GetObjectLayer(itemID);
 	hasCarriedItemOriginalLayer_ = true;
@@ -505,6 +722,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	if (movementLocked_) {
 		// Ensure we don't keep any stale move target
 		hasMoveTarget = false;
+		moveMode_ = MoveMode::None;
 		scene.GetMovementManager().ClearMoveTarget(player->GetID());
 
 		// Check if we should be playing the chopping animation (only if we're locked to a work table and it's currently processing)
@@ -546,6 +764,10 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	// Main keyboard movement
 	if (inputDir.x != 0.f || inputDir.y != 0.f) {
 		hasMoveTarget = false;
+		moveMode_ = MoveMode::None;
+		pathPoints_.clear();
+		pathIndex_ = 0;
+		pendingTableID = -1;
 
 		float len = std::sqrt(inputDir.x * inputDir.x + inputDir.y * inputDir.y);
 		if (len > 0.0001f) {
@@ -848,7 +1070,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 			}
 		}
 		return;
-	}
+}
 
 	// -------------------------------------------------------
 	// CASE 3: Player holding something, table already has an item
@@ -921,7 +1143,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 					if (firstObjID >= 0) {
 						scene.DespawnByID(firstObjID);
 						plate->SetFirstIngredientObjectID(-1);
-					}
+				}
 
 					// 2) Destroy the ingredient we just added (the one we were carrying)
 					if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
@@ -930,7 +1152,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 
 					// We won't restore its collider size because the object is gone.
 					hasCarriedItemOriginalColliderSize = false;
-				}
+			}
 
 
 				// Either way, we are no longer carrying this item
@@ -943,18 +1165,18 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
 				}
 #endif
-			}
+		}
 			else
 			{
 				//std::cout << "  [PlayerLogic] CASE3: plate REJECTED ingredient\n";
 			}
 			return;
-		}
+	}
 
 
 		//std::cout << "  [PlayerLogic] CASE3: no (plate,ingredient) combo found\n";
 		return;
-	}
+}
 
 	//std::cout << "  [PlayerLogic] No case matched, doing nothing.\n";
 }
@@ -1026,6 +1248,7 @@ void PlayerLogic::BeginStationLock(Scene& scene, int tableID)
 
 	// Stop any click-to-move immediately
 	hasMoveTarget = false;
+	moveMode_ = MoveMode::None;
 
 	// Also clear any existing move target from the movement manager to be safe
 	if (GameObject* p = GetOwner(scene)) {

@@ -46,6 +46,7 @@
 #include "../Core/TrashCanLogic.hpp"
 #include "../Core/Quota.hpp"
 #include "../Core/OrderUILogic.hpp"
+#include "../Core/GridPathfinder.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"
@@ -623,6 +624,20 @@ private:
 			bool activateSimulation,
 			float fadeOutSeconds = 0.35f,
 			float fadeInSeconds = 0.35f);
+
+		bool BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid);
+		bool FindPathForObject(int moverObjectID,
+			const glm::vec2& startWorld,
+			const glm::vec2& goalWorld,
+			std::vector<glm::vec2>& outPath);
+
+		bool GetNearestNavigationCellCenterForObject(int moverObjectID,
+			const glm::vec2& worldPos,
+			glm::vec2& outCenter);
+
+		bool HasDirectPathForObject(int moverObjectID,
+			const glm::vec2& startWorld,
+			const glm::vec2& goalWorld);
 
 private:
 	struct LevelTrans {

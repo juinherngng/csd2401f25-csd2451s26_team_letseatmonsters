@@ -44,9 +44,11 @@ public:
 	// (For example: you can call this when the player presses a key near a table.)
 	void InteractWithTable(Scene& scene, int tableObjectID);
 
-
 	// Unity: Move(Vector3 dest)
 	void MoveTo(Scene& scene, const glm::vec2& dest);
+
+	// Direct free movement (use this for plain floor clicks)
+	void MoveDirect(const glm::vec2& dest);
 
 	// Unity: bool ReachedDestination()
 	bool HasDestination() const {
@@ -63,6 +65,14 @@ public:
 	void Drop(Scene& scene);
 
 private:
+	enum class MoveMode {
+		None,
+		Direct,
+		Pathfinding
+	};
+
+	MoveMode moveMode_{ MoveMode::None };
+
 	// Movement state
 	glm::vec2 moveTarget{ 0.f, 0.f };
 	bool  hasMoveTarget{ false };
@@ -130,4 +140,11 @@ private:
 	void UpdateStationLock(Scene& scene);
 	bool ShouldPlayChopAnimation(Scene& scene) const;
 	void EnsureChopAnimation(Scene& scene, GameObject* player);
+
+	std::vector<glm::vec2> pathPoints_;
+	std::size_t pathIndex_ = 0;
+	glm::vec2 finalTarget_{ 0.0f, 0.0f };
+
+	float directPathCheckTimer_ = 0.0f;
+	static constexpr float kDirectPathCheckInterval = 0.05f; // 20 times/sec
 };

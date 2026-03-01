@@ -72,6 +72,8 @@ namespace collision {
 		// Utility: construct AABB from 2D center & 2D size (z ignored).
 		static AABB makeAABBFromCenter(const Math::Vector3D& center, const Math::Vector3D& scale);
 
+		bool overlapsAnyWall(const AABB& box) const;
+
 	private:
 		std::vector<AABB> mWalls;
 	};

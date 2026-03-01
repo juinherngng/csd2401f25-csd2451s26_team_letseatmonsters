@@ -251,4 +251,15 @@ namespace collision {
 		box.max = Math::Vector2D(center.x + halfW, center.y + halfH);
 		return box;
 	}
+
+	bool World::overlapsAnyWall(const AABB& box) const
+	{
+		Math::Vector2D mtv;
+		for (const auto& wall : mWalls) {
+			if (overlapMTV(box, wall, mtv)) {
+				return true;
+			}
+		}
+		return false;
+	}
 }
