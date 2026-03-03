@@ -11,14 +11,15 @@
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
-#include "../Graphics/SceneManager.hpp"
 #include "../Core/AudioManager.hpp"
-#include "../Core/InputManager.hpp"
-#include "../Core/InputControls.hpp"
-#include "../Core/TableLogic.hpp"
-#include "../Core/WorkTableLogic.hpp"
 #include "../Core/CustomerTableLogic.hpp"
+#include "../Core/FilePaths.hpp"
+#include "../Core/InputControls.hpp"
+#include "../Core/InputManager.hpp"
+#include "../Core/TableLogic.hpp"
 #include "../Core/TrashCanLogic.hpp"
+#include "../Core/WorkTableLogic.hpp"
+#include "../Graphics/SceneManager.hpp"
 #include <iostream>
 
 #include "../Core/DebugUI.hpp"
@@ -524,6 +525,12 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
+	// Always provide an emergency restart path so players cannot get soft-locked.
+	if (input.IsKeyJustPressed(GLFW_KEY_R)) {
+		scene.QueueLevelLoad(FilePaths::Levels::KITCHEN_01, true);
+		return;
+	}
+
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
@@ -710,8 +717,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	}
 }
 
-void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
-{
+void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 	//std::cout << "[PlayerLogic] InteractWithTable tableID=" << tableObjectID << "\n";
 
 	GameObject* player = GetOwner(scene);
@@ -724,8 +730,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	// Get table logic for the clicked/selected GameObject
 	LogicManager& logicMgr = scene.GetLogicManager();
 	TableLogic* table = logicMgr.GetLogicForObject<TableLogic>(tableObjectID);
-	if (!table)
-	{
+	if (!table) {
 		//std::cout << "[PlayerLogic] InteractWithTable: no TableLogic found on that object\n";
 		return;
 	}
@@ -740,12 +745,10 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	//	<< "\n";
 
 	// --- Special case: Ingredient box ---
-	if (IngredientBoxLogic* box = logicMgr.GetLogicForObject<IngredientBoxLogic>(tableObjectID))
-	{
+	if (IngredientBoxLogic* box = logicMgr.GetLogicForObject<IngredientBoxLogic>(tableObjectID)) {
 		//std::cout << "  [PlayerLogic] This table is an IngredientBox\n";
 
-		if (carriedItemID >= 0)
-		{
+		if (carriedItemID >= 0) {
 			//std::cout << "  [PlayerLogic] Already holding item " << carriedItemID
 			//	<< ", ignoring ingredient box\n";
 			return;
@@ -759,8 +762,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	}
 
 	// --- Special case: Customer table payment ---
-	if (CustomerTableLogic* ctable = logicMgr.GetLogicForObject<CustomerTableLogic>(tableObjectID))
-	{
+	if (CustomerTableLogic* ctable = logicMgr.GetLogicForObject<CustomerTableLogic>(tableObjectID)) {
 		// If the customer is in Paying state, consume the click and stop here.
 		if (ctable->TryTakePayment(scene)) {
 			return;
@@ -769,22 +771,17 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 
 	// --- Special case: Trash can ---
 // If this object is a trash can, placing an item should delete it immediately.
-	if (TrashCanLogic* trash = logicMgr.GetLogicForObject<TrashCanLogic>(tableObjectID))
-	{
+	if (TrashCanLogic* trash = logicMgr.GetLogicForObject<TrashCanLogic>(tableObjectID)) {
 		// Only meaningful if player is holding something
-		if (carriedItemID >= 0)
-		{
+		if (carriedItemID >= 0) {
 			const int itemToTrash = carriedItemID;
 
 			// Try to "place" it on the trash can (TrashCanLogic will despawn it)
-			if (trash->PlaceItem(scene, itemToTrash))
-			{
+			if (trash->PlaceItem(scene, itemToTrash)) {
 				// Restore collider size if the object still exists this frame
 				// (depending on when despawns are processed)
-				if (hasCarriedItemOriginalColliderSize)
-				{
-					if (GameObject* item = scene.GetGameObjectByID(itemToTrash))
-					{
+				if (hasCarriedItemOriginalColliderSize) {
+					if (GameObject* item = scene.GetGameObjectByID(itemToTrash)) {
 						item->SetColliderSize(carriedItemOriginalColliderSize);
 					}
 					hasCarriedItemOriginalColliderSize = false;
@@ -805,8 +802,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	// -------------------------------------------------------
 	// CASE 1: Player empty-handed, table has an item -> pick up
 	// -------------------------------------------------------
-	if (!playerHolding && tableHasItem)
-	{
+	if (!playerHolding && tableHasItem) {
 		//std::cout << "  [PlayerLogic] CASE1: table has item, player empty -> TakeItem + PickUp\n";
 		int itemID = table->TakeItem(scene);
 		if (itemID >= 0) {
@@ -818,15 +814,12 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	// -------------------------------------------------------
 	// CASE 2: Player holding something, table is empty -> drop onto table
 	// -------------------------------------------------------
-	if (playerHolding && !tableHasItem)
-	{
+	if (playerHolding && !tableHasItem) {
 		//std::cout << "  [PlayerLogic] CASE2: player holding " << carriedItemID
 		//	<< ", table empty -> PlaceItem\n";
 
-		if (table->CanAcceptItem(scene, carriedItemID))
-		{
-			if (table->PlaceItem(scene, carriedItemID))
-			{
+		if (table->CanAcceptItem(scene, carriedItemID)) {
+			if (table->PlaceItem(scene, carriedItemID)) {
 				//std::cout << "  [PlayerLogic] CASE2: PlaceItem success, clearing carriedItem\n";
 				if (hasCarriedItemOriginalColliderSize) {
 					if (GameObject* item = scene.GetGameObjectByID(carriedItemID))
@@ -842,13 +835,11 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 				}
 #endif
 			}
-			else
-			{
+			else {
 				//std::cout << "  [PlayerLogic] CASE2: PlaceItem FAILED\n";
 			}
 		}
-		else
-		{
+		else {
 			//std::cout << "  [PlayerLogic] CASE2: CanAcceptItem = false\n";
 		}
 		return;
@@ -858,8 +849,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 	// CASE 3: Player holding something, table already has an item
 	//   -> typical case: table has a Plate, player has an Ingredient
 	// -------------------------------------------------------
-	if (playerHolding && tableHasItem)
-	{
+	if (playerHolding && tableHasItem) {
 		//std::cout << "  [PlayerLogic] CASE3: both player & table have items -> try plate+ingredient combo\n";
 
 		const int tableItemID = table->GetHeldItemID();
@@ -875,8 +865,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 			const int ingredientCountBefore = plate->GetIngredientCount();
 
 			bool consumedNow = false;
-			if (plate->TryAddIngredient(*ingr, consumedNow))
-			{
+			if (plate->TryAddIngredient(*ingr, consumedNow)) {
 				//std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient type\n";
 
 				// --- VISUAL: first ingredient goes onto the plate visually ---
@@ -910,8 +899,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 				// --- Try to assemble a dish once we have enough ingredients ---
 				DishType dishType;
 				std::vector<IngredientType> consumedTypes;
-				if (plate->TryAssembleDish(dishType, consumedTypes))
-				{
+				if (plate->TryAssembleDish(dishType, consumedTypes)) {
 					//std::cout << "  [PlayerLogic] CASE3: Dish assembled on plate\n";
 						// Update visuals based on computed dish type
 					plate->ApplyDishVisual(scene);
@@ -943,8 +931,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID)
 				}
 #endif
 			}
-			else
-			{
+			else {
 				//std::cout << "  [PlayerLogic] CASE3: plate REJECTED ingredient\n";
 			}
 			return;
