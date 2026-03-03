@@ -12,12 +12,12 @@
 
 #pragma once
 
-#include <glm/glm.hpp>
-#include <vector>
-
 #include "Texture.hpp"
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
+
+#include <glm/glm.hpp>
+#include <vector>
 
 class Texture;
 

@@ -7,7 +7,7 @@
 					Ng Juin Herng, juinherng.ng@digipen.edu (40%)
 
  DESCRIPTION:		This file implements the logic for first-time initialization, per-frame updates, and transitions
- 					between states, preferring JSON-driven runtime level loading when mappings are registered, with a 
+					between states, preferring JSON-driven runtime level loading when mappings are registered, with a
 					fallback to legacy function-pointer-based level init/update/exit routines. Manages scene simulation
 					activation timing, tracks pause state to pause/resume audio in gameplay, and controls state-based
 					playback and cleanup of background music and ambience through the injected AudioManager instance.
@@ -16,10 +16,11 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include "GameStateManager.hpp"
 #include "../Graphics/SceneManager.hpp"
-#include "RuntimeLevel.hpp"
+
 #include "AudioManager.hpp"
+#include "GameStateManager.hpp"
+#include "RuntimeLevel.hpp"
 
 namespace Framework {
 
@@ -164,11 +165,12 @@ namespace Framework {
 		if (state == Framework::GS_Level1) {
 			scene->SetSimulationActive(false);  // main menu stays paused
 			pendingSimActivation = false;
-		} else {
+		}
+		else {
 			pendingSimActivation = true;        // other states (e.g., gameplay)
 		}
 
-		#ifndef _DEBUG
+#ifndef _DEBUG
 		// Handle state-based audio
 		if (audioManager) {
 			// Stop current audio before switching
@@ -201,7 +203,7 @@ namespace Framework {
 				currentAmbience.clear();
 			}
 		}
-		#endif
+#endif
 
 		fpInit = nullptr;
 		fpUpdate = nullptr;

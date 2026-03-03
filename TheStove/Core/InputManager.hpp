@@ -16,16 +16,16 @@
 
 #pragma once
 
+#include "../Graphics/GraphicsEngine.hpp"
+
+#include "imgui.h"
+#include "System.hpp"
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <unordered_map>
 #include <unordered_set>
-
-#include "../Graphics/GraphicsEngine.hpp"
-
-#include "imgui.h"
-#include "System.hpp"
 
  /**
   * @class InputManager

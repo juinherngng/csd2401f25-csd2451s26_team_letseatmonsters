@@ -15,20 +15,20 @@
 
 #pragma once
 
-#include <glm/glm.hpp>
-#include <memory>
-#include <vector>
-
 #include "../Core/System.hpp"
-
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+
 #include "DebugRenderer.hpp"
 #include "GameObject.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
+
+#include <glm/glm.hpp>
+#include <memory>
+#include <vector>
 
 // Forward declare text object data struct
 namespace LEPANELFONTS {

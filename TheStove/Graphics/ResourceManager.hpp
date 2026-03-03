@@ -13,14 +13,14 @@
 
 #pragma once
 
+#include "Mesh.hpp"
+#include "Shader.hpp"
+#include "Texture.hpp"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "Mesh.hpp"
-#include "Shader.hpp"
-#include "Texture.hpp"
 
 // Forward declarations
 class AudioManager;

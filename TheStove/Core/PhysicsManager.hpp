@@ -32,14 +32,14 @@
 
 class Scene;
 
- /**
-  * @brief Lightweight force-based physics for entities.
-  *
-  * Manages per-entity physics states (mass, velocity, damping) and integrates them
-  * under forces such as seek/arrive and drag. Movement is trimmed against the world
-  * using CollisionManager::resolve(); on impact, the active seek is cleared and
-  * velocity is zeroed (hard stop).
-  */
+/**
+ * @brief Lightweight force-based physics for entities.
+ *
+ * Manages per-entity physics states (mass, velocity, damping) and integrates them
+ * under forces such as seek/arrive and drag. Movement is trimmed against the world
+ * using CollisionManager::resolve(); on impact, the active seek is cleared and
+ * velocity is zeroed (hard stop).
+ */
 class PhysicsManager : public CoreFramework::SystemInterface {
 public:
 	PhysicsManager() = default;
@@ -62,8 +62,8 @@ public:
 
 	// Core physics update (original signature - now called internally)
 	void UpdatePhysics(float deltaTime,
-					   EntityManager& entityManager,
-					   InputManager& inputManager);
+		EntityManager& entityManager,
+		InputManager& inputManager);
 
 	// Enable physics on an entity and initialize its state.
 	void EnablePhysics(int entityID, float mass = 1.0f);

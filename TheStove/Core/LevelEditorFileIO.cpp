@@ -52,7 +52,7 @@ namespace LEFILEIO {
 		// Save the current working directory before opening the dialog
 		char originalCwd[MAX_PATH];
 		GetCurrentDirectoryA(MAX_PATH, originalCwd);
-		
+
 		char filePathBuffer[MAX_PATH] = { 0 };
 
 		OPENFILENAMEA ofn{};
@@ -64,10 +64,10 @@ namespace LEFILEIO {
 		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER | OFN_NOCHANGEDIR; // Add OFN_NOCHANGEDIR flag
 
 		bool result = GetOpenFileNameA(&ofn);
-		
+
 		// Restore the original working directory after the dialog closes
 		SetCurrentDirectoryA(originalCwd);
-		
+
 		if (result) {
 			return std::string(filePathBuffer);
 		}
@@ -113,16 +113,16 @@ namespace LEFILEIO {
 		// IMPORTANT: Don't use dst.generic_string() - it may resolve to absolute path
 		// Instead, manually construct the relative path string from the original destinationDir
 		std::string resultFilename = dst.filename().string();
-		
+
 		// Ensure destinationDir ends with forward slash for consistent concatenation
 		std::string normalizedDir = destinationDir;
 		std::replace(normalizedDir.begin(), normalizedDir.end(), '\\', '/');
 		if (!normalizedDir.empty() && normalizedDir.back() != '/') {
 			normalizedDir += '/';
 		}
-		
+
 		std::string relativePath = normalizedDir + resultFilename;
-		
+
 		std::cout << "[CopyFileIntoProjectUnique] Returning path: " << relativePath << std::endl;
 		return relativePath;
 	}
@@ -201,7 +201,7 @@ namespace LEFILEIO {
 
 			std::string ext = p.path().extension().string();
 			std::transform(ext.begin(), ext.end(), ext.begin(),
-						   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
 			for (const auto& e : extensions) {
 				if (ext == e) {

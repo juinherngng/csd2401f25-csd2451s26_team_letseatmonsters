@@ -11,12 +11,12 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <iostream>
-
 #include "../Core/AudioManager.hpp"
 #include "../Core/FontSystem.hpp"
 
 #include "ResourceManager.hpp"
+
+#include <iostream>
 
 void ResourceManager::SetAudioManager(AudioManager* audioMgr) {
 	audioManager = audioMgr;

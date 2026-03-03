@@ -12,15 +12,15 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <iostream>
-
 #include "InputManager.hpp"
+
+#include <iostream>
 
 #if defined(_DEBUG)
 #include <imgui.h>
 #endif
 
-// Lifetime / Access
+ // Lifetime / Access
 InputManager* InputManager::sActive = nullptr;
 
 InputManager::InputManager() {
@@ -29,7 +29,7 @@ InputManager::InputManager() {
 
 InputManager& InputManager::Get() {
 	static InputManager fallback;
-	return sActive?*sActive:fallback;
+	return sActive ? *sActive : fallback;
 }
 
 // SystemInterface implementation
@@ -82,12 +82,12 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 
 	// If ImGui wants the keyboard, clear key states so gameplay won't react
 	if (!wantCaptureKeyboard) {
-		for (int key:keys) {
+		for (int key : keys) {
 			mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
 		}
 	}
 	else {
-		for (int key:keys) {
+		for (int key : keys) {
 			mCurrentKeyStates[key] = false;
 		}
 	}
@@ -96,7 +96,7 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
 
 	// Always track mouse button states, let individual systems check WantCaptureMouse themselves
-	for (int b:buttons) {
+	for (int b : buttons) {
 		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
 	}
 

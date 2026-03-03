@@ -13,13 +13,13 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <iostream>
-#include <string>
-#include <vector>
-
 #include "AnimationManager.hpp"
 #include "EntityManager.hpp"
 #include "GameObject.hpp"
+
+#include <iostream>
+#include <string>
+#include <vector>
 
 // ===== SystemInterface Implementation =====
 
@@ -103,10 +103,10 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 	Animator2D& anim = animators_[objectID];
 
 	// Player sprite sheets: 8 columns x 15 rows
-	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(14, 0, 7, 15, 8);		
-	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(13, 0, 7, 15, 8);			
-	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(12, 0, 7, 15, 8);		
-	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(11, 0, 7, 15, 8);	
+	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(14, 0, 7, 15, 8);
+	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(13, 0, 7, 15, 8);
+	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(12, 0, 7, 15, 8);
+	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(11, 0, 7, 15, 8);
 
 	std::vector<glm::vec4> backWalkFrames = CreateFrameSequenceRow(10, 0, 7, 15, 8);
 	std::vector<glm::vec4> frontWalkFrames = CreateFrameSequenceRow(9, 0, 7, 15, 8);
@@ -185,55 +185,56 @@ std::vector<glm::vec4> AnimationManager::CreateFullGridSequence(int totalRows, i
 // topFirst: true = start at the top row of the image; false = bottom row first.
 // leftToRight: true = increase column index left→right; false = right→left.
 static std::vector<glm::vec4> CreateFullGridSequenceDir(int totalRows, int totalCols, bool topFirst, bool leftToRight) {
-    std::vector<glm::vec4> frames;
-    frames.reserve(static_cast<size_t>(totalRows * totalCols));
+	std::vector<glm::vec4> frames;
+	frames.reserve(static_cast<size_t>(totalRows * totalCols));
 
-    const float frameWidth = 1.0f / static_cast<float>(totalCols);
-    const float frameHeight = 1.0f / static_cast<float>(totalRows);
+	const float frameWidth = 1.0f / static_cast<float>(totalCols);
+	const float frameHeight = 1.0f / static_cast<float>(totalRows);
 
-    // Map a logical row index to UV v based on desired direction.
-    auto rowToV = [&](int logicalRow) -> float {
-        // OpenGL v=0 at bottom; image top row should map to v = (totalRows-1) * frameHeight
-        int actualRow = topFirst ? (totalRows - 1 - logicalRow) : logicalRow;
-        return actualRow * frameHeight;
-    };
+	// Map a logical row index to UV v based on desired direction.
+	auto rowToV = [&](int logicalRow) -> float {
+		// OpenGL v=0 at bottom; image top row should map to v = (totalRows-1) * frameHeight
+		int actualRow = topFirst ? (totalRows - 1 - logicalRow) : logicalRow;
+		return actualRow * frameHeight;
+		};
 
-    for (int r = 0; r < totalRows; ++r) {
-        const float v = rowToV(r);
+	for (int r = 0; r < totalRows; ++r) {
+		const float v = rowToV(r);
 
-        if (leftToRight) {
-            for (int c = 0; c < totalCols; ++c) {
-                const float u = c * frameWidth;
-                frames.push_back(glm::vec4(u, v, frameWidth, frameHeight));
-            }
-        } else {
-            for (int c = totalCols - 1; c >= 0; --c) {
-                const float u = static_cast<float>(c) * frameWidth;
-                frames.push_back(glm::vec4(u, v, frameWidth, frameHeight));
-            }
-        }
-    }
+		if (leftToRight) {
+			for (int c = 0; c < totalCols; ++c) {
+				const float u = c * frameWidth;
+				frames.push_back(glm::vec4(u, v, frameWidth, frameHeight));
+			}
+		}
+		else {
+			for (int c = totalCols - 1; c >= 0; --c) {
+				const float u = static_cast<float>(c) * frameWidth;
+				frames.push_back(glm::vec4(u, v, frameWidth, frameHeight));
+			}
+		}
+	}
 
-    return frames;
+	return frames;
 }
 
 void AnimationManager::AttachMenuAnimations(int objectID) {
-    Animator2D& anim = animators_[objectID];
+	Animator2D& anim = animators_[objectID];
 
-    const int totalRows = 5;
-    const int totalCols = 6;
+	const int totalRows = 5;
+	const int totalCols = 6;
 
-    // Top row first, left-to-right across each row
-    std::vector<glm::vec4> fullFrames = CreateFullGridSequenceDir(totalRows, totalCols, /*topFirst=*/true, /*leftToRight=*/true);
+	// Top row first, left-to-right across each row
+	std::vector<glm::vec4> fullFrames = CreateFullGridSequenceDir(totalRows, totalCols, /*topFirst=*/true, /*leftToRight=*/true);
 
-    animationSets_[objectID]["FULL"] = AnimationSet{ fullFrames, 0.04f, true };
+	animationSets_[objectID]["FULL"] = AnimationSet{ fullFrames, 0.04f, true };
 
-    const auto& clip = animationSets_[objectID]["FULL"];
-    anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
-    currentAnimations_[objectID] = "FULL";
-    anim.Play();
+	const auto& clip = animationSets_[objectID]["FULL"];
+	anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
+	currentAnimations_[objectID] = "FULL";
+	anim.Play();
 
-    std::cout << "[AnimationManager] Attached 6x5 full-sheet menu animation to object " << objectID << std::endl;
+	std::cout << "[AnimationManager] Attached 6x5 full-sheet menu animation to object " << objectID << std::endl;
 }
 
 // ===== Animation Control =====

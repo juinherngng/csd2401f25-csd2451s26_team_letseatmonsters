@@ -10,22 +10,22 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <iostream>
-
 #include "Mesh.hpp"
+
+#include <iostream>
 
 // Constructs a mesh by uploading vertex data and configuring a VAO
 Mesh::Mesh(const float* vertices, GLsizei vertexCount, GLsizei vertexSize, VertexLayout layout)
 	: vao(), vbo(vertices, vertexCount* vertexSize), vertexCount(static_cast<GLsizei>(vertexCount)) {
 
 	switch (layout) {
-		case POSITION_COLOR:
+	case POSITION_COLOR:
 		// Original triangle setup: pos(3) + color(3)
 		vao.AddBuffer(vbo, 0, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)0);                        // position
 		vao.AddBuffer(vbo, 1, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)(3 * sizeof(float)));     // color
 		break;
 
-		case POSITION_TEXTURE:
+	case POSITION_TEXTURE:
 		// Textured sprite setup: pos(3) + texcoord(2)
 		vao.AddBuffer(vbo, 0, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)0);                        // position
 		vao.AddBuffer(vbo, 1, 2, GL_FLOAT, GL_FALSE, vertexSize, (void*)(3 * sizeof(float)));     // texture coords

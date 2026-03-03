@@ -13,16 +13,17 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include "../Core/FontSystem.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
+
+#include "GraphicsEngine.hpp"
+#include "MeshLoader.hpp"
+
 #include <filesystem>
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
-
-#include "../Core/FontSystem.hpp"
-#include "../Core/LevelEditorPanelFonts.hpp"
-#include "GraphicsEngine.hpp"
-#include "MeshLoader.hpp"
 
 // File-scoped state
 static bool _imguiInitialized = false;
@@ -263,7 +264,7 @@ void GraphicsEngine::Resize(int width, int height) {
 	if (backgroundObject) {
 		backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
 		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
-											 static_cast<float>(kRefH), 1.0f));
+			static_cast<float>(kRefH), 1.0f));
 	}
 }
 
@@ -276,48 +277,48 @@ void GraphicsEngine::ApplyViewport() const {
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
-							   ResolveShaderPath("../shaders/shader.vert"),
-							   ResolveShaderPath("../shaders/shader.frag"));
+		ResolveShaderPath("../shaders/shader.vert"),
+		ResolveShaderPath("../shaders/shader.frag"));
 
 	// Load texture shader
 	resourceManager.LoadShader("texture",
-							   ResolveShaderPath("../shaders/texture.vert"),
-							   ResolveShaderPath("../shaders/texture.frag"));
+		ResolveShaderPath("../shaders/texture.vert"),
+		ResolveShaderPath("../shaders/texture.frag"));
 
 	// Load sprite shader
 	resourceManager.LoadShader("sprite",
-							   ResolveShaderPath("../shaders/sprite.vert"),
-							   ResolveShaderPath("../shaders/sprite.frag"));
+		ResolveShaderPath("../shaders/sprite.vert"),
+		ResolveShaderPath("../shaders/sprite.frag"));
 
 	// Load static sprite shader
 	resourceManager.LoadShader("staticsprite",
-							   ResolveShaderPath("../shaders/staticsprite.vert"),
-							   ResolveShaderPath("../shaders/staticsprite.frag"));
+		ResolveShaderPath("../shaders/staticsprite.vert"),
+		ResolveShaderPath("../shaders/staticsprite.frag"));
 
 	// Load animated sprite shader
 	resourceManager.LoadShader("animatedsprite",
-							   ResolveShaderPath("../shaders/animatedsprite.vert"),
-							   ResolveShaderPath("../shaders/animatedsprite.frag"));
+		ResolveShaderPath("../shaders/animatedsprite.vert"),
+		ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load instanced static sprite shader
 	resourceManager.LoadShader("staticsprite_instanced",
-							   ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
-							   ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
+		ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
+		ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
 
 	// Load instanced animated sprite shader
 	resourceManager.LoadShader("animatedsprite_instanced",
-							   ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
-							   ResolveShaderPath("../shaders/animatedsprite.frag"));
+		ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
+		ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Shadow blob shader (no texture required)
 	resourceManager.LoadShader("shadow",
-							   ResolveShaderPath("../shaders/shadow.vert"),
-							   ResolveShaderPath("../shaders/shadow.frag"));
+		ResolveShaderPath("../shaders/shadow.vert"),
+		ResolveShaderPath("../shaders/shadow.frag"));
 
 	// Solid color fullscreen overlay shader for transitions
 	resourceManager.LoadShader("screenfade",
-							   ResolveShaderPath("../shaders/screenfade.vert"),
-							   ResolveShaderPath("../shaders/screenfade.frag"));
+		ResolveShaderPath("../shaders/screenfade.vert"),
+		ResolveShaderPath("../shaders/screenfade.frag"));
 
 	// Load triangle mesh
 	std::vector<float> vertices;
@@ -415,7 +416,7 @@ void GraphicsEngine::DrawSceneDockWindow() {
 	}
 
 	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
-							   ImGuiCond_FirstUseEver);
+		ImGuiCond_FirstUseEver);
 
 	if (ImGui::Begin("Scene###SceneWindow")) {
 		ImVec2 avail = ImGui::GetContentRegionAvail();
@@ -432,7 +433,7 @@ void GraphicsEngine::DrawSceneDockWindow() {
 		// Center the image in the window
 		ImVec2 cursor = ImGui::GetCursorPos();
 		ImGui::SetCursorPos(ImVec2(cursor.x + (avail.x - w) * 0.5f,
-								   cursor.y + (avail.y - h) * 0.5f));
+			cursor.y + (avail.y - h) * 0.5f));
 
 		// Absolute rect for picking
 		sceneImagePos_ = ImGui::GetCursorScreenPos();
@@ -622,7 +623,7 @@ void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 	// In release we render directly to the GLFW window. Keep it simple:
 	outPos = ImVec2(0.0f, 0.0f);
 	outSize = ImVec2(static_cast<float>(viewportW_),
-					 static_cast<float>(viewportH_));
+		static_cast<float>(viewportH_));
 #endif
 }
 
@@ -651,7 +652,7 @@ ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
 			}
 
 			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f,
-							c.Min.y + (availH - h) * 0.5f);
+				c.Min.y + (availH - h) * 0.5f);
 			imgSize = ImVec2(w, h);
 		}
 	}
@@ -865,7 +866,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 
 		return result;
-	};
+		};
 
 #ifdef _DEBUG
 	// Get text objects and sort by layer for interleaved rendering
@@ -879,25 +880,25 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
 		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
 			int la = parseLayerNumber(a->layer);
-		    int lb = parseLayerNumber(b->layer);
-			
+			int lb = parseLayerNumber(b->layer);
+
 			// Lower layer number = rendered first (behind)
 			// Higher layer number = rendered later (on top)
 			if (la != lb) {
 				return la < lb;
 			}
-			
+
 			// Same layer: use depth first, then Y position for sorting
 			if (a->depth != b->depth) {
 				return a->depth < b->depth;
 			}
-			
+
 			return a->y < b->y;
 		});
 
 	size_t textIndex = 0; // Track which text objects have been rendered
 	int lastProcessedLayer = 0; // Track the last layer we finished processing
-	
+
 	// Lambda to render text objects up to and including a certain layer
 	auto renderTextUpToLayer = [&](int maxLayerNumber) {
 		while (textIndex < sortedTextObjects.size()) {
@@ -905,11 +906,12 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			if (textLayer <= maxLayerNumber) {
 				RenderSingleTextObject(*sortedTextObjects[textIndex]);
 				++textIndex;
-			} else {
+			}
+			else {
 				break; // Text belongs to a higher layer, stop
 			}
 		}
-	};
+		};
 #endif
 
 	// Early out if no objects (but still render text)
@@ -988,7 +990,8 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		Shader* preferredInstanced = nullptr;
 		if (key.shader == resourceManager.GetShader("staticsprite")) {
 			preferredInstanced = staticsInstShader;
-		} else if (key.shader == animShader) {
+		}
+		else if (key.shader == animShader) {
 			preferredInstanced = animatedInstShader;
 		}
 
@@ -1000,12 +1003,15 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			preferredInstanced->Use();
 			preferredInstanced->SetViewMatrix(view);
 			preferredInstanced->SetProjectionMatrix(projection);
-			if (key.texture) { key.texture->Bind(0); preferredInstanced->SetTexture("u_Texture", 0); }
+			if (key.texture) {
+				key.texture->Bind(0); preferredInstanced->SetTexture("u_Texture", 0);
+			}
 			key.mesh->DrawInstanced(key.texture, static_cast<GLsizei>(batch.size()));
 			renderStats.drawCalls++;
 			renderStats.totalBatches++;
 			renderStats.instancedObjects += static_cast<int>(batch.size());
-		} else {
+		}
+		else {
 			// existing non-instanced fallback, but keep tint+blending enabled
 			key.shader->Use();
 			key.shader->SetViewMatrix(view);
@@ -1043,7 +1049,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 			renderStats.totalBatches++;
 		}
-	};
+		};
 
 	// Build runs in order, interleaving text objects at layer boundaries
 	for (size_t objIdx = 0; objIdx < objects.size(); ++objIdx) {
@@ -1064,7 +1070,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 				flushBatch(instanceBatch, currentKey);
 				instanceBatch.clear();
 			}
-			
+
 			// Render text objects up to and including the previous layer
 			renderTextUpToLayer(objLayer - 1);
 			lastProcessedLayer = objLayer;
@@ -1078,7 +1084,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			flushBatch(instanceBatch, currentKey);
 			instanceBatch.clear();
 		}
-		
+
 		currentKey = key;
 
 		Mesh::InstanceData inst;
@@ -1185,8 +1191,8 @@ void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& 
 	textRenderer.SetScale(data.scale);
 	textRenderer.SetRotation(data.rotation);
 	textRenderer.SetRotationMode(data.useBlockRotation ?
-								 FontSystem::Text::RotationMode::Block :
-								 FontSystem::Text::RotationMode::PerCharacter);
+		FontSystem::Text::RotationMode::Block :
+		FontSystem::Text::RotationMode::PerCharacter);
 	textRenderer.SetColor(glm::vec4(data.colorR, data.colorG, data.colorB, data.colorA));
 
 	// Render using TextRenderer singleton
@@ -1195,14 +1201,16 @@ void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& 
 	// Restore GL state for subsequent sprite rendering
 	if (depthWasEnabled) {
 		glEnable(GL_DEPTH_TEST);
-	} else {
+	}
+	else {
 		glDisable(GL_DEPTH_TEST);
 	}
-	
+
 	if (blendWasEnabled) {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	} else {
+	}
+	else {
 		glDisable(GL_BLEND);
 	}
 }
@@ -1234,7 +1242,7 @@ void GraphicsEngine::RenderTextObjects() {
 		}
 
 		return result;
-	};
+		};
 
 	// Sort text objects by layer (lower layer numbers render first/behind)
 	std::vector<const LEPANELFONTS::TextObjectData*> sortedTextObjects;
@@ -1247,12 +1255,12 @@ void GraphicsEngine::RenderTextObjects() {
 		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
 			int la = parseLayerNumber(a->layer);
 			int lb = parseLayerNumber(b->layer);
-			
+
 			// Higher layer number = rendered on top (later in draw order)
 			if (la != lb) {
 				return la < lb;
 			}
-			
+
 			// Same layer: use Y position for depth sorting
 			return a->y < b->y;
 		});
@@ -1367,33 +1375,35 @@ void GraphicsEngine::ContinueTransitionFadeIn() {
 
 void GraphicsEngine::UpdateTransition(float dt) {
 	switch (transitionPhase_) {
-		case TransitionPhase::None:
-			transitionAlpha_ = 0.0f;
-			break;
-		case TransitionPhase::FadeOut: {
-			transitionTimer_ += dt;
-			float t = (fadeOutTime_ > 0.0f) ? (transitionTimer_ / fadeOutTime_) : 1.0f;
-			if (t >= 1.0f) {
-				t = 1.0f;
-				transitionPhase_ = TransitionPhase::Hold; // wait for external scene switch
-				transitionTimer_ = 0.0f;
-			}
-			transitionAlpha_ = t; // 0 -> 1
-			break;
+	case TransitionPhase::None:
+		transitionAlpha_ = 0.0f;
+		break;
+	case TransitionPhase::FadeOut:
+	{
+		transitionTimer_ += dt;
+		float t = (fadeOutTime_ > 0.0f) ? (transitionTimer_ / fadeOutTime_) : 1.0f;
+		if (t >= 1.0f) {
+			t = 1.0f;
+			transitionPhase_ = TransitionPhase::Hold; // wait for external scene switch
+			transitionTimer_ = 0.0f;
 		}
-		case TransitionPhase::Hold:
-			transitionAlpha_ = 1.0f;
-			break;
-		case TransitionPhase::FadeIn: {
-			transitionTimer_ += dt;
-			float t = (fadeInTime_ > 0.0f) ? (transitionTimer_ / fadeInTime_) : 1.0f;
-			if (t >= 1.0f) {
-				t = 1.0f;
-				transitionPhase_ = TransitionPhase::None;
-			}
-			transitionAlpha_ = 1.0f - t; // 1 -> 0
-			break;
+		transitionAlpha_ = t; // 0 -> 1
+		break;
+	}
+	case TransitionPhase::Hold:
+		transitionAlpha_ = 1.0f;
+		break;
+	case TransitionPhase::FadeIn:
+	{
+		transitionTimer_ += dt;
+		float t = (fadeInTime_ > 0.0f) ? (transitionTimer_ / fadeInTime_) : 1.0f;
+		if (t >= 1.0f) {
+			t = 1.0f;
+			transitionPhase_ = TransitionPhase::None;
 		}
+		transitionAlpha_ = 1.0f - t; // 1 -> 0
+		break;
+	}
 	}
 }
 

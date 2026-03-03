@@ -11,14 +11,14 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "ConfigManager.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <windows.h>
-
-#include "ConfigManager.hpp"
 
 namespace fs = std::filesystem;
 
@@ -114,7 +114,7 @@ namespace ConfigManager {
 		if (s.bgmVolume > 1.0f) {
 			s.bgmVolume = 1.0f;
 		}
-		
+
 		// Clamp VFX volume
 		if (s.vfxVolume < 0.0f) {
 			s.vfxVolume = 0.0f;
@@ -230,7 +230,7 @@ namespace ConfigManager {
 	}
 
 	bool LoadFromAssets(Settings& out, const char* filename) {
-		const char* fname = filename?filename:"config.txt";
+		const char* fname = filename ? filename : "config.txt";
 
 		char exePath[MAX_PATH]{};
 		if (!GetModuleFileNameA(nullptr, exePath, MAX_PATH)) {

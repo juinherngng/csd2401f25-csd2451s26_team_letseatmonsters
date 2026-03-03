@@ -105,7 +105,7 @@ public:
 	void SetAudioManager(AudioManager* audioMgr) {
 		audioManager_ = audioMgr;
 	}
-	
+
 	// Get AudioManager (for audio bindings playback)
 	AudioManager* GetAudioManager() const {
 		return audioManager_;
@@ -332,7 +332,7 @@ public:
 
 	// Layer enable/disable helpers
 	bool IsLayerEnabled(const std::string& layerName) const;
-	bool IsObjectLayerEnabled(int objectID) const;	
+	bool IsObjectLayerEnabled(int objectID) const;
 
 	// World / collision rebuilds
 	void BuildLevelColliders();
@@ -390,38 +390,40 @@ public:
 	// FPS display rendering
 	void RenderFPSText();
 
-	void RequestDespawn(int id) { pendingDespawns_.push_back(id); }
+	void RequestDespawn(int id) {
+		pendingDespawns_.push_back(id);
+	}
 
 	// Cutscene API
 	// Starts a cutscene consisting of image paths played in sequence.
 	// When finished, queues level load to 'levelJsonPath' and sets simulation according to 'activateSimulation'.
 	void StartCutscene(const std::vector<std::string>& imagePaths,
-	                   float holdSecondsPerImage,
-	                   float fadeSeconds,
-	                   const std::string& levelJsonPath,
-	                   bool activateSimulation);
-	
+		float holdSecondsPerImage,
+		float fadeSeconds,
+		const std::string& levelJsonPath,
+		bool activateSimulation);
+
 	void StartCutsceneTransitioned(const std::vector<std::string>& imagePaths,
-	                               const std::string& levelJsonPath,
-	                               bool activateSimulation,
-	                               float fadeOutSeconds = 0.35f,
-	                               float fadeInSeconds = 0.35f,
-	                               float holdSeconds = 1.5f,
-	                               int crossfadeFromIndex = -1,           // -1 = disabled; otherwise crossfade when transitioning to this target index
-	                               float crossfadeSeconds = 0.75f);
+		const std::string& levelJsonPath,
+		bool activateSimulation,
+		float fadeOutSeconds = 0.35f,
+		float fadeInSeconds = 0.35f,
+		float holdSeconds = 1.5f,
+		int crossfadeFromIndex = -1,           // -1 = disabled; otherwise crossfade when transitioning to this target index
+		float crossfadeSeconds = 0.75f);
 
 	// Starts a cutscene with per-frame images. 'boundaryFlags' marks indices where a chapter boundary occurs.
 	// At boundaries, the engine performs fade-out/in (or crossfade when 'crossfadeFromIndex' matches).
 	// Between frames without a boundary, it swaps instantly with no transition (for smooth animation).
 	void StartCutsceneTransitionedBounded(const std::vector<std::string>& imagePaths,
-										  const std::vector<bool>& boundaryFlags,
-										  const std::string& levelJsonPath,
-										  bool activateSimulation,
-										  float fadeOutSeconds = 0.35f,
-										  float fadeInSeconds = 0.35f,
-										  float holdSeconds = 1.0f / 12.0f, // default 12 FPS
-										  int crossfadeFromIndex = -1,
-										  float crossfadeSeconds = 0.75f);
+		const std::vector<bool>& boundaryFlags,
+		const std::string& levelJsonPath,
+		bool activateSimulation,
+		float fadeOutSeconds = 0.35f,
+		float fadeInSeconds = 0.35f,
+		float holdSeconds = 1.0f / 12.0f, // default 12 FPS
+		int crossfadeFromIndex = -1,
+		float crossfadeSeconds = 0.75f);
 
 	// Order UI slide-in API
 	// Spawns an Order UI sprite off-screen at the top, then animates it sliding down to target.
@@ -434,8 +436,8 @@ public:
 
 	// Check if any cutscene is active
 	bool IsAnyCutsceneActive() const {
-        return cutscene_.active || cutTrans_.active;
-    }
+		return cutscene_.active || cutTrans_.active;
+	}
 
 private:
 	// Engine/input
@@ -543,7 +545,9 @@ private:
 		float t = 0.0f;          // time accumulator within current phase
 
 		// phase control
-		enum class Phase { FadeIn, Hold, FadeOut } phase = Phase::FadeIn;
+		enum class Phase {
+			FadeIn, Hold, FadeOut
+		} phase = Phase::FadeIn;
 
 		// objects
 		int spriteA = -1;        // current image object
@@ -617,12 +621,12 @@ private:
 		return 1.0f - inv * inv * inv;
 	}
 
-	public:
-		// Fade-out -> load JSON at blackout -> fade-in
-		void StartLevelTransition(const std::string& levelJsonPath,
-			bool activateSimulation,
-			float fadeOutSeconds = 0.35f,
-			float fadeInSeconds = 0.35f);
+public:
+	// Fade-out -> load JSON at blackout -> fade-in
+	void StartLevelTransition(const std::string& levelJsonPath,
+		bool activateSimulation,
+		float fadeOutSeconds = 0.35f,
+		float fadeInSeconds = 0.35f);
 
 private:
 	struct LevelTrans {

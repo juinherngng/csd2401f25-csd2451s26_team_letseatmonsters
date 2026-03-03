@@ -54,7 +54,7 @@ static constexpr float kEndVX0_T = (1080.0f * kScaleX) / kTile;
 static constexpr float kEndVX1_T = (1200.0f * kScaleX) / kTile;
 static constexpr float kEndVTopMinY_T = 100.0f / kTile;
 static constexpr float kEndVTopMaxY_T = 320.0f / kTile;
-static constexpr float kEndVGapMinY_T = 320.0f / kTile; 
+static constexpr float kEndVGapMinY_T = 320.0f / kTile;
 static constexpr float kEndVGapMaxY_T = 570.0f / kTile;
 static constexpr float kEndVBotMinY_T = 570.0f / kTile;
 static constexpr float kEndVBotMaxY_T = 825.0f / kTile;
@@ -116,7 +116,7 @@ namespace {
 	// Returns true if AABB "box" overlaps the axis-aligned rectangle [x0,x1]x[y0,y1].
 	bool OverlapsRect(const collision::AABB& box, float x0, float x1, float y0, float y1) {
 		return (box.min.x < x1 && box.max.x > x0 &&
-				box.min.y < y1 && box.max.y > y0);
+			box.min.y < y1 && box.max.y > y0);
 	}
 
 	// Snap a dynamic object horizontally out of the vertical wood segment it overlaps (minimal move).
@@ -442,8 +442,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 		// NEW: respect "movable by physics" flag on the other object (tables, walls, etc.)
 		const bool otherMovable = other->IsMovableByPhysics();
 
-		if (!otherMovable)
-		{
+		if (!otherMovable) {
 			// For immovable objects (e.g. tables), only move the player out of overlap.
 
 			// Make the player's correction world-safe (don't push them through walls).

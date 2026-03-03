@@ -13,13 +13,13 @@
 
 #pragma once
 
+#include "ResourceManager.hpp"
+#include "Shader.hpp"
+
 #include <cmath>
 #include <glm/glm.hpp>
 #include <map>
 #include <vector>
-
-#include "ResourceManager.hpp"
-#include "Shader.hpp"
 
  /**
   * @class DebugRenderer

@@ -12,17 +12,17 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <iostream>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include "../Graphics/SceneManager.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/ResourceManager.hpp"
-#include "../Core/LevelEditorPanelFonts.hpp"
+#include "../Graphics/SceneManager.hpp"
 
 #include "LevelSerializer.hpp"
 #include "RuntimeLevel.hpp"
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 
 namespace RuntimeLevel {
 	void BuildSceneFromLevel(const LevelData& levelIn, Scene& scene) {
@@ -59,7 +59,8 @@ namespace RuntimeLevel {
 					scene.AttachDinoAnimations(g->GetID());
 					scene.SetAnimation(g->GetID(), obj.animName.empty() ? "IDLE" : obj.animName);
 				}
-			} else {
+			}
+			else {
 				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
 				if (!g) {
 					std::cerr << "[RuntimeLevel] Spawn failed: " << obj.texture << std::endl;
@@ -81,7 +82,8 @@ namespace RuntimeLevel {
 					g->SetColliderSize({ s.x, s.y });
 					g->SetColliderOffset({ 0.f, 0.f });
 				}
-			} else {
+			}
+			else {
 				// Explicitly clear collider when disabled
 				g->SetColliderSize({ 0.f, 0.f });
 				g->SetColliderOffset({ 0.f, 0.f });
@@ -193,7 +195,7 @@ namespace RuntimeLevel {
 			d.layer = t.layer;
 
 			parsedTexts.push_back(std::move(d));
-	}
+		}
 
 		LEPANELFONTS::SetTextObjectsWithScene(parsedTexts, scene);
 

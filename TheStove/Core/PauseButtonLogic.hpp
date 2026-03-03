@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include <string>
 #include "GameObjectLogic.hpp"
+#include <string>
 
 enum class PauseAction {
 	Resume,

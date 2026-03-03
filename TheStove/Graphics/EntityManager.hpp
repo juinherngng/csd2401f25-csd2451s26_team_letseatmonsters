@@ -13,15 +13,15 @@
 
 #pragma once
 
+#include "GameObject.hpp"
+#include "ResourceManager.hpp"
+
+#include <functional>
 #include <glm/glm.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <functional>
-
-#include "GameObject.hpp"
-#include "ResourceManager.hpp" 
 
 class EntityManager {
 public:
@@ -45,8 +45,8 @@ public:
 	 * @return Pointer to the spawned GameObject.
 	 */
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
-								  const glm::vec3& pos,
-								  const glm::vec2& size);
+		const glm::vec3& pos,
+		const glm::vec2& size);
 
 	/**
 	 * @brief Spawn an animated sprite object.
@@ -59,11 +59,11 @@ public:
 	 * @return Pointer to the spawned GameObject.
 	 */
 	GameObject* SpawnAnimatedSprite(const std::string& texturePath,
-									const glm::vec3& pos,
-									const glm::vec2& size,
-									const std::vector<glm::vec4>& frames,
-									float frameDuration,
-									bool loop);
+		const glm::vec3& pos,
+		const glm::vec2& size,
+		const std::vector<glm::vec4>& frames,
+		float frameDuration,
+		bool loop);
 
 	/** @brief Lookup a GameObject by its unique ID. */
 	GameObject* GetByID(int id);

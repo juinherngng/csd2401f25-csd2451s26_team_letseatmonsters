@@ -13,17 +13,16 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "LevelEditorPanelConfig.hpp"
-
-#include <filesystem>
-#include <string>
+#include "../Graphics/GraphicsEngine.hpp"
 
 #include "AudioManager.hpp"
 #include "ConfigManager.hpp"
 #include "Core.hpp"
 #include "LevelEditor.hpp"
+#include "LevelEditorPanelConfig.hpp"
 
-#include "../Graphics/GraphicsEngine.hpp"
+#include <filesystem>
+#include <string>
 
 #ifdef _DEBUG
 #include <imgui.h>

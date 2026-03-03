@@ -13,12 +13,12 @@
 */
 #pragma once
 
+#include "GameObjectLogic.hpp"
+
 #include <memory>
 #include <unordered_map>
 #include <utility>
 #include <vector>
-
-#include "GameObjectLogic.hpp"
 
 class Scene;
 class InputManager;

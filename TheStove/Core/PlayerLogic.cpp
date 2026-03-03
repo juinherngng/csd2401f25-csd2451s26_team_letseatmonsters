@@ -26,7 +26,6 @@
 
 #include <algorithm>
 #include <iostream>
-#include <iostream>
 #include <limits>
 
 void PlayerLogic::Start(Scene& scene) {

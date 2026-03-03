@@ -26,7 +26,7 @@ class LevelEditor;
 namespace LEPICKDRAG {
 	// Handle scene picking and dragging inside the Scene viewport.
 	void HandleScenePickDrag(LevelEditor& editor,
-							 Scene& scene,
-							 int& selectedIndex,
-							 int& selectedObjectId);
+		Scene& scene,
+		int& selectedIndex,
+		int& selectedObjectId);
 }

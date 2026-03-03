@@ -10,10 +10,10 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "Collision.hpp"
+
 #include <algorithm>
 #include <cmath>
-
-#include "Collision.hpp"
 
 namespace collision {
 	static constexpr float kEPS = 1e-4f;
@@ -53,8 +53,8 @@ namespace collision {
 		}
 
 		// Smallest correction wins
-		float penX = std::abs(left) < std::abs(right)?left:right;
-		float penY = std::abs(top) < std::abs(bottom)?top:bottom;
+		float penX = std::abs(left) < std::abs(right) ? left : right;
+		float penY = std::abs(top) < std::abs(bottom) ? top : bottom;
 
 		if (std::abs(penX) < std::abs(penY)) {
 			mtvOut = Math::Vector2D(penX, 0.f);
@@ -85,7 +85,7 @@ namespace collision {
 		const float hx = scale.x * 0.5f;
 		const float hy = scale.y * 0.5f;
 		return (point.x >= center.x - hx && point.x <= center.x + hx &&
-				point.y >= center.y - hy && point.y <= center.y + hy);
+			point.y >= center.y - hy && point.y <= center.y + hy);
 	}
 
 	// World methods

@@ -9,19 +9,19 @@
 					updating frame UVs based on Animator2D components. Supports play/pause control
 					and registering animation sets for different entity types.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
 
+#include "../Core/System.hpp"  // For SystemInterface
+#include "Animator.hpp"		   // This includes Animator2D
+
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "../Core/System.hpp"  // For SystemInterface
-#include "Animator.hpp"		   // This includes Animator2D
 
 class EntityManager;  // Forward declaration
 

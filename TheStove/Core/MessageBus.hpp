@@ -12,13 +12,13 @@
 
 #pragma once
 
+#include "Message.hpp"
+
 #include <deque>
 #include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
-
-#include "Message.hpp"
 
 namespace CoreFramework {
 	// Subscriber callback type: takes a const Message reference
@@ -163,7 +163,7 @@ namespace CoreFramework {
 		/************************************************************************/
 		size_t GetSubscriberCount(MessageType messageType) const {
 			auto it = subscribers.find(messageType);
-			return (it != subscribers.end())?it->second.size():0;
+			return (it != subscribers.end()) ? it->second.size() : 0;
 		}
 
 	private:

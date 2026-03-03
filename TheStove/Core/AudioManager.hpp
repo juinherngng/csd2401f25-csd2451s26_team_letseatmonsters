@@ -12,6 +12,10 @@
 
 #pragma once
 
+#include "ConfigManager.hpp"
+#include "MessageBus.hpp"
+#include "System.hpp"
+
 #include <fmod.hpp>
 #include <fmod_errors.h>
 #include <iostream>
@@ -19,10 +23,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "ConfigManager.hpp"
-#include "MessageBus.hpp"
-#include "System.hpp"
 
 class AudioManager : public CoreFramework::SystemInterface {
 public:
@@ -196,89 +196,89 @@ public:
 
 	// Volume & Mute Control
 
-    /************************************************************************/
-    /*!
-    \brief
-    Sets the master volume.
-    \param volume
-    The new master volume (0.0 to 1.0).
-    */
-    /************************************************************************/
-    void SetMasterVolume(float volume);
-    /************************************************************************/
-    /*!
-    \brief
-    Sets the bgm volume.
-    \param volume
-    The new bgm volume (0.0 to 1.0).
-    */
-    /************************************************************************/
-    void SetBgmVolume(float volume);
-    /************************************************************************/
-    /*!
-    \brief
-    Sets the vfx volume.
-    \param volume
-    The new vfx volume (0.0 to 1.0).
-    */
-    /************************************************************************/
+	/************************************************************************/
+	/*!
+	\brief
+	Sets the master volume.
+	\param volume
+	The new master volume (0.0 to 1.0).
+	*/
+	/************************************************************************/
+	void SetMasterVolume(float volume);
+	/************************************************************************/
+	/*!
+	\brief
+	Sets the bgm volume.
+	\param volume
+	The new bgm volume (0.0 to 1.0).
+	*/
+	/************************************************************************/
+	void SetBgmVolume(float volume);
+	/************************************************************************/
+	/*!
+	\brief
+	Sets the vfx volume.
+	\param volume
+	The new vfx volume (0.0 to 1.0).
+	*/
+	/************************************************************************/
 	void SetVfxVolume(float volume);
-    /************************************************************************/
-    /*!
-    \brief
-    Gets the current master volume.
-    \return
-    The master volume (0.0 to 1.0).
-    */
-    /************************************************************************/
-    float GetMasterVolume() const;
-    /************************************************************************/
-    /*!
-    \brief
-    Gets the current bgm volume.
-    \return
-    The bgm volume (0.0 to 1.0).
-    */
-    /************************************************************************/
-    float GetBgmVolume() const;
-    /************************************************************************/
-    /*!
-    \brief
-    Gets the current vfx volume.
-    \return
-    The vfx volume (0.0 to 1.0).
-    */
-    /************************************************************************/
-    float GetVfxVolume() const;
-    /************************************************************************/
-    /*!
-    \brief
-    Sets the volume for a specific playing sound channel.
-    \param name
-    The name of the sound channel.
-    \param volume
-    The new volume (0.0 to 1.0).
-    */
-    /************************************************************************/
-    void SetVolume(std::string const& name, float volume);
-    /************************************************************************/
-    /*!
-    \brief
-    Mutes or unmutes all audio.
-    \param shouldMute
-    True to mute, false to unmute.
-    */
-    /************************************************************************/
-    void Mute(bool shouldMute);
-    /************************************************************************/
-    /*!
-    \brief
-    Checks if the audio is currently muted.
-    \return
-    True if muted, false otherwise.
-    */
-    /************************************************************************/
-    bool IsMuted() const;
+	/************************************************************************/
+	/*!
+	\brief
+	Gets the current master volume.
+	\return
+	The master volume (0.0 to 1.0).
+	*/
+	/************************************************************************/
+	float GetMasterVolume() const;
+	/************************************************************************/
+	/*!
+	\brief
+	Gets the current bgm volume.
+	\return
+	The bgm volume (0.0 to 1.0).
+	*/
+	/************************************************************************/
+	float GetBgmVolume() const;
+	/************************************************************************/
+	/*!
+	\brief
+	Gets the current vfx volume.
+	\return
+	The vfx volume (0.0 to 1.0).
+	*/
+	/************************************************************************/
+	float GetVfxVolume() const;
+	/************************************************************************/
+	/*!
+	\brief
+	Sets the volume for a specific playing sound channel.
+	\param name
+	The name of the sound channel.
+	\param volume
+	The new volume (0.0 to 1.0).
+	*/
+	/************************************************************************/
+	void SetVolume(std::string const& name, float volume);
+	/************************************************************************/
+	/*!
+	\brief
+	Mutes or unmutes all audio.
+	\param shouldMute
+	True to mute, false to unmute.
+	*/
+	/************************************************************************/
+	void Mute(bool shouldMute);
+	/************************************************************************/
+	/*!
+	\brief
+	Checks if the audio is currently muted.
+	\return
+	True if muted, false otherwise.
+	*/
+	/************************************************************************/
+	bool IsMuted() const;
 
 	// Receive settings from ConfigManager
 
@@ -394,13 +394,13 @@ private:
 	void OnPlayAudio(const CoreFramework::Message& msg);
 	void OnStopAudio(const CoreFramework::Message& msg);
 
-    // FMOD System and resources
-    FMOD::System*                         system;
-    FMOD::ChannelGroup*                   masterGroup;
-    std::map<std::string, FMOD::Sound*>   sounds;
-    std::map<std::string, FMOD::Channel*> channels;
-    float                                 masterVolume, bgmVolume, vfxVolume;
-    bool                                  muted;
+	// FMOD System and resources
+	FMOD::System* system;
+	FMOD::ChannelGroup* masterGroup;
+	std::map<std::string, FMOD::Sound*>   sounds;
+	std::map<std::string, FMOD::Channel*> channels;
+	float                                 masterVolume, bgmVolume, vfxVolume;
+	bool                                  muted;
 
 	struct PendingPlay {
 		std::string name;

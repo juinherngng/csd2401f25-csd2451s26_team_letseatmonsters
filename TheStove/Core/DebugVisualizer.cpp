@@ -13,18 +13,18 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <cmath>
-
 #include "DebugVisualizer.hpp"
+
+#include <cmath>
 
 bool DebugVisualizer::sDrawPathLine = true;
 
 // Frame Debug Pass
 void DebugVisualizer::DrawDebugInfo(EntityManager& entityManager,
-									CollisionManager& collisionManager,
-									MovementManager& movementManager,
-									int playerID,
-									bool showAuxiliary) {
+	CollisionManager& collisionManager,
+	MovementManager& movementManager,
+	int playerID,
+	bool showAuxiliary) {
 	// Guard: global debug toggle
 	if (!DebugRenderer::IsEnabled()) {
 		return;
@@ -64,11 +64,11 @@ void DebugVisualizer::DrawAllColliders(const std::vector<GameObject*>& objects) 
 		const float halfY = colliderSize.y * 0.5f;
 
 		const glm::vec3 minCorner(worldPos.x + colliderOffset.x - halfX,
-								  worldPos.y + colliderOffset.y - halfY,
-								  0.0f);
+			worldPos.y + colliderOffset.y - halfY,
+			0.0f);
 		const glm::vec3 maxCorner(worldPos.x + colliderOffset.x + halfX,
-								  worldPos.y + colliderOffset.y + halfY,
-								  0.0f);
+			worldPos.y + colliderOffset.y + halfY,
+			0.0f);
 
 		// Red rectangle for all colliders
 		DebugRenderer::DrawRect(minCorner, maxCorner, { 1.0f, 0.0f, 0.0f });
@@ -81,8 +81,8 @@ void DebugVisualizer::SetDrawPathLine(bool enable) {
 
 // Player-Focused Overlays
 void DebugVisualizer::DrawPlayerDebug(GameObject* player,
-									  MovementManager& movementManager,
-									  int playerID) {
+	MovementManager& movementManager,
+	int playerID) {
 	const glm::vec3 pos = player->GetPositionGLM();
 
 	// Draw path line from player to current target (only when enabled)
@@ -102,11 +102,11 @@ void DebugVisualizer::DrawPlayerDebug(GameObject* player,
 	if (playerSize.x > 0.0f && playerSize.y > 0.0f) {
 		const glm::vec3 center(pos.x + playerOffset.x, pos.y + playerOffset.y, 0.0f);
 		const glm::vec3 minCorner(center.x - playerSize.x * 0.5f,
-								  center.y - playerSize.y * 0.5f,
-								  0.0f);
+			center.y - playerSize.y * 0.5f,
+			0.0f);
 		const glm::vec3 maxCorner(center.x + playerSize.x * 0.5f,
-								  center.y + playerSize.y * 0.5f,
-								  0.0f);
+			center.y + playerSize.y * 0.5f,
+			0.0f);
 
 		// Yellow corners
 		DebugRenderer::DrawPoint({ minCorner.x, maxCorner.y, 0.0f }, { 1.0f, 1.0f, 0.0f }, 6.0f);
@@ -189,17 +189,17 @@ void DebugVisualizer::DrawCandidates(GameObject* player, CollisionManager& colli
 		const float halfY = colliderSize.y * 0.5f;
 
 		const glm::vec3 minCorner(gp.x + colliderOffset.x - halfX,
-								  gp.y + colliderOffset.y - halfY,
-								  0.0f);
+			gp.y + colliderOffset.y - halfY,
+			0.0f);
 		const glm::vec3 maxCorner(gp.x + colliderOffset.x + halfX,
-								  gp.y + colliderOffset.y + halfY,
-								  0.0f);
+			gp.y + colliderOffset.y + halfY,
+			0.0f);
 
 		// Cyan rectangle for nearby colliders
 		DebugRenderer::DrawRect(minCorner, maxCorner, { 0.0f, 1.0f, 1.0f });
 
 		// Cyan center point
 		DebugRenderer::DrawPoint({ gp.x + colliderOffset.x, gp.y + colliderOffset.y, 0.0f },
-								 { 0.0f, 1.0f, 1.0f }, 5.0f);
+			{ 0.0f, 1.0f, 1.0f }, 5.0f);
 	}
 }

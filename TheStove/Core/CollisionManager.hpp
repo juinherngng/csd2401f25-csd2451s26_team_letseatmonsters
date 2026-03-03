@@ -16,9 +16,6 @@
 
 #pragma once
 
-#include <unordered_map>
-#include <vector>
-
 #include "../Graphics/EntityManager.hpp"
 
 #include "Collision.hpp"
@@ -26,15 +23,19 @@
 #include "SpatialGrid.hpp"
 #include "System.hpp"
 
+#include <unordered_map>
+#include <vector>
+
 class Scene;
 
- /**
-  * @class CollisionManager
-  * @brief Broad-phase grid + world collision owner. Rebuilt every frame from EntityManager,
-  *        supports movement trimming via resolve(), and simple spatial queries.
-  */
+/**
+ * @class CollisionManager
+ * @brief Broad-phase grid + world collision owner. Rebuilt every frame from EntityManager,
+ *        supports movement trimming via resolve(), and simple spatial queries.
+ */
 class CollisionManager : public CoreFramework::SystemInterface {
 public:
+	// Public interface methods
 	explicit CollisionManager(float cellSize = 100.0f);
 
 	// SystemInterface implementation
@@ -53,8 +54,8 @@ public:
 
 	// Build static world geometry from authoring structs.
 	void BuildWalls(const collision::WalkArea& walkArea,
-					const collision::WoodVertical& wood,
-					const collision::StageEndGateVertical& endGate);
+		const collision::WoodVertical& wood,
+		const collision::StageEndGateVertical& endGate);
 
 	// Query grid for objects overlapping an AABB.
 	std::vector<GameObject*> QueryNearby(const collision::AABB& queryBox) const;
@@ -94,6 +95,7 @@ public:
 	void Clear();
 
 private:
+	// Internal helper methods and state
 	EntityManager* entityManager_ = nullptr;	// Reference to EntityManager (set externally)
 	SpatialGrid spatialGrid_;					// Broad-phase acceleration structure
 	collision::World collisionWorld_;			// Static world used for trimming

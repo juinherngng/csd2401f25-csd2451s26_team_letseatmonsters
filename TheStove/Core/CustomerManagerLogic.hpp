@@ -5,11 +5,11 @@
  AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
  DESCRIPTION:       Declares the CustomerManagerLogic system, which is
-                    responsible for pairing customers with tables, assigning
-                    seating targets, and maintaining runtime customer–table
-                    relationships.
+					responsible for pairing customers with tables, assigning
+					seating targets, and maintaining runtime customer–table
+					relationships.
 
-         All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -31,53 +31,55 @@ class Scene;
 
 class CustomerManagerSystem {
 public:
-    /**
-     * @brief Construct a customer manager with default spawn and cap settings.
-     */
-    CustomerManagerSystem() = default;
+	/**
+	 * @brief Construct a customer manager with default spawn and cap settings.
+	 */
+	CustomerManagerSystem() = default;
 
-    /**
-      * @brief Run per-frame customer management.
-      * @param dt Delta time for the current frame in seconds.
-      * @param scene Scene context used for table discovery, spawning, and cleanup.
-      */
-    void Update(float dt, Scene& scene);
+	/**
+	  * @brief Run per-frame customer management.
+	  * @param dt Delta time for the current frame in seconds.
+	  * @param scene Scene context used for table discovery, spawning, and cleanup.
+	  */
+	void Update(float dt, Scene& scene);
 
-    /**
-     * @brief Reset all cached state when the active scene is cleared/reloaded.
-     */
-    void Reset();
+	/**
+	 * @brief Reset all cached state when the active scene is cleared/reloaded.
+	 */
+	void Reset();
 
-    /**
-     * @brief Set the maximum number of simultaneously active customers.
-     * @param n Hard cap applied by the spawn logic.
-     */
-    void SetMaxCustomers(int n) { maxCustomers_ = n; }
+	/**
+	 * @brief Set the maximum number of simultaneously active customers.
+	 * @param n Hard cap applied by the spawn logic.
+	 */
+	void SetMaxCustomers(int n) {
+		maxCustomers_ = n;
+	}
 
 private:
-    int maxCustomers_ = 4;
-    float spawnCooldown_ = 10.0f;       // small delay between spawns
-    float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
+	int maxCustomers_ = 4;
+	float spawnCooldown_ = 10.0f;       // small delay between spawns
+	float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
 
-    std::vector<int> activeCustomers_;  // ids of customers alive
-    std::vector<int> customerTableIDs_; // ids of customer tables we discovered
-    bool cachedTables_ = false;
+	std::vector<int> activeCustomers_;  // ids of customers alive
+	std::vector<int> customerTableIDs_; // ids of customer tables we discovered
+	bool cachedTables_ = false;
 
-    int customerTemplateID_ = -1;
-    bool cachedTemplate_ = false;
+	int customerTemplateID_ = -1;
+	bool cachedTemplate_ = false;
 
-    /** @brief Discover and cache all customer-table entity IDs in the scene. */
-    void CacheTables(Scene& scene);
+	/** @brief Discover and cache all customer-table entity IDs in the scene. */
+	void CacheTables(Scene& scene);
 
-    /** @brief Discover and cache the customer template/prefab entity ID. */
-    void CacheTemplate(Scene& scene);
+	/** @brief Discover and cache the customer template/prefab entity ID. */
+	void CacheTemplate(Scene& scene);
 
-    /** @brief Remove stale/dead customer IDs from the active customer list. */
-    void CleanupDeadCustomers(Scene& scene);
+	/** @brief Remove stale/dead customer IDs from the active customer list. */
+	void CleanupDeadCustomers(Scene& scene);
 
-    /**
-     * @brief Attempt to spawn exactly one customer if capacity/cooldown allows.
-     * @return True when one customer is spawned successfully, false otherwise.
-     */
-    bool TrySpawnOne(Scene& scene);
+	/**
+	 * @brief Attempt to spawn exactly one customer if capacity/cooldown allows.
+	 * @return True when one customer is spawned successfully, false otherwise.
+	 */
+	bool TrySpawnOne(Scene& scene);
 };

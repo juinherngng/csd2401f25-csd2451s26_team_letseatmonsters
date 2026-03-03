@@ -12,10 +12,10 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <fstream>
-
 #include "JSONInclude.hpp"
 #include "LevelSerializer.hpp"
+
+#include <fstream>
 
 using nlohmann::json;
 

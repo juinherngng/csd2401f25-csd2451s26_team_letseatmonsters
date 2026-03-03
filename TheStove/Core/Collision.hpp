@@ -13,10 +13,10 @@
 
 #pragma once
 
+#include "Math.hpp"
+
 #include <cfloat>
 #include <vector>
-
-#include "Math.hpp"
 
 namespace collision {
 	// Primitives
@@ -59,6 +59,7 @@ namespace collision {
 	// World (static walls + resolve)
 	class World {
 	public:
+		// Public interface methods
 		// Walls management
 		void clear();
 		void addWall(const AABB& aabb);
@@ -73,6 +74,7 @@ namespace collision {
 		static AABB makeAABBFromCenter(const Math::Vector3D& center, const Math::Vector3D& scale);
 
 	private:
+		// Internal helper methods and state
 		std::vector<AABB> mWalls;
 	};
 }

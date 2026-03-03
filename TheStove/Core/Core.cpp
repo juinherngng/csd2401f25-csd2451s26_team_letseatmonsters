@@ -10,12 +10,12 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include "Core.hpp"
+#include "GameStateManager.hpp"
+
 #include <chrono>
 #include <iostream>
 #include <thread>
-
-#include "Core.hpp"
-#include "GameStateManager.hpp"
 
 namespace CoreFramework {
 	CoreEngine::CoreEngine() {
@@ -26,33 +26,33 @@ namespace CoreFramework {
 
 		// Subscribe to QUIT messages to handle application shutdown
 		messageBus.Subscribe(MessageType::QUIT,
-							 [this](const Message& msg) {
-			(void)msg; // suppress unused parameter warning
-			std::cout << "[Core] QUIT message received, shutting down..." << std::endl;
-			gameActive = false;
-		});
+			[this](const Message& msg) {
+				(void)msg; // suppress unused parameter warning
+				std::cout << "[Core] QUIT message received, shutting down..." << std::endl;
+				gameActive = false;
+			});
 
 		// Subscribe to PLAY_AUDIO messages for logging purposes (optional)
 		// This allows Core to see audio message traffic for debugging
 		messageBus.Subscribe(MessageType::PLAY_AUDIO,
-							 [](const Message& msg) {
-			const auto& audioMsg = static_cast<const PlayAudioMessage&>(msg);
-			std::cout << "[Core] PLAY_AUDIO message: sound='" << audioMsg.soundName
-				<< "', volume=" << audioMsg.volume
-				<< ", paused=" << (audioMsg.paused?"true":"false") << std::endl;
-		});
+			[](const Message& msg) {
+				const auto& audioMsg = static_cast<const PlayAudioMessage&>(msg);
+				std::cout << "[Core] PLAY_AUDIO message: sound='" << audioMsg.soundName
+					<< "', volume=" << audioMsg.volume
+					<< ", paused=" << (audioMsg.paused ? "true" : "false") << std::endl;
+			});
 
 		// Subscribe to STOP_AUDIO messages for logging
 		messageBus.Subscribe(MessageType::STOP_AUDIO,
-							 [](const Message& msg) {
-			const auto& stopMsg = static_cast<const StopAudioMessage&>(msg);
-			if (stopMsg.soundName.empty()) {
-				std::cout << "[Core] STOP_AUDIO message: stopping ALL sounds" << std::endl;
-			}
-			else {
-				std::cout << "[Core] STOP_AUDIO message: sound='" << stopMsg.soundName << "'" << std::endl;
-			}
-		});
+			[](const Message& msg) {
+				const auto& stopMsg = static_cast<const StopAudioMessage&>(msg);
+				if (stopMsg.soundName.empty()) {
+					std::cout << "[Core] STOP_AUDIO message: stopping ALL sounds" << std::endl;
+				}
+				else {
+					std::cout << "[Core] STOP_AUDIO message: sound='" << stopMsg.soundName << "'" << std::endl;
+				}
+			});
 	}
 
 	CoreEngine::~CoreEngine() {
