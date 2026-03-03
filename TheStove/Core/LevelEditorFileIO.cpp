@@ -45,6 +45,34 @@
 
 namespace fs = std::filesystem;
 
+namespace {
+	std::string NormalizeDirectoryPath(std::string dir) {
+		std::replace(dir.begin(), dir.end(), '\\', '/');
+		if (!dir.empty() && dir.back() != '/') {
+			dir += '/';
+		}
+
+		return dir;
+	}
+
+	std::string BuildRelativeChildPath(const std::string& normalizedDir, const fs::path& child) {
+		return normalizedDir + child.filename().string();
+	}
+
+	fs::path MakeUniquePath(const fs::path& destinationDir, const fs::path& baseName) {
+		std::error_code ec;
+		fs::path candidate = destinationDir / baseName;
+		int suffix = 1;
+
+		while (fs::exists(candidate, ec)) {
+			candidate = destinationDir /
+				(baseName.stem().string() + " (" + std::to_string(suffix++) + ")" + baseName.extension().string());
+		}
+
+		return candidate;
+	}
+}
+
 namespace LEFILEIO {
 	// Open a native file dialog (Windows). Returns empty string if canceled.
 	std::string OpenFileDialog(const char* filter) {
@@ -98,12 +126,7 @@ namespace LEFILEIO {
 		}
 
 		const fs::path baseName = src.filename();
-		fs::path dst = dstDir / baseName;
-
-		int suffix = 1;
-		while (fs::exists(dst, ec)) {
-			dst = dstDir / (baseName.stem().string() + " (" + std::to_string(suffix++) + ")" + baseName.extension().string());
-		}
+		const fs::path dst = MakeUniquePath(dstDir, baseName);
 
 		fs::copy_file(src, dst, fs::copy_options::overwrite_existing, ec);
 		if (ec) {
@@ -112,16 +135,8 @@ namespace LEFILEIO {
 
 		// IMPORTANT: Don't use dst.generic_string() - it may resolve to absolute path
 		// Instead, manually construct the relative path string from the original destinationDir
-		std::string resultFilename = dst.filename().string();
-
-		// Ensure destinationDir ends with forward slash for consistent concatenation
-		std::string normalizedDir = destinationDir;
-		std::replace(normalizedDir.begin(), normalizedDir.end(), '\\', '/');
-		if (!normalizedDir.empty() && normalizedDir.back() != '/') {
-			normalizedDir += '/';
-		}
-
-		std::string relativePath = normalizedDir + resultFilename;
+		const std::string normalizedDir = NormalizeDirectoryPath(destinationDir);
+		const std::string relativePath = BuildRelativeChildPath(normalizedDir, dst);
 
 		std::cout << "[CopyFileIntoProjectUnique] Returning path: " << relativePath << std::endl;
 		return relativePath;
@@ -141,7 +156,7 @@ namespace LEFILEIO {
 			fs::create_directories(trashDir, ec);
 		}
 
-		const fs::path dst = trashDir / src.filename();
+		const fs::path dst = MakeUniquePath(trashDir, src.filename());
 		fs::rename(src, dst, ec);
 
 		return !ec;
@@ -158,18 +173,11 @@ namespace LEFILEIO {
 		}
 
 		// Normalize directory path
-		std::string normalizedDir = dir;
-		std::replace(normalizedDir.begin(), normalizedDir.end(), '\\', '/');
-		if (!normalizedDir.empty() && normalizedDir.back() != '/') {
-			normalizedDir += '/';
-		}
+		const std::string normalizedDir = NormalizeDirectoryPath(dir);
 
 		for (const auto& p : fs::directory_iterator(dir, ec)) {
 			if (p.is_regular_file() && p.path().extension() == ".json") {
-				// Manually construct relative path to avoid fs::path converting to absolute
-				std::string filename = p.path().filename().string();
-				std::string relativePath = normalizedDir + filename;
-				out.push_back(relativePath);
+				out.push_back(BuildRelativeChildPath(normalizedDir, p.path()));
 			}
 		}
 
@@ -188,10 +196,13 @@ namespace LEFILEIO {
 		}
 
 		// Normalize directory path
-		std::string normalizedDir = dir;
-		std::replace(normalizedDir.begin(), normalizedDir.end(), '\\', '/');
-		if (!normalizedDir.empty() && normalizedDir.back() != '/') {
-			normalizedDir += '/';
+		const std::string normalizedDir = NormalizeDirectoryPath(dir);
+		std::vector<std::string> normalizedExts;
+		normalizedExts.reserve(extensions.size());
+		for (std::string ext : extensions) {
+			std::transform(ext.begin(), ext.end(), ext.begin(),
+				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			normalizedExts.push_back(std::move(ext));
 		}
 
 		for (const auto& p : fs::directory_iterator(dir, ec)) {
@@ -203,12 +214,9 @@ namespace LEFILEIO {
 			std::transform(ext.begin(), ext.end(), ext.begin(),
 				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-			for (const auto& e : extensions) {
+			for (const auto& e : normalizedExts) {
 				if (ext == e) {
-					// Manually construct relative path to avoid fs::path converting to absolute
-					std::string filename = p.path().filename().string();
-					std::string relativePath = normalizedDir + filename;
-					out.push_back(relativePath);
+					out.push_back(BuildRelativeChildPath(normalizedDir, p.path()));
 					break;
 				}
 			}

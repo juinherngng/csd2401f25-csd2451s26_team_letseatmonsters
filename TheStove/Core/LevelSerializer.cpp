@@ -15,7 +15,10 @@
 #include "JSONInclude.hpp"
 #include "LevelSerializer.hpp"
 
+#include <filesystem>
 #include <fstream>
+
+namespace fs = std::filesystem;
 
 using nlohmann::json;
 
@@ -162,7 +165,7 @@ static json WriteTextObject(const LevelTextObject& obj) {
 	return jsonData;
 }
 
-// Public Interface
+// Load the level data from a JSON file, populating outLevel. Returns false if file open or JSON parse fails.
 bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	std::ifstream file(path);
 	if (!file) {
@@ -170,7 +173,12 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	}
 
 	json jsonData;
-	file >> jsonData;
+	try {
+		file >> jsonData;
+	}
+	catch (const json::parse_error&) {
+		return false;
+	}
 
 	outLevel.objects.clear();
 	outLevel.textObjects.clear();
@@ -197,8 +205,19 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	return true;
 }
 
+// Save the level data to JSON, replacing only the "objects" and "textObjects" arrays while preserving other keys (like background)
 bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	json jsonData = json::object();
+
+	std::error_code ec;
+	const fs::path outputPath(path);
+	const fs::path parentDir = outputPath.parent_path();
+	if (!parentDir.empty() && !fs::exists(parentDir, ec)) {
+		fs::create_directories(parentDir, ec);
+		if (ec) {
+			return false;
+		}
+	}
 
 	// Try to load existing JSON to preserve unrelated keys
 	{

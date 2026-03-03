@@ -54,9 +54,9 @@ private:
 		void Mark(GameObject* g);
 		std::unordered_set<GameObject*> marks;
 	};
-
 	Key ToKey(int cellX, int cellY) const;
 
+	// Iterate over all cells overlapped by the box and call visit() with their keys. Does not track visited objects.
 	void ForEachCell(const collision::AABB& box, const std::function<void(Key)>& visit) const;
 	void ForEachCellWithNeighbors(const collision::AABB& box, const std::function<void(Key)>& visit) const;
 
