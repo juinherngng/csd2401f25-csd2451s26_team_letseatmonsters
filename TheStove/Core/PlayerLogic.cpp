@@ -28,6 +28,11 @@
 #include <iostream>
 #include <limits>
 
+namespace {
+	constexpr float kPlayerInteractRadius = 67.0f;
+	constexpr float kMoveRetargetDeadzone = 6.0f;
+}
+
 void PlayerLogic::Start(Scene& scene) {
 	(void)scene;
 	hasMoveTarget = false;
@@ -98,6 +103,14 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 
 // Unity: Move(Vector3 dest)
 void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
+	if (hasMoveTarget) {
+		const glm::vec2 delta = dest - moveTarget;
+		if ((delta.x * delta.x + delta.y * delta.y) <=
+			(kMoveRetargetDeadzone * kMoveRetargetDeadzone)) {
+			return;
+		}
+	}
+
 	GameObject* player = GetOwner(scene);
 
 	//std::cout << "[PlayerLogic] MoveTo(" << dest.x << ", " << dest.y << ")\n";
@@ -259,8 +272,19 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 
 		// Convert to glm::vec2 for MoveTo
 		glm::vec2 target(approach.x, approach.y);
-		MoveTo(scene, target);
-		ShowClickMoveIndicator(scene, target);
+		const float toApproachX = target.x - playerPos3.x;
+		const float toApproachY = target.y - playerPos3.y;
+		const float distToApproachSq = toApproachX * toApproachX + toApproachY * toApproachY;
+
+		if (distToApproachSq <= (kPlayerInteractRadius * kPlayerInteractRadius)) {
+			hasMoveTarget = false;
+			pendingTableID = -1;
+			InteractWithTable(scene, clickedTableID);
+		}
+		else {
+			MoveTo(scene, target);
+			ShowClickMoveIndicator(scene, target);
+		}
 	}
 	else {
 		// No table hit: just move to the clicked position as before
@@ -419,9 +443,8 @@ void PlayerLogic::OnArrived(Scene& scene) {
 	}
 
 	// Interaction radius around the approach point
-	constexpr float kInteractRadius = 67.0f;  // tweak to taste
 
-	if (distSq <= kInteractRadius * kInteractRadius) {
+	if (distSq <= kPlayerInteractRadius * kPlayerInteractRadius) {
 		//std::cout << "[PlayerLogic] Close enough to table " << pendingTableID
 		//	<< " (approach), performing interaction\n";
 		InteractWithTable(scene, pendingTableID);
