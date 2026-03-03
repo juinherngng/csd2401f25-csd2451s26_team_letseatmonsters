@@ -16,7 +16,6 @@
 #include "../Core/DebugUI.hpp"
 #include "../Core/InputControls.hpp"
 #include "../Core/InputManager.hpp"
-#include "../Core/PlayerLogic.hpp"
 #include "../Core/TableLogic.hpp"
 #include "../Core/TrashCanLogic.hpp"
 #include "../Core/WorkTableLogic.hpp"
@@ -28,9 +27,20 @@
 #include <iostream>
 #include <limits>
 
+// Constants and helper functions for PlayerLogic, in an anonymous namespace to limit scope to this file.
 namespace {
+	// Interaction and movement parameters
 	constexpr float kPlayerInteractRadius = 67.0f;
 	constexpr float kMoveRetargetDeadzone = 6.0f;
+	constexpr float kDragRetargetDistance = 20.0f;
+	constexpr float kDragRetargetInterval = 0.06f;
+	constexpr float kArriveRadius = 4.0f;
+	constexpr int kBlockedFramesBeforeCancel = 6;
+
+	constexpr float kKeyboardMoveSpeed = 200.0f;
+	constexpr float kTrailJitterEpsilon = 0.25f;
+	constexpr float kFootstepInterval = 0.3f;
+	constexpr float kClickIndicatorLifetime = 0.35f;
 
 	// Squared distance between two points (avoids sqrt for efficiency when comparing distances)
 	float DistanceSquared(const glm::vec2& a, const glm::vec2& b) {
@@ -41,6 +51,16 @@ namespace {
 	// Convert a glm::vec3 to glm::vec2 by dropping the z component
 	glm::vec2 ToVec2(const glm::vec3& value) {
 		return { value.x, value.y };
+	}
+
+	// Normalize a vector, but return zero if the length is very small to avoid instability
+	glm::vec2 NormalizeOrZero(const glm::vec2& v) {
+		const float len = std::sqrt(v.x * v.x + v.y * v.y);
+		if (len <= 0.0001f) {
+			return glm::vec2(0.0f, 0.0f);
+		}
+
+		return glm::vec2(v.x / len, v.y / len);
 	}
 
 	// Result struct for FindClickedTable, containing the ID and logic pointer of the clicked table (or defaults if none)
@@ -114,10 +134,34 @@ void PlayerLogic::Start(Scene& scene) {
 	//	<< (owner ? owner->GetID() : -1) << "\n";
 }
 
+// Handle input and movement each frame
+void PlayerLogic::ResetMouseDragState() {
+	mouseDragActive_ = false;
+	hasLastDragWorld_ = false;
+	dragRetargetTimer_ = 0.0f;
+}
+
+//Get the mouse world position if the mouse is currently over the scene viewport
+bool PlayerLogic::TryGetMouseWorld(Scene& scene, glm::vec2& mouseWorld) const {
+	return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld);
+}
+
+// Clear the current movement target and reset related state
+void PlayerLogic::ClearMovementTarget(Scene& scene) {
+	hasMoveTarget = false;
+	blockedMoveFrames_ = 0;
+
+	if (GameObject* player = GetOwner(scene)) {
+		scene.GetMovementManager().ClearMoveTarget(player->GetID());
+	}
+}
+
 // Decide and apply sprite based on movement direction
 void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2& moveDirRaw) {
 	(void)scene;
-	if (!player) return;
+	if (!player) {
+		return;
+	}
 
 	const float moveThreshold = 0.01f;
 	std::string desiredAnimation;
@@ -200,32 +244,25 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	const bool lmbJustPressed = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
 	const bool lmbHeld = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
 
-	// If we released the mouse button, reset drag state
 	if (!lmbHeld) {
-		mouseDragActive_ = false;
-		hasLastDragWorld_ = false;
-		dragRetargetTimer_ = 0.0f;
+		ResetMouseDragState();
 	}
 
-	// No click/hold input this frame.
 	if (!lmbJustPressed && !lmbHeld) {
 		return;
 	}
 
-	// We have click or hold input. Get mouse world position and check if it's valid (i.e. mouse is over the scene viewport).
 	GameObject* player = GetOwner(scene);
-	if (!player) return;
-
-	glm::vec2 mouseWorld{};
-
-	// If mouse is not over the scene viewport, ignore input. This prevents clicks from affecting the player when interacting with UI or other non-game areas.
-	if (!scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld)) {
-		//std::cout << "[PlayerLogic] Mouse not over scene viewport\n";
+	if (!player) {
 		return;
 	}
 
-	// Mouse-primary QoL: hold+drag continuously retargets movement.
-	// This keeps controls responsive when using only mouse movement.
+	glm::vec2 mouseWorld{};
+
+	if (!TryGetMouseWorld(scene, mouseWorld)) {
+		return;
+	}
+
 	if (lmbHeld && !lmbJustPressed) {
 		if (!mouseDragActive_) {
 			mouseDragActive_ = true;
@@ -235,13 +272,9 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 
 		dragRetargetTimer_ -= dt;
 
-		const float kMinDragRetargetDistSq = 20.0f * 20.0f;
-		const float kRetargetInterval = 0.06f;
-
-		const float dx = mouseWorld.x - lastDragWorld_.x;
-		const float dy = mouseWorld.y - lastDragWorld_.y;
-		const bool movedEnough = !hasLastDragWorld_ ||
-			(dx * dx + dy * dy) >= kMinDragRetargetDistSq;
+		const float minDragRetargetDistSq = kDragRetargetDistance * kDragRetargetDistance;
+		const glm::vec2 delta = mouseWorld - lastDragWorld_;
+		const bool movedEnough = !hasLastDragWorld_ || DistanceSquared(delta, glm::vec2(0.0f, 0.0f)) >= minDragRetargetDistSq;
 
 		if (movedEnough && dragRetargetTimer_ <= 0.0f) {
 			pendingTableID = -1;
@@ -249,7 +282,7 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 			ShowClickMoveIndicator(scene, mouseWorld);
 			lastDragWorld_ = mouseWorld;
 			hasLastDragWorld_ = true;
-			dragRetargetTimer_ = kRetargetInterval;
+			dragRetargetTimer_ = kDragRetargetInterval;
 		}
 
 		return;
@@ -260,33 +293,18 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	hasLastDragWorld_ = true;
 	dragRetargetTimer_ = 0.0f;
 
-	//std::cout << "[PlayerLogic] Click world = (" << mouseWorld.x << ", " << mouseWorld.y << ")\n";
-
-	// Raycast: check if click is on any table-like object
 	const ClickedTableResult clickedTable = FindClickedTable(scene, mouseWorld);
-
-	// If we clicked a table, move to its approach point
 	if (clickedTable.tableID >= 0 && clickedTable.tableLogic) {
-		//std::cout << "[PlayerLogic] Click hit table id " << clickedTableID << "\n";
 		pendingTableID = clickedTable.tableID;
+		const glm::vec2 playerPos = ToVec2(player->GetPositionGLM());
 
-		// Player current world position
-		glm::vec3 playerPos3 = player->GetPositionGLM();
-		Math::Vector2D from(playerPos3.x, playerPos3.y);
-
-		// Ask the table for the best approach point, in WORLD space
+		Math::Vector2D from(playerPos.x, playerPos.y);
 		Math::Vector2D approach = clickedTable.tableLogic->GetClosestApproachPoint(scene, from);
+		const glm::vec2 target(approach.x, approach.y);
 
-		// Debug: where are we actually going?
-		//std::cout << "[PlayerLogic] Moving to approach point for table " << clickedTableID
-		//	<< " at (" << approach.x << ", " << approach.y << ")\n";
-
-		// Convert to glm::vec2 for MoveTo
-		glm::vec2 target(approach.x, approach.y);
-		const float distToApproachSq = DistanceSquared(target, ToVec2(playerPos3));
-
-		if (distToApproachSq <= (kPlayerInteractRadius * kPlayerInteractRadius)) {
-			hasMoveTarget = false;
+		// If we're already within interaction range of the approach point, just interact immediately without moving.
+		if (DistanceSquared(target, playerPos) <= (kPlayerInteractRadius * kPlayerInteractRadius)) {
+			ClearMovementTarget(scene);
 			pendingTableID = -1;
 			InteractWithTable(scene, clickedTable.tableID);
 		}
@@ -294,25 +312,25 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 			MoveTo(scene, target);
 			ShowClickMoveIndicator(scene, target);
 		}
+
+		return;
 	}
-	else {
-		// No table hit: just move to the clicked position as before
-		pendingTableID = -1;
-		//std::cout << "[PlayerLogic] No table clicked, moving to raw mouse ("
-		//	<< mouseWorld.x << ", " << mouseWorld.y << ")\n";
-		MoveTo(scene, mouseWorld);
-		ShowClickMoveIndicator(scene, mouseWorld);
-	}
+
+	pendingTableID = -1;
+	MoveTo(scene, mouseWorld);
+	ShowClickMoveIndicator(scene, mouseWorld);
 }
 
 // Move owner GameObject towards moveTarget at moveSpeed
 void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
-	if (!hasMoveTarget)
+	if (!hasMoveTarget) {
 		return;
+	}
 
 	GameObject* player = GetOwner(scene);
-	if (!player)
+	if (!player) {
 		return;
+	}
 
 	glm::vec3 pos3 = player->GetPositionGLM();
 	glm::vec2 pos(pos3.x, pos3.y);
@@ -320,20 +338,11 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	glm::vec2 dir = moveTarget - pos;
 	const float distSq = dir.x * dir.x + dir.y * dir.y;
 
-	const float arriveRadius = 4.0f;      // pixels (tweak)
-	const float slowRadius = 80.0f;       // begin slowing down for better precision
-	const float minSlowFactor = 0.35f;    // don't slow to a crawl
-	const float arriveRadiusSq = arriveRadius * arriveRadius;
+	const float arriveRadiusSq = kArriveRadius * kArriveRadius;
 
 	// ReachedDestination()
 	if (distSq <= arriveRadiusSq) {
-		hasMoveTarget = false;
-
-		if (GameObject* player_ = GetOwner(scene)) {
-			scene.GetMovementManager().ClearMoveTarget(player_->GetID());
-		}
-
-		blockedMoveFrames_ = 0;
+		ClearMovementTarget(scene);
 		OnArrived(scene);
 		return;
 	}
@@ -345,14 +354,10 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	}
 
 	float step = moveSpeed * dt;
-	if (step > dist)
+	if (step > dist) {
 		step = dist;
+	}
 
-	// ask CollisionWorld how much of this step is allowed
-	const auto size = player->GetColliderSize();
-	const auto offset = player->GetColliderOffset();
-
-	// Apply allowed movement
 	// Desired movement for this frame
 	glm::vec2 desiredDelta(dir.x * step, dir.y * step);
 
@@ -367,14 +372,10 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 		++blockedMoveFrames_;
 
 		// Give collision resolution a few frames to recover from corner/edge jitter before cancelling.
-		constexpr int kBlockedFramesBeforeCancel = 6;
 		if (blockedMoveFrames_ >= kBlockedFramesBeforeCancel) {
 			std::cout << "[PlayerLogic] MoveTo blocked by collision for several frames, invoking OnArrived\n";
 
-			hasMoveTarget = false;
-			if (GameObject* p = GetOwner(scene)) {
-				scene.GetMovementManager().ClearMoveTarget(p->GetID());
-			}
+			ClearMovementTarget(scene);
 
 			// This will check distance to the table’s approach point using kInteractRadius
 			OnArrived(scene);
@@ -408,8 +409,9 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 void PlayerLogic::OnArrived(Scene& scene) {
 	//std::cout << "[PlayerLogic] Arrived at destination\n";
 
-	if (pendingTableID < 0)
+	if (pendingTableID < 0) {
 		return;
+	}
 
 	GameObject* player = GetOwner(scene);
 	GameObject* tableObj = scene.GetGameObjectByID(pendingTableID);
@@ -465,8 +467,9 @@ void PlayerLogic::OnArrived(Scene& scene) {
 void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	GameObject* item = scene.GetGameObjectByID(itemID);
 	GameObject* player = GetOwner(scene);
-	if (!item || !player)
+	if (!item || !player) {
 		return;
+	}
 
 	carriedItemID = itemID;
 
@@ -493,8 +496,9 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 
 // Unity: Drop(Vector3 dropPos) � here: drop slightly in front of player
 void PlayerLogic::Drop(Scene& scene) {
-	if (carriedItemID < 0)
+	if (carriedItemID < 0) {
 		return;
+	}
 
 	GameObject* player = GetOwner(scene);
 	GameObject* item = scene.GetGameObjectByID(carriedItemID);
@@ -517,8 +521,109 @@ void PlayerLogic::Drop(Scene& scene) {
 }
 
 // Main update loop for player logic: handle input, movement, sprite updates, interactions, and footstep effects.
+void PlayerLogic::HandleKeyboardMovement(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& playerPos) {
+	glm::vec2 inputDir(0.0f, 0.0f);
+	if (input.IsKeyPressed(GLFW_KEY_A)) inputDir.x -= 1.0f;
+	if (input.IsKeyPressed(GLFW_KEY_D)) inputDir.x += 1.0f;
+	if (input.IsKeyPressed(GLFW_KEY_W)) inputDir.y -= 1.0f;
+	if (input.IsKeyPressed(GLFW_KEY_S)) inputDir.y += 1.0f;
+
+	if (inputDir.x != 0.0f || inputDir.y != 0.0f) {
+		hasMoveTarget = false;
+		const glm::vec2 normalizedInput = NormalizeOrZero(inputDir);
+		const glm::vec2 desiredDelta = normalizedInput * kKeyboardMoveSpeed * dt;
+		const glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+
+		glm::vec3 nextPos = playerPos;
+		nextPos.x += allowedDelta.x;
+		nextPos.y += allowedDelta.y;
+		player->SetPosition(nextPos);
+		scene.ClampToWalkArea(player);
+		UpdateSprite(scene, player, normalizedInput);
+		return;
+	}
+
+	if (hasMoveTarget) {
+		UpdateSprite(scene, player, moveTarget - ToVec2(playerPos));
+	}
+	else {
+		UpdateSprite(scene, player, glm::vec2(0.0f, 0.0f));
+	}
+}
+
+void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& beforePos, const glm::vec3& afterPos) {
+	const bool hasIntent =
+		input.IsKeyPressed(GLFW_KEY_A) || input.IsKeyPressed(GLFW_KEY_D) ||
+		input.IsKeyPressed(GLFW_KEY_W) || input.IsKeyPressed(GLFW_KEY_S) ||
+		hasMoveTarget;
+
+	const glm::vec2 moveDelta(afterPos.x - beforePos.x, afterPos.y - beforePos.y);
+	const bool actuallyMoved = std::sqrt(moveDelta.x * moveDelta.x + moveDelta.y * moveDelta.y) > kTrailJitterEpsilon;
+	if (!hasIntent || !actuallyMoved) {
+		hasLastTrailPos_ = false;
+		trailCarry_ = 0.0f;
+		footstepEmitTimer_ = 0.0f;
+		return;
+	}
+
+#ifndef _DEBUG
+	footstepEmitTimer_ += dt;
+	if (footstepEmitTimer_ >= kFootstepInterval) {
+		footstepEmitTimer_ = 0.0f;
+		if (AudioManager* audioMgr = scene.GetAudioManager()) {
+			audioMgr->PlaySound("sfx_step_1", audioMgr->GetVfxVolume() * 0.04f, false);
+		}
+	}
+#endif
+
+	glm::vec3 feet = afterPos;
+	const auto co = player->GetColliderOffset();
+	const auto scale = player->GetScaleGLM();
+	feet.x += co.x;
+	feet.y += co.y + (scale.y * 0.5f) - 6.0f;
+
+	const glm::vec2 dir = NormalizeOrZero(moveDelta);
+	if (!hasLastTrailPos_) {
+		lastTrailPos_ = feet;
+		hasLastTrailPos_ = true;
+		trailCarry_ = 0.0f;
+	}
+
+	const glm::vec2 a(lastTrailPos_.x, lastTrailPos_.y);
+	const glm::vec2 b(feet.x, feet.y);
+	const glm::vec2 d = b - a;
+	const float segmentDist = std::sqrt(d.x * d.x + d.y * d.y);
+	if (segmentDist > 0.0001f) {
+		const glm::vec2 segDir = d / segmentDist;
+		const float spacing = 15.0f;
+		const float total = segmentDist + trailCarry_;
+		const int count = static_cast<int>(std::floor(total / spacing));
+
+		for (int i = 0; i < count; ++i) {
+			const float along = spacing * (i + 1) - trailCarry_;
+			const glm::vec2 p2 = a + segDir * along;
+			glm::vec3 trailPos(p2.x, p2.y, afterPos.z);
+
+			const float behind = 20.0f;
+			trailPos.x -= dir.x * behind;
+			trailPos.y -= dir.y * behind;
+
+			const glm::vec2 perp(-dir.y, dir.x);
+			const float jitter = ((std::rand() % 1000) / 1000.0f - 0.5f) * 3.0f;
+			trailPos.x += perp.x * jitter;
+			trailPos.y += perp.y * jitter;
+
+			scene.GetParticleSystem().EmitTrail(scene.GetEntityManager(), trailPos, afterPos.z, dir);
+		}
+
+		trailCarry_ = total - count * spacing;
+	}
+
+	lastTrailPos_ = feet;
+}
+
+// Main update loop for player logic: handle input, movement, sprite updates, interactions, and footstep effects.
 void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
-	// Stop player logic when paused/overlay is active
 	if (!scene.IsSimulationActive() || scene.IsPauseOverlayActive()) {
 		ClearInteractableVisualCues(scene);
 		return;
@@ -529,190 +634,24 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
-	if (!scene.IsObjectLayerEnabled(player->GetID())) {
-		ClearInteractableVisualCues(scene);
+	UpdateInteractableVisualCues(scene, input, dt);
+	const glm::vec3 beforePos = player->GetPositionGLM();
+
+	const float physicsDt = scene.GetLastPhysicsDt();
+	const bool stepMode = scene.GetStepController().enabled;
+	if (stepMode && physicsDt <= 0.0f) {
+		HandleClickInput(scene, input, dt);
 		return;
 	}
 
-	UpdateInteractableVisualCues(scene, input, dt);
-
-	glm::vec3 beforePos = player->GetPositionGLM();
-	const float physicsDt = scene.GetLastPhysicsDt();
-	const physics::StepController& step = scene.GetStepController();
-	const bool stepMode = step.enabled;
-
-	if (stepMode && physicsDt <= 0.0f) {
-		// Optional: still allow click selection while frozen
-		//std::cout << "HANDLE CLICK INPUT FREONZE\n";
-		HandleClickInput(scene, input, dt);
-
-		// Debug: prove we still see the key
-		if (input.IsKeyJustPressed(GLFW_KEY_P)) {
-			//std::cout << "[PlayerLogic] P pressed (step mode, frozen)\n";
-		}
-
-		return; // skip movement while paused
-	}
-
-	glm::vec3 pos3 = player->GetPositionGLM();
-	glm::vec2 inputDir(0.f, 0.f);
-	float speed = 200.0f;
-
-	// Get keyboard input
-	if (input.IsKeyPressed(GLFW_KEY_A)) inputDir.x -= 1.f;
-	if (input.IsKeyPressed(GLFW_KEY_D)) inputDir.x += 1.f;
-	if (input.IsKeyPressed(GLFW_KEY_W)) inputDir.y -= 1.f;
-	if (input.IsKeyPressed(GLFW_KEY_S)) inputDir.y += 1.f;
-
-	// Main keyboard movement
-	if (inputDir.x != 0.f || inputDir.y != 0.f) {
-		hasMoveTarget = false;
-
-		float len = std::sqrt(inputDir.x * inputDir.x + inputDir.y * inputDir.y);
-		if (len > 0.0001f) {
-			inputDir.x /= len;
-			inputDir.y /= len;
-		}
-
-		// Desired movement this frame
-		glm::vec2 desiredDelta(inputDir.x * speed * dt,
-			inputDir.y * speed * dt);
-
-		// Trim against static world (outer frame + wood + gate)
-		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
-
-		pos3.x += allowedDelta.x;
-		pos3.y += allowedDelta.y;
-
-		player->SetPosition(pos3);
-
-		// Optional: still clamp to overall walk rectangle if you want a hard outer bound
-		scene.ClampToWalkArea(player);
-
-		// Update sprite based on keyboard movement
-		UpdateSprite(scene, player, inputDir);
-	}
-	// If has click-to-move target, follow that
-	else if (hasMoveTarget) {
-		glm::vec2 pos(pos3.x, pos3.y);
-		glm::vec2 moveDir = moveTarget - pos;
-		// Move player toward target
-		// Set animation based on moveDir
-		UpdateSprite(scene, player, moveDir); // Pass click-move vector 
-	}
-	else {
-		// Idle: pass zero movement vector
-		UpdateSprite(scene, player, glm::vec2(0.f, 0.f));
-	}
-
-	//std::cout << "HANDLE CLICK INPUT\n";
-
+	HandleKeyboardMovement(dt, scene, input, player, beforePos);
 	HandleClickInput(scene, input, dt);
 	UpdateClickMoveIndicator(scene, dt);
-
 	UpdateMovement(dt, scene);
 
-	// Footstep trail: path-interpolated emission (prevents gaps at high speed)
-	glm::vec3 afterPos = player->GetPositionGLM();
-
-	// movement intent avoids spam from clamp jitter
-	bool hasIntent =
-		input.IsKeyPressed(GLFW_KEY_A) || input.IsKeyPressed(GLFW_KEY_D) ||
-		input.IsKeyPressed(GLFW_KEY_W) || input.IsKeyPressed(GLFW_KEY_S) ||
-		hasMoveTarget;
-
-	glm::vec2 moveDelta(afterPos.x - beforePos.x, afterPos.y - beforePos.y);
-	float dist = std::sqrt(moveDelta.x * moveDelta.x + moveDelta.y * moveDelta.y);
-
-	// ignore micro jitter
-	const float jitterEps = 0.25f;
-	bool actuallyMoved = dist > jitterEps;
-
-	if (hasIntent && actuallyMoved) {
-		// Play footstep sound at regular intervals (release mode only)
-#ifndef _DEBUG
-		footstepEmitTimer_ += dt;
-		const float footstepInterval = 0.3f; // seconds between footstep sounds
-		if (footstepEmitTimer_ >= footstepInterval) {
-			footstepEmitTimer_ = 0.0f;
-			if (AudioManager* audioMgr = scene.GetAudioManager()) {
-				audioMgr->PlaySound("sfx_step_1", audioMgr->GetVfxVolume() * 0.04f, false);
-			}
-		}
-#endif
-		// Feet position from collider size
-		glm::vec3 feet = afterPos;
-		auto co = player->GetColliderOffset();
-		auto scale = player->GetScaleGLM();
-		feet.x += co.x;
-		feet.y += co.y + (scale.y * 0.5f) - 6.0f;
-
-		// Move direction (normalized) used for particle velocity shaping
-		glm::vec2 dir = moveDelta;
-		float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
-		if (len > 0.0001f) {
-			dir.x /= len;
-			dir.y /= len;
-		}
-
-		// Initialize last point on first valid movement frame
-		if (!hasLastTrailPos_) {
-			lastTrailPos_ = feet;
-			hasLastTrailPos_ = true;
-			trailCarry_ = 0.0f;
-		}
-
-		// Interpolate from lastTrailPos_ to feet, spawn evenly spaced particles
-		glm::vec2 a(lastTrailPos_.x, lastTrailPos_.y);
-		glm::vec2 b(feet.x, feet.y);
-		glm::vec2 d = b - a;
-
-		float segmentDist = std::sqrt(d.x * d.x + d.y * d.y);
-		if (segmentDist > 0.0001f) {
-			glm::vec2 segDir = d / segmentDist;
-
-			const float spacing = 15.0f; // tune: smaller = denser trail
-			float total = segmentDist + trailCarry_;
-			int count = (int)std::floor(total / spacing);
-
-			// emit along the path
-			for (int i = 0; i < count; ++i) {
-				float along = spacing * (i + 1) - trailCarry_;
-				glm::vec2 p2 = a + segDir * along;
-
-				// spawn behind movement direction
-				glm::vec3 trailPos(p2.x, p2.y, afterPos.z);
-				const float behind = 20.0f;
-				trailPos.x -= dir.x * behind;
-				trailPos.y -= dir.y * behind;
-
-				// slight sideways jitter
-				glm::vec2 perp(-dir.y, dir.x);
-				float jitter = ((std::rand() % 1000) / 1000.0f - 0.5f) * 3.0f;
-				trailPos.x += perp.x * jitter;
-				trailPos.y += perp.y * jitter;
-
-				scene.GetParticleSystem().EmitTrail(scene.GetEntityManager(), trailPos, afterPos.z, dir);
-			}
-
-			trailCarry_ = total - count * spacing;
-		}
-
-		lastTrailPos_ = feet;
-	}
-	else {
-		// reset when not moving (prevents burst when resuming)
-		hasLastTrailPos_ = false;
-		trailCarry_ = 0.0f;
-		footstepEmitTimer_ = 0.0f; // reset footstep timer when stopped
-	}
-
+	const glm::vec3 afterPos = player->GetPositionGLM();
+	UpdateFootstepTrailAndAudio(dt, scene, input, player, beforePos, afterPos);
 	UpdateCarriedItemTransform(scene);
-
-	// Debug key to prove script is running
-	if (input.IsKeyJustPressed(GLFW_KEY_P)) {
-		//std::cout << "[PlayerLogic] P pressed\n";
-	}
 }
 
 // Optional: visual cues for interactable objects under mouse cursor
@@ -802,7 +741,7 @@ void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoi
 	marker->SetPosition(markerPos);
 	marker->SetScale(glm::vec3(26.0f, 26.0f, 1.0f));
 	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.95f));
-	clickIndicatorTimeLeft_ = 0.35f;
+	clickIndicatorTimeLeft_ = kClickIndicatorLifetime;
 }
 
 // Update the click move indicator (scaling and fading) and despawn when time is up
@@ -826,7 +765,7 @@ void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
 		return;
 	}
 
-	const float t = std::clamp(clickIndicatorTimeLeft_ / 0.35f, 0.0f, 1.0f);
+	const float t = std::clamp(clickIndicatorTimeLeft_ / kClickIndicatorLifetime, 0.0f, 1.0f);
 	const float alpha = 0.25f + 0.70f * t;
 	const float size = 18.0f + (1.0f - t) * 28.0f;
 	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, alpha));
@@ -849,8 +788,9 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 	//std::cout << "[PlayerLogic] InteractWithTable tableID=" << tableObjectID << "\n";
 
 	GameObject* player = GetOwner(scene);
-	if (!player)
+	if (!player) {
 		return;
+	}
 
 	// Play interact audio for the table being interacted with
 	scene.PlayInteractAudio(tableObjectID);
@@ -889,7 +829,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 		return; // Do not fall through to normal table logic
 	}
 
-	// --- Special case: Customer table payment ---
+	// Special case: Customer table payment
 	if (CustomerTableLogic* ctable = logicMgr.GetLogicForObject<CustomerTableLogic>(tableObjectID)) {
 		// If the customer is in Paying state, consume the click and stop here.
 		if (ctable->TryTakePayment(scene)) {
@@ -897,7 +837,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 		}
 	}
 
-	// --- Special case: Trash can ---
+	// Special case: Trash can
 	// If this object is a trash can, placing an item should delete it immediately.
 	if (TrashCanLogic* trash = logicMgr.GetLogicForObject<TrashCanLogic>(tableObjectID)) {
 		// Only meaningful if player is holding something
@@ -1059,16 +999,19 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 
 // Update the position of the carried item to follow the player with an offset
 void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
-	if (carriedItemID < 0)
+	if (carriedItemID < 0) {
 		return;
+	}
 
 	GameObject* player = GetOwner(scene);
-	if (!player)
+	if (!player) {
 		return;
+	}
 
 	GameObject* item = scene.GetGameObjectByID(carriedItemID);
-	if (!item)
+	if (!item) {
 		return;
+	}
 
 	glm::vec3 p = player->GetPositionGLM();
 	item->SetPosition(glm::vec3(p.x + carryOffset.x,

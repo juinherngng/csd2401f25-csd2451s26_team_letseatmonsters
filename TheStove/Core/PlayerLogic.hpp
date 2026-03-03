@@ -20,6 +20,7 @@
 #include "Math.hpp"
 
 #include <glm/glm.hpp>
+#include <unordered_set>
 
  // Forward declarations to avoid circular dependencies
 class PlayerLogic : public GameObjectLogic {
@@ -27,14 +28,14 @@ public:
 	// Inherit constructor from GameObjectLogic
 	using GameObjectLogic::GameObjectLogic; // inherit constructor
 
-	// GameObjectLogic overrides
+	// Lifecycle overrides
 	void Start(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
 	std::string GetName() const override {
 		return "PlayerLogic";
 	}
 
-	// --- Carry state helpers ---
+	// Carry state helpers
 	bool IsHolding() const {
 		return carriedItemID >= 0;
 	}
@@ -42,16 +43,15 @@ public:
 		return carriedItemID;
 	}
 
-	// --- High-level interaction ---
+	// High-level interaction
 	// Called when we want the player to interact with a particular table GameObject.
 	// (For example: you can call this when the player presses a key near a table.)
 	void InteractWithTable(Scene& scene, int tableObjectID);
 
-
-	// Unity: Move(Vector3 dest)
+	// Unity: MoveTo(Vector2 dest)
 	void MoveTo(Scene& scene, const glm::vec2& dest);
 
-	// Unity: bool ReachedDestination()
+	// Destination state helpers
 	bool HasDestination() const {
 		return hasMoveTarget;
 	}
@@ -62,13 +62,13 @@ public:
 	// Unity: PickUp(GameObject item)
 	void PickUp(Scene& scene, int itemID);
 
-	// Unity: Drop(Vector3 dropPos) � for now just �drop near player�
+	// Unity: Drop()
 	void Drop(Scene& scene);
 
 private:
 	// Movement state
 	glm::vec2 moveTarget{ 0.f, 0.f };
-	bool  hasMoveTarget{ false };
+	bool hasMoveTarget{ false };
 	float moveSpeed{ 220.f };  // pixels/sec
 
 	// Facing / sprite state
@@ -77,7 +77,7 @@ private:
 	};
 	FacingDir facingDir{ FacingDir::Front };
 
-	// Simple �holding� state by object ID
+	// Interaction state
 	int carriedItemID{ -1 };
 	int pendingTableID = -1;   // table we intend to interact with after moving
 
@@ -101,8 +101,13 @@ private:
 	void ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint);
 	void UpdateClickMoveIndicator(Scene& scene, float dt);
 	void ClearInteractableVisualCues(Scene& scene);
+	void ResetMouseDragState();
+	bool TryGetMouseWorld(Scene& scene, glm::vec2& mouseWorld) const;
+	void HandleKeyboardMovement(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& playerPos);
+	void UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& beforePos, const glm::vec3& afterPos);
+	void ClearMovementTarget(Scene& scene);
 
-	// particle footsteps
+	// Particle footsteps
 	float footstepDistanceAcc_ = 0.0f;
 	bool wasMoving_ = false;
 	float footstepEmitTimer_ = 0.0f;
