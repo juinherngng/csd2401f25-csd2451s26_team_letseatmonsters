@@ -18,6 +18,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <set>
 #include <stdexcept>
 #include <vector>
 #include <windows.h>
@@ -69,7 +70,6 @@ namespace ConfigManager {
 		bool ParseInt(const std::string& str, int& valueOut) {
 			try {
 				size_t pos = 0;
-				long v = std::stol(str, &pos, 10);
 				const long parsedValue = std::stol(str, &pos, 10);
 				if (pos != str.size()) return false;
 				valueOut = static_cast<int>(parsedValue);
@@ -86,6 +86,16 @@ namespace ConfigManager {
 
 		// Parses a string into float. Returns false if parsing fails or if there are extra characters.
 		bool ParseFloat(const std::string& str, float& valueOut) {
+			if (!str.empty() && str.back() == '%') {
+				float percentValue = 0.0f;
+				if (!ParseFloat(str.substr(0, str.size() - 1), percentValue)) {
+					return false;
+				}
+
+				valueOut = percentValue / 100.0f;
+				return true;
+			}
+
 			try {
 				size_t pos = 0;
 				const float parsedValue = std::stof(str, &pos);

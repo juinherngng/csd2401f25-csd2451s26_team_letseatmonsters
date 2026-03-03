@@ -54,6 +54,7 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.speedY = jsonObj.value("speed_y", 0.0f);
 
 	obj.animated = jsonObj.value("animated", false);
+	obj.animName = jsonObj.value("anim_name", "");
 
 	// Approach offset (safe for existing JSON, defaults to 0)
 	obj.approachOffsetX = jsonObj.value("approach_offx", 0.0f);
@@ -104,7 +105,7 @@ static json WriteLevelObject(const LevelObject& obj) {
 	json jsonData = {
 		{ "texture", obj.texture },
 		{ "tag", obj.tag },
-		{ "layer", obj.layer},
+		{ "layer", obj.layer },
 		{ "prefab_path", obj.prefabPath },
 		{ "x", obj.x },
 		{ "y", obj.y },
@@ -120,7 +121,8 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "speed_x", obj.speedX },
 		{ "speed_y", obj.speedY },
 		{ "animated", obj.animated },
-		{ "layer", obj.layer },
+		{ "anim_name", obj.animName },
+		{ "shadow", obj.shadow },
 		// Approach offset
 		{ "approach_offx", obj.approachOffsetX },
 		{ "approach_offy", obj.approachOffsetY },
@@ -177,15 +179,17 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	// optional background
 	outLevel.background = jsonData.value("background", "");
 
-	if (jsonData.contains("objects")) {
-		for (auto& jsonObj : jsonData["objects"]) {
+	if (jsonData.contains("objects") && jsonData["objects"].is_array()) {
+		outLevel.objects.reserve(jsonData["objects"].size());
+		for (const auto& jsonObj : jsonData["objects"]) {
 			outLevel.objects.push_back(ReadLevelObject(jsonObj));
 		}
 	}
 
 	// Load text objects if present
-	if (jsonData.contains("textObjects")) {
-		for (auto& jsonObj : jsonData["textObjects"]) {
+	if (jsonData.contains("textObjects") && jsonData["textObjects"].is_array()) {
+		outLevel.textObjects.reserve(jsonData["textObjects"].size());
+		for (const auto& jsonObj : jsonData["textObjects"]) {
 			outLevel.textObjects.push_back(ReadTextObject(jsonObj));
 		}
 	}
@@ -203,7 +207,7 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 			try {
 				in >> jsonData;
 			}
-			catch (...) {
+			catch (const json::parse_error&) {
 				jsonData = json::object();
 			}
 		}

@@ -15,9 +15,6 @@
 #include "RigidBody2D.hpp"
 
 #include <algorithm>
-#include <iostream> 
-
-#define FORCE_DEBUG // uncomment to show per-frame force application logs
 
  // IForceGenerator 
 IForceGenerator::~IForceGenerator() = default;
@@ -44,9 +41,6 @@ void ForceRegistry::Clear() {
 void ForceRegistry::UpdateForces(float dt) {
 	for (Entry& entry : entries) {
 		if (entry.body && entry.gen) {
-#ifdef FORCE_DEBUG
-			std::cout << "[Force] Applying " << typeid(*entry.gen).name() << " to body\n";
-#endif
 			entry.gen->UpdateForce(*entry.body, dt);
 		}
 	}

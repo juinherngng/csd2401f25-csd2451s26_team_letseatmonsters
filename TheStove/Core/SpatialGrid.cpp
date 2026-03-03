@@ -15,11 +15,30 @@
 #include <algorithm>
 #include <cmath>
 
- // Constructors / Clear
-SpatialGrid::SpatialGrid(float cellSize)
-	: cellSize(cellSize) {
+ // Minimum cell size to prevent excessive memory usage or precision issues
+namespace {
+	constexpr float kMinCellSize = 1.0f;
+
+	struct CellRange {
+		int minX;
+		int maxX;
+		int minY;
+		int maxY;
+	};
+
+	CellRange BuildCellRange(const collision::AABB& box, float cellSize, int expandByCells) {
+		const int minCellX = static_cast<int>(std::floor(box.min.x / cellSize)) - expandByCells;
+		const int maxCellX = static_cast<int>(std::floor(box.max.x / cellSize)) + expandByCells;
+		const int minCellY = static_cast<int>(std::floor(box.min.y / cellSize)) - expandByCells;
+		const int maxCellY = static_cast<int>(std::floor(box.max.y / cellSize)) + expandByCells;
+		return { minCellX, maxCellX, minCellY, maxCellY };
+	}
 }
 
+// Constructors / Initialization
+SpatialGrid::SpatialGrid(float cellSize)
+	: cellSize(std::max(cellSize, kMinCellSize)) {
+}
 void SpatialGrid::Clear() {
 	cells.clear();
 	objects.clear();
@@ -29,38 +48,33 @@ void SpatialGrid::Clear() {
 bool SpatialGrid::TempVisited::Seen(GameObject* g) const {
 	return marks.find(g) != marks.end();
 }
-
 void SpatialGrid::TempVisited::Mark(GameObject* g) {
 	marks.insert(g);
 }
 
-// Internal helpers
+// Convert cell coordinates to a unique 64-bit key (using 32 bits for each coordinate).
 SpatialGrid::Key SpatialGrid::ToKey(int cellX, int cellY) const {
 	return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(cellX)) << 32)
 		| static_cast<std::uint64_t>(static_cast<std::uint32_t>(cellY));
 }
 
+// Visit each cell overlapped by the box, calling the provided function with the cell's key.
 void SpatialGrid::ForEachCell(const collision::AABB& box, const std::function<void(Key)>& visit) const {
-	const int minCellX = static_cast<int>(std::floor(box.min.x / cellSize));
-	const int maxCellX = static_cast<int>(std::floor(box.max.x / cellSize));
-	const int minCellY = static_cast<int>(std::floor(box.min.y / cellSize));
-	const int maxCellY = static_cast<int>(std::floor(box.max.y / cellSize));
+	const CellRange range = BuildCellRange(box, cellSize, 0);
 
-	for (int cy = minCellY; cy <= maxCellY; ++cy) {
-		for (int cx = minCellX; cx <= maxCellX; ++cx) {
+	for (int cy = range.minY; cy <= range.maxY; ++cy) {
+		for (int cx = range.minX; cx <= range.maxX; ++cx) {
 			visit(ToKey(cx, cy));
 		}
 	}
 }
 
+// Visit each cell overlapped by the box and its immediate neighbors (1-cell expansion), calling the provided function with the cell's key.
 void SpatialGrid::ForEachCellWithNeighbors(const collision::AABB& box, const std::function<void(Key)>& visit) const {
-	const int minCellX = static_cast<int>(std::floor(box.min.x / cellSize)) - 1;
-	const int maxCellX = static_cast<int>(std::floor(box.max.x / cellSize)) + 1;
-	const int minCellY = static_cast<int>(std::floor(box.min.y / cellSize)) - 1;
-	const int maxCellY = static_cast<int>(std::floor(box.max.y / cellSize)) + 1;
+	const CellRange range = BuildCellRange(box, cellSize, 1);
 
-	for (int cy = minCellY; cy <= maxCellY; ++cy) {
-		for (int cx = minCellX; cx <= maxCellX; ++cx) {
+	for (int cy = range.minY; cy <= range.maxY; ++cy) {
+		for (int cx = range.minX; cx <= range.maxX; ++cx) {
 			visit(ToKey(cx, cy));
 		}
 	}
@@ -71,6 +85,7 @@ float SpatialGrid::CellSize() const {
 	return cellSize;
 }
 
+// Insert an object into the grid, associating it with all cells overlapped by its AABB. Also store the object and its AABB for potential future use (e.g., clearing).
 void SpatialGrid::Insert(GameObject* object, const collision::AABB& box) {
 	if (object == nullptr) {
 		return;
@@ -83,6 +98,7 @@ void SpatialGrid::Insert(GameObject* object, const collision::AABB& box) {
 		});
 }
 
+// Query for candidates overlapping the box (including 1-cell neighbors). Uses TempVisited to ensure each object is only returned once, even if it appears in multiple cells.
 void SpatialGrid::Query(const collision::AABB& box, std::vector<GameObject*>& outCandidates) const {
 	outCandidates.clear();
 	TempVisited visited;
@@ -106,6 +122,7 @@ void SpatialGrid::Query(const collision::AABB& box, std::vector<GameObject*>& ou
 		});
 }
 
+// Query for candidates in the cell containing the point. This is a simpler query that does not consider neighbors and does not require uniqueness checks since it's only one cell.
 void SpatialGrid::QueryPoint(const Math::Vector2D& point, std::vector<GameObject*>& outCandidates) const {
 	outCandidates.clear();
 
