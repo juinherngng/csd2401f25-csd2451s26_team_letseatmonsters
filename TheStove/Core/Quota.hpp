@@ -16,6 +16,7 @@
 #pragma once
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 #include "LevelEditorPanelFonts.hpp"
 
 class Scene;
@@ -54,14 +55,39 @@ namespace Economy
     inline bool gPlayed1SecBeep = false;
     inline bool gPlayedTimeUp = false;
 
-    // Put near the top of Economy.hpp/cpp (where Economy lives)
+    inline void SetTextColorAndScaleByName(const std::string& name,
+        float r, float g, float b, float a,
+        float scale) {
+        std::vector<LEPANELFONTS::TextObjectData>& textObjects = LEPANELFONTS::GetMutableTextObjects();
+        for (LEPANELFONTS::TextObjectData& textObj : textObjects) {
+            if (textObj.name == name) {
+                textObj.colorR = r;
+                textObj.colorG = g;
+                textObj.colorB = b;
+                textObj.colorA = a;
+                textObj.scale = scale;
+                return;
+            }
+        }
+    }
+
+    // Keep UI objective and urgency feedback synchronized with gameplay values.
     inline void SyncUI()
     {
         // Money
         LEPANELFONTS::SetTextByName("MoneyText", "$" + std::to_string(gPlayerMoney));
 
         // Quota: "current / target"
-        LEPANELFONTS::SetTextByName("QuotaText", "$" + std::to_string(kQuota));
+        LEPANELFONTS::SetTextByName("QuotaText", "$" + std::to_string(gPlayerMoney) + " / $" + std::to_string(kQuota));
+
+        // Optional objective hint text (only updates if this text object exists in scene)
+        const int moneyLeftToGoal = std::max(0, kQuota - gPlayerMoney);
+        if (moneyLeftToGoal > 0) {
+            LEPANELFONTS::SetTextByName("ObjectiveText", "Serve dishes to earn $" + std::to_string(moneyLeftToGoal) + " more!");
+        }
+        else {
+            LEPANELFONTS::SetTextByName("ObjectiveText", "Quota reached! Complete day transition...");
+        }
 
         // Timer: format mm:ss
         int total = static_cast<int>(gTimeRemaining + 0.999f); // ceil-ish
@@ -73,6 +99,17 @@ namespace Economy
             << ":" << std::setw(2) << std::setfill('0') << ss;
 
         LEPANELFONTS::SetTextByName("TimerText", oss.str());
+
+        // Escalating timer feedback for urgency.
+        if (gTimeRemaining <= 10.0f) {
+            SetTextColorAndScaleByName("TimerText", 1.0f, 0.30f, 0.30f, 1.0f, 1.2f);
+        }
+        else if (gTimeRemaining <= 60.0f) {
+            SetTextColorAndScaleByName("TimerText", 1.0f, 0.85f, 0.25f, 1.0f, 1.0f);
+        }
+        else {
+            SetTextColorAndScaleByName("TimerText", 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+        }
     }
 
     inline void Reset()
