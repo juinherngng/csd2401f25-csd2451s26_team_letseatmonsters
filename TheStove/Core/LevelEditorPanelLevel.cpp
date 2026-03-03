@@ -159,7 +159,6 @@ namespace {
 		}
 	}
 
-#ifdef _DEBUG
 	static constexpr int MAX_UNDO = 50;
 	static std::vector<LevelData> sUndoStack;
 	static std::vector<LevelData> sRedoStack;
@@ -245,7 +244,7 @@ namespace {
 
 		return true;
 	}
-#endif // _DEBUG
+
 	static void ClearUndoHistory() {
 		sUndoStack.clear();
 		sRedoStack.clear();
