@@ -28,8 +28,8 @@
   * @brief Small utility that maps keys to engine/debug actions.
   *
   * Controls:
-  *  - R: toggle collider DebugRenderer visibility.
-  *  - T: toggle auxiliary debug visuals flag (provided by caller).
+  *  - G: toggle collider DebugRenderer visibility.
+  *  - H: toggle auxiliary debug visuals flag (provided by caller).
   *  - F: toggle "use forces" mode and enable/disable physics on the player.
   */
 class InputCommandHandler {
@@ -46,10 +46,10 @@ public:
 						 bool& showAuxDebug);
 
 private:
-	// Handles keys that toggle debug state (R, T).
+	// Handles keys that toggle debug state (G, H).
 	void HandleDebugToggles(InputManager& inputManager, bool& showAuxDebug);
 
-	// Handles the physics mode toggle(F) and updates the player's physics component.
+	// Handles the physics mode toggle (F) and updates the player's physics component.
 	void HandleForceToggle(InputManager& inputManager,
 						   PhysicsManager& physicsManager,
 						   MovementManager& movementManager,

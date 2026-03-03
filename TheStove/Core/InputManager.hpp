@@ -68,7 +68,7 @@ public:
 	// Consume next mouse press event
 	void ConsumeNextMousePress(int button);
 
-	// Helper to clear all pending consumes
+	// Helper to clear pending consume flag for one button
 	void ClearMouseConsume(int button);
 
 private:

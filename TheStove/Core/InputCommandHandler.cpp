@@ -63,7 +63,7 @@ void InputCommandHandler::HandleForceToggle(InputManager& inputManager,
 			if (useForces) {
 				physicsManager.EnablePhysics(playerID, 1.0f);
 
-				// >>> NEW: cancel click-to-move so the line disappears immediately
+				// Cancel click-to-move so the line disappears immediately
 				movementManager.ClearMoveTarget(playerID);
 			}
 			else {
