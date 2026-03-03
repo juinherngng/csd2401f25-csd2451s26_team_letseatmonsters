@@ -1805,7 +1805,7 @@ void Scene::RenderLevelTextObjects()
 	const bool cutsceneActive = IsAnyCutsceneActive();
 	const bool pauseActive = IsPauseOverlayActive();
 	static const std::unordered_set<std::string> kHudTextNames = {
-		"MoneyText", "QuotaText", "TimerText"
+		"MoneyText", "QuotaText", "TimerText", "ObjectiveText", "FeedbackText"
 	};
 
 	glm::mat4 projection = graphicsEngine.GetProjection();

@@ -16,6 +16,7 @@
 #pragma once
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 #include "LevelEditorPanelFonts.hpp"
 
 class Scene;
@@ -37,6 +38,9 @@ namespace Economy
 
     // Total time allowed (seconds). Adjust as you like.
     inline constexpr float kTimeLimitSeconds = 180.0f;
+
+    // Time threshold to start showing stronger urgency messaging in HUD.
+    inline constexpr float kLowTimeWarningSeconds = 30.0f;
 
     // Remaining time (seconds)
     inline float gTimeRemaining = kTimeLimitSeconds;
@@ -61,7 +65,13 @@ namespace Economy
         LEPANELFONTS::SetTextByName("MoneyText", "$" + std::to_string(gPlayerMoney));
 
         // Quota: "current / target"
-        LEPANELFONTS::SetTextByName("QuotaText", "$" + std::to_string(kQuota));
+        LEPANELFONTS::SetTextByName("QuotaText", "$" + std::to_string(gPlayerMoney) + "/$" + std::to_string(kQuota));
+
+        const int remainingToQuota = std::max(0, kQuota - gPlayerMoney);
+        if (remainingToQuota > 0)
+            LEPANELFONTS::SetTextByName("ObjectiveText", "Need $" + std::to_string(remainingToQuota) + " more");
+        else
+            LEPANELFONTS::SetTextByName("ObjectiveText", "Quota reached! Hold out!");
 
         // Timer: format mm:ss
         int total = static_cast<int>(gTimeRemaining + 0.999f); // ceil-ish
@@ -73,6 +83,18 @@ namespace Economy
             << ":" << std::setw(2) << std::setfill('0') << ss;
 
         LEPANELFONTS::SetTextByName("TimerText", oss.str());
+
+        std::string feedback = "Serve dishes to earn money";
+        if (gTimeUp)
+            feedback = "Time up!";
+        else if (gTimeRemaining <= 10.0f)
+            feedback = "Hurry! Final 10 seconds!";
+        else if (gTimeRemaining <= kLowTimeWarningSeconds)
+            feedback = "Low time! Prioritize easy orders";
+        else if (remainingToQuota <= 0)
+            feedback = "Goal complete! Survive to end";
+
+        LEPANELFONTS::SetTextByName("FeedbackText", feedback);
     }
 
     inline void Reset()
