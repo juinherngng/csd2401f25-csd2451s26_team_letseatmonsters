@@ -16,7 +16,6 @@
 #pragma once
 #include <sstream>
 #include <iomanip>
-#include <algorithm>
 #include "LevelEditorPanelFonts.hpp"
 
 class Scene;
@@ -61,11 +60,8 @@ namespace Economy
         // Money
         LEPANELFONTS::SetTextByName("MoneyText", "$" + std::to_string(gPlayerMoney));
 
-        // Quota progress: "current / target"
-        LEPANELFONTS::SetTextByName(
-            "QuotaText",
-            "$" + std::to_string(gPlayerMoney) + " / $" + std::to_string(kQuota)
-        );
+        // Quota: "current / target"
+        LEPANELFONTS::SetTextByName("QuotaText", "$" + std::to_string(kQuota));
 
         // Timer: format mm:ss
         int total = static_cast<int>(gTimeRemaining + 0.999f); // ceil-ish
@@ -138,10 +134,4 @@ namespace Economy
 
     // Helpers (optional)
     inline float GetTimeRemaining() { return gTimeRemaining; }
-
-    inline float GetQuotaProgress01() {
-        if (kQuota <= 0) return 1.0f;
-        const float ratio = static_cast<float>(gPlayerMoney) / static_cast<float>(kQuota);
-        return std::clamp(ratio, 0.0f, 1.0f);
-    }
 }
