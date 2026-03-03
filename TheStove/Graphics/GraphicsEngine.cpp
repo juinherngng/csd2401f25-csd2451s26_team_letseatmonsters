@@ -420,6 +420,7 @@ int GraphicsEngine::ParseLayerNumber(const std::string& layerName) {
 		if (!std::isdigit(static_cast<unsigned char>(c))) {
 			return 1000000;
 		}
+
 		result = result * 10 + (c - '0');
 	}
 
@@ -448,8 +449,7 @@ void GraphicsEngine::ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) cons
 			h = w / targetAspect;
 		}
 
-		outPos = ImVec2(contentRect.Min.x + (contentRect.GetWidth() - w) * 0.5f,
-			contentRect.Min.y + (contentRect.GetHeight() - h) * 0.5f);
+		outPos = ImVec2(contentRect.Min.x + (contentRect.GetWidth() - w) * 0.5f, contentRect.Min.y + (contentRect.GetHeight() - h) * 0.5f);
 		outSize = ImVec2(w, h);
 		return;
 	}
@@ -464,8 +464,8 @@ void GraphicsEngine::ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) cons
 	else {
 		h = w / targetAspect;
 	}
-	outPos = ImVec2(viewport->WorkPos.x + (viewport->WorkSize.x - w) * 0.5f,
-		viewport->WorkPos.y + (viewport->WorkSize.y - h) * 0.5f);
+
+	outPos = ImVec2(viewport->WorkPos.x + (viewport->WorkSize.x - w) * 0.5f, viewport->WorkPos.y + (viewport->WorkSize.y - h) * 0.5f);
 	outSize = ImVec2(w, h);
 }
 
@@ -493,6 +493,7 @@ void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::ma
 	if (mesh) {
 		mesh->Draw();
 	}
+
 	glEnable(GL_DEPTH_TEST);
 }
 
@@ -603,96 +604,17 @@ void GraphicsEngine::BeginFrame() {
 
 // Convert current mouse (screen) into scene world coords if within image
 bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
-#ifdef _DEBUG
-	// Guard: If ImGui not ready, return early
-	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
-		(void)outWorld;
+	ImVec2 localPos;
+	ImVec2 sceneSize;
+	if (!TryGetMousePositionInScene(localPos, sceneSize)) {
 		return false;
 	}
 
-	ImVec2 imgPos;
-	ImVec2 imgSize;
-	ComputeSceneImageRect(imgPos, imgSize);
-
-	// Mouse (absolute)
-	const ImVec2 mouse = ImGui::GetMousePos();
-
-	// Early-out if outside image rect
-	if (mouse.x < imgPos.x || mouse.y < imgPos.y ||
-		mouse.x > imgPos.x + imgSize.x || mouse.y > imgPos.y + imgSize.y) {
-		return false;
-	}
-
-	// Local coordinates (0..size)
-	const float localX = mouse.x - imgPos.x;
-	const float localY = mouse.y - imgPos.y;
-
-	// UV (0..1)
-	const float u = localX / imgSize.x;
-	const float v = localY / imgSize.y;
-
-	// Pixel in reference space
-	const float px = u * float(kRefW);
-	const float py = v * float(kRefH);
-
-	// Transform through inverse(V*P)
-	glm::vec4 clip;
-	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;
-	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;
-	clip.z = 0.0f;
-	clip.w = 1.0f;
-
-	const glm::mat4 invVP = glm::inverse(projection * view);
-	const glm::vec4 world4 = invVP * clip;
-
-	outWorld = glm::vec2(world4.x, world4.y);
+	outWorld = ScenePixelToWorld(localPos, sceneSize);
 	return true;
-#else
-	// Release: compute from GLFW mouse and letterboxed viewport
-	GLFWwindow* win = glfwGetCurrentContext();
-	if (!win) {
-		return false;
-	}
-
-	// Mouse in window space
-	double mx, my;
-	glfwGetCursorPos(win, &mx, &my);
-
-	// Check inside letterboxed viewport
-	const float vx = static_cast<float>(viewportX_);
-	const float vy = static_cast<float>(viewportY_);
-	const float vw = static_cast<float>(viewportW_);
-	const float vh = static_cast<float>(viewportH_);
-	if (mx < vx || my < vy || mx >(vx + vw) || my >(vy + vh)) {
-		return false;
-	}
-
-	// Local coords in viewport [0..vw],[0..vh]
-	const float localX = static_cast<float>(mx) - vx;
-	const float localY = static_cast<float>(my) - vy;
-
-	// UV [0..1]
-	const float u = localX / vw;
-	const float v = localY / vh;
-
-	// Pixel in reference canvas
-	const float px = u * float(kRefW);
-	const float py = v * float(kRefH);
-
-	// Clip -> world using inverse(V*P) of reference canvas
-	glm::vec4 clip;
-	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;
-	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;
-	clip.z = 0.0f;
-	clip.w = 1.0f;
-
-	const glm::mat4 invVP = glm::inverse(projection * view);
-	const glm::vec4 world4 = invVP * clip;
-	outWorld = glm::vec2(world4.x, world4.y);
-	return true;
-#endif
 }
 
+// Get the screen-space rect of the Scene image for mouse picking and UI alignment
 void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 #ifdef _DEBUG
 	ComputeSceneImageRect(outPos, outSize);
@@ -704,30 +626,96 @@ void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 #endif
 }
 
+// Try to get the mouse position in scene local pixel coordinates and scene size. Returns false if not over the scene image.
+bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& outSceneSize) const {
+#ifdef _DEBUG
+	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
+		return false;
+	}
+
+	ImVec2 scenePos;
+	ComputeSceneImageRect(scenePos, outSceneSize);
+	if (outSceneSize.x <= 0.0f || outSceneSize.y <= 0.0f) {
+		return false;
+	}
+
+	const ImVec2 mouse = ImGui::GetMousePos();
+	if (mouse.x < scenePos.x || mouse.y < scenePos.y ||
+		mouse.x > scenePos.x + outSceneSize.x || mouse.y > scenePos.y + outSceneSize.y) {
+		return false;
+	}
+
+	outLocalPos = ImVec2(mouse.x - scenePos.x, mouse.y - scenePos.y);
+	return true;
+#else
+	GLFWwindow* win = glfwGetCurrentContext();
+	if (!win) {
+		return false;
+	}
+
+	double mouseX = 0.0;
+	double mouseY = 0.0;
+	glfwGetCursorPos(win, &mouseX, &mouseY);
+
+	const float vx = static_cast<float>(viewportX_);
+	const float vy = static_cast<float>(viewportY_);
+	const float vw = static_cast<float>(viewportW_);
+	const float vh = static_cast<float>(viewportH_);
+	if (vw <= 0.0f || vh <= 0.0f || mouseX < vx || mouseY < vy ||
+		mouseX >(vx + vw) || mouseY >(vy + vh)) {
+		return false;
+	}
+
+	outSceneSize = ImVec2(vw, vh);
+	outLocalPos = ImVec2(static_cast<float>(mouseX) - vx, static_cast<float>(mouseY) - vy);
+	return true;
+#endif
+}
+
+// Convert pixel coordinates relative to the Scene image into world coordinates using inverse view-projection
+glm::vec2 GraphicsEngine::ScenePixelToWorld(const ImVec2& localPixel, const ImVec2& sceneSize) const {
+	const float u = localPixel.x / sceneSize.x;
+	const float v = localPixel.y / sceneSize.y;
+
+	const float px = u * static_cast<float>(kRefW);
+	const float py = v * static_cast<float>(kRefH);
+
+	glm::vec4 clip;
+	clip.x = (px / static_cast<float>(kRefW)) * 2.0f - 1.0f;
+	clip.y = 1.0f - (py / static_cast<float>(kRefH)) * 2.0f;
+	clip.z = 0.0f;
+	clip.w = 1.0f;
+
+	const glm::mat4 invVP = glm::inverse(projection * view);
+	const glm::vec4 world4 = invVP * clip;
+	return glm::vec2(world4.x, world4.y);
+}
+
+// Convert world position to pixel coordinates relative to the Scene image (for editor gizmos, etc.)
+ImVec2 GraphicsEngine::WorldToScenePixel(const glm::vec2& world, const ImVec2& scenePos, const ImVec2& sceneSize) const {
+	glm::vec4 world4(world.x, world.y, 0.0f, 1.0f);
+	const glm::vec4 clip = projection * view * world4;
+	if (clip.w == 0.0f) {
+		return ImVec2(-10000.0f, -10000.0f);
+	}
+
+	const glm::vec3 ndc = glm::vec3(clip) / clip.w;
+	const float u = (ndc.x * 0.5f) + 0.5f;
+	const float v = (-ndc.y * 0.5f) + 0.5f;
+
+	return ImVec2(
+		scenePos.x + (u * sceneSize.x),
+		scenePos.y + (v * sceneSize.y)
+	);
+}
+
 // Convert world position to screen coordinates relative to the Scene image (for editor gizmos, etc.)
 ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
 #ifdef _DEBUG
 	ImVec2 imgPos;
 	ImVec2 imgSize;
 	ComputeSceneImageRect(imgPos, imgSize);
-
-	glm::vec4 world4(world.x, world.y, 0.0f, 1.0f);
-	glm::vec4 clip = projection * view * world4;
-
-	if (clip.w == 0.0f) {
-		// Avoid division by zero; put it off-screen.
-		return ImVec2(-10000.0f, -10000.0f);
-	}
-
-	glm::vec3 ndc = glm::vec3(clip) / clip.w;
-
-	const float u = (ndc.x * 0.5f) + 0.5f;
-	const float v = (-ndc.y * 0.5f) + 0.5f;
-
-	const float localX = u * imgSize.x;
-	const float localY = v * imgSize.y;
-
-	return ImVec2(imgPos.x + localX, imgPos.y + localY);
+	return WorldToScenePixel(world, imgPos, imgSize);
 #else
 	// In release builds the editor UI is disabled; this is only used in Debug.
 	(void)world;
@@ -755,10 +743,14 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	}
 
 	for (const auto* obj : objects) {
-		if (!obj) continue;
+		if (!obj) {
+			continue;
+		}
 
 		Shader* shader = obj->GetShader();
-		if (!shader) continue;
+		if (!shader) {
+			continue;
+		}
 
 		shader->Use();
 		shader->SetModelMatrix(obj->GetModelMatrix());
@@ -811,7 +803,6 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	// Release: present the scene FBO to the default framebuffer (GLFW window)
 	PresentSceneToDefaultFramebuffer();
 #endif
-
 
 	GLenum error;
 	while ((error = glGetError()) != GL_NO_ERROR) {
@@ -917,7 +908,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	RenderKey currentKey{ nullptr, nullptr, nullptr };
 
 	auto flushBatch = [&](const std::vector<Mesh::InstanceData>& batch, const RenderKey& key) {
-		if (batch.empty() || !key.mesh || !key.shader) return;
+		if (batch.empty() || !key.mesh || !key.shader) {
+			return;
+		}
 
 		bool wantsInstancing = batch.size() >= INSTANCING_THRESHOLD;
 
@@ -951,6 +944,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			if (key.texture) {
 				key.texture->Bind(0); preferredInstanced->SetTexture("u_Texture", 0);
 			}
+
 			key.mesh->DrawInstanced(key.texture, static_cast<GLsizei>(batch.size()));
 			renderStats.drawCalls++;
 			renderStats.totalBatches++;
@@ -999,7 +993,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Build runs in order, interleaving text objects at layer boundaries
 	for (size_t objIdx = 0; objIdx < objects.size(); ++objIdx) {
 		auto* obj = objects[objIdx];
-		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
+		if (!obj || !obj->GetMesh() || !obj->GetShader()) {
+			continue;
+		}
 
 		int objLayer = obj->GetRenderLayer();
 #ifndef _DEBUG
@@ -1067,6 +1063,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 				obj->DrawBoundingBox(view, projection, glm::vec3{ 1.0f, 0.0f, 0.0f });
 			}
 		}
+
 		DebugRenderer::Flush(view, projection);
 		glEnable(GL_DEPTH_TEST);
 	}
@@ -1083,7 +1080,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Blit to default framebuffer in Release
 	PresentSceneToDefaultFramebuffer();
 #endif
-
 
 	// OpenGL error check loop
 	GLenum error;
@@ -1197,7 +1193,9 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 	shadowShader->SetProjectionMatrix(projectionMatrix);
 
 	for (const GameObject* obj : objects) {
-		if (!obj || !obj->HasShadow()) continue;
+		if (!obj || !obj->HasShadow()) {
+			continue;
+		}
 
 		const glm::vec3 pos = obj->GetPositionGLM();
 		const glm::vec2 size = obj->GetShadowSize();
@@ -1252,6 +1250,7 @@ void GraphicsEngine::StartSceneTransition(float fadeOutSeconds, float fadeInSeco
 	if (transitionPhase_ != TransitionPhase::None) {
 		return; // already running
 	}
+
 	fadeOutTime_ = (fadeOutSeconds <= 0.0f) ? 0.001f : fadeOutSeconds;
 	fadeInTime_ = (fadeInSeconds <= 0.0f) ? 0.001f : fadeInSeconds;
 	transitionPhase_ = TransitionPhase::FadeOut;
@@ -1293,6 +1292,7 @@ void GraphicsEngine::UpdateTransition(float dt) {
 			transitionPhase_ = TransitionPhase::Hold; // wait for external scene switch
 			transitionTimer_ = 0.0f;
 		}
+
 		transitionAlpha_ = t; // 0 -> 1
 		break;
 	}
@@ -1307,6 +1307,7 @@ void GraphicsEngine::UpdateTransition(float dt) {
 			t = 1.0f;
 			transitionPhase_ = TransitionPhase::None;
 		}
+
 		transitionAlpha_ = 1.0f - t; // 1 -> 0
 		break;
 	}
@@ -1337,6 +1338,7 @@ void GraphicsEngine::DrawTransitionOverlay() {
 	if (!blendWasEnabled) {
 		glEnable(GL_BLEND);
 	}
+
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	fadeShader->Use();

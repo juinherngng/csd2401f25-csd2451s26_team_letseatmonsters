@@ -37,7 +37,6 @@ namespace LEPANELFONTS {
 
 class GraphicsEngine : public CoreFramework::SystemInterface {
 public:
-	// Struct to track render statistics for debugging and optimization
 	GraphicsEngine();
 	void Initialize() override;
 	void Update(float dt) override;
@@ -133,55 +132,14 @@ public:
 	// Convert world-space (editor) coordinates to screen-space inside the Scene image
 	ImVec2 WorldToSceneImage(const glm::vec2& world) const;
 
-	// Scene Transition 
+	// Scene Transition
 	void StartSceneTransition(float fadeOutSeconds = 0.35f, float fadeInSeconds = 0.35f);
 	bool IsTransitionActive() const;
-	bool IsAtBlackout() const;           // true when fade-out finished and overlay is fully opaque
-	void ContinueTransitionFadeIn();     // call once you switched scenes to start fade-in
+	bool IsAtBlackout() const;       // true when fade-out finished and overlay is fully opaque
+	void ContinueTransitionFadeIn(); // call once you switched scenes to start fade-in
 
 private:
-	// Core state
-	Renderer renderer;
-	ResourceManager& resourceManager;
-
-	int screenWidth = 1600;
-	int screenHeight = 900;
-
-	// Background rendering
-	std::unique_ptr<GameObject> backgroundObject;
-
-	// Camera
-	glm::mat4 view{ 1.0f };
-	glm::mat4 projection{ 1.0f };
-
-	// Resources
-	void LoadDefaultResources();
-
-	// Letterboxed viewport (centered)
-	int viewportX_ = 0;
-	int viewportY_ = 0;
-	int viewportW_ = 0;
-	int viewportH_ = 0;
-	float viewportScale_ = 1.0f;
-
-	// Off-screen scene FBO
-	unsigned int mSceneFBO = 0;
-	unsigned int mSceneColor = 0; // GL_RGBA8 color texture
-	unsigned int mSceneDepth = 0; // GL_DEPTH24_STENCIL8 renderbuffer
-
-	int mSceneWidth = 1200;
-	int mSceneHeight = 800;
-
-	void CreateSceneFBO(int w, int h);
-	void DestroySceneFBO();
-	void ResizeSceneFBO(int w, int h);
-
-	// Scene window rect (for picking)
-	ImVec2 sceneImagePos_{ 0.0f, 0.0f };
-	ImVec2 sceneImageSize_{ 0.0f, 0.0f };
-	ImGuiID mMainDockspaceId = 0;
-
-	// Batching helpers
+	// Internal helper types
 	struct RenderKey {
 		Mesh* mesh;
 		Shader* shader;
@@ -202,50 +160,83 @@ private:
 		}
 	};
 
-	// Render statistics
 	struct RenderStats {
 		int totalObjects = 0;
 		int totalBatches = 0;
 		int instancedObjects = 0;
 		int drawCalls = 0;
-	} renderStats;
+	};
 
-	// Instancing threshold
-	static constexpr int INSTANCING_THRESHOLD = 10;
-
-	// Text rendering
-	void RenderTextObjects();
-
-	// Render a single text object (used for layered rendering)
-	void RenderSingleTextObject(const LEPANELFONTS::TextObjectData& textData);
-
-	// Shadows
-	void DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
-
-	// Transition 
 	enum class TransitionPhase {
 		None,
 		FadeOut,
-		Hold,     // fully black while the caller switches scenes
+		Hold, // fully black while the caller switches scenes
 		FadeIn
 	};
+
+	// Core systems and world state
+	Renderer renderer;
+	ResourceManager& resourceManager;
+	std::unique_ptr<GameObject> backgroundObject;
+	glm::mat4 view{ 1.0f };
+	glm::mat4 projection{ 1.0f };
+
+	int screenWidth = kRefW;
+	int screenHeight = kRefH;
+	float lastDt = 0.0f;
+
+	// Viewport / render target
+	int viewportX_ = 0;
+	int viewportY_ = 0;
+	int viewportW_ = 0;
+	int viewportH_ = 0;
+	float viewportScale_ = 1.0f;
+
+	unsigned int mSceneFBO = 0;
+	unsigned int mSceneColor = 0; // GL_RGBA8 color texture
+	unsigned int mSceneDepth = 0; // GL_DEPTH24_STENCIL8 renderbuffer
+	int mSceneWidth = 1200;
+	int mSceneHeight = 800;
+
+	// Editor scene view
+	ImVec2 sceneImagePos_{ 0.0f, 0.0f };
+	ImVec2 sceneImageSize_{ 0.0f, 0.0f };
+	ImGuiID mMainDockspaceId = 0;
+
+	// Rendering stats/config
+	RenderStats renderStats;
+	static constexpr int INSTANCING_THRESHOLD = 10;
+
+	// Transition state
 	TransitionPhase transitionPhase_ = TransitionPhase::None;
 	float fadeOutTime_ = 0.0f;
 	float fadeInTime_ = 0.0f;
 	float transitionTimer_ = 0.0f;
 	float transitionAlpha_ = 0.0f;
-
-	// Cached last used fade times for preview UI (debug only)
 	float dbgFadeOutSeconds_ = 0.35f;
 	float dbgFadeInSeconds_ = 0.35f;
 
-	// Transition helpers
-	void UpdateTransition(float dt);
-	void DrawTransitionOverlay();
+	// Lifecycle helpers
+	void LoadDefaultResources();
+	void CreateSceneFBO(int w, int h);
+	void DestroySceneFBO();
+	void ResizeSceneFBO(int w, int h);
 
-	// Shared render helpers
+	// Render helpers
+	void RenderTextObjects();
+	void RenderSingleTextObject(const LEPANELFONTS::TextObjectData& textData);
+	void DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void RenderBackground(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void PresentSceneToDefaultFramebuffer();
-	static int ParseLayerNumber(const std::string& layerName);
+
+	// Coordinate conversion helpers
 	void ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) const;
+	bool TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& outSceneSize) const;
+	glm::vec2 ScenePixelToWorld(const ImVec2& localPixel, const ImVec2& sceneSize) const;
+	ImVec2 WorldToScenePixel(const glm::vec2& world, const ImVec2& scenePos, const ImVec2& sceneSize) const;
+
+	// Misc helpers
+	void UpdateTransition(float dt);
+	void DrawTransitionOverlay();
+	static int ParseLayerNumber(const std::string& layerName);
 };
