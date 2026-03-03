@@ -30,11 +30,6 @@
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 
-#include "AudioLoading.hpp"
-#include "LevelEditor.hpp"
-#include "LevelEditorFileIO.hpp"
-#include "LevelEditorPanelAssets.hpp"
-
 #ifdef _DEBUG
 #include <imgui.h>
 #endif
@@ -103,29 +98,14 @@ namespace LEPANELASSETS {
 
 		ImGui::BeginChild("##AssetsBox", ImVec2(0, 0), true);
 
-		// Helper to gather audio from both ../../assets and ../../assets/Audio (SOURCE directory)
+		// Gather audio recursively from the assets source directory.
 		auto BuildAudioList = []() {
-			std::vector<std::string> all;
-
-			{
-				auto root = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".wav", ".mp3" });
-				all.insert(all.end(), root.begin(), root.end());
-			}
-			{
-				auto sub = ListAssetsWithExt(FilePaths::Dirs::AUDIO_EDITOR, { ".wav", ".mp3" });
-				all.insert(all.end(), sub.begin(), sub.end());
-			}
-
-			// Sort + dedupe for stable ordering
-			std::sort(all.begin(), all.end());
-			all.erase(std::unique(all.begin(), all.end()), all.end());
-
-			return all;
+			return ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".wav", ".mp3" }, true);
 			};
 
 		// Static caches for file lists (refresh when importing or on demand)
 		static std::vector<std::string> sTextures =
-			ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" });
+			ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
 
 		// Audio (.wav, .mp3) across assets + assets/Audio
 		static std::vector<std::string> sAudio = BuildAudioList();
@@ -153,7 +133,7 @@ namespace LEPANELASSETS {
 
 				if (!projectPath.empty()) {
 					// Refresh list after copy
-					sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" });
+					sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
 
 					// Auto-apply to currently selected object unless Ctrl is held
 					ImGuiIO& io = ImGui::GetIO();
@@ -335,7 +315,7 @@ namespace LEPANELASSETS {
 		// Textures section
 		if (ImGui::CollapsingHeader("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##tex")) {
-				sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" });
+				sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
 			}
 
 			bool refreshTextures = false;
@@ -424,7 +404,7 @@ namespace LEPANELASSETS {
 			}
 
 			if (refreshTextures) {
-				sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" });
+				sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
 			}
 		}
 

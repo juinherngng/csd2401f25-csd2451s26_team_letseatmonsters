@@ -247,7 +247,7 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 		jsonData["objects"].push_back(WriteLevelObject(obj));
 	}
 
-	// NEW: Replace the "textObjects" array
+	// Replace the "textObjects" array
 	jsonData["textObjects"] = json::array();
 
 	for (const auto& textObj : inLevel.textObjects) {

@@ -37,17 +37,16 @@ namespace LEPANELFONTS {
 
 class GraphicsEngine : public CoreFramework::SystemInterface {
 public:
-	// ----- Lifecycle -----
+	// Struct to track render statistics for debugging and optimization
 	GraphicsEngine();
-	// SystemInterface implementation
-	void Initialize() override;			// Init renderer, FBO, default resources, ImGui
+	void Initialize() override;
 	void Update(float dt) override;
 	std::string GetName() override {
 		return "GraphicsEngine";
 	}
 
+	// ----- Lifecycle -----
 	static GraphicsEngine& Instance();
-
 	void Shutdown();   // Free GPU resources and shutdown ImGui
 
 	// ----- Per-frame workflow -----
@@ -67,7 +66,6 @@ public:
 	int GetHeight() const {
 		return screenHeight;
 	}
-
 	int GetViewportX() const {
 		return viewportX_;
 	}
@@ -231,7 +229,6 @@ private:
 		Hold,     // fully black while the caller switches scenes
 		FadeIn
 	};
-
 	TransitionPhase transitionPhase_ = TransitionPhase::None;
 	float fadeOutTime_ = 0.0f;
 	float fadeInTime_ = 0.0f;
@@ -242,6 +239,7 @@ private:
 	float dbgFadeOutSeconds_ = 0.35f;
 	float dbgFadeInSeconds_ = 0.35f;
 
+	// Transition helpers
 	void UpdateTransition(float dt);
 	void DrawTransitionOverlay();
 };

@@ -65,6 +65,7 @@ namespace {
 	}
 }
 
+// Singleton access
 GraphicsEngine& GraphicsEngine::Instance() {
 	static GraphicsEngine instance;
 	return instance;
@@ -627,6 +628,7 @@ void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 #endif
 }
 
+// Convert world position to screen coordinates relative to the Scene image (for editor gizmos, etc.)
 ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
 #ifdef _DEBUG
 	// Reconstruct the Scene image rect the same way as in GetMouseWorldInScene
@@ -1357,14 +1359,17 @@ void GraphicsEngine::StartSceneTransition(float fadeOutSeconds, float fadeInSeco
 	transitionAlpha_ = 0.0f;
 }
 
+// Returns true if a transition is in progress (either fading out, hold/blackout, or fading in)
 bool GraphicsEngine::IsTransitionActive() const {
 	return transitionPhase_ != TransitionPhase::None;
 }
 
+// Returns true if currently in the hold/blackout phase (after fade-out completed, before fade-in starts)
 bool GraphicsEngine::IsAtBlackout() const {
 	return transitionPhase_ == TransitionPhase::Hold;
 }
 
+// Called by external code (e.g. SceneManager) when ready to start fade-in after scene switch
 void GraphicsEngine::ContinueTransitionFadeIn() {
 	if (transitionPhase_ == TransitionPhase::Hold) {
 		transitionPhase_ = TransitionPhase::FadeIn;
@@ -1373,6 +1378,7 @@ void GraphicsEngine::ContinueTransitionFadeIn() {
 	}
 }
 
+// Update transition state; should be called every frame with delta time
 void GraphicsEngine::UpdateTransition(float dt) {
 	switch (transitionPhase_) {
 	case TransitionPhase::None:
@@ -1407,6 +1413,7 @@ void GraphicsEngine::UpdateTransition(float dt) {
 	}
 }
 
+// Draw a fullscreen black quad with alpha based on current transition state, on top of the scene FBO
 void GraphicsEngine::DrawTransitionOverlay() {
 	if (transitionPhase_ == TransitionPhase::None || transitionAlpha_ <= 0.0f) {
 		return;
@@ -1448,5 +1455,3 @@ void GraphicsEngine::DrawTransitionOverlay() {
 		glEnable(GL_DEPTH_TEST);
 	}
 }
-
-
