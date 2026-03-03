@@ -39,6 +39,9 @@ void PlayerLogic::Start(Scene& scene) {
 	carriedItemID = -1;
 	pendingTableID = -1;
 	facingDir = FacingDir::Front;
+	mouseDragActive_ = false;
+	hasLastDragWorld_ = false;
+	dragRetargetTimer_ = 0.0f;
 
 	//GameObject* owner = GetOwner(scene);
 	//std::cout << "[PlayerLogic] Start on object ID "
@@ -119,11 +122,18 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 	//movement.SetMoveTarget(player->GetID(), dest);
 }
 
-void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
+void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) {
+	const bool lmbJustPressed = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
+	const bool lmbHeld = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
 
-	// Only once per click (left mouse)
-	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-		//std::cout << "RETURNING\n";
+	if (!lmbHeld) {
+		mouseDragActive_ = false;
+		hasLastDragWorld_ = false;
+		dragRetargetTimer_ = 0.0f;
+	}
+
+	// No click/hold input this frame.
+	if (!lmbJustPressed && !lmbHeld) {
 		return;
 	}
 
@@ -137,6 +147,41 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 		//std::cout << "[PlayerLogic] Mouse not over scene viewport\n";
 		return;
 	}
+
+	// Mouse-primary QoL: hold+drag continuously retargets movement.
+	// This keeps controls responsive when using only mouse movement.
+	if (lmbHeld && !lmbJustPressed) {
+		if (!mouseDragActive_) {
+			mouseDragActive_ = true;
+			hasLastDragWorld_ = false;
+			dragRetargetTimer_ = 0.0f;
+		}
+
+		dragRetargetTimer_ -= dt;
+
+		const float kMinDragRetargetDistSq = 20.0f * 20.0f;
+		const float kRetargetInterval = 0.06f;
+
+		const float dx = mouseWorld.x - lastDragWorld_.x;
+		const float dy = mouseWorld.y - lastDragWorld_.y;
+		const bool movedEnough = !hasLastDragWorld_ ||
+			(dx * dx + dy * dy) >= kMinDragRetargetDistSq;
+
+		if (movedEnough && dragRetargetTimer_ <= 0.0f) {
+			pendingTableID = -1;
+			MoveTo(scene, mouseWorld);
+			lastDragWorld_ = mouseWorld;
+			hasLastDragWorld_ = true;
+			dragRetargetTimer_ = kRetargetInterval;
+		}
+
+		return;
+	}
+
+	mouseDragActive_ = true;
+	lastDragWorld_ = mouseWorld;
+	hasLastDragWorld_ = true;
+	dragRetargetTimer_ = 0.0f;
 
 	//std::cout << "[PlayerLogic] Click world = (" << mouseWorld.x << ", " << mouseWorld.y << ")\n";
 
@@ -494,7 +539,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	if (stepMode && physicsDt <= 0.0f) {
 		// Optional: still allow click selection while frozen
 		//std::cout << "HANDLE CLICK INPUT FREONZE\n";
-		HandleClickInput(scene, input);
+		HandleClickInput(scene, input, dt);
 
 		// Debug: prove we still see the key
 		if (input.IsKeyJustPressed(GLFW_KEY_P)) {
@@ -557,7 +602,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	//std::cout << "HANDLE CLICK INPUT\n";
 
-	HandleClickInput(scene, input);
+	HandleClickInput(scene, input, dt);
 
 	UpdateMovement(dt, scene);
 

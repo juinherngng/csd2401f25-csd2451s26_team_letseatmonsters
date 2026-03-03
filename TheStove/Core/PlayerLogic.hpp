@@ -86,7 +86,7 @@ private:
 	bool hasCarriedItemOriginalColliderSize{ false };
 
 	// Internal helpers
-	void HandleClickInput(Scene& scene, InputManager& input); // Unity: input + raycast
+	void HandleClickInput(Scene& scene, InputManager& input, float dt); // Unity: input + raycast
 	void UpdateMovement(float dt, Scene& scene);              // Unity: NavMeshAgent movement
 	void OnArrived(Scene& scene);                             // Unity: OnArrived() hook
 	void UpdateSprite(Scene& scene, GameObject* player, const glm::vec2& moveDir);
@@ -98,6 +98,12 @@ private:
 	float footstepDistanceAcc_ = 0.0f;
 	bool wasMoving_ = false;
 	float footstepEmitTimer_ = 0.0f;
+
+	// Mouse-primary movement quality helpers (drag-to-move)
+	bool mouseDragActive_ = false;
+	glm::vec2 lastDragWorld_{ 0.0f, 0.0f };
+	bool hasLastDragWorld_ = false;
+	float dragRetargetTimer_ = 0.0f;
 
 	glm::vec3 lastTrailPos_{ 0.0f, 0.0f, 0.0f };
 	bool hasLastTrailPos_ = false;
