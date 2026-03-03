@@ -153,12 +153,17 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	if (IsAnyCutsceneActive()) {
 		inputManager.ClearState();
 	} else {
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 		inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager, spriteID, useForces_, showAuxDebug_);
+#endif
 	}
 
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
 		mLevelEditor.Toggle();
 	}
+
+#endif
 
 #ifndef _DEBUG
 
@@ -337,7 +342,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// update any UI slide-in animations regardless of simulation flag
 	UpdateUiSlides(deltaTime);
 
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
+#endif
 	(void)window;
 
 	for (int id : pendingDespawns_) {
@@ -1170,11 +1177,11 @@ void Scene::RenderFPSText() {
 		return;
 	}
 
-	static bool firstRender = true;
-	if (firstRender) {
-		std::cout << "[Scene] RenderFPSText() called for the first time" << std::endl;
-		firstRender = false;
-	}
+	//static bool firstRender = true;
+	//if (firstRender) {
+	//	std::cout << "[Scene] RenderFPSText() called for the first time" << std::endl;
+	//	firstRender = false;
+	//}
 
 	glm::mat4 projection = graphicsEngine.GetProjection();
 

@@ -465,7 +465,7 @@ private:
 	// Scene state
 	bool simulationActive = false;
 	bool useForces_ = false;
-	bool showAuxDebug_ = true;
+	bool showAuxDebug_ = false;
 
 	int spriteID = -1;
 	int dinoID = -1;

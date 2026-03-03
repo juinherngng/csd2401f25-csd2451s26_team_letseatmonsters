@@ -159,6 +159,7 @@ namespace {
 		}
 	}
 
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	static constexpr int MAX_UNDO = 50;
 	static std::vector<LevelData> sUndoStack;
 	static std::vector<LevelData> sRedoStack;
@@ -250,6 +251,7 @@ namespace {
 		sRedoStack.clear();
 	}
 
+#endif
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		LELINKS::PrefabLinkByID.clear();
@@ -471,7 +473,7 @@ namespace {
 		scene.SetDefaults(bID, defB);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	// Draws the advanced Layering System UI (debug-only)
 	static void DrawLayerManager(Scene& scene, int selectedObjectId) {
 		if (!ImGui::CollapsingHeader("Layering System", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -589,12 +591,12 @@ namespace {
 			ImGui::TextDisabled("Select an object to enable Assign.");
 		}
 	}
-#endif // _DEBUG
+#endif
 }
 
 // Public ImGui Level Panel Implementation
 namespace LEPANELLEVEL {
-#ifdef _DEBUG
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	void DrawLevelPanel(LevelEditor& editor, Scene& scene,
 		int& selectedIndex, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
