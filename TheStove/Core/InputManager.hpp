@@ -65,10 +65,8 @@ public:
 	// Clear all key/mouse state (used when losing/regaining focus)
 	void ClearState();
 
-	// Consume next mouse press event
+	// Mouse press consumption (for one frame only)
 	void ConsumeNextMousePress(int button);
-
-	// Helper to clear pending consume flag for one button
 	void ClearMouseConsume(int button);
 
 private:

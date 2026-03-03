@@ -21,6 +21,9 @@ Centralized constants for all asset file paths used throughout the engine.
 */
 /************************************************************************/
 namespace FilePaths {
+	inline std::string JoinPath(const char* dir, const std::string& filename) {
+		return std::string(dir) + filename;
+	}
 
 	// ============================================================================
 	// Base Directories
@@ -105,7 +108,7 @@ namespace FilePaths {
 	 */
 	 /************************************************************************/
 	inline std::string TexturePath(const std::string& filename) {
-		return std::string(Dirs::ASSETS) + filename;
+		return JoinPath(Dirs::ASSETS, filename);
 	}
 
 	/************************************************************************/
@@ -119,7 +122,7 @@ namespace FilePaths {
 	*/
 	/************************************************************************/
 	inline std::string LevelPath(const std::string& filename) {
-		return std::string(Dirs::LEVELS) + filename;
+		return JoinPath(Dirs::ASSETS, filename);
 	}
 
 	/************************************************************************/
@@ -133,7 +136,7 @@ namespace FilePaths {
 	*/
 	/************************************************************************/
 	inline std::string PrefabPath(const std::string& filename) {
-		return std::string(Dirs::PREFABS) + filename;
+		return JoinPath(Dirs::ASSETS, filename);
 	}
 
 	/************************************************************************/
@@ -147,7 +150,7 @@ namespace FilePaths {
 	*/
 	/************************************************************************/
 	inline std::string FontPath(const std::string& filename) {
-		return std::string(Dirs::FONTS) + filename;
+		return JoinPath(Dirs::ASSETS, filename);
 	}
 
 	/**
@@ -166,7 +169,7 @@ namespace FilePaths {
 	 */
 	 /************************************************************************/
 	inline std::string AudioPath(const std::string& filename) {
-		return std::string(Dirs::AUDIO) + filename;
+		return JoinPath(Dirs::ASSETS, filename);
 	}
 
 	/************************************************************************/
@@ -180,7 +183,7 @@ namespace FilePaths {
 	*/
 	/************************************************************************/
 	inline std::string CutscenePath(const std::string& filename) {
-		return std::string(Dirs::CUTSCENES) + filename;
+		return JoinPath(Dirs::ASSETS, filename);
 	}
 
 } // namespace FilePaths

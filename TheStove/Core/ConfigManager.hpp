@@ -67,7 +67,7 @@ namespace ConfigManager {
 	 * @param s Settings to write.
 	 * @return True if successfully written.
 	 */
-	bool Save(const std::string& patfilePathh, const Settings& s);
+	bool Save(const std::string& filePath, const Settings& s);
 
 	/**
 	 * @brief Tries to load settings from `assets/config.txt` relative to executable.

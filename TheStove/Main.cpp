@@ -79,7 +79,7 @@ struct ApplicationState {
 	int windowedHeight = 800;
 	bool f11WasDown = false;
 
-	// pending state switch to perform at transition blackout
+	// Pending state switch to perform at transition blackout
 	int pendingStateAfterFade = -1;
 };
 
@@ -116,6 +116,7 @@ static void signalHandler(int signal) {
 	}
 }
 
+// GLFW framebuffer resize callback - updates viewport and informs graphics engine
 static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	(void)window;
 
@@ -136,11 +137,13 @@ static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	}
 }
 
+// GLFW window focus callback - pause on focus loss, resume on focus gain
 static void HandlePauseResume(bool pause) {
 	if (!g_AppState || !g_AppState->coreEngine) {
 		return;
 	}
 
+	// Get relevant systems and current scene for pause/resume actions
 	auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>();
 	auto* inputMgr = g_AppState->coreEngine->GetSystem<InputManager>();
 	auto* animMgr = g_AppState->coreEngine->GetSystem<AnimationManager>();
@@ -201,6 +204,7 @@ static void HandlePauseResume(bool pause) {
 	}
 }
 
+// Fullscreen toggle helper - handles saving/restoring windowed position and size, switching modes, and updating viewport/graphics engine
 static void ToggleFullscreen(ApplicationState& app) {
 	if (!app.window) {
 		return;
@@ -351,7 +355,7 @@ int main() {
 		std::cerr << "AudioManager system not found in CoreEngine\n";
 	}
 
-	// test tile map
+	// Load the initial scene (can be a menu or the first level)
 	std::cout << "Testing TileMap class" << std::endl;
 	MapData testMap(6, 6);
 
@@ -861,11 +865,6 @@ static void update(ApplicationState& app) {
 #endif
 
 	app.coreEngine->GameLoop();
-
-	// if (app.debugApp->IsActive())
-	// {
-	//     app.debugApp->UpdateDebuggerApp();
-	// }
 }
 
 static void draw(ApplicationState& app) {
@@ -919,6 +918,7 @@ static void draw(ApplicationState& app) {
 	glfwSwapBuffers(app.window);
 }
 
+// Comprehensive cleanup function to gracefully shut down the application and all subsystems
 void cleanup(ApplicationState& app) {
 	static bool cleanupCalled = false;
 

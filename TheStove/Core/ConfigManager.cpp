@@ -18,13 +18,14 @@
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <vector>
 #include <windows.h>
 
 namespace fs = std::filesystem;
 
 namespace ConfigManager {
 	namespace {
-		/** @brief Trims whitespace from both ends of a string. */
+		// Helper to trim leading and trailing whitespace from a string
 		std::string Trim(std::string str) {
 			auto isNotSpace = [](unsigned char ch) { return !std::isspace(ch); };
 
@@ -38,7 +39,7 @@ namespace ConfigManager {
 			return str;
 		}
 
-		/** @brief Case-insensitive comparison of two strings. */
+		// Case-insensitive string comparison
 		bool IEquals(const std::string& lhs, const std::string& rhs) {
 			if (lhs.size() != rhs.size()) return false;
 			for (size_t i = 0; i < lhs.size(); ++i) {
@@ -50,7 +51,7 @@ namespace ConfigManager {
 			return true;
 		}
 
-		/** @brief Parses a string into bool. */
+		// Parses a string into bool. Accepts "true"/"false" (case-insensitive) or "1"/"0".
 		bool ParseBool(const std::string& str, bool& valueOut) {
 			if (IEquals(str, "true") || str == "1") {
 				valueOut = true; return true;
@@ -63,7 +64,7 @@ namespace ConfigManager {
 			return false;
 		}
 
-		/** @brief Parses a string into int. */
+		// Parses a string into int. Returns false if parsing fails or if there are extra characters.
 		bool ParseInt(const std::string& str, int& valueOut) {
 			try {
 				size_t pos = 0;
@@ -78,7 +79,7 @@ namespace ConfigManager {
 			}
 		}
 
-		/** @brief Parses a string into float. */
+		// Parses a string into float. Returns false if parsing fails or if there are extra characters.
 		bool ParseFloat(const std::string& str, float& valueOut) {
 			try {
 				size_t pos = 0;
@@ -92,45 +93,71 @@ namespace ConfigManager {
 				return false;
 			}
 		}
+
+		// Applies a single key=value setting to the config struct. Ignores unknown keys.
+		void ApplySetting(const std::string& key, const std::string& val, Settings& cfg) {
+			int parsedInt = 0;
+			bool parsedBool = false;
+			float parsedFloat = 0.0f;
+
+			if (key == "window_width") {
+				if (ParseInt(val, parsedInt)) cfg.resolution.width = parsedInt;
+				return;
+			}
+			if (key == "window_height") {
+				if (ParseInt(val, parsedInt)) cfg.resolution.height = parsedInt;
+				return;
+			}
+			if (key == "fullscreen") {
+				if (ParseBool(val, parsedBool)) cfg.fullscreen = parsedBool;
+				return;
+			}
+			if (key == "master_volume") {
+				if (ParseFloat(val, parsedFloat)) cfg.masterVolume = parsedFloat;
+				return;
+			}
+			if (key == "bgm_volume") {
+				if (ParseFloat(val, parsedFloat)) cfg.bgmVolume = parsedFloat;
+				return;
+			}
+			if (key == "vfx_volume") {
+				if (ParseFloat(val, parsedFloat)) cfg.vfxVolume = parsedFloat;
+				return;
+			}
+
+			if (key == "audio_volume" && ParseFloat(val, parsedFloat)) {
+				// Optional convenience: applies to both BGM and VFX if present.
+				cfg.bgmVolume = parsedFloat;
+				cfg.vfxVolume = parsedFloat;
+			}
+		}
 	}
 
+	// Enforces valid ranges and constraints on settings(e.g.minimum resolution, volume clamping)
 	void Validate(Settings& s) {
 		// Enforce minimum resolution
 		if (s.resolution.width < 320) s.resolution.width = 320;
 		if (s.resolution.height < 200) s.resolution.height = 200;
 
 		// Clamp master volume
-		if (s.masterVolume < 0.0f) {
-			s.masterVolume = 0.0f;
-		}
-		if (s.masterVolume > 1.0f) {
-			s.masterVolume = 1.0f;
-		}
+		const auto clamp01 = [](float value) {
+			return std::clamp(value, 0.0f, 1.0f);
+			};
 
-		// Clamp BGM volume
-		if (s.bgmVolume < 0.0f) {
-			s.bgmVolume = 0.0f;
-		}
-		if (s.bgmVolume > 1.0f) {
-			s.bgmVolume = 1.0f;
-		}
-
-		// Clamp VFX volume
-		if (s.vfxVolume < 0.0f) {
-			s.vfxVolume = 0.0f;
-		}
-		if (s.vfxVolume > 1.0f) {
-			s.vfxVolume = 1.0f;
-		}
+		s.masterVolume = clamp01(s.masterVolume);
+		s.bgmVolume = clamp01(s.bgmVolume);
+		s.vfxVolume = clamp01(s.vfxVolume);
 	}
 
+	// Fluent setters for chaining (returns modified copy)
 	Settings WithResolution(Settings s, int width, int height) {
 		s.resolution.width = width;
 		s.resolution.height = height;
 		Validate(s);
 		return s;
 	}
-
+	
+	// Fluent setter for fullscreen
 	bool Load(const std::string& filePath, Settings& out) {
 		std::ifstream ifs(filePath);
 		if (!ifs.is_open()) {
@@ -157,53 +184,7 @@ namespace ConfigManager {
 			std::string key = Trim(lineBuf.substr(0, eqPos));
 			std::string val = Trim(lineBuf.substr(eqPos + 1));
 
-			if (key == "window_width") {
-				int parsed = 0;
-				if (ParseInt(val, parsed)) {
-					cfg.resolution.width = parsed;
-				}
-			}
-			else if (key == "window_height") {
-				int parsed = 0;
-				if (ParseInt(val, parsed)) {
-					cfg.resolution.height = parsed;
-				}
-			}
-			else if (key == "fullscreen") {
-				bool parsed = false;
-				if (ParseBool(val, parsed)) {
-					cfg.fullscreen = parsed;
-				}
-			}
-			else if (key == "master_volume") {
-				float parsed = 0.0f;
-				if (ParseFloat(val, parsed)) {
-					cfg.masterVolume = parsed;
-				}
-			}
-			else if (key == "bgm_volume") {
-				float parsed = 0.0f;
-				if (ParseFloat(val, parsed)) {
-					cfg.bgmVolume = parsed;
-				}
-			}
-			else if (key == "vfx_volume") {
-				float parsed = 0.0f;
-				if (ParseFloat(val, parsed)) {
-					cfg.vfxVolume = parsed;
-				}
-			}
-			else if (key == "audio_volume") {
-				// Optional convenience: applies to both BGM and VFX if present.
-				float parsed = 0.0f;
-				if (ParseFloat(val, parsed)) {
-					cfg.bgmVolume = parsed;
-					cfg.vfxVolume = parsed;
-				}
-			}
-			else {
-				// Unknown keys are ignored (forward compatible).
-			}
+			ApplySetting(key, val, cfg);
 		}
 
 		Validate(cfg);
@@ -212,6 +193,7 @@ namespace ConfigManager {
 		return true;
 	}
 
+	// Fluent setter for fullscreen
 	bool Save(const std::string& filePath, const Settings& s) {
 		std::ofstream ofs(filePath, std::ios::trunc);
 		if (!ofs.is_open()) {
@@ -229,6 +211,7 @@ namespace ConfigManager {
 		return static_cast<bool>(ofs);
 	}
 
+	// Attempts to load config from multiple candidate locations in the executable's directory hierarchy. Falls back to defaults if not found.
 	bool LoadFromAssets(Settings& out, const char* filename) {
 		const char* fname = filename ? filename : "config.txt";
 

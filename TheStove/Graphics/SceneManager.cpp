@@ -70,6 +70,7 @@ void Scene::SetSimulationActive(bool active) {
 	}
 }
 
+// Query
 bool Scene::IsSimulationActive() const {
 	return simulationActive;
 }
@@ -79,6 +80,7 @@ const std::string& Scene::GetObjectTexturePath(int id) const {
 	return entityManager.GetTexturePath(id);
 }
 
+// Update the texture path for an object (used by LevelEditor and JSON loading to keep track of the original texture path, since the GameObject's current texture can change due to animation or other effects)
 void Scene::SetObjectTexturePath(int id, const std::string& path) {
 	entityManager.SetTexturePath(id, path);
 }
@@ -97,6 +99,7 @@ Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& a
 	AddLayer("1");
 }
 
+// Load a scene by name (currently just a stub that clears and sets a background, but can be expanded to load from JSON or other formats)
 void Scene::LoadScene(const std::string& sceneName) {
 	(void)sceneName;
 
@@ -113,6 +116,7 @@ void Scene::LoadScene(const std::string& sceneName) {
 	SetSceneBackground(FilePaths::Textures::BACKGROUND);
 }
 
+// Per-frame update: drive all systems, logic, and cutscenes; handle pending clear requests; manage simulation state and input processing
 void Scene::Update(float deltaTime, GLFWwindow* window) {
 #ifdef _DEBUG
 	UpdateAnimationControls();
@@ -173,6 +177,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 			if (!f) {
 				f = FontSystem::FontManager::Instance().LoadFont("fps_font", FilePaths::Fonts::TO_THE_POINT, 48);
 			}
+
 			if (f) {
 				fpsText_.SetFont(f);
 				fpsText_.SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)); // yellow for visibility
@@ -197,11 +202,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
 	lastPhysicsDt_ = physicsDt;
 
-	// ALWAYS update logic (menu buttons need this even with simulation disabled)
+	// Always update logic (menu buttons need this even with simulation disabled)
 	logicManager.StartAll(*this);
 	logicManager.UpdateAll(deltaTime, *this, inputManager);
 
-	// NEW: seat customers at tables once.
+	// Seat customers at tables once
 	customerManager_.Update(physicsDt, *this);
 
 	if (simulationActive) {
@@ -325,10 +330,12 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 					}
 #endif
 				}
+
 				LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
 				//Economy::Reset();
 			}
 		}
+
 		hasPendingLevel_ = false;
 		pendingLevelPath_.clear();
 	}
@@ -336,7 +343,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	// Update runtime particles
 	particleSystem_.Update(deltaTime, entityManager);
 
-	// update any UI slide-in animations regardless of simulation flag
+	// Update any UI slide-in animations regardless of simulation flag
 	UpdateUiSlides(deltaTime);
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
@@ -347,6 +354,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	for (int id : pendingDespawns_) {
 		DespawnByID(id);
 	}
+
 	pendingDespawns_.clear();
 
 #ifndef _DEBUG
@@ -407,12 +415,14 @@ void Scene::ResetResizeBaseline() {
 	resetBaseline_ = true;
 }
 
+// UI
 void Scene::DrawUI() {
 	if (mLevelEditor.IsEnabled()) {
 		mLevelEditor.DrawUI(*this);
 	}
 }
 
+// Render text objects that are part of the level
 void Scene::ClearAll() {
 	// Clear scripts first so they no longer reference objects
 	logicManager.Clear(*this);
@@ -429,6 +439,7 @@ void Scene::ClearAll() {
 	otherID2 = -1;
 }
 
+// Request a clear to be processed at the start of the next update cycle
 void Scene::RequestClearAll() {
 	pendingClear_ = true;
 }
@@ -438,6 +449,7 @@ GraphicsEngine& Scene::GetGraphicsEngine() {
 	return graphicsEngine;
 }
 
+// Provide const version of GraphicsEngine accessor for systems that only need read access
 const GraphicsEngine& Scene::GetGraphicsEngine() const {
 	return graphicsEngine;
 }
@@ -447,6 +459,7 @@ void Scene::SetPlayerID(int id) {
 	spriteID = id;
 }
 
+// Spawns a static sprite with the specified texture, position, size, and layer. Also initializes a default collider and shadow settings.
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	const glm::vec3 position,
 	const glm::vec2 size,
@@ -470,6 +483,7 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	return obj;
 }
 
+// Spawns an animated sprite with the specified texture, position, size, animation frames, frame duration, looping behavior, and layer. Also initializes a default collider and shadow settings.
 GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
 	const glm::vec3 position,
 	const glm::vec2 size,
@@ -495,14 +509,16 @@ GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
 	return obj;
 }
 
+// Spawns a static sprite at the same position as an existing object (identified by ownerID) with the specified texture, size, and layer. Also initializes a default collider and shadow settings.
 GameObject* Scene::SpawnStaticSpriteAtSamePos(int ownerID,
 	const std::string& texturePath,
 	float width,
 	float height,
 	const std::string& layer) {
 	GameObject* owner = GetGameObjectByID(ownerID);
-	if (!owner)
+	if (!owner) {
 		return nullptr;
+	}
 
 	glm::vec3 pos = owner->GetPositionGLM();
 
@@ -512,8 +528,9 @@ GameObject* Scene::SpawnStaticSpriteAtSamePos(int ownerID,
 		glm::vec2(width, height),
 		layer
 	);
-	if (!obj)
+	if (!obj) {
 		return nullptr;
+	}
 
 	const int id = obj->GetID();
 
@@ -539,15 +556,17 @@ GameObject* Scene::SpawnStaticSpriteAtSamePos(int ownerID,
 	return obj;
 }
 
-
+// Retrieves a pointer to a GameObject by its unique ID. Returns nullptr if no object with the given ID exists.
 GameObject* Scene::GetGameObjectByID(int targetID) {
 	return entityManager.GetByID(targetID);
 }
 
+// Retrieves a vector of pointers to all GameObjects currently managed by the scene.
 std::vector<GameObject*> Scene::GetAllObjectsRaw() {
 	return entityManager.GetAllObjects();
 }
 
+// Despawns (removes) an object from the scene by its unique ID. Also handles cleanup of associated logic and tags.
 void Scene::DespawnByID(int targetID) {
 	// Play destroy audio before removing the object
 	PlayDestroyAudio(targetID);
@@ -560,6 +579,7 @@ void Scene::DespawnByID(int targetID) {
 	entityManager.DespawnByID(targetID);
 }
 
+// Collects pointers to all GameObjects that should be rendered, sorted by layer and Y position for correct draw order. Applies visibility rules based on per-object defaults and layer settings.
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	out.clear();
 
@@ -607,6 +627,7 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 			if (!layer->IsEnabled()) {
 				continue;
 			}
+
 			if (!layer->IsVisible()) {
 				continue;
 			}
@@ -644,6 +665,7 @@ void Scene::SetSceneBackground(const std::string& texturePath) {
 	graphicsEngine.SetBackground(texturePath);
 }
 
+// Sets the position, scale, and rotation (in degrees) of an object by its ID. Converts rotation from degrees to radians for internal use. Also updates the GameObject's transform if it exists.
 void Scene::SetTransformFromLevel(int id,
 	const glm::vec3& pos,
 	const glm::vec3& scale,

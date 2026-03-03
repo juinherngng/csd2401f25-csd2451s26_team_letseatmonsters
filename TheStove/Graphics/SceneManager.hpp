@@ -61,20 +61,21 @@
   */
 class Scene {
 public:
-	// Core Lifecycle testing
-
+	// Systems and managers
 	GraphicsEngine& GetGraphicsEngine();
 	const GraphicsEngine& GetGraphicsEngine() const;
 
+	// Input manager for player input and UI interactions
 	MovementManager& GetMovementManager();
 	const MovementManager& GetMovementManager() const;
 
+	// Physics manager for physics simulation and queries
 	CollisionManager& GetCollisionManager();
 	const CollisionManager& GetCollisionManager() const;
-
 	collision::World& GetCollisionWorld();
 	const collision::World& GetCollisionWorld() const;
 
+	// Entity manager for game object lifecycle and data access
 	PlayerController& GetPlayerController() {
 		return playerController;
 	}
@@ -82,6 +83,7 @@ public:
 		return playerController;
 	}
 
+	// Logic manager for tag-based behavior attachment and per-object logic updates
 	LogicManager& GetLogicManager() {
 		return logicManager;
 	}
@@ -89,15 +91,7 @@ public:
 		return logicManager;
 	}
 
-	/**
-	 * @brief Construct a new Scene object.
-	 * @param engine Reference to the graphics engine used for rendering.
-	 * @param inputMgr Reference to the input manager system.
-	 * @param animMgr Reference to the animation manager system.
-	 * @param moveMgr Reference to the movement manager system.
-	 * @param physicsMgr Reference to the physics manager system.
-	 * @param collisionMgr Reference to the collision manager system.
-	*/
+	// Animation manager for sprite animations and control
 	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
 		MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
@@ -117,21 +111,23 @@ public:
 	void PlayDestroyAudio(int objectId);
 	void PlayProcessingAudio(int objectId);   // Start looping processing audio
 	void StopProcessingAudio(int objectId);   // Stop processing audio
-	void StopAllObjectAudio();  // Stop all audio bound to objects
+	void StopAllObjectAudio();				  // Stop all audio bound to objects
 
+	// Scene lifecycle and updates
 	void LoadScene(const std::string& sceneName);
 	void Update(float deltaTime, GLFWwindow* window);
 
+	// Rendering
 	void DrawUI();
 	void ClearAll();
 	void RequestClearAll();
-
 	void RenderLevelTextObjects();
 
 	// Simulation control
 	void SetSimulationActive(bool active);
 	bool IsSimulationActive() const;
 
+	// Physics step control
 	void ResetResizeBaseline();
 	float GetLastPhysicsDt() const {
 		return lastPhysicsDt_;
@@ -142,17 +138,13 @@ public:
 
 	// Spawning / object management
 
-	/**
-	  * @brief Spawns a static sprite with a given texture and size.
-	  */
+	// Spawns a static sprite with a given texture, size, and layer. Returns the new GameObject* or nullptr on failure.
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
 		const glm::vec3 position,
 		const glm::vec2 size = glm::vec2(100.0f, 100.0f),
 		const std::string& layer = "Not set in JSON");
 
-	/**
-	 * @brief Spawns an animated sprite with frames and timing.
-	 */
+	// Spawns an animated sprite with a given texture, size, and animation frames.
 	GameObject* SpawnAnimatedSprite(const std::string& texturePath,
 		const glm::vec3 position,
 		const glm::vec2 size,
@@ -168,9 +160,7 @@ public:
 		float height,
 		const std::string& layer);
 
-	/**
-	 * @brief Retrieve a game object by its ID.
-	 */
+	// Spawns an animated sprite at the same position as ownerID, with given texture/size/frames/layer.
 	GameObject* GetGameObjectByID(int targetID);
 	std::vector<GameObject*> GetAllObjectsRaw();
 	void DespawnByID(int targetID);
@@ -178,15 +168,15 @@ public:
 
 	// Scene / transform utilities
 
-	/**
-	 * @brief Set the background texture for the scene.
-	 */
+	// Set the scene background texture
 	void SetSceneBackground(const std::string& texturePath);
 
+	// Set the transform of the object with given ID, using level editor semantics
 	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
 	void ClampToWalkArea(GameObject* obj);
 	glm::vec2 ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta);
 
+	// Coordinate scaling utilities (for level editor reference vs actual game units)
 	float ScaleXToCurrent(float referenceX) const;
 	float ScaleYToCurrent(float referenceY) const;
 	float ToRefX(float currentX) const;
@@ -197,11 +187,13 @@ public:
 	std::vector<std::string> GetAnimationList(int id) const;
 	std::string GetCurrentAnimationName(int id) const;
 
+	// Set the current animation of the object with given ID. Does nothing if object doesn't exist or doesn't have that animation.
 	void SetAnimation(int objID, const std::string& newAnim);
 	void AttachDinoAnimations(int objID);
 	void MarkAnimated(int id, bool state);
 	void AttachMenuAnimations(int objID);
 
+	// Stress test helper (spawns a large number of objects with simple movement logic to test performance and stability)
 	void GenerateStressTest(int objectCount = 2500);
 	void UpdateAnimationControls();
 
@@ -259,11 +251,11 @@ public:
 		npcSystem.RegisterLaneNPC(id, laneX);
 	}
 
+	// Exit gate handling
 	void RegisterExitGate(int id) {
 		exitGateID_ = id;
 		exitGateCached_ = false;
 	}
-
 	Math::Vector2D GetExitGateWorldPos() {
 		if (exitGateID_ < 0) return { 0.f, 0.f };
 		if (GameObject* g = GetGameObjectByID(exitGateID_)) {
@@ -284,7 +276,7 @@ public:
 		glm::vec2 colSize{ 64,128 };
 		glm::vec2 colOff{ 0,0 };
 		glm::vec2 vel{ 0,0 };
-		glm::vec2 approachOffset{ 0,0 }; // NEW: for table approach point
+		glm::vec2 approachOffset{ 0,0 }; // Table approach point
 		std::string texture;
 		std::string tag;
 		std::string layer;
@@ -326,6 +318,7 @@ public:
 	Layer* GetLayer(const std::string& name);
 	const std::unordered_map<std::string, Layer>& GetAllLayers() const;
 
+	// Layer assignment helpers
 	std::string GetObjectLayer(int objectID) const;
 	void AssignObjectToLayer(int id, const std::string& newLayer);
 	void RemoveLayer(const std::string& name);
@@ -334,11 +327,10 @@ public:
 	bool IsLayerEnabled(const std::string& layerName) const;
 	bool IsObjectLayerEnabled(int objectID) const;
 
-	// World / collision rebuilds
+	// Collision and walk area
 	void BuildLevelColliders();
 	void RebuildColliders();
 	void ResolveInitialStaticOverlaps();
-
 	collision::WalkArea GetWalkArea() const;
 	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
 	void ApplyFinalConstraints(EntityManager& entityMgr);
@@ -390,6 +382,7 @@ public:
 	// FPS display rendering
 	void RenderFPSText();
 
+	// Pending despawn queue (to avoid modifying EntityManager during iteration)
 	void RequestDespawn(int id) {
 		pendingDespawns_.push_back(id);
 	}
@@ -403,6 +396,7 @@ public:
 		const std::string& levelJsonPath,
 		bool activateSimulation);
 
+	// Starts a cutscene with fade transitions between frames. 'holdSeconds' controls how long each image is held at full opacity before transitioning to the next.
 	void StartCutsceneTransitioned(const std::vector<std::string>& imagePaths,
 		const std::string& levelJsonPath,
 		bool activateSimulation,
@@ -469,23 +463,27 @@ private:
 	bool useForces_ = false;
 	bool showAuxDebug_ = false;
 
+	// ID tracking for important objects (player, NPCs, etc.)
 	int spriteID = -1;
 	int dinoID = -1;
 	int otherID = -1;
 	int otherID2 = -1;
 
+	// Cached exit gate info for quick access (assuming only one exit gate per level)
 	int exitGateID_ = -1;
 	bool exitGateCached_ = false;
 	Math::Vector2D exitGateWorld_{ 0.0f, 0.0f };
 
-
+	// Centralized defaults and metadata for objects, keyed by ID
 	std::unordered_map<int, Defaults> defaults_;
 	std::unordered_map<std::string, Layer> layers;
 
+	// Resize handling
 	int lastWidth_ = -1;
 	int lastHeight_ = -1;
 	bool resetBaseline_ = false;
 
+	// Clear all pending flag (to avoid modifying EntityManager during iteration)
 	bool pendingClear_ = false;
 	int editorSelectedId = -1;
 	std::string currentLevelPath_;
@@ -533,7 +531,7 @@ private:
 
 	std::vector<int> pendingDespawns_;
 
-	// Simple cutscene runner state
+	// Basic cutscene runner with simple fade-out, image swap, fade-in sequence. No cross-fade or separate hold time.
 	struct CutsceneState {
 		bool active = false;
 		std::vector<std::string> images;
@@ -563,6 +561,7 @@ private:
 		bool supportsAlpha = false;
 	} cutscene_;
 
+	// More advanced cutscene runner with support for fade transitions between frames, optional cross-fade, and separate hold time after fade-in.
 	struct CutsceneTrans {
 		bool active = false;
 		std::vector<std::string> images;
@@ -622,13 +621,14 @@ private:
 	}
 
 public:
-	// Fade-out -> load JSON at blackout -> fade-in
+	// Starts a level transition cutscene with fade-out, image swap, fade-in sequence. No cross-fade or separate hold time.
 	void StartLevelTransition(const std::string& levelJsonPath,
 		bool activateSimulation,
 		float fadeOutSeconds = 0.35f,
 		float fadeInSeconds = 0.35f);
 
 private:
+	// Simpler version of cutscene transition for level changes without per-frame images. Reuses some cutTrans_ state for convenience.
 	struct LevelTrans {
 		bool active = false;
 		bool awaitingBlackout = false;
@@ -639,6 +639,4 @@ private:
 	} levelTrans_;
 
 	void UpdateLevelTransition();
-
-
 };
