@@ -19,6 +19,8 @@
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
@@ -408,6 +410,119 @@ void GraphicsEngine::BeginImGuiFrame() {
 #endif
 }
 
+int GraphicsEngine::ParseLayerNumber(const std::string& layerName) {
+	if (layerName.empty()) {
+		return 1;
+	}
+
+	int result = 0;
+	for (char c : layerName) {
+		if (!std::isdigit(static_cast<unsigned char>(c))) {
+			return 1000000;
+		}
+		result = result * 10 + (c - '0');
+	}
+
+	return result;
+}
+
+void GraphicsEngine::ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
+	outPos = sceneImagePos_;
+	outSize = sceneImageSize_;
+
+	if (outSize.x > 1.0f && outSize.y > 1.0f) {
+		return;
+	}
+
+	const float targetAspect = float(kRefW) / float(kRefH);
+	ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
+	if (sceneWin) {
+		const ImRect contentRect = sceneWin->InnerRect;
+		float w = contentRect.GetWidth();
+		float h = contentRect.GetHeight();
+		const float ratio = w / h;
+		if (ratio > targetAspect) {
+			w = h * targetAspect;
+		}
+		else {
+			h = w / targetAspect;
+		}
+
+		outPos = ImVec2(contentRect.Min.x + (contentRect.GetWidth() - w) * 0.5f,
+			contentRect.Min.y + (contentRect.GetHeight() - h) * 0.5f);
+		outSize = ImVec2(w, h);
+		return;
+	}
+
+	ImGuiViewport* viewport = ImGui::GetMainViewport();
+	float w = viewport->WorkSize.x;
+	float h = viewport->WorkSize.y;
+	const float ratio = w / h;
+	if (ratio > targetAspect) {
+		w = h * targetAspect;
+	}
+	else {
+		h = w / targetAspect;
+	}
+	outPos = ImVec2(viewport->WorkPos.x + (viewport->WorkSize.x - w) * 0.5f,
+		viewport->WorkPos.y + (viewport->WorkSize.y - h) * 0.5f);
+	outSize = ImVec2(w, h);
+}
+
+void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+	if (!backgroundObject) {
+		return;
+	}
+
+	glDisable(GL_DEPTH_TEST);
+	Shader* shader = backgroundObject->GetShader();
+	if (shader) {
+		shader->Use();
+		shader->SetModelMatrix(backgroundObject->GetModelMatrix());
+		shader->SetViewMatrix(viewMatrix);
+		shader->SetProjectionMatrix(projectionMatrix);
+	}
+
+	Texture* tex = backgroundObject->GetTexture();
+	if (tex && shader) {
+		tex->Bind(0);
+		shader->SetTexture("u_Texture", 0);
+	}
+
+	Mesh* mesh = backgroundObject->GetMesh();
+	if (mesh) {
+		mesh->Draw();
+	}
+	glEnable(GL_DEPTH_TEST);
+}
+
+void GraphicsEngine::PresentSceneToDefaultFramebuffer() {
+	if (mSceneFBO == 0 || mSceneColor == 0 || screenWidth <= 0 || screenHeight <= 0) {
+		return;
+	}
+
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+	const int dstX0 = viewportX_;
+	const int dstY0 = viewportY_;
+	const int dstX1 = viewportX_ + viewportW_;
+	const int dstY1 = viewportY_ + viewportH_;
+
+	glViewport(0, 0, screenWidth, screenHeight);
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glBlitFramebuffer(
+		0, 0, mSceneWidth, mSceneHeight,
+		dstX0, dstY0, dstX1, dstY1,
+		GL_COLOR_BUFFER_BIT,
+		GL_LINEAR
+	);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 // Draw the Scene window and present the scene FBO texture inside it
 void GraphicsEngine::DrawSceneDockWindow() {
 #ifdef _DEBUG
@@ -495,47 +610,9 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 		return false;
 	}
 
-	ImVec2 imgPos = sceneImagePos_;
-	ImVec2 imgSize = sceneImageSize_;
-
-	// If the Scene window hasn't drawn this frame, reconstruct its rect
-	if (imgSize.x <= 1.0f || imgSize.y <= 1.0f) {
-		ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
-		if (sceneWin) {
-			const ImRect c = sceneWin->InnerRect;  // screen-space
-			const float availW = c.GetWidth();
-			const float availH = c.GetHeight();
-
-			const float targetAspect = float(kRefW) / float(kRefH);
-			float w = availW, h = availH, r = w / h;
-			if (r > targetAspect) {
-				w = h * targetAspect;
-			}
-			else {
-				h = w / targetAspect;
-			}
-
-			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f, c.Min.y + (availH - h) * 0.5f);
-			imgSize = ImVec2(w, h);
-		}
-		else {
-			ImGuiViewport* vp = ImGui::GetMainViewport();
-			const float availW = vp->WorkSize.x;
-			const float availH = vp->WorkSize.y;
-
-			const float targetAspect = float(kRefW) / float(kRefH);
-			float w = availW, h = availH, r = w / h;
-			if (r > targetAspect) {
-				w = h * targetAspect;
-			}
-			else {
-				h = w / targetAspect;
-			}
-
-			imgPos = ImVec2(vp->WorkPos.x + (availW - w) * 0.5f, vp->WorkPos.y + (availH - h) * 0.5f);
-			imgSize = ImVec2(w, h);
-		}
-	}
+	ImVec2 imgPos;
+	ImVec2 imgSize;
+	ComputeSceneImageRect(imgPos, imgSize);
 
 	// Mouse (absolute)
 	const ImVec2 mouse = ImGui::GetMousePos();
@@ -618,8 +695,7 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
 
 void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 #ifdef _DEBUG
-	outPos = sceneImagePos_;
-	outSize = sceneImageSize_;
+	ComputeSceneImageRect(outPos, outSize);
 #else
 	// In release we render directly to the GLFW window. Keep it simple:
 	outPos = ImVec2(0.0f, 0.0f);
@@ -631,33 +707,9 @@ void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 // Convert world position to screen coordinates relative to the Scene image (for editor gizmos, etc.)
 ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
 #ifdef _DEBUG
-	// Reconstruct the Scene image rect the same way as in GetMouseWorldInScene
-	ImVec2 imgPos = sceneImagePos_;
-	ImVec2 imgSize = sceneImageSize_;
-
-	if (imgSize.x <= 1.0f || imgSize.y <= 1.0f) {
-		// Fallback if Scene window wasn't drawn yet this frame
-		ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
-		if (sceneWin) {
-			const ImRect c = sceneWin->InnerRect;
-			const float availW = c.GetWidth();
-			const float availH = c.GetHeight();
-			const float targetAspect = float(kRefW) / float(kRefH);
-
-			float w = availW, h = availH;
-			const float r = w / h;
-			if (r > targetAspect) {
-				w = h * targetAspect;
-			}
-			else {
-				h = w / targetAspect;
-			}
-
-			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f,
-				c.Min.y + (availH - h) * 0.5f);
-			imgSize = ImVec2(w, h);
-		}
-	}
+	ImVec2 imgPos;
+	ImVec2 imgSize;
+	ComputeSceneImageRect(imgPos, imgSize);
 
 	glm::vec4 world4(world.x, world.y, 0.0f, 1.0f);
 	glm::vec4 clip = projection * view * world4;
@@ -690,26 +742,7 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	projection = projectionMatrix;
 
 	// Draw background first
-	if (backgroundObject) {
-		glDisable(GL_DEPTH_TEST);
-		Shader* shader = backgroundObject->GetShader();
-		if (shader) {
-			shader->Use();
-			shader->SetModelMatrix(backgroundObject->GetModelMatrix());
-			shader->SetViewMatrix(viewMatrix);
-			shader->SetProjectionMatrix(projectionMatrix);
-		}
-		Texture* tex = backgroundObject->GetTexture();
-		if (tex) {
-			tex->Bind(0);
-			shader->SetTexture("u_Texture", 0);
-		}
-		Mesh* mesh = backgroundObject->GetMesh();
-		if (mesh) {
-			mesh->Draw();
-		}
-		glEnable(GL_DEPTH_TEST);
-	}
+	RenderBackground(viewMatrix, projectionMatrix);
 
 	// Draw shadows before sprites
 	DrawSpriteShadows(objects, viewMatrix, projectionMatrix);
@@ -776,35 +809,7 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	EndImGuiFrame();
 #else
 	// Release: present the scene FBO to the default framebuffer (GLFW window)
-	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-		// Source rect: the whole scene FBO
-		const int srcW = mSceneWidth;
-		const int srcH = mSceneHeight;
-
-		// Destination rect: SAME letterboxed region as Resize() + picking
-		const int dstX0 = viewportX_;
-		const int dstY0 = viewportY_;
-		const int dstX1 = viewportX_ + viewportW_;
-		const int dstY1 = viewportY_ + viewportH_;
-
-		// Optional: clear full window to black, so bars look nice
-		glViewport(0, 0, screenWidth, screenHeight);
-		glClearColor(0.f, 0.f, 0.f, 1.f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		// Blit the FBO into the letterboxed area
-		glBlitFramebuffer(
-			0, 0, srcW, srcH,
-			dstX0, dstY0, dstX1, dstY1,
-			GL_COLOR_BUFFER_BIT,
-			GL_LINEAR
-		);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
+	PresentSceneToDefaultFramebuffer();
 #endif
 
 
@@ -821,26 +826,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	renderStats.totalObjects = static_cast<int>(objects.size());
 
 	// Draw background first
-	if (backgroundObject) {
-		glDisable(GL_DEPTH_TEST);
-		Shader* shader = backgroundObject->GetShader();
-		if (shader) {
-			shader->Use();
-			shader->SetModelMatrix(backgroundObject->GetModelMatrix());
-			shader->SetViewMatrix(view);
-			shader->SetProjectionMatrix(projection);
-		}
-		Texture* tex = backgroundObject->GetTexture();
-		if (tex) {
-			tex->Bind(0);
-			shader->SetTexture("u_Texture", 0);
-		}
-		Mesh* mesh = backgroundObject->GetMesh();
-		if (mesh) {
-			mesh->Draw();
-		}
-		glEnable(GL_DEPTH_TEST);
-	}
+	RenderBackground(view, projection);
 
 	// Draw shadows before sprites 
 	DrawSpriteShadows(objects, view, projection);
@@ -850,25 +836,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	if (depthWasEnabledSprites) {
 		glDisable(GL_DEPTH_TEST);
 	}
-
-	// Helper to convert layer name to sort key (same as CollectRenderablePointers in SceneManager)
-	auto parseLayerNumber = [](const std::string& s) -> int {
-		if (s.empty()) {
-			return 1; // base layer
-		}
-
-		int result = 0;
-		for (char c : s) {
-			if (!std::isdigit(static_cast<unsigned char>(c))) {
-				// Any non-numeric layer name behaves like a very "high" layer
-				return 1000000;
-			}
-
-			result = result * 10 + (c - '0');
-		}
-
-		return result;
-		};
 
 #ifdef _DEBUG
 	// Get text objects and sort by layer for interleaved rendering
@@ -881,8 +848,8 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
 		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
-			int la = parseLayerNumber(a->layer);
-			int lb = parseLayerNumber(b->layer);
+			int la = ParseLayerNumber(a->layer);
+			int lb = ParseLayerNumber(b->layer);
 
 			// Lower layer number = rendered first (behind)
 			// Higher layer number = rendered later (on top)
@@ -904,7 +871,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Lambda to render text objects up to and including a certain layer
 	auto renderTextUpToLayer = [&](int maxLayerNumber) {
 		while (textIndex < sortedTextObjects.size()) {
-			int textLayer = parseLayerNumber(sortedTextObjects[textIndex]->layer);
+			int textLayer = ParseLayerNumber(sortedTextObjects[textIndex]->layer);
 			if (textLayer <= maxLayerNumber) {
 				RenderSingleTextObject(*sortedTextObjects[textIndex]);
 				++textIndex;
@@ -933,32 +900,8 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		DrawSceneDockWindow();
 		EndImGuiFrame();
 #else
-		// Blit scene FBO to default framebuffer in Release (guarded)
-		if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-			const int srcW = mSceneWidth;
-			const int srcH = mSceneHeight;
-
-			const int dstX0 = viewportX_;
-			const int dstY0 = viewportY_;
-			const int dstX1 = viewportX_ + viewportW_;
-			const int dstY1 = viewportY_ + viewportH_;
-
-			glViewport(0, 0, screenWidth, screenHeight);
-			glClearColor(0.f, 0.f, 0.f, 1.f);
-			glClear(GL_COLOR_BUFFER_BIT);
-
-			glBlitFramebuffer(
-				0, 0, srcW, srcH,
-				dstX0, dstY0, dstX1, dstY1,
-				GL_COLOR_BUFFER_BIT,
-				GL_LINEAR
-			);
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		}
+		// Blit scene FBO to default framebuffer in Release
+		PresentSceneToDefaultFramebuffer();
 #endif
 
 		return;
@@ -1137,32 +1080,8 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	DrawSceneDockWindow();
 	EndImGuiFrame();
 #else
-	// Blit to default framebuffer (guarded) in Release
-	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-		const int srcW = mSceneWidth;
-		const int srcH = mSceneHeight;
-
-		const int dstX0 = viewportX_;
-		const int dstY0 = viewportY_;
-		const int dstX1 = viewportX_ + viewportW_;
-		const int dstY1 = viewportY_ + viewportH_;
-
-		glViewport(0, 0, screenWidth, screenHeight);
-		glClearColor(0.f, 0.f, 0.f, 1.f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glBlitFramebuffer(
-			0, 0, srcW, srcH,
-			dstX0, dstY0, dstX1, dstY1,
-			GL_COLOR_BUFFER_BIT,
-			GL_LINEAR
-		);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
+	// Blit to default framebuffer in Release
+	PresentSceneToDefaultFramebuffer();
 #endif
 
 
@@ -1227,25 +1146,6 @@ void GraphicsEngine::RenderTextObjects() {
 		return;
 	}
 
-	// Helper to convert layer name to sort key (same as CollectRenderablePointers)
-	auto parseLayerNumber = [](const std::string& s) -> int {
-		if (s.empty()) {
-			return 1; // base layer
-		}
-
-		int result = 0;
-		for (char c : s) {
-			if (!std::isdigit(static_cast<unsigned char>(c))) {
-				// Any non-numeric layer name behaves like a very "high" layer
-				return 1000000;
-			}
-
-			result = result * 10 + (c - '0');
-		}
-
-		return result;
-		};
-
 	// Sort text objects by layer (lower layer numbers render first/behind)
 	std::vector<const LEPANELFONTS::TextObjectData*> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
@@ -1255,8 +1155,8 @@ void GraphicsEngine::RenderTextObjects() {
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
 		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
-			int la = parseLayerNumber(a->layer);
-			int lb = parseLayerNumber(b->layer);
+			int la = ParseLayerNumber(a->layer);
+			int lb = ParseLayerNumber(b->layer);
 
 			// Higher layer number = rendered on top (later in draw order)
 			if (la != lb) {

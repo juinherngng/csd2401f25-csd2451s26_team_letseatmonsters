@@ -45,20 +45,20 @@ public:
 		return "GraphicsEngine";
 	}
 
-	// ----- Lifecycle -----
+	// Singleton access (safe since CoreEngine initializes all systems before the main loop)
 	static GraphicsEngine& Instance();
 	void Shutdown();   // Free GPU resources and shutdown ImGui
 
-	// ----- Per-frame workflow -----
+	// Frame management
 	void BeginFrame();       // Clear, bind scene FBO, begin ImGui
 	void BeginImGuiFrame();  // Start ImGui frame
 	void EndImGuiFrame();    // Render ImGui
 
-	// ----- Background management -----
+	// Background
 	void SetBackground(const std::string& texturePath); // Create/update fullscreen background quad
 	void ClearBackground();                             // Remove background
 
-	// ----- Window / Viewport -----
+	// Viewport and resizing
 	void Resize(int width, int height);  // Recompute letterboxed viewport, keep background aligned
 	int GetWidth() const {
 		return screenWidth;
@@ -83,7 +83,7 @@ public:
 	}
 	void ApplyViewport() const;
 
-	// ----- Scene FBO (off-screen Scene window target) -----
+	// Scene FBO management
 	void BeginSceneRender();
 	void EndSceneRender();
 	unsigned int GetSceneColorTexture() const {
@@ -96,20 +96,20 @@ public:
 		return mSceneHeight;
 	}
 
-	// ----- ImGui Windows / Picking -----
+	// ImGui and picking
 	void DrawSceneDockWindow();                           // Draws Scene window with FBO image
 	bool GetMouseWorldInScene(glm::vec2& outWorld) const; // Screen->world if within Scene image
 	ImGuiID GetMainDockspaceID() const;
 
-	// ----- Camera matrices -----
+	// Camera accessors for external use (e.g. text rendering)
 	const glm::mat4& GetProjection() const;
 	const glm::mat4& GetView() const;
 
-	// ----- Rendering paths -----
+	// Rendering
 	void Render(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void RenderBatched(const std::vector<GameObject*>& objects);
 
-	// ----- Render statistics -----
+	// Render statistics getters
 	int GetTotalObjects() const {
 		return renderStats.totalObjects;
 	}
@@ -242,4 +242,10 @@ private:
 	// Transition helpers
 	void UpdateTransition(float dt);
 	void DrawTransitionOverlay();
+
+	// Shared render helpers
+	void RenderBackground(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+	void PresentSceneToDefaultFramebuffer();
+	static int ParseLayerNumber(const std::string& layerName);
+	void ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) const;
 };
