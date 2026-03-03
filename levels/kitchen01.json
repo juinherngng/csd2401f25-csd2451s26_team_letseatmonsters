@@ -944,40 +944,6 @@
       "visible": true,
       "x": 266.0,
       "y": 52.0
-    },
-    {
-      "colorA": 1.0,
-      "colorB": 0.0,
-      "colorG": 0.0,
-      "colorR": 0.0,
-      "fontName": "font1",
-      "fontSize": 36,
-      "layer": "99",
-      "name": "ObjectiveText",
-      "rotation": 0.0,
-      "scale": 0.40,
-      "text": "Need $200 more",
-      "useBlockRotation": true,
-      "visible": true,
-      "x": 420.0,
-      "y": 34.0
-    },
-    {
-      "colorA": 1.0,
-      "colorB": 0.0,
-      "colorG": 0.0,
-      "colorR": 0.0,
-      "fontName": "font1",
-      "fontSize": 36,
-      "layer": "99",
-      "name": "FeedbackText",
-      "rotation": 0.0,
-      "scale": 0.36,
-      "text": "Serve dishes to earn money",
-      "useBlockRotation": true,
-      "visible": true,
-      "x": 110.0,
-      "y": 770.0
     }
   ]
 }
