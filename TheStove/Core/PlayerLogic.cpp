@@ -956,13 +956,13 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 						// Update visuals based on computed dish type
 					plate->ApplyDishVisual(scene);
 
-					// 1) Destroy the first ingredient that was sitting on the plate (if any)
+					// Destroy the first ingredient that was sitting on the plate (if any)
 					int firstObjID = plate->GetFirstIngredientObjectID();
 					if (firstObjID >= 0) {
 						scene.DespawnByID(firstObjID);
 					}
 
-					// 2) Destroy the ingredient we just added (the one we were carrying)
+					// Destroy the ingredient we just added (the one we were carrying)
 					if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
 						scene.DespawnByID(ingredientObjID);
 					}
@@ -989,7 +989,6 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 			return;
 		}
 
-
 		//std::cout << "  [PlayerLogic] CASE3: no (plate,ingredient) combo found\n";
 		return;
 	}
@@ -1014,9 +1013,7 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	}
 
 	glm::vec3 p = player->GetPositionGLM();
-	item->SetPosition(glm::vec3(p.x + carryOffset.x,
-		p.y + carryOffset.y,
-		p.z));
+	item->SetPosition(glm::vec3(p.x + carryOffset.x, p.y + carryOffset.y, p.z));
 
 	////Optional debug
 	//std::cout << "[PlayerLogic] Updating carried item " << carriedItemID

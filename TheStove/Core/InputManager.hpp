@@ -55,7 +55,7 @@ public:
 
 	// Mouse Queries
 	bool IsMouseButtonPressed(int button) const;
-	bool IsMouseButtonJustPressed(int button) const;
+	bool IsMouseButtonJustPressed(int button);
 	bool IsMouseButtonJustReleased(int button) const;
 	glm::dvec2 GetMousePosition() const;
 
