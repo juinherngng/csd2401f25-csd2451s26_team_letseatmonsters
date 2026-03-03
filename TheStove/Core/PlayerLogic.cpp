@@ -116,6 +116,7 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 
 	moveTarget = dest;
 	hasMoveTarget = true;
+	blockedMoveFrames_ = 0;
 
 	//auto& movement = scene.GetMovementManager(); // hypothetical accessor
 	//movement.SetMoveTarget(player->GetID(), dest);
@@ -289,6 +290,8 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	const float distSq = dir.x * dir.x + dir.y * dir.y;
 
 	const float arriveRadius = 4.0f;      // pixels (tweak)
+	const float slowRadius = 80.0f;       // begin slowing down for better precision
+	const float minSlowFactor = 0.35f;    // don't slow to a crawl
 	const float arriveRadiusSq = arriveRadius * arriveRadius;
 
 	// ReachedDestination()
@@ -299,6 +302,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 			scene.GetMovementManager().ClearMoveTarget(player_->GetID());
 		}
 
+		blockedMoveFrames_ = 0;
 		OnArrived(scene);
 		return;
 	}
@@ -329,17 +333,26 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	const float allowedLenSq = allowedDelta.x * allowedDelta.x +
 		allowedDelta.y * allowedDelta.y;
 	if (allowedLenSq < 0.0001f) {
-		std::cout << "[PlayerLogic] MoveTo blocked by collision, invoking OnArrived\n";
+		++blockedMoveFrames_;
 
-		hasMoveTarget = false;
-		if (GameObject* p = GetOwner(scene)) {
-			scene.GetMovementManager().ClearMoveTarget(p->GetID());
+		// Give collision resolution a few frames to recover from corner/edge jitter before cancelling.
+		constexpr int kBlockedFramesBeforeCancel = 6;
+		if (blockedMoveFrames_ >= kBlockedFramesBeforeCancel) {
+			std::cout << "[PlayerLogic] MoveTo blocked by collision for several frames, invoking OnArrived\n";
+
+			hasMoveTarget = false;
+			if (GameObject* p = GetOwner(scene)) {
+				scene.GetMovementManager().ClearMoveTarget(p->GetID());
+			}
+
+			// This will check distance to the table’s approach point using kInteractRadius
+			OnArrived(scene);
 		}
 
-		// This will check distance to the table’s approach point using kInteractRadius
-		OnArrived(scene);
 		return;
 	}
+
+	blockedMoveFrames_ = 0;
 
 	pos.x += allowedDelta.x;
 	pos.y += allowedDelta.y;
@@ -1094,5 +1107,3 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	//	<< " to follow player at (" << p.x + carryOffset.x << ", "
 	//	<< p.y + carryOffset.y << ")\n";
 }
-
-

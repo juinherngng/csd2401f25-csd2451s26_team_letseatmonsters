@@ -117,4 +117,5 @@ private:
 	glm::vec3 lastTrailPos_{ 0.0f, 0.0f, 0.0f };
 	bool hasLastTrailPos_ = false;
 	float trailCarry_ = 0.0f;
+	int blockedMoveFrames_ = 0;
 };
