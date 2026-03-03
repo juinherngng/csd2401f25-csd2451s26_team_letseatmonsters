@@ -93,6 +93,11 @@ private:
 
 	// keep carried item following the player
 	void UpdateCarriedItemTransform(Scene& scene);
+	void UpdateInteractableVisualCues(Scene& scene, InputManager& input, float dt);
+	bool IsPointInsideObjectCollider(const GameObject* obj, const glm::vec2& worldPoint) const;
+	void ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint);
+	void UpdateClickMoveIndicator(Scene& scene, float dt);
+	void ClearInteractableVisualCues(Scene& scene);
 
 	// particle footsteps
 	float footstepDistanceAcc_ = 0.0f;
@@ -104,6 +109,10 @@ private:
 	glm::vec2 lastDragWorld_{ 0.0f, 0.0f };
 	bool hasLastDragWorld_ = false;
 	float dragRetargetTimer_ = 0.0f;
+	std::unordered_set<int> highlightedInteractableIDs_;
+
+	int clickIndicatorID_ = -1;
+	float clickIndicatorTimeLeft_ = 0.0f;
 
 	glm::vec3 lastTrailPos_{ 0.0f, 0.0f, 0.0f };
 	bool hasLastTrailPos_ = false;
