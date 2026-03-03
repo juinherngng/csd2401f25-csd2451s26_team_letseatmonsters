@@ -54,6 +54,24 @@ namespace ConfigManager {
 	Settings WithResolution(Settings s, int width, int height);
 
 	/**
+	 * @brief Returns a copy of given settings with fullscreen mode updated.
+	 * @param s Existing settings.
+	 * @param fullscreenEnabled Fullscreen flag to apply.
+	 * @return Modified settings with new fullscreen mode.
+	 */
+	Settings WithFullscreen(Settings s, bool fullscreenEnabled);
+
+	/**
+	 * @brief Returns a copy of given settings with volume values updated and clamped.
+	 * @param s Existing settings.
+	 * @param master Master volume [0, 1].
+	 * @param bgm Background music volume [0, 1].
+	 * @param vfx Sound effects volume [0, 1].
+	 * @return Modified settings with updated volume values.
+	 */
+	Settings WithVolumes(Settings s, float master, float bgm, float vfx);
+
+	/**
 	 * @brief Loads settings from a given file path.
 	 * @param path Path to the config file.
 	 * @param[out] out Settings structure to populate.
