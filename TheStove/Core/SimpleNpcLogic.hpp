@@ -20,10 +20,13 @@
 
 #include <iostream>
 
+ // Forward declarations to avoid circular includes
 class SimpleNpcLogic : public GameObjectLogic {
 public:
+	// Constructor takes owner object ID and desired dish type for this NPC
 	using GameObjectLogic::GameObjectLogic;
 
+	// Helper to convert DishType to string for debugging
 	static const char* DishTypeName(DishType t) {
 		switch (t) {
 		case DishType::MeatDish: return "MeatDish";
@@ -34,10 +37,12 @@ public:
 		}
 	}
 
+	// Accessors for testing and debugging
 	float GetPatienceRatioAtServe() const {
 		return patienceRatioAtServe_;
 	}
 
+	// GameObjectLogic overrides
 	void Awake(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
 	std::string GetName() const override {
@@ -74,6 +79,7 @@ public:
 		return behaviourState_;
 	}
 
+	// Convenience queries for specific states (for table logic to decide what interactions are valid)
 	bool IsOrdering() const {
 		return behaviourState_ == BehaviourState::Ordering;
 	}
@@ -140,6 +146,7 @@ public:
 	// Clear any assigned customer table � NPC will go back to normal patrol.
 	void ClearCustomerTableTarget();
 
+	// True if a customer table target is currently assigned (you can call GetCustomerTableID() and GetCustomerSeatTarget() safely).
 	bool HasCustomerTableTarget() const {
 		return hasCustomerTarget_;
 	}
@@ -149,6 +156,7 @@ public:
 	Math::Vector2D exitGateWorldPos_{ 0.0f, 0.0f };
 	float          exitArriveThreshold_ = 8.0f;
 
+	// Call when NPC should start trying to exit (after paying). Caches the exit gate position for pathfinding.
 	void CacheExitGatePos(Scene& scene);
 	void OnReachedExit(Scene& scene);
 	DishType GetDesiredDishType() const {
@@ -163,6 +171,7 @@ public:
 		return patienceMax_;
 	}
 
+	// Returns 0..1 ratio of patience remaining, clamped to that range. Useful for UI.
 	float GetPatienceRatio01() const {
 		if (patienceMax_ <= 0.f) return 0.f;
 		float r = patienceRemaining_ / patienceMax_;
@@ -171,6 +180,7 @@ public:
 		return r;
 	}
 
+	// True if patience has fully expired (you can check this in your update loop to trigger any consequences like auto-leaving or payment reduction).
 	bool HasPatienceExpired() const {
 		return patienceExpired_;
 	}
@@ -182,6 +192,7 @@ public:
 
 
 private:
+	// Internal movement state for simple up/down patrol when not doing customer behaviour.
 	enum class State {
 		Idle, MoveUp, MoveDown
 	};

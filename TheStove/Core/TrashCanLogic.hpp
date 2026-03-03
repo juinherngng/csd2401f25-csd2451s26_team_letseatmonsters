@@ -19,6 +19,7 @@
 
 class TrashCanLogic : public TableLogic {
 public:
+	// Constructor takes ownerID and passes to base TableLogic constructor.
 	explicit TrashCanLogic(int ownerID);
 
 	// Trash can should accept items similar to a table, but it never "holds" them.
@@ -31,8 +32,10 @@ public:
 	int TakeItem(Scene& scene) override;
 
 protected:
+	// When an item is placed, destroy it immediately.
 	void OnItemPlaced(Scene& scene, GameObject& item) override;
 
+	// Trash can logic name for debugging.
 	std::string GetName() const override {
 		return "TrashCanLogic";
 	}

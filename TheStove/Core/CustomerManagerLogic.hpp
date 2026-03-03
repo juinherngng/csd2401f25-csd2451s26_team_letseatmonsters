@@ -31,9 +31,7 @@ class Scene;
 
 class CustomerManagerSystem {
 public:
-	/**
-	 * @brief Construct a customer manager with default spawn and cap settings.
-	 */
+	// Construct a customer manager with default spawn and cap settings
 	CustomerManagerSystem() = default;
 
 	/**
@@ -57,24 +55,27 @@ public:
 	}
 
 private:
-	int maxCustomers_ = 4;
+	int maxCustomers_ = 4;				// hard cap on simultaneous customers; set by level design or difficulty settings
 	float spawnCooldown_ = 10.0f;       // small delay between spawns
 	float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
 
 	std::vector<int> activeCustomers_;  // ids of customers alive
 	std::vector<int> customerTableIDs_; // ids of customer tables we discovered
-	bool cachedTables_ = false;
+	bool cachedTables_ = false;			// tracks whether table discovery has already run for the current scene
 
+	// Cached template/prefab ID for spawning new customers
 	int customerTemplateID_ = -1;
+
+	// Tracks whether template discovery has already run for the current scene
 	bool cachedTemplate_ = false;
 
-	/** @brief Discover and cache all customer-table entity IDs in the scene. */
+	// Discover and cache all customer-table entity IDs in the scene
 	void CacheTables(Scene& scene);
 
-	/** @brief Discover and cache the customer template/prefab entity ID. */
+	// Discover and cache the customer template/prefab entity ID
 	void CacheTemplate(Scene& scene);
 
-	/** @brief Remove stale/dead customer IDs from the active customer list. */
+	// Remove stale/dead customer IDs from the active customer list
 	void CleanupDeadCustomers(Scene& scene);
 
 	/**

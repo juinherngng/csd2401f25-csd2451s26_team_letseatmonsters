@@ -19,8 +19,10 @@
 
 class ExitGateLogic : public GameObjectLogic {
 public:
+	// Constructor
 	using GameObjectLogic::GameObjectLogic;
 
+	// Override GetName for debugging purposes
 	std::string GetName() const override {
 		return "ExitGateLogic";
 	}
@@ -28,10 +30,12 @@ public:
 	// Where NPC should walk to (optionally offset inside the walk area)
 	Math::Vector2D GetExitTargetWorld(Scene& scene) const;
 
+	// Set an optional local offset for the exit target (e.g., to specify a point inside the walk area)
 	void SetExitOffset(const Math::Vector2D& localOffset) {
 		exitOffset_ = localOffset;
 	}
 
 private:
+	// Local offset from the GameObject's position to define the actual exit target within the walk area
 	Math::Vector2D exitOffset_{ 0.0f, 0.0f };
 };

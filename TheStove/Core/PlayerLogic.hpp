@@ -21,10 +21,13 @@
 
 #include <glm/glm.hpp>
 
+ // Forward declarations to avoid circular dependencies
 class PlayerLogic : public GameObjectLogic {
 public:
+	// Inherit constructor from GameObjectLogic
 	using GameObjectLogic::GameObjectLogic; // inherit constructor
 
+	// GameObjectLogic overrides
 	void Start(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
 	std::string GetName() const override {

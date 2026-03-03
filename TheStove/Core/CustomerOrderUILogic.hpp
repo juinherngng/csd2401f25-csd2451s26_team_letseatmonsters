@@ -65,38 +65,57 @@ private:
 
 	// --- asset paths ---
 	const char* bubbleBGPath_ = "../assets/Customer_Order.png";
-	const char* patienceBGPath_ = "../assets/Customer_Timer_Red.png";   // red
+	const char* patienceBGPath_ = "../assets/Customer_Timer_Red.png";	  // red
 	const char* patienceFillPath_ = "../assets/Customer_Timer_Green.png"; // green
 
 private:
 	// helpers
+	// Ensures the order bubble and dish icon exist for the given dish
 	void EnsureBubble(Scene& scene, DishType dish);
+
+	// Ensures patience bar background/fill widgets are created
 	void EnsurePatienceBar(Scene& scene);
+
+	// Ensures the icon sprite exists and is set to the provided texture path
 	void EnsureBubbleIcon(Scene& scene, const char* iconPath);
 
+	// Destroys all bubble-related UI objects if they exist
 	void DestroyBubble(Scene& scene);
+
+	// Destroys patience bar UI objects if they exist
 	void DestroyPatienceBar(Scene& scene);
 
-	//void UpdateDishIconTexture(Scene& scene, DishType dish);
+	// void UpdateDishIconTexture(Scene& scene, DishType dish);
+	// Replaces bubble icon texture and updates its rendered size
 	void UpdateIconTexture(Scene& scene, const char* iconPath);
+	// Keeps spawned UI anchored to the customer's current position
 	void FollowCustomer(Scene& scene);
 
+	// Rescales patience fill width from a normalized [0,1] ratio
 	void UpdatePatienceFill(Scene& scene, float ratio01);
 
+	// Maps a dish type to its associated icon asset path
 	const char* DishToIconPath(DishType t) const;
 
+	// Spawns temporary payment reaction VFX (happy/sad face)
 	void SpawnPaymentVFX(Scene& scene, const char* path);
+
+	// Updates payment VFX position/lifetime while active
 	void UpdatePaymentVFX(Scene& scene, float dt);
+
+	// Destroys payment VFX object and resets related state
 	void DestroyPaymentVFX(Scene& scene);
+
+	// Returns icon dimensions tailored to the requested icon path
 	glm::vec2 GetIconSizeForPath(const char* iconPath) const;
 
 	// --- payment result VFX ---
 	int   payVFX_ID_ = -1;
 	float payVFXTimer_ = 0.0f;
-	float payVFXDuration_ = 0.8f;          // how long the face stays
+	float payVFXDuration_ = 0.8f;				 // how long the face stays
 	glm::vec2 payVFXOffset_ = { -10.f, -140.f }; // above head
 	glm::vec2 payVFXSize_ = { 64.f,  64.f };
-	float payVFXRiseSpeed_ = 25.f;        // float upward speed (pixels/sec)
+	float payVFXRiseSpeed_ = 25.f;				 // float upward speed (pixels/sec)
 
 	const char* happyFacePath_ = "../assets/HappyFace.png";
 	const char* sadFacePath_ = "../assets/SadFace.png";

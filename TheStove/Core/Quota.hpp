@@ -75,6 +75,7 @@ namespace Economy {
 		LEPANELFONTS::SetTextByName("TimerText", oss.str());
 	}
 
+	// Call this to reset all economy values to their initial state (e.g., at level start or retry)
 	inline void Reset() {
 		gPlayerMoney = 0;
 		gQuotaReached = false;
@@ -93,9 +94,11 @@ namespace Economy {
 		SyncUI();
 	}
 
+	// Callbacks to trigger when quota is reached or time is up. Implement these in SceneManager.cpp to show win/lose screens.
 	void OnQuotaReached(Scene& scene);
 	void OnTimeUp(Scene& scene);
 
+	// Call this to add money when a dish is served. It updates the UI immediately and checks for win condition.
 	inline void AddMoney(Scene& scene, int amount) {
 		if (amount <= 0)
 			return;
@@ -110,6 +113,7 @@ namespace Economy {
 		}
 	}
 
+	// Call this every frame with the delta time to update the timer. It checks for time-up condition and updates the UI.
 	inline void Update(float dt, Scene& scene) {
 		if (gQuotaReached) return;
 		if (gTimeUp) return;

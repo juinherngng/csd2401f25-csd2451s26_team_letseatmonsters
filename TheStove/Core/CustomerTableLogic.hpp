@@ -70,7 +70,7 @@ public:
 	bool CanAcceptItem(Scene& scene, int itemID) const override;
 
 	// High-level helper: given a plate logic that the player is placing on this table,
-// decide if it is a valid dish to serve.
+	// decide if it is a valid dish to serve.
 	bool CanServeFromPlate(const PlateLogic& plate) const;
 
 	// Optional hook to be called when the plate is actually placed and accepted.

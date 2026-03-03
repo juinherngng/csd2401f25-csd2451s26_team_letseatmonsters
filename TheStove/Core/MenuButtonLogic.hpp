@@ -20,8 +20,10 @@
 
 class AudioManager;
 
+// Logic component for menu buttons that load levels or toggle simulation when clicked.
 class MenuButtonLogic final : public GameObjectLogic {
 public:
+	// Constructor takes the target JSON path to determine which level to load, and whether to activate simulation.
 	explicit MenuButtonLogic(int ownerID, std::string targetJson, bool activateSimulation)
 		: GameObjectLogic(ownerID),
 		activateSimulation_(activateSimulation) {
@@ -36,6 +38,7 @@ public:
 		targetJson_ = std::move(targetJson);
 	}
 
+	// Override Update to handle hover state and click interactions
 	void Update(float dt, Scene& scene, InputManager& input) override;
 
 	// Set AudioManager for button click sounds

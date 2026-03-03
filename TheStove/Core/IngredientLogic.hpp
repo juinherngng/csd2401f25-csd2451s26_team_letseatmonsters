@@ -28,8 +28,10 @@
  //   - Type becomes IngredientType::Refined_Meat, isProcessed = true.
 class IngredientLogic : public GameObjectLogic {
 public:
+	// Constructor takes initial type and defaults to raw (not processed)
 	IngredientLogic(int ownerID, IngredientType initialType);
 
+	// Lifecycle overrides
 	void Start(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
 

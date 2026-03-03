@@ -22,11 +22,14 @@
  //    served to customers, and later marked as eaten.
 class DishLogic : public GameObjectLogic {
 public:
+	// Constructor takes ownerID and dish type
 	DishLogic(int ownerID, DishType type);
 
+	// GameObjectLogic overrides
 	void Start(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
 
+	// Accessors and mutators
 	DishType GetDishType() const {
 		return dishType_;
 	}
@@ -34,11 +37,13 @@ public:
 	bool IsEaten() const {
 		return isEaten_;
 	}
+
 	void MarkEaten() {
 		isEaten_ = true;
 	}
 
 protected:
+	// Optional: override GetName for debugging purposes
 	DishType dishType_;
 	bool isEaten_;
 

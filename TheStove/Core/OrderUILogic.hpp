@@ -24,14 +24,18 @@
 class Scene;
 class InputManager;
 
+// Component attached to a persistent GameObject that manages the Order UI display.
 class OrderUILogic : public GameObjectLogic {
 public:
+	// Inherit constructor
 	using GameObjectLogic::GameObjectLogic;
 
+	// Lifecycle
 	void Start(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
 	void OnDestroy(Scene& scene) override;
 
+	// Debug
 	std::string GetName() const override {
 		return "OrderUILogic";
 	}
@@ -45,7 +49,8 @@ private:
 		int customerId = -1;
 		DishType dish = DishType::PoopDish;
 	};
-
+	
+	// UI state for each order slot
 	struct OrderSlot {
 		int customerId = -1;
 
@@ -71,11 +76,13 @@ private:
 	const char* panelTex_ = "../assets/Order_UI.png";
 	const char* invisTex_ = "../assets/invis.png";
 
+	// Render layers (TWEAK THESE to control draw order of UI elements)
 	std::string panelLayer_ = "3";
 	std::string dishLayer_ = "4";
 	std::string ingredientLayer_ = "4";
 	std::string stationLayer_ = "4";
 
+	// Panel slide-in config
 	glm::vec2 panelTargetPos_ = { 460.f, 64.f };
 	glm::vec2 panelSize_ = { 168.f, 124.f };
 	float slideDuration_ = 0.45f;
@@ -84,12 +91,15 @@ private:
 	glm::vec2 dishOffset_ = { 0.f, -44.f };
 	glm::vec2 dishSize_ = { 75.f, 75.f };
 
+	// Ingredient and station icons are arranged in a 2-column grid below the dish icon, with these offsets from the panel position as the center of each icon
 	std::vector<glm::vec2> ingredientOffsets_ = { { -20.f, 4.f }, { 20.f, 4.f } };
 	glm::vec2 ingredientSize_ = { 40.f, 40.f };
 
+	// Station icons are arranged in a 2-column grid below the ingredient icons, with these offsets from the panel position as the center of each icon
 	std::vector<glm::vec2> stationOffsets_ = { { -20.f, 40.f }, { 20.f, 40.f } };
 	glm::vec2 stationSize_ = { 35.f, 35.f };
 
+	// Animation config
 	float ticketGapY_ = 120.f; // space between tickets (used in SlotTargetPos)
 
 private:
@@ -112,6 +122,7 @@ private:
 	const char* DishToIconPath(DishType t) const;
 	void SetIconTexture(Scene& scene, int iconId, const char* texPath);
 
+	// Update the dish icon and recipe icons for a slot based on the given dish type
 	void UpdateRecipeIcons(Scene& scene, OrderSlot& slot, DishType dish);
 	void GetRecipeIconPaths(DishType dish,
 		std::vector<const char*>& outIngredientTex,
