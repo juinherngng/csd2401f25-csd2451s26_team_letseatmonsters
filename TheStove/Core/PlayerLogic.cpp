@@ -31,8 +31,71 @@
 namespace {
 	constexpr float kPlayerInteractRadius = 67.0f;
 	constexpr float kMoveRetargetDeadzone = 6.0f;
+
+	// Squared distance between two points (avoids sqrt for efficiency when comparing distances)
+	float DistanceSquared(const glm::vec2& a, const glm::vec2& b) {
+		const glm::vec2 delta = a - b;
+		return delta.x * delta.x + delta.y * delta.y;
+	}
+
+	// Convert a glm::vec3 to glm::vec2 by dropping the z component
+	glm::vec2 ToVec2(const glm::vec3& value) {
+		return { value.x, value.y };
+	}
+
+	// Result struct for FindClickedTable, containing the ID and logic pointer of the clicked table (or defaults if none)
+	struct ClickedTableResult {
+		int tableID = -1;
+		TableLogic* tableLogic = nullptr;
+	};
+
+	// Find the closest table under the mouse cursor, if any. Returns a struct with the table ID and logic pointer, or defaults if no table was clicked.
+	ClickedTableResult FindClickedTable(Scene& scene, const glm::vec2& mouseWorld) {
+		ClickedTableResult result{};
+		float bestDistSq = std::numeric_limits<float>::max();
+
+		// Iterate through all game objects and check for tables under the mouse cursor
+		LogicManager& logicMgr = scene.GetLogicManager();
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) {
+				continue;
+			}
+
+			const int id = obj->GetID();
+			TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(id);
+			if (!tableLogic) {
+				continue;
+			}
+
+			auto colSize = obj->GetColliderSize();
+			auto colOffset = obj->GetColliderOffset();
+			glm::vec3 objPos = obj->GetPositionGLM();
+			glm::vec2 center(objPos.x + colOffset.x, objPos.y + colOffset.y);
+
+			const float halfW = colSize.x * 0.5f;
+			const float halfH = colSize.y * 0.5f;
+
+			const bool inside =
+				(mouseWorld.x >= center.x - halfW && mouseWorld.x <= center.x + halfW) &&
+				(mouseWorld.y >= center.y - halfH && mouseWorld.y <= center.y + halfH);
+
+			if (!inside) {
+				continue;
+			}
+
+			const float distSq = DistanceSquared(mouseWorld, center);
+			if (distSq < bestDistSq) {
+				bestDistSq = distSq;
+				result.tableID = id;
+				result.tableLogic = tableLogic;
+			}
+		}
+
+		return result;
+	}
 }
 
+// Initialize player state
 void PlayerLogic::Start(Scene& scene) {
 	(void)scene;
 	hasMoveTarget = false;
@@ -101,7 +164,8 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	}
 }
 
-// Unity: Move(Vector3 dest)
+// Set the player's movement target to the specified world position, and update sprite direction immediately based on the click direction.
+// This does NOT do any pathfinding or collision checks; it just sets the target and lets the movement system handle it. If the new target is very close to the current target, it will be ignored to prevent jitter.
 void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 	if (hasMoveTarget) {
 		const glm::vec2 delta = dest - moveTarget;
@@ -122,22 +186,21 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 
 		// Update sprite immediately based on click direction
 		UpdateSprite(scene, player, delta);
-
-		//scene.GetMovementManager().SetMoveTarget(player->GetID(), dest);
 	}
 
 	moveTarget = dest;
 	hasMoveTarget = true;
 	blockedMoveFrames_ = 0;
-
-	//auto& movement = scene.GetMovementManager(); // hypothetical accessor
-	//movement.SetMoveTarget(player->GetID(), dest);
 }
 
+// Handle mouse click and hold input for movement and interaction.
+// On click, raycast to check if a table was clicked and move to its approach point if so.
+// If holding and dragging, continuously retarget movement to the mouse position with a small deadzone and retarget interval.
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) {
 	const bool lmbJustPressed = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
 	const bool lmbHeld = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
 
+	// If we released the mouse button, reset drag state
 	if (!lmbHeld) {
 		mouseDragActive_ = false;
 		hasLastDragWorld_ = false;
@@ -149,13 +212,14 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 		return;
 	}
 
+	// We have click or hold input. Get mouse world position and check if it's valid (i.e. mouse is over the scene viewport).
 	GameObject* player = GetOwner(scene);
 	if (!player) return;
 
 	glm::vec2 mouseWorld{};
 
+	// If mouse is not over the scene viewport, ignore input. This prevents clicks from affecting the player when interacting with UI or other non-game areas.
 	if (!scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld)) {
-		// Mouse not over scene viewport, ignore click
 		//std::cout << "[PlayerLogic] Mouse not over scene viewport\n";
 		return;
 	}
@@ -198,73 +262,20 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 
 	//std::cout << "[PlayerLogic] Click world = (" << mouseWorld.x << ", " << mouseWorld.y << ")\n";
 
-	// ----------------------------------------------------------
-	// 1) Raycast: check if click is on any table-like object
-	// ----------------------------------------------------------
-	LogicManager& logicMgr = scene.GetLogicManager();
+	// Raycast: check if click is on any table-like object
+	const ClickedTableResult clickedTable = FindClickedTable(scene, mouseWorld);
 
-	int   clickedTableID = -1;
-	float bestDistSq = std::numeric_limits<float>::max();
-	TableLogic* clickedTableLogic = nullptr;
-
-	for (GameObject* obj : scene.GetAllObjectsRaw()) {
-		if (!obj) continue;
-
-		int id = obj->GetID();
-
-		// Debug: does this object have any TableLogic?
-		//TableLogic* tableLogic2 = logicMgr.GetLogicForObject<TableLogic>(id);
-		//std::cout << "[ClickDebug] id=" << id
-		//	<< " hasTableLogic=" << (tableLogic2 ? "yes" : "no")
-		//	<< "\n";
-
-		// Any table (normal / work / customer / ingredient box) derives from TableLogic
-		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(id);
-		if (!tableLogic) {
-			continue; // not a table-like object
-		}
-
-		// --- Use collider as click area ---
-		auto colSize = obj->GetColliderSize();     // (width, height)
-		auto colOffset = obj->GetColliderOffset();   // (offset x, offset y)
-
-		glm::vec3 objPos = obj->GetPositionGLM();
-		glm::vec2 center(objPos.x + colOffset.x, objPos.y + colOffset.y);
-
-		float halfW = colSize.x * 0.5f;
-		float halfH = colSize.y * 0.5f;
-
-		bool inside =
-			(mouseWorld.x >= center.x - halfW && mouseWorld.x <= center.x + halfW) &&
-			(mouseWorld.y >= center.y - halfH && mouseWorld.y <= center.y + halfH);
-
-		if (!inside)
-			continue;
-
-		float dx = mouseWorld.x - center.x;
-		float dy = mouseWorld.y - center.y;
-		float distSq = dx * dx + dy * dy;
-
-		if (distSq < bestDistSq) {
-			bestDistSq = distSq;
-			clickedTableID = id;
-			clickedTableLogic = tableLogic; // remember which table logic we hit
-		}
-	}
-
-	// ----------------------------------------------------------
-	// 2) If we clicked a table, move to its approach point
-	// ----------------------------------------------------------
-	if (clickedTableID >= 0 && clickedTableLogic) {
+	// If we clicked a table, move to its approach point
+	if (clickedTable.tableID >= 0 && clickedTable.tableLogic) {
 		//std::cout << "[PlayerLogic] Click hit table id " << clickedTableID << "\n";
-		pendingTableID = clickedTableID;
+		pendingTableID = clickedTable.tableID;
 
 		// Player current world position
 		glm::vec3 playerPos3 = player->GetPositionGLM();
 		Math::Vector2D from(playerPos3.x, playerPos3.y);
 
 		// Ask the table for the best approach point, in WORLD space
-		Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
+		Math::Vector2D approach = clickedTable.tableLogic->GetClosestApproachPoint(scene, from);
 
 		// Debug: where are we actually going?
 		//std::cout << "[PlayerLogic] Moving to approach point for table " << clickedTableID
@@ -272,14 +283,12 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 
 		// Convert to glm::vec2 for MoveTo
 		glm::vec2 target(approach.x, approach.y);
-		const float toApproachX = target.x - playerPos3.x;
-		const float toApproachY = target.y - playerPos3.y;
-		const float distToApproachSq = toApproachX * toApproachX + toApproachY * toApproachY;
+		const float distToApproachSq = DistanceSquared(target, ToVec2(playerPos3));
 
 		if (distToApproachSq <= (kPlayerInteractRadius * kPlayerInteractRadius)) {
 			hasMoveTarget = false;
 			pendingTableID = -1;
-			InteractWithTable(scene, clickedTableID);
+			InteractWithTable(scene, clickedTable.tableID);
 		}
 		else {
 			MoveTo(scene, target);
@@ -295,7 +304,6 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 		ShowClickMoveIndicator(scene, mouseWorld);
 	}
 }
-
 
 // Move owner GameObject towards moveTarget at moveSpeed
 void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
@@ -340,7 +348,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	if (step > dist)
 		step = dist;
 
-	// --- NEW: ask CollisionWorld how much of this step is allowed ---
+	// ask CollisionWorld how much of this step is allowed
 	const auto size = player->GetColliderSize();
 	const auto offset = player->GetColliderOffset();
 
@@ -410,7 +418,8 @@ void PlayerLogic::OnArrived(Scene& scene) {
 		return;
 	}
 
-	glm::vec3 pPos = player->GetPositionGLM();
+	glm::vec3 pPos3 = player->GetPositionGLM();
+	const glm::vec2 pPos = ToVec2(pPos3);
 
 	// Get the table logic so we can ask for its approach point
 	LogicManager& logicMgr = scene.GetLogicManager();
@@ -423,9 +432,7 @@ void PlayerLogic::OnArrived(Scene& scene) {
 		Math::Vector2D from(pPos.x, pPos.y);
 		Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
 
-		float dx = pPos.x - approach.x;
-		float dy = pPos.y - approach.y;
-		distSq = dx * dx + dy * dy;
+		distSq = DistanceSquared(pPos, glm::vec2(approach.x, approach.y));
 
 		//std::cout << "[PlayerLogic] Dist to table APPROACH point: "
 		//	<< std::sqrt(distSq)
@@ -434,16 +441,13 @@ void PlayerLogic::OnArrived(Scene& scene) {
 	else {
 		// Fallback: no TableLogic (shouldn’t really happen for tables)
 		glm::vec3 tPos = tableObj->GetPositionGLM();
-		float dx = pPos.x - tPos.x;
-		float dy = pPos.y - tPos.y;
-		distSq = dx * dx + dy * dy;
+		distSq = DistanceSquared(pPos, ToVec2(tPos));
 
 		//std::cout << "[PlayerLogic] Dist to table ORIGIN (fallback): "
 		//	<< std::sqrt(distSq) << "\n";
 	}
 
 	// Interaction radius around the approach point
-
 	if (distSq <= kPlayerInteractRadius * kPlayerInteractRadius) {
 		//std::cout << "[PlayerLogic] Close enough to table " << pendingTableID
 		//	<< " (approach), performing interaction\n";
@@ -457,8 +461,7 @@ void PlayerLogic::OnArrived(Scene& scene) {
 	pendingTableID = -1;
 }
 
-
-// Unity: PickUp(GameObject item) � here by engine ID
+// Unity: PickUp(GameObject item)
 void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	GameObject* item = scene.GetGameObjectByID(itemID);
 	GameObject* player = GetOwner(scene);
@@ -483,7 +486,6 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	// Shrink collider so physics stops pushing the player around
 	// (Adjust to your GameObject API if needed)
 	item->SetColliderSize(Math::Vector2D(0.f, 0.f));
-
 
 	// Snap once, then every frame we keep it following in UpdateCarriedItemTransform
 	UpdateCarriedItemTransform(scene);
@@ -514,47 +516,7 @@ void PlayerLogic::Drop(Scene& scene) {
 	carriedItemID = -1;
 }
 
-//void PlayerLogic::HandleScaleInput(GameObject* player, InputManager& input, float dt)
-//{
-//	(void)dt;
-//	if (!player) return;
-//
-//	glm::vec3 scale = player->GetScaleGLM();
-//
-//	if (input.IsKeyPressed(GLFW_KEY_UP)) {
-//		scale *= 1.01f;
-//		scale = glm::min(scale, glm::vec3(500.0f));
-//		player->SetScale(scale);
-//	}
-//
-//	if (input.IsKeyPressed(GLFW_KEY_DOWN)) {
-//		scale *= 0.99f;
-//		scale = glm::max(scale, glm::vec3(50.0f));
-//		player->SetScale(scale);
-//	}
-//}
-
-//void PlayerLogic::HandleRotationInput(GameObject* player, InputManager& input, float dt)
-//{
-//	if (!player) return;
-//
-//	const float kRotationSpeed = 10.0f; // degrees per second
-//
-//	if (input.IsKeyPressed(GLFW_KEY_RIGHT)) {
-//		rotation_ += kRotationSpeed * dt;
-//	}
-//	if (input.IsKeyPressed(GLFW_KEY_LEFT)) {
-//		rotation_ -= kRotationSpeed * dt;
-//	}
-//
-//	// Normalize to [0, 360)
-//	while (rotation_ >= 360.0f) rotation_ -= 360.0f;
-//	while (rotation_ < 0.0f)   rotation_ += 360.0f;
-//
-//	player->SetRotation(rotation_, glm::vec3(0, 0, 1));
-//}
-
-
+// Main update loop for player logic: handle input, movement, sprite updates, interactions, and footstep effects.
 void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	// Stop player logic when paused/overlay is active
 	if (!scene.IsSimulationActive() || scene.IsPauseOverlayActive()) {
@@ -678,7 +640,6 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 			}
 		}
 #endif
-
 		// Feet position from collider size
 		glm::vec3 feet = afterPos;
 		auto co = player->GetColliderOffset();
@@ -754,6 +715,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	}
 }
 
+// Optional: visual cues for interactable objects under mouse cursor
 void PlayerLogic::UpdateInteractableVisualCues(Scene& scene, InputManager& input, float dt) {
 	(void)input;
 	(void)dt;
@@ -798,6 +760,7 @@ void PlayerLogic::UpdateInteractableVisualCues(Scene& scene, InputManager& input
 	highlightedInteractableIDs_ = std::move(nextHighlighted);
 }
 
+// Check if a world point is inside the object's collider (used for mouse hover)
 bool PlayerLogic::IsPointInsideObjectCollider(const GameObject* obj, const glm::vec2& worldPoint) const {
 	if (!obj) {
 		return false;
@@ -819,6 +782,7 @@ bool PlayerLogic::IsPointInsideObjectCollider(const GameObject* obj, const glm::
 		(worldPoint.y >= center.y - halfH && worldPoint.y <= center.y + halfH);
 }
 
+// Show a temporary indicator (e.g. a circle) at the clicked position for click-to-move feedback
 void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint) {
 	const glm::vec3 markerPos(worldPoint.x, worldPoint.y, 0.0f);
 
@@ -841,6 +805,7 @@ void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoi
 	clickIndicatorTimeLeft_ = 0.35f;
 }
 
+// Update the click move indicator (scaling and fading) and despawn when time is up
 void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
 	if (clickIndicatorID_ < 0) {
 		return;
@@ -868,6 +833,7 @@ void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
 	marker->SetScale(glm::vec3(size, size, 1.0f));
 }
 
+// Reset color tints on previously highlighted interactables
 void PlayerLogic::ClearInteractableVisualCues(Scene& scene) {
 	for (int id : highlightedInteractableIDs_) {
 		if (GameObject* obj = scene.GetGameObjectByID(id)) {
@@ -878,6 +844,7 @@ void PlayerLogic::ClearInteractableVisualCues(Scene& scene) {
 	highlightedInteractableIDs_.clear();
 }
 
+// Handle interaction logic when clicking on a table-like object
 void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 	//std::cout << "[PlayerLogic] InteractWithTable tableID=" << tableObjectID << "\n";
 
@@ -931,7 +898,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 	}
 
 	// --- Special case: Trash can ---
-// If this object is a trash can, placing an item should delete it immediately.
+	// If this object is a trash can, placing an item should delete it immediately.
 	if (TrashCanLogic* trash = logicMgr.GetLogicForObject<TrashCanLogic>(tableObjectID)) {
 		// Only meaningful if player is holding something
 		if (carriedItemID >= 0) {
@@ -960,9 +927,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 	playerHolding = (carriedItemID >= 0);
 	tableHasItem = table->HasItem();
 
-	// -------------------------------------------------------
 	// CASE 1: Player empty-handed, table has an item -> pick up
-	// -------------------------------------------------------
 	if (!playerHolding && tableHasItem) {
 		//std::cout << "  [PlayerLogic] CASE1: table has item, player empty -> TakeItem + PickUp\n";
 		int itemID = table->TakeItem(scene);
@@ -972,9 +937,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 		return;
 	}
 
-	// -------------------------------------------------------
 	// CASE 2: Player holding something, table is empty -> drop onto table
-	// -------------------------------------------------------
 	if (playerHolding && !tableHasItem) {
 		//std::cout << "  [PlayerLogic] CASE2: player holding " << carriedItemID
 		//	<< ", table empty -> PlaceItem\n";
@@ -1006,10 +969,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 		return;
 	}
 
-	// -------------------------------------------------------
 	// CASE 3: Player holding something, table already has an item
 	//   -> typical case: table has a Plate, player has an Ingredient
-	// -------------------------------------------------------
 	if (playerHolding && tableHasItem) {
 		//std::cout << "  [PlayerLogic] CASE3: both player & table have items -> try plate+ingredient combo\n";
 
@@ -1029,7 +990,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 			if (plate->TryAddIngredient(*ingr, consumedNow)) {
 				//std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient type\n";
 
-				// --- VISUAL: first ingredient goes onto the plate visually ---
+				// VISUAL: first ingredient goes onto the plate visually
 				if (ingredientCountBefore == 0) // this is the first ingredient on this plate
 				{
 					GameObject* plateObj = scene.GetGameObjectByID(tableItemID);
@@ -1047,17 +1008,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 					}
 				}
 
-				//// If at some point TryAddIngredient decides to consume immediately,
-				//// we still support that (currently outConsumedNow is always false).
-				//bool carriedDespawned = false;
-				//if (consumedNow)
-				//{
-				//	scene.DespawnByID(ingredientObjID);
-				//	hasCarriedItemOriginalColliderSize = false;
-				//	carriedDespawned = true;
-				//}
-
-				// --- Try to assemble a dish once we have enough ingredients ---
+				// Try to assemble a dish once we have enough ingredients
 				DishType dishType;
 				std::vector<IngredientType> consumedTypes;
 				if (plate->TryAssembleDish(dishType, consumedTypes)) {
@@ -1106,7 +1057,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 	//std::cout << "  [PlayerLogic] No case matched, doing nothing.\n";
 }
 
-
+// Update the position of the carried item to follow the player with an offset
 void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	if (carriedItemID < 0)
 		return;

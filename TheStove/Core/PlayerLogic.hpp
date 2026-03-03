@@ -90,11 +90,11 @@ private:
 
 	// Internal helpers
 	void HandleClickInput(Scene& scene, InputManager& input, float dt); // Unity: input + raycast
-	void UpdateMovement(float dt, Scene& scene);              // Unity: NavMeshAgent movement
-	void OnArrived(Scene& scene);                             // Unity: OnArrived() hook
+	void UpdateMovement(float dt, Scene& scene);						// Unity: NavMeshAgent movement
+	void OnArrived(Scene& scene);										// Unity: OnArrived() hook
 	void UpdateSprite(Scene& scene, GameObject* player, const glm::vec2& moveDir);
 
-	// keep carried item following the player
+	// Interaction helpers
 	void UpdateCarriedItemTransform(Scene& scene);
 	void UpdateInteractableVisualCues(Scene& scene, InputManager& input, float dt);
 	bool IsPointInsideObjectCollider(const GameObject* obj, const glm::vec2& worldPoint) const;
@@ -107,16 +107,18 @@ private:
 	bool wasMoving_ = false;
 	float footstepEmitTimer_ = 0.0f;
 
-	// Mouse-primary movement quality helpers (drag-to-move)
+	// Mouse drag state for click-and-drag movement
 	bool mouseDragActive_ = false;
 	glm::vec2 lastDragWorld_{ 0.0f, 0.0f };
 	bool hasLastDragWorld_ = false;
 	float dragRetargetTimer_ = 0.0f;
 	std::unordered_set<int> highlightedInteractableIDs_;
 
+	// Click indicator state
 	int clickIndicatorID_ = -1;
 	float clickIndicatorTimeLeft_ = 0.0f;
 
+	// Trail effect state
 	glm::vec3 lastTrailPos_{ 0.0f, 0.0f, 0.0f };
 	bool hasLastTrailPos_ = false;
 	float trailCarry_ = 0.0f;
