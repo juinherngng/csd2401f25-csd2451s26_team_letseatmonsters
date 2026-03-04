@@ -23,8 +23,8 @@
 #include "GameObject.hpp"
 #include "imgui.h"
 #include "Renderer.hpp"
-#include "SceneViewportPresenter.hpp"
 #include "ResourceManager.hpp"
+#include "SceneViewportPresenter.hpp"
 
 #include <glm/glm.hpp>
 #include <memory>

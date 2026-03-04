@@ -74,11 +74,13 @@ private:
 	ResourceManager(const ResourceManager&) = delete;
 	ResourceManager& operator=(const ResourceManager&) = delete;
 
+	// Resource storage
 	std::unordered_map<std::string, std::unique_ptr<Shader>> shaders;
 	std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes;
 	std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
+	std::unordered_map<std::string, Texture*> textureAliases;
+	std::unordered_map<std::string, Texture*> texturePaths;
 
 	AudioManager* audioManager; // Non-owning pointer to AudioManager
 	bool isCleared;
-
 };
