@@ -19,6 +19,7 @@
 #include "Math.hpp"
 #include <iostream>
 #include <glm/glm.hpp>
+#include <vector>
 
 class SimpleNpcLogic : public GameObjectLogic {
 public:
@@ -206,4 +207,28 @@ private:
     bool TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const;
 
     void BeginLeaveToExit(Scene& scene, bool freeTableImmediately);
+
+    enum class MoveMode {
+        None,
+        Direct,
+        Pathfinding
+    };
+
+    MoveMode moveMode_ = MoveMode::None;
+
+    glm::vec2 moveTarget_{ 0.0f, 0.0f };
+    bool hasMoveTarget_ = false;
+
+    std::vector<glm::vec2> pathPoints_;
+    std::size_t pathIndex_ = 0;
+    glm::vec2 finalTarget_{ 0.0f, 0.0f };
+
+    float directPathCheckTimer_ = 0.0f;
+    static constexpr float kDirectPathCheckInterval = 0.05f;
+
+    void ClearNavigationMove();
+    void BeginMoveDirect(const glm::vec2& dest);
+    void BeginMoveTo(Scene& scene, const glm::vec2& dest);
+    void EnsureNavigationPlan(Scene& scene, GameObject* npc, const glm::vec2& desiredTarget);
+    bool UpdateNavigationMove(float dt, Scene& scene, GameObject* npc);
 };

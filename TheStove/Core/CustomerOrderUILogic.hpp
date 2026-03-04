@@ -30,6 +30,7 @@ public:
     void Start(Scene& scene) override;
     void Update(float dt, Scene& scene, InputManager& input) override;
     void OnDestroy(Scene& scene) override;
+    bool HitTestBubble(Scene& scene, const glm::vec2& worldPos) const;
 
     std::string GetName() const override { return "CustomerOrderUILogic"; }
 
@@ -66,7 +67,6 @@ private:
     const char* patienceBGPath_ = "../assets/Customer_Timer_Red.png";   // red
     const char* patienceFillPath_ = "../assets/Customer_Timer_Green.png"; // green
 
-private:
     // helpers
     void EnsureBubble(Scene& scene, DishType dish);
     void EnsurePatienceBar(Scene& scene);

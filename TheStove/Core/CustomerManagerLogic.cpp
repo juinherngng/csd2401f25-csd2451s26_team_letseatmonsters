@@ -31,6 +31,35 @@
 #include <vector>
 #include <string>
 
+namespace {
+    bool PointInsideObjectVisualRect(const glm::vec2& point, GameObject* obj)
+    {
+        if (!obj) return false;
+
+        const Math::Vector2D colSize = obj->GetColliderSize();
+        const Math::Vector2D colOffset = obj->GetColliderOffset();
+        const glm::vec3 scale = obj->GetScaleGLM();
+
+        // Bubble objects use collider size 0, so fall back to visual scale
+        const float width = (colSize.x > 0.0f) ? colSize.x : scale.x;
+        const float height = (colSize.y > 0.0f) ? colSize.y : scale.y;
+
+        if (width <= 0.0f || height <= 0.0f) {
+            return false;
+        }
+
+        const glm::vec3 pos = obj->GetPositionGLM();
+        const glm::vec2 center(pos.x + colOffset.x, pos.y + colOffset.y);
+
+        const float halfW = width * 0.5f;
+        const float halfH = height * 0.5f;
+
+        return
+            point.x >= center.x - halfW && point.x <= center.x + halfW &&
+            point.y >= center.y - halfH && point.y <= center.y + halfH;
+    }
+}
+
 void CustomerManagerSystem::Reset()
 {
     activeCustomers_.clear();
@@ -232,3 +261,15 @@ void CustomerManagerSystem::Update(float dt, Scene& scene)
     }
 }
 
+bool CustomerOrderUILogic::HitTestBubble(Scene& scene, const glm::vec2& worldPos) const
+{
+    if (PointInsideObjectVisualRect(worldPos, scene.GetGameObjectByID(bubbleBG_ID_))) {
+        return true;
+    }
+
+    if (PointInsideObjectVisualRect(worldPos, scene.GetGameObjectByID(bubbleDish_ID_))) {
+        return true;
+    }
+
+    return false;
+}

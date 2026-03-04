@@ -25,10 +25,53 @@
 #include "../Core/PlayerLogic.hpp"
 #include "../Core/TableLogic.hpp"
 #include "../Core/WorkTableLogic.hpp"
+#include "../Core/SimpleNpcLogic.hpp"
+#include "../Core/CustomerOrderUILogic.hpp"
 
 #include "PlayerLogic.hpp"
 
+
 #include <iostream>
+
+namespace {
+	bool PointInsideObjectVisualRect(const glm::vec2& point, GameObject* obj)
+	{
+		if (!obj) return false;
+
+		const Math::Vector2D colSize = obj->GetColliderSize();
+		const Math::Vector2D colOffset = obj->GetColliderOffset();
+		const glm::vec3 scale = obj->GetScaleGLM();
+
+		const float width = (colSize.x > 0.0f) ? colSize.x : scale.x;
+		const float height = (colSize.y > 0.0f) ? colSize.y : scale.y;
+
+		if (width <= 0.0f || height <= 0.0f) {
+			return false;
+		}
+
+		const glm::vec3 pos = obj->GetPositionGLM();
+		const glm::vec2 center(pos.x + colOffset.x, pos.y + colOffset.y);
+
+		const float halfW = width * 0.5f;
+		const float halfH = height * 0.5f;
+
+		return
+			point.x >= center.x - halfW && point.x <= center.x + halfW &&
+			point.y >= center.y - halfH && point.y <= center.y + halfH;
+	}
+
+	float DistanceSqToObjectCenter(const glm::vec2& point, GameObject* obj)
+	{
+		if (!obj) return std::numeric_limits<float>::max();
+
+		const Math::Vector2D colOffset = obj->GetColliderOffset();
+		const glm::vec3 pos = obj->GetPositionGLM();
+		const glm::vec2 center(pos.x + colOffset.x, pos.y + colOffset.y);
+
+		const glm::vec2 d = point - center;
+		return d.x * d.x + d.y * d.y;
+	}
+}
 
 void PlayerLogic::Start(Scene& scene)
 {
@@ -172,11 +215,10 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest)
 	moveTarget = pathPoints_[0];
 }
 
-void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
-
+void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input)
+{
 	// Only once per click (left mouse)
 	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-		//std::cout << "RETURNING\n";
 		return;
 	}
 
@@ -184,71 +226,83 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 	if (!player) return;
 
 	glm::vec2 mouseWorld{};
-
 	if (!scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld)) {
-		// Mouse not over scene viewport, ignore click
-		//std::cout << "[PlayerLogic] Mouse not over scene viewport\n";
 		return;
 	}
 
-	//std::cout << "[PlayerLogic] Click world = (" << mouseWorld.x << ", " << mouseWorld.y << ")\n";
-
-	// ----------------------------------------------------------
-	// 1) Raycast: check if click is on any table-like object
-	// ----------------------------------------------------------
 	LogicManager& logicMgr = scene.GetLogicManager();
 
-	int   clickedTableID = -1;
-	float bestDistSq = std::numeric_limits<float>::max();
+	int clickedTableID = -1;
 	TableLogic* clickedTableLogic = nullptr;
+	float bestDistSq = std::numeric_limits<float>::max();
 
+	auto considerTableTarget = [&](int tableID, GameObject* hitObject)
+		{
+			if (tableID < 0 || !hitObject) {
+				return;
+			}
+
+			TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableID);
+			if (!tableLogic) {
+				return;
+			}
+
+			const float distSq = DistanceSqToObjectCenter(mouseWorld, hitObject);
+			if (distSq < bestDistSq) {
+				bestDistSq = distSq;
+				clickedTableID = tableID;
+				clickedTableLogic = tableLogic;
+			}
+		};
+
+	// ----------------------------------------------------------
+	// 1) Direct table clicks
+	// ----------------------------------------------------------
 	for (GameObject* obj : scene.GetAllObjectsRaw()) {
 		if (!obj) continue;
 
-		int id = obj->GetID();
-
-		// Debug: does this object have any TableLogic?
-		//TableLogic* tableLogic2 = logicMgr.GetLogicForObject<TableLogic>(id);
-		//std::cout << "[ClickDebug] id=" << id
-		//	<< " hasTableLogic=" << (tableLogic2 ? "yes" : "no")
-		//	<< "\n";
-
-		// Any table (normal / work / customer / ingredient box) derives from TableLogic
+		const int id = obj->GetID();
 		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(id);
-		if (!tableLogic) {
-			continue; // not a table-like object
-		}
+		if (!tableLogic) continue;
 
-		// --- Use collider as click area ---
-		auto colSize = obj->GetColliderSize();     // (width, height)
-		auto colOffset = obj->GetColliderOffset();   // (offset x, offset y)
-
-		glm::vec3 objPos = obj->GetPositionGLM();
-		glm::vec2 center(objPos.x + colOffset.x, objPos.y + colOffset.y);
-
-		float halfW = colSize.x * 0.5f;
-		float halfH = colSize.y * 0.5f;
-
-		bool inside =
-			(mouseWorld.x >= center.x - halfW && mouseWorld.x <= center.x + halfW) &&
-			(mouseWorld.y >= center.y - halfH && mouseWorld.y <= center.y + halfH);
-
-		if (!inside)
+		if (!PointInsideObjectVisualRect(mouseWorld, obj)) {
 			continue;
-
-		float dx = mouseWorld.x - center.x;
-		float dy = mouseWorld.y - center.y;
-		float distSq = dx * dx + dy * dy;
-
-		if (distSq < bestDistSq) {
-			bestDistSq = distSq;
-			clickedTableID = id;
-			clickedTableLogic = tableLogic; // remember which table logic we hit
 		}
+
+		considerTableTarget(id, obj);
 	}
 
 	// ----------------------------------------------------------
-	// 2) If we clicked a table, move to its approach point
+	// 2) Customer sprite clicks OR real spawned bubble clicks
+	//    -> redirect to that customer's table
+	// ----------------------------------------------------------
+	for (GameObject* obj : scene.GetAllObjectsRaw()) {
+		if (!obj) continue;
+
+		const int id = obj->GetID();
+
+		SimpleNpcLogic* npcLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(id);
+		if (!npcLogic) continue;
+
+		const int customerTableID = npcLogic->GetCustomerTableID();
+		if (customerTableID < 0) continue;
+
+		const bool hitCustomer = PointInsideObjectVisualRect(mouseWorld, obj);
+
+		bool hitBubble = false;
+		if (CustomerOrderUILogic* uiLogic = logicMgr.GetLogicForObject<CustomerOrderUILogic>(id)) {
+			hitBubble = uiLogic->HitTestBubble(scene, mouseWorld);
+		}
+
+		if (!hitCustomer && !hitBubble) {
+			continue;
+		}
+
+		considerTableTarget(customerTableID, obj);
+	}
+
+	// ----------------------------------------------------------
+	// 3) If we resolved to a table, move to its approach point
 	// ----------------------------------------------------------
 	if (clickedTableID >= 0 && clickedTableLogic) {
 		pendingTableID = clickedTableID;
@@ -261,7 +315,6 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 
 		glm::vec2 target(approach.x, approach.y);
 
-		// snap interactable target to nearest walkable cell center
 		glm::vec2 snappedTarget = target;
 		scene.GetNearestNavigationCellCenterForObject(player->GetID(), target, snappedTarget);
 
@@ -269,7 +322,7 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input) {
 			MoveDirect(snappedTarget);
 		}
 		else {
-			MoveTo(scene, target); // MoveTo will snap internally anyway
+			MoveTo(scene, target);
 		}
 	}
 	else {
