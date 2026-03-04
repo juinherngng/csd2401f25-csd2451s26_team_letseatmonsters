@@ -16,8 +16,12 @@
 
 #include "ResourceManager.hpp"
 
+#include <algorithm>
+#include <future>
 #include <filesystem>
 #include <iostream>
+#include <thread>
+#include <unordered_set>
 
 namespace {
 	std::string NormalizePath(const std::string& path) {
@@ -142,6 +146,93 @@ Texture* ResourceManager::GetTexture(const std::string& name) {
 
 	std::cerr << "Texture '" << name << "' not found!" << std::endl;
 	return nullptr;
+}
+void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths) {
+	if (filePaths.empty()) {
+		return;
+	}
+
+	std::vector<std::string> uniquePaths;
+	uniquePaths.reserve(filePaths.size());
+	std::unordered_set<std::string> seen;
+
+	for (const auto& filePath : filePaths) {
+		if (filePath.empty()) {
+			continue;
+		}
+
+		const std::string normalizedPath = NormalizePath(filePath);
+		if (texturePaths.find(normalizedPath) != texturePaths.end()) {
+			continue;
+		}
+
+		if (seen.insert(normalizedPath).second) {
+			uniquePaths.push_back(filePath);
+		}
+	}
+
+	if (uniquePaths.empty()) {
+		return;
+	}
+
+	struct DecodedTexture {
+		std::string path;
+		std::vector<unsigned char> data;
+		int width = 0;
+		int height = 0;
+		int channels = 0;
+		bool ok = false;
+	};
+
+	auto decodeTask = [](std::string filePath) {
+		DecodedTexture decoded;
+		decoded.path = std::move(filePath);
+		decoded.ok = Texture::DecodeFile(decoded.path, decoded.data, decoded.width, decoded.height, decoded.channels);
+		return decoded;
+		};
+
+	const unsigned int hw = std::max(1u, std::thread::hardware_concurrency());
+	const size_t maxWorkers = std::max<size_t>(2, hw - 1);
+	std::vector<std::future<DecodedTexture>> futures;
+	futures.reserve(uniquePaths.size());
+
+	for (const auto& path : uniquePaths) {
+		futures.emplace_back(std::async(std::launch::async, decodeTask, path));
+		if (futures.size() >= maxWorkers) {
+			auto decoded = futures.front().get();
+			futures.erase(futures.begin());
+			if (!decoded.ok) {
+				continue;
+			}
+
+			auto texture = std::make_unique<Texture>();
+			if (!texture->LoadFromMemory(decoded.data.data(), decoded.width, decoded.height, decoded.channels)) {
+				continue;
+			}
+			Texture* texturePtr = texture.get();
+			const std::string cacheKey = "preload_" + decoded.path;
+			textures[cacheKey] = std::move(texture);
+			texturePaths[NormalizePath(decoded.path)] = texturePtr;
+		}
+	}
+
+	for (auto& fut : futures) {
+		auto decoded = fut.get();
+		if (!decoded.ok) {
+			continue;
+		}
+
+		auto texture = std::make_unique<Texture>();
+		if (!texture->LoadFromMemory(decoded.data.data(), decoded.width, decoded.height, decoded.channels)) {
+			continue;
+		}
+		Texture* texturePtr = texture.get();
+		const std::string cacheKey = "preload_" + decoded.path;
+		textures[cacheKey] = std::move(texture);
+		texturePaths[NormalizePath(decoded.path)] = texturePtr;
+	}
+
+	std::cout << "Preloaded textures: " << uniquePaths.size() << std::endl;
 }
 
 // Audio management methods - delegate to AudioManager

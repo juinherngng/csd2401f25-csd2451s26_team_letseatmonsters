@@ -12,7 +12,9 @@
 
 #include "Texture.hpp"
 
+#include <algorithm>
 #include <iostream>
+#include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../extern/stb_image/stb_image.h"
@@ -55,16 +57,48 @@ Texture& Texture::operator=(Texture&& other) noexcept {
 	return *this;
 }
 
-bool Texture::LoadFromFile(const std::string& filePath) {
-	// Flip image vertically (OpenGL expects texture coordinates to start from bottom-left)
-	stbi_set_flip_vertically_on_load(true);
-
-	unsigned char* data = stbi_load(filePath.c_str(), &width, &height, &channels, 0);
-
-	if (!data) {
-		std::cerr << "Failed to load texture: " << filePath << std::endl;
+// Static method to decode an image file into CPU memory using stb_image (no OpenGL calls)
+bool Texture::DecodeFile(const std::string& filePath,
+	std::vector<unsigned char>& outData,
+	int& outWidth,
+	int& outHeight,
+	int& outChannels) {
+	unsigned char* raw = stbi_load(filePath.c_str(), &outWidth, &outHeight, &outChannels, 0);
+	if (!raw) {
+		std::cerr << "Failed to decode texture: " << filePath << std::endl;
 		std::cerr << "STB Error: " << stbi_failure_reason() << std::endl;
 		return false;
+	}
+
+	const int rowBytes = outWidth * outChannels;
+	outData.assign(raw, raw + (outHeight * rowBytes));
+	stbi_image_free(raw);
+
+	// Flip vertically so UVs stay consistent with the existing renderer convention.
+	for (int y = 0; y < outHeight / 2; ++y) {
+		const int top = y * rowBytes;
+		const int bot = (outHeight - 1 - y) * rowBytes;
+		for (int i = 0; i < rowBytes; ++i) {
+			std::swap(outData[top + i], outData[bot + i]);
+		}
+	}
+
+	return true;
+}
+
+// Upload pre-decoded image bytes to OpenGL and create a texture object
+bool Texture::LoadFromMemory(const unsigned char* data, int imageWidth, int imageHeight, int imageChannels) {
+	if (!data || imageWidth <= 0 || imageHeight <= 0 || imageChannels <= 0) {
+		return false;
+	}
+
+	width = imageWidth;
+	height = imageHeight;
+	channels = imageChannels;
+
+	if (textureID != 0) {
+		glDeleteTextures(1, &textureID);
+		textureID = 0;
 	}
 
 	glGenTextures(1, &textureID);
@@ -76,7 +110,6 @@ bool Texture::LoadFromFile(const std::string& filePath) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  // Pixel art friendly
 
-	// Upload texture data
 	GLenum format = GL_RGB;
 	if (channels == 1)
 		format = GL_RED;
@@ -86,15 +119,31 @@ bool Texture::LoadFromFile(const std::string& filePath) {
 		format = GL_RGBA;
 
 	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-	glGenerateMipmap(GL_TEXTURE_2D);
 
-	stbi_image_free(data);
 	glBindTexture(GL_TEXTURE_2D, 0);
+	return true;
+}
+
+// Load texture data from disk and upload it to OpenGL
+bool Texture::LoadFromFile(const std::string& filePath) {
+	std::vector<unsigned char> decoded;
+	int imageWidth = 0;
+	int imageHeight = 0;
+	int imageChannels = 0;
+
+	if (!DecodeFile(filePath, decoded, imageWidth, imageHeight, imageChannels)) {
+		return false;
+	}
+
+	if (!LoadFromMemory(decoded.data(), imageWidth, imageHeight, imageChannels)) {
+		return false;
+	}
 
 	std::cout << "Loaded texture: " << filePath << " (" << width << "x" << height << ", " << channels << " channels)" << std::endl;
 	return true;
 }
 
+// Bind this texture to a texture unit slot (default slot 0)
 void Texture::Bind(unsigned int slot) const {
 
 	if (textureID == 0) {
@@ -106,6 +155,7 @@ void Texture::Bind(unsigned int slot) const {
 	glBindTexture(GL_TEXTURE_2D, textureID);
 }
 
+// Unbind any texture from the active texture target
 void Texture::Unbind() const {
 	glBindTexture(GL_TEXTURE_2D, 0);
 }

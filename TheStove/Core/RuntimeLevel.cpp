@@ -23,6 +23,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <unordered_set>
+#include <vector>
 
 namespace RuntimeLevel {
 	void BuildSceneFromLevel(const LevelData& levelIn, Scene& scene) {
@@ -167,6 +169,21 @@ namespace RuntimeLevel {
 			std::cout << "[RuntimeLevel] Background set: " << data.background << std::endl;
 			scene.SetSceneBackground(data.background);
 		}
+
+		// Decode image files in parallel before spawning objects to reduce load stutter.
+		std::vector<std::string> texturesToPreload;
+		texturesToPreload.reserve(data.objects.size());
+		std::unordered_set<std::string> seenTexturePaths;
+		for (const auto& obj : data.objects) {
+			if (obj.texture.empty()) {
+				continue;
+			}
+			if (seenTexturePaths.insert(obj.texture).second) {
+				texturesToPreload.push_back(obj.texture);
+			}
+		}
+
+		ResourceManager::Instance().PreloadTextures(texturesToPreload);
 
 		BuildSceneFromLevel(data, scene);
 		scene.RebuildColliders();

@@ -49,6 +49,7 @@ public:
 	// Texture management
 	Texture* LoadTexture(const std::string& name, const std::string& filePath);
 	Texture* GetTexture(const std::string& name);
+	void PreloadTextures(const std::vector<std::string>& filePaths);
 
 	// Font management
 	FontSystem::Font* LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize);
