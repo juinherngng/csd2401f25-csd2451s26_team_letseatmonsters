@@ -22,8 +22,8 @@
 #include "DebugRenderer.hpp"
 #include "GameObject.hpp"
 #include "imgui.h"
-#include "imgui_internal.h"
 #include "Renderer.hpp"
+#include "SceneViewportPresenter.hpp"
 #include "ResourceManager.hpp"
 
 #include <glm/glm.hpp>
@@ -199,6 +199,7 @@ private:
 	int mSceneHeight = 800;
 
 	// Editor scene view
+	SceneViewportPresenter sceneViewportPresenter_;
 	ImVec2 sceneImagePos_{ 0.0f, 0.0f };
 	ImVec2 sceneImageSize_{ 0.0f, 0.0f };
 	ImGuiID mMainDockspaceId = 0;
@@ -225,6 +226,7 @@ private:
 	// Render helpers
 	void RenderTextObjects();
 	void RenderSingleTextObject(const LEPANELFONTS::TextObjectData& textData);
+	void EndSceneAndPresent();
 	void DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void RenderBackground(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void PresentSceneToDefaultFramebuffer();

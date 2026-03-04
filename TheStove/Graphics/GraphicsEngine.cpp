@@ -32,6 +32,75 @@ static bool _imguiInitialized = false;
 
 // Helper function to resolve shader paths across different build configurations
 namespace {
+	constexpr const char* kOpenGLErrorPrefixDefault = "[GraphicsEngine] OpenGL error";
+	constexpr int kInvalidLayerValue = 1000000;
+
+	struct RenderPassConfig {
+		bool depthTestEnabled = true;
+		bool depthWriteEnabled = true;
+		bool blendingEnabled = false;
+		GLenum blendSrcRgb = GL_SRC_ALPHA;
+		GLenum blendDstRgb = GL_ONE_MINUS_SRC_ALPHA;
+		GLenum blendSrcAlpha = GL_SRC_ALPHA;
+		GLenum blendDstAlpha = GL_ONE_MINUS_SRC_ALPHA;
+	};
+
+	class ScopedRenderPassState {
+	public:
+		explicit ScopedRenderPassState(const RenderPassConfig& config)
+			: depthTestWasEnabled_(glIsEnabled(GL_DEPTH_TEST) == GL_TRUE),
+			blendWasEnabled_(glIsEnabled(GL_BLEND) == GL_TRUE) {
+			GLboolean depthMaskState = GL_TRUE;
+			glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMaskState);
+			depthWriteWasEnabled_ = (depthMaskState == GL_TRUE);
+
+			glGetIntegerv(GL_BLEND_SRC_RGB, &blendSrcRgb_);
+			glGetIntegerv(GL_BLEND_DST_RGB, &blendDstRgb_);
+			glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrcAlpha_);
+			glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDstAlpha_);
+
+			SetEnabled(GL_DEPTH_TEST, config.depthTestEnabled);
+			glDepthMask(config.depthWriteEnabled ? GL_TRUE : GL_FALSE);
+			SetEnabled(GL_BLEND, config.blendingEnabled);
+			if (config.blendingEnabled) {
+				glBlendFuncSeparate(config.blendSrcRgb, config.blendDstRgb, config.blendSrcAlpha, config.blendDstAlpha);
+			}
+		}
+
+		~ScopedRenderPassState() {
+			SetEnabled(GL_DEPTH_TEST, depthTestWasEnabled_);
+			glDepthMask(depthWriteWasEnabled_ ? GL_TRUE : GL_FALSE);
+			SetEnabled(GL_BLEND, blendWasEnabled_);
+			glBlendFuncSeparate(
+				static_cast<GLenum>(blendSrcRgb_),
+				static_cast<GLenum>(blendDstRgb_),
+				static_cast<GLenum>(blendSrcAlpha_),
+				static_cast<GLenum>(blendDstAlpha_)
+			);
+		}
+
+		ScopedRenderPassState(const ScopedRenderPassState&) = delete;
+		ScopedRenderPassState& operator=(const ScopedRenderPassState&) = delete;
+
+	private:
+		static void SetEnabled(GLenum capability, bool enabled) {
+			if (enabled) {
+				glEnable(capability);
+			}
+			else {
+				glDisable(capability);
+			}
+		}
+
+		bool depthTestWasEnabled_ = true;
+		bool depthWriteWasEnabled_ = true;
+		bool blendWasEnabled_ = false;
+		GLint blendSrcRgb_ = GL_SRC_ALPHA;
+		GLint blendDstRgb_ = GL_ONE_MINUS_SRC_ALPHA;
+		GLint blendSrcAlpha_ = GL_SRC_ALPHA;
+		GLint blendDstAlpha_ = GL_ONE_MINUS_SRC_ALPHA;
+	};
+
 	std::string ResolveShaderPath(const std::string& relativePathFromProjectRoot) {
 		// Print working directory only once
 		static bool printedCwd = false;
@@ -64,6 +133,20 @@ namespace {
 		std::cerr << "[ShaderPath] ERROR: Shader '" << filename << "' not found in any expected location!" << std::endl;
 		std::cerr << "[ShaderPath] Tried paths relative to: " << std::filesystem::current_path() << std::endl;
 		return relativePathFromProjectRoot;
+	}
+
+	void LogOpenGLErrors(const char* prefix = kOpenGLErrorPrefixDefault) {
+		GLenum error;
+		while ((error = glGetError()) != GL_NO_ERROR) {
+			std::cerr << prefix << ": " << error << std::endl;
+		}
+	}
+
+	bool NeedsPerInstanceTintFallback(const std::vector<Mesh::InstanceData>& batch) {
+		return std::any_of(batch.begin(), batch.end(), [](const Mesh::InstanceData& inst) {
+			return inst.colorTint.x != 1.0f || inst.colorTint.y != 1.0f ||
+				inst.colorTint.z != 1.0f || inst.colorTint.w < 0.999f;
+			});
 	}
 }
 
@@ -383,30 +466,7 @@ void GraphicsEngine::BeginImGuiFrame() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
-
-	// Dockspace host window (full work area)
-	ImGuiViewport* viewport = ImGui::GetMainViewport();
-	ImGui::SetNextWindowPos(viewport->WorkPos);
-	ImGui::SetNextWindowSize(viewport->WorkSize);
-	ImGui::SetNextWindowViewport(viewport->ID);
-
-	ImGuiWindowFlags hostFlags =
-		ImGuiWindowFlags_NoDocking |
-		ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-	if (ImGui::Begin("###DockSpaceHost", nullptr, hostFlags)) {
-		ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
-		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), 0);
-		mMainDockspaceId = dockspaceId;
-	}
-
-	ImGui::End();
-	ImGui::PopStyleVar(2);
+	sceneViewportPresenter_.BeginDockspaceFrame(mMainDockspaceId);
 #endif
 }
 
@@ -418,7 +478,7 @@ int GraphicsEngine::ParseLayerNumber(const std::string& layerName) {
 	int result = 0;
 	for (char c : layerName) {
 		if (!std::isdigit(static_cast<unsigned char>(c))) {
-			return 1000000;
+			return kInvalidLayerValue;
 		}
 
 		result = result * 10 + (c - '0');
@@ -428,45 +488,14 @@ int GraphicsEngine::ParseLayerNumber(const std::string& layerName) {
 }
 
 void GraphicsEngine::ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
-	outPos = sceneImagePos_;
-	outSize = sceneImageSize_;
-
-	if (outSize.x > 1.0f && outSize.y > 1.0f) {
-		return;
-	}
-
-	const float targetAspect = float(kRefW) / float(kRefH);
-	ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
-	if (sceneWin) {
-		const ImRect contentRect = sceneWin->InnerRect;
-		float w = contentRect.GetWidth();
-		float h = contentRect.GetHeight();
-		const float ratio = w / h;
-		if (ratio > targetAspect) {
-			w = h * targetAspect;
-		}
-		else {
-			h = w / targetAspect;
-		}
-
-		outPos = ImVec2(contentRect.Min.x + (contentRect.GetWidth() - w) * 0.5f, contentRect.Min.y + (contentRect.GetHeight() - h) * 0.5f);
-		outSize = ImVec2(w, h);
-		return;
-	}
-
-	ImGuiViewport* viewport = ImGui::GetMainViewport();
-	float w = viewport->WorkSize.x;
-	float h = viewport->WorkSize.y;
-	const float ratio = w / h;
-	if (ratio > targetAspect) {
-		w = h * targetAspect;
-	}
-	else {
-		h = w / targetAspect;
-	}
-
-	outPos = ImVec2(viewport->WorkPos.x + (viewport->WorkSize.x - w) * 0.5f, viewport->WorkPos.y + (viewport->WorkSize.y - h) * 0.5f);
-	outSize = ImVec2(w, h);
+	sceneViewportPresenter_.ComputeSceneImageRect(
+		sceneImagePos_,
+		sceneImageSize_,
+		kRefW,
+		kRefH,
+		outPos,
+		outSize
+	);
 }
 
 void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
@@ -474,7 +503,12 @@ void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::ma
 		return;
 	}
 
-	glDisable(GL_DEPTH_TEST);
+	const ScopedRenderPassState passState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = false
+		});
+
 	Shader* shader = backgroundObject->GetShader();
 	if (shader) {
 		shader->Use();
@@ -493,8 +527,6 @@ void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::ma
 	if (mesh) {
 		mesh->Draw();
 	}
-
-	glEnable(GL_DEPTH_TEST);
 }
 
 void GraphicsEngine::PresentSceneToDefaultFramebuffer() {
@@ -532,50 +564,33 @@ void GraphicsEngine::DrawSceneDockWindow() {
 		return;
 	}
 
-	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
-		ImGuiCond_FirstUseEver);
+	sceneViewportPresenter_.DrawSceneWindow(
+		mSceneColor,
+		kRefW,
+		kRefH,
+		mMainDockspaceId,
+		sceneImagePos_,
+		sceneImageSize_
+	);
+#endif
+}
+void GraphicsEngine::EndSceneAndPresent() {
+	EndSceneRender();
+#ifdef _DEBUG
+	DrawSceneDockWindow();
+	EndImGuiFrame();
+#else
+	PresentSceneToDefaultFramebuffer();
+#endif
+}
 
-	if (ImGui::Begin("Scene###SceneWindow")) {
-		ImVec2 avail = ImGui::GetContentRegionAvail();
-		const float targetAspect = float(kRefW) / float(kRefH);
-		float w = avail.x, h = avail.y;
-		float r = w / h;
-		if (r > targetAspect) {
-			w = h * targetAspect;
-		}
-		else {
-			h = w / targetAspect;
-		}
-
-		// Center the image in the window
-		ImVec2 cursor = ImGui::GetCursorPos();
-		ImGui::SetCursorPos(ImVec2(cursor.x + (avail.x - w) * 0.5f,
-			cursor.y + (avail.y - h) * 0.5f));
-
-		// Absolute rect for picking
-		sceneImagePos_ = ImGui::GetCursorScreenPos();
-		sceneImageSize_ = ImVec2(w, h);
-
-		// Draw the FBO texture (v-flipped)
-		ImGui::Image(
-			(ImTextureID)(intptr_t)mSceneColor,
-			ImVec2(w, h),
-			ImVec2(0, 1), // uv0
-			ImVec2(1, 0)  // uv1
-		);
-
-		// Invisible proxy for hover/click that exactly matches the scene image
-		if (sceneImageSize_.x > 1.0f && sceneImageSize_.y > 1.0f) {
-			ImGui::SetCursorScreenPos(sceneImagePos_);
-			ImGui::InvisibleButton("##SceneImageBtn", sceneImageSize_);
-
-			if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-				//std::cout << "[Scene] LMB click inside Scene image\n";
-			}
-		}
-	}
-
-	ImGui::End();
+void GraphicsEngine::EndSceneAndPresent() {
+	EndSceneRender();
+#ifdef _DEBUG
+	DrawSceneDockWindow();
+	EndImGuiFrame();
+#else
+	PresentSceneToDefaultFramebuffer();
 #endif
 }
 
@@ -735,12 +750,12 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	// Draw shadows before sprites
 	DrawSpriteShadows(objects, viewMatrix, projectionMatrix);
 
-	// Render all scene objects
-	// Disable depth testing for 2D sprites so layering/order controls visibility
-	GLboolean depthWasEnabledSprites = glIsEnabled(GL_DEPTH_TEST);
-	if (depthWasEnabledSprites) {
-		glDisable(GL_DEPTH_TEST);
-	}
+	// Render all scene objects using a pass config tuned for alpha-blended sprites.
+	const ScopedRenderPassState spritePassState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = true
+		});
 
 	for (const auto* obj : objects) {
 		if (!obj) {
@@ -768,46 +783,24 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 
 		Mesh* mesh = obj->GetMesh();
 		if (mesh) {
-			// enable alpha blending for sprite draw
-			GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
-			if (!blendWasEnabled) {
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			}
-
 			mesh->Draw();
-
-			if (!blendWasEnabled) {
-				glDisable(GL_BLEND);
-			}
 		}
 
 		if (DebugRenderer::IsEnabled()) {
-			glDisable(GL_DEPTH_TEST);
+			const ScopedRenderPassState debugPassState({
+				.depthTestEnabled = false,
+				.depthWriteEnabled = true,
+				.blendingEnabled = true
+				});
 			obj->DrawBoundingBox(viewMatrix, projectionMatrix, glm::vec3{ 1.0f, 0.0f, 0.0f });
-			glEnable(GL_DEPTH_TEST);
 		}
 	}
 
 	// Draw transition overlay into the scene FBO before unbinding
 	DrawTransitionOverlay();
 
-	// Unbind scene FBO so default framebuffer can be used for final presentation
-	EndSceneRender();
-
-#ifdef _DEBUG
-	// Debug: render ImGui dockspace + scene image into ImGui window
-	DrawSceneDockWindow();
-	EndImGuiFrame();
-#else
-	// Release: present the scene FBO to the default framebuffer (GLFW window)
-	PresentSceneToDefaultFramebuffer();
-#endif
-
-	GLenum error;
-	while ((error = glGetError()) != GL_NO_ERROR) {
-		std::cerr << "OpenGL error after draw call: " << error << std::endl;
-	}
+	EndSceneAndPresent();
+	LogOpenGLErrors("[GraphicsEngine] OpenGL error after draw call");
 }
 
 // Batched/instanced render path 
@@ -822,11 +815,12 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Draw shadows before sprites 
 	DrawSpriteShadows(objects, view, projection);
 
-	// Disable depth testing for 2D sprites (batched)
-	GLboolean depthWasEnabledSprites = glIsEnabled(GL_DEPTH_TEST);
-	if (depthWasEnabledSprites) {
-		glDisable(GL_DEPTH_TEST);
-	}
+	// Keep sprite batching in a pass with alpha blending and no depth testing.
+	const ScopedRenderPassState spriteBatchPassState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = true
+		});
 
 #ifdef _DEBUG
 	// Get text objects and sort by layer for interleaved rendering
@@ -885,16 +879,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 		// Draw transition overlay even if empty scene
 		DrawTransitionOverlay();
-
-		EndSceneRender();
-#ifdef _DEBUG
-		DrawSceneDockWindow();
-		EndImGuiFrame();
-#else
-		// Blit scene FBO to default framebuffer in Release
-		PresentSceneToDefaultFramebuffer();
-#endif
-
+		EndSceneAndPresent();
 		return;
 	}
 
@@ -915,14 +900,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		bool wantsInstancing = batch.size() >= INSTANCING_THRESHOLD;
 
 		// Instanced shaders do not carry per-instance tint yet -> fall back when needed
-		bool needsPerInstanceTint = false;
-		for (const auto& inst : batch) {
-			if (inst.colorTint.x != 1.0f || inst.colorTint.y != 1.0f ||
-				inst.colorTint.z != 1.0f || inst.colorTint.w < 0.999f) {
-				needsPerInstanceTint = true;
-				break;
-			}
-		}
+		const bool needsPerInstanceTint = NeedsPerInstanceTintFallback(batch);
 
 		// Map the original shader -> preferred instanced shader 
 		Shader* preferredInstanced = nullptr;
@@ -982,10 +960,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 				renderStats.drawCalls++;
 			}
 
-			if (!blendWasEnabled) {
-				glDisable(GL_BLEND);
-			}
-
 			renderStats.totalBatches++;
 		}
 		};
@@ -1042,11 +1016,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		instanceBatch.clear();
 	}
 
-	// Restore depth state after sprites
-	if (depthWasEnabledSprites) {
-		glEnable(GL_DEPTH_TEST);
-	}
-
 #ifdef _DEBUG
 	// Render remaining text objects (those in layers >= the last game object layer)
 	while (textIndex < sortedTextObjects.size()) {
@@ -1057,7 +1026,11 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 	// Debug bounding boxes render
 	if (DebugRenderer::IsEnabled()) {
-		glDisable(GL_DEPTH_TEST);
+		const ScopedRenderPassState debugPassState({
+			.depthTestEnabled = false,
+			.depthWriteEnabled = true,
+			.blendingEnabled = true
+			});
 		for (const auto* obj : objects) {
 			if (obj) {
 				obj->DrawBoundingBox(view, projection, glm::vec3{ 1.0f, 0.0f, 0.0f });
@@ -1065,27 +1038,14 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 
 		DebugRenderer::Flush(view, projection);
-		glEnable(GL_DEPTH_TEST);
 	}
 
 	// Draw transition overlay on top of everything in the scene FBO
 	DrawTransitionOverlay();
 
 	// End-of-frame UI and finalization
-	EndSceneRender();
-#ifdef _DEBUG
-	DrawSceneDockWindow();
-	EndImGuiFrame();
-#else
-	// Blit to default framebuffer in Release
-	PresentSceneToDefaultFramebuffer();
-#endif
-
-	// OpenGL error check loop
-	GLenum error;
-	while ((error = glGetError()) != GL_NO_ERROR) {
-		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
-	}
+	EndSceneAndPresent();
+	LogOpenGLErrors("[GraphicsEngine] OpenGL error in batched rendering");
 }
 
 // Render a single text object (for layered rendering)
@@ -1096,9 +1056,11 @@ void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& 
 		return;
 	}
 
-	// Save current GL state that text rendering might modify
-	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
-	GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+	const ScopedRenderPassState textPassState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = true
+		});
 
 	// Create a temporary Text object for rendering
 	FontSystem::Text textRenderer;
@@ -1114,22 +1076,6 @@ void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& 
 
 	// Render using TextRenderer singleton
 	FontSystem::TextRenderer::Instance().RenderText(textRenderer, projection);
-
-	// Restore GL state for subsequent sprite rendering
-	if (depthWasEnabled) {
-		glEnable(GL_DEPTH_TEST);
-	}
-	else {
-		glDisable(GL_DEPTH_TEST);
-	}
-
-	if (blendWasEnabled) {
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	}
-	else {
-		glDisable(GL_BLEND);
-	}
 }
 
 // Render text objects
@@ -1181,12 +1127,11 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 		return;
 	}
 
-	// Disable depth to avoid writing/occluding sprite depth. Keep alpha blending.
-	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
-	glDisable(GL_DEPTH_TEST);
-	GLboolean depthMask;
-	glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
-	glDepthMask(GL_FALSE);
+	const ScopedRenderPassState passState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = false,
+		.blendingEnabled = true
+		});
 
 	shadowShader->Use();
 	shadowShader->SetViewMatrix(viewMatrix);
@@ -1215,15 +1160,9 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 
 		quad->Draw();
 	}
-
-	// Restore depth state
-	glDepthMask(depthMask);
-	if (depthWasEnabled) {
-		glEnable(GL_DEPTH_TEST);
-	}
 }
 
-// Free resources and shutdown ImGui
+// Clean up resources and ImGui context
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
 	DebugRenderer::Shutdown();
@@ -1331,15 +1270,11 @@ void GraphicsEngine::DrawTransitionOverlay() {
 	model = glm::translate(model, glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
 	model = glm::scale(model, glm::vec3(static_cast<float>(kRefW), static_cast<float>(kRefH), 1.0f));
 
-	// Render a black overlay with alpha
-	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
-	glDisable(GL_DEPTH_TEST);
-	GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
-	if (!blendWasEnabled) {
-		glEnable(GL_BLEND);
-	}
-
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	const ScopedRenderPassState passState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = true
+		});
 
 	fadeShader->Use();
 	fadeShader->SetModelMatrix(model);
@@ -1348,12 +1283,4 @@ void GraphicsEngine::DrawTransitionOverlay() {
 	fadeShader->SetColorTint(glm::vec4(0.0f, 0.0f, 0.0f, transitionAlpha_));
 
 	fsq->Draw();
-
-	// Restore state
-	if (!blendWasEnabled) {
-		glDisable(GL_BLEND);
-	}
-	if (depthWasEnabled) {
-		glEnable(GL_DEPTH_TEST);
-	}
 }
