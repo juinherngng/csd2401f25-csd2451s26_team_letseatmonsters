@@ -122,7 +122,7 @@ namespace FilePaths {
 	*/
 	/************************************************************************/
 	inline std::string LevelPath(const std::string& filename) {
-		return JoinPath(Dirs::ASSETS, filename);
+		return JoinPath(Dirs::LEVELS, filename);
 	}
 
 	/************************************************************************/
@@ -136,7 +136,7 @@ namespace FilePaths {
 	*/
 	/************************************************************************/
 	inline std::string PrefabPath(const std::string& filename) {
-		return JoinPath(Dirs::ASSETS, filename);
+		return JoinPath(Dirs::PREFABS, filename);
 	}
 
 	/************************************************************************/
@@ -150,7 +150,7 @@ namespace FilePaths {
 	*/
 	/************************************************************************/
 	inline std::string FontPath(const std::string& filename) {
-		return JoinPath(Dirs::ASSETS, filename);
+		return JoinPath(Dirs::FONTS, filename);
 	}
 
 	/**
@@ -169,7 +169,7 @@ namespace FilePaths {
 	 */
 	 /************************************************************************/
 	inline std::string AudioPath(const std::string& filename) {
-		return JoinPath(Dirs::ASSETS, filename);
+		return JoinPath(Dirs::AUDIO, filename);
 	}
 
 	/************************************************************************/
@@ -183,7 +183,7 @@ namespace FilePaths {
 	*/
 	/************************************************************************/
 	inline std::string CutscenePath(const std::string& filename) {
-		return JoinPath(Dirs::ASSETS, filename);
+		return JoinPath(Dirs::CUTSCENES, filename);
 	}
 
 } // namespace FilePaths
