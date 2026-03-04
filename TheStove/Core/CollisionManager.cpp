@@ -90,6 +90,7 @@ bool CollisionManager::ShouldRebuildGrid(const std::vector<std::unique_ptr<GameO
 	nextState.reserve(allObjects.size());
 
 	for (const auto& objPtr : allObjects) {
+		++profile_.objectsVisited;
 		if (objPtr) {
 			nextState.push_back(BuildBroadphaseState(objPtr.get()));
 		}
@@ -153,14 +154,17 @@ bool CollisionManager::ShouldRebuildGrid(const std::vector<std::unique_ptr<GameO
 
 // Per-frame rebuild
 void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
+	++profile_.updateCalls;
 	// Get all objects as vector of pointers
 	const auto& allObjects = entityManager.GetObjectStorage();
 
 	if (!ShouldRebuildGrid(allObjects)) {
+		++profile_.earlyOutNoGridChange;
 		return;
 	}
 
 	if (forceFullRebuild_) {
+		++profile_.fullRebuilds;
 		spatialGrid_.Clear();
 	}
 
@@ -170,6 +174,7 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 	}
 
 	for (const auto& objPtr : allObjects) {
+		++profile_.objectsVisited;
 		GameObject* obj = objPtr.get();
 		if (obj == nullptr) {
 			continue;
@@ -178,6 +183,8 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 		if (!forceFullRebuild_ && dirtySet.find(obj->GetID()) == dirtySet.end()) {
 			continue;
 		}
+
+		++profile_.dirtyObjectsProcessed;
 
 		bool canCollide = true;
 		if (scene_) {
@@ -221,6 +228,7 @@ void CollisionManager::Clear() {
 	forceFullRebuild_ = true;
 	gridBuilt_ = false;
 	staticStateDirty_ = true;
+
 }
 
 // World building
@@ -229,7 +237,6 @@ void CollisionManager::BuildWalls(const collision::WalkArea& walkArea,
 	const collision::StageEndGateVertical& endGate) {
 	collisionWorld_.build(walkArea, wood, endGate);
 }
-
 void CollisionManager::AddStaticRects(const std::vector<collision::AABB>& rects) {
 	for (const auto& r : rects) {
 		collisionWorld_.addWall(r);
@@ -243,7 +250,6 @@ std::vector<GameObject*> CollisionManager::QueryNearby(const collision::AABB& qu
 
 	return candidates;
 }
-
 std::vector<GameObject*> CollisionManager::QueryPoint(const Math::Vector2D& point) const {
 	std::vector<GameObject*> candidates;
 	spatialGrid_.QueryPoint(point, candidates);

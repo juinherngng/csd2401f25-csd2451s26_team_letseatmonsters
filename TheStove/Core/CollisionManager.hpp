@@ -23,6 +23,7 @@
 #include "SpatialGrid.hpp"
 #include "System.hpp"
 
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
 
@@ -98,6 +99,21 @@ public:
 	// Clear both the grid and the world geometry.
 	void Clear();
 
+	struct ProfileCounters {
+		std::uint64_t updateCalls = 0;
+		std::uint64_t earlyOutNoGridChange = 0;
+		std::uint64_t fullRebuilds = 0;
+		std::uint64_t objectsVisited = 0;
+		std::uint64_t dirtyObjectsProcessed = 0;
+	};
+
+	const ProfileCounters& GetProfileCounters() const {
+		return profile_;
+	}
+	void ResetProfileCounters() {
+		profile_ = ProfileCounters{};
+	}
+
 private:
 	struct ObjectBroadphaseState {
 		int objectID = -1;
@@ -126,4 +142,5 @@ private:
 	bool staticStateDirty_ = true;
 
 	Scene* scene_ = nullptr;
+	mutable ProfileCounters profile_;
 };
