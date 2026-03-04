@@ -71,6 +71,11 @@ public:
 	/** @brief Return raw pointers to all currently alive objects. */
 	std::vector<GameObject*> GetAllObjects();
 
+	/** @brief Access internal object storage (avoids temporary pointer vector allocations). */
+	const std::vector<std::unique_ptr<GameObject>>& GetObjectStorage() const {
+		return sceneObjects_;
+	}
+
 	/** @brief Return the total number of alive objects. */
 	size_t GetObjectCount() const {
 		return sceneObjects_.size();

@@ -160,7 +160,12 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 	size_t loadedCount = 0;
 	size_t failedCount = 0;
 
-	std::vector<std::string> uniquePaths;
+	struct PendingPath {
+		std::string path;
+		std::string normalizedPath;
+	};
+
+	std::vector<PendingPath> uniquePaths;
 	uniquePaths.reserve(filePaths.size());
 	std::unordered_set<std::string> seen;
 
@@ -175,7 +180,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 		}
 
 		if (seen.insert(normalizedPath).second) {
-			uniquePaths.push_back(filePath);
+			uniquePaths.push_back(PendingPath{ filePath, normalizedPath });
 		}
 	}
 
@@ -185,6 +190,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 
 	struct DecodedTexture {
 		std::string path;
+		std::string normalizedPath;
 		std::vector<unsigned char> data;
 		int width = 0;
 		int height = 0;
@@ -192,9 +198,10 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 		bool ok = false;
 	};
 
-	auto decodeTask = [](std::string filePath) {
+	auto decodeTask = [](PendingPath pendingPath) {
 		DecodedTexture decoded;
-		decoded.path = std::move(filePath);
+		decoded.path = std::move(pendingPath.path);
+		decoded.normalizedPath = std::move(pendingPath.normalizedPath);
 		decoded.ok = Texture::DecodeFile(decoded.path, decoded.data, decoded.width, decoded.height, decoded.channels);
 		return decoded;
 		};
@@ -203,46 +210,19 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 	const size_t maxWorkers = std::max<size_t>(2, hw - 1);
 	std::vector<std::future<DecodedTexture>> futures;
 	futures.reserve(uniquePaths.size());
+	size_t nextFutureToConsume = 0;
 
-	for (const auto& path : uniquePaths) {
-		futures.emplace_back(std::async(std::launch::async, decodeTask, path));
-		if (futures.size() >= maxWorkers) {
-			auto decoded = futures.front().get();
-			futures.erase(futures.begin());
-			if (!decoded.ok) {
-				++failedCount;
-				continue;
-			}
-
-			auto texture = std::make_unique<Texture>();
-			const auto uploadStart = std::chrono::steady_clock::now();
-			if (!texture->LoadFromMemory(decoded.data.data(), decoded.width, decoded.height, decoded.channels)) {
-				++failedCount;
-				continue;
-			}
-
-			uploadMs += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - uploadStart).count();
-			++loadedCount;
-
-			Texture* texturePtr = texture.get();
-			const std::string cacheKey = "preload_" + decoded.path;
-			textures[cacheKey] = std::move(texture);
-			texturePaths[NormalizePath(decoded.path)] = texturePtr;
-		}
-	}
-
-	for (auto& fut : futures) {
-		auto decoded = fut.get();
+	auto consumeDecodedTexture = [&](DecodedTexture&& decoded) {
 		if (!decoded.ok) {
 			++failedCount;
-			continue;
+			return;
 		}
 
 		auto texture = std::make_unique<Texture>();
 		const auto uploadStart = std::chrono::steady_clock::now();
 		if (!texture->LoadFromMemory(decoded.data.data(), decoded.width, decoded.height, decoded.channels)) {
 			++failedCount;
-			continue;
+			return;
 		}
 
 		uploadMs += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - uploadStart).count();
@@ -251,7 +231,18 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 		Texture* texturePtr = texture.get();
 		const std::string cacheKey = "preload_" + decoded.path;
 		textures[cacheKey] = std::move(texture);
-		texturePaths[NormalizePath(decoded.path)] = texturePtr;
+		texturePaths[decoded.normalizedPath] = texturePtr;
+		};
+
+	for (auto& pendingPath : uniquePaths) {
+		futures.emplace_back(std::async(std::launch::async, decodeTask, std::move(pendingPath)));
+		if (futures.size() - nextFutureToConsume >= maxWorkers) {
+			consumeDecodedTexture(futures[nextFutureToConsume++].get());
+		}
+	}
+
+	while (nextFutureToConsume < futures.size()) {
+		consumeDecodedTexture(futures[nextFutureToConsume++].get());
 	}
 
 #ifndef NDEBUG

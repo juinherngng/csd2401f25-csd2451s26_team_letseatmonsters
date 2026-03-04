@@ -821,29 +821,30 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 #ifdef _DEBUG
 	// Get text objects and sort by layer for interleaved rendering
 	const auto& textObjects = LEPANELFONTS::GetTextObjects();
-	std::vector<const LEPANELFONTS::TextObjectData*> sortedTextObjects;
+	struct SortedTextEntry {
+		const LEPANELFONTS::TextObjectData* data;
+		int layer;
+	};
+	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-		sortedTextObjects.push_back(&data);
+		sortedTextObjects.push_back({ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
-		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
-			int la = ParseLayerNumber(a->layer);
-			int lb = ParseLayerNumber(b->layer);
-
+		[](const SortedTextEntry& a, const SortedTextEntry& b) {
 			// Lower layer number = rendered first (behind)
 			// Higher layer number = rendered later (on top)
-			if (la != lb) {
-				return la < lb;
+			if (a.layer != b.layer) {
+				return a.layer < b.layer;
 			}
 
 			// Same layer: use depth first, then Y position for sorting
-			if (a->depth != b->depth) {
-				return a->depth < b->depth;
+			if (a.data->depth != b.data->depth) {
+				return a.data->depth < b.data->depth;
 			}
 
-			return a->y < b->y;
+			return a.data->y < b.data->y;
 		});
 
 	size_t textIndex = 0; // Track which text objects have been rendered
@@ -852,9 +853,8 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Lambda to render text objects up to and including a certain layer
 	auto renderTextUpToLayer = [&](int maxLayerNumber) {
 		while (textIndex < sortedTextObjects.size()) {
-			int textLayer = ParseLayerNumber(sortedTextObjects[textIndex]->layer);
-			if (textLayer <= maxLayerNumber) {
-				RenderSingleTextObject(*sortedTextObjects[textIndex]);
+			if (sortedTextObjects[textIndex].layer <= maxLayerNumber) {
+				RenderSingleTextObject(*sortedTextObjects[textIndex].data);
 				++textIndex;
 			}
 			else {
@@ -869,7 +869,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 #ifdef _DEBUG
 		// Render all text objects
 		for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
-			RenderSingleTextObject(*sortedTextObjects[i]);
+			RenderSingleTextObject(*sortedTextObjects[i].data);
 		}
 #endif
 
@@ -882,6 +882,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Prefetch possible instanced shaders + animated shader pointer
 	Shader* staticsInstShader = resourceManager.GetShader("staticsprite_instanced");
 	Shader* animatedInstShader = resourceManager.GetShader("animatedsprite_instanced");
+	Shader* staticShader = resourceManager.GetShader("staticsprite");
 	Shader* animShader = resourceManager.GetShader("animatedsprite");
 
 	// Build contiguous runs keyed by (mesh, shader, texture) - preserves layering order
@@ -900,7 +901,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 		// Map the original shader -> preferred instanced shader 
 		Shader* preferredInstanced = nullptr;
-		if (key.shader == resourceManager.GetShader("staticsprite")) {
+		if (key.shader == staticShader) {
 			preferredInstanced = staticsInstShader;
 		}
 		else if (key.shader == animShader) {
@@ -1085,29 +1086,30 @@ void GraphicsEngine::RenderTextObjects() {
 	}
 
 	// Sort text objects by layer (lower layer numbers render first/behind)
-	std::vector<const LEPANELFONTS::TextObjectData*> sortedTextObjects;
+	struct SortedTextEntry {
+		const LEPANELFONTS::TextObjectData* data;
+		int layer;
+	};
+	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-		sortedTextObjects.push_back(&data);
+		sortedTextObjects.push_back({ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
-		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
-			int la = ParseLayerNumber(a->layer);
-			int lb = ParseLayerNumber(b->layer);
-
+		[](const SortedTextEntry& a, const SortedTextEntry& b) {
 			// Higher layer number = rendered on top (later in draw order)
-			if (la != lb) {
-				return la < lb;
+			if (a.layer != b.layer) {
+				return a.layer < b.layer;
 			}
 
 			// Same layer: use Y position for depth sorting
-			return a->y < b->y;
+			return a.data->y < b.data->y;
 		});
 
 	// Create Text renderers on demand and render
-	for (const auto* data : sortedTextObjects) {
-		RenderSingleTextObject(*data);
+	for (const auto& entry : sortedTextObjects) {
+		RenderSingleTextObject(*entry.data);
 	}
 #else
 	// In release build, text will be rendered from game state

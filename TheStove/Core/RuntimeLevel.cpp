@@ -29,9 +29,10 @@
 
 namespace RuntimeLevel {
 	void BuildSceneFromLevel(const LevelData& levelIn, Scene& scene) {
+		static const std::string kDefaultLayer = "1";
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
-			std::string layerName = obj.layer.empty() ? "1" : obj.layer;
+			const std::string& layerName = obj.layer.empty() ? kDefaultLayer : obj.layer;
 
 			if (obj.animated) {
 				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
@@ -176,6 +177,7 @@ namespace RuntimeLevel {
 		std::vector<std::string> texturesToPreload;
 		texturesToPreload.reserve(data.objects.size());
 		std::unordered_set<std::string> seenTexturePaths;
+		seenTexturePaths.reserve(data.objects.size());
 		for (const auto& obj : data.objects) {
 			if (obj.texture.empty()) {
 				continue;
@@ -197,7 +199,7 @@ namespace RuntimeLevel {
 		parsedTexts.reserve(data.textObjects.size());
 
 		for (const auto& t : data.textObjects) {
-			LEPANELFONTS::TextObjectData d;
+			auto& d = parsedTexts.emplace_back();
 			d.name = t.name;
 			d.fontName = t.fontName;
 			d.text = t.text;
@@ -215,8 +217,6 @@ namespace RuntimeLevel {
 			d.colorA = t.colorA;
 
 			d.layer = t.layer;
-
-			parsedTexts.push_back(std::move(d));
 		}
 
 		LEPANELFONTS::SetTextObjectsWithScene(parsedTexts, scene);

@@ -40,7 +40,7 @@ public:
 		bool showAuxiliary);
 
 	// Draws AABBs for every object that has a valid collider size.
-	static void DrawAllColliders(const std::vector<GameObject*>& objects);
+	static void DrawAllColliders(const std::vector<std::unique_ptr<GameObject>>& objects);
 
 	// Draws player-specific helpers (path line and collider corners/center).
 	static void DrawPlayerDebug(GameObject* player, MovementManager& movementManager, int playerID);

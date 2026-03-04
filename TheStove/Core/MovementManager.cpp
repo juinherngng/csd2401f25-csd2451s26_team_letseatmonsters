@@ -462,9 +462,10 @@ void MovementManager::UpdateSpriteDirection(int entityID, EntityManager& entityM
 }
 
 void MovementManager::UpdateVelocityBasedMovement(float deltaTime, EntityManager& entityManager) {
-	std::vector<GameObject*> allObjects = entityManager.GetAllObjects();
+	const auto& allObjects = entityManager.GetObjectStorage();
 
-	for (GameObject* obj : allObjects) {
+	for (const auto& objPtr : allObjects) {
+		GameObject* obj = objPtr.get();
 		if (obj == nullptr) {
 			continue;
 		}

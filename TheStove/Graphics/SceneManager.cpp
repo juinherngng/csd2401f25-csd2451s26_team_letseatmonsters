@@ -583,7 +583,7 @@ void Scene::DespawnByID(int targetID) {
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	out.clear();
 
-	std::vector<GameObject*> all = entityManager.GetAllObjects();
+	const auto& all = entityManager.GetObjectStorage();
 	out.reserve(all.size());
 
 	// Helper to convert layer name to sort key
@@ -606,7 +606,8 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		return result;
 		};
 
-	for (GameObject* g : all) {
+	for (const auto& objPtr : all) {
+		GameObject* g = objPtr.get();
 		if (!g) {
 			continue;
 		}
@@ -1072,10 +1073,11 @@ void Scene::CreateMenuButtonTexts() {
 		{"btn_quit", "QUIT"}
 	};
 
+	const auto& allObjects = entityManager.GetObjectStorage();
 	for (const auto& [tag, label] : buttonLabels) {
 		// Find the button object with this tag
-		std::vector<GameObject*> allObjects = entityManager.GetAllObjects();
-		for (GameObject* obj : allObjects) {
+		for (const auto& objPtr : allObjects) {
+			GameObject* obj = objPtr.get();
 			if (!obj) continue;
 
 			// Check if this object has the matching tag

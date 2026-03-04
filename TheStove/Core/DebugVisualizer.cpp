@@ -31,8 +31,7 @@ void DebugVisualizer::DrawDebugInfo(EntityManager& entityManager,
 	}
 
 	// Draw all colliders every frame
-	std::vector<GameObject*> allObjects = entityManager.GetAllObjects();
-	DrawAllColliders(allObjects);
+	DrawAllColliders(entityManager.GetObjectStorage());
 
 	// Player-focused overlays (path, grid cells, nearby candidates)
 	if (showAuxiliary && playerID >= 0) {
@@ -46,8 +45,9 @@ void DebugVisualizer::DrawDebugInfo(EntityManager& entityManager,
 }
 
 // Collider Overlays
-void DebugVisualizer::DrawAllColliders(const std::vector<GameObject*>& objects) {
-	for (GameObject* obj : objects) {
+void DebugVisualizer::DrawAllColliders(const std::vector<std::unique_ptr<GameObject>>& objects) {
+	for (const auto& objPtr : objects) {
+		GameObject* obj = objPtr.get();
 		if (obj == nullptr) {
 			continue;
 		}

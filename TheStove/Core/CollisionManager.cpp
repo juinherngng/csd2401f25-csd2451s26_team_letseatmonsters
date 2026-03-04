@@ -52,10 +52,11 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 	spatialGrid_.Clear();
 
 	// Get all objects as vector of pointers
-	std::vector<GameObject*> allObjects = entityManager.GetAllObjects();
+	const auto& allObjects = entityManager.GetObjectStorage();
 
 	// Insert each object into spatial grid
-	for (GameObject* obj : allObjects) {
+	for (const auto& objPtr : allObjects) {
+		GameObject* obj = objPtr.get();
 		if (obj == nullptr) {
 			continue;
 		}
