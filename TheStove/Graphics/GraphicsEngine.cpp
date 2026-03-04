@@ -1282,6 +1282,12 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 	glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
 	glDepthMask(GL_FALSE);
 
+	GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+	if (!blendWasEnabled) {
+		glEnable(GL_BLEND);
+	}
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	shadowShader->Use();
 	shadowShader->SetViewMatrix(viewMatrix);
 	shadowShader->SetProjectionMatrix(projectionMatrix);
@@ -1312,6 +1318,10 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 	glDepthMask(depthMask);
 	if (depthWasEnabled) {
 		glEnable(GL_DEPTH_TEST);
+	}
+
+	if (!blendWasEnabled) {
+		glDisable(GL_BLEND);
 	}
 }
 

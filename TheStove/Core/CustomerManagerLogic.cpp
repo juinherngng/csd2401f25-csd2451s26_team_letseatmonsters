@@ -157,6 +157,14 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene)
 
     const int npcID = npc->GetID();
 
+    // Copy shadow settings from the template object (if available)
+    if (GameObject* templateObj = scene.GetGameObjectByID(customerTemplateID_)) {
+        npc->EnableShadow(templateObj->HasShadow());
+        npc->SetShadowSize(templateObj->GetShadowSize());
+        npc->SetShadowOffset(templateObj->GetShadowOffset());
+        npc->SetShadowOpacity(templateObj->GetShadowOpacity());
+    }
+
     // Tag + attach logic/animations the same way JSON spawning does
     scene.SetObjectTag(npcID, "customer_template");
     scene.AttachLogicForTag(npcID, "customer_template");
