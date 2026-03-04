@@ -41,7 +41,7 @@ SpatialGrid::SpatialGrid(float cellSize)
 }
 void SpatialGrid::Clear() {
 	cells.clear();
-	objects.clear();
+	objectCells_.clear();
 }
 
 // TempVisited (uniqueness helper during queries)
@@ -91,11 +91,49 @@ void SpatialGrid::Insert(GameObject* object, const collision::AABB& box) {
 		return;
 	}
 
-	objects.push_back({ object, box });
+	auto& touchedCells = objectCells_[object];
+	touchedCells.clear();
 
 	ForEachCell(box, [&](Key key) {
 		cells[key].push_back(object);
+		touchedCells.push_back(key);
 		});
+
+}
+
+// Remove an object from the grid, disassociating it from all cells it was previously associated with.
+void SpatialGrid::Remove(GameObject* object) {
+	if (object == nullptr) {
+		return;
+	}
+
+	auto it = objectCells_.find(object);
+	if (it == objectCells_.end()) {
+		return;
+	}
+
+	for (Key key : it->second) {
+		auto cellIt = cells.find(key);
+		if (cellIt == cells.end()) {
+			continue;
+		}
+		auto& bucket = cellIt->second;
+		bucket.erase(std::remove(bucket.begin(), bucket.end(), object), bucket.end());
+		if (bucket.empty()) {
+			cells.erase(cellIt);
+		}
+	}
+
+	objectCells_.erase(it);
+}
+
+// Update an object's position in the grid by first removing it from its old cells and then inserting it into the new cells based on the updated AABB.
+void SpatialGrid::Update(GameObject* object, const collision::AABB& box) {
+	if (object == nullptr) {
+		return;
+	}
+	Remove(object);
+	Insert(object, box);
 }
 
 // Query for candidates overlapping the box (including 1-cell neighbors). Uses TempVisited to ensure each object is only returned once, even if it appears in multiple cells.

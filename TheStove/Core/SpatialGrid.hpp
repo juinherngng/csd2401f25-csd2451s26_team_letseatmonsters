@@ -42,6 +42,8 @@ public:
 
 	// Object management
 	void Insert(GameObject* object, const collision::AABB& box);
+	void Remove(GameObject* object);
+	void Update(GameObject* object, const collision::AABB& box);
 
 	// Queries
 	void Query(const collision::AABB& box, std::vector<GameObject*>& outCandidates) const;
@@ -63,5 +65,5 @@ private:
 	// Data Members
 	float cellSize;
 	std::unordered_map<Key, std::vector<GameObject*>> cells;
-	std::vector<std::pair<GameObject*, collision::AABB>> objects;
+	std::unordered_map<GameObject*, std::vector<Key>> objectCells_;
 };

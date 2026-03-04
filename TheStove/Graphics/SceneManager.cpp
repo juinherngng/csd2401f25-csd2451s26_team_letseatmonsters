@@ -586,26 +586,6 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	const auto& all = entityManager.GetObjectStorage();
 	out.reserve(all.size());
 
-	// Helper to convert layer name to sort key
-	auto parseLayerNumber = [](const std::string& s) -> int {
-		if (s.empty()) {
-			return 1; // base layer
-		}
-
-		int result = 0;
-		for (char c : s) {
-			if (!std::isdigit(static_cast<unsigned char>(c))) {
-				// Any non-numeric layer name behaves like a very "high" layer
-				// so that it draws on top of numeric layers.
-				return 1000000;
-			}
-
-			result = result * 10 + (c - '0');
-		}
-
-		return result;
-		};
-
 	for (const auto& objPtr : all) {
 		GameObject* g = objPtr.get();
 		if (!g) {
@@ -622,8 +602,7 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 		}
 
 		// Check the layer's visibility flag
-		const std::string layerName = GetObjectLayer(g->GetID());
-		Layer* layer = GetLayer(layerName);
+		Layer* layer = GetObjectLayerPtr(objId);
 		if (layer) {
 			if (!layer->IsEnabled()) {
 				continue;
@@ -634,10 +613,12 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 			}
 		}
 
+		const std::string layerName = (defIt != defaults_.end()) ? defIt->second.layer : "";
+
 		// Set the render layer on the object for use in GraphicsEngine
 		const std::string& texturePath = GetObjectTexturePath(objId);
 		const bool isFootstepVfx = texturePath.find("run_vfx.png") != std::string::npos;
-		g->SetRenderLayer(isFootstepVfx ? 0 : parseLayerNumber(layerName));
+		g->SetRenderLayer(isFootstepVfx ? 0 : GetLayerSortKeyCached(layerName));
 
 		out.push_back(g);
 	}
@@ -684,6 +665,8 @@ void Scene::SetTransformFromLevel(int id,
 		obj->SetScale(scale);
 		obj->SetRotation(rotationRad, glm::vec3(0.0f, 0.0f, 1.0f));
 	}
+
+	collisionManager.MarkStaticStateDirty();
 }
 
 // Animation helpers
@@ -855,8 +838,32 @@ const collision::World& Scene::GetCollisionWorld() const {
 	return collisionManager.GetCollisionWorld();
 }
 
+int Scene::GetLayerSortKeyCached(const std::string& layerName) const {
+	auto it = layerSortKeyCache_.find(layerName);
+	if (it != layerSortKeyCache_.end()) {
+		return it->second;
+	}
+
+	int result = 1;
+	if (!layerName.empty()) {
+		result = 0;
+		for (char c : layerName) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				result = 1000000;
+				break;
+			}
+			result = result * 10 + (c - '0');
+		}
+	}
+
+	layerSortKeyCache_.emplace(layerName, result);
+	return result;
+}
+
 void Scene::AddLayer(const std::string& name) {
 	layers.try_emplace(name, name); // Only add if missing
+	layerSortKeyCache_.erase(name);
+	collisionManager.MarkStaticStateDirty();
 }
 
 Layer* Scene::GetLayer(const std::string& name) {
@@ -875,6 +882,26 @@ std::string Scene::GetObjectLayer(int objectID) const {
 	}
 
 	return "";
+}
+
+Layer* Scene::GetObjectLayerPtr(int objectID) {
+	auto it = defaults_.find(objectID);
+	if (it == defaults_.end() || it->second.layer.empty()) {
+		return nullptr;
+	}
+
+	auto layerIt = layers.find(it->second.layer);
+	return layerIt != layers.end() ? &(layerIt->second) : nullptr;
+}
+
+const Layer* Scene::GetObjectLayerPtr(int objectID) const {
+	auto it = defaults_.find(objectID);
+	if (it == defaults_.end() || it->second.layer.empty()) {
+		return nullptr;
+	}
+
+	auto layerIt = layers.find(it->second.layer);
+	return layerIt != layers.end() ? &(layerIt->second) : nullptr;
 }
 
 bool Scene::IsLayerEnabled(const std::string& layerName) const {
@@ -897,9 +924,15 @@ void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
 	std::string layerName = newLayer;
 	if (layerName.empty()) layerName = "1";
 
-	// Remove object from all layers' ID lists
-	for (auto& pair : layers) {
-		pair.second.RemoveObject(id);
+	const auto defIt = defaults_.find(id);
+	if (defIt != defaults_.end()) {
+		const std::string& oldLayerName = defIt->second.layer;
+		if (!oldLayerName.empty() && oldLayerName != layerName) {
+			auto oldLayerIt = layers.find(oldLayerName);
+			if (oldLayerIt != layers.end()) {
+				oldLayerIt->second.RemoveObject(id);
+			}
+		}
 	}
 
 	// Register object ID with chosen layer (creates if missing)
@@ -912,6 +945,7 @@ void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
 
 	// Store on metadata used by the editor + JSON
 	defaults_[id].layer = layerName;
+	collisionManager.MarkStaticStateDirty();
 }
 
 void Scene::RemoveLayer(const std::string& name) {
@@ -919,6 +953,9 @@ void Scene::RemoveLayer(const std::string& name) {
 	if (it != layers.end()) {
 		layers.erase(it);
 	}
+
+	layerSortKeyCache_.erase(name);
+	collisionManager.MarkStaticStateDirty();
 }
 
 void Scene::QueueLevelLoad(const std::string& path, bool activateSimulation) {

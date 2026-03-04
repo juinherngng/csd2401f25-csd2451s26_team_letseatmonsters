@@ -91,14 +91,39 @@ public:
 		scene_ = scene;
 	}
 
+	void MarkStaticStateDirty() {
+		staticStateDirty_ = true;
+	}
+
 	// Clear both the grid and the world geometry.
 	void Clear();
 
 private:
+	struct ObjectBroadphaseState {
+		int objectID = -1;
+		glm::vec3 pos{ 0.0f, 0.0f, 0.0f };
+		glm::vec3 scale{ 1.0f, 1.0f, 1.0f };
+		std::string layerName;
+		bool collidable = true;
+		bool visible = true;
+		bool enabled = true;
+		bool dynamic = false;
+	};
+	bool ShouldRebuildGrid(const std::vector<std::unique_ptr<GameObject>>& allObjects);
+	ObjectBroadphaseState BuildBroadphaseState(const GameObject* obj) const;
+	bool IsDynamicObject(const GameObject* obj) const;
+
 	// Internal helper methods and state
 	EntityManager* entityManager_ = nullptr;	// Reference to EntityManager (set externally)
 	SpatialGrid spatialGrid_;					// Broad-phase acceleration structure
 	collision::World collisionWorld_;			// Static world used for trimming
+
+	// Cached broad-phase state for all objects to detect changes and minimize rebuilds
+	std::vector<ObjectBroadphaseState> broadphaseStateCache_;
+	std::vector<int> dirtyObjectIDs_;
+	bool forceFullRebuild_ = true;
+	bool gridBuilt_ = false;
+	bool staticStateDirty_ = true;
 
 	Scene* scene_ = nullptr;
 };

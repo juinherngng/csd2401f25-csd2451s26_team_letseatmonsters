@@ -269,6 +269,7 @@ public:
 	const std::string& GetObjectTexturePath(int id) const;
 	void SetObjectTexturePath(int id, const std::string& path);
 
+	// Default properties for objects by ID
 	struct Defaults {
 		glm::vec3 pos{ 0,0,0 };
 		glm::vec2 size{ 128,128 };
@@ -290,8 +291,10 @@ public:
 		bool visible{ true };
 	};
 
+	// Set and get defaults for an object ID. Setting defaults will mark static state dirty for collision rebuild.
 	void SetDefaults(int id, const Defaults& d) {
 		defaults_[id] = d;
+		collisionManager.MarkStaticStateDirty();
 	}
 	Defaults GetDefaults(int id) const {
 		auto it = defaults_.find(id);
@@ -301,6 +304,7 @@ public:
 	// Per-object visibility controls 
 	void SetObjectVisible(int id, bool visible) {
 		defaults_[id].visible = visible;
+		collisionManager.MarkStaticStateDirty();
 	}
 	bool IsObjectVisible(int id) const {
 		auto it = defaults_.find(id);
@@ -320,6 +324,8 @@ public:
 
 	// Layer assignment helpers
 	std::string GetObjectLayer(int objectID) const;
+	Layer* GetObjectLayerPtr(int objectID);
+	const Layer* GetObjectLayerPtr(int objectID) const;
 	void AssignObjectToLayer(int id, const std::string& newLayer);
 	void RemoveLayer(const std::string& name);
 
@@ -477,6 +483,8 @@ private:
 	// Centralized defaults and metadata for objects, keyed by ID
 	std::unordered_map<int, Defaults> defaults_;
 	std::unordered_map<std::string, Layer> layers;
+	int GetLayerSortKeyCached(const std::string& layerName) const;
+	mutable std::unordered_map<std::string, int> layerSortKeyCache_;
 
 	// Resize handling
 	int lastWidth_ = -1;
