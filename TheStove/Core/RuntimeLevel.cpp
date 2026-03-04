@@ -30,17 +30,17 @@
 namespace RuntimeLevel {
 	void BuildSceneFromLevel(const LevelData& levelIn, Scene& scene) {
 		static const std::string kDefaultLayer = "1";
+		static const std::vector<glm::vec4> kFullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
 			const std::string& layerName = obj.layer.empty() ? kDefaultLayer : obj.layer;
 
 			if (obj.animated) {
-				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 				g = scene.SpawnAnimatedSprite(
 					obj.texture,
 					{ obj.x, obj.y, 0.0f },
 					{ obj.w, obj.h },
-					fullFrame,
+					kFullFrame,
 					0.25f, // initial frame duration; real duration comes from SetFrames
 					true,
 					layerName

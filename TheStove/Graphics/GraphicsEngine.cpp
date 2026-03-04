@@ -817,6 +817,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		.depthWriteEnabled = true,
 		.blendingEnabled = true
 		});
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 #ifdef _DEBUG
 	// Get text objects and sort by layer for interleaved rendering
@@ -828,7 +829,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-		sortedTextObjects.push_back({ &data, ParseLayerNumber(data.layer) });
+		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
@@ -887,6 +888,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 	// Build contiguous runs keyed by (mesh, shader, texture) - preserves layering order
 	std::vector<Mesh::InstanceData> instanceBatch;
+	instanceBatch.reserve(objects.size());
 	RenderKey currentKey{ nullptr, nullptr, nullptr };
 
 	auto flushBatch = [&](const std::vector<Mesh::InstanceData>& batch, const RenderKey& key) {
@@ -936,13 +938,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 				key.shader->SetTexture("u_Texture", 0);
 			}
 
-			// Enable alpha blending for sprite draws
-			GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
-			if (!blendWasEnabled) {
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			}
-
 			for (const auto& inst : batch) {
 				key.shader->SetModelMatrix(inst.modelMatrix);
 
@@ -962,12 +957,18 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		};
 
 	// Build runs in order, interleaving text objects at layer boundaries
-	for (size_t objIdx = 0; objIdx < objects.size(); ++objIdx) {
-		auto* obj = objects[objIdx];
-		if (!obj || !obj->GetMesh() || !obj->GetShader()) {
+	for (auto* obj : objects) {
+		if (!obj) {
 			continue;
 		}
 
+		Mesh* mesh = obj->GetMesh();
+		Shader* shader = obj->GetShader();
+		if (!mesh || !shader) {
+			continue;
+		}
+
+		Texture* texture = obj->GetTexture();
 		int objLayer = obj->GetRenderLayer();
 #ifndef _DEBUG
 		(void)objLayer;
@@ -989,7 +990,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 #endif
 
-		RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
+		RenderKey key{ mesh, shader, texture };
 
 		// Flush when render key changes
 		if (key != currentKey && !instanceBatch.empty()) {
@@ -999,12 +1000,12 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 		currentKey = key;
 
-		Mesh::InstanceData inst;
-		inst.modelMatrix = obj->GetModelMatrix();
 		// Always store per-object UV rect in instance data (instanced shader will use it, fallback uses uniforms)
+		instanceBatch.emplace_back();
+		auto& inst = instanceBatch.back();
+		inst.modelMatrix = obj->GetModelMatrix();
 		inst.uvOffsetScale = obj->GetUVRect();
 		inst.colorTint = obj->GetColorTint();
-		instanceBatch.push_back(inst);
 	}
 
 	// Flush remaining batch
@@ -1016,7 +1017,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 #ifdef _DEBUG
 	// Render remaining text objects (those in layers >= the last game object layer)
 	while (textIndex < sortedTextObjects.size()) {
-		RenderSingleTextObject(*sortedTextObjects[textIndex]);
+		RenderSingleTextObject(*sortedTextObjects[textIndex].data);
 		++textIndex;
 	}
 #endif
@@ -1093,7 +1094,7 @@ void GraphicsEngine::RenderTextObjects() {
 	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-		sortedTextObjects.push_back({ &data, ParseLayerNumber(data.layer) });
+		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
