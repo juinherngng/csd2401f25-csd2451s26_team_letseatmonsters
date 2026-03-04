@@ -139,7 +139,9 @@ bool Texture::LoadFromFile(const std::string& filePath) {
 		return false;
 	}
 
+#ifndef NDEBUG
 	std::cout << "Loaded texture: " << filePath << " (" << width << "x" << height << ", " << channels << " channels)" << std::endl;
+#endif
 	return true;
 }
 

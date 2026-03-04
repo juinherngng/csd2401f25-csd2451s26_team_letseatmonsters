@@ -17,6 +17,7 @@
 #include "ResourceManager.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <future>
 #include <filesystem>
 #include <iostream>
@@ -130,7 +131,9 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 	textures[name] = std::move(texture);
 	texturePaths[normalizedPath] = texturePtr;
 
+#ifndef NDEBUG
 	std::cout << "Loaded texture: " << name << std::endl;
+#endif
 	return texturePtr;
 }
 Texture* ResourceManager::GetTexture(const std::string& name) {
@@ -151,6 +154,11 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 	if (filePaths.empty()) {
 		return;
 	}
+
+	const auto preloadStart = std::chrono::steady_clock::now();
+	double uploadMs = 0.0;
+	size_t loadedCount = 0;
+	size_t failedCount = 0;
 
 	std::vector<std::string> uniquePaths;
 	uniquePaths.reserve(filePaths.size());
@@ -202,13 +210,20 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 			auto decoded = futures.front().get();
 			futures.erase(futures.begin());
 			if (!decoded.ok) {
+				++failedCount;
 				continue;
 			}
 
 			auto texture = std::make_unique<Texture>();
+			const auto uploadStart = std::chrono::steady_clock::now();
 			if (!texture->LoadFromMemory(decoded.data.data(), decoded.width, decoded.height, decoded.channels)) {
+				++failedCount;
 				continue;
 			}
+
+			uploadMs += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - uploadStart).count();
+			++loadedCount;
+
 			Texture* texturePtr = texture.get();
 			const std::string cacheKey = "preload_" + decoded.path;
 			textures[cacheKey] = std::move(texture);
@@ -219,20 +234,31 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 	for (auto& fut : futures) {
 		auto decoded = fut.get();
 		if (!decoded.ok) {
+			++failedCount;
 			continue;
 		}
 
 		auto texture = std::make_unique<Texture>();
+		const auto uploadStart = std::chrono::steady_clock::now();
 		if (!texture->LoadFromMemory(decoded.data.data(), decoded.width, decoded.height, decoded.channels)) {
+			++failedCount;
 			continue;
 		}
+
+		uploadMs += std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - uploadStart).count();
+		++loadedCount;
+
 		Texture* texturePtr = texture.get();
 		const std::string cacheKey = "preload_" + decoded.path;
 		textures[cacheKey] = std::move(texture);
 		texturePaths[NormalizePath(decoded.path)] = texturePtr;
 	}
 
-	std::cout << "Preloaded textures: " << uniquePaths.size() << std::endl;
+#ifndef NDEBUG
+	const double totalMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - preloadStart).count();
+	std::cout << "[ResourceManager] Preloaded textures: " << loadedCount << "/" << uniquePaths.size()
+		<< " (failed: " << failedCount << ", total: " << totalMs << " ms, upload: " << uploadMs << " ms)" << std::endl;
+#endif
 }
 
 // Audio management methods - delegate to AudioManager

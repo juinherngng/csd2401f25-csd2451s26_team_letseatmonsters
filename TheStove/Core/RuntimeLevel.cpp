@@ -22,6 +22,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <chrono>
 #include <iostream>
 #include <unordered_set>
 #include <vector>
@@ -156,6 +157,7 @@ namespace RuntimeLevel {
 	}
 
 	bool LoadAndBuild(const std::string& path, Scene& scene) {
+		const auto loadStart = std::chrono::steady_clock::now();
 		LevelData data{};
 		if (!LevelSerializer::Load(path, data)) {
 			std::cerr << "[RuntimeLevel] Failed to load level JSON: " << path << std::endl;
@@ -183,8 +185,11 @@ namespace RuntimeLevel {
 			}
 		}
 
+		const auto preloadStart = std::chrono::steady_clock::now();
 		ResourceManager::Instance().PreloadTextures(texturesToPreload);
+		const double preloadMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - preloadStart).count();
 
+		const auto buildStart = std::chrono::steady_clock::now();
 		BuildSceneFromLevel(data, scene);
 		scene.RebuildColliders();
 
@@ -216,7 +221,12 @@ namespace RuntimeLevel {
 
 		LEPANELFONTS::SetTextObjectsWithScene(parsedTexts, scene);
 
-
+#ifndef NDEBUG
+		const double buildMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - buildStart).count();
+		const double totalMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - loadStart).count();
+		std::cout << "[RuntimeLevel] LoadAndBuild '" << path << "': textures=" << texturesToPreload.size()
+			<< ", preload=" << preloadMs << " ms, build=" << buildMs << " ms, total=" << totalMs << " ms" << std::endl;
+#endif
 
 #if 0
 		// Create text for menu buttons if this is a menu level
