@@ -1,9 +1,21 @@
-#include "SceneViewportPresenter.hpp"
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:         SceneViewportPresenter.cpp
+ PROJECT NAME:      Project GAM200
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
+
+ DESCRIPTION:		Implementation of SceneViewportPresenter, a helper class responsible.
+
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
 
 #include "imgui_internal.h"
+#include "SceneViewportPresenter.hpp"
 
 #include <cstdint>
 
+ // Helper to fit a rect of given aspect ratio within available space, preserving aspect and centering.
 ImVec2 SceneViewportPresenter::FitRectToAspect(const ImVec2& available, float targetAspect) {
 	float width = available.x;
 	float height = available.y;
@@ -23,6 +35,7 @@ ImVec2 SceneViewportPresenter::FitRectToAspect(const ImVec2& available, float ta
 	return ImVec2(width, height);
 }
 
+// Begin the ImGui frame for the main dockspace and get the dockspace ID for docking other windows.
 void SceneViewportPresenter::BeginDockspaceFrame(ImGuiID& dockspaceId) const {
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -47,6 +60,7 @@ void SceneViewportPresenter::BeginDockspaceFrame(ImGuiID& dockspaceId) const {
 	ImGui::PopStyleVar(2);
 }
 
+// Draw the scene viewport window with the given scene color texture and reference dimensions for aspect ratio.
 void SceneViewportPresenter::DrawSceneWindow(unsigned int sceneColorTexture,
 	int referenceWidth,
 	int referenceHeight,
@@ -75,7 +89,7 @@ void SceneViewportPresenter::DrawSceneWindow(unsigned int sceneColorTexture,
 	outSceneImageSize = imageSize;
 
 	ImGui::Image(
-		reinterpret_cast<ImTextureID>(static_cast<intptr_t>(sceneColorTexture)),
+		(ImTextureID)(intptr_t)sceneColorTexture,
 		imageSize,
 		ImVec2(0, 1),
 		ImVec2(1, 0)
@@ -89,6 +103,7 @@ void SceneViewportPresenter::DrawSceneWindow(unsigned int sceneColorTexture,
 	ImGui::End();
 }
 
+// Compute the screen-space rect of the scene image based on cached position/size and current window dimensions, for mouse picking and UI alignment.
 void SceneViewportPresenter::ComputeSceneImageRect(const ImVec2& cachedSceneImagePos,
 	const ImVec2& cachedSceneImageSize,
 	int referenceWidth,
@@ -101,6 +116,7 @@ void SceneViewportPresenter::ComputeSceneImageRect(const ImVec2& cachedSceneImag
 		return;
 	}
 
+	// If the cached size is invalid (e.g. first frame), compute a fitting rect based on current window dimensions and reference aspect ratio.
 	const float targetAspect = static_cast<float>(referenceWidth) / static_cast<float>(referenceHeight);
 	if (ImGuiWindow* sceneWindow = ImGui::FindWindowByName("Scene###SceneWindow")) {
 		const ImRect contentRect = sceneWindow->InnerRect;
@@ -113,6 +129,7 @@ void SceneViewportPresenter::ComputeSceneImageRect(const ImVec2& cachedSceneImag
 		return;
 	}
 
+	// As a fallback, fit within the main viewport's work area.
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
 	const ImVec2 fitted = FitRectToAspect(viewport->WorkSize, targetAspect);
 	outPos = ImVec2(

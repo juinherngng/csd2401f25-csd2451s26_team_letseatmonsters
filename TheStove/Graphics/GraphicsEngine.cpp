@@ -470,6 +470,7 @@ void GraphicsEngine::BeginImGuiFrame() {
 #endif
 }
 
+// Parse a layer number from a string, returning a default of 1 for empty and an error code for invalid input
 int GraphicsEngine::ParseLayerNumber(const std::string& layerName) {
 	if (layerName.empty()) {
 		return 1;
@@ -487,6 +488,7 @@ int GraphicsEngine::ParseLayerNumber(const std::string& layerName) {
 	return result;
 }
 
+// Compute the screen-space rect of the Scene image based on the current viewport and reference size, for mouse picking and UI alignment
 void GraphicsEngine::ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 	sceneViewportPresenter_.ComputeSceneImageRect(
 		sceneImagePos_,
@@ -498,6 +500,7 @@ void GraphicsEngine::ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) cons
 	);
 }
 
+// Render the background quad (if set) with appropriate shader and texture bindings, ignoring depth and blending
 void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
 	if (!backgroundObject) {
 		return;
@@ -529,6 +532,7 @@ void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::ma
 	}
 }
 
+// Blit the rendered scene from the FBO to the default framebuffer, applying letterboxing as needed
 void GraphicsEngine::PresentSceneToDefaultFramebuffer() {
 	if (mSceneFBO == 0 || mSceneColor == 0 || screenWidth <= 0 || screenHeight <= 0) {
 		return;
@@ -574,16 +578,8 @@ void GraphicsEngine::DrawSceneDockWindow() {
 	);
 #endif
 }
-void GraphicsEngine::EndSceneAndPresent() {
-	EndSceneRender();
-#ifdef _DEBUG
-	DrawSceneDockWindow();
-	EndImGuiFrame();
-#else
-	PresentSceneToDefaultFramebuffer();
-#endif
-}
 
+// Unbind FBO, draw ImGui (including Scene window with FBO texture), and present to default framebuffer if not in debug mode
 void GraphicsEngine::EndSceneAndPresent() {
 	EndSceneRender();
 #ifdef _DEBUG
