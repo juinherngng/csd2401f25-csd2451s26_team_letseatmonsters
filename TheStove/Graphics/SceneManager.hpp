@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -34,18 +35,7 @@
 #include "../Core/Physics.hpp"
 #include "../Core/PhysicsManager.hpp"
 #include "../Core/PlayerController.hpp"
-#include "../Core/PlayerLogic.hpp"
-#include "../Core/SimpleNpcLogic.hpp"
-#include "../Core/TableLogic.hpp"
-#include "../Core/WorkTableLogic.hpp"
-#include "../Core/CustomerTableLogic.hpp"
-#include "../Core/IngredientBoxLogic.hpp"
-#include "../Core/CustomerManagerLogic.hpp"
-#include "../Core/ExitGateLogic.hpp"
-#include "../Core/HowToPlayButtonLogic.hpp"
-#include "../Core/TrashCanLogic.hpp"
 #include "../Core/Quota.hpp"
-#include "../Core/OrderUILogic.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"
@@ -54,6 +44,8 @@
 #include "Layer.hpp"
 #include "ParticleSystem.hpp"
 #include "../Core/FontSystem.hpp"
+
+class AudioManager;
 
  /**
   * @class Scene
@@ -189,6 +181,7 @@ public:
 
 	// Set the current animation of the object with given ID. Does nothing if object doesn't exist or doesn't have that animation.
 	void SetAnimation(int objID, const std::string& newAnim);
+	void AttachPlayerAnimations(int objID);
 	void AttachDinoAnimations(int objID);
 	void MarkAnimated(int id, bool state);
 	void AttachMenuAnimations(int objID);
@@ -199,6 +192,22 @@ public:
 
 	// Tag-based logic helpers
 	void AttachLogicForTag(int id, const std::string& tag);
+	using TagLogicBinder = std::function<void(Scene&, int, const std::string&)>;
+	using PauseOverlayButtonBinder = std::function<void(Scene&, int, const std::string&)>;
+	using CustomerUpdateHook = std::function<void(float, Scene&)>;
+	using CustomerResetHook = std::function<void(Scene&)>;
+	void SetTagLogicBinder(TagLogicBinder binder) {
+		tagLogicBinder_ = std::move(binder);
+	}
+	void SetPauseOverlayButtonBinder(PauseOverlayButtonBinder binder) {
+		pauseOverlayButtonBinder_ = std::move(binder);
+	}
+	void SetCustomerUpdateHook(CustomerUpdateHook hook) {
+		customerUpdateHook_ = std::move(hook);
+	}
+	void SetCustomerResetHook(CustomerResetHook hook) {
+		customerResetHook_ = std::move(hook);
+	}
 
 	// Centralized tag metadata
 	void SetObjectTag(int id, const std::string& tag);
@@ -458,7 +467,6 @@ private:
 	PlayerController playerController;
 	NPCSystem npcSystem;
 	DebugVisualizer debugVisualizer;
-	CustomerManagerSystem customerManager_;
 
 	// Step-by-step controller
 	physics::StepController physicsStep_;
@@ -534,6 +542,10 @@ private:
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;
 	std::unordered_map<int, std::string> objectTags_;
+	TagLogicBinder tagLogicBinder_;
+	PauseOverlayButtonBinder pauseOverlayButtonBinder_;
+	CustomerUpdateHook customerUpdateHook_;
+	CustomerResetHook customerResetHook_;
 
 	bool howToPlayOverlayActive_ = false;
 

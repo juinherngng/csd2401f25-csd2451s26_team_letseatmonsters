@@ -22,6 +22,7 @@
 #include "Core/DebugUI.hpp"
 #include "Core/FileDropHandler.hpp"
 #include "Core/FilePaths.hpp"
+#include "Core/GameBootstrap.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/LevelEditorFileIO.hpp"
 #include "Core/MovementManager.hpp"
@@ -689,6 +690,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Create Scene with smart pointer, passing all manager references
 	app.currentScene = std::make_unique<Scene>(*graphicsEngine, *inputMgr, *animMgr,
 		*movementMgr, *physicsMgr, *collisionMgr);
+	RegisterGameBindings(*app.currentScene);
 
 	// Get AudioManager and set it on Scene for UI sounds
 	AudioManager* audioMgr = app.coreEngine->GetSystem<AudioManager>();
@@ -736,9 +738,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 				gsm->SetAudioManager(audioMgrGsm);
 			}
 
-			// Map states to JSON files
-			gsm->RegisterJsonState(Framework::GS_Level1, FilePaths::Levels::MAIN_MENU);	// state 0 = menu
-			gsm->RegisterJsonState(Framework::GS_Level2, FilePaths::Levels::KITCHEN_01);	// state 1 = gameplay
+			ConfigureGameStates(*gsm);
 
 			// Initialize to main menu state
 			gsm->InitializeGameState(Framework::GS_Level1, 0.0f);

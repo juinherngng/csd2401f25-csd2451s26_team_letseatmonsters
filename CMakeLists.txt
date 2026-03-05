@@ -25,6 +25,45 @@ file(GLOB_RECURSE SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/TheStove/*.hpp
 )
 
+set(GAME_FILES_IN_THESTOVE
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PlayerLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PlayerLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/TableLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/TableLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/WorkTableLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/WorkTableLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/CustomerTableLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/CustomerTableLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/IngredientBoxLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/IngredientBoxLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/ExitGateLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/ExitGateLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/TrashCanLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/TrashCanLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/OrderUILogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/OrderUILogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/MenuButtonLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/MenuButtonLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/HowToPlayButtonLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/HowToPlayButtonLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PauseButtonLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PauseButtonLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PlateLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PlateLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/IngredientLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/IngredientLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Main.cpp
+)
+
+list(REMOVE_ITEM SOURCE_FILES ${GAME_FILES_IN_THESTOVE})
+
+# Gather source files for game-specific code
+file(GLOB_RECURSE GAME_SOURCE_FILES
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/*.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/*.h
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/*.hpp
+)
+
 # Create a static library target for game engine/core code
 add_library(TheStove STATIC ${SOURCE_FILES})
 
@@ -46,10 +85,27 @@ target_link_libraries(TheStove PUBLIC ${ALL_LIBS})
 # Set C++ standard for the library
 set_property(TARGET TheStove PROPERTY CXX_STANDARD 20)
 
+# Game-specific library layered on top of TheStove
+add_library(MyoonchiDiner STATIC ${GAME_SOURCE_FILES})
+
+target_sources(MyoonchiDiner PRIVATE ${GAME_FILES_IN_THESTOVE})
+target_sources(MyoonchiDiner PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameBootstrap.cpp
+)
+
+target_include_directories(MyoonchiDiner PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove
+    ${glm_SOURCE_DIR}
+)
+
+target_link_libraries(MyoonchiDiner PUBLIC TheStove)
+set_property(TARGET MyoonchiDiner PROPERTY CXX_STANDARD 20)
+
 # Create executable target, typically with only main.cpp or launcher
 add_executable(LetsEatMonsters ${CMAKE_CURRENT_LIST_DIR}/TheStove/main.cpp)
 
-target_link_libraries(LetsEatMonsters PRIVATE TheStove)
+target_link_libraries(LetsEatMonsters PRIVATE MyoonchiDiner)
 
 # Hide console window in Release builds (Windows subsystem instead of Console)
 if(WIN32)
@@ -115,11 +171,13 @@ add_custom_command(TARGET LetsEatMonsters POST_BUILD
 # Add compiler warnings and flags based on compiler
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(TheStove PRIVATE -Wall)
+    target_compile_options(MyoonchiDiner PRIVATE -Wall)
     target_compile_options(LetsEatMonsters PRIVATE -Wall)
 elseif (MSVC)
     # /W4 = Warning level 4
     # /MP = Multi-processor compilation (parallel builds)
     # /Gm- = Disable minimal rebuild (incompatible with /MP but /MP is faster)
     target_compile_options(TheStove PRIVATE /W4 /WX- /MP)
+    target_compile_options(MyoonchiDiner PRIVATE /W4 /WX- /MP)
     target_compile_options(LetsEatMonsters PRIVATE /W4 /WX- /MP)
 endif()

@@ -18,8 +18,6 @@
 #include "../Core/AudioManager.hpp"
 #include "../Core/FilePaths.hpp"
 #include "../Core/LevelEditorPanelFonts.hpp"
-#include "../Core/MenuButtonLogic.hpp"
-#include "../Core/PauseButtonLogic.hpp" 
 
 #include "GraphicsEngine.hpp"
 #include "SceneManager.hpp"
@@ -207,7 +205,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	logicManager.UpdateAll(deltaTime, *this, inputManager);
 
 	// Seat customers at tables once
-	customerManager_.Update(physicsDt, *this);
+	if (customerUpdateHook_) {
+		customerUpdateHook_(physicsDt, *this);
+	}
 
 	if (simulationActive) {
 		float prevTime = Economy::gTimeRemaining;
@@ -430,7 +430,9 @@ void Scene::ClearAll() {
 	animationManager.Clear();
 	movementManager.Clear();
 	npcSystem.Clear();
-	customerManager_.Reset();
+	if (customerResetHook_) {
+		customerResetHook_(*this);
+	}
 	//ClearMenuButtonTexts();
 
 	spriteID = -1;
@@ -686,6 +688,10 @@ void Scene::SetAnimation(int objID, const std::string& animName) {
 	animationManager.SetAnimation(objID, animName);
 }
 
+void Scene::AttachPlayerAnimations(int objID) {
+	animationManager.AttachPlayerAnimations(objID);
+}
+
 void Scene::AttachDinoAnimations(int objID) {
 	animationManager.AttachDinoAnimations(objID);
 }
@@ -713,60 +719,8 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	// ALWAYS wipe old logic from this object
 	logicManager.RemoveAllFor(id, *this);
 
-	//std::cout << "[Scene] AttachLogicForTag id=" << id << " tag='" << tag << "'\n";
-
-	// Add only the logic that matches the new tag
-	if (tag == "player") {
-		logicManager.AddLogic<PlayerLogic>(id);
-		spriteID = id;
-		animationManager.AttachPlayerAnimations(id);
-	}
-	//else if (tag == "npc1" || tag == "npc2") {
-	//	logicManager.AddLogic<SimpleNpcLogic>(id);
-	//}
-	//else if (tag == "dino") {
-	//	logicManager.AddLogic<SimpleNpcLogic>(id);
-	//	dinoID = id;
-	//}
-	else if (tag == "table") {
-		logicManager.AddLogic<TableLogic>(id);
-	}
-	else if (tag == "work_table") {
-		logicManager.AddLogic<WorkTableLogic>(id);
-	}
-	else if (tag == "customer_table") {
-		logicManager.AddLogic<CustomerTableLogic>(id);
-	}
-	else if (tag == "ingredient_box") {
-		logicManager.AddLogic<IngredientBoxLogic>(id);
-	}
-	else if (tag == "plate_box") {
-		logicManager.AddLogic<IngredientBoxLogic>(id);
-	}
-	else if (tag == "exit_gate") {
-		logicManager.AddLogic<ExitGateLogic>(id);
-		RegisterExitGate(id);
-	}
-	else if (tag == "trash_box") {
-		logicManager.AddLogic<TrashCanLogic>(id);
-		RegisterExitGate(id);
-	}
-	else if (tag == "order_ui_logic") {
-		logicManager.AddLogic<OrderUILogic>(id);
-	}
-
-	// Menu buttons etc
-	else if (tag == "btn_play") {
-		auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, FilePaths::Levels::KITCHEN_01, true);
-		if (logic && audioManager_) {
-			logic->SetAudioManager(audioManager_);
-		}
-	}
-	else if (tag == "btn_howtoplay") {
-		logicManager.AddLogic<HowToPlayButtonLogic>(id);
-	}
-	else if (tag == "btn_quit") {
-		logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+	if (tagLogicBinder_) {
+		tagLogicBinder_(*this, id, tag);
 	}
 }
 
@@ -1010,37 +964,24 @@ void Scene::ShowPauseOverlay() {
 		std::cout << "  [Scene] Pause background id=" << dim->GetID() << "\n";
 	}
 
-	auto spawnPauseBtn = [&](const char* tex, const glm::vec2& pos, PauseAction action) {
+	auto spawnPauseBtn = [&](const char* tex, const glm::vec2& pos, const std::string& action) {
 		if (GameObject* b = SpawnStaticSprite(tex, { pos.x, pos.y, 0.0f }, { 350.0f, 100.0f }, uiLayer)) {
 			const int id = b->GetID();
 			pauseOverlayObjectIds_.push_back(id);
 			SetObjectTexturePath(id, tex);
 
-			switch (action) {
-			case PauseAction::Resume:
-				logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Resume);
-				std::cout << "  [Scene] Spawned Resume button id=" << id << " with PauseButtonLogic\n";
-				break;
-
-			case PauseAction::HowToPlay:
-				logicManager.AddLogic<HowToPlayButtonLogic>(id);
-				std::cout << "  [Scene] Spawned HowToPlay button id=" << id << " with HowToPlayButtonLogic\n";
-				break;
-
-			case PauseAction::Quit:
-				logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
-				std::cout << "  [Scene] Spawned Quit button id=" << id << " with PauseButtonLogic\n";
-				break;
+			if (pauseOverlayButtonBinder_) {
+				pauseOverlayButtonBinder_(*this, id, action);
 			}
 		}
 		else {
-			std::cout << "  [Scene] ERROR: failed to spawn pause button for action=" << (int)action << "\n";
+			std::cout << "  [Scene] ERROR: failed to spawn pause button for action=" << action << "\n";
 		}
 		};
 
-	spawnPauseBtn(FilePaths::Textures::BTN_RESUME, { 1300.f, 454.f }, PauseAction::Resume);
-	spawnPauseBtn(FilePaths::Textures::BTN_HOW, { 1300.f, 584.f }, PauseAction::HowToPlay);
-	spawnPauseBtn(FilePaths::Textures::BTN_QUIT, { 1300.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn(FilePaths::Textures::BTN_RESUME, { 1300.f, 454.f }, "resume");
+	spawnPauseBtn(FilePaths::Textures::BTN_HOW, { 1300.f, 584.f }, "howtoplay");
+	spawnPauseBtn(FilePaths::Textures::BTN_QUIT, { 1300.f, 714.f }, "quit");
 #endif
 }
 
