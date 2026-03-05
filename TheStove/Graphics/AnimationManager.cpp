@@ -102,11 +102,11 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 
 	Animator2D& anim = animators_[objectID];
 
-	// Player sprite sheets: 8 columns x 15 rows
-	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(14, 0, 7, 15, 8);
-	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(13, 0, 7, 15, 8);
-	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(12, 0, 7, 15, 8);
-	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(11, 0, 7, 15, 8);
+	// Player sprite sheets: 8 columns x 17 rows
+	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(16, 0, 7, 17, 8);
+	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(15, 0, 7, 17, 8);
+	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(14, 0, 7, 17, 8);
+	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(13, 0, 7, 17, 8);
 
 	std::vector<glm::vec4> backWalkFrames = CreateFrameSequenceRow(12, 0, 7, 17, 8);
 	std::vector<glm::vec4> frontWalkFrames = CreateFrameSequenceRow(11, 0, 7, 17, 8);
