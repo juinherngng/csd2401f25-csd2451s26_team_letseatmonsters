@@ -70,10 +70,6 @@ private:
 	const char* patienceFillPath_ = "../assets/Customer_Timer_Green.png"; // green
 
     // helpers
-    void EnsureBubble(Scene& scene, DishType dish);
-    void EnsurePatienceBar(Scene& scene);
-    void EnsureBubbleIcon(Scene& scene, const char* iconPath);
-
 	// Ensures patience bar background/fill widgets are created
 	void EnsurePatienceBar(Scene& scene);
 
@@ -117,9 +113,6 @@ private:
 	glm::vec2 payVFXOffset_ = { -10.f, -140.f }; // above head
 	glm::vec2 payVFXSize_ = { 64.f,  64.f };
 	float payVFXRiseSpeed_ = 25.f;				 // float upward speed (pixels/sec)
-
-	const char* happyFacePath_ = "../assets/HappyFace.png";
-	const char* sadFacePath_ = "../assets/SadFace.png";
 
 	// Track previous BehaviourState as int (avoid including SimpleNpcLogic in header)
 	int prevBehaviourState_ = -1;

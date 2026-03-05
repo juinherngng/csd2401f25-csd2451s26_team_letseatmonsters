@@ -66,6 +66,37 @@ namespace {
 		const glm::vec2 d = point - center;
 		return d.x * d.x + d.y * d.y;
 	}
+
+	bool GetObjectRect(GameObject* obj, glm::vec2& outCenter, glm::vec2& outHalfExtents)
+	{
+		if (!obj) return false;
+
+		const Math::Vector2D colSize = obj->GetColliderSize();
+		const Math::Vector2D colOffset = obj->GetColliderOffset();
+		const glm::vec3 scale = obj->GetScaleGLM();
+
+		const float width = (colSize.x > 0.0f) ? colSize.x : scale.x;
+		const float height = (colSize.y > 0.0f) ? colSize.y : scale.y;
+
+		if (width <= 0.0f || height <= 0.0f) {
+			return false;
+		}
+
+		const glm::vec3 pos = obj->GetPositionGLM();
+		outCenter = glm::vec2(pos.x + colOffset.x, pos.y + colOffset.y);
+		outHalfExtents = glm::vec2(width * 0.5f, height * 0.5f);
+		return true;
+	}
+
+	float DistanceSqPointToExpandedRect(
+		const glm::vec2& point,
+		const glm::vec2& rectCenter,
+		const glm::vec2& rectHalfExtents)
+	{
+		const float dx = std::max(std::abs(point.x - rectCenter.x) - rectHalfExtents.x, 0.0f);
+		const float dy = std::max(std::abs(point.y - rectCenter.y) - rectHalfExtents.y, 0.0f);
+		return dx * dx + dy * dy;
+	}
 }
 
 // Constants and helper functions for PlayerLogic, in an anonymous namespace to limit scope to this file.
@@ -328,6 +359,70 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest)
 	moveTarget = pathPoints_[0];
 }
 
+bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID)
+{
+	GameObject* player = GetOwner(scene);
+	GameObject* tableObj = scene.GetGameObjectByID(tableObjectID);
+	if (!player || !tableObj) {
+		return false;
+	}
+
+	LogicManager& logicMgr = scene.GetLogicManager();
+	TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableObjectID);
+
+	const glm::vec3 playerPos3 = player->GetPositionGLM();
+	const glm::vec2 playerPos(playerPos3.x, playerPos3.y);
+
+	if (tableLogic) {
+		Math::Vector2D from(playerPos.x, playerPos.y);
+		Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
+
+		const float dx = playerPos.x - approach.x;
+		const float dy = playerPos.y - approach.y;
+		const float distSq = dx * dx + dy * dy;
+
+		if (distSq <= kPlayerInteractRadius * kPlayerInteractRadius) {
+			return true;
+		}
+	}
+
+	glm::vec2 playerCenter, playerHalf;
+	glm::vec2 tableCenter, tableHalf;
+
+	if (GetObjectRect(player, playerCenter, playerHalf) &&
+		GetObjectRect(tableObj, tableCenter, tableHalf))
+	{
+		constexpr float kTouchPadding = 14.0f;
+
+		glm::vec2 expandedHalf(
+			tableHalf.x + playerHalf.x + kTouchPadding,
+			tableHalf.y + playerHalf.y + kTouchPadding
+		);
+
+		const float distSqToTableBody =
+			DistanceSqPointToExpandedRect(playerCenter, tableCenter, expandedHalf);
+
+		if (distSqToTableBody <= 0.0001f) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void PlayerLogic::CancelQueuedTableMove(Scene& scene)
+{
+	hasMoveTarget = false;
+	moveMode_ = MoveMode::None;
+	pathPoints_.clear();
+	pathIndex_ = 0;
+	pendingTableID = -1;
+
+	if (GameObject* player = GetOwner(scene)) {
+		scene.GetMovementManager().ClearMoveTarget(player->GetID());
+	}
+}
+
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) {
 	const bool lmbJustPressed = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
 	const bool lmbHeld = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
@@ -420,19 +515,19 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	}
 
 	if (clickedTableID >= 0 && clickedTableLogic) {
+		if (IsInTableInteractionRange(scene, clickedTableID)) {
+			CancelQueuedTableMove(scene);
+			InteractWithTable(scene, clickedTableID);
+			return;
+		}
+
 		pendingTableID = clickedTableID;
 		const glm::vec2 playerPos = ToVec2(player->GetPositionGLM());
 		Math::Vector2D from(playerPos.x, playerPos.y);
 		Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
 		const glm::vec2 target(approach.x, approach.y);
-		if (DistanceSquared(target, playerPos) <= (kPlayerInteractRadius * kPlayerInteractRadius)) {
-			ClearMovementTarget(scene);
-			pendingTableID = -1;
-			InteractWithTable(scene, clickedTableID);
-		} else {
-			MoveTo(scene, target);
-			ShowClickMoveIndicator(scene, target);
-		}
+		MoveTo(scene, target);
+		ShowClickMoveIndicator(scene, target);
 		return;
 	}
 
@@ -686,61 +781,16 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 // Unity: OnArrived()
 // For now it's a stub; later you can branch by what we clicked (tables, spawners, etc.)
 void PlayerLogic::OnArrived(Scene& scene) {
-	//std::cout << "[PlayerLogic] Arrived at destination\n";
-
 	if (pendingTableID < 0) {
 		return;
 	}
 
-	GameObject* player = GetOwner(scene);
-	GameObject* tableObj = scene.GetGameObjectByID(pendingTableID);
-	if (!player || !tableObj) {
-		pendingTableID = -1;
-		return;
-	}
-
-	glm::vec3 pPos3 = player->GetPositionGLM();
-	const glm::vec2 pPos = ToVec2(pPos3);
-
-	// Get the table logic so we can ask for its approach point
-	LogicManager& logicMgr = scene.GetLogicManager();
-	TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(pendingTableID);
-
-	float distSq = 0.0f;
-
-	if (tableLogic) {
-		// Use the SAME approach-point logic that we used when clicking.
-		Math::Vector2D from(pPos.x, pPos.y);
-		Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
-
-		distSq = DistanceSquared(pPos, glm::vec2(approach.x, approach.y));
-
-		//std::cout << "[PlayerLogic] Dist to table APPROACH point: "
-		//	<< std::sqrt(distSq)
-		//	<< " (approach=(" << approach.x << ", " << approach.y << "))\n";
-	}
-	else {
-		// Fallback: no TableLogic (shouldn’t really happen for tables)
-		glm::vec3 tPos = tableObj->GetPositionGLM();
-		distSq = DistanceSquared(pPos, ToVec2(tPos));
-
-		//std::cout << "[PlayerLogic] Dist to table ORIGIN (fallback): "
-		//	<< std::sqrt(distSq) << "\n";
-	}
-
-	// Interaction radius around the approach point
-	if (distSq <= kPlayerInteractRadius * kPlayerInteractRadius) {
-		//std::cout << "[PlayerLogic] Close enough to table " << pendingTableID
-		//	<< " (approach), performing interaction\n";
+	if (IsInTableInteractionRange(scene, pendingTableID)) {
 		InteractWithTable(scene, pendingTableID);
-	}
-	else {
-		//std::cout << "[PlayerLogic] Arrived near click, but too far from table approach (dist="
-		//	<< std::sqrt(distSq) << ")\n";
 	}
 
 	pendingTableID = -1;
-	}
+}
 
 // Unity: PickUp(GameObject item)
 void PlayerLogic::PickUp(Scene& scene, int itemID) {

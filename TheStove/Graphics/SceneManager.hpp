@@ -440,6 +440,9 @@ public:
 		return cutscene_.active || cutTrans_.active;
 	}
 
+	// Skips whichever cutscene system is currently active and advances to queued target level.
+	void SkipActiveCutscene();
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;

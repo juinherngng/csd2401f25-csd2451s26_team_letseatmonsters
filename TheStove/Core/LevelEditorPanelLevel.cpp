@@ -251,8 +251,6 @@ namespace {
 		sRedoStack.clear();
 	}
 #endif // _DEBUG
-
-#endif
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		LELINKS::PrefabLinkByID.clear();

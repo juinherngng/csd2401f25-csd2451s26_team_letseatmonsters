@@ -33,18 +33,6 @@ static float Clamp01(float v) {
 	return v;
 }
 
-const char* CustomerOrderUILogic::DishToIconPath(DishType t) const {
-	// Using same textures as your plate visuals (works immediately).
-	// If you have separate UI icons, swap paths here.
-	switch (t) {
-	case DishType::VegDish:  return "../assets/Salad.png";
-	case DishType::MeatDish: return "../assets/Meat.png";
-	case DishType::SoupDish: return "../assets/Soup.png";
-	case DishType::PoopDish: return "../assets/PoopDish.png";
-	default:                 return "../assets/PoopDish.png";
-	}
-}
-
 void CustomerOrderUILogic::Start(Scene& /*scene*/) {
 	lastIconPath_.clear();
 	prevBehaviourState_ = -1;
@@ -68,11 +56,6 @@ void CustomerOrderUILogic::DestroyBubble(Scene& scene) {
 void CustomerOrderUILogic::DestroyPatienceBar(Scene& scene) {
 	DespawnIfAlive(scene, barFill_ID_);
 	DespawnIfAlive(scene, barBG_ID_);
-}
-
-void CustomerOrderUILogic::EnsureBubble(Scene& scene, DishType dish) {
-	const char* iconPath = DishToIconPath(dish);
-	EnsureBubbleIcon(scene, iconPath);
 }
 
 void CustomerOrderUILogic::UpdateIconTexture(Scene& scene, const char* iconPath) {
@@ -228,7 +211,6 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 		else {
 			// WaitingForFood shows requested dish
 			DishType wanted = npcLogic->GetDesiredDishType();
-			EnsureBubble(scene, wanted);
 		}
 	}
 	else {
