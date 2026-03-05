@@ -328,16 +328,6 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest)
 	moveTarget = pathPoints_[0];
 }
 
-void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input)
-{
-	// Only once per click (left mouse)
-	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-	blockedMoveFrames_ = 0;
-}
-
-// Handle mouse click and hold input for movement and interaction.
-// On click, raycast to check if a table was clicked and move to its approach point if so.
-// If holding and dragging, continuously retarget movement to the mouse position with a small deadzone and retarget interval.
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) {
 	const bool lmbJustPressed = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
 	const bool lmbHeld = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
@@ -356,118 +346,6 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	}
 
 	glm::vec2 mouseWorld{};
-	if (!scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld)) {
-		return;
-	}
-
-	LogicManager& logicMgr = scene.GetLogicManager();
-
-	int clickedTableID = -1;
-	TableLogic* clickedTableLogic = nullptr;
-	float bestDistSq = std::numeric_limits<float>::max();
-
-	auto considerTableTarget = [&](int tableID, GameObject* hitObject)
-		{
-			if (tableID < 0 || !hitObject) {
-				return;
-			}
-
-			TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableID);
-			if (!tableLogic) {
-				return;
-			}
-
-			const float distSq = DistanceSqToObjectCenter(mouseWorld, hitObject);
-			if (distSq < bestDistSq) {
-				bestDistSq = distSq;
-				clickedTableID = tableID;
-				clickedTableLogic = tableLogic;
-			}
-		};
-
-	// ----------------------------------------------------------
-	// 1) Direct table clicks
-	// ----------------------------------------------------------
-	for (GameObject* obj : scene.GetAllObjectsRaw()) {
-		if (!obj) continue;
-
-		const int id = obj->GetID();
-		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(id);
-		if (!tableLogic) continue;
-
-		if (!PointInsideObjectVisualRect(mouseWorld, obj)) {
-			continue;
-		}
-
-		considerTableTarget(id, obj);
-	}
-
-	// ----------------------------------------------------------
-	// 2) Customer sprite clicks OR real spawned bubble clicks
-	//    -> redirect to that customer's table
-	// ----------------------------------------------------------
-	for (GameObject* obj : scene.GetAllObjectsRaw()) {
-		if (!obj) continue;
-
-		const int id = obj->GetID();
-
-		SimpleNpcLogic* npcLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(id);
-		if (!npcLogic) continue;
-
-		const int customerTableID = npcLogic->GetCustomerTableID();
-		if (customerTableID < 0) continue;
-
-		const bool hitCustomer = PointInsideObjectVisualRect(mouseWorld, obj);
-
-		bool hitBubble = false;
-		if (CustomerOrderUILogic* uiLogic = logicMgr.GetLogicForObject<CustomerOrderUILogic>(id)) {
-			hitBubble = uiLogic->HitTestBubble(scene, mouseWorld);
-		}
-
-		if (!hitCustomer && !hitBubble) {
-			continue;
-		}
-
-		considerTableTarget(customerTableID, obj);
-	}
-
-	// ----------------------------------------------------------
-	// 3) If we resolved to a table, move to its approach point
-	// ----------------------------------------------------------
-	if (clickedTableID >= 0 && clickedTableLogic) {
-		pendingTableID = clickedTableID;
-
-		glm::vec3 playerPos3 = player->GetPositionGLM();
-		glm::vec2 start(playerPos3.x, playerPos3.y);
-
-		Math::Vector2D from(playerPos3.x, playerPos3.y);
-		Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
-
-		glm::vec2 target(approach.x, approach.y);
-
-		glm::vec2 snappedTarget = target;
-		scene.GetNearestNavigationCellCenterForObject(player->GetID(), target, snappedTarget);
-
-		if (scene.HasDirectPathForObject(player->GetID(), start, snappedTarget)) {
-			MoveDirect(snappedTarget);
-		}
-		else {
-			MoveTo(scene, target);
-		}
-	}
-	else {
-		pendingTableID = -1;
-
-		glm::vec3 playerPos3 = player->GetPositionGLM();
-		glm::vec2 start(playerPos3.x, playerPos3.y);
-
-		if (scene.HasDirectPathForObject(player->GetID(), start, mouseWorld)) {
-			MoveDirect(mouseWorld);
-		}
-		else {
-			MoveTo(scene, mouseWorld);
-		}
-
 	if (!TryGetMouseWorld(scene, mouseWorld)) {
 		return;
 	}
@@ -480,7 +358,6 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 		}
 
 		dragRetargetTimer_ -= dt;
-
 		const float minDragRetargetDistSq = kDragRetargetDistance * kDragRetargetDistance;
 		const glm::vec2 delta = mouseWorld - lastDragWorld_;
 		const bool movedEnough = !hasLastDragWorld_ || DistanceSquared(delta, glm::vec2(0.0f, 0.0f)) >= minDragRetargetDistSq;
@@ -493,7 +370,6 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 			hasLastDragWorld_ = true;
 			dragRetargetTimer_ = kDragRetargetInterval;
 		}
-
 		return;
 	}
 
@@ -502,26 +378,61 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	hasLastDragWorld_ = true;
 	dragRetargetTimer_ = 0.0f;
 
-	const ClickedTableResult clickedTable = FindClickedTable(scene, mouseWorld);
-	if (clickedTable.tableID >= 0 && clickedTable.tableLogic) {
-		pendingTableID = clickedTable.tableID;
+	LogicManager& logicMgr = scene.GetLogicManager();
+	int clickedTableID = -1;
+	TableLogic* clickedTableLogic = nullptr;
+	float bestDistSq = std::numeric_limits<float>::max();
+
+	auto considerTableTarget = [&](int tableID, GameObject* hitObject) {
+		if (tableID < 0 || !hitObject) return;
+		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableID);
+		if (!tableLogic) return;
+		const float distSq = DistanceSqToObjectCenter(mouseWorld, hitObject);
+		if (distSq < bestDistSq) {
+			bestDistSq = distSq;
+			clickedTableID = tableID;
+			clickedTableLogic = tableLogic;
+		}
+	};
+
+	for (GameObject* obj : scene.GetAllObjectsRaw()) {
+		if (!obj) continue;
+		const int id = obj->GetID();
+		if (!logicMgr.GetLogicForObject<TableLogic>(id)) continue;
+		if (!PointInsideObjectVisualRect(mouseWorld, obj)) continue;
+		considerTableTarget(id, obj);
+	}
+
+	for (GameObject* obj : scene.GetAllObjectsRaw()) {
+		if (!obj) continue;
+		const int id = obj->GetID();
+		SimpleNpcLogic* npcLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(id);
+		if (!npcLogic) continue;
+		const int customerTableID = npcLogic->GetCustomerTableID();
+		if (customerTableID < 0) continue;
+		const bool hitCustomer = PointInsideObjectVisualRect(mouseWorld, obj);
+		bool hitBubble = false;
+		if (CustomerOrderUILogic* uiLogic = logicMgr.GetLogicForObject<CustomerOrderUILogic>(id)) {
+			hitBubble = uiLogic->HitTestBubble(scene, mouseWorld);
+		}
+		if (!hitCustomer && !hitBubble) continue;
+		considerTableTarget(customerTableID, obj);
+	}
+
+	if (clickedTableID >= 0 && clickedTableLogic) {
+		pendingTableID = clickedTableID;
 		const glm::vec2 playerPos = ToVec2(player->GetPositionGLM());
-
 		Math::Vector2D from(playerPos.x, playerPos.y);
-		Math::Vector2D approach = clickedTable.tableLogic->GetClosestApproachPoint(scene, from);
+		Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
 		const glm::vec2 target(approach.x, approach.y);
-
-		// If we're already within interaction range of the approach point, just interact immediately without moving.
 		if (DistanceSquared(target, playerPos) <= (kPlayerInteractRadius * kPlayerInteractRadius)) {
 			ClearMovementTarget(scene);
 			pendingTableID = -1;
-			InteractWithTable(scene, clickedTable.tableID);
-		}
-		else {
+			InteractWithTable(scene, clickedTableID);
+		} else {
 			MoveTo(scene, target);
 			ShowClickMoveIndicator(scene, target);
 		}
-
 		return;
 	}
 
@@ -532,14 +443,12 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 
 // Move owner GameObject towards moveTarget at moveSpeed
 void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
-	if (!hasMoveTarget) {
+	if (!hasMoveTarget)
 		return;
-	}
 
 	GameObject* player = GetOwner(scene);
-	if (!player) {
+	if (!player)
 		return;
-	}
 
 	glm::vec3 pos3 = player->GetPositionGLM();
 	glm::vec2 pos(pos3.x, pos3.y);
@@ -688,11 +597,6 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 			scene.GetMovementManager().ClearMoveTarget(p->GetID());
 		}
 
-	const float arriveRadiusSq = kArriveRadius * kArriveRadius;
-
-	// ReachedDestination()
-	if (distSq <= arriveRadiusSq) {
-		ClearMovementTarget(scene);
 		OnArrived(scene);
 		return;
 	}
@@ -709,11 +613,9 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	}
 
 	float step = moveSpeed * dt;
-	if (step > dist) {
+	if (step > dist)
 		step = dist;
-	}
 
-	// Desired movement for this frame
 	glm::vec2 desiredDelta(dir.x * step, dir.y * step);
 	glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
 
@@ -755,22 +657,8 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 		if (GameObject* p = GetOwner(scene)) {
 			scene.GetMovementManager().ClearMoveTarget(p->GetID());
 		}
-		++blockedMoveFrames_;
-
-		// Give collision resolution a few frames to recover from corner/edge jitter before cancelling.
-		if (blockedMoveFrames_ >= kBlockedFramesBeforeCancel) {
-			std::cout << "[PlayerLogic] MoveTo blocked by collision for several frames, invoking OnArrived\n";
-
-			ClearMovementTarget(scene);
-
-			// This will check distance to the table’s approach point using kInteractRadius
-			OnArrived(scene);
-		}
-
 		return;
 	}
-
-	blockedMoveFrames_ = 0;
 
 	pos.x += allowedDelta.x;
 	pos.y += allowedDelta.y;
@@ -926,126 +814,30 @@ void PlayerLogic::HandleKeyboardMovement(float dt, Scene& scene, InputManager& i
 	if (input.IsKeyPressed(GLFW_KEY_W)) inputDir.y -= 1.0f;
 	if (input.IsKeyPressed(GLFW_KEY_S)) inputDir.y += 1.0f;
 
-//void PlayerLogic::HandleRotationInput(GameObject* player, InputManager& input, float dt)
-//{
-//	if (!player) return;
-//
-//	const float kRotationSpeed = 10.0f; // degrees per second
-//
-//	if (input.IsKeyPressed(GLFW_KEY_RIGHT)) {
-//		rotation_ += kRotationSpeed * dt;
-//	}
-//	if (input.IsKeyPressed(GLFW_KEY_LEFT)) {
-//		rotation_ -= kRotationSpeed * dt;
-//	}
-//
-//	// Normalize to [0, 360)
-//	while (rotation_ >= 360.0f) rotation_ -= 360.0f;
-//	while (rotation_ < 0.0f)   rotation_ += 360.0f;
-//
-//	player->SetRotation(rotation_, glm::vec3(0, 0, 1));
-//}
-
-
-void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
-	// Stop player logic when paused/overlay is active
-	if (!scene.IsSimulationActive() || scene.IsPauseOverlayActive()) {
-		return;
-	}
-
-	GameObject* player = GetOwner(scene);
-	if (!player) return;
-
-	if (!scene.IsObjectLayerEnabled(player->GetID())) {
-		return;
-	}
-
-	glm::vec3 beforePos = player->GetPositionGLM();
-	const float physicsDt = scene.GetLastPhysicsDt();
-	const physics::StepController& step = scene.GetStepController();
-	const bool stepMode = step.enabled;
-
-	// --- Lock movement if we're using cutting board ---
-	UpdateStationLock(scene);
-
-	if (movementLocked_) {
-		// Ensure we don't keep any stale move target
-		hasMoveTarget = false;
-		moveMode_ = MoveMode::None;
-		scene.GetMovementManager().ClearMoveTarget(player->GetID());
-
-		// Check if we should be playing the chopping animation (only if we're locked to a work table and it's currently processing)
-		if (ShouldPlayChopAnimation(scene)) {
-			EnsureChopAnimation(scene, player);
-		}
-		else {
-			// Stay idle (keeps facing direction from last movement)
-			UpdateSprite(scene, player, glm::vec2(0.f, 0.f));
-		}
-
-		// Still keep held item visually attached
-		UpdateCarriedItemTransform(scene);
-		return;
-	}
-
-	if (stepMode && physicsDt <= 0.0f) {
-		// Optional: still allow click selection while frozen
-		//std::cout << "HANDLE CLICK INPUT FREONZE\n";
-		HandleClickInput(scene, input);
-
-		// Debug: prove we still see the key
-		if (input.IsKeyJustPressed(GLFW_KEY_P)) {
-			//std::cout << "[PlayerLogic] P pressed (step mode, frozen)\n";
-		}
-
-		return; // skip movement while paused
-	}
-
-	glm::vec3 pos3 = player->GetPositionGLM();
-	glm::vec2 inputDir(0.f, 0.f);
-
-	// Get keyboard input
-	if (input.IsKeyPressed(GLFW_KEY_A)) inputDir.x -= 1.f;
-	if (input.IsKeyPressed(GLFW_KEY_D)) inputDir.x += 1.f;
-	if (input.IsKeyPressed(GLFW_KEY_W)) inputDir.y -= 1.f;
-	if (input.IsKeyPressed(GLFW_KEY_S)) inputDir.y += 1.f;
-
-	// Main keyboard movement
-	if (inputDir.x != 0.f || inputDir.y != 0.f) {
+	if (inputDir.x != 0.0f || inputDir.y != 0.0f) {
 		hasMoveTarget = false;
 		moveMode_ = MoveMode::None;
 		pathPoints_.clear();
 		pathIndex_ = 0;
 		pendingTableID = -1;
 
-		float len = std::sqrt(inputDir.x * inputDir.x + inputDir.y * inputDir.y);
-		if (len > 0.0001f) {
-			inputDir.x /= len;
-			inputDir.y /= len;
-		}
-
-		// Desired movement this frame
-		glm::vec2 desiredDelta(inputDir.x * moveSpeed * dt,
-			inputDir.y * moveSpeed * dt);
-
-		// Trim against static world (outer frame + wood + gate)
+		const glm::vec2 normalizedInput = NormalizeOrZero(inputDir);
+		glm::vec2 desiredDelta(normalizedInput.x * moveSpeed * dt,
+			normalizedInput.y * moveSpeed * dt);
 		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
 
+		glm::vec3 pos3 = playerPos;
 		pos3.x += allowedDelta.x;
 		pos3.y += allowedDelta.y;
-
 		player->SetPosition(pos3);
-
-		// Optional: still clamp to overall walk rectangle if you want a hard outer bound
 		scene.ClampToWalkArea(player);
-		UpdateSprite(scene, player, normalizedInput);
+		UpdateSprite(scene, player, allowedDelta);
 		return;
 	}
 
 	if (hasMoveTarget) {
-		UpdateSprite(scene, player, moveTarget - ToVec2(playerPos));
-	}
-	else {
+		UpdateSprite(scene, player, moveTarget - ToVec2(player->GetPositionGLM()));
+	} else {
 		UpdateSprite(scene, player, glm::vec2(0.0f, 0.0f));
 	}
 }

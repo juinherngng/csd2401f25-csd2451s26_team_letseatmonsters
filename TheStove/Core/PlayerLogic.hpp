@@ -135,6 +135,8 @@ private:
 	void HandleKeyboardMovement(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& playerPos);
 	void UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& beforePos, const glm::vec3& afterPos);
 	void ClearMovementTarget(Scene& scene);
+	bool IsInTableInteractionRange(Scene& scene, int tableObjectID);
+	void CancelQueuedTableMove(Scene& scene);
 
 	// Particle footsteps
 	float footstepDistanceAcc_ = 0.0f;
