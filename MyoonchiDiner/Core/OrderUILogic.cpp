@@ -12,13 +12,13 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/CustomerTableLogic.hpp"
-#include "../Core/LogicManager.hpp"
-#include "../Core/OrderUILogic.hpp"
-#include "../Core/SimpleNpcLogic.hpp"
-#include "../Graphics/GameObject.hpp"
-#include "../Graphics/ResourceManager.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Core/CustomerTableLogic.hpp"
+#include "Core/LogicManager.hpp"
+#include "Core/OrderUILogic.hpp"
+#include "Core/SimpleNpcLogic.hpp"
+#include "Graphics/GameObject.hpp"
+#include "Graphics/ResourceManager.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include <algorithm>
 

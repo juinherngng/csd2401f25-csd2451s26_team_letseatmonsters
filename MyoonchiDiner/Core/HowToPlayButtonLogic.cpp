@@ -14,9 +14,9 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Graphics/GraphicsEngine.hpp"
-#include "../Graphics/ResourceManager.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Graphics/GraphicsEngine.hpp"
+#include "Graphics/ResourceManager.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "FilePaths.hpp"
 #include "HowToPlayButtonLogic.hpp"

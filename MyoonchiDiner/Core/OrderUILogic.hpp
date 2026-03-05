@@ -13,9 +13,9 @@
  */
 
 #pragma once
-#include "../Core/FoodTypes.hpp"
-#include "../Core/GameObjectLogic.hpp"
-#include "../Core/Math.hpp"
+#include "Core/FoodTypes.hpp"
+#include "Core/GameObjectLogic.hpp"
+#include "Core/Math.hpp"
 
 #include <glm/glm.hpp>
 #include <string>

@@ -12,12 +12,12 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/AudioManager.hpp"
-#include "../Core/Collision.hpp"  // for WalkArea definition
-#include "../Core/CustomerTableLogic.hpp"
-#include "../Core/ExitGateLogic.hpp"
-#include "../Core/Physics.hpp"      // optional, if you want clamp helpers
-#include "../Graphics/SceneManager.hpp"
+#include "Core/AudioManager.hpp"
+#include "Core/Collision.hpp"  // for WalkArea definition
+#include "Core/CustomerTableLogic.hpp"
+#include "Core/ExitGateLogic.hpp"
+#include "Core/Physics.hpp"      // optional, if you want clamp helpers
+#include "Graphics/SceneManager.hpp"
 
 #include "SimpleNpcLogic.hpp"
 

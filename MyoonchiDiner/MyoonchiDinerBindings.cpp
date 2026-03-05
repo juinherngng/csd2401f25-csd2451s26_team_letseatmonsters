@@ -22,6 +22,24 @@
 #include <string>
 
 namespace {
+	void ApplyTagRules(Scene& scene, int id, const std::string& tag, float speedX, float speedY) {
+		if (tag == "player") {
+			scene.SetPlayerID(id);
+		}
+		else if (tag == "npc1") {
+			scene.SetNPC1ID(id);
+			scene.SetNPCVelocity(id, speedX, speedY);
+		}
+		else if (tag == "npc2") {
+			scene.SetNPC2ID(id);
+			scene.SetNPCVelocity(id, speedX, speedY);
+		}
+		else if (tag == "dino") {
+			scene.SetDinoID(id);
+			scene.SetNPCVelocity(id, speedX, speedY);
+		}
+	}
+
 	void ApplyRuntimeObjectSetup(Scene& scene, int id, const std::string& tag, const std::string& texturePath, bool animated, const std::string& animName, float speedX, float speedY) {
 		(void)speedX;
 		(void)speedY;
@@ -89,6 +107,77 @@ namespace {
 
 	void ApplyDefaultSceneSetup(Scene& scene) {
 		scene.SetSceneBackground(MyoonchiPaths::Textures::BACKGROUND);
+	}
+
+	void OnPostLevelLoaded(Scene& scene, bool simulationActive) {
+#ifndef _DEBUG
+		if (!simulationActive) {
+			if (Layer* menuLayer = scene.GetLayer("10")) {
+				menuLayer->SetVisible(true);
+				menuLayer->SetEnabled(true);
+			}
+		}
+
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			if (!simulationActive) {
+				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
+			}
+			else {
+				const float fadeIn = 1.0f;
+				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
+				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
+
+				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
+				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
+			}
+		}
+#else
+		(void)scene;
+		(void)simulationActive;
+#endif
+	}
+
+	void OnCutsceneFadeOut(Scene& scene, float outSeconds) {
+#ifndef _DEBUG
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, outSeconds);
+		}
+#else
+		(void)scene;
+		(void)outSeconds;
+#endif
+	}
+
+	void OnCutsceneFirstFrame(Scene& scene, const std::string& firstImage) {
+#ifndef _DEBUG
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			if (firstImage.find("Win") != std::string::npos || firstImage.find("daychange") != std::string::npos) {
+				if (audioManager->HasSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE)) {
+					audioManager->PlaySound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE, audioManager->GetBgmVolume(), false);
+				}
+			}
+		}
+#else
+		(void)scene;
+		(void)firstImage;
+#endif
+	}
+
+	void OnCutsceneBeforeFinalLoad(Scene& scene, float outSeconds) {
+#ifndef _DEBUG
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_GAMEOVER)) {
+				audioManager->FadeChannel(MyoonchiPaths::Audio::SFX_GAMEOVER, 0.0f, outSeconds);
+			}
+			if (audioManager->HasSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE)) {
+				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE, 0.0f, outSeconds);
+			}
+		}
+#else
+		(void)scene;
+		(void)outSeconds;
+#endif
 	}
 
 	void AttachTagLogic(Scene& scene, int id, const std::string& tag) {
@@ -163,8 +252,14 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		(void)s;
 	});
 	scene.SetRuntimeObjectSetupHook(ApplyRuntimeObjectSetup);
+	scene.SetTagRuleHook(ApplyTagRules);
 	scene.SetSimulationUpdateHook(UpdateSimulationPolicy);
 	scene.SetDefaultSceneSetupHook(ApplyDefaultSceneSetup);
+	scene.SetPostLevelLoadHook(OnPostLevelLoaded);
+	scene.SetCutsceneFadeOutHook(OnCutsceneFadeOut);
+	scene.SetCutsceneFirstFrameHook(OnCutsceneFirstFrame);
+	scene.SetCutsceneBeforeFinalLoadHook(OnCutsceneBeforeFinalLoad);
+	scene.SetPauseOverlayAudioChannels(MyoonchiPaths::Audio::BGM_LEVEL_THEME, MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
 
 	scene.SetTagLogicBinder(AttachTagLogic);
 	scene.SetPauseOverlayButtonBinder(AttachPauseOverlayButton);

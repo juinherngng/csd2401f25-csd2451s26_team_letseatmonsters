@@ -128,8 +128,12 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		pauseAudioTimer_ -= deltaTime;
 		if (pauseAudioTimer_ <= 0.0f) {
 			// Fade completed, now pause the channels to stop playback
-			audioManager_->PauseChannel("bgm_MyoonchiDiner_LevelTheme");
-			audioManager_->PauseChannel("bgm_KitchenAmbience");
+			if (!pauseMusicChannel_.empty()) {
+				audioManager_->PauseChannel(pauseMusicChannel_);
+			}
+			if (!pauseAmbienceChannel_.empty()) {
+				audioManager_->PauseChannel(pauseAmbienceChannel_);
+			}
 			pauseAudioPending_ = false;
 			std::cout << "[Scene] Paused audio channels after fade" << std::endl;
 		}
@@ -246,38 +250,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 					// Check if we're loading main menu (from win/lose cutscene)
 					// If simulation is NOT active, this is likely the main menu
 					// Re-enable layer 10 only when returning to main menu from win/lose
-#ifndef _DEBUG
-					if (!pendingLevelSimActive_) {
-						// Re-enable layer 10 for main menu buttons (was disabled during intro cutscene)
-						if (Layer* menuLayer = GetLayer("10")) {
-							menuLayer->SetVisible(true);
-							menuLayer->SetEnabled(true);
-							std::cout << "[Scene] Re-enabled layer 10 for main menu after win/lose cutscene" << std::endl;
-						}
+					if (postLevelLoadHook_) {
+						postLevelLoadHook_(*this, pendingLevelSimActive_);
 					}
-
-					if (audioManager_) {
-						if (!pendingLevelSimActive_) {
-							// Loading main menu - play main menu BGM
-							audioManager_->PlaySound("bgm_MyoonchiDiner_MainMenu", audioManager_->GetBgmVolume(), false);
-							std::cout << "[Scene] Playing main menu BGM after win/lose cutscene" << std::endl;
-						}
-						else {
-							// Loading gameplay level - play level theme with fade-in
-							const float levelBgmFadeIn = 1.0f;
-
-							// Play level theme music with fade-in
-							audioManager_->PlaySound("bgm_MyoonchiDiner_LevelTheme", 0.0f, false);
-							audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", audioManager_->GetBgmVolume(), levelBgmFadeIn);
-							std::cout << "[Scene] Playing level theme music with fade-in after cutscene" << std::endl;
-
-							// Play kitchen ambience at 50% of BGM volume, also with fade-in
-							audioManager_->PlaySound("bgm_KitchenAmbience", 0.0f, false);
-							audioManager_->FadeChannel("bgm_KitchenAmbience", audioManager_->GetBgmVolume() * 0.5f, levelBgmFadeIn);
-							std::cout << "[Scene] Playing kitchen ambience with fade-in after cutscene" << std::endl;
-						}
-					}
-#endif
 				}
 
 				LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
@@ -697,23 +672,8 @@ bool Scene::TagUsesVelocity(const std::string& tag) const {
 }
 
 void Scene::ApplyTagRules(int id, const std::string& tag, float speedX, float speedY) {
-	// Central place for special IDs (so the editor doesn't do string if-else)
-	if (tag == "player") {
-		SetPlayerID(id);
-	}
-	else if (tag == "npc1") {
-		SetNPC1ID(id);
-	}
-	else if (tag == "npc2") {
-		SetNPC2ID(id);
-	}
-	else if (tag == "dino") {
-		SetDinoID(id);
-	}
-
-	// Only apply NPC velocity when this tag actually uses it
-	if (TagUsesVelocity(tag)) {
-		SetNPCVelocity(id, speedX, speedY);
+	if (tagRuleHook_) {
+		tagRuleHook_(*this, id, tag, speedX, speedY);
 	}
 }
 
@@ -892,8 +852,12 @@ void Scene::ShowPauseOverlay() {
 
 		// Fade to 0, the AudioManager will handle the fade over time
 		// We'll pause the channels after the fade completes (handled in Update or via callback)
-		audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", 0.0f, pauseFadeOut);
-		audioManager_->FadeChannel("bgm_KitchenAmbience", 0.0f, pauseFadeOut);
+		if (!pauseMusicChannel_.empty()) {
+			audioManager_->FadeChannel(pauseMusicChannel_, 0.0f, pauseFadeOut);
+		}
+		if (!pauseAmbienceChannel_.empty()) {
+			audioManager_->FadeChannel(pauseAmbienceChannel_, 0.0f, pauseFadeOut);
+		}
 
 		// Schedule pause after fade completes
 		pauseAudioPending_ = true;
@@ -953,12 +917,20 @@ void Scene::HidePauseOverlay() {
 		const float pauseFadeIn = 0.2f; // 200ms fade in for smooth transition
 
 		// Resume channels first (they were paused after fade out)
-		audioManager_->ResumeChannel("bgm_MyoonchiDiner_LevelTheme");
-		audioManager_->ResumeChannel("bgm_KitchenAmbience");
+		if (!pauseMusicChannel_.empty()) {
+			audioManager_->ResumeChannel(pauseMusicChannel_);
+		}
+		if (!pauseAmbienceChannel_.empty()) {
+			audioManager_->ResumeChannel(pauseAmbienceChannel_);
+		}
 
 		// Then fade back to original volumes
-		audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", pausedBgmVolume_, pauseFadeIn);
-		audioManager_->FadeChannel("bgm_KitchenAmbience", pausedAmbienceVolume_, pauseFadeIn);
+		if (!pauseMusicChannel_.empty()) {
+			audioManager_->FadeChannel(pauseMusicChannel_, pausedBgmVolume_, pauseFadeIn);
+		}
+		if (!pauseAmbienceChannel_.empty()) {
+			audioManager_->FadeChannel(pauseAmbienceChannel_, pausedAmbienceVolume_, pauseFadeIn);
+		}
 
 		std::cout << "[Scene] Resumed and fading in level BGM and ambience after pause menu" << std::endl;
 	}
@@ -1588,10 +1560,8 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 
 				// Fade out cutscene BGM as we transition to the level
 #ifndef _DEBUG
-				if (audioManager_) {
-					const float cutsceneBgmFadeOut = cutTrans_.outSeconds; // Match visual fade-out duration
-					audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", 0.0f, cutsceneBgmFadeOut);
-					std::cout << "[Scene] Fading out cutscene BGM as cutscene ends" << std::endl;
+				if (cutsceneFadeOutHook_) {
+					cutsceneFadeOutHook_(*this, cutTrans_.outSeconds);
 				}
 #endif
 			}
@@ -1616,14 +1586,8 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 			// Start win cutscene BGM after initial fade-in (when first image appears)
 			// Check if this is the win cutscene by looking at the image paths
 #ifndef _DEBUG
-			if (audioManager_ && !cutTrans_.images.empty()) {
-				const std::string& firstImage = cutTrans_.images[0];
-				if (firstImage.find("Win") != std::string::npos || firstImage.find("daychange") != std::string::npos) {
-					if (audioManager_->HasSound("bgm_win_cutscene")) {
-						audioManager_->PlaySound("bgm_win_cutscene", audioManager_->GetBgmVolume(), false);
-						std::cout << "[Scene] Playing win cutscene BGM after initial fade-in" << std::endl;
-					}
-				}
+			if (cutsceneFirstFrameHook_ && !cutTrans_.images.empty()) {
+				cutsceneFirstFrameHook_(*this, cutTrans_.images[0]);
 			}
 #endif
 			return;
@@ -1653,21 +1617,8 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 
 			// Stop the cutscene BGM completely before loading the level
 #ifndef _DEBUG
-			if (audioManager_) {
-				audioManager_->StopSound("bgm_MyoonchiDiner_IntroCutscene");
-				std::cout << "[Scene] Stopped cutscene BGM before loading level" << std::endl;
-
-				// Fade out game over sound effect if it's playing (from lose cutscene)
-				if (audioManager_->HasSound("sfx_gameover")) {
-					audioManager_->FadeChannel("sfx_gameover", 0.0f, cutTrans_.outSeconds);
-					std::cout << "[Scene] Fading out game over SFX before loading level" << std::endl;
-				}
-
-				// Fade out win cutscene music if it's playing (from win cutscene)
-				if (audioManager_->HasSound("bgm_win_cutscene")) {
-					audioManager_->FadeChannel("bgm_win_cutscene", 0.0f, cutTrans_.outSeconds);
-					std::cout << "[Scene] Fading out win cutscene BGM before loading level" << std::endl;
-				}
+			if (cutsceneBeforeFinalLoadHook_) {
+				cutsceneBeforeFinalLoadHook_(*this, cutTrans_.outSeconds);
 			}
 #endif
 

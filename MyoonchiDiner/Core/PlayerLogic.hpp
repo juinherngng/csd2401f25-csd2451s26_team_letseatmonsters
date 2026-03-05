@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "../Core/GameObjectLogic.hpp"
+#include "Core/GameObjectLogic.hpp"
 
 #include "Math.hpp"
 

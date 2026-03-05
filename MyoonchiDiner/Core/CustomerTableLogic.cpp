@@ -15,11 +15,11 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/LogicManager.hpp"   
-#include "../Core/Quota.hpp"
-#include "../Core/SimpleNpcLogic.hpp" 
-#include "../Graphics/GameObject.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Core/LogicManager.hpp"   
+#include "Core/Quota.hpp"
+#include "Core/SimpleNpcLogic.hpp" 
+#include "Graphics/GameObject.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "CustomerTableLogic.hpp"
 

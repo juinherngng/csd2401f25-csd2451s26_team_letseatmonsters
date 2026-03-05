@@ -11,18 +11,18 @@
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
-#include "../Core/AudioManager.hpp"
-#include "../Core/CustomerTableLogic.hpp"
-#include "../Core/DebugUI.hpp"
-#include "../Core/IngredientBoxLogic.hpp"
-#include "../Core/IngredientLogic.hpp"
-#include "../Core/InputControls.hpp"
-#include "../Core/InputManager.hpp"
-#include "../Core/PlateLogic.hpp"
-#include "../Core/TableLogic.hpp"
-#include "../Core/TrashCanLogic.hpp"
-#include "../Core/WorkTableLogic.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Core/AudioManager.hpp"
+#include "Core/CustomerTableLogic.hpp"
+#include "Core/DebugUI.hpp"
+#include "Core/IngredientBoxLogic.hpp"
+#include "Core/IngredientLogic.hpp"
+#include "Core/InputControls.hpp"
+#include "Core/InputManager.hpp"
+#include "Core/PlateLogic.hpp"
+#include "Core/TableLogic.hpp"
+#include "Core/TrashCanLogic.hpp"
+#include "Core/WorkTableLogic.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "PlayerLogic.hpp"
 

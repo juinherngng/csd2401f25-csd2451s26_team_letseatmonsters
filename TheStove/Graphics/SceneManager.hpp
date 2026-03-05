@@ -192,17 +192,25 @@ public:
 	// Tag-based logic helpers
 	void AttachLogicForTag(int id, const std::string& tag);
 	using TagLogicBinder = std::function<void(Scene&, int, const std::string&)>;
+	using TagRuleHook = std::function<void(Scene&, int, const std::string&, float, float)>;
 	using PauseOverlayButtonBinder = std::function<void(Scene&, int, const std::string&)>;
 	using CustomerUpdateHook = std::function<void(float, Scene&)>;
 	using CustomerResetHook = std::function<void(Scene&)>;
 	using RuntimeObjectSetupHook = std::function<void(Scene&, int, const std::string&, const std::string&, bool, const std::string&, float, float)>;
 	using SimulationUpdateHook = std::function<void(float, Scene&)>;
 	using DefaultSceneSetupHook = std::function<void(Scene&)>;
+	using PostLevelLoadHook = std::function<void(Scene&, bool)>;
+	using CutsceneFadeOutHook = std::function<void(Scene&, float)>;
+	using CutsceneFirstFrameHook = std::function<void(Scene&, const std::string&)>;
+	using CutsceneBeforeFinalLoadHook = std::function<void(Scene&, float)>;
 	void SetTagLogicBinder(TagLogicBinder binder) {
 		tagLogicBinder_ = std::move(binder);
 	}
 	void SetPauseOverlayButtonBinder(PauseOverlayButtonBinder binder) {
 		pauseOverlayButtonBinder_ = std::move(binder);
+	}
+	void SetTagRuleHook(TagRuleHook hook) {
+		tagRuleHook_ = std::move(hook);
 	}
 	void SetCustomerUpdateHook(CustomerUpdateHook hook) {
 		customerUpdateHook_ = std::move(hook);
@@ -218,6 +226,22 @@ public:
 	}
 	void SetDefaultSceneSetupHook(DefaultSceneSetupHook hook) {
 		defaultSceneSetupHook_ = std::move(hook);
+	}
+	void SetPostLevelLoadHook(PostLevelLoadHook hook) {
+		postLevelLoadHook_ = std::move(hook);
+	}
+	void SetCutsceneFadeOutHook(CutsceneFadeOutHook hook) {
+		cutsceneFadeOutHook_ = std::move(hook);
+	}
+	void SetCutsceneFirstFrameHook(CutsceneFirstFrameHook hook) {
+		cutsceneFirstFrameHook_ = std::move(hook);
+	}
+	void SetCutsceneBeforeFinalLoadHook(CutsceneBeforeFinalLoadHook hook) {
+		cutsceneBeforeFinalLoadHook_ = std::move(hook);
+	}
+	void SetPauseOverlayAudioChannels(std::string musicChannel, std::string ambienceChannel) {
+		pauseMusicChannel_ = std::move(musicChannel);
+		pauseAmbienceChannel_ = std::move(ambienceChannel);
 	}
 	void ApplyRuntimeObjectSetup(int id, const std::string& tag, const std::string& texturePath, bool animated, const std::string& animName, float speedX, float speedY) {
 		if (runtimeObjectSetupHook_) {
@@ -559,12 +583,19 @@ private:
 	std::unordered_map<int, std::string> mTexturePathByID;
 	std::unordered_map<int, std::string> objectTags_;
 	TagLogicBinder tagLogicBinder_;
+	TagRuleHook tagRuleHook_;
 	PauseOverlayButtonBinder pauseOverlayButtonBinder_;
 	CustomerUpdateHook customerUpdateHook_;
 	CustomerResetHook customerResetHook_;
 	RuntimeObjectSetupHook runtimeObjectSetupHook_;
 	SimulationUpdateHook simulationUpdateHook_;
 	DefaultSceneSetupHook defaultSceneSetupHook_;
+	PostLevelLoadHook postLevelLoadHook_;
+	CutsceneFadeOutHook cutsceneFadeOutHook_;
+	CutsceneFirstFrameHook cutsceneFirstFrameHook_;
+	CutsceneBeforeFinalLoadHook cutsceneBeforeFinalLoadHook_;
+	std::string pauseMusicChannel_;
+	std::string pauseAmbienceChannel_;
 
 	bool howToPlayOverlayActive_ = false;
 

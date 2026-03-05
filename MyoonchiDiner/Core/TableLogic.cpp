@@ -14,8 +14,8 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Graphics/GameObject.hpp"
-#include "../Graphics/SceneManager.hpp"   // for Scene interface (GetGameObjectByID, etc.)
+#include "Graphics/GameObject.hpp"
+#include "Graphics/SceneManager.hpp"   // for Scene interface (GetGameObjectByID, etc.)
 
 #include "TableLogic.hpp"
 

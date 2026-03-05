@@ -13,9 +13,9 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Graphics/GraphicsEngine.hpp"
-#include "../Graphics/ResourceManager.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Graphics/GraphicsEngine.hpp"
+#include "Graphics/ResourceManager.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "AudioManager.hpp"
 #include "FilePaths.hpp"

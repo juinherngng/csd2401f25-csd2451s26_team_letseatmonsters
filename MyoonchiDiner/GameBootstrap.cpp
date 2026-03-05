@@ -47,15 +47,15 @@ void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 		StopCurrentAudio(audioManager);
 
 		if (state == Framework::GS_Level1) {
-			gCurrentAudio = "bgm_MyoonchiDiner_MainMenu";
+			gCurrentAudio = MyoonchiPaths::Audio::BGM_MAIN_MENU;
 			audioManager->PlaySound(gCurrentAudio, audioManager->GetBgmVolume(), false);
 		}
 		else if (state == Framework::GS_Level2) {
-			gCurrentAudio = "bgm_MyoonchiDiner_LevelTheme";
+			gCurrentAudio = MyoonchiPaths::Audio::BGM_LEVEL_THEME;
 			audioManager->PlaySound(gCurrentAudio, 0.0f, false);
 			audioManager->FadeChannel(gCurrentAudio, audioManager->GetBgmVolume(), 1.0f);
 
-			gCurrentAmbience = "bgm_KitchenAmbience";
+			gCurrentAmbience = MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE;
 			audioManager->PlaySound(gCurrentAmbience, 0.0f, false);
 			audioManager->FadeChannel(gCurrentAmbience, audioManager->GetBgmVolume() * 0.5f, 1.0f);
 		}

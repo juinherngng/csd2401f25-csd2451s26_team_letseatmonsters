@@ -15,15 +15,15 @@
  */
 
 
-#include "../Core/AudioManager.hpp"
-#include "../Core/CustomerManagerLogic.hpp"
-#include "../Core/CustomerOrderUILogic.hpp"
-#include "../Core/CustomerTableLogic.hpp"
-#include "../Core/LogicManager.hpp"
-#include "../Core/Math.hpp"
-#include "../Core/SimpleNpcLogic.hpp"
-#include "../Graphics/GameObject.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Core/AudioManager.hpp"
+#include "Core/CustomerManagerLogic.hpp"
+#include "Core/CustomerOrderUILogic.hpp"
+#include "Core/CustomerTableLogic.hpp"
+#include "Core/LogicManager.hpp"
+#include "Core/Math.hpp"
+#include "Core/SimpleNpcLogic.hpp"
+#include "Graphics/GameObject.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include <algorithm>
 #include <iostream>

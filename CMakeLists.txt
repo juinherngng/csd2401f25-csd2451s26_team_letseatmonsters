@@ -26,32 +26,38 @@ file(GLOB_RECURSE SOURCE_FILES
 )
 
 set(GAME_FILES_IN_THESTOVE
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PlayerLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PlayerLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/TableLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/TableLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/WorkTableLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/WorkTableLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/CustomerTableLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/CustomerTableLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/IngredientBoxLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/IngredientBoxLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/ExitGateLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/ExitGateLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/TrashCanLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/TrashCanLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/OrderUILogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/OrderUILogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/MenuButtonLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/MenuButtonLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/HowToPlayButtonLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/HowToPlayButtonLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PauseButtonLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PauseButtonLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PlateLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/PlateLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/IngredientLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/IngredientLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PlayerLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PlayerLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/TableLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/TableLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/WorkTableLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/WorkTableLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerTableLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerTableLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/IngredientBoxLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/IngredientBoxLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/ExitGateLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/ExitGateLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/TrashCanLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/TrashCanLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/OrderUILogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/OrderUILogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/MenuButtonLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/MenuButtonLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/HowToPlayButtonLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/HowToPlayButtonLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PauseButtonLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PauseButtonLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PlateLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PlateLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/IngredientLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/IngredientLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerManagerLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerManagerLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/SimpleNpcLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/SimpleNpcLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerOrderUILogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerOrderUILogic.hpp
     ${CMAKE_CURRENT_LIST_DIR}/TheStove/Main.cpp
 )
 
@@ -95,6 +101,8 @@ target_sources(MyoonchiDiner PRIVATE
 
 target_include_directories(MyoonchiDiner PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core
     ${CMAKE_CURRENT_LIST_DIR}/TheStove
     ${glm_SOURCE_DIR}
 )

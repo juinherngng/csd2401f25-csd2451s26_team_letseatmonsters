@@ -11,8 +11,8 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Graphics/GameObject.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Graphics/GameObject.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "TrashCanLogic.hpp"
 
