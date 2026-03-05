@@ -12,12 +12,12 @@
 
 #pragma once
 
-#include <glm/glm.hpp>
-#include <vector>
-
 #include "Texture.hpp"
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
+
+#include <glm/glm.hpp>
+#include <vector>
 
 class Texture;
 
@@ -39,9 +39,11 @@ public:
 	// used GLsizei instead of size_t for vertexSize - juinherng
 	Mesh(const float* vertices, GLsizei vertexCount, GLsizei vertexSize, VertexLayout layout = POSITION_COLOR);
 
+	// Draw with currently bound shader and texture (if any)
 	void Draw() const;
 	void Draw(const Texture* texture) const;
 
+	// Instanced rendering: set up instance buffer and draw with instancing
 	void SetupInstanceBuffer(const std::vector<InstanceData>& instanceData);
 	void DrawInstanced(Texture* texture, size_t instanceCount);
 

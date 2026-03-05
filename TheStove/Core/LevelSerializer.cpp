@@ -12,10 +12,13 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <fstream>
-
 #include "JSONInclude.hpp"
 #include "LevelSerializer.hpp"
+
+#include <filesystem>
+#include <fstream>
+
+namespace fs = std::filesystem;
 
 using nlohmann::json;
 
@@ -54,6 +57,7 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.speedY = jsonObj.value("speed_y", 0.0f);
 
 	obj.animated = jsonObj.value("animated", false);
+	obj.animName = jsonObj.value("anim_name", "");
 
 	// Approach offset (safe for existing JSON, defaults to 0)
 	obj.approachOffsetX = jsonObj.value("approach_offx", 0.0f);
@@ -104,7 +108,7 @@ static json WriteLevelObject(const LevelObject& obj) {
 	json jsonData = {
 		{ "texture", obj.texture },
 		{ "tag", obj.tag },
-		{ "layer", obj.layer},
+		{ "layer", obj.layer },
 		{ "prefab_path", obj.prefabPath },
 		{ "x", obj.x },
 		{ "y", obj.y },
@@ -120,7 +124,8 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "speed_x", obj.speedX },
 		{ "speed_y", obj.speedY },
 		{ "animated", obj.animated },
-		{ "layer", obj.layer },
+		{ "anim_name", obj.animName },
+		{ "shadow", obj.shadow },
 		// Approach offset
 		{ "approach_offx", obj.approachOffsetX },
 		{ "approach_offy", obj.approachOffsetY },
@@ -162,7 +167,7 @@ static json WriteTextObject(const LevelTextObject& obj) {
 	return jsonData;
 }
 
-// Public Interface
+// Load the level data from a JSON file, populating outLevel. Returns false if file open or JSON parse fails.
 bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	std::ifstream file(path);
 	if (!file) {
@@ -170,7 +175,12 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	}
 
 	json jsonData;
-	file >> jsonData;
+	try {
+		file >> jsonData;
+	}
+	catch (const json::parse_error&) {
+		return false;
+	}
 
 	outLevel.objects.clear();
 	outLevel.textObjects.clear();
@@ -179,15 +189,17 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	// optional background
 	outLevel.background = jsonData.value("background", "");
 
-	if (jsonData.contains("objects")) {
-		for (auto& jsonObj : jsonData["objects"]) {
+	if (jsonData.contains("objects") && jsonData["objects"].is_array()) {
+		outLevel.objects.reserve(jsonData["objects"].size());
+		for (const auto& jsonObj : jsonData["objects"]) {
 			outLevel.objects.push_back(ReadLevelObject(jsonObj));
 		}
 	}
 
 	// Load text objects if present
-	if (jsonData.contains("textObjects")) {
-		for (auto& jsonObj : jsonData["textObjects"]) {
+	if (jsonData.contains("textObjects") && jsonData["textObjects"].is_array()) {
+		outLevel.textObjects.reserve(jsonData["textObjects"].size());
+		for (const auto& jsonObj : jsonData["textObjects"]) {
 			outLevel.textObjects.push_back(ReadTextObject(jsonObj));
 		}
 	}
@@ -195,8 +207,19 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	return true;
 }
 
+// Save the level data to JSON, replacing only the "objects" and "textObjects" arrays while preserving other keys (like background)
 bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	json jsonData = json::object();
+
+	std::error_code ec;
+	const fs::path outputPath(path);
+	const fs::path parentDir = outputPath.parent_path();
+	if (!parentDir.empty() && !fs::exists(parentDir, ec)) {
+		fs::create_directories(parentDir, ec);
+		if (ec) {
+			return false;
+		}
+	}
 
 	// Try to load existing JSON to preserve unrelated keys
 	{
@@ -205,7 +228,7 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 			try {
 				in >> jsonData;
 			}
-			catch (...) {
+			catch (const json::parse_error&) {
 				jsonData = json::object();
 			}
 		}
@@ -226,7 +249,7 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 		jsonData["objects"].push_back(WriteLevelObject(obj));
 	}
 
-	// NEW: Replace the "textObjects" array
+	// Replace the "textObjects" array
 	jsonData["textObjects"] = json::array();
 
 	for (const auto& textObj : inLevel.textObjects) {

@@ -9,17 +9,17 @@
 					dish-recipe matching, storing ingredient types, and determining
 					the final dish output (VegDish, MeatDish, SoupDish, etc.).
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
 #include "../Core/PlateLogic.hpp"
 #include "../Graphics/SceneManager.hpp"
 
-static const char* GetDishTexturePath(DishType t)
-{
-	switch (t)
-	{
+#include "PlateLogic.hpp"
+
+static const char* GetDishTexturePath(DishType t) {
+	switch (t) {
 	case DishType::VegDish:  return "../assets/Salad.png";
 	case DishType::MeatDish: return "../assets/Meat.png";
 	case DishType::SoupDish: return "../assets/Soup.png";
@@ -28,8 +28,7 @@ static const char* GetDishTexturePath(DishType t)
 	}
 }
 
-void PlateLogic::ApplyDishVisual(Scene& scene)
-{
+void PlateLogic::ApplyDishVisual(Scene& scene) {
 	GameObject* plateObj = scene.GetGameObjectByID(GetOwnerID());
 	if (!plateObj) return;
 
@@ -50,8 +49,7 @@ PlateLogic::PlateLogic(int ownerID) : GameObjectLogic(ownerID), dishPrepared_(fa
 {
 }
 
-void PlateLogic::Start(Scene& /*scene*/)
-{
+void PlateLogic::Start(Scene& /*scene*/) {
 	ingredients_.clear();
 	dishPrepared_ = false;
 	dishType_ = DishType::PoopDish;
@@ -59,8 +57,7 @@ void PlateLogic::Start(Scene& /*scene*/)
 	std::cout << "[PlateLogic] Start owner=" << GetOwnerID() << "\n";
 }
 
-void PlateLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/)
-{
+void PlateLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/) {
 	// No per-frame logic needed yet.
 }
 
@@ -83,8 +80,7 @@ bool PlateLogic::CanAcceptIngredientType(IngredientType type) const
 		return false;
 
 	// Only allow refined ingredients
-	switch (type)
-	{
+	switch (type) {
 	case IngredientType::Refined_Veg:
 	case IngredientType::Refined_Meat:
 	case IngredientType::Refined_Shroom:
@@ -100,13 +96,11 @@ bool PlateLogic::CanAcceptIngredientType(IngredientType type) const
 	return true;
 }
 
-void PlateLogic::AddIngredientType(IngredientType type)
-{
+void PlateLogic::AddIngredientType(IngredientType type) {
 	ingredients_.push_back(type);
 }
 
-void PlateLogic::ClearIngredients()
-{
+void PlateLogic::ClearIngredients() {
 	ingredients_.clear();
 	firstIngredientObjectID_ = -1;
 }
@@ -114,16 +108,13 @@ void PlateLogic::ClearIngredients()
 // ----- Dish assembly -----
 
 bool PlateLogic::TryAssembleDish(DishType& outDishType,
-	std::vector<IngredientType>& outConsumedIngredients)
-{
-	if (dishPrepared_)
-	{
+	std::vector<IngredientType>& outConsumedIngredients) {
+	if (dishPrepared_) {
 		// Already have a dish; do not assemble again.
 		return false;
 	}
 
-	if (ingredients_.size() < 2)
-	{
+	if (ingredients_.size() < 2) {
 		// Need at least two ingredients to assemble a dish.
 		return false;
 	}
@@ -146,8 +137,7 @@ bool PlateLogic::TryAssembleDish(DishType& outDishType,
 	return true;
 }
 
-void PlateLogic::ClearPreparedDish()
-{
+void PlateLogic::ClearPreparedDish() {
 	dishPrepared_ = false;
 	dishType_ = DishType::PoopDish;
 	ingredients_.clear();
@@ -155,8 +145,7 @@ void PlateLogic::ClearPreparedDish()
 }
 
 // Helper: map two refined ingredient types to a dish type.
-DishType PlateLogic::ComputeDishFromPair(IngredientType a, IngredientType b) const
-{
+DishType PlateLogic::ComputeDishFromPair(IngredientType a, IngredientType b) const {
 	const bool aMeat = (a == IngredientType::Refined_Meat);
 	const bool bMeat = (b == IngredientType::Refined_Meat);
 	const bool aVeg = (a == IngredientType::Refined_Veg);
@@ -165,20 +154,17 @@ DishType PlateLogic::ComputeDishFromPair(IngredientType a, IngredientType b) con
 	const bool bShroom = (b == IngredientType::Refined_Shroom);
 
 	// Meat + Veg (any order) => MeatDish
-	if ((aMeat && bVeg) || (aVeg && bMeat))
-	{
+	if ((aMeat && bVeg) || (aVeg && bMeat)) {
 		return DishType::MeatDish;
 	}
 
 	// Shroom + Meat (any order) => SoupDish
-	if ((aShroom && bMeat) || (aMeat && bShroom))
-	{
+	if ((aShroom && bMeat) || (aMeat && bShroom)) {
 		return DishType::SoupDish;
 	}
 
 	// Veg + Veg => VegDish
-	if ((aVeg && bVeg))
-	{
+	if ((aVeg && bVeg)) {
 		return DishType::VegDish;
 	}
 
@@ -186,8 +172,7 @@ DishType PlateLogic::ComputeDishFromPair(IngredientType a, IngredientType b) con
 	return DishType::PoopDish;
 }
 
-bool PlateLogic::TryAddIngredient(const IngredientLogic& ingredient, bool& outConsumedNow)
-{
+bool PlateLogic::TryAddIngredient(const IngredientLogic& ingredient, bool& outConsumedNow) {
 	// Do NOT consume the ingredient's GameObject here.
 	outConsumedNow = false;
 

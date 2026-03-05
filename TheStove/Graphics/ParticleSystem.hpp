@@ -14,12 +14,12 @@
 
 #pragma once
 
+#include <cstdint>
 #include <glm/glm.hpp>
+#include <random>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <random>
-#include <cstdint>
 
 class EntityManager;
 class GameObject;

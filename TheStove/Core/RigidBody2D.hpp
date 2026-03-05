@@ -16,11 +16,11 @@
 
 #pragma once
 
-#include <iostream>
-#include <string>
-
 #include "GameComponent.hpp"
 #include "Math.hpp"
+
+#include <iostream>
+#include <string>
 
 class Transform;
 class ForceRegistry;

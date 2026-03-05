@@ -16,16 +16,16 @@
 
 #pragma once
 
+#include "../Graphics/GraphicsEngine.hpp"
+
+#include "imgui.h"
+#include "System.hpp"
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <unordered_map>
 #include <unordered_set>
-
-#include "../Graphics/GraphicsEngine.hpp"
-
-#include "imgui.h"
-#include "System.hpp"
 
  /**
   * @class InputManager
@@ -55,7 +55,7 @@ public:
 
 	// Mouse Queries
 	bool IsMouseButtonPressed(int button) const;
-	bool IsMouseButtonJustPressed(int button) const;
+	bool IsMouseButtonJustPressed(int button);
 	bool IsMouseButtonJustReleased(int button) const;
 	glm::dvec2 GetMousePosition() const;
 
@@ -65,10 +65,8 @@ public:
 	// Clear all key/mouse state (used when losing/regaining focus)
 	void ClearState();
 
-	// Consume next mouse press event
+	// Mouse press consumption (for one frame only)
 	void ConsumeNextMousePress(int button);
-
-	// Helper to clear all pending consumes
 	void ClearMouseConsume(int button);
 
 private:

@@ -46,11 +46,11 @@ namespace LEFILEIO {
 
 	// ----- Listing -----
 
-	// Lists all .json files in a directory (non-recursive). Returns relative paths.
-	std::vector<std::string> ListJsonFiles(const std::string& dir);
+	// Lists all .json files in a directory. Returns paths relative to 'dir'.
+	std::vector<std::string> ListJsonFiles(const std::string& dir, bool recursive = false);
 
-	// Lists all files with matching lowercase extensions. Returns relative paths.
-	std::vector<std::string> ListAssetsWithExt(const std::string& dir, const std::vector<std::string>& exts);
+	// Lists all files with matching lowercase extensions. Returns paths relative to 'dir'.
+	std::vector<std::string> ListAssetsWithExt(const std::string& dir, const std::vector<std::string>& exts, bool recursive = false);
 
 	// ----- Prefab Helpers -----
 

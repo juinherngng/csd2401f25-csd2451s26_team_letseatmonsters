@@ -15,17 +15,17 @@
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 #pragma once
 
-#include <algorithm>
-#include <imgui_internal.h>
-#include <unordered_set>
-#include <glm/gtc/matrix_transform.hpp>
-
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/SceneManager.hpp"
 
 #include "Core.hpp"
 #include "DebugUI.hpp"
 #include "FilePaths.hpp"
+
+#include <algorithm>
+#include <glm/gtc/matrix_transform.hpp>
+#include <imgui_internal.h>
+#include <unordered_set>
 
 namespace Debug {
 	DebuggerApp gDebugger;
@@ -58,13 +58,12 @@ namespace Debug {
 	// Implicit dtor for the debugger
 	void DebuggerApp::Shutdown() {
 		// Shutdown font system components
-		if (fontSystemInitialized)
-		{
+		if (fontSystemInitialized) {
 			FontSystem::TextRenderer::Instance().Shutdown();
 			FontSystem::FontManager::Instance().Shutdown();
 			fontSystemInitialized = false;
 		}
-		
+
 		isInitialised = false; // only mark state, do not shutdown ImGui here
 		std::cout << "Debugger Destructed with Shutdown\n";
 	}
@@ -85,48 +84,44 @@ namespace Debug {
 		}
 
 		isInitialised = true;
-		
+
 		// Initialize font system
 		InitializeFontSystem();
-		
+
 		return true;
 	}
 
-	void DebuggerApp::InitializeFontSystem()
-	{
+	void DebuggerApp::InitializeFontSystem() {
 		// Initialize FontManager
-		if (!FontSystem::FontManager::Instance().Initialize())
-		{
+		if (!FontSystem::FontManager::Instance().Initialize()) {
 			std::cerr << "Failed to initialize FontManager\n";
 			return;
 		}
 
 		// Initialize TextRenderer
-		if (!FontSystem::TextRenderer::Instance().Initialize())
-		{
+		if (!FontSystem::TextRenderer::Instance().Initialize()) {
 			std::cerr << "Failed to initialize TextRenderer\n";
 			FontSystem::FontManager::Instance().Shutdown();
 			return;
 		}
 
-	// Load fonts from assets folder
-		// Load ChrustyRock font
+		// Load fonts from assets folder
+			// Load ChrustyRock font
 		FontSystem::Font* fontChrusty = FontSystem::FontManager::Instance().LoadFont(
-			"chrusty", 
+			"chrusty",
 			FilePaths::Fonts::CHRUSTY_ROCK,
 			48  // Font size
 		);
 
 		// Load ToThePoint font as fallback/default
 		FontSystem::Font* fontToThePoint = FontSystem::FontManager::Instance().LoadFont(
-			"tothepoint", 
+			"tothepoint",
 			FilePaths::Fonts::TO_THE_POINT,
 			48  // Font size
 		);
 
 		// Check if at least one font loaded successfully
-		if (!fontChrusty && !fontToThePoint)
-		{
+		if (!fontChrusty && !fontToThePoint) {
 			std::cerr << "Failed to load any fonts from assets folder\n";
 			FontSystem::TextRenderer::Instance().Shutdown();
 			FontSystem::FontManager::Instance().Shutdown();
@@ -159,8 +154,7 @@ namespace Debug {
 		AddDebugLine("Font system initialized with fonts from assets folder\n");
 	}
 
-	void DebuggerApp::RenderTextOverlays()
-	{
+	void DebuggerApp::RenderTextOverlays() {
 		if (!fontSystemInitialized)
 			return;
 
@@ -169,8 +163,8 @@ namespace Debug {
 		int height = GraphicsEngine::Instance().GetHeight();
 
 		// Create orthographic projection for screen space rendering
-		glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(width), 
-										  static_cast<float>(height), 0.0f);
+		glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(width),
+			static_cast<float>(height), 0.0f);
 
 		// Update first text with current FPS
 		std::string fpsText = "FPS: " + std::to_string(static_cast<int>(fps));
@@ -181,8 +175,7 @@ namespace Debug {
 		FontSystem::TextRenderer::Instance().RenderText(text2, projection);
 	}
 
-	void DebuggerApp::UpdateDebuggerApp()
-	{
+	void DebuggerApp::UpdateDebuggerApp() {
 		// Close the debugger if esc was pressed
 		if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
 			openedDebugger = !openedDebugger;
@@ -228,7 +221,7 @@ namespace Debug {
 
 		// Create my window
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
-								   ImGuiCond_FirstUseEver);
+			ImGuiCond_FirstUseEver);
 
 		// Minimal, clean padding for this window
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
@@ -286,8 +279,8 @@ namespace Debug {
 				}
 
 				for (auto& performance : sysPerformance) {
-					performance.peakPercentage = showFramePercentage?performance.percentageOfFrame:performance.percentageOf;
-					performance.avgPercentage = showFramePercentage?performance.percentageOfFrame:performance.percentageOf;
+					performance.peakPercentage = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
+					performance.avgPercentage = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
 					performance.sampleCount = 1;
 				}
 			}
@@ -310,7 +303,7 @@ namespace Debug {
 				totalSystemTimeMs += performance.lastTimeMs;
 
 				// Choose which percentage to display
-				float displayPercent = showFramePercentage?performance.percentageOfFrame:performance.percentageOf;
+				float displayPercent = showFramePercentage ? performance.percentageOfFrame : performance.percentageOf;
 
 				// Determine color based on performance percentage
 				ImVec4 barColor;
@@ -342,7 +335,7 @@ namespace Debug {
 				if (showDetailedStats) {
 					ImGui::Indent(20.0f);
 					ImGui::TextColored(ImVec4(0.5f, 0.5f, 1.0f, 1.0f), "Avg: %.2f%% | Peak: %.2f%%",
-									   performance.avgPercentage, performance.peakPercentage);
+						performance.avgPercentage, performance.peakPercentage);
 					if (showFramePercentage) {
 						// Also show the relative distribution
 						ImGui::TextColored(ImVec4(0.5f, 0.5f, 1.0f, 1.0f), "Relative: %.2f%%", performance.percentageOf);
@@ -356,8 +349,8 @@ namespace Debug {
 				}
 
 				// Draw progress bar (clamp at 100% for display purposes)
-				float barValue = showFramePercentage?
-					std::min(displayPercent / 100.0f, 1.0f):
+				float barValue = showFramePercentage ?
+					std::min(displayPercent / 100.0f, 1.0f) :
 					displayPercent / 100.0f;
 
 				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
@@ -369,17 +362,17 @@ namespace Debug {
 			ImGui::Separator();
 			if (showFramePercentage) {
 				// Protect against division by zero
-				float safeFrameTime = (msperFrame > 0.0f)?msperFrame:0.001f;
+				float safeFrameTime = (msperFrame > 0.0f) ? msperFrame : 0.001f;
 
 				// Calculate total frame percentage based on actual time vs frame budget
 				float totalFramePercent = (totalSystemTimeMs / safeFrameTime) * 100.0f;
 				ImGui::Text("Total Frame Usage: %.2f%% (%.3f ms / %.3f ms)",
-							totalFramePercent, totalSystemTimeMs, msperFrame);
+					totalFramePercent, totalSystemTimeMs, msperFrame);
 
 				// Overall performance bar for frame usage
-				ImVec4 totalBarColor = totalFramePercent < 60.0f?
-					ImVec4(0.0f, 1.0f, 0.0f, 1.0f):
-					(totalFramePercent < 80.0f?ImVec4(1.0f, 1.0f, 0.0f, 1.0f):ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+				ImVec4 totalBarColor = totalFramePercent < 60.0f ?
+					ImVec4(0.0f, 1.0f, 0.0f, 1.0f) :
+					(totalFramePercent < 80.0f ? ImVec4(1.0f, 1.0f, 0.0f, 1.0f) : ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
 				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, totalBarColor);
 				ImGui::ProgressBar(std::min(totalFramePercent / 100.0f, 1.0f), ImVec2(-1.0f, 0.0f), "");
 				ImGui::PopStyleColor();
@@ -437,7 +430,7 @@ namespace Debug {
 					}
 
 					scene_->SetSimulationActive(simActive);
-					AddDebugLine(simActive?"Simulation started\n":"Simulation paused\n");
+					AddDebugLine(simActive ? "Simulation started\n" : "Simulation paused\n");
 				}
 				if (ImGui::Button("Clear All Objects")) {
 					if (coreEngine) {
@@ -460,12 +453,11 @@ namespace Debug {
 			ImGui::Text("Total Batches: %d", totalBatches);
 			ImGui::Text("Instanced Objects: %d", instancedObjects);
 			ImGui::Text("Draw Calls: %d", drawCalls);
-			
+
 			// Font System Controls
 			ImGui::Separator();
 			ImGui::Text("---- Text Overlays ----");
-			if (fontSystemInitialized)
-			{
+			if (fontSystemInitialized) {
 				static char text1Buffer[256] = "FPS Counter";
 				static char text2Buffer[256] = "TheStove Engine";
 				static float text1Pos[2] = { 50.0f, 50.0f };
@@ -492,25 +484,21 @@ namespace Debug {
 				text1.SetPosition(glm::vec2(text1Pos[0], text1Pos[1]));
 				text1.SetScale(text1Scale);
 				text1.SetColor(glm::vec4(text1Color[0], text1Color[1], text1Color[2], text1Color[3]));
-				
+
 				text2.SetText(text2Buffer);
 				text2.SetPosition(glm::vec2(text2Pos[0], text2Pos[1]));
 				text2.SetScale(text2Scale);
 				text2.SetColor(glm::vec4(text2Color[0], text2Color[1], text2Color[2], text2Color[3]));
 			}
-			else
-			{
+			else {
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Font System not initialized!");
 			}
-			
+
 			ImGui::Separator();
 			ImGui::Text("---- Audio ----");
-			if (ImGui::Button("Play: boiling sound"))
-			{
-				if (coreEngine)
-				{
-					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>())
-					{
+			if (ImGui::Button("Play: boiling sound")) {
+				if (coreEngine) {
+					if (auto* audioMgr = coreEngine->GetSystem<AudioManager>()) {
 						audioMgr->PlayUIClickSound();
 
 						// test play audio
@@ -673,7 +661,7 @@ namespace Debug {
 		}
 
 		// Prevent division by zero for frame time
-		float safeFrameDt = (frameDt > 0.0f)?frameDt:0.001f;
+		float safeFrameDt = (frameDt > 0.0f) ? frameDt : 0.001f;
 
 		// Build a set of current system names for cleanup detection
 		std::unordered_set<std::string> currentSystemNames;
@@ -693,7 +681,7 @@ namespace Debug {
 
 			// Find existing performance entry or create new one
 			auto it = std::find_if(sysPerformance.begin(), sysPerformance.end(),
-								   [&](const SystemPerformance& perf) { return perf.name == sys->GetName(); });
+				[&](const SystemPerformance& perf) { return perf.name == sys->GetName(); });
 
 			if (it != sysPerformance.end()) {
 				// Update existing entry
@@ -732,9 +720,9 @@ namespace Debug {
 		// Remove entries for systems that no longer exist
 		sysPerformance.erase(
 			std::remove_if(sysPerformance.begin(), sysPerformance.end(),
-						   [&currentSystemNames](const SystemPerformance& perf) {
-			return currentSystemNames.find(perf.name) == currentSystemNames.end();
-		}),
+				[&currentSystemNames](const SystemPerformance& perf) {
+					return currentSystemNames.find(perf.name) == currentSystemNames.end();
+				}),
 			sysPerformance.end()
 		);
 	}
@@ -755,7 +743,7 @@ namespace Debug {
 			return;
 		}
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
-								   ImGuiCond_FirstUseEver);
+			ImGuiCond_FirstUseEver);
 		ImGui::Begin("Console Log###ConsoleLog");
 
 		// Clear logs if the button was pressed
@@ -832,46 +820,46 @@ namespace Debug {
 
 	void DebuggerApp::DrawTransitionPanel() {
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-	// Use the correct member and explicit type to avoid deduction issues
-	GraphicsEngine* gfx = coreEngine ? coreEngine->GetSystem<GraphicsEngine>() : nullptr;
-	if (!gfx) {
+		// Use the correct member and explicit type to avoid deduction issues
+		GraphicsEngine* gfx = coreEngine ? coreEngine->GetSystem<GraphicsEngine>() : nullptr;
+		if (!gfx) {
+			ImGui::Begin("Transition Preview");
+			ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "GraphicsEngine system not found.");
+			ImGui::End();
+			return;
+		}
+
 		ImGui::Begin("Transition Preview");
-		ImGui::TextColored(ImVec4(1,0.4f,0.4f,1), "GraphicsEngine system not found.");
+
+		// Status
+		const bool active = gfx->IsTransitionActive();
+		ImGui::Text("Active: %s", active ? "Yes" : "No");
+		ImGui::Text("At Blackout: %s", gfx->IsAtBlackout() ? "Yes" : "No");
+
+		// Controls
+		ImGui::Separator();
+		ImGui::SliderFloat("Fade Out (s)", &mFadeOutSec, 0.0f, 2.0f);
+		ImGui::SliderFloat("Fade In (s)", &mFadeInSec, 0.0f, 2.0f);
+
+		if (ImGui::Button("Start Transition")) {
+			gfx->StartSceneTransition(mFadeOutSec, mFadeInSec);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Force Blackout")) {
+			// Simulate blackout: start transition with zero fade-out then immediately continue
+			gfx->StartSceneTransition(0.0f, mFadeInSec);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Continue Fade-In")) {
+			gfx->ContinueTransitionFadeIn();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel")) {
+			// Simple cancel: start transition with zero durations to clear state
+			gfx->StartSceneTransition(0.0f, 0.0f);
+		}
+
 		ImGui::End();
-		return;
-	}
-
-	ImGui::Begin("Transition Preview");
-
-	// Status
-	const bool active = gfx->IsTransitionActive();
-	ImGui::Text("Active: %s", active ? "Yes" : "No");
-	ImGui::Text("At Blackout: %s", gfx->IsAtBlackout() ? "Yes" : "No");
-
-	// Controls
-	ImGui::Separator();
-	ImGui::SliderFloat("Fade Out (s)", &mFadeOutSec, 0.0f, 2.0f);
-	ImGui::SliderFloat("Fade In (s)",  &mFadeInSec,  0.0f, 2.0f);
-
-	if (ImGui::Button("Start Transition")) {
-		gfx->StartSceneTransition(mFadeOutSec, mFadeInSec);
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Force Blackout")) {
-		// Simulate blackout: start transition with zero fade-out then immediately continue
-		gfx->StartSceneTransition(0.0f, mFadeInSec);
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Continue Fade-In")) {
-		gfx->ContinueTransitionFadeIn();
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("Cancel")) {
-		// Simple cancel: start transition with zero durations to clear state
-		gfx->StartSceneTransition(0.0f, 0.0f);
-	}
-
-	ImGui::End();
 #endif
 	}
 }

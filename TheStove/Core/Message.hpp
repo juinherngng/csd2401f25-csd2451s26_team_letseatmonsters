@@ -235,16 +235,16 @@ namespace CoreFramework {
 	/************************************************************************/
 	inline const char* MessageTypeToString(MessageType type) noexcept {
 		switch (type) {
-			case MessageType::NONE:					return "NONE";
-			case MessageType::QUIT:					return "QUIT";
-			case MessageType::COLLIDE:				return "COLLIDE";
-			case MessageType::TOGGLE_DEBUG_INFO:	return "TOGGLE_DEBUG_INFO";
-			case MessageType::CHARACTER_KEY:		return "CHARACTER_KEY";
-			case MessageType::MOUSE_BUTTON:			return "MOUSE_BUTTON";
-			case MessageType::MOUSE_MOVE:			return "MOUSE_MOVE";
-			case MessageType::PLAY_AUDIO:			return "PLAY_AUDIO";
-			case MessageType::STOP_AUDIO:			return "STOP_AUDIO";
-			default:								return "UNKNOWN";
+		case MessageType::NONE:					return "NONE";
+		case MessageType::QUIT:					return "QUIT";
+		case MessageType::COLLIDE:				return "COLLIDE";
+		case MessageType::TOGGLE_DEBUG_INFO:	return "TOGGLE_DEBUG_INFO";
+		case MessageType::CHARACTER_KEY:		return "CHARACTER_KEY";
+		case MessageType::MOUSE_BUTTON:			return "MOUSE_BUTTON";
+		case MessageType::MOUSE_MOVE:			return "MOUSE_MOVE";
+		case MessageType::PLAY_AUDIO:			return "PLAY_AUDIO";
+		case MessageType::STOP_AUDIO:			return "STOP_AUDIO";
+		default:								return "UNKNOWN";
 		}
 	}
 

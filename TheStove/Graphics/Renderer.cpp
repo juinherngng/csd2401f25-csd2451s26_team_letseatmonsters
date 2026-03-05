@@ -10,9 +10,9 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <glad/glad.h>
-
 #include "Renderer.hpp"
+
+#include <glad/glad.h>
 
 void Renderer::Initialize() {
 	// Initialize any OpenGL states here if needed

@@ -16,9 +16,6 @@
 
 #pragma once
 
-#include <unordered_map>
-#include <vector>
-
 #include "../Graphics/EntityManager.hpp"
 
 #include "Collision.hpp"
@@ -26,15 +23,20 @@
 #include "SpatialGrid.hpp"
 #include "System.hpp"
 
+#include <cstdint>
+#include <unordered_map>
+#include <vector>
+
 class Scene;
 
- /**
-  * @class CollisionManager
-  * @brief Broad-phase grid + world collision owner. Rebuilt every frame from EntityManager,
-  *        supports movement trimming via resolve(), and simple spatial queries.
-  */
+/**
+ * @class CollisionManager
+ * @brief Broad-phase grid + world collision owner. Rebuilt every frame from EntityManager,
+ *        supports movement trimming via resolve(), and simple spatial queries.
+ */
 class CollisionManager : public CoreFramework::SystemInterface {
 public:
+	// Public interface methods
 	explicit CollisionManager(float cellSize = 100.0f);
 
 	// SystemInterface implementation
@@ -53,8 +55,8 @@ public:
 
 	// Build static world geometry from authoring structs.
 	void BuildWalls(const collision::WalkArea& walkArea,
-					const collision::WoodVertical& wood,
-					const collision::StageEndGateVertical& endGate);
+		const collision::WoodVertical& wood,
+		const collision::StageEndGateVertical& endGate);
 
 	// Query grid for objects overlapping an AABB.
 	std::vector<GameObject*> QueryNearby(const collision::AABB& queryBox) const;
@@ -90,13 +92,55 @@ public:
 		scene_ = scene;
 	}
 
+	void MarkStaticStateDirty() {
+		staticStateDirty_ = true;
+	}
+
 	// Clear both the grid and the world geometry.
 	void Clear();
 
+	struct ProfileCounters {
+		std::uint64_t updateCalls = 0;
+		std::uint64_t earlyOutNoGridChange = 0;
+		std::uint64_t fullRebuilds = 0;
+		std::uint64_t objectsVisited = 0;
+		std::uint64_t dirtyObjectsProcessed = 0;
+	};
+
+	const ProfileCounters& GetProfileCounters() const {
+		return profile_;
+	}
+	void ResetProfileCounters() {
+		profile_ = ProfileCounters{};
+	}
+
 private:
+	struct ObjectBroadphaseState {
+		int objectID = -1;
+		glm::vec3 pos{ 0.0f, 0.0f, 0.0f };
+		glm::vec3 scale{ 1.0f, 1.0f, 1.0f };
+		std::string layerName;
+		bool collidable = true;
+		bool visible = true;
+		bool enabled = true;
+		bool dynamic = false;
+	};
+	bool ShouldRebuildGrid(const std::vector<std::unique_ptr<GameObject>>& allObjects);
+	ObjectBroadphaseState BuildBroadphaseState(const GameObject* obj) const;
+	bool IsDynamicObject(const GameObject* obj) const;
+
+	// Internal helper methods and state
 	EntityManager* entityManager_ = nullptr;	// Reference to EntityManager (set externally)
 	SpatialGrid spatialGrid_;					// Broad-phase acceleration structure
 	collision::World collisionWorld_;			// Static world used for trimming
 
+	// Cached broad-phase state for all objects to detect changes and minimize rebuilds
+	std::vector<ObjectBroadphaseState> broadphaseStateCache_;
+	std::vector<int> dirtyObjectIDs_;
+	bool forceFullRebuild_ = true;
+	bool gridBuilt_ = false;
+	bool staticStateDirty_ = true;
+
 	Scene* scene_ = nullptr;
+	mutable ProfileCounters profile_;
 };

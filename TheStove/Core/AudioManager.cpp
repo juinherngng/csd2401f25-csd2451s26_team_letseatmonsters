@@ -10,13 +10,12 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include "AudioManager.hpp"
+
 #include <algorithm>
 #include <filesystem> // For checking file existence
 
-#include "AudioManager.hpp"
-
-AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), system(nullptr), masterGroup(nullptr), masterVolume(1.f), bgmVolume(1.f), vfxVolume(1.f), muted(false)
-{
+AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), system(nullptr), masterGroup(nullptr), masterVolume(1.f), bgmVolume(1.f), vfxVolume(1.f), muted(false) {
 	// Subscribe to messages
 	debugInfoSubId = messageBus.Subscribe(
 		CoreFramework::MessageType::TOGGLE_DEBUG_INFO,
@@ -82,7 +81,7 @@ void AudioManager::Update(float dt) {
 			VolumeFade& f = it->second;
 			f.elapsed += dt;
 
-			float t = (f.duration > 0.f)?std::min(f.elapsed / f.duration, 1.f):1.f;
+			float t = (f.duration > 0.f) ? std::min(f.elapsed / f.duration, 1.f) : 1.f;
 			float newVol = f.fromVolume + (f.toVolume - f.fromVolume) * t;
 			chanIt->second->setVolume(newVol);
 
@@ -230,8 +229,8 @@ FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const&
 	std::cout << "  File exists, proceeding with FMOD load..." << std::endl;
 
 	// Set FMOD mode flags
-	FMOD_MODE mode = FMOD_DEFAULT | (loop?FMOD_LOOP_NORMAL:FMOD_LOOP_OFF) |
-		(stream?FMOD_CREATESTREAM:FMOD_CREATESAMPLE);
+	FMOD_MODE mode = FMOD_DEFAULT | (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) |
+		(stream ? FMOD_CREATESTREAM : FMOD_CREATESAMPLE);
 
 	// Load sound
 	FMOD::Sound* sound = nullptr;
@@ -325,26 +324,23 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 	// set volume based on type, multiplied by master volume
 	// If caller provided a specific volume (not default 1.0f), use it directly
 	// Otherwise, use category-based volume
-	if (result == FMOD_OK && channel) 
-	{
+	if (result == FMOD_OK && channel) {
 		float finalVolume = volume * masterVolume;
 
 		// Only override with category volume if caller used default volume (1.0f)
 		// This allows explicit volume control when needed (e.g., sfx_gameover at 50%)
 		if (volume >= 0.999f && volume <= 1.001f) {
-			if (name.find("bgm") != std::string::npos) 
-			{
+			if (name.find("bgm") != std::string::npos) {
 				finalVolume = bgmVolume * masterVolume;
 			}
-			else if(name.find("sfx") != std::string::npos || name.find("vfx") != std::string::npos) 
-			{
+			else if (name.find("sfx") != std::string::npos || name.find("vfx") != std::string::npos) {
 				finalVolume = vfxVolume * masterVolume;
 			}
 		}
 
 		channel->setVolume(finalVolume);
 		channels[name] = channel;
-		
+
 		std::cout << "[AudioManager] Playing sound '" << name << "' at volume " << finalVolume << std::endl;
 	}
 }
@@ -399,8 +395,7 @@ void AudioManager::ResumeChannel(std::string const& name) {
 	}
 }
 
-void AudioManager::SetMasterVolume(float volume)
-{
+void AudioManager::SetMasterVolume(float volume) {
 	// Clamp volume between 0.0 and 1.0
 	masterVolume = std::clamp(volume, 0.0f, 1.0f);
 
@@ -408,8 +403,7 @@ void AudioManager::SetMasterVolume(float volume)
 		masterGroup->setVolume(masterVolume);
 }
 
-void AudioManager::SetBgmVolume(float volume)
-{
+void AudioManager::SetBgmVolume(float volume) {
 	// Clamp volume between 0.0 and 1.0
 	bgmVolume = std::clamp(volume, 0.0f, 1.0f);
 
@@ -425,8 +419,7 @@ void AudioManager::SetVfxVolume(float volume) {
 	// Note: Individual channel volumes are set during playback in PlaySound()
 }
 
-float AudioManager::GetMasterVolume() const
-{
+float AudioManager::GetMasterVolume() const {
 	return masterVolume;
 }
 
@@ -438,8 +431,7 @@ float AudioManager::GetVfxVolume() const {
 	return vfxVolume;
 }
 
-void AudioManager::SetVolume(std::string const& name, float volume)
-{
+void AudioManager::SetVolume(std::string const& name, float volume) {
 	// Find the channel and set its volume
 	auto it = channels.find(name);
 	if (it != channels.end() && it->second) {
@@ -448,8 +440,7 @@ void AudioManager::SetVolume(std::string const& name, float volume)
 	}
 }
 
-void AudioManager::Mute(bool shouldMute)
-{
+void AudioManager::Mute(bool shouldMute) {
 	// Mute or unmute all audio
 	muted = shouldMute;
 

@@ -79,7 +79,11 @@ public:
 
 private:
 	// ----- Flags -----
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	bool isEnabled = true;
+#else
+	bool isEnabled = false;
+#endif
 	bool isPlaying = false;
 
 	// ----- Data Models -----

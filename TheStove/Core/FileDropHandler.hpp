@@ -7,7 +7,7 @@
  DESCRIPTION:		System for handling external file drops from Windows File Explorer.
 					Integrates with the CoreEngine as a system to process dropped files
 					(audio, textures, prefabs) and automatically import them into the project.
-					
+
 					Usage:
 					1. Register as system: coreEngine->AddSystem(std::make_unique<FileDropHandler>(messageBus));
 					2. In GLFW drop callback: dropHandler->HandleGLFWDrop(count, paths);
@@ -29,14 +29,14 @@
 \class FileDropHandler
 \brief
 	CoreEngine system for handling external file drops from OS file explorer.
-	
+
 	This system processes files dragged from Windows File Explorer into the
 	application window. It automatically:
 	- Validates file types (.wav, .mp3, .png, .jpg, .json)
 	- Copies files to appropriate project directories
 	- Adds audio files to the AudioCatalog
 	- Loads resources into the ResourceManager
-	
+
 	Supported file types:
 	- Audio: .wav, .mp3 ? copied to ../../assets/Audio/
 */
@@ -52,7 +52,7 @@ public:
 	*/
 	/************************************************************************/
 	explicit FileDropHandler(CoreFramework::MessageBus& bus);
-	
+
 	/************************************************************************/
 	/*!
 	\brief
@@ -69,7 +69,7 @@ public:
 	*/
 	/************************************************************************/
 	void Initialize() override;
-	
+
 	/************************************************************************/
 	/*!
 	\brief
@@ -80,7 +80,7 @@ public:
 	*/
 	/************************************************************************/
 	void Update(float dt) override;
-	
+
 	/************************************************************************/
 	/*!
 	\brief
@@ -89,7 +89,9 @@ public:
 		"FileDropHandler"
 	*/
 	/************************************************************************/
-	std::string GetName() override { return "FileDropHandler"; }
+	std::string GetName() override {
+		return "FileDropHandler";
+	}
 
 	/************************************************************************/
 	/*!
@@ -100,7 +102,7 @@ public:
 		Number of files dropped.
 	\param paths
 		Array of C-string file paths from GLFW.
-	
+
 	Example:
 		glfwSetDropCallback(window, [](GLFWwindow*, int count, const char** paths) {
 			if (auto* handler = coreEngine->GetSystem<FileDropHandler>()) {
@@ -110,7 +112,7 @@ public:
 	*/
 	/************************************************************************/
 	void HandleGLFWDrop(int count, const char** paths);
-	
+
 	/************************************************************************/
 	/*!
 	\brief
@@ -127,7 +129,7 @@ public:
 private:
 	//! Reference to the message bus for posting success/error events (future use)
 	CoreFramework::MessageBus& messageBus;
-	
+
 	/************************************************************************/
 	/*!
 	\brief
@@ -140,7 +142,7 @@ private:
 	*/
 	/************************************************************************/
 	bool ProcessAudioFile(const std::string& droppedPath);
-	
+
 	/************************************************************************/
 	/*!
 	\brief
@@ -153,7 +155,7 @@ private:
 	*/
 	/************************************************************************/
 	bool ProcessTextureFile(const std::string& droppedPath);
-	
+
 	/************************************************************************/
 	/*!
 	\brief
@@ -166,7 +168,7 @@ private:
 	*/
 	/************************************************************************/
 	bool ProcessPrefabFile(const std::string& droppedPath);
-	
+
 	/************************************************************************/
 	/*!
 	\brief

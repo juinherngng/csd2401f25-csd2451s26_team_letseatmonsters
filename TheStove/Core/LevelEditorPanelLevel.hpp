@@ -27,9 +27,9 @@ class Scene;
 namespace LEPANELLEVEL {
 	// Draw the Level panel window and handle all interactions.
 	void DrawLevelPanel(LevelEditor& editor,
-						Scene& scene,
-						int& selectedIndex,
-						int& selectedObjectId);
+		Scene& scene,
+		int& selectedIndex,
+		int& selectedObjectId);
 
 	// Allow other modules(pick / drag) to push an undo snapshot
 	void RecordUndoSnapshot(LevelEditor& editor, Scene& scene);

@@ -5,8 +5,8 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (95%)
  CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
- DESCRIPTION:		 Declares the MenuButtonLogic component class, which provides interactive 
-					 button behavior for menu GameObjects including hover texture swapping and 
+ DESCRIPTION:		 Declares the MenuButtonLogic component class, which provides interactive
+					 button behavior for menu GameObjects including hover texture swapping and
 					 deferred level loading via Scene::QueueLevelLoad when clicked.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
@@ -15,16 +15,18 @@
 
 #pragma once
 
-#include <string>
 #include "GameObjectLogic.hpp"
+#include <string>
 
 class AudioManager;
 
+// Logic component for menu buttons that load levels or toggle simulation when clicked.
 class MenuButtonLogic final : public GameObjectLogic {
 public:
+	// Constructor takes the target JSON path to determine which level to load, and whether to activate simulation.
 	explicit MenuButtonLogic(int ownerID, std::string targetJson, bool activateSimulation)
 		: GameObjectLogic(ownerID),
-		  activateSimulation_(activateSimulation) {
+		activateSimulation_(activateSimulation) {
 		// Determine which state to load based on the JSON path BEFORE moving
 		if (targetJson.find("kitchen01") != std::string::npos) {
 			stateToLoad_ = 1; // GS_Level2 = gameplay
@@ -36,10 +38,13 @@ public:
 		targetJson_ = std::move(targetJson);
 	}
 
+	// Override Update to handle hover state and click interactions
 	void Update(float dt, Scene& scene, InputManager& input) override;
 
 	// Set AudioManager for button click sounds
-	void SetAudioManager(AudioManager* audioMgr) { audioManager_ = audioMgr; }
+	void SetAudioManager(AudioManager* audioMgr) {
+		audioManager_ = audioMgr;
+	}
 
 private:
 	// Click target

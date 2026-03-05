@@ -13,14 +13,14 @@
 
 #pragma once
 
+#include "Mesh.hpp"
+#include "Shader.hpp"
+#include "Texture.hpp"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "Mesh.hpp"
-#include "Shader.hpp"
-#include "Texture.hpp"
 
 // Forward declarations
 class AudioManager;
@@ -49,6 +49,7 @@ public:
 	// Texture management
 	Texture* LoadTexture(const std::string& name, const std::string& filePath);
 	Texture* GetTexture(const std::string& name);
+	void PreloadTextures(const std::vector<std::string>& filePaths);
 
 	// Font management
 	FontSystem::Font* LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize);
@@ -74,11 +75,13 @@ private:
 	ResourceManager(const ResourceManager&) = delete;
 	ResourceManager& operator=(const ResourceManager&) = delete;
 
+	// Resource storage
 	std::unordered_map<std::string, std::unique_ptr<Shader>> shaders;
 	std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes;
 	std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
+	std::unordered_map<std::string, Texture*> textureAliases;
+	std::unordered_map<std::string, Texture*> texturePaths;
 
 	AudioManager* audioManager; // Non-owning pointer to AudioManager
 	bool isCleared;
-
 };

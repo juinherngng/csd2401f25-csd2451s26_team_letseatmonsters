@@ -20,18 +20,22 @@
 #include "Math.hpp"
 
 #include <glm/glm.hpp>
+#include <unordered_set>
 
+ // Forward declarations to avoid circular dependencies
 class PlayerLogic : public GameObjectLogic {
 public:
+	// Inherit constructor from GameObjectLogic
 	using GameObjectLogic::GameObjectLogic; // inherit constructor
 
+	// Lifecycle overrides
 	void Start(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
 	std::string GetName() const override {
 		return "PlayerLogic";
 	}
 
-	// --- Carry state helpers ---
+	// Carry state helpers
 	bool IsHolding() const {
 		return carriedItemID >= 0;
 	}
@@ -39,7 +43,7 @@ public:
 		return carriedItemID;
 	}
 
-	// --- High-level interaction ---
+	// High-level interaction
 	// Called when we want the player to interact with a particular table GameObject.
 	// (For example: you can call this when the player presses a key near a table.)
 	void InteractWithTable(Scene& scene, int tableObjectID);
@@ -61,7 +65,7 @@ public:
 	// Unity: PickUp(GameObject item)
 	void PickUp(Scene& scene, int itemID);
 
-	// Unity: Drop(Vector3 dropPos) � for now just �drop near player�
+	// Unity: Drop()
 	void Drop(Scene& scene);
 
 private:
@@ -84,7 +88,7 @@ private:
 	};
 	FacingDir facingDir{ FacingDir::Front };
 
-	// Simple �holding� state by object ID
+	// Interaction state
 	int carriedItemID{ -1 };
 	int pendingTableID = -1;   // table we intend to interact with after moving
 
@@ -106,9 +110,9 @@ private:
 	bool hasCarriedItemOriginalColliderSize{ false };
 
 	// Internal helpers
-	void HandleClickInput(Scene& scene, InputManager& input); // Unity: input + raycast
-	void UpdateMovement(float dt, Scene& scene);              // Unity: NavMeshAgent movement
-	void OnArrived(Scene& scene);                             // Unity: OnArrived() hook
+	void HandleClickInput(Scene& scene, InputManager& input, float dt); // Unity: input + raycast
+	void UpdateMovement(float dt, Scene& scene);						// Unity: NavMeshAgent movement
+	void OnArrived(Scene& scene);										// Unity: OnArrived() hook
 	void UpdateSprite(Scene& scene, GameObject* player, const glm::vec2& moveDir);
 	glm::vec2 GetCarryOffsetForFacing() const;
 
@@ -119,14 +123,36 @@ private:
 	void ApplyCarryLayer(Scene& scene, int itemID);
 	void RestoreCarriedItemLayer(Scene& scene, int itemID);
 
-	// keep carried item following the player
+	// Interaction helpers
 	void UpdateCarriedItemTransform(Scene& scene);
+	void UpdateInteractableVisualCues(Scene& scene, InputManager& input, float dt);
+	bool IsPointInsideObjectCollider(const GameObject* obj, const glm::vec2& worldPoint) const;
+	void ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint);
+	void UpdateClickMoveIndicator(Scene& scene, float dt);
+	void ClearInteractableVisualCues(Scene& scene);
+	void ResetMouseDragState();
+	bool TryGetMouseWorld(Scene& scene, glm::vec2& mouseWorld) const;
+	void HandleKeyboardMovement(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& playerPos);
+	void UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& beforePos, const glm::vec3& afterPos);
+	void ClearMovementTarget(Scene& scene);
 
-	// particle footsteps
+	// Particle footsteps
 	float footstepDistanceAcc_ = 0.0f;
 	bool wasMoving_ = false;
 	float footstepEmitTimer_ = 0.0f;
 
+	// Mouse drag state for click-and-drag movement
+	bool mouseDragActive_ = false;
+	glm::vec2 lastDragWorld_{ 0.0f, 0.0f };
+	bool hasLastDragWorld_ = false;
+	float dragRetargetTimer_ = 0.0f;
+	std::unordered_set<int> highlightedInteractableIDs_;
+
+	// Click indicator state
+	int clickIndicatorID_ = -1;
+	float clickIndicatorTimeLeft_ = 0.0f;
+
+	// Trail effect state
 	glm::vec3 lastTrailPos_{ 0.0f, 0.0f, 0.0f };
 	bool hasLastTrailPos_ = false;
 	float trailCarry_ = 0.0f;
@@ -147,4 +173,5 @@ private:
 
 	float directPathCheckTimer_ = 0.0f;
 	static constexpr float kDirectPathCheckInterval = 0.05f; // 20 times/sec
+	int blockedMoveFrames_ = 0;
 };

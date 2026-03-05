@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <glm/glm.hpp>
-
 #include "../Core/Math.hpp"
 
 #include "Animator.hpp"
@@ -25,6 +23,8 @@
 #include "Mesh.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
+
+#include <glm/glm.hpp>
 
  /**
   * @class GameObject
@@ -188,12 +188,20 @@ public:
 	}
 
 	// For cross blending / tinting
-	void SetColorTint(const glm::vec4& tint) { colorTint_ = tint; }
-	const glm::vec4& GetColorTint() const { return colorTint_; }
+	void SetColorTint(const glm::vec4& tint) {
+		colorTint_ = tint;
+	}
+	const glm::vec4& GetColorTint() const {
+		return colorTint_;
+	}
 
 	// Layer number for rendering order (set by Scene during collection)
-	void SetRenderLayer(int layer) { renderLayer_ = layer; }
-	int GetRenderLayer() const { return renderLayer_; }
+	void SetRenderLayer(int layer) {
+		renderLayer_ = layer;
+	}
+	int GetRenderLayer() const {
+		return renderLayer_;
+	}
 
 	// Secondary render order within the same layer (higher draws later)
 	void SetRenderSortOrder(int order) { renderSortOrder_ = order; }
@@ -230,7 +238,7 @@ private:
 	glm::vec2 m_ShadowOffset{ 0.0f, 0.0f };   // local offset in world units
 	float m_ShadowOpacity = 0.45f;            // 0..1
 
-	glm::vec4 colorTint_{1.0f, 1.0f, 1.0f, 1.0f}; // RGBA tint, 1=opaque
+	glm::vec4 colorTint_{ 1.0f, 1.0f, 1.0f, 1.0f }; // RGBA tint, 1=opaque
 
 	int renderLayer_ = 1; // Layer number for render ordering
 	int renderSortOrder_ = 0; // Tie-breaker for render ordering within a layer

@@ -5,11 +5,11 @@
  AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
  DESCRIPTION:       Declares the CustomerManagerLogic system, which is
-                    responsible for pairing customers with tables, assigning
-                    seating targets, and maintaining runtime customer–table
-                    relationships.
+					responsible for pairing customers with tables, assigning
+					seating targets, and maintaining runtime customerï¿½table
+					relationships.
 
-         All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -31,30 +31,56 @@ class Scene;
 
 class CustomerManagerSystem {
 public:
-    CustomerManagerSystem() = default;
+	// Construct a customer manager with default spawn and cap settings
+	CustomerManagerSystem() = default;
 
-    /// Called each frame from Scene::Update. Seats customers once.
-    void Update(float dt, Scene& scene);
+	/**
+	  * @brief Run per-frame customer management.
+	  * @param dt Delta time for the current frame in seconds.
+	  * @param scene Scene context used for table discovery, spawning, and cleanup.
+	  */
+	void Update(float dt, Scene& scene);
 
-    /// Reset internal state when the scene is cleared.
-    void Reset();
+	/**
+	 * @brief Reset all cached state when the active scene is cleared/reloaded.
+	 */
+	void Reset();
 
-    void SetMaxCustomers(int n) { maxCustomers_ = n; }
+	/**
+	 * @brief Set the maximum number of simultaneously active customers.
+	 * @param n Hard cap applied by the spawn logic.
+	 */
+	void SetMaxCustomers(int n) {
+		maxCustomers_ = n;
+	}
 
 private:
-    int maxCustomers_ = 4;
-    float spawnCooldown_ = 15.0f;        // small delay between spawns
+    int maxCustomers_ = 4;				// hard cap on simultaneous customers; set by level design or difficulty settings
+    float spawnCooldown_ = 15.0f;       // small delay between spawns
     float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
 
-    std::vector<int> activeCustomers_;  // ids of customers alive
-    std::vector<int> customerTableIDs_; // ids of customer tables we discovered
-    bool cachedTables_ = false;
+	std::vector<int> activeCustomers_;  // ids of customers alive
+	std::vector<int> customerTableIDs_; // ids of customer tables we discovered
+	bool cachedTables_ = false;			// tracks whether table discovery has already run for the current scene
 
-    int customerTemplateID_ = -1;
-    bool cachedTemplate_ = false;
+	// Cached template/prefab ID for spawning new customers
+	int customerTemplateID_ = -1;
 
-    void CacheTables(Scene& scene);
-    void CacheTemplate(Scene& scene);
-    void CleanupDeadCustomers(Scene& scene);
-    bool TrySpawnOne(Scene& scene);
+	// Tracks whether template discovery has already run for the current scene
+	bool cachedTemplate_ = false;
+
+	// Discover and cache all customer-table entity IDs in the scene
+	void CacheTables(Scene& scene);
+
+	// Discover and cache the customer template/prefab entity ID
+	void CacheTemplate(Scene& scene);
+
+	// Remove stale/dead customer IDs from the active customer list
+	void CleanupDeadCustomers(Scene& scene);
+
+	/**
+	 * @brief Attempt to spawn exactly one customer if capacity/cooldown allows.
+	 * @return True when one customer is spawned successfully, false otherwise.
+	 */
+	bool TrySpawnOne(Scene& scene);
 };

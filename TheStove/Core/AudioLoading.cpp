@@ -10,16 +10,16 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <algorithm>
-#include <cctype>
-#include <fstream>
-#include <iostream>
-#include <filesystem>
-
 #include "../Graphics/ResourceManager.hpp"
 
 #include "AudioLoading.hpp"
 #include "JSONInclude.hpp"
+
+#include <algorithm>
+#include <cctype>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 
 using nlohmann::json;
 
@@ -39,25 +39,25 @@ namespace Audio {
 	// Runtime paths: ../assets/Audio/file.mp3 (from release/ folder)
 	static std::string ConvertToRuntimePath(const std::string& path) {
 		std::string result = path;
-		
+
 		// Convert ../../assets/ to ../assets/ for release builds
 		const std::string editorPrefix = "../../assets/";
 		const std::string runtimePrefix = "../assets/";
-		
+
 		if (result.find(editorPrefix) == 0) {
 			result = runtimePrefix + result.substr(editorPrefix.length());
 		}
-		
+
 		return result;
 	}
 
 	bool AudioCatalog::LoadCatalogFromFile(const std::string& catalogPath) {
 		std::cout << "AudioCatalog: Loading catalog from " << catalogPath << "..." << std::endl;
-		
+
 		// Show current working directory for debugging
 		std::filesystem::path cwd = std::filesystem::current_path();
 		std::cout << "  [LoadCatalog] Current working directory: " << cwd << std::endl;
-		
+
 		// Show absolute path
 		std::filesystem::path absolutePath = std::filesystem::absolute(catalogPath);
 		std::cout << "  [LoadCatalog] Absolute path: " << absolutePath << std::endl;
@@ -71,11 +71,11 @@ namespace Audio {
 		}
 
 		// Determine if we need to convert paths (release builds use shorter paths)
-		#ifdef _DEBUG
+#ifdef _DEBUG
 		const bool convertPaths = false;
-		#else
+#else
 		const bool convertPaths = true;
-		#endif
+#endif
 
 		try {
 			json catalogJson;
@@ -97,7 +97,7 @@ namespace Audio {
 					// Normalize the filepath when loading from JSON
 					std::string rawPath = assetJson.value("filepath", "");
 					asset.filepath = NormalizeAudioPath(rawPath);
-					
+
 					// Convert editor paths to runtime paths for release builds
 					if (convertPaths) {
 						asset.filepath = ConvertToRuntimePath(asset.filepath);
@@ -125,8 +125,7 @@ namespace Audio {
 					std::cout << "  Loaded asset: " << asset.name << " (path: " << asset.filepath << ")" << std::endl;
 				}
 			}
-			else
-			{
+			else {
 				std::cout << "  No 'audio_assets' array found in catalog file (empty catalog)" << std::endl;
 			}
 
@@ -142,34 +141,32 @@ namespace Audio {
 	bool AudioCatalog::SaveCatalogToFile(const std::string& catalogPath) {
 		std::cout << "AudioCatalog: Saving catalog to " << catalogPath << "..." << std::endl;
 
-		try
-		{
+		try {
 			// Show current working directory for debugging
 			std::filesystem::path cwd = std::filesystem::current_path();
 			std::cout << "  [SaveCatalog] Current working directory: " << cwd << std::endl;
-			
+
 			// Ensure parent directory exists
 			std::filesystem::path filePath(catalogPath);
 			std::filesystem::path parentDir = filePath.parent_path();
-			
+
 			// Log the absolute path where we're actually writing
 			std::filesystem::path absolutePath = std::filesystem::absolute(filePath);
 			std::cout << "  [SaveCatalog] Absolute path: " << absolutePath << std::endl;
-			
+
 			if (!parentDir.empty() && !std::filesystem::exists(parentDir)) {
 				std::cout << "AudioCatalog: Creating directory: " << parentDir << std::endl;
 				std::filesystem::create_directories(parentDir);
 			}
-			
+
 			json catalogJson;
 			catalogJson["version"] = "1.0";
 			catalogJson["audio_assets"] = json::array();
 
 			// Serialize all audio assets
-			for (const auto& asset : s_AudioAssets)
-			{
+			for (const auto& asset : s_AudioAssets) {
 				std::cout << "  [SaveCatalog] Saving asset '" << asset.name << "' with filepath: " << asset.filepath << std::endl;
-				
+
 				json assetJson;
 				assetJson["name"] = asset.name;
 				assetJson["filepath"] = asset.filepath;
@@ -191,7 +188,7 @@ namespace Audio {
 			file << catalogJson.dump(2); // 2-space indentation
 			file.flush(); // Explicitly flush the buffer
 			file.close();
-			
+
 			// Verify the file was actually written by checking its existence and size
 			if (std::filesystem::exists(absolutePath)) {
 				auto fileSize = std::filesystem::file_size(absolutePath);
@@ -199,7 +196,7 @@ namespace Audio {
 				std::cout << "  [SaveCatalog] File size: " << fileSize << " bytes" << std::endl;
 				std::cout << "  [SaveCatalog] *** FILE WRITTEN TO: " << absolutePath << " ***" << std::endl;
 				std::cout << "  [SaveCatalog] *** OPEN THIS FILE TO VERIFY THE PATHS! ***" << std::endl;
-				
+
 				// Read back the file to verify it contains the data
 				std::ifstream verifyFile(catalogPath);
 				if (verifyFile.is_open()) {
@@ -210,9 +207,10 @@ namespace Audio {
 					}
 					verifyFile.close();
 				}
-				
+
 				return true;
-			} else {
+			}
+			else {
 				std::cerr << "AudioCatalog: ERROR - File does not exist after writing!" << std::endl;
 				return false;
 			}
@@ -232,8 +230,8 @@ namespace Audio {
 
 		for (const auto& asset : s_AudioAssets) {
 			std::cout << "  Loading: " << asset.name << " from " << asset.filepath << std::endl;
-			std::cout << "    Properties: loop=" << (asset.loop?"true":"false")
-				<< ", stream=" << (asset.stream?"true":"false")
+			std::cout << "    Properties: loop=" << (asset.loop ? "true" : "false")
+				<< ", stream=" << (asset.stream ? "true" : "false")
 				<< ", category=" << asset.category
 				<< ", volume=" << asset.volume << std::endl;
 
@@ -302,7 +300,7 @@ namespace Audio {
 
 	bool AudioCatalog::RemoveAudioAsset(const std::string& name) {
 		auto it = std::find_if(s_AudioAssets.begin(), s_AudioAssets.end(),
-							   [&name](const AudioAsset& asset) { return asset.name == name; });
+			[&name](const AudioAsset& asset) { return asset.name == name; });
 
 		if (it != s_AudioAssets.end()) {
 			s_AudioAssets.erase(it);
@@ -319,7 +317,7 @@ namespace Audio {
 
 	const AudioAsset* AudioCatalog::GetAudioAsset(const std::string& name) {
 		auto it = std::find_if(s_AudioAssets.begin(), s_AudioAssets.end(),
-							   [&name](const AudioAsset& asset) { return asset.name == name; });
+			[&name](const AudioAsset& asset) { return asset.name == name; });
 
 		if (it != s_AudioAssets.end()) {
 			return &(*it);
@@ -347,7 +345,7 @@ namespace Audio {
 
 		// Convert to lowercase for case-insensitive comparison
 		std::transform(ext.begin(), ext.end(), ext.begin(),
-					   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
 		// Check if extension is supported
 		return (ext == ".wav" || ext == ".mp3");
@@ -355,7 +353,7 @@ namespace Audio {
 
 	std::string AudioCatalog::GetInvalidFormatMessage(const std::string& filepath) {
 		size_t dotPos = filepath.find_last_of('.');
-		std::string ext = (dotPos != std::string::npos)?filepath.substr(dotPos):"unknown";
+		std::string ext = (dotPos != std::string::npos) ? filepath.substr(dotPos) : "unknown";
 
 		return "Unsupported audio file type: \"" + ext + "\". Only .wav and .mp3 files are supported.";
 	}

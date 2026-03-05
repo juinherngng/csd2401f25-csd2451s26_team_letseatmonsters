@@ -10,6 +10,8 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "Shader.hpp"
+
 #include <filesystem>
 #include <fstream>
 #include <glad/glad.h>
@@ -17,8 +19,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <sstream>
-
-#include "Shader.hpp"
 
 Shader::Shader(const std::string& vertexFile, const std::string& fragmentFile) {
 	std::string vertexSource = ReadFile(vertexFile);
@@ -60,7 +60,7 @@ std::string Shader::ReadFile(const std::string& filepath) {
 GLuint Shader::CompileShader(GLenum type, const std::string& source) {
 	if (source.empty()) {
 		std::cerr << "[Shader] ERROR: Attempting to compile empty shader source!" << std::endl;
-		std::cerr << "[Shader] Shader type: " << (type == GL_VERTEX_SHADER?"VERTEX":"FRAGMENT") << std::endl;
+		std::cerr << "[Shader] Shader type: " << (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") << std::endl;
 	}
 
 	GLuint shader = glCreateShader(type);
@@ -73,7 +73,7 @@ GLuint Shader::CompileShader(GLenum type, const std::string& source) {
 	if (!success) {
 		char infoLog[512];
 		glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-		std::cerr << "[Shader] ERROR compiling shader (" << (type == GL_VERTEX_SHADER?"VERTEX":"FRAGMENT") << "): " << infoLog << std::endl;
+		std::cerr << "[Shader] ERROR compiling shader (" << (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") << "): " << infoLog << std::endl;
 	}
 	return shader;
 }
@@ -152,16 +152,16 @@ void Shader::SetTexture(const std::string& name, int textureUnit) const {
 	}
 }
 
-void Shader::SetColorTint(const glm::vec4& tint) const{
-    const GLint loc = glGetUniformLocation(programID, "u_ColorTint");
-    if (loc != -1) {
-        glUniform4fv(loc, 1, &tint[0]);
-    }
+void Shader::SetColorTint(const glm::vec4& tint) const {
+	const GLint loc = glGetUniformLocation(programID, "u_ColorTint");
+	if (loc != -1) {
+		glUniform4fv(loc, 1, &tint[0]);
+	}
 
 	GLint locColor = glGetUniformLocation(programID, "u_Color");
-    if (locColor != -1) {
-        glUniform4fv(locColor, 1, glm::value_ptr(tint));
-    }
+	if (locColor != -1) {
+		glUniform4fv(locColor, 1, glm::value_ptr(tint));
+	}
 }
 
 void Shader::SetUVOffset(const glm::vec2& offset) const {

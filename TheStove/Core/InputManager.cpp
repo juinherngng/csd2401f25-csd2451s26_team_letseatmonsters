@@ -12,31 +12,66 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <iostream>
-
 #include "InputManager.hpp"
+
+#include <iostream>
 
 #if defined(_DEBUG)
 #include <imgui.h>
 #endif
 
-// Lifetime / Access
-InputManager* InputManager::sActive = nullptr;
+ // Helper to get button state from a map, defaulting to false if not found
+namespace {
+	// GLFW key/button codes are sparse, so we use unordered_maps for storage. This helper abstracts the lookup with a default of false.
+	bool GetButtonState(const std::unordered_map<int, bool>& states, int code) {
+		auto it = states.find(code);
+		return (it != states.end()) && it->second;
+	}
 
+	// List of keys and mouse buttons we want to track.
+	constexpr int kTrackedKeys[] = {
+		GLFW_KEY_LEFT,
+		GLFW_KEY_RIGHT,
+		GLFW_KEY_UP,
+		GLFW_KEY_DOWN,
+		GLFW_KEY_W,
+		GLFW_KEY_A,
+		GLFW_KEY_S,
+		GLFW_KEY_D,
+		GLFW_KEY_P, // Pause menu in Release, debug toggle in Debug
+		GLFW_KEY_G, // Grid toggle in Release, debug toggle in Debug
+		GLFW_KEY_H, // Hitbox toggle in Release, debug toggle in Debug
+		GLFW_KEY_F, // FPS toggle in Release, debug toggle in Debug
+		GLFW_KEY_L, // Level reload in Release, debug toggle in Debug
+		GLFW_KEY_1,
+		GLFW_KEY_2,
+		GLFW_KEY_3,
+		GLFW_KEY_ESCAPE, // Menu toggle in Release
+		GLFW_KEY_F1		 // FPS display toggle in Release
+	};
+
+	// We track mouse buttons separately since they have different semantics and are often used in combination with ImGui's WantCaptureMouse.
+	constexpr int kTrackedMouseButtons[] = {
+		GLFW_MOUSE_BUTTON_LEFT,
+		GLFW_MOUSE_BUTTON_RIGHT,
+		GLFW_MOUSE_BUTTON_MIDDLE
+	};
+}
+
+// Static instance pointer initialization
+InputManager* InputManager::sActive = nullptr;
 InputManager::InputManager() {
 	sActive = this;
 }
-
 InputManager& InputManager::Get() {
 	static InputManager fallback;
-	return sActive?*sActive:fallback;
+	return sActive ? *sActive : fallback;
 }
 
 // SystemInterface implementation
 void InputManager::Initialize() {
 	// Nothing to initialize - window will be set externally
 }
-
 void InputManager::Update(float dt) {
 	(void)dt; // Suppress unused parameter warning	
 
@@ -83,21 +118,18 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 
 	// If ImGui wants the keyboard, clear key states so gameplay won't react
 	if (!wantCaptureKeyboard) {
-		for (int key:keys) {
+		for (int key : kTrackedKeys) {
 			mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
 		}
 	}
 	else {
-		for (int key:keys) {
+		for (int key : kTrackedKeys) {
 			mCurrentKeyStates[key] = false;
 		}
 	}
 
-	// Mouse buttons to track
-	int buttons[] = { GLFW_MOUSE_BUTTON_LEFT, GLFW_MOUSE_BUTTON_RIGHT, GLFW_MOUSE_BUTTON_MIDDLE };
-
 	// Always track mouse button states, let individual systems check WantCaptureMouse themselves
-	for (int b:buttons) {
+	for (int b : kTrackedMouseButtons) {
 		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
 	}
 
@@ -115,56 +147,37 @@ void InputManager::ClearState() {
 
 // Keyboard Queries
 bool InputManager::IsKeyPressed(int key) const {
-	auto it = mCurrentKeyStates.find(key);
-	return (it != mCurrentKeyStates.end()) && it->second;
+	return GetButtonState(mCurrentKeyStates, key);
 }
 
 bool InputManager::IsKeyJustPressed(int key) const {
-	bool curr = false;
-	bool prev = false;
-
-	auto currIt = mCurrentKeyStates.find(key);
-	if (currIt != mCurrentKeyStates.end()) curr = currIt->second;
-
-	auto prevIt = mPreviousKeyStates.find(key);
-	if (prevIt != mPreviousKeyStates.end()) prev = prevIt->second;
+	const bool curr = GetButtonState(mCurrentKeyStates, key);
+	const bool prev = GetButtonState(mPreviousKeyStates, key);
 
 	return curr && !prev;
 }
 
 // Mouse Queries
 bool InputManager::IsMouseButtonPressed(int button) const {
-	auto it = mMouseButtons.find(button);
-	return (it != mMouseButtons.end()) && it->second;
+	return GetButtonState(mMouseButtons, button);
 }
 
-bool InputManager::IsMouseButtonJustPressed(int button) const {
-	auto itC = mMouseButtons.find(button);
-	auto itP = mPrevMouseButtons.find(button);
-
-	bool curr = (itC != mMouseButtons.end()) && itC->second;
-	bool prev = (itP != mPrevMouseButtons.end()) && itP->second;
-
-	bool justPressed = curr && !prev;
+bool InputManager::IsMouseButtonJustPressed(int button) {
+	const bool curr = GetButtonState(mMouseButtons, button);
+	const bool prev = GetButtonState(mPrevMouseButtons, button);
+	const bool justPressed = curr && !prev;
 
 	// If flagged for consumption, hide this edge once
-	if (justPressed) {
-		if (mConsumeNextMousePress.find(button) != mConsumeNextMousePress.end()) {
-			// Remove flag so only one press is consumed
-			const_cast<std::unordered_set<int>&>(mConsumeNextMousePress).erase(button);
-			return false;
-		}
+	if (justPressed && mConsumeNextMousePress.erase(button) > 0) {
+		return false;
 	}
 
 	return justPressed;
 }
 
 bool InputManager::IsMouseButtonJustReleased(int button) const {
-	auto itC = mMouseButtons.find(button);
-	auto itP = mPrevMouseButtons.find(button);
-
-	bool curr = (itC != mMouseButtons.end()) && itC->second;
-	bool prev = (itP != mPrevMouseButtons.end()) && itP->second;
+	const bool curr = GetButtonState(mMouseButtons, button);
+	const bool prev = GetButtonState(mPrevMouseButtons, button);
 
 	return !curr && prev;
 }

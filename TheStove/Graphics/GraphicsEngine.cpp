@@ -9,26 +9,98 @@
  DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
 					and batched instanced rendering of GameObjects.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
+#include "../Core/FontSystem.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
+
+#include "GraphicsEngine.hpp"
+#include "MeshLoader.hpp"
+
+#include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
-#include "../Core/FontSystem.hpp"
-#include "../Core/LevelEditorPanelFonts.hpp"
-#include "GraphicsEngine.hpp"
-#include "MeshLoader.hpp"
-
 // File-scoped state
 static bool _imguiInitialized = false;
 
 // Helper function to resolve shader paths across different build configurations
 namespace {
+	constexpr const char* kOpenGLErrorPrefixDefault = "[GraphicsEngine] OpenGL error";
+	constexpr int kInvalidLayerValue = 1000000;
+
+	struct RenderPassConfig {
+		bool depthTestEnabled = true;
+		bool depthWriteEnabled = true;
+		bool blendingEnabled = false;
+		GLenum blendSrcRgb = GL_SRC_ALPHA;
+		GLenum blendDstRgb = GL_ONE_MINUS_SRC_ALPHA;
+		GLenum blendSrcAlpha = GL_SRC_ALPHA;
+		GLenum blendDstAlpha = GL_ONE_MINUS_SRC_ALPHA;
+	};
+
+	class ScopedRenderPassState {
+	public:
+		explicit ScopedRenderPassState(const RenderPassConfig& config)
+			: depthTestWasEnabled_(glIsEnabled(GL_DEPTH_TEST) == GL_TRUE),
+			blendWasEnabled_(glIsEnabled(GL_BLEND) == GL_TRUE) {
+			GLboolean depthMaskState = GL_TRUE;
+			glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMaskState);
+			depthWriteWasEnabled_ = (depthMaskState == GL_TRUE);
+
+			glGetIntegerv(GL_BLEND_SRC_RGB, &blendSrcRgb_);
+			glGetIntegerv(GL_BLEND_DST_RGB, &blendDstRgb_);
+			glGetIntegerv(GL_BLEND_SRC_ALPHA, &blendSrcAlpha_);
+			glGetIntegerv(GL_BLEND_DST_ALPHA, &blendDstAlpha_);
+
+			SetEnabled(GL_DEPTH_TEST, config.depthTestEnabled);
+			glDepthMask(config.depthWriteEnabled ? GL_TRUE : GL_FALSE);
+			SetEnabled(GL_BLEND, config.blendingEnabled);
+			if (config.blendingEnabled) {
+				glBlendFuncSeparate(config.blendSrcRgb, config.blendDstRgb, config.blendSrcAlpha, config.blendDstAlpha);
+			}
+		}
+
+		~ScopedRenderPassState() {
+			SetEnabled(GL_DEPTH_TEST, depthTestWasEnabled_);
+			glDepthMask(depthWriteWasEnabled_ ? GL_TRUE : GL_FALSE);
+			SetEnabled(GL_BLEND, blendWasEnabled_);
+			glBlendFuncSeparate(
+				static_cast<GLenum>(blendSrcRgb_),
+				static_cast<GLenum>(blendDstRgb_),
+				static_cast<GLenum>(blendSrcAlpha_),
+				static_cast<GLenum>(blendDstAlpha_)
+			);
+		}
+
+		ScopedRenderPassState(const ScopedRenderPassState&) = delete;
+		ScopedRenderPassState& operator=(const ScopedRenderPassState&) = delete;
+
+	private:
+		static void SetEnabled(GLenum capability, bool enabled) {
+			if (enabled) {
+				glEnable(capability);
+			}
+			else {
+				glDisable(capability);
+			}
+		}
+
+		bool depthTestWasEnabled_ = true;
+		bool depthWriteWasEnabled_ = true;
+		bool blendWasEnabled_ = false;
+		GLint blendSrcRgb_ = GL_SRC_ALPHA;
+		GLint blendDstRgb_ = GL_ONE_MINUS_SRC_ALPHA;
+		GLint blendSrcAlpha_ = GL_SRC_ALPHA;
+		GLint blendDstAlpha_ = GL_ONE_MINUS_SRC_ALPHA;
+	};
+
 	std::string ResolveShaderPath(const std::string& relativePathFromProjectRoot) {
 		// Print working directory only once
 		static bool printedCwd = false;
@@ -62,8 +134,23 @@ namespace {
 		std::cerr << "[ShaderPath] Tried paths relative to: " << std::filesystem::current_path() << std::endl;
 		return relativePathFromProjectRoot;
 	}
+
+	void LogOpenGLErrors(const char* prefix = kOpenGLErrorPrefixDefault) {
+		GLenum error;
+		while ((error = glGetError()) != GL_NO_ERROR) {
+			std::cerr << prefix << ": " << error << std::endl;
+		}
+	}
+
+	bool NeedsPerInstanceTintFallback(const std::vector<Mesh::InstanceData>& batch) {
+		return std::any_of(batch.begin(), batch.end(), [](const Mesh::InstanceData& inst) {
+			return inst.colorTint.x != 1.0f || inst.colorTint.y != 1.0f ||
+				inst.colorTint.z != 1.0f || inst.colorTint.w < 0.999f;
+			});
+	}
 }
 
+// Singleton access
 GraphicsEngine& GraphicsEngine::Instance() {
 	static GraphicsEngine instance;
 	return instance;
@@ -263,7 +350,7 @@ void GraphicsEngine::Resize(int width, int height) {
 	if (backgroundObject) {
 		backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
 		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
-											 static_cast<float>(kRefH), 1.0f));
+			static_cast<float>(kRefH), 1.0f));
 	}
 }
 
@@ -276,48 +363,48 @@ void GraphicsEngine::ApplyViewport() const {
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
-							   ResolveShaderPath("../shaders/shader.vert"),
-							   ResolveShaderPath("../shaders/shader.frag"));
+		ResolveShaderPath("../shaders/shader.vert"),
+		ResolveShaderPath("../shaders/shader.frag"));
 
 	// Load texture shader
 	resourceManager.LoadShader("texture",
-							   ResolveShaderPath("../shaders/texture.vert"),
-							   ResolveShaderPath("../shaders/texture.frag"));
+		ResolveShaderPath("../shaders/texture.vert"),
+		ResolveShaderPath("../shaders/texture.frag"));
 
 	// Load sprite shader
 	resourceManager.LoadShader("sprite",
-							   ResolveShaderPath("../shaders/sprite.vert"),
-							   ResolveShaderPath("../shaders/sprite.frag"));
+		ResolveShaderPath("../shaders/sprite.vert"),
+		ResolveShaderPath("../shaders/sprite.frag"));
 
 	// Load static sprite shader
 	resourceManager.LoadShader("staticsprite",
-							   ResolveShaderPath("../shaders/staticsprite.vert"),
-							   ResolveShaderPath("../shaders/staticsprite.frag"));
+		ResolveShaderPath("../shaders/staticsprite.vert"),
+		ResolveShaderPath("../shaders/staticsprite.frag"));
 
 	// Load animated sprite shader
 	resourceManager.LoadShader("animatedsprite",
-							   ResolveShaderPath("../shaders/animatedsprite.vert"),
-							   ResolveShaderPath("../shaders/animatedsprite.frag"));
+		ResolveShaderPath("../shaders/animatedsprite.vert"),
+		ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Load instanced static sprite shader
 	resourceManager.LoadShader("staticsprite_instanced",
-							   ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
-							   ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
+		ResolveShaderPath("../shaders/staticsprite_instanced.vert"),
+		ResolveShaderPath("../shaders/staticsprite_instanced.frag"));
 
 	// Load instanced animated sprite shader
 	resourceManager.LoadShader("animatedsprite_instanced",
-							   ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
-							   ResolveShaderPath("../shaders/animatedsprite.frag"));
+		ResolveShaderPath("../shaders/animatedsprite_instanced.vert"),
+		ResolveShaderPath("../shaders/animatedsprite.frag"));
 
 	// Shadow blob shader (no texture required)
 	resourceManager.LoadShader("shadow",
-							   ResolveShaderPath("../shaders/shadow.vert"),
-							   ResolveShaderPath("../shaders/shadow.frag"));
+		ResolveShaderPath("../shaders/shadow.vert"),
+		ResolveShaderPath("../shaders/shadow.frag"));
 
 	// Solid color fullscreen overlay shader for transitions
 	resourceManager.LoadShader("screenfade",
-							   ResolveShaderPath("../shaders/screenfade.vert"),
-							   ResolveShaderPath("../shaders/screenfade.frag"));
+		ResolveShaderPath("../shaders/screenfade.vert"),
+		ResolveShaderPath("../shaders/screenfade.frag"));
 
 	// Load triangle mesh
 	std::vector<float> vertices;
@@ -379,31 +466,98 @@ void GraphicsEngine::BeginImGuiFrame() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
+	sceneViewportPresenter_.BeginDockspaceFrame(mMainDockspaceId);
+#endif
+}
 
-	// Dockspace host window (full work area)
-	ImGuiViewport* viewport = ImGui::GetMainViewport();
-	ImGui::SetNextWindowPos(viewport->WorkPos);
-	ImGui::SetNextWindowSize(viewport->WorkSize);
-	ImGui::SetNextWindowViewport(viewport->ID);
-
-	ImGuiWindowFlags hostFlags =
-		ImGuiWindowFlags_NoDocking |
-		ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-
-	if (ImGui::Begin("###DockSpaceHost", nullptr, hostFlags)) {
-		ImGuiID dockspaceId = ImGui::GetID("MainDockSpace");
-		ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f), 0);
-		mMainDockspaceId = dockspaceId;
+// Parse a layer number from a string, returning a default of 1 for empty and an error code for invalid input
+int GraphicsEngine::ParseLayerNumber(const std::string& layerName) {
+	if (layerName.empty()) {
+		return 1;
 	}
 
-	ImGui::End();
-	ImGui::PopStyleVar(2);
-#endif
+	int result = 0;
+	for (char c : layerName) {
+		if (!std::isdigit(static_cast<unsigned char>(c))) {
+			return kInvalidLayerValue;
+		}
+
+		result = result * 10 + (c - '0');
+	}
+
+	return result;
+}
+
+// Compute the screen-space rect of the Scene image based on the current viewport and reference size, for mouse picking and UI alignment
+void GraphicsEngine::ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
+	sceneViewportPresenter_.ComputeSceneImageRect(
+		sceneImagePos_,
+		sceneImageSize_,
+		kRefW,
+		kRefH,
+		outPos,
+		outSize
+	);
+}
+
+// Render the background quad (if set) with appropriate shader and texture bindings, ignoring depth and blending
+void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+	if (!backgroundObject) {
+		return;
+	}
+
+	const ScopedRenderPassState passState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = false
+		});
+
+	Shader* shader = backgroundObject->GetShader();
+	if (shader) {
+		shader->Use();
+		shader->SetModelMatrix(backgroundObject->GetModelMatrix());
+		shader->SetViewMatrix(viewMatrix);
+		shader->SetProjectionMatrix(projectionMatrix);
+	}
+
+	Texture* tex = backgroundObject->GetTexture();
+	if (tex && shader) {
+		tex->Bind(0);
+		shader->SetTexture("u_Texture", 0);
+	}
+
+	Mesh* mesh = backgroundObject->GetMesh();
+	if (mesh) {
+		mesh->Draw();
+	}
+}
+
+// Blit the rendered scene from the FBO to the default framebuffer, applying letterboxing as needed
+void GraphicsEngine::PresentSceneToDefaultFramebuffer() {
+	if (mSceneFBO == 0 || mSceneColor == 0 || screenWidth <= 0 || screenHeight <= 0) {
+		return;
+	}
+
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+	const int dstX0 = viewportX_;
+	const int dstY0 = viewportY_;
+	const int dstX1 = viewportX_ + viewportW_;
+	const int dstY1 = viewportY_ + viewportH_;
+
+	glViewport(0, 0, screenWidth, screenHeight);
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glBlitFramebuffer(
+		0, 0, mSceneWidth, mSceneHeight,
+		dstX0, dstY0, dstX1, dstY1,
+		GL_COLOR_BUFFER_BIT,
+		GL_LINEAR
+	);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 // Draw the Scene window and present the scene FBO texture inside it
@@ -414,50 +568,25 @@ void GraphicsEngine::DrawSceneDockWindow() {
 		return;
 	}
 
-	ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(),
-							   ImGuiCond_FirstUseEver);
+	sceneViewportPresenter_.DrawSceneWindow(
+		mSceneColor,
+		kRefW,
+		kRefH,
+		mMainDockspaceId,
+		sceneImagePos_,
+		sceneImageSize_
+	);
+#endif
+}
 
-	if (ImGui::Begin("Scene###SceneWindow")) {
-		ImVec2 avail = ImGui::GetContentRegionAvail();
-		const float targetAspect = float(kRefW) / float(kRefH);
-		float w = avail.x, h = avail.y;
-		float r = w / h;
-		if (r > targetAspect) {
-			w = h * targetAspect;
-		}
-		else {
-			h = w / targetAspect;
-		}
-
-		// Center the image in the window
-		ImVec2 cursor = ImGui::GetCursorPos();
-		ImGui::SetCursorPos(ImVec2(cursor.x + (avail.x - w) * 0.5f,
-								   cursor.y + (avail.y - h) * 0.5f));
-
-		// Absolute rect for picking
-		sceneImagePos_ = ImGui::GetCursorScreenPos();
-		sceneImageSize_ = ImVec2(w, h);
-
-		// Draw the FBO texture (v-flipped)
-		ImGui::Image(
-			(ImTextureID)(intptr_t)mSceneColor,
-			ImVec2(w, h),
-			ImVec2(0, 1), // uv0
-			ImVec2(1, 0)  // uv1
-		);
-
-		// Invisible proxy for hover/click that exactly matches the scene image
-		if (sceneImageSize_.x > 1.0f && sceneImageSize_.y > 1.0f) {
-			ImGui::SetCursorScreenPos(sceneImagePos_);
-			ImGui::InvisibleButton("##SceneImageBtn", sceneImageSize_);
-
-			if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-				//std::cout << "[Scene] LMB click inside Scene image\n";
-			}
-		}
-	}
-
-	ImGui::End();
+// Unbind FBO, draw ImGui (including Scene window with FBO texture), and present to default framebuffer if not in debug mode
+void GraphicsEngine::EndSceneAndPresent() {
+	EndSceneRender();
+#ifdef _DEBUG
+	DrawSceneDockWindow();
+	EndImGuiFrame();
+#else
+	PresentSceneToDefaultFramebuffer();
 #endif
 }
 
@@ -486,193 +615,118 @@ void GraphicsEngine::BeginFrame() {
 
 // Convert current mouse (screen) into scene world coords if within image
 bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
+	ImVec2 localPos;
+	ImVec2 sceneSize;
+	if (!TryGetMousePositionInScene(localPos, sceneSize)) {
+		return false;
+	}
+
+	outWorld = ScenePixelToWorld(localPos, sceneSize);
+	return true;
+}
+
+// Get the screen-space rect of the Scene image for mouse picking and UI alignment
+void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 #ifdef _DEBUG
-	// Guard: If ImGui not ready, return early
+	ComputeSceneImageRect(outPos, outSize);
+#else
+	// In release we render directly to the GLFW window. Keep it simple:
+	outPos = ImVec2(0.0f, 0.0f);
+	outSize = ImVec2(static_cast<float>(viewportW_),
+		static_cast<float>(viewportH_));
+#endif
+}
+
+// Try to get the mouse position in scene local pixel coordinates and scene size. Returns false if not over the scene image.
+bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& outSceneSize) const {
+#ifdef _DEBUG
 	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
-		(void)outWorld;
 		return false;
 	}
 
-	ImVec2 imgPos = sceneImagePos_;
-	ImVec2 imgSize = sceneImageSize_;
-
-	// If the Scene window hasn't drawn this frame, reconstruct its rect
-	if (imgSize.x <= 1.0f || imgSize.y <= 1.0f) {
-		ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
-		if (sceneWin) {
-			const ImRect c = sceneWin->InnerRect;  // screen-space
-			const float availW = c.GetWidth();
-			const float availH = c.GetHeight();
-
-			const float targetAspect = float(kRefW) / float(kRefH);
-			float w = availW, h = availH, r = w / h;
-			if (r > targetAspect) {
-				w = h * targetAspect;
-			}
-			else {
-				h = w / targetAspect;
-			}
-
-			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f, c.Min.y + (availH - h) * 0.5f);
-			imgSize = ImVec2(w, h);
-		}
-		else {
-			ImGuiViewport* vp = ImGui::GetMainViewport();
-			const float availW = vp->WorkSize.x;
-			const float availH = vp->WorkSize.y;
-
-			const float targetAspect = float(kRefW) / float(kRefH);
-			float w = availW, h = availH, r = w / h;
-			if (r > targetAspect) {
-				w = h * targetAspect;
-			}
-			else {
-				h = w / targetAspect;
-			}
-
-			imgPos = ImVec2(vp->WorkPos.x + (availW - w) * 0.5f, vp->WorkPos.y + (availH - h) * 0.5f);
-			imgSize = ImVec2(w, h);
-		}
+	ImVec2 scenePos;
+	ComputeSceneImageRect(scenePos, outSceneSize);
+	if (outSceneSize.x <= 0.0f || outSceneSize.y <= 0.0f) {
+		return false;
 	}
 
-	// Mouse (absolute)
 	const ImVec2 mouse = ImGui::GetMousePos();
-
-	// Early-out if outside image rect
-	if (mouse.x < imgPos.x || mouse.y < imgPos.y ||
-		mouse.x > imgPos.x + imgSize.x || mouse.y > imgPos.y + imgSize.y) {
+	if (mouse.x < scenePos.x || mouse.y < scenePos.y ||
+		mouse.x > scenePos.x + outSceneSize.x || mouse.y > scenePos.y + outSceneSize.y) {
 		return false;
 	}
 
-	// Local coordinates (0..size)
-	const float localX = mouse.x - imgPos.x;
-	const float localY = mouse.y - imgPos.y;
-
-	// UV (0..1)
-	const float u = localX / imgSize.x;
-	const float v = localY / imgSize.y;
-
-	// Pixel in reference space
-	const float px = u * float(kRefW);
-	const float py = v * float(kRefH);
-
-	// Transform through inverse(V*P)
-	glm::vec4 clip;
-	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;
-	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;
-	clip.z = 0.0f;
-	clip.w = 1.0f;
-
-	const glm::mat4 invVP = glm::inverse(projection * view);
-	const glm::vec4 world4 = invVP * clip;
-
-	outWorld = glm::vec2(world4.x, world4.y);
+	outLocalPos = ImVec2(mouse.x - scenePos.x, mouse.y - scenePos.y);
 	return true;
 #else
-	// Release: compute from GLFW mouse and letterboxed viewport
 	GLFWwindow* win = glfwGetCurrentContext();
 	if (!win) {
 		return false;
 	}
 
-	// Mouse in window space
-	double mx, my;
-	glfwGetCursorPos(win, &mx, &my);
+	double mouseX = 0.0;
+	double mouseY = 0.0;
+	glfwGetCursorPos(win, &mouseX, &mouseY);
 
-	// Check inside letterboxed viewport
 	const float vx = static_cast<float>(viewportX_);
 	const float vy = static_cast<float>(viewportY_);
 	const float vw = static_cast<float>(viewportW_);
 	const float vh = static_cast<float>(viewportH_);
-	if (mx < vx || my < vy || mx >(vx + vw) || my >(vy + vh)) {
+	if (vw <= 0.0f || vh <= 0.0f || mouseX < vx || mouseY < vy ||
+		mouseX >(vx + vw) || mouseY >(vy + vh)) {
 		return false;
 	}
 
-	// Local coords in viewport [0..vw],[0..vh]
-	const float localX = static_cast<float>(mx) - vx;
-	const float localY = static_cast<float>(my) - vy;
+	outSceneSize = ImVec2(vw, vh);
+	outLocalPos = ImVec2(static_cast<float>(mouseX) - vx, static_cast<float>(mouseY) - vy);
+	return true;
+#endif
+}
 
-	// UV [0..1]
-	const float u = localX / vw;
-	const float v = localY / vh;
+// Convert pixel coordinates relative to the Scene image into world coordinates using inverse view-projection
+glm::vec2 GraphicsEngine::ScenePixelToWorld(const ImVec2& localPixel, const ImVec2& sceneSize) const {
+	const float u = localPixel.x / sceneSize.x;
+	const float v = localPixel.y / sceneSize.y;
 
-	// Pixel in reference canvas
-	const float px = u * float(kRefW);
-	const float py = v * float(kRefH);
+	const float px = u * static_cast<float>(kRefW);
+	const float py = v * static_cast<float>(kRefH);
 
-	// Clip -> world using inverse(V*P) of reference canvas
 	glm::vec4 clip;
-	clip.x = (px / float(kRefW)) * 2.0f - 1.0f;
-	clip.y = 1.0f - (py / float(kRefH)) * 2.0f;
+	clip.x = (px / static_cast<float>(kRefW)) * 2.0f - 1.0f;
+	clip.y = 1.0f - (py / static_cast<float>(kRefH)) * 2.0f;
 	clip.z = 0.0f;
 	clip.w = 1.0f;
 
 	const glm::mat4 invVP = glm::inverse(projection * view);
 	const glm::vec4 world4 = invVP * clip;
-	outWorld = glm::vec2(world4.x, world4.y);
-	return true;
-#endif
+	return glm::vec2(world4.x, world4.y);
 }
 
-void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
-#ifdef _DEBUG
-	outPos = sceneImagePos_;
-	outSize = sceneImageSize_;
-#else
-	// In release we render directly to the GLFW window. Keep it simple:
-	outPos = ImVec2(0.0f, 0.0f);
-	outSize = ImVec2(static_cast<float>(viewportW_),
-					 static_cast<float>(viewportH_));
-#endif
-}
-
-ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
-#ifdef _DEBUG
-	// Reconstruct the Scene image rect the same way as in GetMouseWorldInScene
-	ImVec2 imgPos = sceneImagePos_;
-	ImVec2 imgSize = sceneImageSize_;
-
-	if (imgSize.x <= 1.0f || imgSize.y <= 1.0f) {
-		// Fallback if Scene window wasn't drawn yet this frame
-		ImGuiWindow* sceneWin = ImGui::FindWindowByName("Scene###SceneWindow");
-		if (sceneWin) {
-			const ImRect c = sceneWin->InnerRect;
-			const float availW = c.GetWidth();
-			const float availH = c.GetHeight();
-			const float targetAspect = float(kRefW) / float(kRefH);
-
-			float w = availW, h = availH;
-			const float r = w / h;
-			if (r > targetAspect) {
-				w = h * targetAspect;
-			}
-			else {
-				h = w / targetAspect;
-			}
-
-			imgPos = ImVec2(c.Min.x + (availW - w) * 0.5f,
-							c.Min.y + (availH - h) * 0.5f);
-			imgSize = ImVec2(w, h);
-		}
-	}
-
+// Convert world position to pixel coordinates relative to the Scene image (for editor gizmos, etc.)
+ImVec2 GraphicsEngine::WorldToScenePixel(const glm::vec2& world, const ImVec2& scenePos, const ImVec2& sceneSize) const {
 	glm::vec4 world4(world.x, world.y, 0.0f, 1.0f);
-	glm::vec4 clip = projection * view * world4;
-
+	const glm::vec4 clip = projection * view * world4;
 	if (clip.w == 0.0f) {
-		// Avoid division by zero; put it off-screen.
 		return ImVec2(-10000.0f, -10000.0f);
 	}
 
-	glm::vec3 ndc = glm::vec3(clip) / clip.w;
-
+	const glm::vec3 ndc = glm::vec3(clip) / clip.w;
 	const float u = (ndc.x * 0.5f) + 0.5f;
 	const float v = (-ndc.y * 0.5f) + 0.5f;
 
-	const float localX = u * imgSize.x;
-	const float localY = v * imgSize.y;
+	return ImVec2(
+		scenePos.x + (u * sceneSize.x),
+		scenePos.y + (v * sceneSize.y)
+	);
+}
 
-	return ImVec2(imgPos.x + localX, imgPos.y + localY);
+// Convert world position to screen coordinates relative to the Scene image (for editor gizmos, etc.)
+ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
+#ifdef _DEBUG
+	ImVec2 imgPos;
+	ImVec2 imgSize;
+	ComputeSceneImageRect(imgPos, imgSize);
+	return WorldToScenePixel(world, imgPos, imgSize);
 #else
 	// In release builds the editor UI is disabled; this is only used in Debug.
 	(void)world;
@@ -687,42 +741,27 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	projection = projectionMatrix;
 
 	// Draw background first
-	if (backgroundObject) {
-		glDisable(GL_DEPTH_TEST);
-		Shader* shader = backgroundObject->GetShader();
-		if (shader) {
-			shader->Use();
-			shader->SetModelMatrix(backgroundObject->GetModelMatrix());
-			shader->SetViewMatrix(viewMatrix);
-			shader->SetProjectionMatrix(projectionMatrix);
-		}
-		Texture* tex = backgroundObject->GetTexture();
-		if (tex) {
-			tex->Bind(0);
-			shader->SetTexture("u_Texture", 0);
-		}
-		Mesh* mesh = backgroundObject->GetMesh();
-		if (mesh) {
-			mesh->Draw();
-		}
-		glEnable(GL_DEPTH_TEST);
-	}
+	RenderBackground(viewMatrix, projectionMatrix);
 
 	// Draw shadows before sprites
 	DrawSpriteShadows(objects, viewMatrix, projectionMatrix);
 
-	// Render all scene objects
-	// Disable depth testing for 2D sprites so layering/order controls visibility
-	GLboolean depthWasEnabledSprites = glIsEnabled(GL_DEPTH_TEST);
-	if (depthWasEnabledSprites) {
-		glDisable(GL_DEPTH_TEST);
-	}
+	// Render all scene objects using a pass config tuned for alpha-blended sprites.
+	const ScopedRenderPassState spritePassState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = true
+		});
 
 	for (const auto* obj : objects) {
-		if (!obj) continue;
+		if (!obj) {
+			continue;
+		}
 
 		Shader* shader = obj->GetShader();
-		if (!shader) continue;
+		if (!shader) {
+			continue;
+		}
 
 		shader->Use();
 		shader->SetModelMatrix(obj->GetModelMatrix());
@@ -740,75 +779,24 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 
 		Mesh* mesh = obj->GetMesh();
 		if (mesh) {
-			// enable alpha blending for sprite draw
-			GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
-			if (!blendWasEnabled) {
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			}
-
 			mesh->Draw();
-
-			if (!blendWasEnabled) {
-				glDisable(GL_BLEND);
-			}
 		}
 
 		if (DebugRenderer::IsEnabled()) {
-			glDisable(GL_DEPTH_TEST);
+			const ScopedRenderPassState debugPassState({
+				.depthTestEnabled = false,
+				.depthWriteEnabled = true,
+				.blendingEnabled = true
+				});
 			obj->DrawBoundingBox(viewMatrix, projectionMatrix, glm::vec3{ 1.0f, 0.0f, 0.0f });
-			glEnable(GL_DEPTH_TEST);
 		}
 	}
 
 	// Draw transition overlay into the scene FBO before unbinding
 	DrawTransitionOverlay();
 
-	// Unbind scene FBO so default framebuffer can be used for final presentation
-	EndSceneRender();
-
-#ifdef _DEBUG
-	// Debug: render ImGui dockspace + scene image into ImGui window
-	DrawSceneDockWindow();
-	EndImGuiFrame();
-#else
-	// Release: present the scene FBO to the default framebuffer (GLFW window)
-	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-		// Source rect: the whole scene FBO
-		const int srcW = mSceneWidth;
-		const int srcH = mSceneHeight;
-
-		// Destination rect: SAME letterboxed region as Resize() + picking
-		const int dstX0 = viewportX_;
-		const int dstY0 = viewportY_;
-		const int dstX1 = viewportX_ + viewportW_;
-		const int dstY1 = viewportY_ + viewportH_;
-
-		// Optional: clear full window to black, so bars look nice
-		glViewport(0, 0, screenWidth, screenHeight);
-		glClearColor(0.f, 0.f, 0.f, 1.f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		// Blit the FBO into the letterboxed area
-		glBlitFramebuffer(
-			0, 0, srcW, srcH,
-			dstX0, dstY0, dstX1, dstY1,
-			GL_COLOR_BUFFER_BIT,
-			GL_LINEAR
-		);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
-#endif
-
-
-	GLenum error;
-	while ((error = glGetError()) != GL_NO_ERROR) {
-		std::cerr << "OpenGL error after draw call: " << error << std::endl;
-	}
+	EndSceneAndPresent();
+	LogOpenGLErrors("[GraphicsEngine] OpenGL error after draw call");
 }
 
 // Batched/instanced render path 
@@ -818,98 +806,63 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	renderStats.totalObjects = static_cast<int>(objects.size());
 
 	// Draw background first
-	if (backgroundObject) {
-		glDisable(GL_DEPTH_TEST);
-		Shader* shader = backgroundObject->GetShader();
-		if (shader) {
-			shader->Use();
-			shader->SetModelMatrix(backgroundObject->GetModelMatrix());
-			shader->SetViewMatrix(view);
-			shader->SetProjectionMatrix(projection);
-		}
-		Texture* tex = backgroundObject->GetTexture();
-		if (tex) {
-			tex->Bind(0);
-			shader->SetTexture("u_Texture", 0);
-		}
-		Mesh* mesh = backgroundObject->GetMesh();
-		if (mesh) {
-			mesh->Draw();
-		}
-		glEnable(GL_DEPTH_TEST);
-	}
+	RenderBackground(view, projection);
 
 	// Draw shadows before sprites 
 	DrawSpriteShadows(objects, view, projection);
 
-	// Disable depth testing for 2D sprites (batched)
-	GLboolean depthWasEnabledSprites = glIsEnabled(GL_DEPTH_TEST);
-	if (depthWasEnabledSprites) {
-		glDisable(GL_DEPTH_TEST);
-	}
-
-	// Helper to convert layer name to sort key (same as CollectRenderablePointers in SceneManager)
-	auto parseLayerNumber = [](const std::string& s) -> int {
-		if (s.empty()) {
-			return 1; // base layer
-		}
-
-		int result = 0;
-		for (char c : s) {
-			if (!std::isdigit(static_cast<unsigned char>(c))) {
-				// Any non-numeric layer name behaves like a very "high" layer
-				return 1000000;
-			}
-
-			result = result * 10 + (c - '0');
-		}
-
-		return result;
-	};
+	// Keep sprite batching in a pass with alpha blending and no depth testing.
+	const ScopedRenderPassState spriteBatchPassState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = true
+		});
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 #ifdef _DEBUG
 	// Get text objects and sort by layer for interleaved rendering
 	const auto& textObjects = LEPANELFONTS::GetTextObjects();
-	std::vector<const LEPANELFONTS::TextObjectData*> sortedTextObjects;
+	struct SortedTextEntry {
+		const LEPANELFONTS::TextObjectData* data;
+		int layer;
+	};
+	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-		sortedTextObjects.push_back(&data);
+		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
-		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
-			int la = parseLayerNumber(a->layer);
-		    int lb = parseLayerNumber(b->layer);
-			
+		[](const SortedTextEntry& a, const SortedTextEntry& b) {
 			// Lower layer number = rendered first (behind)
 			// Higher layer number = rendered later (on top)
-			if (la != lb) {
-				return la < lb;
+			if (a.layer != b.layer) {
+				return a.layer < b.layer;
 			}
-			
+
 			// Same layer: use depth first, then Y position for sorting
-			if (a->depth != b->depth) {
-				return a->depth < b->depth;
+			if (a.data->depth != b.data->depth) {
+				return a.data->depth < b.data->depth;
 			}
-			
-			return a->y < b->y;
+
+			return a.data->y < b.data->y;
 		});
 
 	size_t textIndex = 0; // Track which text objects have been rendered
 	int lastProcessedLayer = 0; // Track the last layer we finished processing
-	
+
 	// Lambda to render text objects up to and including a certain layer
 	auto renderTextUpToLayer = [&](int maxLayerNumber) {
 		while (textIndex < sortedTextObjects.size()) {
-			int textLayer = parseLayerNumber(sortedTextObjects[textIndex]->layer);
-			if (textLayer <= maxLayerNumber) {
-				RenderSingleTextObject(*sortedTextObjects[textIndex]);
+			if (sortedTextObjects[textIndex].layer <= maxLayerNumber) {
+				RenderSingleTextObject(*sortedTextObjects[textIndex].data);
 				++textIndex;
-			} else {
+			}
+			else {
 				break; // Text belongs to a higher layer, stop
 			}
 		}
-	};
+		};
 #endif
 
 	// Early out if no objects (but still render text)
@@ -917,78 +870,43 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 #ifdef _DEBUG
 		// Render all text objects
 		for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
-			RenderSingleTextObject(*sortedTextObjects[i]);
+			RenderSingleTextObject(*sortedTextObjects[i].data);
 		}
 #endif
 
 		// Draw transition overlay even if empty scene
 		DrawTransitionOverlay();
-
-		EndSceneRender();
-#ifdef _DEBUG
-		DrawSceneDockWindow();
-		EndImGuiFrame();
-#else
-		// Blit scene FBO to default framebuffer in Release (guarded)
-		if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-			const int srcW = mSceneWidth;
-			const int srcH = mSceneHeight;
-
-			const int dstX0 = viewportX_;
-			const int dstY0 = viewportY_;
-			const int dstX1 = viewportX_ + viewportW_;
-			const int dstY1 = viewportY_ + viewportH_;
-
-			glViewport(0, 0, screenWidth, screenHeight);
-			glClearColor(0.f, 0.f, 0.f, 1.f);
-			glClear(GL_COLOR_BUFFER_BIT);
-
-			glBlitFramebuffer(
-				0, 0, srcW, srcH,
-				dstX0, dstY0, dstX1, dstY1,
-				GL_COLOR_BUFFER_BIT,
-				GL_LINEAR
-			);
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		}
-#endif
-
+		EndSceneAndPresent();
 		return;
 	}
 
 	// Prefetch possible instanced shaders + animated shader pointer
 	Shader* staticsInstShader = resourceManager.GetShader("staticsprite_instanced");
 	Shader* animatedInstShader = resourceManager.GetShader("animatedsprite_instanced");
+	Shader* staticShader = resourceManager.GetShader("staticsprite");
 	Shader* animShader = resourceManager.GetShader("animatedsprite");
 
 	// Build contiguous runs keyed by (mesh, shader, texture) - preserves layering order
 	std::vector<Mesh::InstanceData> instanceBatch;
+	instanceBatch.reserve(objects.size());
 	RenderKey currentKey{ nullptr, nullptr, nullptr };
 
 	auto flushBatch = [&](const std::vector<Mesh::InstanceData>& batch, const RenderKey& key) {
-		if (batch.empty() || !key.mesh || !key.shader) return;
+		if (batch.empty() || !key.mesh || !key.shader) {
+			return;
+		}
 
 		bool wantsInstancing = batch.size() >= INSTANCING_THRESHOLD;
 
 		// Instanced shaders do not carry per-instance tint yet -> fall back when needed
-		bool needsPerInstanceTint = false;
-		for (const auto& inst : batch) {
-			if (inst.colorTint.x != 1.0f || inst.colorTint.y != 1.0f ||
-				inst.colorTint.z != 1.0f || inst.colorTint.w < 0.999f) {
-				needsPerInstanceTint = true;
-				break;
-			}
-		}
+		const bool needsPerInstanceTint = NeedsPerInstanceTintFallback(batch);
 
 		// Map the original shader -> preferred instanced shader 
 		Shader* preferredInstanced = nullptr;
-		if (key.shader == resourceManager.GetShader("staticsprite")) {
+		if (key.shader == staticShader) {
 			preferredInstanced = staticsInstShader;
-		} else if (key.shader == animShader) {
+		}
+		else if (key.shader == animShader) {
 			preferredInstanced = animatedInstShader;
 		}
 
@@ -1000,12 +918,16 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			preferredInstanced->Use();
 			preferredInstanced->SetViewMatrix(view);
 			preferredInstanced->SetProjectionMatrix(projection);
-			if (key.texture) { key.texture->Bind(0); preferredInstanced->SetTexture("u_Texture", 0); }
+			if (key.texture) {
+				key.texture->Bind(0); preferredInstanced->SetTexture("u_Texture", 0);
+			}
+
 			key.mesh->DrawInstanced(key.texture, static_cast<GLsizei>(batch.size()));
 			renderStats.drawCalls++;
 			renderStats.totalBatches++;
 			renderStats.instancedObjects += static_cast<int>(batch.size());
-		} else {
+		}
+		else {
 			// existing non-instanced fallback, but keep tint+blending enabled
 			key.shader->Use();
 			key.shader->SetViewMatrix(view);
@@ -1014,13 +936,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			if (key.texture) {
 				key.texture->Bind(0);
 				key.shader->SetTexture("u_Texture", 0);
-			}
-
-			// Enable alpha blending for sprite draws
-			GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
-			if (!blendWasEnabled) {
-				glEnable(GL_BLEND);
-				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			}
 
 			for (const auto& inst : batch) {
@@ -1037,19 +952,23 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 				renderStats.drawCalls++;
 			}
 
-			if (!blendWasEnabled) {
-				glDisable(GL_BLEND);
-			}
-
 			renderStats.totalBatches++;
 		}
-	};
+		};
 
 	// Build runs in order, interleaving text objects at layer boundaries
-	for (size_t objIdx = 0; objIdx < objects.size(); ++objIdx) {
-		auto* obj = objects[objIdx];
-		if (!obj || !obj->GetMesh() || !obj->GetShader()) continue;
+	for (auto* obj : objects) {
+		if (!obj) {
+			continue;
+		}
 
+		Mesh* mesh = obj->GetMesh();
+		Shader* shader = obj->GetShader();
+		if (!mesh || !shader) {
+			continue;
+		}
+
+		Texture* texture = obj->GetTexture();
 		int objLayer = obj->GetRenderLayer();
 #ifndef _DEBUG
 		(void)objLayer;
@@ -1064,29 +983,29 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 				flushBatch(instanceBatch, currentKey);
 				instanceBatch.clear();
 			}
-			
+
 			// Render text objects up to and including the previous layer
 			renderTextUpToLayer(objLayer - 1);
 			lastProcessedLayer = objLayer;
 		}
 #endif
 
-		RenderKey key{ obj->GetMesh(), obj->GetShader(), obj->GetTexture() };
+		RenderKey key{ mesh, shader, texture };
 
 		// Flush when render key changes
 		if (key != currentKey && !instanceBatch.empty()) {
 			flushBatch(instanceBatch, currentKey);
 			instanceBatch.clear();
 		}
-		
+
 		currentKey = key;
 
-		Mesh::InstanceData inst;
-		inst.modelMatrix = obj->GetModelMatrix();
 		// Always store per-object UV rect in instance data (instanced shader will use it, fallback uses uniforms)
+		instanceBatch.emplace_back();
+		auto& inst = instanceBatch.back();
+		inst.modelMatrix = obj->GetModelMatrix();
 		inst.uvOffsetScale = obj->GetUVRect();
 		inst.colorTint = obj->GetColorTint();
-		instanceBatch.push_back(inst);
 	}
 
 	// Flush remaining batch
@@ -1095,74 +1014,36 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		instanceBatch.clear();
 	}
 
-	// Restore depth state after sprites
-	if (depthWasEnabledSprites) {
-		glEnable(GL_DEPTH_TEST);
-	}
-
 #ifdef _DEBUG
 	// Render remaining text objects (those in layers >= the last game object layer)
 	while (textIndex < sortedTextObjects.size()) {
-		RenderSingleTextObject(*sortedTextObjects[textIndex]);
+		RenderSingleTextObject(*sortedTextObjects[textIndex].data);
 		++textIndex;
 	}
 #endif
 
 	// Debug bounding boxes render
 	if (DebugRenderer::IsEnabled()) {
-		glDisable(GL_DEPTH_TEST);
+		const ScopedRenderPassState debugPassState({
+			.depthTestEnabled = false,
+			.depthWriteEnabled = true,
+			.blendingEnabled = true
+			});
 		for (const auto* obj : objects) {
 			if (obj) {
 				obj->DrawBoundingBox(view, projection, glm::vec3{ 1.0f, 0.0f, 0.0f });
 			}
 		}
+
 		DebugRenderer::Flush(view, projection);
-		glEnable(GL_DEPTH_TEST);
 	}
 
 	// Draw transition overlay on top of everything in the scene FBO
 	DrawTransitionOverlay();
 
 	// End-of-frame UI and finalization
-	EndSceneRender();
-#ifdef _DEBUG
-	DrawSceneDockWindow();
-	EndImGuiFrame();
-#else
-	// Blit to default framebuffer (guarded) in Release
-	if (mSceneFBO != 0 && mSceneColor != 0 && screenWidth > 0 && screenHeight > 0) {
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-		const int srcW = mSceneWidth;
-		const int srcH = mSceneHeight;
-
-		const int dstX0 = viewportX_;
-		const int dstY0 = viewportY_;
-		const int dstX1 = viewportX_ + viewportW_;
-		const int dstY1 = viewportY_ + viewportH_;
-
-		glViewport(0, 0, screenWidth, screenHeight);
-		glClearColor(0.f, 0.f, 0.f, 1.f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		glBlitFramebuffer(
-			0, 0, srcW, srcH,
-			dstX0, dstY0, dstX1, dstY1,
-			GL_COLOR_BUFFER_BIT,
-			GL_LINEAR
-		);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
-#endif
-
-
-	// OpenGL error check loop
-	GLenum error;
-	while ((error = glGetError()) != GL_NO_ERROR) {
-		std::cerr << "[GraphicsEngine] OpenGL error in batched rendering: " << error << std::endl;
-	}
+	EndSceneAndPresent();
+	LogOpenGLErrors("[GraphicsEngine] OpenGL error in batched rendering");
 }
 
 // Render a single text object (for layered rendering)
@@ -1173,9 +1054,11 @@ void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& 
 		return;
 	}
 
-	// Save current GL state that text rendering might modify
-	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
-	GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
+	const ScopedRenderPassState textPassState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = true
+		});
 
 	// Create a temporary Text object for rendering
 	FontSystem::Text textRenderer;
@@ -1185,26 +1068,12 @@ void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& 
 	textRenderer.SetScale(data.scale);
 	textRenderer.SetRotation(data.rotation);
 	textRenderer.SetRotationMode(data.useBlockRotation ?
-								 FontSystem::Text::RotationMode::Block :
-								 FontSystem::Text::RotationMode::PerCharacter);
+		FontSystem::Text::RotationMode::Block :
+		FontSystem::Text::RotationMode::PerCharacter);
 	textRenderer.SetColor(glm::vec4(data.colorR, data.colorG, data.colorB, data.colorA));
 
 	// Render using TextRenderer singleton
 	FontSystem::TextRenderer::Instance().RenderText(textRenderer, projection);
-
-	// Restore GL state for subsequent sprite rendering
-	if (depthWasEnabled) {
-		glEnable(GL_DEPTH_TEST);
-	} else {
-		glDisable(GL_DEPTH_TEST);
-	}
-	
-	if (blendWasEnabled) {
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	} else {
-		glDisable(GL_BLEND);
-	}
 }
 
 // Render text objects
@@ -1217,49 +1086,31 @@ void GraphicsEngine::RenderTextObjects() {
 		return;
 	}
 
-	// Helper to convert layer name to sort key (same as CollectRenderablePointers)
-	auto parseLayerNumber = [](const std::string& s) -> int {
-		if (s.empty()) {
-			return 1; // base layer
-		}
-
-		int result = 0;
-		for (char c : s) {
-			if (!std::isdigit(static_cast<unsigned char>(c))) {
-				// Any non-numeric layer name behaves like a very "high" layer
-				return 1000000;
-			}
-
-			result = result * 10 + (c - '0');
-		}
-
-		return result;
-	};
-
 	// Sort text objects by layer (lower layer numbers render first/behind)
-	std::vector<const LEPANELFONTS::TextObjectData*> sortedTextObjects;
+	struct SortedTextEntry {
+		const LEPANELFONTS::TextObjectData* data;
+		int layer;
+	};
+	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-		sortedTextObjects.push_back(&data);
+		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
-		[&](const LEPANELFONTS::TextObjectData* a, const LEPANELFONTS::TextObjectData* b) {
-			int la = parseLayerNumber(a->layer);
-			int lb = parseLayerNumber(b->layer);
-			
+		[](const SortedTextEntry& a, const SortedTextEntry& b) {
 			// Higher layer number = rendered on top (later in draw order)
-			if (la != lb) {
-				return la < lb;
+			if (a.layer != b.layer) {
+				return a.layer < b.layer;
 			}
-			
+
 			// Same layer: use Y position for depth sorting
-			return a->y < b->y;
+			return a.data->y < b.data->y;
 		});
 
 	// Create Text renderers on demand and render
-	for (const auto* data : sortedTextObjects) {
-		RenderSingleTextObject(*data);
+	for (const auto& entry : sortedTextObjects) {
+		RenderSingleTextObject(*entry.data);
 	}
 #else
 	// In release build, text will be rendered from game state
@@ -1275,12 +1126,11 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 		return;
 	}
 
-	// Disable depth to avoid writing/occluding sprite depth. Keep alpha blending.
-	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
-	glDisable(GL_DEPTH_TEST);
-	GLboolean depthMask;
-	glGetBooleanv(GL_DEPTH_WRITEMASK, &depthMask);
-	glDepthMask(GL_FALSE);
+	const ScopedRenderPassState passState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = false,
+		.blendingEnabled = true
+		});
 
 	GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
 	if (!blendWasEnabled) {
@@ -1293,7 +1143,9 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 	shadowShader->SetProjectionMatrix(projectionMatrix);
 
 	for (const GameObject* obj : objects) {
-		if (!obj || !obj->HasShadow()) continue;
+		if (!obj || !obj->HasShadow()) {
+			continue;
+		}
 
 		const glm::vec3 pos = obj->GetPositionGLM();
 		const glm::vec2 size = obj->GetShadowSize();
@@ -1313,19 +1165,9 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 
 		quad->Draw();
 	}
-
-	// Restore depth state
-	glDepthMask(depthMask);
-	if (depthWasEnabled) {
-		glEnable(GL_DEPTH_TEST);
-	}
-
-	if (!blendWasEnabled) {
-		glDisable(GL_BLEND);
-	}
 }
 
-// Free resources and shutdown ImGui
+// Clean up resources and ImGui context
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
 	DebugRenderer::Shutdown();
@@ -1352,6 +1194,7 @@ void GraphicsEngine::StartSceneTransition(float fadeOutSeconds, float fadeInSeco
 	if (transitionPhase_ != TransitionPhase::None) {
 		return; // already running
 	}
+
 	fadeOutTime_ = (fadeOutSeconds <= 0.0f) ? 0.001f : fadeOutSeconds;
 	fadeInTime_ = (fadeInSeconds <= 0.0f) ? 0.001f : fadeInSeconds;
 	transitionPhase_ = TransitionPhase::FadeOut;
@@ -1359,14 +1202,17 @@ void GraphicsEngine::StartSceneTransition(float fadeOutSeconds, float fadeInSeco
 	transitionAlpha_ = 0.0f;
 }
 
+// Returns true if a transition is in progress (either fading out, hold/blackout, or fading in)
 bool GraphicsEngine::IsTransitionActive() const {
 	return transitionPhase_ != TransitionPhase::None;
 }
 
+// Returns true if currently in the hold/blackout phase (after fade-out completed, before fade-in starts)
 bool GraphicsEngine::IsAtBlackout() const {
 	return transitionPhase_ == TransitionPhase::Hold;
 }
 
+// Called by external code (e.g. SceneManager) when ready to start fade-in after scene switch
 void GraphicsEngine::ContinueTransitionFadeIn() {
 	if (transitionPhase_ == TransitionPhase::Hold) {
 		transitionPhase_ = TransitionPhase::FadeIn;
@@ -1375,38 +1221,44 @@ void GraphicsEngine::ContinueTransitionFadeIn() {
 	}
 }
 
+// Update transition state; should be called every frame with delta time
 void GraphicsEngine::UpdateTransition(float dt) {
 	switch (transitionPhase_) {
-		case TransitionPhase::None:
-			transitionAlpha_ = 0.0f;
-			break;
-		case TransitionPhase::FadeOut: {
-			transitionTimer_ += dt;
-			float t = (fadeOutTime_ > 0.0f) ? (transitionTimer_ / fadeOutTime_) : 1.0f;
-			if (t >= 1.0f) {
-				t = 1.0f;
-				transitionPhase_ = TransitionPhase::Hold; // wait for external scene switch
-				transitionTimer_ = 0.0f;
-			}
-			transitionAlpha_ = t; // 0 -> 1
-			break;
+	case TransitionPhase::None:
+		transitionAlpha_ = 0.0f;
+		break;
+	case TransitionPhase::FadeOut:
+	{
+		transitionTimer_ += dt;
+		float t = (fadeOutTime_ > 0.0f) ? (transitionTimer_ / fadeOutTime_) : 1.0f;
+		if (t >= 1.0f) {
+			t = 1.0f;
+			transitionPhase_ = TransitionPhase::Hold; // wait for external scene switch
+			transitionTimer_ = 0.0f;
 		}
-		case TransitionPhase::Hold:
-			transitionAlpha_ = 1.0f;
-			break;
-		case TransitionPhase::FadeIn: {
-			transitionTimer_ += dt;
-			float t = (fadeInTime_ > 0.0f) ? (transitionTimer_ / fadeInTime_) : 1.0f;
-			if (t >= 1.0f) {
-				t = 1.0f;
-				transitionPhase_ = TransitionPhase::None;
-			}
-			transitionAlpha_ = 1.0f - t; // 1 -> 0
-			break;
+
+		transitionAlpha_ = t; // 0 -> 1
+		break;
+	}
+	case TransitionPhase::Hold:
+		transitionAlpha_ = 1.0f;
+		break;
+	case TransitionPhase::FadeIn:
+	{
+		transitionTimer_ += dt;
+		float t = (fadeInTime_ > 0.0f) ? (transitionTimer_ / fadeInTime_) : 1.0f;
+		if (t >= 1.0f) {
+			t = 1.0f;
+			transitionPhase_ = TransitionPhase::None;
 		}
+
+		transitionAlpha_ = 1.0f - t; // 1 -> 0
+		break;
+	}
 	}
 }
 
+// Draw a fullscreen black quad with alpha based on current transition state, on top of the scene FBO
 void GraphicsEngine::DrawTransitionOverlay() {
 	if (transitionPhase_ == TransitionPhase::None || transitionAlpha_ <= 0.0f) {
 		return;
@@ -1423,14 +1275,11 @@ void GraphicsEngine::DrawTransitionOverlay() {
 	model = glm::translate(model, glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
 	model = glm::scale(model, glm::vec3(static_cast<float>(kRefW), static_cast<float>(kRefH), 1.0f));
 
-	// Render a black overlay with alpha
-	GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
-	glDisable(GL_DEPTH_TEST);
-	GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
-	if (!blendWasEnabled) {
-		glEnable(GL_BLEND);
-	}
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	const ScopedRenderPassState passState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = true
+		});
 
 	fadeShader->Use();
 	fadeShader->SetModelMatrix(model);
@@ -1439,14 +1288,4 @@ void GraphicsEngine::DrawTransitionOverlay() {
 	fadeShader->SetColorTint(glm::vec4(0.0f, 0.0f, 0.0f, transitionAlpha_));
 
 	fsq->Draw();
-
-	// Restore state
-	if (!blendWasEnabled) {
-		glDisable(GL_BLEND);
-	}
-	if (depthWasEnabled) {
-		glEnable(GL_DEPTH_TEST);
-	}
 }
-
-

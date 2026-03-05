@@ -16,11 +16,6 @@
 
 #pragma once
 
-#include <cmath>
-#include <glm/glm.hpp>
-#include <glm/gtc/constants.hpp>
-#include <iostream>
-
 #include "../Graphics/EntityManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
 
@@ -28,6 +23,11 @@
 #include "Math.hpp"
 #include "MovementManager.hpp"
 #include "PhysicsManager.hpp"
+
+#include <cmath>
+#include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
+#include <iostream>
 
  /**
   * @class PlayerController
@@ -40,13 +40,13 @@ public:
 
 	// Main per - frame input handler for the player.
 	void HandleInput(float deltaTime,
-					 InputManager& inputManager,
-					 EntityManager& entityManager,
-					 MovementManager& movementManager,
-					 PhysicsManager& physicsManager,
-					 GraphicsEngine& graphicsEngine,
-					 int playerID,
-					 bool useForces);
+		InputManager& inputManager,
+		EntityManager& entityManager,
+		MovementManager& movementManager,
+		PhysicsManager& physicsManager,
+		GraphicsEngine& graphicsEngine,
+		int playerID,
+		bool useForces);
 
 	float GetRotation() const {
 		return rotation_;
@@ -59,11 +59,17 @@ public:
 		GraphicsEngine& graphicsEngine);
 
 	// Movement axis from WASD (-1..1 per axis). Same semantics as your old code.
-	glm::vec2 GetMoveAxis() const { return moveAxis_; }
+	glm::vec2 GetMoveAxis() const {
+		return moveAxis_;
+	}
 
 	// Click-to-move snapshot (LMB). Valid only for the frame where the click happened.
-	bool IsClickToMoveJustPressed() const { return clickToMoveJustPressed_ && clickWorldValid_; }
-	glm::vec2 GetClickWorld() const { return clickWorld_; }
+	bool IsClickToMoveJustPressed() const {
+		return clickToMoveJustPressed_ && clickWorldValid_;
+	}
+	glm::vec2 GetClickWorld() const {
+		return clickWorld_;
+	}
 
 private:
 	// Handles up/down key scaling with clamped bounds.
@@ -74,12 +80,12 @@ private:
 
 	// Handles left - click to set a new target(forces or kinematic).
 	void HandleClickToMove(InputManager& inputManager,
-						   EntityManager& entityManager,
-						   MovementManager& movementManager,
-						   PhysicsManager& physicsManager,
-						   GraphicsEngine& graphicsEngine,
-						   int playerID,
-						   bool useForces);
+		EntityManager& entityManager,
+		MovementManager& movementManager,
+		PhysicsManager& physicsManager,
+		GraphicsEngine& graphicsEngine,
+		int playerID,
+		bool useForces);
 
 	// Update player sprite texture based on movement direction
 	void UpdateSpriteDirection(const glm::vec2& direction, GameObject* sprite);

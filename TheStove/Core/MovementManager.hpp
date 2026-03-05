@@ -16,10 +16,6 @@
 
 #pragma once
 
-#include <glm/glm.hpp>
-#include <unordered_map>
-#include <vector>
-
 #include "../Graphics/EntityManager.hpp"
 
 #include "Collision.hpp"
@@ -27,6 +23,10 @@
 #include "Math.hpp"
 #include "NpcSystem.hpp"
 #include "System.hpp"
+
+#include <glm/glm.hpp>
+#include <unordered_map>
+#include <vector>
 
  /**
   * @class MovementManager

@@ -9,13 +9,13 @@
 					SimpleNpcLogic "customers" with CustomerTableLogic tables and assigns them
 					seat targets once per scene.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 #pragma once
 
-#include "TableLogic.hpp"
 #include "IngredientLogic.hpp"
+#include "TableLogic.hpp"
 
  // WorkTableLogic
  //  - Base class for any table that processes ingredients.
@@ -26,11 +26,12 @@
  // Example future specializations:
  //   class CuttingBoardLogic : public WorkTableLogic { ... }
  //   class FryingPanLogic   : public WorkTableLogic { ... }
-class WorkTableLogic : public TableLogic
-{
+class WorkTableLogic : public TableLogic {
 public:
+	// Constructor takes ownerID and passes to base TableLogic.
 	explicit WorkTableLogic(int ownerID);
 
+	// Called once when the scene starts (after Awake). Default implementation does nothing.
 	void Start(Scene& scene) override;
 
 	// Called every frame by the logic system.
@@ -70,9 +71,11 @@ protected:
 		Stove,        // shroom
 		Generic
 	};
-
+	
+	// You can set this in the constructor of derived classes to customize behavior based on station type.
 	StationType stationType_ = StationType::Generic;
 
+	//Helper to determine station type based on texture path (if you want to auto-assign based on visuals).
 	StationType DetectStationTypeFromTexture(const std::string& texPath) const;
 	const char* GetProcessedTextureForRaw(IngredientType rawType) const;
 	const char* GetProcessingSoundName() const;
@@ -95,6 +98,7 @@ protected:
 	// when the timer finishes and they have direct access to the ingredient logic.
 	void CompleteProcessingForIngredient(IngredientLogic& ingredient);
 
+	// Internal state for processing timer.
 	bool  isProcessing_ = false;
 	float processingTime_ = 3.0f;  // seconds needed to process an ingredient
 	float timer_ = 0.0f;

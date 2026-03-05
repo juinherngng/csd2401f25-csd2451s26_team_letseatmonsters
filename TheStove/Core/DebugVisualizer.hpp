@@ -16,13 +16,13 @@
 
 #pragma once
 
-#include <vector>
-
 #include "../Graphics/DebugRenderer.hpp"
 #include "../Graphics/EntityManager.hpp"
 
 #include "CollisionManager.hpp"
 #include "MovementManager.hpp"
+
+#include <vector>
 
 /**
  * @class DebugVisualizer
@@ -34,13 +34,13 @@ public:
 
 	// Entry point to render all debug overlays for the current frame.
 	static void DrawDebugInfo(EntityManager& entityManager,
-							  CollisionManager& collisionManager,
-							  MovementManager& movementManager,
-							  int playerId,
-							  bool showAuxiliary);
+		CollisionManager& collisionManager,
+		MovementManager& movementManager,
+		int playerId,
+		bool showAuxiliary);
 
 	// Draws AABBs for every object that has a valid collider size.
-	static void DrawAllColliders(const std::vector<GameObject*>& objects);
+	static void DrawAllColliders(const std::vector<std::unique_ptr<GameObject>>& objects);
 
 	// Draws player-specific helpers (path line and collider corners/center).
 	static void DrawPlayerDebug(GameObject* player, MovementManager& movementManager, int playerID);

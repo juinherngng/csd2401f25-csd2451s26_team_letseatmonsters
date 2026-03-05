@@ -5,9 +5,9 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
  DESCRIPTION:		Declares the Animator2D helper class, which manages simple 2D sprite animations using a list
-    				of UV frames. The animator advances frames over time based on a configurable frame duration,
-    				supports looping or one-shot playback, and exposes the current frame’s UV rectangle for use
-    				by the renderer.
+					of UV frames. The animator advances frames over time based on a configurable frame duration,
+					supports looping or one-shot playback, and exposes the current frame’s UV rectangle for use
+					by the renderer.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -25,9 +25,9 @@ public:
 	}
 
 	// Configure the animation sequence
-    // frames: list of UV rects (x, y, w, h) in texture space
-    // frameDuration: time (seconds) per frame
-    // loop: if true, animation restarts after the last frame; otherwise freezes on the last frame
+	// frames: list of UV rects (x, y, w, h) in texture space
+	// frameDuration: time (seconds) per frame
+	// loop: if true, animation restarts after the last frame; otherwise freezes on the last frame
 	void SetFrames(const std::vector<glm::vec4>& frames, float frameDuration, bool loop = true) {
 		m_Frames = frames;
 		m_FrameDuration = frameDuration;
@@ -41,12 +41,12 @@ public:
 		m_Playing = true;
 	}
 
-	 // Temporarily stop advancing frames (keeps current frame)
+	// Temporarily stop advancing frames (keeps current frame)
 	void Pause() {
 		m_Playing = false;
 	}
 
-	 // Stop playback and rewind to the first frame
+	// Stop playback and rewind to the first frame
 	void Stop() {
 		m_Playing = false;
 		Reset();
@@ -88,7 +88,7 @@ public:
 	}
 
 	// Get the UV rect for the current frame
-    // Returns full texture (0,0,1,1) if no frames are configured
+	// Returns full texture (0,0,1,1) if no frames are configured
 	glm::vec4 GetCurrentFrameUV() const {
 		if (m_Frames.empty()) return glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 		return m_Frames[m_CurrentFrame];

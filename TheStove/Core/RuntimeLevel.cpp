@@ -12,31 +12,35 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <iostream>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include "../Graphics/SceneManager.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/ResourceManager.hpp"
-#include "../Core/LevelEditorPanelFonts.hpp"
+#include "../Graphics/SceneManager.hpp"
 
 #include "LevelSerializer.hpp"
 #include "RuntimeLevel.hpp"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <chrono>
+#include <iostream>
+#include <unordered_set>
+#include <vector>
+
 namespace RuntimeLevel {
 	void BuildSceneFromLevel(const LevelData& levelIn, Scene& scene) {
+		static const std::string kDefaultLayer = "1";
+		static const std::vector<glm::vec4> kFullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
-			std::string layerName = obj.layer.empty() ? "1" : obj.layer;
+			const std::string& layerName = obj.layer.empty() ? kDefaultLayer : obj.layer;
 
 			if (obj.animated) {
-				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 				g = scene.SpawnAnimatedSprite(
 					obj.texture,
 					{ obj.x, obj.y, 0.0f },
 					{ obj.w, obj.h },
-					fullFrame,
+					kFullFrame,
 					0.25f, // initial frame duration; real duration comes from SetFrames
 					true,
 					layerName
@@ -59,7 +63,8 @@ namespace RuntimeLevel {
 					scene.AttachDinoAnimations(g->GetID());
 					scene.SetAnimation(g->GetID(), obj.animName.empty() ? "IDLE" : obj.animName);
 				}
-			} else {
+			}
+			else {
 				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
 				if (!g) {
 					std::cerr << "[RuntimeLevel] Spawn failed: " << obj.texture << std::endl;
@@ -81,7 +86,8 @@ namespace RuntimeLevel {
 					g->SetColliderSize({ s.x, s.y });
 					g->SetColliderOffset({ 0.f, 0.f });
 				}
-			} else {
+			}
+			else {
 				// Explicitly clear collider when disabled
 				g->SetColliderSize({ 0.f, 0.f });
 				g->SetColliderOffset({ 0.f, 0.f });
@@ -152,6 +158,7 @@ namespace RuntimeLevel {
 	}
 
 	bool LoadAndBuild(const std::string& path, Scene& scene) {
+		const auto loadStart = std::chrono::steady_clock::now();
 		LevelData data{};
 		if (!LevelSerializer::Load(path, data)) {
 			std::cerr << "[RuntimeLevel] Failed to load level JSON: " << path << std::endl;
@@ -166,6 +173,25 @@ namespace RuntimeLevel {
 			scene.SetSceneBackground(data.background);
 		}
 
+		// Decode image files in parallel before spawning objects to reduce load stutter.
+		std::vector<std::string> texturesToPreload;
+		texturesToPreload.reserve(data.objects.size());
+		std::unordered_set<std::string> seenTexturePaths;
+		seenTexturePaths.reserve(data.objects.size());
+		for (const auto& obj : data.objects) {
+			if (obj.texture.empty()) {
+				continue;
+			}
+			if (seenTexturePaths.insert(obj.texture).second) {
+				texturesToPreload.push_back(obj.texture);
+			}
+		}
+
+		const auto preloadStart = std::chrono::steady_clock::now();
+		ResourceManager::Instance().PreloadTextures(texturesToPreload);
+		const double preloadMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - preloadStart).count();
+
+		const auto buildStart = std::chrono::steady_clock::now();
 		BuildSceneFromLevel(data, scene);
 		scene.RebuildColliders();
 
@@ -173,7 +199,7 @@ namespace RuntimeLevel {
 		parsedTexts.reserve(data.textObjects.size());
 
 		for (const auto& t : data.textObjects) {
-			LEPANELFONTS::TextObjectData d;
+			auto& d = parsedTexts.emplace_back();
 			d.name = t.name;
 			d.fontName = t.fontName;
 			d.text = t.text;
@@ -191,13 +217,16 @@ namespace RuntimeLevel {
 			d.colorA = t.colorA;
 
 			d.layer = t.layer;
-
-			parsedTexts.push_back(std::move(d));
-	}
+		}
 
 		LEPANELFONTS::SetTextObjectsWithScene(parsedTexts, scene);
 
-
+#ifndef NDEBUG
+		const double buildMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - buildStart).count();
+		const double totalMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - loadStart).count();
+		std::cout << "[RuntimeLevel] LoadAndBuild '" << path << "': textures=" << texturesToPreload.size()
+			<< ", preload=" << preloadMs << " ms, build=" << buildMs << " ms, total=" << totalMs << " ms" << std::endl;
+#endif
 
 #if 0
 		// Create text for menu buttons if this is a menu level

@@ -13,11 +13,11 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "SceneManager.hpp"
+
 #include <imgui.h>
 #include <iostream>
 #include <random>
-
-#include "SceneManager.hpp"
 
  // Stress test generator
 void Scene::GenerateStressTest(int objectCount) {
@@ -84,11 +84,11 @@ void Scene::UpdateAnimationControls() {
 		return;
 	}
 
-	const std::string anim = k1?"IDLE":(k2?"WALK":"ATTACK");
+	const std::string anim = k1 ? "IDLE" : (k2 ? "WALK" : "ATTACK");
 
 	// Make these known dino IDs use the chosen animation (skip missing objects)
 	const int dinoIDs[] = { 1, 2, 3 };
-	for (int id:dinoIDs) {
+	for (int id : dinoIDs) {
 		GameObject* obj = GetGameObjectByID(id);
 		if (!obj) {
 			continue;

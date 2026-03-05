@@ -13,12 +13,11 @@
 					- Context menu: soft delete (move to "trash")
 					- Audio catalog management with inline editing
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
 #include "LevelEditorPanelAssets.hpp"
-
 #include "LevelEditor.hpp"
 #include "LevelEditorFileIO.hpp"
 #include "AudioLoading.hpp"
@@ -30,11 +29,6 @@
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
-
-#include "AudioLoading.hpp"
-#include "LevelEditor.hpp"
-#include "LevelEditorFileIO.hpp"
-#include "LevelEditorPanelAssets.hpp"
 
 #ifdef _DEBUG
 #include <imgui.h>
@@ -75,7 +69,7 @@ namespace {
 		// Convert to lowercase for comparison
 		std::string lowerName = name;
 		std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
-					   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
 		// Check for common prefixes
 		if (lowerName.find("ui_") == 0) return "ui";
@@ -104,29 +98,14 @@ namespace LEPANELASSETS {
 
 		ImGui::BeginChild("##AssetsBox", ImVec2(0, 0), true);
 
-	// Helper to gather audio from both ../../assets and ../../assets/Audio (SOURCE directory)
+		// Gather audio recursively from the assets source directory.
 		auto BuildAudioList = []() {
-			std::vector<std::string> all;
+			return ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".wav", ".mp3" }, true);
+			};
 
-			{
-				auto root = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".wav", ".mp3" });
-				all.insert(all.end(), root.begin(), root.end());
-			}
-			{
-				auto sub = ListAssetsWithExt(FilePaths::Dirs::AUDIO_EDITOR, { ".wav", ".mp3" });
-				all.insert(all.end(), sub.begin(), sub.end());
-			}
-
-			// Sort + dedupe for stable ordering
-			std::sort(all.begin(), all.end());
-			all.erase(std::unique(all.begin(), all.end()), all.end());
-
-			return all;
-		};
-
-	// Static caches for file lists (refresh when importing or on demand)
+		// Static caches for file lists (refresh when importing or on demand)
 		static std::vector<std::string> sTextures =
-			ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" });
+			ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
 
 		// Audio (.wav, .mp3) across assets + assets/Audio
 		static std::vector<std::string> sAudio = BuildAudioList();
@@ -148,13 +127,13 @@ namespace LEPANELASSETS {
 				OpenFileDialog("PNG files\0*.png\0All files\0*.*\0");
 
 			if (!pickedPath.empty()) {
-			// Import to SOURCE directory (../../assets from build/Release)
+				// Import to SOURCE directory (../../assets from build/Release)
 				const std::string projectPath =
 					CopyFileIntoProjectUnique(pickedPath, FilePaths::Dirs::ASSETS_EDITOR);
 
 				if (!projectPath.empty()) {
-				// Refresh list after copy
-					sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" });
+					// Refresh list after copy
+					sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
 
 					// Auto-apply to currently selected object unless Ctrl is held
 					ImGuiIO& io = ImGui::GetIO();
@@ -206,7 +185,7 @@ namespace LEPANELASSETS {
 				}
 
 				std::transform(ext.begin(), ext.end(), ext.begin(),
-							   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+					[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
 				// Support both .wav and .mp3 formats
 				if (ext != ".wav" && ext != ".mp3") {
@@ -216,7 +195,7 @@ namespace LEPANELASSETS {
 					sAudioErrorPending = true;
 				}
 				else {
-				// Use ../../assets/Audio to go from build/Release up to project root, then into source assets
+					// Use ../../assets/Audio to go from build/Release up to project root, then into source assets
 					const std::string targetDir = FilePaths::Dirs::AUDIO_EDITOR;
 					std::cout << "[Assets Panel] Copying to: " << targetDir << std::endl;
 
@@ -275,7 +254,7 @@ namespace LEPANELASSETS {
 									newAsset.stream
 								);
 
-							// Save catalog to SOURCE directory (../../assets from build/Release)
+								// Save catalog to SOURCE directory (../../assets from build/Release)
 								const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
 								if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
 									std::cout << "[Assets Panel] Catalog auto-saved to: " << catalogPath << std::endl;
@@ -335,8 +314,8 @@ namespace LEPANELASSETS {
 
 		// Textures section
 		if (ImGui::CollapsingHeader("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
-		if (ImGui::Button("Refresh##tex")) {
-				sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" });
+			if (ImGui::Button("Refresh##tex")) {
+				sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
 			}
 
 			bool refreshTextures = false;
@@ -364,9 +343,9 @@ namespace LEPANELASSETS {
 
 					// Draw the thumbnail (UVs flipped vertically for OpenGL)
 					ImGui::Image(texID,
-								 ImVec2(iconSize, iconSize),
-								 ImVec2(0, 1),
-								 ImVec2(1, 0));
+						ImVec2(iconSize, iconSize),
+						ImVec2(0, 1),
+						ImVec2(1, 0));
 
 					ImGui::SameLine();
 				}
@@ -424,8 +403,8 @@ namespace LEPANELASSETS {
 				ImGui::PopID();
 			}
 
-		if (refreshTextures) {
-				sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" });
+			if (refreshTextures) {
+				sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
 			}
 		}
 
@@ -439,7 +418,7 @@ namespace LEPANELASSETS {
 
 			ImGui::SameLine();
 
-		if (ImGui::Button("Save Catalog")) {
+			if (ImGui::Button("Save Catalog")) {
 				// Save to SOURCE directory, not build directory
 				const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
 				if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
@@ -449,7 +428,7 @@ namespace LEPANELASSETS {
 
 			ImGui::SameLine();
 
-		if (ImGui::Button("Reload Catalog")) {
+			if (ImGui::Button("Reload Catalog")) {
 				Audio::AudioCatalog::UnloadAllAudio();
 				// Load from SOURCE directory
 				const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
@@ -532,7 +511,7 @@ namespace LEPANELASSETS {
 
 			// Preview feedback popup
 			if (ImGui::BeginPopupModal("Preview Playing", nullptr,
-									   ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+				ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
 				ImGui::Text("Playing audio preview...");
 				ImGui::TextDisabled("(Feature requires AudioManager integration)");
 				if (ImGui::Button("OK", ImVec2(120, 0))) {
@@ -626,8 +605,8 @@ namespace LEPANELASSETS {
 						else {
 							// Display mode
 							ImGui::Text("Category: %s", asset.category.c_str());
-							ImGui::Text("Loop: %s", asset.loop?"Yes":"No");
-							ImGui::Text("Stream: %s", asset.stream?"Yes":"No");
+							ImGui::Text("Loop: %s", asset.loop ? "Yes" : "No");
+							ImGui::Text("Stream: %s", asset.stream ? "Yes" : "No");
 							ImGui::Text("Volume: %.2f", asset.volume);
 							ImGui::TextWrapped("File: %s", asset.filepath.c_str());
 
@@ -686,7 +665,7 @@ namespace LEPANELASSETS {
 							}
 
 							if (ImGui::BeginPopupModal("Confirm Remove Audio", nullptr,
-													   ImGuiWindowFlags_AlwaysAutoResize)) {
+								ImGuiWindowFlags_AlwaysAutoResize)) {
 								ImGui::Text("Remove '%s' from catalog?", asset.name.c_str());
 								ImGui::Separator();
 
@@ -783,7 +762,7 @@ namespace LEPANELASSETS {
 								newAsset.stream
 							);
 
-						// Auto-save catalog to SOURCE directory after successful addition
+							// Auto-save catalog to SOURCE directory after successful addition
 							const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
 							if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
 								std::cout << "[Assets Panel] Catalog auto-saved after double-click add to: " << catalogPath << std::endl;

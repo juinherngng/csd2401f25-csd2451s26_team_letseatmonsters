@@ -13,8 +13,9 @@
  */
 #pragma once
 
-#include <string>
 #include "LevelSerializer.hpp"
+
+#include <string>
 
 class Scene;
 
