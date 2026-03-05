@@ -100,18 +100,14 @@ Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& a
 // Load a scene by name (currently just a stub that clears and sets a background, but can be expanded to load from JSON or other formats)
 void Scene::LoadScene(const std::string& sceneName) {
 	(void)sceneName;
-
-	// Remember which level JSON we're using
-	currentLevelPath_ = FilePaths::Levels::KITCHEN_01;
-
-	// Optional: just pre-fill the path field for convenience
-	mLevelEditor.SetPath(FilePaths::Levels::KITCHEN_01);
+	currentLevelPath_.clear();
 
 	// Ensure we start EMPTY per rubric (no auto-spawned objects)
 	ClearAll();
 
-	// You can keep a background even with an empty level (or move this into JSON later)
-	SetSceneBackground(FilePaths::Textures::BACKGROUND);
+	if (defaultSceneSetupHook_) {
+		defaultSceneSetupHook_(*this);
+	}
 }
 
 // Per-frame update: drive all systems, logic, and cutscenes; handle pending clear requests; manage simulation state and input processing
@@ -209,55 +205,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		customerUpdateHook_(physicsDt, *this);
 	}
 
-	if (simulationActive) {
-		float prevTime = Economy::gTimeRemaining;
-		Economy::Update(deltaTime, *this);
-#ifdef _DEBUG
-		(void)prevTime;
-#endif
-
-		// Play timer warning sounds (release mode only)
-#ifndef _DEBUG
-		if (audioManager_) {
-			float currentTime = Economy::gTimeRemaining;
-
-			// Play sfx_remaining_time when timer reaches 10 seconds
-			if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
-				Economy::gPlayed10SecWarning = true;
-				if (audioManager_->HasSound("sfx_remaining_time")) {
-					audioManager_->PlaySound("sfx_remaining_time", audioManager_->GetVfxVolume(), false);
-				}
-			}
-
-			// Play sfx_beep at 3, 2, and 1 seconds
-			if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
-				Economy::gPlayed3SecBeep = true;
-				if (audioManager_->HasSound("sfx_beep")) {
-					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
-				}
-			}
-			if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
-				Economy::gPlayed2SecBeep = true;
-				if (audioManager_->HasSound("sfx_beep")) {
-					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
-				}
-			}
-			if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
-				Economy::gPlayed1SecBeep = true;
-				if (audioManager_->HasSound("sfx_beep")) {
-					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
-				}
-			}
-
-			// Play sfx_time_up when timer reaches 0
-			if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
-				Economy::gPlayedTimeUp = true;
-				if (audioManager_->HasSound("sfx_time_up")) {
-					audioManager_->PlaySound("sfx_time_up", audioManager_->GetVfxVolume(), false);
-				}
-			}
-		}
-#endif
+	if (simulationActive && simulationUpdateHook_) {
+		simulationUpdateHook_(deltaTime, *this);
 	}
 
 	if (simulationActive) {

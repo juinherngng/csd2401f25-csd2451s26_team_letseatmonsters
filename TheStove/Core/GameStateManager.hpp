@@ -54,6 +54,8 @@ namespace Framework {
 		std::string GetName() override;
 		void InitializeGameState(int GS, float dt);
 		void UpdateGameState(int newState, float dt);
+		using StateAudioPolicy = std::function<void(int, Scene&, AudioManager*)>;
+		using PauseAudioPolicy = std::function<void(bool, bool, int, Scene&, AudioManager*)>;
 
 		// Inject Scene used for runtime level loading
 		void SetScene(Scene* s) {
@@ -70,6 +72,14 @@ namespace Framework {
 			audioManager = mgr;
 		}
 
+		// Inject game-specific state/audio policies
+		void SetStateAudioPolicy(StateAudioPolicy policy) {
+			stateAudioPolicy = std::move(policy);
+		}
+		void SetPauseAudioPolicy(PauseAudioPolicy policy) {
+			pauseAudioPolicy = std::move(policy);
+		}
+
 	private:
 		void OnQuit(const CoreFramework::Message& msg);
 
@@ -84,12 +94,10 @@ namespace Framework {
 		std::unordered_map<int, std::string> jsonStatePaths;
 		bool pendingSimActivation = false; // NEW
 
-		// Audio management
+		// Audio service
 		AudioManager* audioManager = nullptr;
-		std::string currentAudio; // Track currently playing background music
-		std::string currentAmbience; // Track currently playing ambient sound
 		bool wasPaused = false;    // Track pause state for audio
-
-		void StopCurrentAudio();
+		StateAudioPolicy stateAudioPolicy;
+		PauseAudioPolicy pauseAudioPolicy;
 	};
 }

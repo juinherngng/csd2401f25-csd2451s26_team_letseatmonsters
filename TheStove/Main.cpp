@@ -739,6 +739,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			}
 
 			ConfigureGameStates(*gsm);
+			ConfigureGameStateAudioPolicy(*gsm);
 
 			// Initialize to main menu state
 			gsm->InitializeGameState(Framework::GS_Level1, 0.0f);

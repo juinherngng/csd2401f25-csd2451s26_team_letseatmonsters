@@ -1,6 +1,6 @@
 #include "MyoonchiDinerBindings.hpp"
 
-#include "Core/FilePaths.hpp"
+#include "Core/AudioManager.hpp"
 #include "Core/HowToPlayButtonLogic.hpp"
 #include "Core/IngredientBoxLogic.hpp"
 #include "Core/MenuButtonLogic.hpp"
@@ -13,12 +13,84 @@
 #include "Core/CustomerTableLogic.hpp"
 #include "Core/ExitGateLogic.hpp"
 #include "Core/CustomerManagerLogic.hpp"
+#include "Core/Quota.hpp"
 #include "Graphics/SceneManager.hpp"
+
+#include "GamePaths.hpp"
 
 #include <memory>
 #include <string>
 
 namespace {
+	void ApplyRuntimeObjectSetup(Scene& scene, int id, const std::string& tag, const std::string& texturePath, bool animated, const std::string& animName, float speedX, float speedY) {
+		(void)speedX;
+		(void)speedY;
+
+		if (!animated) {
+			return;
+		}
+
+		if (tag == "menu_anim") {
+			scene.AttachMenuAnimations(id);
+			scene.SetAnimation(id, animName.empty() ? "FULL" : animName);
+		}
+		else if (texturePath.find("dino") != std::string::npos || tag == "dino") {
+			scene.AttachDinoAnimations(id);
+			scene.SetAnimation(id, animName.empty() ? "IDLE" : animName);
+		}
+	}
+
+	void UpdateSimulationPolicy(float dt, Scene& scene) {
+		float prevTime = Economy::gTimeRemaining;
+		Economy::Update(dt, scene);
+
+#ifndef _DEBUG
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			float currentTime = Economy::gTimeRemaining;
+
+			if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
+				Economy::gPlayed10SecWarning = true;
+				if (audioManager->HasSound("sfx_remaining_time")) {
+					audioManager->PlaySound("sfx_remaining_time", audioManager->GetVfxVolume(), false);
+				}
+			}
+
+			if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
+				Economy::gPlayed3SecBeep = true;
+				if (audioManager->HasSound("sfx_beep")) {
+					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+				}
+			}
+			if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
+				Economy::gPlayed2SecBeep = true;
+				if (audioManager->HasSound("sfx_beep")) {
+					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+				}
+			}
+			if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
+				Economy::gPlayed1SecBeep = true;
+				if (audioManager->HasSound("sfx_beep")) {
+					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+				}
+			}
+
+			if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
+				Economy::gPlayedTimeUp = true;
+				if (audioManager->HasSound("sfx_time_up")) {
+					audioManager->PlaySound("sfx_time_up", audioManager->GetVfxVolume(), false);
+				}
+			}
+		}
+#else
+		(void)scene;
+		(void)prevTime;
+#endif
+	}
+
+	void ApplyDefaultSceneSetup(Scene& scene) {
+		scene.SetSceneBackground(MyoonchiPaths::Textures::BACKGROUND);
+	}
+
 	void AttachTagLogic(Scene& scene, int id, const std::string& tag) {
 		LogicManager& logicManager = scene.GetLogicManager();
 
@@ -53,7 +125,7 @@ namespace {
 			logicManager.AddLogic<OrderUILogic>(id);
 		}
 		else if (tag == "btn_play") {
-			auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, FilePaths::Levels::KITCHEN_01, true);
+			auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, MyoonchiPaths::Levels::KITCHEN_01, true);
 			if (logic && scene.GetAudioManager()) {
 				logic->SetAudioManager(scene.GetAudioManager());
 			}
@@ -90,6 +162,9 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		customerManager->Reset();
 		(void)s;
 	});
+	scene.SetRuntimeObjectSetupHook(ApplyRuntimeObjectSetup);
+	scene.SetSimulationUpdateHook(UpdateSimulationPolicy);
+	scene.SetDefaultSceneSetupHook(ApplyDefaultSceneSetup);
 
 	scene.SetTagLogicBinder(AttachTagLogic);
 	scene.SetPauseOverlayButtonBinder(AttachPauseOverlayButton);

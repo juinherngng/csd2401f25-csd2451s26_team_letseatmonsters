@@ -8,3 +8,4 @@ namespace Framework {
 
 void RegisterGameBindings(Scene& scene);
 void ConfigureGameStates(Framework::GameStateManager& gsm);
+void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm);

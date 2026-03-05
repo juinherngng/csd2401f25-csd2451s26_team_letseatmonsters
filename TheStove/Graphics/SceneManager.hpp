@@ -35,7 +35,6 @@
 #include "../Core/Physics.hpp"
 #include "../Core/PhysicsManager.hpp"
 #include "../Core/PlayerController.hpp"
-#include "../Core/Quota.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"
@@ -196,6 +195,9 @@ public:
 	using PauseOverlayButtonBinder = std::function<void(Scene&, int, const std::string&)>;
 	using CustomerUpdateHook = std::function<void(float, Scene&)>;
 	using CustomerResetHook = std::function<void(Scene&)>;
+	using RuntimeObjectSetupHook = std::function<void(Scene&, int, const std::string&, const std::string&, bool, const std::string&, float, float)>;
+	using SimulationUpdateHook = std::function<void(float, Scene&)>;
+	using DefaultSceneSetupHook = std::function<void(Scene&)>;
 	void SetTagLogicBinder(TagLogicBinder binder) {
 		tagLogicBinder_ = std::move(binder);
 	}
@@ -207,6 +209,20 @@ public:
 	}
 	void SetCustomerResetHook(CustomerResetHook hook) {
 		customerResetHook_ = std::move(hook);
+	}
+	void SetRuntimeObjectSetupHook(RuntimeObjectSetupHook hook) {
+		runtimeObjectSetupHook_ = std::move(hook);
+	}
+	void SetSimulationUpdateHook(SimulationUpdateHook hook) {
+		simulationUpdateHook_ = std::move(hook);
+	}
+	void SetDefaultSceneSetupHook(DefaultSceneSetupHook hook) {
+		defaultSceneSetupHook_ = std::move(hook);
+	}
+	void ApplyRuntimeObjectSetup(int id, const std::string& tag, const std::string& texturePath, bool animated, const std::string& animName, float speedX, float speedY) {
+		if (runtimeObjectSetupHook_) {
+			runtimeObjectSetupHook_(*this, id, tag, texturePath, animated, animName, speedX, speedY);
+		}
 	}
 
 	// Centralized tag metadata
@@ -546,6 +562,9 @@ private:
 	PauseOverlayButtonBinder pauseOverlayButtonBinder_;
 	CustomerUpdateHook customerUpdateHook_;
 	CustomerResetHook customerResetHook_;
+	RuntimeObjectSetupHook runtimeObjectSetupHook_;
+	SimulationUpdateHook simulationUpdateHook_;
+	DefaultSceneSetupHook defaultSceneSetupHook_;
 
 	bool howToPlayOverlayActive_ = false;
 
