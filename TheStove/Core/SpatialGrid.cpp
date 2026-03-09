@@ -85,8 +85,8 @@ void SpatialGrid::CollectCells(const collision::AABB& box, int expandByCells, st
 	const int height = (range.maxY - range.minY + 1);
 	outKeys.reserve(static_cast<size_t>(std::max(0, width * height)));
 
-	for (int cy = range.minY; cy <= range.maxY; ++cy) {
-		for (int cx = range.minX; cx <= range.maxX; ++cx) {
+	for (int cx = range.minX; cx <= range.maxX; ++cx) {
+		for (int cy = range.minY; cy <= range.maxY; ++cy) {
 			outKeys.push_back(ToKey(cx, cy));
 		}
 	}
