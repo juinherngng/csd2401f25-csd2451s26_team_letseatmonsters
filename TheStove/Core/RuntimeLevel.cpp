@@ -207,6 +207,9 @@ namespace RuntimeLevel {
 		const auto preloadStart = std::chrono::steady_clock::now();
 		ResourceManager::Instance().PreloadTextures(manifest.textures);
 		const double preloadMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - preloadStart).count();
+#ifdef NDEBUG
+		(void)preloadMs;
+#endif
 
 		const auto buildStart = std::chrono::steady_clock::now();
 		BuildSceneFromLevel(data, scene);

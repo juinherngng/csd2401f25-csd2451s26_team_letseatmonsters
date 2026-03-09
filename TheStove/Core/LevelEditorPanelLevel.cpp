@@ -91,6 +91,7 @@ static std::filesystem::path FindRepoRoot() {
 #endif
 
 namespace {
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	static std::size_t HashLevelData(const LevelData& level) {
 		std::size_t seed = std::hash<std::string>{}(level.background);
 		seed ^= std::hash<std::size_t>{}(level.objects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -155,6 +156,7 @@ namespace {
 		cache.names = layerNames;
 		return layerNames;
 	}
+#endif
 
 	// Helper to sync text objects from LevelData to editor state
 	void SyncTextObjectsToEditor(const LevelData& levelIn) {

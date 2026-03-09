@@ -23,10 +23,30 @@
 #endif
 
 namespace LEACTIONS {
+#ifdef _DEBUG
+	namespace {
+		inline void DrawActionButton(const char* label, const std::function<void()>& callback) {
+			if (ImGui::Button(label, ImVec2(-FLT_MIN, 0.0f)) && callback) {
+				callback();
+			}
+		}
+
+		inline void DrawActionButtonDisabled(const char* label, bool disabled, const std::function<void()>& callback) {
+			ImGui::BeginDisabled(disabled);
+			DrawActionButton(label, callback);
+			ImGui::EndDisabled();
+		}
+	}
+#endif
+
 	// Handles undo/redo shortcuts (Ctrl+Z / Ctrl+Y or Cmd+Z / Cmd+Shift+Z) and calls the provided callbacks if the shortcuts are triggered.
 	// Only active when not playing and when ImGui is not capturing keyboard input.
 	void HandleUndoRedoShortcuts(LevelEditor& editor, const std::function<bool()>& undo, const std::function<bool()>& redo) {
-#ifdef _DEBUG
+#ifndef _DEBUG
+		(void)editor;
+		(void)undo;
+		(void)redo;
+#else
 		ImGuiIO& io = ImGui::GetIO();
 		if (!editor.IsPlaying() && !io.WantCaptureKeyboard && (io.KeyCtrl || io.KeySuper) && !io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)) {
 			if (undo) {
@@ -46,54 +66,35 @@ namespace LEACTIONS {
 	// Buttons are disabled based on the editor's play state. Calls the provided callbacks when buttons are clicked.
 	void DrawActionGrid(LevelEditor& editor, Scene& scene, const Callbacks& callbacks) {
 		(void)scene;
-#ifdef _DEBUG
+#ifndef _DEBUG
+		(void)editor;
+		(void)callbacks;
+#else
 		if (ImGui::BeginTable("##LevelActionsGrid", 4, ImGuiTableFlags_SizingStretchSame)) {
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
-			if (ImGui::Button("Load Level", ImVec2(-FLT_MIN, 0.0f)) && callbacks.onLoad) {
-				callbacks.onLoad();
-			}
+			DrawActionButton("Load Level", callbacks.onLoad);
 
 			ImGui::TableSetColumnIndex(1);
-			if (ImGui::Button("New Scene", ImVec2(-FLT_MIN, 0.0f)) && callbacks.onNewScene) {
-				callbacks.onNewScene();
-			}
+			DrawActionButton("New Scene", callbacks.onNewScene);
 
 			ImGui::TableSetColumnIndex(2);
-			if (ImGui::Button("Save Level", ImVec2(-FLT_MIN, 0.0f)) && callbacks.onSave) {
-				callbacks.onSave();
-			}
+			DrawActionButton("Save Level", callbacks.onSave);
 
 			ImGui::TableSetColumnIndex(3);
-			ImGui::BeginDisabled(editor.IsPlaying());
-			if (ImGui::Button("Undo", ImVec2(-FLT_MIN, 0.0f)) && callbacks.onUndo) {
-				callbacks.onUndo();
-			}
-
-			ImGui::EndDisabled();
+			DrawActionButtonDisabled("Undo", editor.IsPlaying(), callbacks.onUndo);
 
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
-			ImGui::BeginDisabled(editor.IsPlaying());
-			if (ImGui::Button("Redo", ImVec2(-FLT_MIN, 0.0f)) && callbacks.onRedo) {
-				callbacks.onRedo();
-			}
+			DrawActionButtonDisabled("Redo", editor.IsPlaying(), callbacks.onRedo);
 
 			ImGui::EndDisabled();
 			ImGui::TableSetColumnIndex(1);
-			ImGui::BeginDisabled(editor.IsPlaying());
-			if (ImGui::Button("Play", ImVec2(-FLT_MIN, 0.0f)) && callbacks.onPlay) {
-				callbacks.onPlay();
-			}
+			DrawActionButtonDisabled("Play", editor.IsPlaying(), callbacks.onPlay);
 
-			ImGui::EndDisabled();
 			ImGui::TableSetColumnIndex(2);
-			ImGui::BeginDisabled(!editor.IsPlaying());
-			if (ImGui::Button("Stop", ImVec2(-FLT_MIN, 0.0f)) && callbacks.onStop) {
-				callbacks.onStop();
-			}
+			DrawActionButtonDisabled("Stop", !editor.IsPlaying(), callbacks.onStop);
 
-			ImGui::EndDisabled();
 			ImGui::TableSetColumnIndex(3);
 			const bool isSimActive = scene.IsSimulationActive();
 			const char* pauseLabel = isSimActive ? "Pause" : "Resume";
