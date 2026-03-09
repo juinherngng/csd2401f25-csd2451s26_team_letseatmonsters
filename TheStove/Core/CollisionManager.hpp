@@ -25,6 +25,7 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class Scene;
@@ -125,6 +126,7 @@ private:
 		bool visible = true;
 		bool enabled = true;
 		bool dynamic = false;
+		bool broadphaseDirty = true;
 	};
 	bool ShouldRebuildGrid(const std::vector<std::unique_ptr<GameObject>>& allObjects);
 	ObjectBroadphaseState BuildBroadphaseState(const GameObject* obj) const;
@@ -138,6 +140,7 @@ private:
 	// Cached broad-phase state for all objects to detect changes and minimize rebuilds
 	std::vector<ObjectBroadphaseState> broadphaseStateCache_;
 	std::vector<int> dirtyObjectIDs_;
+	std::unordered_set<int> dirtyObjectLookupCache_;
 	bool forceFullRebuild_ = true;
 	bool gridBuilt_ = false;
 	bool staticStateDirty_ = true;

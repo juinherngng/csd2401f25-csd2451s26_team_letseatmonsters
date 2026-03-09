@@ -76,6 +76,7 @@ CollisionManager::ObjectBroadphaseState CollisionManager::BuildBroadphaseState(c
 	state.pos = obj->GetPositionGLM();
 	state.scale = obj->GetScaleGLM();
 	state.dynamic = IsDynamicObject(obj);
+	state.broadphaseDirty = obj->IsBroadphaseDirty();
 
 	if (scene_) {
 		if (const Layer* layer = scene_->GetObjectLayerPtr(obj->GetID())) {
@@ -136,12 +137,12 @@ bool CollisionManager::ShouldRebuildGrid(const std::vector<std::unique_ptr<GameO
 			}
 
 			if (curr.dynamic) {
-				if (curr.pos != prev.pos || curr.scale != prev.scale) {
+				if (curr.broadphaseDirty || curr.pos != prev.pos || curr.scale != prev.scale) {
 					dirtyObjectIDs_.push_back(curr.objectID);
 				}
 			}
 			else if (staticStateDirty_) {
-				if (curr.pos != prev.pos || curr.scale != prev.scale) {
+				if (curr.broadphaseDirty || curr.pos != prev.pos || curr.scale != prev.scale) {
 					dirtyObjectIDs_.push_back(curr.objectID);
 				}
 			}
@@ -174,9 +175,10 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 		spatialGrid_.Clear();
 	}
 
-	std::unordered_set<int> dirtySet;
+	dirtyObjectLookupCache_.clear();
 	if (!forceFullRebuild_) {
-		dirtySet.insert(dirtyObjectIDs_.begin(), dirtyObjectIDs_.end());
+		dirtyObjectLookupCache_.reserve(dirtyObjectIDs_.size());
+		dirtyObjectLookupCache_.insert(dirtyObjectIDs_.begin(), dirtyObjectIDs_.end());
 	}
 
 	for (const auto& objPtr : allObjects) {
@@ -186,7 +188,7 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 			continue;
 		}
 
-		if (!forceFullRebuild_ && dirtySet.find(obj->GetID()) == dirtySet.end()) {
+		if (!forceFullRebuild_ && dirtyObjectLookupCache_.find(obj->GetID()) == dirtyObjectLookupCache_.end()) {
 			continue;
 		}
 
@@ -203,6 +205,7 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 
 		if (!canCollide) {
 			spatialGrid_.Remove(obj);
+			obj->MarkBroadphaseClean();
 			continue;
 		}
 
@@ -222,6 +225,8 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 		else {
 			spatialGrid_.Update(obj, box);
 		}
+
+		obj->MarkBroadphaseClean();
 	}
 }
 

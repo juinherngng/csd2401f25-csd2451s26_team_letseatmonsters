@@ -566,6 +566,10 @@ std::vector<GameObject*> Scene::GetAllObjectsRaw() {
 	return entityManager.GetAllObjects();
 }
 
+const std::vector<std::unique_ptr<GameObject>>& Scene::GetObjectStorageRaw() const {
+	return entityManager.GetObjectStorage();
+}
+
 // Despawns (removes) an object from the scene by its unique ID. Also handles cleanup of associated logic and tags.
 void Scene::DespawnByID(int targetID) {
 	// Play destroy audio before removing the object
