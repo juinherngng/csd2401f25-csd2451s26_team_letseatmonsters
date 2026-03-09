@@ -1,12 +1,12 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			LevelEditorPanelLevel.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Yat Chun Wee, y.chunwee@digipen.edu		(70%)
-CO-AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (5%)
+ FILE NAME:			LevelEditorPanelLevel.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(70%)
+ CO-AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (5%)
 					Vu Phan Hung, phanhung.vu@digipen.edu	(25%)
 
-DESCRIPTION:       Implementation of the Level panel.
+ DESCRIPTION:       Implementation of the Level panel.
 					- Load/Save levels to JSON
 					- Play/Stop scene simulation
 					- Hierarchy list and object inspector
@@ -50,9 +50,12 @@ DESCRIPTION:       Implementation of the Level panel.
 #include "LevelEditorFileIO.hpp"
 #include "LevelEditorPrefabLinks.hpp"
 #include "LevelEditorPanelFonts.hpp"  // Include for text object sync
+#include "LevelEditorActions.hpp"
+#include "LevelEditorAutosave.hpp"
+#include "LevelEditorCommandSystem.hpp"
+#include "LevelEditorHierarchy.hpp"
 #include "InputManager.hpp"
 #include "AudioLoading.hpp"
-
 
 namespace fs = std::filesystem;
 
@@ -88,102 +91,6 @@ static std::filesystem::path FindRepoRoot() {
 #endif
 
 namespace {
-	std::string ToLowerCopy(std::string value) {
-		std::transform(value.begin(), value.end(), value.begin(),
-			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-		return value;
-	}
-
-	bool PassesHierarchyFilter(const std::string& label, const std::string& filterLower) {
-		if (filterLower.empty()) {
-			return true;
-		}
-
-		return ToLowerCopy(label).find(filterLower) != std::string::npos;
-	}
-
-	struct HierarchyLabelCacheEntry {
-		std::string tag;
-		std::string texturePath;
-		std::string layer;
-		std::string label;
-	};
-
-	static std::unordered_map<int, HierarchyLabelCacheEntry> sHierarchyLabelCache;
-
-	const std::string& BuildCachedHierarchyLabel(Scene& scene, int objectId) {
-		auto& entry = sHierarchyLabelCache[objectId];
-		const Scene::Defaults defs = scene.GetDefaults(objectId);
-		const std::string texturePath = scene.GetObjectTexturePath(objectId);
-		const std::string layer = scene.GetObjectLayer(objectId);
-
-		if (entry.tag == defs.tag &&
-			entry.texturePath == texturePath &&
-			entry.layer == layer &&
-			!entry.label.empty()) {
-			return entry.label;
-		}
-
-		std::string niceName = defs.tag;
-		if (niceName.empty() && !texturePath.empty()) {
-			niceName = fs::path(texturePath).stem().string();
-		}
-
-		entry.tag = defs.tag;
-		entry.texturePath = texturePath;
-		entry.layer = layer;
-		entry.label = niceName.empty()
-			? ("ID " + std::to_string(objectId) + " [Layer: " + layer + "]")
-			: (niceName + " (ID " + std::to_string(objectId) + ") [Layer: " + layer + "]");
-
-		return entry.label;
-	}
-
-	static void InvalidateHierarchyLabelCache() {
-		sHierarchyLabelCache.clear();
-	}
-
-	static std::vector<std::string> CollectValidationIssues(Scene& scene) {
-		std::vector<std::string> issues;
-		std::unordered_set<std::string> uniqueTags;
-		std::vector<GameObject*> objects = scene.GetAllObjectsRaw();
-
-		for (GameObject* g : objects) {
-			if (!g) continue;
-			const int id = g->GetID();
-			const Scene::Defaults defs = scene.GetDefaults(id);
-			const std::string texPath = scene.GetObjectTexturePath(id);
-
-			if (texPath.empty()) {
-				issues.push_back("ID " + std::to_string(id) + ": missing texture path");
-			}
-			else if (ResourceManager::Instance().GetTexture("sprite_" + texPath) == nullptr) {
-				issues.push_back("ID " + std::to_string(id) + ": texture not loaded -> " + texPath);
-			}
-
-			if (!defs.tag.empty() && !uniqueTags.insert(defs.tag).second) {
-				issues.push_back("Duplicate tag detected: '" + defs.tag + "'");
-			}
-
-			const glm::vec3 sc = g->GetScaleGLM();
-			const auto col = g->GetColliderSize();
-			if (std::abs(sc.x - col.x) > 2.0f || std::abs(sc.y - col.y) > 2.0f) {
-				issues.push_back("ID " + std::to_string(id) + ": collider/render size mismatch");
-			}
-		}
-
-		for (const auto& t : LEPANELFONTS::GetTextObjects()) {
-			if (t.fontName.empty()) {
-				issues.push_back("Text object '" + t.name + "': missing font");
-			}
-			else if (ResourceManager::Instance().GetFont(t.fontName) == nullptr) {
-				issues.push_back("Text object '" + t.name + "': font not loaded -> " + t.fontName);
-			}
-		}
-
-		return issues;
-	}
-
 	static std::size_t HashLevelData(const LevelData& level) {
 		std::size_t seed = std::hash<std::string>{}(level.background);
 		seed ^= std::hash<std::size_t>{}(level.objects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -287,7 +194,7 @@ namespace {
 		LEPANELFONTS::SetTextObjects(textObjects);
 	}
 
-	// NEW: Helper to sync text objects from editor state to LevelData
+	// Helper to sync text objects from editor state to LevelData
 	void SyncTextObjectsToLevel(LevelData& levelOut) {
 		const auto& textObjects = LEPANELFONTS::GetTextObjects();
 		levelOut.textObjects.clear();
@@ -321,104 +228,39 @@ namespace {
 	}
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-	static int GetUndoLimit() {
-		const char* envValue = std::getenv("LE_EDITOR_UNDO_LIMIT");
-		if (!envValue) {
-			return 50;
-		}
-
-		const int parsed = std::atoi(envValue);
-		return parsed > 0 ? parsed : 50;
+	static void CaptureEditorState(Scene& scene, LevelData& outState) {
+		SyncSceneToLevel(scene, outState);
+		SyncTextObjectsToLevel(outState);
 	}
 
-	static std::vector<LevelData> sUndoStack;
-	static std::vector<LevelData> sRedoStack;
+	static void RestoreEditorState(LevelEditor& editor, Scene& scene, const LevelData& state) {
+		scene.ClearAll();
+		SyncLevelToScene(state, scene);
+		scene.RebuildColliders();
+		scene.SetSimulationActive(false);
 
-	// Take a snapshot of the current Scene into LevelData and push onto the stack.
+		editor.SetPlaying(false);
+		SyncTextObjectsToEditor(state);
+	}
+
 	static void PushUndoSnapshot(LevelEditor& editor, Scene& scene) {
-		if (editor.IsPlaying()) {
-			return;
-		}
-
-		LevelData snap{};
-		SyncSceneToLevel(scene, snap);
-		SyncTextObjectsToLevel(snap);
-
-		sUndoStack.push_back(snap);
-		if (sUndoStack.size() > GetUndoLimit()) {
-			sUndoStack.erase(sUndoStack.begin());
-		}
-
-		// New user action invalidates redo history
-		sRedoStack.clear();
-
-		// Keep the editor's working LevelData in sync with the scene
-		editor.MutableLevel() = snap;
+		LECOMMAND::RecordPreMutationSnapshot(editor, [&](LevelData& outState) { CaptureEditorState(scene, outState); });
 	}
 
-	// Pop last snapshot and restore it into the Scene.
 	static bool PerformUndo(LevelEditor& editor, Scene& scene) {
-		if (editor.IsPlaying() || sUndoStack.empty()) {
-			return false;
-		}
-
-		// Capture current state as the target for redo
-		LevelData current{};
-		SyncSceneToLevel(scene, current);
-		SyncTextObjectsToLevel(current);
-		sRedoStack.push_back(current);
-		if (sRedoStack.size() > GetUndoLimit()) {
-			sRedoStack.erase(sRedoStack.begin());
-		}
-
-		LevelData snap = sUndoStack.back();
-		sUndoStack.pop_back();
-
-		scene.ClearAll();
-		SyncLevelToScene(snap, scene);
-		scene.RebuildColliders();
-		scene.SetSimulationActive(false);
-
-		editor.SetPlaying(false);
-		editor.MutableLevel() = snap;
-		SyncTextObjectsToEditor(snap);
-
-		return true;
+		return LECOMMAND::Undo(editor,
+			[&](LevelData& outState) { CaptureEditorState(scene, outState); },
+			[&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
 	}
 
-	// Pop last redo snapshot and restore it into the Scene.
 	static bool PerformRedo(LevelEditor& editor, Scene& scene) {
-		if (editor.IsPlaying() || sRedoStack.empty()) {
-			return false;
-		}
-
-		// Current state becomes new undo point
-		LevelData current{};
-		SyncSceneToLevel(scene, current);
-		SyncTextObjectsToLevel(current);
-		sUndoStack.push_back(current);
-		if (sRedoStack.size() > GetUndoLimit()) {
-			sUndoStack.erase(sUndoStack.begin());
-		}
-
-		LevelData snap = sRedoStack.back();
-		sRedoStack.pop_back();
-
-		scene.ClearAll();
-		SyncLevelToScene(snap, scene);
-		scene.RebuildColliders();
-		scene.SetSimulationActive(false);
-
-		editor.SetPlaying(false);
-		editor.MutableLevel() = snap;
-		SyncTextObjectsToEditor(snap);
-
-		return true;
+		return LECOMMAND::Redo(editor,
+			[&](LevelData& outState) { CaptureEditorState(scene, outState); },
+			[&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
 	}
 
 	static void ClearUndoHistory() {
-		sUndoStack.clear();
-		sRedoStack.clear();
+		LECOMMAND::ClearHistory();
 	}
 
 #endif
@@ -848,40 +690,67 @@ namespace LEPANELLEVEL {
 			editor.levelPath = (fs::path(sLevelsDir) / (stem + ".json")).generic_string();
 		}
 
-		// Ctrl+Z keyboard shortcut for Undo (same as button)
-		ImGuiIO& io = ImGui::GetIO();
-		if (!editor.IsPlaying() &&
-			!io.WantCaptureKeyboard &&
-			(io.KeyCtrl || io.KeySuper) &&
-			!io.KeyShift &&
-			ImGui::IsKeyPressed(ImGuiKey_Z)) {
-			if (PerformUndo(editor, scene)) {
-				selectedIndex = -1;
-				selectedObjectId = -1;
-			}
-		}
+		LEACTIONS::HandleUndoRedoShortcuts(editor,
+			[&]() {
+				if (PerformUndo(editor, scene)) {
+					selectedIndex = -1;
+					selectedObjectId = -1;
+					return true;
+				}
 
-		// Ctrl+Y or Ctrl+Shift+Z keyboard shortcuts for Redo
-		if (!editor.IsPlaying() &&
-			!io.WantCaptureKeyboard &&
-			(io.KeyCtrl || io.KeySuper) &&
-			(ImGui::IsKeyPressed(ImGuiKey_Y) || (io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_Z)))) {
-			if (PerformRedo(editor, scene)) {
-				selectedIndex = -1;
-				selectedObjectId = -1;
-			}
-		}
+				return false;
+			},
+			[&]() {
+				if (PerformRedo(editor, scene)) {
+					selectedIndex = -1;
+					selectedObjectId = -1;
+					return true;
+				}
+
+				return false;
+			});
 
 		static std::size_t sLastSavedHash = 0;
-		static std::vector<std::string> sValidationIssues;
+		static bool sCheckedRecovery = false;
+		static bool sShowRecoveryPopup = false;
 
-		// Level actions in a compact grid to reduce horizontal crowding
-		if (ImGui::BeginTable("##LevelActionsGrid", 4, ImGuiTableFlags_SizingStretchSame)) {
-			// Row 1
-			ImGui::TableNextRow();
+		if (!sCheckedRecovery) {
+			sCheckedRecovery = true;
+			sShowRecoveryPopup = LEAUTOSAVE::HasRecoveryCandidate(editor.levelPath);
+			if (sShowRecoveryPopup) {
+				ImGui::OpenPopup("Autosave Recovery");
+			}
+		}
 
-			ImGui::TableSetColumnIndex(0);
-			if (ImGui::Button("Load Level", ImVec2(-FLT_MIN, 0.0f))) {
+		if (ImGui::BeginPopupModal("Autosave Recovery", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			ImGui::TextWrapped("An autosave file was found. Recover the autosaved scene?");
+			if (ImGui::Button("Recover", ImVec2(120.0f, 0.0f))) {
+				LevelData recovered{};
+				if (LEAUTOSAVE::LoadRecovery(editor.levelPath, recovered)) {
+					scene.ClearAll();
+					LEPANELFONTS::ClearTextObjects();
+					SyncLevelToScene(recovered, scene);
+					SyncTextObjectsToEditor(recovered);
+					scene.RebuildColliders();
+					editor.MutableLevel() = recovered;
+					sLastSavedHash = HashLevelData(recovered);
+					LEHIERARCHY::InvalidateCache();
+				}
+
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("Discard", ImVec2(120.0f, 0.0f))) {
+				LEAUTOSAVE::DiscardRecovery(editor.levelPath);
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		LEACTIONS::DrawActionGrid(editor, scene, {
+			[&]() {
 				scene.StopAllObjectAudio();
 				scene.SetSimulationActive(false);
 				editor.SetPlaying(false);
@@ -889,9 +758,9 @@ namespace LEPANELLEVEL {
 				LevelData& work = editor.MutableLevel();
 				if (LevelSerializer::Load(editor.levelPath, work)) {
 					scene.ClearAll();
-					LEPANELFONTS::ClearTextObjects();  // Clear text objects before loading
+					LEPANELFONTS::ClearTextObjects();
 					SyncLevelToScene(work, scene);
-					SyncTextObjectsToEditor(work);     // Load text objects
+					SyncTextObjectsToEditor(work);
 					scene.RebuildColliders();
 					scene.SetSimulationActive(false);
 					scene.ResetResizeBaseline();
@@ -902,14 +771,12 @@ namespace LEPANELLEVEL {
 
 					selectedIndex = -1;
 					selectedObjectId = -1;
-					InvalidateHierarchyLabelCache();
+					LEHIERARCHY::InvalidateCache();
 					sLastSavedHash = HashLevelData(work);
 					ClearUndoHistory();
 				}
-			}
-
-			ImGui::TableSetColumnIndex(1);
-			if (ImGui::Button("New Scene", ImVec2(-FLT_MIN, 0.0f))) {
+			},
+			[&]() {
 				scene.StopAllObjectAudio();
 				scene.SetSimulationActive(false);
 				scene.ClearAll();
@@ -923,87 +790,24 @@ namespace LEPANELLEVEL {
 				fresh.objects.clear();
 				fresh.textObjects.clear();
 				fresh.background.clear();
-				InvalidateHierarchyLabelCache();
+				LEHIERARCHY::InvalidateCache();
 				sLastSavedHash = HashLevelData(fresh);
 				ClearUndoHistory();
-			}
-
-			ImGui::TableSetColumnIndex(2);
-			if (ImGui::Button("Save Level", ImVec2(-FLT_MIN, 0.0f))) {
+			},
+			[&]() {
 				LevelData& dst = editor.MutableLevel();
 				SyncSceneToLevel(scene, dst);
-				SyncTextObjectsToLevel(dst);  // Save text objects
+				SyncTextObjectsToLevel(dst);
 				const std::size_t currentHash = HashLevelData(dst);
 
-				if (currentHash == sLastSavedHash) {
-					std::cout << "[LevelPanel] Save skipped (no dirty changes detected)." << std::endl;
+				if (currentHash != sLastSavedHash && LevelSerializer::Save(editor.levelPath, dst)) {
+					sLastSavedHash = currentHash;
+					LEAUTOSAVE::DiscardRecovery(editor.levelPath);
 				}
-				else {
-					std::cout << "[LevelPanel] Saving level to: " << editor.levelPath << std::endl;
-					std::cout << "[LevelPanel] Game objects: " << dst.objects.size() << std::endl;
-					std::cout << "[LevelPanel] Text objects: " << dst.textObjects.size() << std::endl;
-
-					if (LevelSerializer::Save(editor.levelPath, dst)) {
-						sLastSavedHash = currentHash;
-						std::cout << "[LevelPanel] Level saved successfully!" << std::endl;
-					}
-					else {
-						std::cerr << "[LevelPanel] ERROR: Failed to save level!" << std::endl;
-					}
-				}
-			}
-
-			ImGui::TableSetColumnIndex(3);
-			ImGui::BeginDisabled(editor.IsPlaying());
-			if (ImGui::Button("Undo", ImVec2(-FLT_MIN, 0.0f))) {
-				if (PerformUndo(editor, scene)) {
-					selectedIndex = -1;
-					selectedObjectId = -1;
-				}
-			}
-
-			ImGui::EndDisabled();
-
-			ImGui::TableSetColumnIndex(3);
-			if (ImGui::Button("Validate Scene", ImVec2(-FLT_MIN, 0.0f))) {
-				sValidationIssues = CollectValidationIssues(scene);
-				ImGui::OpenPopup("Validation Report");
-			}
-
-			if (ImGui::BeginPopupModal("Validation Report", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-				if (sValidationIssues.empty()) {
-					ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "No validation issues found.");
-				}
-				else {
-					for (const std::string& issue : sValidationIssues) {
-						ImGui::BulletText("%s", issue.c_str());
-					}
-				}
-
-				if (ImGui::Button("Close", ImVec2(120, 0))) {
-					ImGui::CloseCurrentPopup();
-				}
-
-				ImGui::EndPopup();
-			}
-
-			// Row 2
-			ImGui::TableNextRow();
-
-			ImGui::TableSetColumnIndex(0);
-			ImGui::BeginDisabled(editor.IsPlaying());
-			if (ImGui::Button("Redo", ImVec2(-FLT_MIN, 0.0f))) {
-				if (PerformRedo(editor, scene)) {
-					selectedIndex = -1;
-					selectedObjectId = -1;
-				}
-			}
-
-			ImGui::EndDisabled();
-
-			ImGui::TableSetColumnIndex(1);
-			ImGui::BeginDisabled(editor.IsPlaying());
-			if (ImGui::Button("Play", ImVec2(-FLT_MIN, 0.0f))) {
+			},
+			[&]() { return PerformUndo(editor, scene); },
+			[&]() { return PerformRedo(editor, scene); },
+			[&]() {
 				LevelData& snap = editor.MutablePlaySnapshot();
 				SyncSceneToLevel(scene, snap);
 				SyncTextObjectsToLevel(snap);
@@ -1017,14 +821,8 @@ namespace LEPANELLEVEL {
 				SyncLevelToScene(snap, scene);
 				scene.RebuildColliders();
 				scene.ResolveInitialStaticOverlaps();
-			}
-
-			ImGui::EndDisabled();
-
-			ImGui::TableSetColumnIndex(2);
-			ImGui::BeginDisabled(!editor.IsPlaying());
-			if (ImGui::Button("Stop", ImVec2(-FLT_MIN, 0.0f))) {
-				// Stop all object-bound audio before clearing the scene
+			},
+			[&]() {
 				scene.StopAllObjectAudio();
 				scene.SetSimulationActive(false);
 
@@ -1034,21 +832,12 @@ namespace LEPANELLEVEL {
 				scene.RebuildColliders();
 				editor.SetPlaying(false);
 			}
+			});
 
-			ImGui::EndDisabled();
-
-			ImGui::TableSetColumnIndex(3);
-			const bool isSimActive = scene.IsSimulationActive();
-			const char* pauseLabel = isSimActive ? "Pause" : "Resume";
-			ImGui::BeginDisabled(!editor.IsPlaying());
-			if (ImGui::Button(pauseLabel, ImVec2(-FLT_MIN, 0.0f))) {
-				scene.SetSimulationActive(!isSimActive);
-			}
-
-			ImGui::EndDisabled();
-
-			ImGui::EndTable();
-		}
+		LevelData autosaveState{};
+		SyncSceneToLevel(scene, autosaveState);
+		SyncTextObjectsToLevel(autosaveState);
+		LEAUTOSAVE::Tick(editor.levelPath, autosaveState, ImGui::GetIO().DeltaTime);
 
 		DrawLayerManager(scene, selectedObjectId);
 
@@ -1056,7 +845,7 @@ namespace LEPANELLEVEL {
 		static char sHierarchyFilter[128] = "";
 		ImGui::SetNextItemWidth(-FLT_MIN);
 		ImGui::InputTextWithHint("##HierarchyFilter", "Filter by name, ID, or layer", sHierarchyFilter, IM_ARRAYSIZE(sHierarchyFilter));
-		const std::string filterLower = ToLowerCopy(std::string(sHierarchyFilter));
+		const std::string filterLower = LEHIERARCHY::ToLowerCopy(std::string(sHierarchyFilter));
 
 		// Object Hierarchy – stable order independent of movement
 		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
@@ -1080,25 +869,8 @@ namespace LEPANELLEVEL {
 				return a->GetID() < b->GetID();
 			});
 
-		// Keep label cache bounded to live objects
-		{
-			std::unordered_set<int> liveIds;
-			liveIds.reserve(objectList.size());
-			for (GameObject* g : objectList) {
-				if (g) {
-					liveIds.insert(g->GetID());
-				}
-			}
-
-			for (auto it = sHierarchyLabelCache.begin(); it != sHierarchyLabelCache.end();) {
-				if (liveIds.find(it->first) == liveIds.end()) {
-					it = sHierarchyLabelCache.erase(it);
-				}
-				else {
-					++it;
-				}
-			}
-		}
+		// Keep hierarchy cache bounded to live objects
+		LEHIERARCHY::PruneDeadObjects(scene);
 
 		// Keep hierarchy row in sync with selection by ID (click in Scene)
 		if (selectedObjectId != -1) {
@@ -1130,8 +902,8 @@ namespace LEPANELLEVEL {
 				}
 
 				const int gid = g->GetID();
-				const std::string& label = BuildCachedHierarchyLabel(scene, gid);
-				if (!PassesHierarchyFilter(label, filterLower)) {
+				const std::string& label = LEHIERARCHY::GetCachedLabel(scene, gid);
+				if (!LEHIERARCHY::PassesFilterCached(gid, filterLower)) {
 					continue;
 				}
 
@@ -1171,7 +943,7 @@ namespace LEPANELLEVEL {
 					}
 
 					std::string lbl = "[Text] " + t.name + " (" + t.fontName + ") [Layer: " + t.layer + "]";
-					if (!PassesHierarchyFilter(lbl, filterLower)) {
+					if (!LEHIERARCHY::PassesFilter(lbl, filterLower)) {
 						continue;
 					}
 
