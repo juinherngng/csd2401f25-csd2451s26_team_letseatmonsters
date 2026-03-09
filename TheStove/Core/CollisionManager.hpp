@@ -105,6 +105,7 @@ public:
 		std::uint64_t fullRebuilds = 0;
 		std::uint64_t objectsVisited = 0;
 		std::uint64_t dirtyObjectsProcessed = 0;
+		std::uint64_t narrowPhaseCollisions = 0;
 	};
 
 	const ProfileCounters& GetProfileCounters() const {

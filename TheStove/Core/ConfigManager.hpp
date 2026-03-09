@@ -31,6 +31,7 @@ namespace ConfigManager {
 	 * @brief Stores all configurable settings for the game.
 	 */
 	struct Settings {
+		int schemaVersion{ 1 };
 		Resolution resolution{};
 		bool fullscreen{};
 		float masterVolume{};

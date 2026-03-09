@@ -44,6 +44,17 @@ namespace {
 				}
 			}
 		}
+
+		if (schemaVersion < 2 && jsonData.contains("textObjects") && jsonData["textObjects"].is_array()) {
+			for (auto& jsonObj : jsonData["textObjects"]) {
+				if (!jsonObj.is_object()) {
+					continue;
+				}
+				if (!jsonObj.contains("visible")) {
+					jsonObj["visible"] = true;
+				}
+			}
+		}
 	}
 }
 
@@ -209,12 +220,14 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	outLevel.textObjects.clear();
 	outLevel.background.clear();
 
-	outLevel.schemaVersion = jsonData.value("schema_version", 1);
+	outLevel.schemaVersion = jsonData.value("schema_version", 0);
 	ApplyLegacyMigrations(jsonData, outLevel.schemaVersion);
 	if (outLevel.schemaVersion > LEVEL_SCHEMA_VERSION) {
 		std::cerr << "[LevelSerializer] Warning: loading newer schema version " << outLevel.schemaVersion
 			<< " with reader version " << LEVEL_SCHEMA_VERSION << std::endl;
 	}
+
+	outLevel.schemaVersion = LEVEL_SCHEMA_VERSION;
 
 	// optional background
 	outLevel.background = jsonData.value("background", "");

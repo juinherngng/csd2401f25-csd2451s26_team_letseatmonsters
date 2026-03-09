@@ -20,7 +20,13 @@
 
 #include <unordered_set>
 
- // Constructor
+namespace {
+	bool OverlapsAABB(const collision::AABB& lhs, const collision::AABB& rhs) {
+		return !(lhs.max.x < rhs.min.x || lhs.min.x > rhs.max.x || lhs.max.y < rhs.min.y || lhs.min.y > rhs.max.y);
+	}
+}
+
+// Constructor
 CollisionManager::CollisionManager(float cellSize)
 	: spatialGrid_(cellSize) {
 }
@@ -247,6 +253,20 @@ void CollisionManager::AddStaticRects(const std::vector<collision::AABB>& rects)
 std::vector<GameObject*> CollisionManager::QueryNearby(const collision::AABB& queryBox) const {
 	std::vector<GameObject*> candidates;
 	spatialGrid_.Query(queryBox, candidates);
+
+	for (GameObject* obj : candidates) {
+		if (!obj) {
+			continue;
+		}
+
+		const Math::Vector3D pos(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
+		const glm::vec3 scale = obj->GetScaleGLM();
+		const collision::AABB candidate = collision::World::makeAABBFromCenter(
+			pos, Math::Vector3D(scale.x, scale.y, scale.z));
+		if (OverlapsAABB(candidate, queryBox)) {
+			++profile_.narrowPhaseCollisions;
+		}
+	}
 
 	return candidates;
 }

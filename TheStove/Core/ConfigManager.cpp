@@ -27,6 +27,8 @@ namespace fs = std::filesystem;
 
 namespace ConfigManager {
 	namespace {
+		constexpr int CONFIG_SCHEMA_VERSION = 1;
+
 		// Helper to trim leading and trailing whitespace from a string
 		std::string Trim(std::string str) {
 			auto isNotSpace = [](unsigned char ch) { return !std::isspace(ch); };
@@ -118,6 +120,10 @@ namespace ConfigManager {
 			bool parsedBool = false;
 			float parsedFloat = 0.0f;
 
+			if (key == "schema_version") {
+				if (ParseInt(val, parsedInt)) cfg.schemaVersion = parsedInt;
+				return true;
+			}
 			if (key == "window_width") {
 				if (ParseInt(val, parsedInt)) cfg.resolution.width = parsedInt;
 				return true;
@@ -205,6 +211,7 @@ namespace ConfigManager {
 		}
 
 		Settings cfg = out; // start from existing (keeps defaults if keys missing)
+		cfg.schemaVersion = CONFIG_SCHEMA_VERSION;
 		std::string lineBuf;
 		std::set<std::string> unknownKeys;
 
@@ -245,6 +252,11 @@ namespace ConfigManager {
 			std::cerr << "\n";
 		}
 
+		if (cfg.schemaVersion < 1) {
+			// Legacy configs without version tag are treated as v0 and migrated by keeping parsed keys.
+			cfg.schemaVersion = CONFIG_SCHEMA_VERSION;
+		}
+
 		Validate(cfg);
 		out = cfg;
 
@@ -261,6 +273,7 @@ namespace ConfigManager {
 		Settings validatedSettings = s;
 		Validate(validatedSettings);
 
+		ofs << "schema_version=" << CONFIG_SCHEMA_VERSION << "\n";
 		ofs << "window_width=" << validatedSettings.resolution.width << "\n";
 		ofs << "window_height=" << validatedSettings.resolution.height << "\n";
 		ofs << "fullscreen=" << (validatedSettings.fullscreen ? "true" : "false") << "\n";

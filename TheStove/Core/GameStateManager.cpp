@@ -114,6 +114,16 @@ namespace Framework {
 	void GameStateManager::InitializeGameState(int GS, float dt) {
 		nextGS = currentGS = GS;
 
+		// Warm up target-state textures before switching (menu->level, level->cutscene).
+		if (jsonStatePaths.find(GS) != jsonStatePaths.end()) {
+			std::vector<std::string> targetTextures;
+			std::unordered_set<std::string> seen;
+			AppendLevelTextures(jsonStatePaths[GS], targetTextures, seen);
+			if (!targetTextures.empty()) {
+				ResourceManager::Instance().PreloadTextures(targetTextures);
+			}
+		}
+
 		// Prefer JSON mapping if available
 		if (TrySwitchJsonState(GS, dt)) {
 			init = true;
@@ -140,6 +150,16 @@ namespace Framework {
 		}
 
 		currentGS = newState;
+
+		// Warm up textures for the destination state before scene build.
+		if (jsonStatePaths.find(currentGS) != jsonStatePaths.end()) {
+			std::vector<std::string> targetTextures;
+			std::unordered_set<std::string> seen;
+			AppendLevelTextures(jsonStatePaths[currentGS], targetTextures, seen);
+			if (!targetTextures.empty()) {
+				ResourceManager::Instance().PreloadTextures(targetTextures);
+			}
+		}
 
 		// Prefer JSON mapping if available
 		if (TrySwitchJsonState(currentGS, dt)) {
