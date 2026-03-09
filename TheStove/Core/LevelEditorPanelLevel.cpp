@@ -6,13 +6,12 @@
  CO-AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (5%)
 					Vu Phan Hung, phanhung.vu@digipen.edu	(25%)
 
- DESCRIPTION:       Implementation of the Level panel.
-					- Load/Save levels to JSON
-					- Play/Stop scene simulation
-					- Hierarchy list and object inspector
-					- Add/Remove objects
-					- Drag-drop prefab/texture instantiation
-					- Keeps LevelData synchronized with Scene state
+ DESCRIPTION:       Implements the Level panel for the Level Editor, which manages the overall level state, including:
+					- Loading/saving level JSON files
+					- Managing play/stop state
+					- Displaying scene hierarchy and object properties
+					- Handling prefab/texture drag-drop instantiation
+					- Synchronizing LevelData with the Scene
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -36,8 +35,9 @@
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <filesystem>
+#ifdef _DEBUG
 #include <windows.h>
+#endif
 
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
@@ -51,7 +51,7 @@
 #include "LevelEditorPrefabLinks.hpp"
 #include "LevelEditorPanelFonts.hpp"  // Include for text object sync
 #include "LevelEditorActions.hpp"
-#include "LevelEditorAutosave.hpp"
+#include "LevelEditorAutoSave.hpp"
 #include "LevelEditorCommandSystem.hpp"
 #include "LevelEditorHierarchy.hpp"
 #include "InputManager.hpp"

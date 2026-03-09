@@ -5,7 +5,7 @@
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		Header for the Level Editor command system, which provides undo/redo functionality
-					by capturing and restoring snapshots of LevelData.
+					by recording snapshots of the level state before mutations and restoring them on demand.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

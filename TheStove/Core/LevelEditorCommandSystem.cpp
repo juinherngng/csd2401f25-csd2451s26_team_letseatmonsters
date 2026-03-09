@@ -4,10 +4,7 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
- DESCRIPTION:		Implementation of the Level Editor command system, which provides undo/redo functionality
-					by capturing and restoring snapshots of LevelData. The undo limit is configurable
-					via the LE_EDITOR_UNDO_LIMIT environment variable (default 50). Undo/redo stacks are
-					cleared when a new snapshot is recorded.
+ DESCRIPTION:		Implementation of the Level Editor command system, which provides undo/redo functionality.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

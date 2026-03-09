@@ -17,14 +17,9 @@
 
 #pragma once
 
-#include <algorithm>
 #include <filesystem>
-#include <iostream>
 #include <string>
-#include <unordered_map>
 
-#include "imgui.h"
-#include "imgui_internal.h"
 #include "LevelSerializer.hpp"
 #include "LevelEditorFileIO.hpp"
 
