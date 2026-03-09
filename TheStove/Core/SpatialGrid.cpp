@@ -32,6 +32,16 @@ namespace {
 		const int maxCellY = static_cast<int>(std::floor(box.max.y / cellSize)) + expandByCells;
 		return { minCellX, maxCellX, minCellY, maxCellY };
 	}
+
+	void EraseObjectFromBucket(std::vector<GameObject*>& bucket, GameObject* object) {
+		auto foundIt = std::find(bucket.begin(), bucket.end(), object);
+		if (foundIt == bucket.end()) {
+			return;
+		}
+
+		*foundIt = bucket.back();
+		bucket.pop_back();
+	}
 }
 
 SpatialGrid::SpatialGrid(float cellSize)
@@ -44,6 +54,7 @@ void SpatialGrid::Clear() {
 	objectAABBs_.clear();
 	queryVisitStamp_.clear();
 	queryCellCache_.clear();
+	updateCellCache_.clear();
 	queryStamp_ = 1;
 }
 
@@ -117,7 +128,7 @@ void SpatialGrid::Remove(GameObject* object) {
 			continue;
 		}
 		auto& bucket = cellIt->second;
-		bucket.erase(std::remove(bucket.begin(), bucket.end(), object), bucket.end());
+		EraseObjectFromBucket(bucket, object);
 		if (bucket.empty()) {
 			cells.erase(cellIt);
 		}
@@ -142,23 +153,55 @@ void SpatialGrid::Update(GameObject* object, const collision::AABB& box) {
 		return;
 	}
 
-	std::vector<Key> nextCells;
-	CollectCells(box, 0, nextCells);
+	CollectCells(box, 0, updateCellCache_);
 
 	auto existing = objectCells_.find(object);
-	if (existing != objectCells_.end() && existing->second == nextCells) {
-		existing->second = std::move(nextCells);
+	if (existing != objectCells_.end() && existing->second == updateCellCache_) {
 		objectAABBs_[object] = box;
 		++profile_.updateSkippedSameCells;
 		return;
 	}
 
-	Remove(object);
-	auto& touchedCells = objectCells_[object];
-	touchedCells = std::move(nextCells);
+	if (existing != objectCells_.end()) {
+		const std::vector<Key>& previousCells = existing->second;
+
+		size_t previousIndex = 0;
+		size_t nextIndex = 0;
+		while (previousIndex < previousCells.size() || nextIndex < updateCellCache_.size()) {
+			if (nextIndex >= updateCellCache_.size() ||
+				(previousIndex < previousCells.size() && previousCells[previousIndex] < updateCellCache_[nextIndex])) {
+				auto oldCellIt = cells.find(previousCells[previousIndex]);
+				if (oldCellIt != cells.end()) {
+					auto& bucket = oldCellIt->second;
+					EraseObjectFromBucket(bucket, object);
+					if (bucket.empty()) {
+						cells.erase(oldCellIt);
+					}
+				}
+				++previousIndex;
+			}
+			else if (previousIndex >= previousCells.size() || updateCellCache_[nextIndex] < previousCells[previousIndex]) {
+				auto& bucket = cells[updateCellCache_[nextIndex]];
+				ReserveBucketIfNeeded(bucket);
+				bucket.push_back(object);
+				++nextIndex;
+			}
+			else {
+				++previousIndex;
+				++nextIndex;
+			}
+		}
+
+		existing->second = updateCellCache_;
+		objectAABBs_[object] = box;
+		return;
+	}
+
+	auto& insertedCells = objectCells_[object];
+	insertedCells = updateCellCache_;
 	objectAABBs_[object] = box;
 
-	for (const Key key : touchedCells) {
+	for (const Key key : insertedCells) {
 		auto& bucket = cells[key];
 		ReserveBucketIfNeeded(bucket);
 		bucket.push_back(object);

@@ -16,13 +16,37 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 
 #include "AudioManager.hpp"
 #include "GameStateManager.hpp"
+#include "LevelSerializer.hpp"
 #include "RuntimeLevel.hpp"
 
+#include <unordered_set>
+#include <vector>
+
 namespace Framework {
+
+	namespace {
+		void AppendLevelTextures(const std::string& levelPath, std::vector<std::string>& inOutPaths, std::unordered_set<std::string>& seen) {
+			LevelData levelData;
+			if (!LevelSerializer::Load(levelPath, levelData)) {
+				return;
+			}
+
+			if (!levelData.background.empty() && seen.insert(levelData.background).second) {
+				inOutPaths.push_back(levelData.background);
+			}
+
+			for (const LevelObject& object : levelData.objects) {
+				if (!object.texture.empty() && seen.insert(object.texture).second) {
+					inOutPaths.push_back(object.texture);
+				}
+			}
+		}
+	}
 
 	extern int currentGS = 0, nextGS = 0;
 	extern bool init = false;
@@ -205,10 +229,29 @@ namespace Framework {
 		}
 #endif
 
+		PreloadJsonStateAssets(state);
+
 		fpInit = nullptr;
 		fpUpdate = nullptr;
 		fpExit = nullptr;
 		return true;
+	}
+
+	void GameStateManager::PreloadJsonStateAssets(int activeState) {
+		std::vector<std::string> texturePaths;
+		std::unordered_set<std::string> seen;
+
+		for (const auto& [state, levelPath] : jsonStatePaths) {
+			if (state == activeState) {
+				continue;
+			}
+
+			AppendLevelTextures(levelPath, texturePaths, seen);
+		}
+
+		if (!texturePaths.empty()) {
+			ResourceManager::Instance().PreloadTextures(texturePaths);
+		}
 	}
 
 	void GameStateManager::StopCurrentAudio() {
