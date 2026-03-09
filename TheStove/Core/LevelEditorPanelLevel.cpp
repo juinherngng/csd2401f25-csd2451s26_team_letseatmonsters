@@ -27,7 +27,10 @@ DESCRIPTION:       Implementation of the Level panel.
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cctype>
 #include <unordered_set>
+#include <unordered_map>
+#include <sstream>
 #include <iostream>
 #include <cstdio>
 #include <cmath>
@@ -85,6 +88,120 @@ static std::filesystem::path FindRepoRoot() {
 #endif
 
 namespace {
+	std::string ToLowerCopy(std::string value) {
+		std::transform(value.begin(), value.end(), value.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		return value;
+	}
+
+	bool PassesHierarchyFilter(const std::string& label, const std::string& filterLower) {
+		if (filterLower.empty()) {
+			return true;
+		}
+
+		return ToLowerCopy(label).find(filterLower) != std::string::npos;
+	}
+
+	struct HierarchyLabelCacheEntry {
+		std::string tag;
+		std::string texturePath;
+		std::string layer;
+		std::string label;
+	};
+
+	static std::unordered_map<int, HierarchyLabelCacheEntry> sHierarchyLabelCache;
+
+	const std::string& BuildCachedHierarchyLabel(Scene& scene, int objectId) {
+		auto& entry = sHierarchyLabelCache[objectId];
+		const Scene::Defaults defs = scene.GetDefaults(objectId);
+		const std::string texturePath = scene.GetObjectTexturePath(objectId);
+		const std::string layer = scene.GetObjectLayer(objectId);
+
+		if (entry.tag == defs.tag &&
+			entry.texturePath == texturePath &&
+			entry.layer == layer &&
+			!entry.label.empty()) {
+			return entry.label;
+		}
+
+		std::string niceName = defs.tag;
+		if (niceName.empty() && !texturePath.empty()) {
+			niceName = fs::path(texturePath).stem().string();
+		}
+
+		entry.tag = defs.tag;
+		entry.texturePath = texturePath;
+		entry.layer = layer;
+		entry.label = niceName.empty()
+			? ("ID " + std::to_string(objectId) + " [Layer: " + layer + "]")
+			: (niceName + " (ID " + std::to_string(objectId) + ") [Layer: " + layer + "]");
+
+		return entry.label;
+	}
+
+	static void InvalidateHierarchyLabelCache() {
+		sHierarchyLabelCache.clear();
+	}
+
+	static std::vector<std::string> CollectValidationIssues(Scene& scene) {
+		std::vector<std::string> issues;
+		std::unordered_set<std::string> uniqueTags;
+		std::vector<GameObject*> objects = scene.GetAllObjectsRaw();
+
+		for (GameObject* g : objects) {
+			if (!g) continue;
+			const int id = g->GetID();
+			const Scene::Defaults defs = scene.GetDefaults(id);
+			const std::string texPath = scene.GetObjectTexturePath(id);
+
+			if (texPath.empty()) {
+				issues.push_back("ID " + std::to_string(id) + ": missing texture path");
+			}
+			else if (ResourceManager::Instance().GetTexture("sprite_" + texPath) == nullptr) {
+				issues.push_back("ID " + std::to_string(id) + ": texture not loaded -> " + texPath);
+			}
+
+			if (!defs.tag.empty() && !uniqueTags.insert(defs.tag).second) {
+				issues.push_back("Duplicate tag detected: '" + defs.tag + "'");
+			}
+
+			const glm::vec3 sc = g->GetScaleGLM();
+			const auto col = g->GetColliderSize();
+			if (std::abs(sc.x - col.x) > 2.0f || std::abs(sc.y - col.y) > 2.0f) {
+				issues.push_back("ID " + std::to_string(id) + ": collider/render size mismatch");
+			}
+		}
+
+		for (const auto& t : LEPANELFONTS::GetTextObjects()) {
+			if (t.fontName.empty()) {
+				issues.push_back("Text object '" + t.name + "': missing font");
+			}
+			else if (ResourceManager::Instance().GetFont(t.fontName) == nullptr) {
+				issues.push_back("Text object '" + t.name + "': font not loaded -> " + t.fontName);
+			}
+		}
+
+		return issues;
+	}
+
+	static std::size_t HashLevelData(const LevelData& level) {
+		std::size_t seed = std::hash<std::string>{}(level.background);
+		seed ^= std::hash<std::size_t>{}(level.objects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		seed ^= std::hash<std::size_t>{}(level.textObjects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+		for (const auto& o : level.objects) {
+			seed ^= std::hash<std::string>{}(o.texture + o.tag + o.layer + o.prefabPath) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= std::hash<int>{}(static_cast<int>(o.x + o.y + o.w + o.h + o.rotation + o.colWidth + o.colHeight + o.colOffsetX + o.colOffsetY));
+		}
+
+		for (const auto& t : level.textObjects) {
+			seed ^= std::hash<std::string>{}(t.name + t.fontName + t.text + t.layer) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= std::hash<int>{}(static_cast<int>(t.x + t.y + t.scale + t.rotation));
+		}
+
+		return seed;
+	}
+
 	// Internal helpers for Level <-> Scene synchronization
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
@@ -755,6 +872,9 @@ namespace LEPANELLEVEL {
 			}
 		}
 
+		static std::size_t sLastSavedHash = 0;
+		static std::vector<std::string> sValidationIssues;
+
 		// Level actions in a compact grid to reduce horizontal crowding
 		if (ImGui::BeginTable("##LevelActionsGrid", 4, ImGuiTableFlags_SizingStretchSame)) {
 			// Row 1
@@ -782,6 +902,8 @@ namespace LEPANELLEVEL {
 
 					selectedIndex = -1;
 					selectedObjectId = -1;
+					InvalidateHierarchyLabelCache();
+					sLastSavedHash = HashLevelData(work);
 					ClearUndoHistory();
 				}
 			}
@@ -801,6 +923,8 @@ namespace LEPANELLEVEL {
 				fresh.objects.clear();
 				fresh.textObjects.clear();
 				fresh.background.clear();
+				InvalidateHierarchyLabelCache();
+				sLastSavedHash = HashLevelData(fresh);
 				ClearUndoHistory();
 			}
 
@@ -809,16 +933,23 @@ namespace LEPANELLEVEL {
 				LevelData& dst = editor.MutableLevel();
 				SyncSceneToLevel(scene, dst);
 				SyncTextObjectsToLevel(dst);  // Save text objects
+				const std::size_t currentHash = HashLevelData(dst);
 
-				std::cout << "[LevelPanel] Saving level to: " << editor.levelPath << std::endl;
-				std::cout << "[LevelPanel] Game objects: " << dst.objects.size() << std::endl;
-				std::cout << "[LevelPanel] Text objects: " << dst.textObjects.size() << std::endl;
-
-				if (LevelSerializer::Save(editor.levelPath, dst)) {
-					std::cout << "[LevelPanel] Level saved successfully!" << std::endl;
+				if (currentHash == sLastSavedHash) {
+					std::cout << "[LevelPanel] Save skipped (no dirty changes detected)." << std::endl;
 				}
 				else {
-					std::cerr << "[LevelPanel] ERROR: Failed to save level!" << std::endl;
+					std::cout << "[LevelPanel] Saving level to: " << editor.levelPath << std::endl;
+					std::cout << "[LevelPanel] Game objects: " << dst.objects.size() << std::endl;
+					std::cout << "[LevelPanel] Text objects: " << dst.textObjects.size() << std::endl;
+
+					if (LevelSerializer::Save(editor.levelPath, dst)) {
+						sLastSavedHash = currentHash;
+						std::cout << "[LevelPanel] Level saved successfully!" << std::endl;
+					}
+					else {
+						std::cerr << "[LevelPanel] ERROR: Failed to save level!" << std::endl;
+					}
 				}
 			}
 
@@ -832,6 +963,29 @@ namespace LEPANELLEVEL {
 			}
 
 			ImGui::EndDisabled();
+
+			ImGui::TableSetColumnIndex(3);
+			if (ImGui::Button("Validate Scene", ImVec2(-FLT_MIN, 0.0f))) {
+				sValidationIssues = CollectValidationIssues(scene);
+				ImGui::OpenPopup("Validation Report");
+			}
+
+			if (ImGui::BeginPopupModal("Validation Report", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+				if (sValidationIssues.empty()) {
+					ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "No validation issues found.");
+				}
+				else {
+					for (const std::string& issue : sValidationIssues) {
+						ImGui::BulletText("%s", issue.c_str());
+					}
+				}
+
+				if (ImGui::Button("Close", ImVec2(120, 0))) {
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
 
 			// Row 2
 			ImGui::TableNextRow();
@@ -899,6 +1053,10 @@ namespace LEPANELLEVEL {
 		DrawLayerManager(scene, selectedObjectId);
 
 		ImGui::SeparatorText("Hierarchy");
+		static char sHierarchyFilter[128] = "";
+		ImGui::SetNextItemWidth(-FLT_MIN);
+		ImGui::InputTextWithHint("##HierarchyFilter", "Filter by name, ID, or layer", sHierarchyFilter, IM_ARRAYSIZE(sHierarchyFilter));
+		const std::string filterLower = ToLowerCopy(std::string(sHierarchyFilter));
 
 		// Object Hierarchy – stable order independent of movement
 		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
@@ -922,6 +1080,26 @@ namespace LEPANELLEVEL {
 				return a->GetID() < b->GetID();
 			});
 
+		// Keep label cache bounded to live objects
+		{
+			std::unordered_set<int> liveIds;
+			liveIds.reserve(objectList.size());
+			for (GameObject* g : objectList) {
+				if (g) {
+					liveIds.insert(g->GetID());
+				}
+			}
+
+			for (auto it = sHierarchyLabelCache.begin(); it != sHierarchyLabelCache.end();) {
+				if (liveIds.find(it->first) == liveIds.end()) {
+					it = sHierarchyLabelCache.erase(it);
+				}
+				else {
+					++it;
+				}
+			}
+		}
+
 		// Keep hierarchy row in sync with selection by ID (click in Scene)
 		if (selectedObjectId != -1) {
 			int foundIndex = -1;
@@ -944,6 +1122,7 @@ namespace LEPANELLEVEL {
 		// Hierarchy
 		if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200.0f))) {
 			// Game Objects
+			int visibleGameObjectRows = 0;
 			for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
 				GameObject* g = objectList[i];
 				if (!g) {
@@ -951,29 +1130,12 @@ namespace LEPANELLEVEL {
 				}
 
 				const int gid = g->GetID();
-				std::string niceName;
-
-				// Prefer tag; fall back to texture stem
-				Scene::Defaults defs = scene.GetDefaults(gid);
-				if (!defs.tag.empty()) {
-					niceName = defs.tag;
-				}
-				else {
-					std::string texPath = scene.GetObjectTexturePath(gid);
-					if (!texPath.empty()) {
-						try {
-							niceName = fs::path(texPath).stem().string();
-						}
-						catch (...) {
-						}
-					}
+				const std::string& label = BuildCachedHierarchyLabel(scene, gid);
+				if (!PassesHierarchyFilter(label, filterLower)) {
+					continue;
 				}
 
-				std::string layer = scene.GetObjectLayer(gid);
-				std::string label = niceName.empty()
-					? ("ID " + std::to_string(gid) + " [Layer: " + layer + "]")
-					: (niceName + " (ID " + std::to_string(gid) + ") [Layer: " + layer + "]");
-
+				++visibleGameObjectRows;
 				ImGui::PushID(gid);
 				bool isSelected = (selectedObjectId == gid);
 
@@ -997,6 +1159,7 @@ namespace LEPANELLEVEL {
 			{
 				const auto& textObjs = LEPANELFONTS::GetTextObjects();
 				int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
+				int visibleTextRows = 0;
 
 				for (size_t i = 0; i < textObjs.size(); ++i) {
 					const auto& t = textObjs[i];
@@ -1008,6 +1171,11 @@ namespace LEPANELLEVEL {
 					}
 
 					std::string lbl = "[Text] " + t.name + " (" + t.fontName + ") [Layer: " + t.layer + "]";
+					if (!PassesHierarchyFilter(lbl, filterLower)) {
+						continue;
+					}
+
+					++visibleTextRows;
 
 					ImGui::PushID(static_cast<int>(i) + 100000);
 					bool isSelected = (selectedObjectId == -1 && selectedTextIdx == static_cast<int>(i));
@@ -1024,6 +1192,10 @@ namespace LEPANELLEVEL {
 					}
 
 					ImGui::PopID();
+				}
+
+				if (visibleGameObjectRows == 0 && visibleTextRows == 0) {
+					ImGui::TextDisabled("No objects match the active filter.");
 				}
 			}
 

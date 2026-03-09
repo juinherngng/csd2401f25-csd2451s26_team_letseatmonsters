@@ -34,6 +34,9 @@
 #include <imgui.h>
 #endif
 
+#include <future>
+#include <chrono>
+
 namespace fs = std::filesystem;
 
 using namespace LEFILEIO;
@@ -109,6 +112,48 @@ namespace LEPANELASSETS {
 
 		// Audio (.wav, .mp3) across assets + assets/Audio
 		static std::vector<std::string> sAudio = BuildAudioList();
+		static std::future<std::vector<std::string>> sTextureRefreshFuture;
+		static std::future<std::vector<std::string>> sAudioRefreshFuture;
+		static bool sTextureRefreshInProgress = false;
+		static bool sAudioRefreshInProgress = false;
+
+		auto TryConsumeRefreshJobs = [&]() {
+			if (sTextureRefreshInProgress &&
+				sTextureRefreshFuture.valid() &&
+				sTextureRefreshFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+				sTextures = sTextureRefreshFuture.get();
+				sTextureRefreshInProgress = false;
+			}
+
+			if (sAudioRefreshInProgress &&
+				sAudioRefreshFuture.valid() &&
+				sAudioRefreshFuture.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+				sAudio = sAudioRefreshFuture.get();
+				sAudioRefreshInProgress = false;
+			}
+			};
+
+		auto QueueTextureRefresh = [&]() {
+			if (sTextureRefreshInProgress) {
+				return;
+			}
+
+			sTextureRefreshFuture = std::async(std::launch::async, []() {
+				return ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
+				});
+			sTextureRefreshInProgress = true;
+			};
+
+		auto QueueAudioRefresh = [&]() {
+			if (sAudioRefreshInProgress) {
+				return;
+			}
+
+			sAudioRefreshFuture = std::async(std::launch::async, BuildAudioList);
+			sAudioRefreshInProgress = true;
+			};
+
+		TryConsumeRefreshJobs();
 
 		// Cache to avoid reloading preview textures every frame
 		static std::unordered_map<std::string, Texture*> sTexturePreviewCache;
@@ -133,7 +178,7 @@ namespace LEPANELASSETS {
 
 				if (!projectPath.empty()) {
 					// Refresh list after copy
-					sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
+					QueueTextureRefresh();
 
 					// Auto-apply to currently selected object unless Ctrl is held
 					ImGuiIO& io = ImGui::GetIO();
@@ -214,7 +259,7 @@ namespace LEPANELASSETS {
 						std::cout << "[Assets Panel] Normalized path: " << normalizedPath << std::endl;
 
 						// Refresh audio list after copy
-						sAudio = BuildAudioList();
+						QueueAudioRefresh();
 
 						// Auto-add to catalog if not already present
 						if (Audio::AudioCatalog::IsValidAudioFile(normalizedPath)) {
@@ -315,7 +360,12 @@ namespace LEPANELASSETS {
 		// Textures section
 		if (ImGui::CollapsingHeader("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Refresh##tex")) {
-				sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
+				QueueTextureRefresh();
+			}
+
+			if (sTextureRefreshInProgress) {
+				ImGui::SameLine();
+				ImGui::TextDisabled("Indexing textures...");
 			}
 
 			bool refreshTextures = false;
@@ -404,7 +454,7 @@ namespace LEPANELASSETS {
 			}
 
 			if (refreshTextures) {
-				sTextures = ListAssetsWithExt(FilePaths::Dirs::ASSETS_EDITOR, { ".png", ".jpg", ".jpeg" }, true);
+				QueueTextureRefresh();
 			}
 		}
 
@@ -413,7 +463,12 @@ namespace LEPANELASSETS {
 			// Catalog management buttons
 			ImGui::BeginGroup();
 			if (ImGui::Button("Refresh##audio")) {
-				sAudio = BuildAudioList();
+				QueueAudioRefresh();
+			}
+
+			if (sAudioRefreshInProgress) {
+				ImGui::SameLine();
+				ImGui::TextDisabled("Indexing audio...");
 			}
 
 			ImGui::SameLine();
@@ -795,7 +850,7 @@ namespace LEPANELASSETS {
 			}
 
 			if (refreshAudio) {
-				sAudio = BuildAudioList();
+				QueueAudioRefresh();
 			}
 		}
 
