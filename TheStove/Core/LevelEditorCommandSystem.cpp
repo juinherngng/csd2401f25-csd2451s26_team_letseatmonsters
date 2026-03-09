@@ -15,20 +15,49 @@
 
 #include "LevelEditor.hpp"
 #include "LevelEditorCommandSystem.hpp"
-#include "LevelSerializer.hpp"
 
 #include <cstdlib>
+#include <string>
 #include <vector>
 
 namespace {
-	int GetUndoLimit() {
-		const char* envValue = std::getenv("LE_EDITOR_UNDO_LIMIT");
-		if (!envValue) {
-			return 50;
+	constexpr const char* kUndoLimitEnvVar = "LE_EDITOR_UNDO_LIMIT";
+	constexpr int kDefaultUndoLimit = 50;
+
+	std::string ReadEnvVar(const char* key) {
+#ifdef _WIN32
+		char* rawValue = nullptr;
+		size_t len = 0;
+		if (_dupenv_s(&rawValue, &len, key) != 0 || rawValue == nullptr) {
+			return {};
 		}
 
-		const int parsed = std::atoi(envValue);
-		return parsed > 0 ? parsed : 50;
+		std::string value(rawValue);
+		std::free(rawValue);
+		return value;
+#else
+		const char* rawValue = std::getenv(key);
+		return rawValue ? std::string(rawValue) : std::string{};
+#endif
+	}
+
+	int ParsePositiveInt(const std::string& value, int fallback) {
+		if (value.empty()) {
+			return fallback;
+		}
+
+		char* end = nullptr;
+		const long parsed = std::strtol(value.c_str(), &end, 10);
+		if (end == value.c_str() || *end != '\0' || parsed <= 0) {
+			return fallback;
+		}
+
+		return static_cast<int>(parsed);
+	}
+
+	int GetUndoLimit() {
+		static const int undoLimit = ParsePositiveInt(ReadEnvVar(kUndoLimitEnvVar), kDefaultUndoLimit);
+		return undoLimit;
 	}
 
 	std::vector<LevelData> sUndoStack;
@@ -40,6 +69,27 @@ namespace {
 		if (stack.size() > static_cast<std::size_t>(GetUndoLimit())) {
 			stack.erase(stack.begin());
 		}
+	}
+
+	template <typename CaptureFn, typename RestoreFn>
+	bool ApplySnapshotFromHistory(LevelEditor& editor,
+		std::vector<LevelData>& source,
+		std::vector<LevelData>& destination,
+		const CaptureFn& capture,
+		const RestoreFn& restore) {
+		if (editor.IsPlaying() || source.empty() || !capture || !restore) {
+			return false;
+		}
+
+		LevelData current{};
+		capture(current);
+		BoundedPush(destination, std::move(current));
+
+		LevelData snap = source.back();
+		source.pop_back();
+		restore(snap);
+		editor.MutableLevel() = snap;
+		return true;
 	}
 }
 
@@ -59,35 +109,11 @@ namespace LECOMMAND {
 	}
 
 	bool Undo(LevelEditor& editor, const CaptureStateFn& capture, const RestoreStateFn& restore) {
-		if (editor.IsPlaying() || sUndoStack.empty() || !capture || !restore) {
-			return false;
-		}
-
-		LevelData current{};
-		capture(current);
-		BoundedPush(sRedoStack, std::move(current));
-
-		LevelData snap = sUndoStack.back();
-		sUndoStack.pop_back();
-		restore(snap);
-		editor.MutableLevel() = snap;
-		return true;
+		return ApplySnapshotFromHistory(editor, sUndoStack, sRedoStack, capture, restore);
 	}
 
 	bool Redo(LevelEditor& editor, const CaptureStateFn& capture, const RestoreStateFn& restore) {
-		if (editor.IsPlaying() || sRedoStack.empty() || !capture || !restore) {
-			return false;
-		}
-
-		LevelData current{};
-		capture(current);
-		BoundedPush(sUndoStack, std::move(current));
-
-		LevelData snap = sRedoStack.back();
-		sRedoStack.pop_back();
-		restore(snap);
-		editor.MutableLevel() = snap;
-		return true;
+		return ApplySnapshotFromHistory(editor, sRedoStack, sUndoStack, capture, restore);
 	}
 
 	void ClearHistory() {
