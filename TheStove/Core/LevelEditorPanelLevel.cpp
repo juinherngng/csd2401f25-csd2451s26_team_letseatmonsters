@@ -27,6 +27,7 @@ DESCRIPTION:       Implementation of the Level panel.
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <unordered_set>
 #include <iostream>
 #include <cstdio>
 #include <cmath>
@@ -87,6 +88,49 @@ namespace {
 	// Internal helpers for Level <-> Scene synchronization
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
+
+	static std::vector<std::string> BuildLayerNameList(const Scene& scene) {
+		struct LayerCache {
+			std::size_t keyHash = 0;
+			std::vector<std::string> names;
+		};
+		static LayerCache cache;
+
+		const auto& allLayers = scene.GetAllLayers();
+		std::size_t keyHash = allLayers.size();
+		for (const auto& pair : allLayers) {
+			keyHash ^= std::hash<std::string>{}(pair.first) + 0x9e3779b9 + (keyHash << 6) + (keyHash >> 2);
+		}
+
+		if (!cache.names.empty() && cache.keyHash == keyHash) {
+			return cache.names;
+		}
+
+		std::vector<std::string> layerNames;
+		layerNames.reserve(allLayers.size() + 1);
+
+		std::unordered_set<std::string> uniqueLayers;
+		uniqueLayers.reserve(allLayers.size() + 1);
+
+		uniqueLayers.insert("1");
+		layerNames.push_back("1");
+
+		for (const auto& pair : allLayers) {
+			const std::string& name = pair.first;
+			if (name.empty()) {
+				continue;
+			}
+
+			if (uniqueLayers.insert(name).second) {
+				layerNames.push_back(name);
+			}
+		}
+
+		std::sort(layerNames.begin(), layerNames.end());
+		cache.keyHash = keyHash;
+		cache.names = layerNames;
+		return layerNames;
+	}
 
 	// Helper to sync text objects from LevelData to editor state
 	void SyncTextObjectsToEditor(const LevelData& levelIn) {
@@ -160,7 +204,16 @@ namespace {
 	}
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-	static constexpr int MAX_UNDO = 50;
+	static int GetUndoLimit() {
+		const char* envValue = std::getenv("LE_EDITOR_UNDO_LIMIT");
+		if (!envValue) {
+			return 50;
+		}
+
+		const int parsed = std::atoi(envValue);
+		return parsed > 0 ? parsed : 50;
+	}
+
 	static std::vector<LevelData> sUndoStack;
 	static std::vector<LevelData> sRedoStack;
 
@@ -175,7 +228,7 @@ namespace {
 		SyncTextObjectsToLevel(snap);
 
 		sUndoStack.push_back(snap);
-		if (sUndoStack.size() > MAX_UNDO) {
+		if (sUndoStack.size() > GetUndoLimit()) {
 			sUndoStack.erase(sUndoStack.begin());
 		}
 
@@ -197,7 +250,7 @@ namespace {
 		SyncSceneToLevel(scene, current);
 		SyncTextObjectsToLevel(current);
 		sRedoStack.push_back(current);
-		if (sRedoStack.size() > MAX_UNDO) {
+		if (sRedoStack.size() > GetUndoLimit()) {
 			sRedoStack.erase(sRedoStack.begin());
 		}
 
@@ -227,7 +280,7 @@ namespace {
 		SyncSceneToLevel(scene, current);
 		SyncTextObjectsToLevel(current);
 		sUndoStack.push_back(current);
-		if (sUndoStack.size() > MAX_UNDO) {
+		if (sRedoStack.size() > GetUndoLimit()) {
 			sUndoStack.erase(sUndoStack.begin());
 		}
 
@@ -1224,21 +1277,8 @@ namespace LEPANELLEVEL {
 				currentLayer = "1";
 			}
 
-			// Build a sorted list of layer names (always include "Default")
-			std::vector<std::string> layerNames;
-			layerNames.reserve(scene.GetAllLayers().size() + 1);
-			layerNames.push_back("1");
-
-			const auto& allLayers = scene.GetAllLayers();
-			for (const auto& pair : allLayers) {
-				const std::string& name = pair.first;
-				if (name.empty()) {
-					continue;
-				}
-				if (std::find(layerNames.begin(), layerNames.end(), name) == layerNames.end()) {
-					layerNames.push_back(name);
-				}
-			}
+			// Build a sorted list of unique layer names (always includes "1")
+			std::vector<std::string> layerNames = BuildLayerNameList(scene);
 
 			std::sort(layerNames.begin(), layerNames.end());
 
@@ -1680,18 +1720,7 @@ namespace LEPANELLEVEL {
 				ImGui::NextColumn();
 				FullWidthNext();
 				{
-					std::vector<std::string> layerNames;
-					layerNames.push_back("1");
-
-					const auto& allLayers = scene.GetAllLayers();
-					for (const auto& pair : allLayers) {
-						const std::string& name = pair.first;
-						if (name.empty()) continue;
-						if (std::find(layerNames.begin(), layerNames.end(), name) == layerNames.end()) {
-							layerNames.push_back(name);
-						}
-					}
-					std::sort(layerNames.begin(), layerNames.end());
+					std::vector<std::string> layerNames = BuildLayerNameList(scene);
 
 					if (ImGui::BeginCombo("##TextLayer", textObj.layer.c_str())) {
 						for (const std::string& name : layerNames) {
