@@ -106,6 +106,9 @@ private:
 	// Returns icon dimensions tailored to the requested icon path
 	glm::vec2 GetIconSizeForPath(const char* iconPath) const;
 
+	// Maps dish enum to the icon texture shown in the thought bubble
+	const char* DishToIconPath(DishType dish) const;
+
 	// --- payment result VFX ---
 	int   payVFX_ID_ = -1;
 	float payVFXTimer_ = 0.0f;

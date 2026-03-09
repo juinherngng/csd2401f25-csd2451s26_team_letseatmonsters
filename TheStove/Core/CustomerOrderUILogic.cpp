@@ -211,6 +211,7 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 		else {
 			// WaitingForFood shows requested dish
 			DishType wanted = npcLogic->GetDesiredDishType();
+			EnsureBubbleIcon(scene, DishToIconPath(wanted));
 		}
 	}
 	else {
@@ -324,6 +325,17 @@ void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
 
 	if (payVFXTimer_ >= payVFXDuration_) {
 		DestroyPaymentVFX(scene);
+	}
+}
+
+
+const char* CustomerOrderUILogic::DishToIconPath(DishType dish) const {
+	switch (dish) {
+	case DishType::VegDish:  return "../assets/Salad.png";
+	case DishType::MeatDish: return "../assets/Meat.png";
+	case DishType::SoupDish: return "../assets/Soup.png";
+	case DishType::PoopDish:
+	default: return "../assets/PoopDish.png";
 	}
 }
 
