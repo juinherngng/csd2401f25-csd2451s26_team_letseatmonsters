@@ -88,7 +88,6 @@ namespace LEACTIONS {
 			ImGui::TableSetColumnIndex(0);
 			DrawActionButtonDisabled("Redo", editor.IsPlaying(), callbacks.onRedo);
 
-			ImGui::EndDisabled();
 			ImGui::TableSetColumnIndex(1);
 			DrawActionButtonDisabled("Play", editor.IsPlaying(), callbacks.onPlay);
 
