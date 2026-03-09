@@ -47,6 +47,7 @@
 #include "../Core/Quota.hpp"
 #include "../Core/OrderUILogic.hpp"
 #include "../Core/GridPathfinder.hpp"
+#include "../Core/ReplayManager.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"
@@ -372,6 +373,18 @@ public:
 		return pauseOverlayActive_;
 	}
 
+	// Replay state exposure
+	bool IsReplayPlaybackActive() const {
+		return replayManager_.IsPlaybackActive();
+	}
+	float GetReplayFrameDt() const {
+		return lastReplayFrameDt_;
+	}
+	bool HasReplayFrameDt() const {
+		return lastReplayFrameDt_ > 0.0f;
+	}
+
+
 	// Menu button text rendering
 #if 0
 	void CreateMenuButtonTexts();
@@ -453,6 +466,7 @@ private:
 	MovementManager& movementManager;		// Changed from owned instance to reference
 	CollisionManager& collisionManager;		// Changed from owned instance to reference
 	PhysicsManager& physicsManager;			// Changed from owned instance to reference
+	ReplayManager replayManager_;
 
 	// Audio for UI sounds
 	AudioManager* audioManager_ = nullptr;
@@ -472,6 +486,9 @@ private:
 	bool simulationActive = false;
 	bool useForces_ = false;
 	bool showAuxDebug_ = false;
+
+	// Replay state
+	float lastReplayFrameDt_ = 0.0f;
 
 	// ID tracking for important objects (player, NPCs, etc.)
 	int spriteID = -1;

@@ -15,6 +15,7 @@
 
 #include "../Core/FontSystem.hpp"
 #include "../Core/LevelEditorPanelFonts.hpp"
+#include "../Core/InputManager.hpp"
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
@@ -650,7 +651,9 @@ bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& out
 		return false;
 	}
 
-	const ImVec2 mouse = ImGui::GetMousePos();
+	const glm::dvec2 mousePos = InputManager::Get().GetMousePosition();
+	const ImVec2 mouse(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+
 	if (mouse.x < scenePos.x || mouse.y < scenePos.y ||
 		mouse.x > scenePos.x + outSceneSize.x || mouse.y > scenePos.y + outSceneSize.y) {
 		return false;
@@ -666,14 +669,21 @@ bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& out
 
 	double mouseX = 0.0;
 	double mouseY = 0.0;
-	glfwGetCursorPos(win, &mouseX, &mouseY);
+	if (InputManager::Get().IsReplayOverride()) {
+		const glm::dvec2 replayMouse = InputManager::Get().GetMousePosition();
+		mouseX = replayMouse.x;
+		mouseY = replayMouse.y;
+	}
+	else {
+		glfwGetCursorPos(win, &mouseX, &mouseY);
+	}
 
 	const float vx = static_cast<float>(viewportX_);
 	const float vy = static_cast<float>(viewportY_);
 	const float vw = static_cast<float>(viewportW_);
 	const float vh = static_cast<float>(viewportH_);
 	if (vw <= 0.0f || vh <= 0.0f || mouseX < vx || mouseY < vy ||
-		mouseX >(vx + vw) || mouseY >(vy + vh)) {
+		mouseX > (vx + vw) || mouseY > (vy + vh)) {
 		return false;
 	}
 
@@ -1094,7 +1104,7 @@ void GraphicsEngine::RenderTextObjects() {
 	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
+	_sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),

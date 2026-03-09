@@ -122,16 +122,59 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	UpdateAnimationControls();
 #endif
 
+	static constexpr const char* kReplayFilePath = "replays/last.replay";
+
+	const bool allowReplayHotkeys = !replayManager_.IsPlaybackActive();
+	if (allowReplayHotkeys) {
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_F5)) {
+			if (replayManager_.IsRecording()) {
+				replayManager_.StopRecording(kReplayFilePath);
+			}
+			else {
+				replayManager_.StartRecording();
+			}
+		}
+
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_F6)) {
+			replayManager_.StartPlayback(kReplayFilePath);
+		}
+	}
+
+	float frameDt = deltaTime;
+	if (replayManager_.IsPlaybackActive()) {
+		InputManager::Snapshot snapshot{};
+		float replayDt = frameDt;
+
+		if (replayManager_.GetNextPlaybackFrame(snapshot, replayDt)) {
+			inputManager.SetReplayOverride(true);
+			inputManager.ApplySnapshot(snapshot);
+			frameDt = replayDt;
+		}
+		else {
+			replayManager_.StopPlayback();
+			inputManager.SetReplayOverride(false);
+		}
+	}
+	else {
+		inputManager.SetReplayOverride(false);
+	}
+
+	if (replayManager_.IsRecording()) {
+		replayManager_.RecordFrame(inputManager, frameDt);
+	}
+
+	lastReplayFrameDt_ = replayManager_.IsPlaybackActive() ? frameDt : 0.0f;
+
 	// Drive both cutscene players every frame so transitions progress
-	UpdateCutsceneTransitioned(deltaTime);
-	UpdateCutscene(deltaTime);
+	UpdateCutsceneTransitioned(frameDt);
+	UpdateCutscene(frameDt);
 
 	UpdateLevelTransition();
 
 	// Handle pending pause audio (pause channels after fade completes)
 #ifndef _DEBUG
 	if (pauseAudioPending_ && audioManager_) {
-		pauseAudioTimer_ -= deltaTime;
+		pauseAudioTimer_ -= frameDt;
 		if (pauseAudioTimer_ <= 0.0f) {
 			// Fade completed, now pause the channels to stop playback
 			audioManager_->PauseChannel("bgm_MyoonchiDiner_LevelTheme");
@@ -202,19 +245,19 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 #endif
 
-	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
+	const float physicsDt = physicsStep_.resolveDt(inputManager, frameDt);
 	lastPhysicsDt_ = physicsDt;
 
 	// Always update logic (menu buttons need this even with simulation disabled)
 	logicManager.StartAll(*this);
-	logicManager.UpdateAll(deltaTime, *this, inputManager);
+	logicManager.UpdateAll(frameDt, *this, inputManager);
 
 	// Seat customers at tables once
 	customerManager_.Update(physicsDt, *this);
 
 	if (simulationActive) {
 		float prevTime = Economy::gTimeRemaining;
-		Economy::Update(deltaTime, *this);
+		Economy::Update(frameDt, *this);
 #ifdef _DEBUG
 		(void)prevTime;
 #endif
@@ -344,10 +387,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Update runtime particles
-	particleSystem_.Update(deltaTime, entityManager);
+	particleSystem_.Update(frameDt, entityManager);
 
 	// Update any UI slide-in animations regardless of simulation flag
-	UpdateUiSlides(deltaTime);
+	UpdateUiSlides(frameDt);
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
@@ -363,7 +406,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 #ifndef _DEBUG
 	// Update FPS accumulator when enabled (release builds only)
 	if (showFPS_) {
-		fpsAccumTime_ += deltaTime;
+		fpsAccumTime_ += frameDt;
 		fpsAccumFrames_ += 1;
 		if (fpsAccumTime_ >= fpsUpdateInterval_) {
 			float avg = static_cast<float>(fpsAccumFrames_) / fpsAccumTime_;

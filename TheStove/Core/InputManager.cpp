@@ -47,7 +47,9 @@ namespace {
 		GLFW_KEY_2,
 		GLFW_KEY_3,
 		GLFW_KEY_ESCAPE, // Menu toggle in Release
-		GLFW_KEY_F1		 // FPS display toggle in Release
+		GLFW_KEY_F1,		// FPS display toggle in Release
+		GLFW_KEY_F5,
+		GLFW_KEY_F6
 	};
 
 	// We track mouse buttons separately since they have different semantics and are often used in combination with ImGui's WantCaptureMouse.
@@ -74,6 +76,10 @@ void InputManager::Initialize() {
 }
 void InputManager::Update(float dt) {
 	(void)dt; // Suppress unused parameter warning	
+
+	if (replayOverride_) {
+		return;
+	}
 
 	if (mWindow) {
 		UpdateInternal(mWindow);
@@ -213,4 +219,49 @@ void InputManager::ConsumeNextMousePress(int button) {
 
 void InputManager::ClearMouseConsume(int button) {
 	mConsumeNextMousePress.erase(button);
+}
+
+void InputManager::CaptureSnapshot(Snapshot& out) const {
+	out.pressedKeys.clear();
+	out.pressedMouseButtons.clear();
+
+	for (const auto& [key, pressed] : mCurrentKeyStates) {
+		if (pressed) {
+			out.pressedKeys.push_back(key);
+		}
+	}
+
+	for (const auto& [button, pressed] : mMouseButtons) {
+		if (pressed) {
+			out.pressedMouseButtons.push_back(button);
+		}
+	}
+
+	out.mousePos = mMousePos;
+}
+
+void InputManager::ApplySnapshot(const Snapshot& snapshot) {
+	mPreviousKeyStates = mCurrentKeyStates;
+	mPrevMouseButtons = mMouseButtons;
+
+	mCurrentKeyStates.clear();
+	mMouseButtons.clear();
+
+	for (int key : snapshot.pressedKeys) {
+		mCurrentKeyStates[key] = true;
+	}
+
+	for (int button : snapshot.pressedMouseButtons) {
+		mMouseButtons[button] = true;
+	}
+
+	mMousePos = snapshot.mousePos;
+}
+
+void InputManager::SetReplayOverride(bool enable) {
+	replayOverride_ = enable;
+}
+
+bool InputManager::IsReplayOverride() const {
+	return replayOverride_;
 }

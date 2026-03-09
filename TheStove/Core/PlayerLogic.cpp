@@ -22,6 +22,7 @@
 #include "../Core/SimpleNpcLogic.hpp"
 #include "../Core/CustomerOrderUILogic.hpp"
 #include "../Core/PlayerLogic.hpp"
+#include "../Core/EngineRng.hpp"
 #include "../Graphics/SceneManager.hpp"
 
 #include <algorithm>
@@ -952,7 +953,8 @@ void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManag
 			trailPos.y -= dir.y * behind;
 
 			const glm::vec2 perp(-dir.y, dir.x);
-			const float jitter = ((std::rand() % 1000) / 1000.0f - 0.5f) * 3.0f;
+			static std::uniform_real_distribution<float> jitterDist(-1.5f, 1.5f);
+			const float jitter = jitterDist(EngineRng::Get());
 			trailPos.x += perp.x * jitter;
 			trailPos.y += perp.y * jitter;
 

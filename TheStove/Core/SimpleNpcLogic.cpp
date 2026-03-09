@@ -16,6 +16,7 @@
 #include "../Core/Collision.hpp"  // for WalkArea definition
 #include "../Core/Physics.hpp"      // optional, if you want clamp helpers
 #include "../Graphics/SceneManager.hpp"
+#include "../Core/EngineRng.hpp"
 
 #include "SimpleNpcLogic.hpp"
 
@@ -767,7 +768,7 @@ DishType SimpleNpcLogic::RollRandomDish() {
 
 	static std::mt19937 rng{ std::random_device{}() };
 	std::uniform_int_distribution<int> dist(0, (int)(sizeof(kPool) / sizeof(kPool[0])) - 1);
-	return kPool[dist(rng)];
+    return kPool[dist(EngineRng::Get())];
 }
 
 void SimpleNpcLogic::OnPatienceExpired(Scene& scene) {
