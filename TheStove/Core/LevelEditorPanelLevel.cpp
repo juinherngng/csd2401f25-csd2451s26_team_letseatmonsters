@@ -51,7 +51,6 @@
 #include "LevelEditorPrefabLinks.hpp"
 #include "LevelEditorPanelFonts.hpp"  // Include for text object sync
 #include "LevelEditorActions.hpp"
-#include "LevelEditorAutoSave.hpp"
 #include "LevelEditorCommandSystem.hpp"
 #include "LevelEditorHierarchy.hpp"
 #include "InputManager.hpp"
@@ -712,43 +711,6 @@ namespace LEPANELLEVEL {
 			});
 
 		static std::size_t sLastSavedHash = 0;
-		static bool sCheckedRecovery = false;
-		static bool sShowRecoveryPopup = false;
-
-		if (!sCheckedRecovery) {
-			sCheckedRecovery = true;
-			sShowRecoveryPopup = LEAUTOSAVE::HasRecoveryCandidate(editor.levelPath);
-			if (sShowRecoveryPopup) {
-				ImGui::OpenPopup("Autosave Recovery");
-			}
-		}
-
-		if (ImGui::BeginPopupModal("Autosave Recovery", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-			ImGui::TextWrapped("An autosave file was found. Recover the autosaved scene?");
-			if (ImGui::Button("Recover", ImVec2(120.0f, 0.0f))) {
-				LevelData recovered{};
-				if (LEAUTOSAVE::LoadRecovery(editor.levelPath, recovered)) {
-					scene.ClearAll();
-					LEPANELFONTS::ClearTextObjects();
-					SyncLevelToScene(recovered, scene);
-					SyncTextObjectsToEditor(recovered);
-					scene.RebuildColliders();
-					editor.MutableLevel() = recovered;
-					sLastSavedHash = HashLevelData(recovered);
-					LEHIERARCHY::InvalidateCache();
-				}
-
-				ImGui::CloseCurrentPopup();
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("Discard", ImVec2(120.0f, 0.0f))) {
-				LEAUTOSAVE::DiscardRecovery(editor.levelPath);
-				ImGui::CloseCurrentPopup();
-			}
-
-			ImGui::EndPopup();
-		}
 
 		LEACTIONS::DrawActionGrid(editor, scene, {
 			[&]() {
@@ -803,7 +765,6 @@ namespace LEPANELLEVEL {
 
 				if (currentHash != sLastSavedHash && LevelSerializer::Save(editor.levelPath, dst)) {
 					sLastSavedHash = currentHash;
-					LEAUTOSAVE::DiscardRecovery(editor.levelPath);
 				}
 			},
 			[&]() { return PerformUndo(editor, scene); },
@@ -834,11 +795,6 @@ namespace LEPANELLEVEL {
 				editor.SetPlaying(false);
 			}
 			});
-
-		LevelData autosaveState{};
-		SyncSceneToLevel(scene, autosaveState);
-		SyncTextObjectsToLevel(autosaveState);
-		LEAUTOSAVE::Tick(editor.levelPath, autosaveState, ImGui::GetIO().DeltaTime);
 
 		DrawLayerManager(scene, selectedObjectId);
 
