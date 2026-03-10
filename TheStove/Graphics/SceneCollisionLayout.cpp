@@ -16,10 +16,14 @@
  */
 
 #include "SceneManager.hpp"
+#include "../Core/JSONInclude.hpp"
 
 #include <array>
 #include <cmath>
 #include <vector>
+#include <fstream>
+#include <iostream>
+#include <string>
 
  // Level constants (reference resolution + tile size)
 static constexpr float kRefW = static_cast<float>(GraphicsEngine::kRefW);
@@ -103,6 +107,108 @@ namespace {
 
 	inline glm::vec3 toG(const Math::Vector3D& v) {
 		return glm::vec3(v.x, v.y, v.z);
+	}
+
+	struct CollisionLayoutData {
+		collision::WalkArea walkArea{};
+		std::vector<collision::AABB> walls;
+	};
+
+	constexpr const char* kCollisionLevel1Path = "../levels/collision_level1.json";
+	constexpr const char* kCollisionLevel2Path = "../levels/collision_level2.json";
+
+	const char* ResolveCollisionLayoutPath(const std::string& levelPath) {
+		if (levelPath.find("kitchen02") != std::string::npos) {
+			return kCollisionLevel2Path;
+		}
+		return kCollisionLevel1Path;
+	}
+
+	CollisionLayoutData BuildFallbackLayout() {
+		CollisionLayoutData data;
+		data.walkArea = collision::WalkArea{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+
+		collision::WoodVertical wood{
+			kWoodX0, kWoodX1,
+			kWoodTopMinY, kWoodTopMaxY,
+			kWoodGapMinY, kWoodGapMaxY,
+			kWoodBotMinY, kWoodBotMaxY
+		};
+
+		collision::StageEndGateVertical gate{
+			kEndVX0, kEndVX1,
+			kEndVTopMinY, kEndVTopMaxY,
+			kEndVGapMinY, kEndVGapMaxY,
+			kEndVBotMinY, kEndVBotMaxY
+		};
+
+		auto pushRect = [&data](float x0, float y0, float x1, float y1) {
+			collision::AABB r{};
+			r.min = Math::Vector2D(x0, y0);
+			r.max = Math::Vector2D(x1, y1);
+			data.walls.push_back(r);
+			};
+
+		pushRect(data.walkArea.L - data.walkArea.edgeThick, data.walkArea.T, data.walkArea.L, data.walkArea.B);
+		pushRect(data.walkArea.R, data.walkArea.T, data.walkArea.R + data.walkArea.edgeThick, gate.gapMinY);
+		pushRect(data.walkArea.R, gate.gapMaxY, data.walkArea.R + data.walkArea.edgeThick, data.walkArea.B);
+		pushRect(data.walkArea.L, data.walkArea.T - data.walkArea.edgeThick, data.walkArea.R, data.walkArea.T);
+		pushRect(data.walkArea.L, data.walkArea.B, data.walkArea.R, data.walkArea.B + data.walkArea.edgeThick);
+		pushRect(wood.x0, wood.topMinY, wood.x1, wood.topMaxY);
+		pushRect(wood.x0, wood.botMinY, wood.x1, wood.botMaxY);
+		pushRect(gate.x0, gate.topMinY, gate.x1, gate.topMaxY);
+		pushRect(gate.x0, gate.botMinY, gate.x1, gate.botMaxY);
+
+		return data;
+	}
+
+	bool LoadCollisionLayout(const std::string& path, CollisionLayoutData& out) {
+		std::ifstream input(path);
+		if (!input.is_open()) {
+			return false;
+		}
+
+		nlohmann::json root;
+		input >> root;
+
+		const auto& walk = root.at("walk_area");
+		out.walkArea = collision::WalkArea{
+			walk.at("left").get<float>(),
+			walk.at("right").get<float>(),
+			walk.at("top").get<float>(),
+			walk.at("bottom").get<float>(),
+			walk.at("edge_thickness").get<float>()
+		};
+
+		out.walls.clear();
+		for (const auto& wall : root.at("walls")) {
+			const auto& min = wall.at("min");
+			const auto& max = wall.at("max");
+
+			collision::AABB box{};
+			box.min = Math::Vector2D(min.at(0).get<float>(), min.at(1).get<float>());
+			box.max = Math::Vector2D(max.at(0).get<float>(), max.at(1).get<float>());
+			out.walls.push_back(box);
+		}
+
+		return !out.walls.empty();
+	}
+
+	CollisionLayoutData GetCollisionLayoutForScene(const Scene& scene) {
+		CollisionLayoutData data;
+		const char* path = ResolveCollisionLayoutPath(scene.GetCurrentLevelPath());
+
+		try {
+			if (LoadCollisionLayout(path, data)) {
+				return data;
+			}
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "[SceneCollisionLayout] Failed to parse collision layout '" << path << "': " << ex.what() << std::endl;
+		}
+
+		std::cerr << "[SceneCollisionLayout] Using fallback collision layout for: " << path << std::endl;
+		return BuildFallbackLayout();
 	}
 
 	// Build an AABB in world/reference space from tile coordinates.
@@ -217,30 +323,15 @@ glm::vec2 Scene::ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta
 }
 
 collision::WalkArea Scene::GetWalkArea() const {
-	// Uses the internal level constants defined at top of this file
-	return collision::WalkArea{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	return GetCollisionLayoutForScene(*this).walkArea;
 }
 
 // Collision world construction for this level
 void Scene::BuildLevelColliders() {
-	collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	const CollisionLayoutData layout = GetCollisionLayoutForScene(*this);
 
-	collision::WoodVertical wood{
-		kWoodX0, kWoodX1,
-		kWoodTopMinY, kWoodTopMaxY,
-		kWoodGapMinY, kWoodGapMaxY,
-		kWoodBotMinY, kWoodBotMaxY
-	};
-
-	collision::StageEndGateVertical gate{
-		kEndVX0, kEndVX1,
-		kEndVTopMinY, kEndVTopMaxY,
-		kEndVGapMinY, kEndVGapMaxY,
-		kEndVBotMinY, kEndVBotMaxY
-	};
-
-	// Build all static walls (outer frame + wood + gate)
-	collisionManager.BuildWalls(walk, wood, gate);
+	collisionManager.Clear();
+	collisionManager.AddStaticRects(layout.walls);
 
 	// Get a pointer to the shared collision world
 	collision::World* world = &collisionManager.GetCollisionWorld();
@@ -274,7 +365,7 @@ void Scene::ApplyFinalConstraints(EntityManager& entityMgr) {
 		kEndVBotMinY, kEndVBotMaxY
 	};
 
-	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	const collision::WalkArea walk = GetWalkArea();
 
 	Math::Vector3D posM = toM(position);
 	physics::ClampInsideWalkWithGate(walk, gate, sprite, posM);
@@ -306,7 +397,7 @@ void Scene::ResolveInitialStaticOverlaps() {
 	const float gateBotY0 = kEndVBotMinY, gateBotY1 = kEndVBotMaxY;
 
 	// Walkable outer frame – clamp into this first.
-	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	const collision::WalkArea walk = GetWalkArea();
 
 	std::vector<GameObject*> objs = entityManager.GetAllObjects();
 
@@ -366,7 +457,6 @@ void Scene::ResolveInitialStaticOverlaps() {
 }
 
 void Scene::RebuildColliders() {
-	collisionManager.Clear();
 	BuildLevelColliders();
 }
 

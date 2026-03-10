@@ -280,6 +280,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 				std::cerr << "[Scene] Deferred level load failed: " << pendingLevelPath_ << std::endl;
 			}
 			else {
+				SetCurrentLevelPath(pendingLevelPath_);
 				RebuildColliders();
 				SetSimulationActive(pendingLevelSimActive_);
 				inputManager.ClearState(); // avoid stale click replay

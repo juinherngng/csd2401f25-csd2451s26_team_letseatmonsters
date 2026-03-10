@@ -350,6 +350,12 @@ public:
 
 	// Level loading queue
 	void QueueLevelLoad(const std::string& path, bool activateSimulation);
+	void SetCurrentLevelPath(const std::string& path) {
+		currentLevelPath_ = path;
+	}
+	const std::string& GetCurrentLevelPath() const {
+		return currentLevelPath_;
+	}
 	bool HasPendingLevel() const {
 		return hasPendingLevel_;
 	}
