@@ -255,8 +255,8 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 		switch (facingDir) {
 		case FacingDir::Right: desiredAnimation = isHolding ? "IDLE_RIGHT_CARRY" : "IDLE_RIGHT"; break;
 		case FacingDir::Left:  desiredAnimation = isHolding ? "IDLE_LEFT_CARRY" : "IDLE_LEFT";  break;
-		case FacingDir::Front: desiredAnimation = isHolding ? "IDLE_FRONT" : "IDLE_FRONT"; break;			// Using normal idle for front since we dont have idle front carry animations yet
-		case FacingDir::Back:  desiredAnimation = isHolding ? "IDLE_BACK" : "IDLE_BACK";  break;			// Using normal idle for back since we dont have idle back carry animations yet
+		case FacingDir::Front: desiredAnimation = isHolding ? "IDLE_FRONT_CARRY" : "IDLE_FRONT"; break;			// Using normal idle for front since we dont have idle front carry animations yet
+		case FacingDir::Back:  desiredAnimation = isHolding ? "IDLE_BACK_CARRY" : "IDLE_BACK";  break;			// Using normal idle for back since we dont have idle back carry animations yet
 		}
 	}
 	else {

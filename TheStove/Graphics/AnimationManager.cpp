@@ -120,8 +120,11 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 
 	std::vector<glm::vec4> choppingFrames = CreateFrameSequenceRow(4, 0, 4, 17, 8);
 
-	std::vector<glm::vec4> leftCarryIdleFrames = CreateFrameSequenceRow(1, 0, 7, 17, 8);
-	std::vector<glm::vec4> rightCarryIdleFrames = CreateFlippedFramesX(leftCarryIdleFrames);
+	std::vector<glm::vec4> leftCarryIdleFrames = CreateFrameSequenceRow(3, 0, 7, 17, 8);
+	std::vector<glm::vec4> rightCarryIdleFrames = CreateFrameSequenceRow(2, 0, 7, 17, 8);
+	std::vector<glm::vec4> frontCarryIdleFrames = CreateFrameSequenceRow(1, 0, 7, 17, 8);
+	std::vector<glm::vec4> backCarryIdleFrames = CreateFrameSequenceRow(0, 0, 7, 17, 8);
+
 
 	animationSets_[objectID]["IDLE_FRONT"] = AnimationSet{ frontIdleFrames, 0.15f, true };
 	animationSets_[objectID]["IDLE_BACK"] = AnimationSet{ backIdleFrames, 0.15f, true };
@@ -142,6 +145,9 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 
 	animationSets_[objectID]["IDLE_LEFT_CARRY"] = AnimationSet{ leftCarryIdleFrames, 0.15f, true };
 	animationSets_[objectID]["IDLE_RIGHT_CARRY"] = AnimationSet{ rightCarryIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_FRONT_CARRY"] = AnimationSet{ frontCarryIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_BACK_CARRY"] = AnimationSet{ backCarryIdleFrames, 0.15f, true };
+
 
 	const auto& idleAnim = animationSets_[objectID]["IDLE_FRONT"];
 	anim.SetFrames(idleAnim.frames, idleAnim.frameDuration, idleAnim.loop);
