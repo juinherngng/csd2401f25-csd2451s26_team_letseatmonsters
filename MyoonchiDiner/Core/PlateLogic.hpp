@@ -9,16 +9,16 @@
 					dish-recipe matching, storing ingredient types, and determining
 					the final dish output (VegDish, MeatDish, SoupDish, etc.).
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
 #pragma once
 
-#include "FoodTypes.hpp"
-#include "GameObjectLogic.hpp"
-#include "IngredientLogic.hpp"
 #include <vector>
+#include "../Core/GameObjectLogic.hpp"
+#include "../Core/FoodTypes.hpp"
+#include "../Core/IngredientLogic.hpp"
 
  // PlateLogic
  //  - Represents a plate that can accept refined ingredients and assemble them into a dish.
@@ -31,8 +31,9 @@ class PlateLogic : public GameObjectLogic {
 public:
 	explicit PlateLogic(int ownerID);
 
-	void Start(Scene& scene) override;
-	void Update(float dt, Scene& scene, InputManager& input) override;
+    void Start(Scene& scene) override;
+    void Update(float dt, Scene& scene, InputManager& input) override;
+    void OnDestroy(Scene& scene) override;
 
 	// ----- Ingredient placement -----
 

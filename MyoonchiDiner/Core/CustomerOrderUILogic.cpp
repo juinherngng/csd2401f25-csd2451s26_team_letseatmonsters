@@ -8,7 +8,7 @@
 					and updating customer order UI elements such as the order bubble,
 					patience bar, and payment result feedback attached to a customer.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -31,18 +31,6 @@ static float Clamp01(float v) {
 	if (v < 0.f) return 0.f;
 	if (v > 1.f) return 1.f;
 	return v;
-}
-
-const char* CustomerOrderUILogic::DishToIconPath(DishType t) const {
-	// Using same textures as your plate visuals (works immediately).
-	// If you have separate UI icons, swap paths here.
-	switch (t) {
-	case DishType::VegDish:  return "../assets/Salad.png";
-	case DishType::MeatDish: return "../assets/Meat.png";
-	case DishType::SoupDish: return "../assets/Soup.png";
-	case DishType::PoopDish: return "../assets/PoopDish.png";
-	default:                 return "../assets/PoopDish.png";
-	}
 }
 
 void CustomerOrderUILogic::Start(Scene& /*scene*/) {
@@ -68,11 +56,6 @@ void CustomerOrderUILogic::DestroyBubble(Scene& scene) {
 void CustomerOrderUILogic::DestroyPatienceBar(Scene& scene) {
 	DespawnIfAlive(scene, barFill_ID_);
 	DespawnIfAlive(scene, barBG_ID_);
-}
-
-void CustomerOrderUILogic::EnsureBubble(Scene& scene, DishType dish) {
-	const char* iconPath = DishToIconPath(dish);
-	EnsureBubbleIcon(scene, iconPath);
 }
 
 void CustomerOrderUILogic::UpdateIconTexture(Scene& scene, const char* iconPath) {
@@ -192,18 +175,30 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 	auto state = npcLogic->GetBehaviourState();
 	const int curStateInt = (int)state;
 
-	// Spawn result VFX exactly when payment is taken (Paying -> Leaving)
-	if (prevBehaviourState_ == (int)SimpleNpcLogic::BehaviourState::Paying &&
-		curStateInt == (int)SimpleNpcLogic::BehaviourState::Leaving) {
-		// pay $0 => sad, pay money => happy
-		const char* face = npcLogic->WillPayZero() ? sadFacePath_ : happyFacePath_;
-		SpawnPaymentVFX(scene, face);
-	}
+    const int leavingInt = (int)SimpleNpcLogic::BehaviourState::Leaving;
+    const int payingInt = (int)SimpleNpcLogic::BehaviourState::Paying;
 
-	// Bubble shown only in WaitingForFood or Paying
-	const bool showBubble =
-		(state == SimpleNpcLogic::BehaviourState::WaitingForFood ||
-			state == SimpleNpcLogic::BehaviourState::Paying);
+    const bool enteredLeaving = (prevBehaviourState_ != leavingInt && curStateInt == leavingInt);
+
+    if (enteredLeaving)
+    {
+        // Case A: normal flow (player took payment)
+        if (prevBehaviourState_ == payingInt)
+        {
+            const char* face = npcLogic->WillPayZero() ? sadFacePath_ : happyFacePath_;
+            SpawnPaymentVFX(scene, face);
+        }
+        // Case B: unhappy auto-leave (wrong dish / patience expired)
+        else if (npcLogic->WillPayZero())
+        {
+            SpawnPaymentVFX(scene, sadFacePath_);
+        }
+    }
+
+    // Bubble shown only in WaitingForFood or Paying
+    const bool showBubble =
+        (state == SimpleNpcLogic::BehaviourState::WaitingForFood) ||
+        (state == SimpleNpcLogic::BehaviourState::Paying && !npcLogic->WillPayZero());
 
 	const bool showBar =
 		(state == SimpleNpcLogic::BehaviourState::WaitingForFood);
@@ -216,7 +211,7 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 		else {
 			// WaitingForFood shows requested dish
 			DishType wanted = npcLogic->GetDesiredDishType();
-			EnsureBubble(scene, wanted);
+			EnsureBubbleIcon(scene, DishToIconPath(wanted));
 		}
 	}
 	else {
@@ -330,6 +325,17 @@ void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
 
 	if (payVFXTimer_ >= payVFXDuration_) {
 		DestroyPaymentVFX(scene);
+	}
+}
+
+
+const char* CustomerOrderUILogic::DishToIconPath(DishType dish) const {
+	switch (dish) {
+	case DishType::VegDish:  return "../assets/Salad.png";
+	case DishType::MeatDish: return "../assets/Meat.png";
+	case DishType::SoupDish: return "../assets/Soup.png";
+	case DishType::PoopDish:
+	default: return "../assets/PoopDish.png";
 	}
 }
 

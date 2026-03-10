@@ -116,16 +116,78 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	UpdateAnimationControls();
 #endif
 
+	static constexpr const char* kReplayFilePath = "replays/last.replay";
+
+	// Replay/record control first, before any gameplay input is consumed.
+	if (!replayManager_.IsPlaybackActive()) {
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_F5)) {
+			if (replayManager_.IsRecording()) {
+				replayManager_.StopRecording(kReplayFilePath);
+			}
+			else {
+				replayManager_.StartRecording(currentLevelPath_, simulationActive);
+			}
+		}
+
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_F6)) {
+			if (replayManager_.StartPlayback(kReplayFilePath)) {
+				const std::string& replayLevelPath = replayManager_.GetRecordedLevelPath();
+				if (!replayLevelPath.empty()) {
+					if (RuntimeLevel::LoadAndBuild(replayLevelPath, *this)) {
+						currentLevelPath_ = replayLevelPath;
+						RebuildColliders();
+						SetSimulationActive(replayManager_.GetRecordedSimulationActive());
+						
+					}
+					 else {
+						std::cerr << "[Scene] Replay baseline load failed: " << replayLevelPath << std::endl;
+						
+					}		
+				}	
+				// Flush live edge states so replay starts cleanly.
+				inputManager.ClearState();
+				inputManager.SetReplayOverride(true);
+			}
+		}
+	}
+
+	float frameDt = deltaTime;
+
+	if (replayManager_.IsPlaybackActive()) {
+		InputManager::Snapshot snapshot{};
+		float replayDt = frameDt;
+
+		if (replayManager_.GetNextPlaybackFrame(snapshot, replayDt)) {
+			inputManager.SetReplayOverride(true);
+			inputManager.ApplySnapshot(snapshot); // authoritative input for this frame
+			frameDt = replayDt;
+		}
+		else {
+			replayManager_.StopPlayback();
+			inputManager.SetReplayOverride(false);
+			inputManager.ClearState();
+		}
+	}
+	else {
+		inputManager.SetReplayOverride(false);
+	}
+
+	if (replayManager_.IsRecording()) {
+		replayManager_.RecordFrame(inputManager, frameDt);
+	}
+
+	lastReplayFrameDt_ = replayManager_.IsPlaybackActive() ? frameDt : 0.0f;
+
 	// Drive both cutscene players every frame so transitions progress
-	UpdateCutsceneTransitioned(deltaTime);
-	UpdateCutscene(deltaTime);
+	UpdateCutsceneTransitioned(frameDt);
+	UpdateCutscene(frameDt);
 
 	UpdateLevelTransition();
 
 	// Handle pending pause audio (pause channels after fade completes)
 #ifndef _DEBUG
 	if (pauseAudioPending_ && audioManager_) {
-		pauseAudioTimer_ -= deltaTime;
+		pauseAudioTimer_ -= frameDt;
 		if (pauseAudioTimer_ <= 0.0f) {
 			// Fade completed, now pause the channels to stop playback
 			if (!pauseMusicChannel_.empty()) {
@@ -147,8 +209,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		return;
 	}
 
-	// while any cutscene is active, discard input so UI/buttons cannot be pressed (this might need tweaking later, for future cutscenes that need input)
+	// while any cutscene is active, allow space to skip, then discard input
 	if (IsAnyCutsceneActive()) {
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_SPACE)) {
+			SkipActiveCutscene();
+		}
 		inputManager.ClearState();
 	}
 	else {
@@ -197,20 +262,67 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 #endif
 
-	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
+	const float physicsDt = physicsStep_.resolveDt(inputManager, frameDt);
 	lastPhysicsDt_ = physicsDt;
 
 	// Always update logic (menu buttons need this even with simulation disabled)
 	logicManager.StartAll(*this);
-	logicManager.UpdateAll(deltaTime, *this, inputManager);
+	logicManager.UpdateAll(frameDt, *this, inputManager);
 
 	// Seat customers at tables once
 	if (customerUpdateHook_) {
 		customerUpdateHook_(physicsDt, *this);
 	}
 
-	if (simulationActive && simulationUpdateHook_) {
-		simulationUpdateHook_(deltaTime, *this);
+	if (simulationActive) {
+		float prevTime = Economy::gTimeRemaining;
+		Economy::Update(frameDt, *this);
+#ifdef _DEBUG
+		(void)prevTime;
+#endif
+
+		// Play timer warning sounds (release mode only)
+#ifndef _DEBUG
+		if (audioManager_) {
+			float currentTime = Economy::gTimeRemaining;
+
+			// Play sfx_remaining_time when timer reaches 10 seconds
+			if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
+				Economy::gPlayed10SecWarning = true;
+				if (audioManager_->HasSound("sfx_remaining_time")) {
+					audioManager_->PlaySound("sfx_remaining_time", audioManager_->GetVfxVolume(), false);
+				}
+			}
+
+			// Play sfx_beep at 3, 2, and 1 seconds
+			if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
+				Economy::gPlayed3SecBeep = true;
+				if (audioManager_->HasSound("sfx_beep")) {
+					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
+				}
+			}
+			if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
+				Economy::gPlayed2SecBeep = true;
+				if (audioManager_->HasSound("sfx_beep")) {
+					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
+				}
+			}
+			if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
+				Economy::gPlayed1SecBeep = true;
+				if (audioManager_->HasSound("sfx_beep")) {
+					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
+				}
+			}
+
+			// Play sfx_time_up when timer reaches 0
+			if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
+				Economy::gPlayedTimeUp = true;
+				if (audioManager_->HasSound("sfx_time_up")) {
+					audioManager_->PlaySound("sfx_time_up", audioManager_->GetVfxVolume(), false);
+				}
+			}
+		}
+#endif
 	}
 
 	if (simulationActive) {
@@ -230,6 +342,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 				std::cerr << "[Scene] Deferred level load failed: " << pendingLevelPath_ << std::endl;
 			}
 			else {
+				currentLevelPath_ = pendingLevelPath_;
 				RebuildColliders();
 				SetSimulationActive(pendingLevelSimActive_);
 				inputManager.ClearState(); // avoid stale click replay
@@ -265,10 +378,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Update runtime particles
-	particleSystem_.Update(deltaTime, entityManager);
+	particleSystem_.Update(frameDt, entityManager);
 
 	// Update any UI slide-in animations regardless of simulation flag
-	UpdateUiSlides(deltaTime);
+	UpdateUiSlides(frameDt);
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
@@ -284,7 +397,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 #ifndef _DEBUG
 	// Update FPS accumulator when enabled (release builds only)
 	if (showFPS_) {
-		fpsAccumTime_ += deltaTime;
+		fpsAccumTime_ += frameDt;
 		fpsAccumFrames_ += 1;
 		if (fpsAccumTime_ >= fpsUpdateInterval_) {
 			float avg = static_cast<float>(fpsAccumFrames_) / fpsAccumTime_;
@@ -566,7 +679,14 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 				return la < lb;
 			}
 
-			// Same layer - lower Y drawn first (higher on screen appears behind)
+			// Same layer: use explicit sort order first
+			int sa = a->GetRenderSortOrder();
+			int sb = b->GetRenderSortOrder();
+			if (sa != sb) {
+				return sa < sb;
+			}
+
+			// Same layer & same sort order - lower Y drawn first (higher on screen appears behind)
 			return a->GetPosition().y < b->GetPosition().y;
 		}
 	);
@@ -647,8 +767,60 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	// ALWAYS wipe old logic from this object
 	logicManager.RemoveAllFor(id, *this);
 
-	if (tagLogicBinder_) {
-		tagLogicBinder_(*this, id, tag);
+	//std::cout << "[Scene] AttachLogicForTag id=" << id << " tag='" << tag << "'\n";
+
+	// Add only the logic that matches the new tag
+	if (tag == "player") {
+		logicManager.AddLogic<PlayerLogic>(id);
+		spriteID = id;
+		animationManager.AttachPlayerAnimations(id);
+	}
+	else if (tag == "customer_template") {
+		logicManager.AddLogic<SimpleNpcLogic>(id);
+		animationManager.AttachCustomersAnimations(id);
+	}
+	else if (tag == "table") {
+		logicManager.AddLogic<TableLogic>(id);
+	}
+	else if (tag == "work_table") {
+		logicManager.AddLogic<WorkTableLogic>(id);
+	}
+	else if (tag == "work_vfx_cut") { animationManager.AttachWorkVfxCutAnimations(id); }
+	else if (tag == "work_vfx_grill") { animationManager.AttachWorkVfxGrillAnimations(id); }
+	else if (tag == "work_vfx_stove") { animationManager.AttachWorkVfxStoveAnimations(id); }
+	else if (tag == "customer_table") {
+		logicManager.AddLogic<CustomerTableLogic>(id);
+	}
+	else if (tag == "ingredient_box") {
+		logicManager.AddLogic<IngredientBoxLogic>(id);
+	}
+	else if (tag == "plate_box") {
+		logicManager.AddLogic<IngredientBoxLogic>(id);
+	}
+	else if (tag == "exit_gate") {
+		logicManager.AddLogic<ExitGateLogic>(id);
+		RegisterExitGate(id);
+	}
+	else if (tag == "trash_box") {
+		logicManager.AddLogic<TrashCanLogic>(id);
+		RegisterExitGate(id);
+	}
+	else if (tag == "order_ui_logic") {
+		logicManager.AddLogic<OrderUILogic>(id);
+	}
+
+	// Menu buttons etc
+	else if (tag == "btn_play") {
+		auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, FilePaths::Levels::KITCHEN_01, true);
+		if (logic && audioManager_) {
+			logic->SetAudioManager(audioManager_);
+		}
+	}
+	else if (tag == "btn_howtoplay") {
+		logicManager.AddLogic<HowToPlayButtonLogic>(id);
+	}
+	else if (tag == "btn_quit") {
+		logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
 	}
 }
 
@@ -1814,5 +1986,40 @@ void Scene::UpdateLevelTransition() {
 		cutTrans_.fadeInAfterLoad = true;
 
 		levelTrans_.active = false;
+	}
+}
+
+// Called from MenuButtonLogic when player clicks spacebar (to skip) during cutscene
+void Scene::SkipActiveCutscene() {
+	if (cutTrans_.active) {
+		auto& gfx = GetGraphicsEngine();
+		if (!gfx.IsTransitionActive()) {
+			gfx.StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+		}
+
+		cutTrans_.awaitingBlackout = true;
+		cutTrans_.holding = false;
+		cutTrans_.crossfading = false;
+		cutTrans_.holdElapsed = 0.0f;
+
+		if (!cutTrans_.images.empty()) {
+			cutTrans_.index = cutTrans_.images.size() - 1;
+		}
+
+#ifndef _DEBUG
+		if (audioManager_) {
+			audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", 0.0f, cutTrans_.outSeconds);
+		}
+#endif
+	}
+
+	if (cutscene_.active) {
+		CleanupCutsceneObjects();
+		cutscene_.active = false;
+
+		if (!cutscene_.queuedFinalLoad) {
+			cutscene_.queuedFinalLoad = true;
+			QueueLevelLoad(cutscene_.targetLevelJson, cutscene_.targetActivateSim);
+		}
 	}
 }

@@ -26,6 +26,7 @@
 #include <glm/glm.hpp>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
  /**
   * @class InputManager
@@ -36,6 +37,13 @@
   */
 class InputManager : public CoreFramework::SystemInterface {
 public:
+
+	struct Snapshot {
+		std::vector<int> pressedKeys;
+		std::vector<int> pressedMouseButtons;
+		glm::dvec2 mousePos{ 0.0, 0.0 };
+	};
+
 	// Lifetime / Access
 	InputManager();
 	static InputManager& Get();
@@ -69,6 +77,12 @@ public:
 	void ConsumeNextMousePress(int button);
 	void ClearMouseConsume(int button);
 
+	void CaptureSnapshot(Snapshot& out) const;
+	void ApplySnapshot(const Snapshot& snapshot);
+
+	void SetReplayOverride(bool enable);
+	bool IsReplayOverride() const;
+
 private:
 	// Internal update method that takes window
 	void UpdateInternal(GLFWwindow* window);
@@ -91,4 +105,6 @@ private:
 
 	// Set of mouse buttons whose next press will be consumed
 	std::unordered_set<int> mConsumeNextMousePress;
+
+	bool replayOverride_ = false;
 };

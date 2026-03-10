@@ -214,6 +214,10 @@ public:
 		return renderLayer_;
 	}
 
+	// Secondary render order within the same layer (higher draws later)
+	void SetRenderSortOrder(int order) { renderSortOrder_ = order; }
+	int GetRenderSortOrder() const { return renderSortOrder_; }
+
 private:
 	Mesh* m_Mesh;
 	Shader* m_Shader;
@@ -251,4 +255,5 @@ private:
 
 	bool m_TransformDirty = true;
 	bool m_BroadphaseDirty = true;
+	int renderSortOrder_ = 0; // Tie-breaker for render ordering within a layer
 };

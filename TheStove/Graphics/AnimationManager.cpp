@@ -102,16 +102,29 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 
 	Animator2D& anim = animators_[objectID];
 
-	// Player sprite sheets: 8 columns x 15 rows
-	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(14, 0, 7, 15, 8);
-	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(13, 0, 7, 15, 8);
-	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(12, 0, 7, 15, 8);
-	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(11, 0, 7, 15, 8);
+	// Player sprite sheets: 8 columns x 17 rows
+	std::vector<glm::vec4> backIdleFrames = CreateFrameSequenceRow(16, 0, 7, 17, 8);
+	std::vector<glm::vec4> frontIdleFrames = CreateFrameSequenceRow(15, 0, 7, 17, 8);
+	std::vector<glm::vec4> leftIdleFrames = CreateFrameSequenceRow(14, 0, 7, 17, 8);
+	std::vector<glm::vec4> rightIdleFrames = CreateFrameSequenceRow(13, 0, 7, 17, 8);
 
-	std::vector<glm::vec4> backWalkFrames = CreateFrameSequenceRow(10, 0, 7, 15, 8);
-	std::vector<glm::vec4> frontWalkFrames = CreateFrameSequenceRow(9, 0, 7, 15, 8);
-	std::vector<glm::vec4> leftWalkFrames = CreateFrameSequenceRow(8, 0, 7, 15, 8);
-	std::vector<glm::vec4> rightWalkFrames = CreateFrameSequenceRow(7, 0, 7, 15, 8);
+	std::vector<glm::vec4> backWalkFrames = CreateFrameSequenceRow(12, 0, 7, 17, 8);
+	std::vector<glm::vec4> frontWalkFrames = CreateFrameSequenceRow(11, 0, 7, 17, 8);
+	std::vector<glm::vec4> leftWalkFrames = CreateFrameSequenceRow(10, 0, 7, 17, 8);
+	std::vector<glm::vec4> rightWalkFrames = CreateFrameSequenceRow(9, 0, 7, 17, 8);
+
+	std::vector<glm::vec4> backCarryFrames = CreateFrameSequenceRow(8, 0, 7, 17, 8);
+	std::vector<glm::vec4> leftCarryFrames = CreateFrameSequenceRow(7, 0, 7, 17, 8);
+	std::vector<glm::vec4> rightCarryFrames = CreateFrameSequenceRow(6, 0, 7, 17, 8);
+	std::vector<glm::vec4> frontCarryFrames = CreateFrameSequenceRow(5, 0, 7, 17, 8);
+
+	std::vector<glm::vec4> choppingFrames = CreateFrameSequenceRow(4, 0, 4, 17, 8);
+
+	std::vector<glm::vec4> leftCarryIdleFrames = CreateFrameSequenceRow(3, 0, 7, 17, 8);
+	std::vector<glm::vec4> rightCarryIdleFrames = CreateFrameSequenceRow(2, 0, 7, 17, 8);
+	std::vector<glm::vec4> frontCarryIdleFrames = CreateFrameSequenceRow(1, 0, 7, 17, 8);
+	std::vector<glm::vec4> backCarryIdleFrames = CreateFrameSequenceRow(0, 0, 7, 17, 8);
+
 
 	animationSets_[objectID]["IDLE_FRONT"] = AnimationSet{ frontIdleFrames, 0.15f, true };
 	animationSets_[objectID]["IDLE_BACK"] = AnimationSet{ backIdleFrames, 0.15f, true };
@@ -122,6 +135,19 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 	animationSets_[objectID]["WALK_BACK"] = AnimationSet{ backWalkFrames, 0.15f, true };
 	animationSets_[objectID]["WALK_LEFT"] = AnimationSet{ leftWalkFrames, 0.15f, true };
 	animationSets_[objectID]["WALK_RIGHT"] = AnimationSet{ rightWalkFrames, 0.15f, true };
+
+	animationSets_[objectID]["CARRY_BACK"] = AnimationSet{ backCarryFrames, 0.15f, true };
+	animationSets_[objectID]["CARRY_LEFT"] = AnimationSet{ leftCarryFrames, 0.15f, true };
+	animationSets_[objectID]["CARRY_RIGHT"] = AnimationSet{ rightCarryFrames, 0.15f, true };
+	animationSets_[objectID]["CARRY_FRONT"] = AnimationSet{ frontCarryFrames, 0.15f, true };
+
+	animationSets_[objectID]["CHOP"] = AnimationSet{ choppingFrames, 0.05f, true };
+
+	animationSets_[objectID]["IDLE_LEFT_CARRY"] = AnimationSet{ leftCarryIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_RIGHT_CARRY"] = AnimationSet{ rightCarryIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_FRONT_CARRY"] = AnimationSet{ frontCarryIdleFrames, 0.15f, true };
+	animationSets_[objectID]["IDLE_BACK_CARRY"] = AnimationSet{ backCarryIdleFrames, 0.15f, true };
+
 
 	const auto& idleAnim = animationSets_[objectID]["IDLE_FRONT"];
 	anim.SetFrames(idleAnim.frames, idleAnim.frameDuration, idleAnim.loop);
@@ -162,6 +188,107 @@ void AnimationManager::AttachNPCAnimations(int objectID) {
 	const auto& frontAnim = animationSets_[objectID]["front"];
 	anim.SetFrames(frontAnim.frames, frontAnim.frameDuration, frontAnim.loop);
 	currentAnimations_[objectID] = "front";
+	anim.Play();
+}
+
+void AnimationManager::AttachCustomersAnimations(int objectID) {
+	Animator2D& anim = animators_[objectID];
+	constexpr int kTotalRows = 9;
+	constexpr int kTotalCols = 8;
+
+	// ----- Choose rows for each animation -----
+	//idle
+	const int idleFrontRow = 8;
+	const int idleLeftRow = 5;
+	const int idleRightRow = 3;
+
+	//walk
+	const int walkFrontRow = 7;
+	const int walkBackRow = 6;
+	const int walkLeftRow = 1;
+	const int walkRightRow = 0;
+
+	//eat
+	const int eatLeftRow = 4;
+	const int eatRightRow = 2;
+
+	// ----- Build frame lists -----
+	auto idleFront = CreateFrameSequenceRow(idleFrontRow, 0, 7, kTotalRows, kTotalCols);
+	auto idleLeft = CreateFrameSequenceRow(idleLeftRow, 0, 7, kTotalRows, kTotalCols);
+	auto idleRight = CreateFrameSequenceRow(idleRightRow, 0, 7, kTotalRows, kTotalCols);
+	auto idleBack = CreateFrameSequenceRow(idleFrontRow, 0, 7, kTotalRows, kTotalCols);
+
+	auto walkFront = CreateFrameSequenceRow(walkFrontRow, 0, 7, kTotalRows, kTotalCols);
+	auto walkBack = CreateFrameSequenceRow(walkBackRow, 0, 7, kTotalRows, kTotalCols);
+	auto walkLeft = CreateFrameSequenceRow(walkLeftRow, 0, 7, kTotalRows, kTotalCols);
+	auto walkRight = CreateFrameSequenceRow(walkRightRow, 0, 7, kTotalRows, kTotalCols);
+
+	auto eatLeft = CreateFrameSequenceRow(eatLeftRow, 0, 4, kTotalRows, kTotalCols);
+	auto eatRight = CreateFrameSequenceRow(eatRightRow, 0, 4, kTotalRows, kTotalCols);
+
+	// ----- Register animation sets -----
+	// Tune durations to taste
+	const float idleDur = 0.15f;
+	const float walkDur = 0.12f;
+	const float eatDur = 0.15f;
+
+	animationSets_[objectID]["IDLE_FRONT"] = { idleFront, idleDur, true };
+	animationSets_[objectID]["IDLE_LEFT"] = { idleLeft,  idleDur, true };
+	animationSets_[objectID]["IDLE_RIGHT"] = { idleRight, idleDur, true };
+
+	animationSets_[objectID]["WALK_FRONT"] = { walkFront, walkDur, true };
+	animationSets_[objectID]["WALK_BACK"] = { walkBack, walkDur, true };
+	animationSets_[objectID]["WALK_LEFT"] = { walkLeft,  walkDur, true };
+	animationSets_[objectID]["WALK_RIGHT"] = { walkRight, walkDur, true };
+
+	animationSets_[objectID]["EAT_LEFT"] = { eatLeft,   eatDur,  true };
+	animationSets_[objectID]["EAT_RIGHT"] = { eatRight,  eatDur,  true };
+
+	// Set default animation
+	const auto& clip = animationSets_[objectID]["IDLE_FRONT"];
+	anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
+	currentAnimations_[objectID] = "IDLE_FRONT";
+	anim.Play();
+
+	std::cout << "[AnimationManager] Attached NPC animations to object " << objectID << std::endl;
+}
+
+void AnimationManager::AttachWorkVfxCutAnimations(int objectID)
+{
+	Animator2D& anim = animators_[objectID];
+
+	auto frames = CreateFrameSequenceRow(1, 0, 3, 6, 6);
+	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
+
+	const auto& clip = animationSets_[objectID]["LOOP"];
+	anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
+	currentAnimations_[objectID] = "LOOP";
+	anim.Play();
+}
+
+void AnimationManager::AttachWorkVfxGrillAnimations(int objectID)
+{
+	Animator2D& anim = animators_[objectID];
+
+	auto frames = CreateFrameSequenceRow(4, 0, 3, 6, 6);
+	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
+
+	const auto& clip = animationSets_[objectID]["LOOP"];
+	anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
+	currentAnimations_[objectID] = "LOOP";
+	anim.Play();
+}
+
+void AnimationManager::AttachWorkVfxStoveAnimations(int objectID)
+{
+	Animator2D& anim = animators_[objectID];
+
+	auto frames = CreateFrameSequenceRow(5, 0, 3, 6, 6);
+	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
+
+	const auto& clip = animationSets_[objectID]["LOOP"];
+	anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
+	currentAnimations_[objectID] = "LOOP";
 	anim.Play();
 }
 
@@ -313,7 +440,19 @@ std::vector<glm::vec4> AnimationManager::CreateFrameSequenceRow(int row, int sta
 	return frames;
 }
 
+// Flips frames horizontally
+std::vector<glm::vec4> AnimationManager::CreateFlippedFramesX(const std::vector<glm::vec4>& frames) {
+	std::vector<glm::vec4> flipped;
+	flipped.reserve(frames.size());
 
+	for (const auto& frame : frames) {
+		const float flippedU = frame.x + frame.z;  // move to right edge
+		const float flippedW = -frame.z;          // negative width = mirror
+		flipped.push_back(glm::vec4(flippedU, frame.y, flippedW, frame.w));
+	}
+
+	return flipped;
+}
 
 // ===== Play/Pause Control =====
 

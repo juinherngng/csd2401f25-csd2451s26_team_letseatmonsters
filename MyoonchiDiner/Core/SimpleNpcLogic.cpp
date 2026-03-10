@@ -12,12 +12,11 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "Core/AudioManager.hpp"
-#include "Core/Collision.hpp"  // for WalkArea definition
-#include "Core/CustomerTableLogic.hpp"
-#include "Core/ExitGateLogic.hpp"
-#include "Core/Physics.hpp"      // optional, if you want clamp helpers
-#include "Graphics/SceneManager.hpp"
+#include "../Core/AudioManager.hpp"
+#include "../Core/Collision.hpp"  // for WalkArea definition
+#include "../Core/Physics.hpp"      // optional, if you want clamp helpers
+#include "../Graphics/SceneManager.hpp"
+#include "../Core/EngineRng.hpp"
 
 #include "SimpleNpcLogic.hpp"
 
@@ -42,6 +41,277 @@ void SimpleNpcLogic::Awake(Scene& scene) {
 	payZero_ = false;
 	patienceRatioAtServe_ = 0.0f;
 
+    moveMode_ = MoveMode::None;
+    moveTarget_ = glm::vec2(0.0f, 0.0f);
+    hasMoveTarget_ = false;
+    pathPoints_.clear();
+    pathIndex_ = 0;
+    finalTarget_ = glm::vec2(0.0f, 0.0f);
+    directPathCheckTimer_ = 0.0f;
+}
+
+void SimpleNpcLogic::ClearNavigationMove()
+{
+    moveMode_ = MoveMode::None;
+    moveTarget_ = glm::vec2(0.0f, 0.0f);
+    hasMoveTarget_ = false;
+    pathPoints_.clear();
+    pathIndex_ = 0;
+    finalTarget_ = glm::vec2(0.0f, 0.0f);
+    directPathCheckTimer_ = 0.0f;
+}
+
+void SimpleNpcLogic::BeginMoveDirect(const glm::vec2& dest)
+{
+    finalTarget_ = dest;
+    moveTarget_ = dest;
+    pathPoints_.clear();
+    pathIndex_ = 0;
+    hasMoveTarget_ = true;
+    moveMode_ = MoveMode::Direct;
+    directPathCheckTimer_ = 0.0f;
+}
+
+void SimpleNpcLogic::BeginMoveTo(Scene& scene, const glm::vec2& dest)
+{
+    GameObject* npc = GetOwner(scene);
+    if (!npc) {
+        ClearNavigationMove();
+        return;
+    }
+
+    finalTarget_ = dest;
+    pathPoints_.clear();
+    pathIndex_ = 0;
+    hasMoveTarget_ = false;
+    moveMode_ = MoveMode::Pathfinding;
+    directPathCheckTimer_ = 0.0f;
+
+    const glm::vec3 pos3 = npc->GetPositionGLM();
+    const glm::vec2 startPos(pos3.x, pos3.y);
+
+    if (!scene.FindPathForObject(npc->GetID(), startPos, finalTarget_, pathPoints_)) {
+        ClearNavigationMove();
+        return;
+    }
+
+    const float kSkipWaypointRadius = 18.0f;
+    while (!pathPoints_.empty()) {
+        glm::vec2 d = pathPoints_.front() - startPos;
+        if ((d.x * d.x + d.y * d.y) <= kSkipWaypointRadius * kSkipWaypointRadius) {
+            pathPoints_.erase(pathPoints_.begin());
+        }
+        else {
+            break;
+        }
+    }
+
+    if (pathPoints_.empty()) {
+        ClearNavigationMove();
+        return;
+    }
+
+    hasMoveTarget_ = true;
+    moveTarget_ = pathPoints_[0];
+}
+
+void SimpleNpcLogic::EnsureNavigationPlan(Scene& scene, GameObject* npc, const glm::vec2& desiredTarget)
+{
+    if (!npc) return;
+
+    glm::vec2 snappedTarget = desiredTarget;
+    scene.GetNearestNavigationCellCenterForObject(npc->GetID(), desiredTarget, snappedTarget);
+
+    constexpr float kRetargetEpsSq = 16.0f * 16.0f;
+
+    if (hasMoveTarget_ || moveMode_ != MoveMode::None) {
+        glm::vec2 d = snappedTarget - finalTarget_;
+        if ((d.x * d.x + d.y * d.y) <= kRetargetEpsSq) {
+            return;
+        }
+    }
+
+    const glm::vec3 pos3 = npc->GetPositionGLM();
+    const glm::vec2 start(pos3.x, pos3.y);
+
+    if (scene.HasDirectPathForObject(npc->GetID(), start, snappedTarget)) {
+        BeginMoveDirect(snappedTarget);
+    }
+    else {
+        BeginMoveTo(scene, snappedTarget);
+    }
+}
+
+bool SimpleNpcLogic::UpdateNavigationMove(float dt, Scene& scene, GameObject* npc)
+{
+    if (!npc || !hasMoveTarget_) {
+        return false;
+    }
+
+    glm::vec3 pos3 = npc->GetPositionGLM();
+    glm::vec2 pos(pos3.x, pos3.y);
+
+    const float arriveRadius = 6.0f;
+    const float arriveRadiusSq = arriveRadius * arriveRadius;
+
+    // Live shortcut while pathfinding
+    if (moveMode_ == MoveMode::Pathfinding) {
+        directPathCheckTimer_ -= dt;
+
+        if (directPathCheckTimer_ <= 0.0f) {
+            directPathCheckTimer_ = kDirectPathCheckInterval;
+
+            if (scene.HasDirectPathForObject(npc->GetID(), pos, finalTarget_)) {
+                moveMode_ = MoveMode::Direct;
+                moveTarget_ = finalTarget_;
+                pathPoints_.clear();
+                pathIndex_ = 0;
+                hasMoveTarget_ = true;
+            }
+        }
+    }
+
+    // ---------------------------
+    // DIRECT MODE
+    // ---------------------------
+    if (moveMode_ == MoveMode::Direct)
+    {
+        moveTarget_ = finalTarget_;
+
+        glm::vec2 dir = moveTarget_ - pos;
+        float distSq = dir.x * dir.x + dir.y * dir.y;
+
+        if (distSq <= arriveRadiusSq) {
+            ClearNavigationMove();
+            return true;
+        }
+
+        float dist = std::sqrt(distSq);
+        if (dist > 0.0001f) {
+            dir /= dist;
+        }
+
+        float step = speed * dt;
+        if (step > dist) step = dist;
+
+        glm::vec2 desiredDelta = dir * step;
+        glm::vec2 allowedDelta = scene.ResolveWorldStep(npc, desiredDelta);
+
+        float allowedLenSq =
+            allowedDelta.x * allowedDelta.x +
+            allowedDelta.y * allowedDelta.y;
+
+        if (allowedLenSq < 0.0001f) {
+            std::vector<glm::vec2> newPath;
+            if (scene.FindPathForObject(npc->GetID(), pos, finalTarget_, newPath)) {
+                pathPoints_ = newPath;
+                pathIndex_ = 0;
+                moveMode_ = MoveMode::Pathfinding;
+                hasMoveTarget_ = !pathPoints_.empty();
+
+                while (!pathPoints_.empty()) {
+                    glm::vec2 d = pathPoints_.front() - pos;
+                    if ((d.x * d.x + d.y * d.y) <= arriveRadiusSq) {
+                        pathPoints_.erase(pathPoints_.begin());
+                    }
+                    else {
+                        break;
+                    }
+                }
+
+                if (!pathPoints_.empty()) {
+                    moveTarget_ = pathPoints_.front();
+                    return false;
+                }
+            }
+
+            ClearNavigationMove();
+            return false;
+        }
+
+        pos += allowedDelta;
+        npc->SetPosition(glm::vec3(pos.x, pos.y, pos3.z));
+        scene.ClampToWalkArea(npc);
+        return false;
+    }
+
+    // ---------------------------
+    // PATHFINDING MODE
+    // ---------------------------
+    if (pathPoints_.empty()) {
+        ClearNavigationMove();
+        return false;
+    }
+
+    while (pathIndex_ < pathPoints_.size()) {
+        glm::vec2 toWaypoint = pathPoints_[pathIndex_] - pos;
+        float distSq = toWaypoint.x * toWaypoint.x + toWaypoint.y * toWaypoint.y;
+
+        if (distSq <= arriveRadiusSq) {
+            ++pathIndex_;
+        }
+        else {
+            break;
+        }
+    }
+
+    if (pathIndex_ >= pathPoints_.size()) {
+        ClearNavigationMove();
+        return true;
+    }
+
+    moveTarget_ = pathPoints_[pathIndex_];
+
+    glm::vec2 dir = moveTarget_ - pos;
+    float distSq = dir.x * dir.x + dir.y * dir.y;
+    float dist = std::sqrt(distSq);
+
+    if (dist > 0.0001f) {
+        dir /= dist;
+    }
+
+    float step = speed * dt;
+    if (step > dist) step = dist;
+
+    glm::vec2 desiredDelta = dir * step;
+    glm::vec2 allowedDelta = scene.ResolveWorldStep(npc, desiredDelta);
+
+    float allowedLenSq =
+        allowedDelta.x * allowedDelta.x +
+        allowedDelta.y * allowedDelta.y;
+
+    if (allowedLenSq < 0.0001f) {
+        std::vector<glm::vec2> newPath;
+
+        if (scene.FindPathForObject(npc->GetID(), pos, finalTarget_, newPath)) {
+            pathPoints_ = newPath;
+            pathIndex_ = 0;
+
+            while (!pathPoints_.empty()) {
+                glm::vec2 d = pathPoints_.front() - pos;
+                if ((d.x * d.x + d.y * d.y) <= arriveRadiusSq) {
+                    pathPoints_.erase(pathPoints_.begin());
+                }
+                else {
+                    break;
+                }
+            }
+
+            if (!pathPoints_.empty()) {
+                moveTarget_ = pathPoints_.front();
+                return false;
+            }
+        }
+
+        ClearNavigationMove();
+        return false;
+    }
+
+    pos += allowedDelta;
+    npc->SetPosition(glm::vec3(pos.x, pos.y, pos3.z));
+    scene.ClampToWalkArea(npc);
+
+    return false;
 }
 
 void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
@@ -55,66 +325,57 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 
 	glm::vec3 pos = npc->GetPositionGLM();
 
-	// ===================== CASE 1: HAS CUSTOMER TABLE =====================
-	if (hasCustomerTarget_) {
-		// Move directly toward the assigned seat position.
-		Math::Vector2D curPos(pos.x, pos.y);
-		Math::Vector2D target = customerSeatTarget_;
+    glm::vec3 prevPos = npc->GetPositionGLM();
 
-		float dx = target.x - curPos.x;
-		float dy = target.y - curPos.y;
-		float distSq = dx * dx + dy * dy;
-		float thresholdSq = arriveThreshold_ * arriveThreshold_;
+    // ===================== CASE 1: HAS CUSTOMER TARGET =====================
+    if (hasCustomerTarget_) {
+        const bool usePathfindingMovement =
+            (behaviourState_ == BehaviourState::WalkingToTable) ||
+            (behaviourState_ == BehaviourState::Leaving);
 
-		if (distSq <= thresholdSq) {
-			// Considered "arrived": snap to target, stop moving.
-			curPos = target;
-			pos.x = curPos.x;
-			pos.y = curPos.y;
-			npc->SetPosition(pos);
+        if (usePathfindingMovement)
+        {
+            EnsureNavigationPlan(scene, npc, glm::vec2(customerSeatTarget_.x, customerSeatTarget_.y));
+            const bool arrived = UpdateNavigationMove(dt, scene, npc);
 
-			// If leaving, despawn instead of ordering
-			if (behaviourState_ == BehaviourState::Leaving) {
-				std::cout << "[SimpleNpcLogic] Arrived at exit. NPC will despawn.\n";
-				OnReachedExit(scene);
-				return;
-			}
+            glm::vec3 newPos = npc->GetPositionGLM();
+            glm::vec2 moveDelta(newPos.x - prevPos.x, newPos.y - prevPos.y);
+            UpdateNpcAnimation(scene, npc, moveDelta);
 
-			// Notify customer behaviour FSM ONCE.
-			OnSeatedAtTable(scene);
+            if (arrived)
+            {
+                if (behaviourState_ == BehaviourState::Leaving)
+                {
+                    std::cout << "[SimpleNpcLogic] Arrived at exit. NPC will despawn.\n";
+                    OnReachedExit(scene);
+                    return;
+                }
 
-			UpdateCustomerLogic(dt, scene);
+                if (behaviourState_ == BehaviourState::WalkingToTable)
+                {
+                    // Snap exactly to the authored seat position for cleaner visuals
+                    glm::vec3 seatedPos = npc->GetPositionGLM();
+                    seatedPos.x = customerSeatTarget_.x;
+                    seatedPos.y = customerSeatTarget_.y;
+                    npc->SetPosition(seatedPos);
 
-			return;
-		}
-		else {
-			float dist = std::sqrt(distSq);
-			if (dist > 0.0001f) {
-				float maxStep = speed * dt;
-				float step = (maxStep < dist) ? maxStep : dist;
+                    OnSeatedAtTable(scene);
+                    UpdateCustomerLogic(dt, scene);
+                    UpdateNpcAnimation(scene, npc, glm::vec2(0.0f, 0.0f));
+                    return;
+                }
+            }
 
-				// Normalized direction * step
-				curPos.x += dx * (step / dist);
-				curPos.y += dy * (step / dist);
+            UpdateCustomerLogic(dt, scene);
+            return;
+        }
 
-				pos.x = curPos.x;
-				pos.y = curPos.y;
-				npc->SetPosition(pos);
-
-				// Optional: still clamp to walk area gates.
-				glm::vec3 beforeClamp = pos;
-				scene.ClampToWalkArea(npc);
-				glm::vec3 afterClamp = npc->GetPositionGLM();
-				(void)beforeClamp;
-				(void)afterClamp;
-
-				return; // skip patrol logic
-			}
-		}
-
-		// Fallback: if something weird happens, don't fall through, just return.
-		return;
-	}
+        // Has target, but not in a movement state anymore:
+        // stay seated / waiting / eating / paying.
+        UpdateCustomerLogic(dt, scene);
+        UpdateNpcAnimation(scene, npc, glm::vec2(0.0f, 0.0f));
+        return;
+    }
 
 	// ===================== CASE 2: NORMAL PATROL ==========================
 	timer += dt;
@@ -168,7 +429,11 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 		timer = 0.0f;
 	}
 
-	UpdateCustomerLogic(dt, scene);
+    glm::vec3 newPos = npc->GetPositionGLM();
+    glm::vec2 moveDelta(newPos.x - prevPos.x, newPos.y - prevPos.y);
+    UpdateNpcAnimation(scene, npc, moveDelta);
+
+    UpdateCustomerLogic(dt, scene);
 }
 
 void SimpleNpcLogic::UpdateCustomerLogic(float dt, Scene& scene) {
@@ -214,8 +479,34 @@ void SimpleNpcLogic::UpdateCustomerLogic(float dt, Scene& scene) {
 	// can be added here later if you want.
 }
 
-void SimpleNpcLogic::AssignCustomerTable(int tableObjectID) {
-	customerTableID_ = tableObjectID;
+static SimpleNpcLogic::FacingDir FacingFromDelta(const glm::vec2& d)
+{
+    // Prefer left/right if horizontal dominates, else front/back
+    if (std::abs(d.x) > std::abs(d.y))
+        return (d.x > 0.0f) ? SimpleNpcLogic::FacingDir::Right : SimpleNpcLogic::FacingDir::Left;
+
+    // +Y is down in your game -> "Front"
+    return (d.y > 0.0f) ? SimpleNpcLogic::FacingDir::Front : SimpleNpcLogic::FacingDir::Back;
+}
+
+bool SimpleNpcLogic::TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const
+{
+    if (customerTableID_ == kInvalidID) return false;
+
+    GameObject* me = GetOwner(scene);
+    GameObject* tableObj = scene.GetGameObjectByID(customerTableID_);
+    if (!me || !tableObj) return false;
+
+    glm::vec3 mp = me->GetPositionGLM();
+    glm::vec3 tp = tableObj->GetPositionGLM();
+
+    outDelta = glm::vec2(tp.x - mp.x, tp.y - mp.y);
+    return true;
+}
+
+void SimpleNpcLogic::AssignCustomerTable(int tableObjectID)
+{
+    customerTableID_ = tableObjectID;
 
 	std::cout << "[SimpleNpcLogic] AssignCustomerTable tableID=" << tableObjectID << "\n";
 
@@ -303,33 +594,37 @@ void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType) {
 		patienceRatioAtServe_ = 0.0f;
 	}
 
-	if (servedDishType_ != desiredDishType_) {
-		// Clear the served food so the table doesn't stay blocked
-		if (customerTableID_ != kInvalidID) {
-			LogicManager& logicMgr = scene.GetLogicManager();
-			if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_)) {
-				table->ClearServedFood(scene);
-			}
-		}
+    if (servedDishType_ != desiredDishType_)
+    {
+        // Clear served food so table isn't blocked
+        if (customerTableID_ != kInvalidID)
+        {
+            LogicManager& logicMgr = scene.GetLogicManager();
+            if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_))
+            {
+                table->ClearServedFood(scene);
+            }
+        }
 
-		hasPaid_ = false;
-		payZero_ = true;
+        payZero_ = true;
+        hasPaid_ = false; // doesn't matter much, BeginLeaveToExit sets hasPaid_=true
+        patienceRatioAtServe_ = 0.0f;
 
-		// IMPORTANT: do NOT leave yet — wait in Paying so player can "take payment" (which will be $0)
-		behaviourState_ = BehaviourState::Paying;
+        std::cout << "[SimpleNpcLogic] Wrong dish served. Leaving immediately (pay $0)\n";
 
-		std::cout << "[SimpleNpcLogic] Wrong dish served. Switching to Paying (will pay $0)\n";
-		return;
-	}
+        BeginLeaveToExit(scene, true); // free table NOW
+        return;
+    }
 
 	payZero_ = false;
 	behaviourState_ = BehaviourState::Eating;
 	eatTimer_ = 0.0f;
 }
 
-void SimpleNpcLogic::TakePayment(Scene& scene) {
-	std::cout << "[SimpleNpcLogic] TakePayment, state="
-		<< static_cast<int>(behaviourState_) << "\n";
+void SimpleNpcLogic::TakePayment(Scene& scene)
+{
+    //std::cout << "[SimpleNpcLogic] TakePayment, state="
+    //    << static_cast<int>(behaviourState_) << "\n";
 
 	if (behaviourState_ != BehaviourState::Paying)
 		return;
@@ -351,12 +646,13 @@ void SimpleNpcLogic::TakePayment(Scene& scene) {
 	hasPaid_ = true;
 	behaviourState_ = BehaviourState::Leaving;
 
-	Math::Vector2D gate = scene.GetExitGateWorldPos();
-	hasCustomerTarget_ = true;
-	customerSeatTarget_ = gate;
+    Math::Vector2D gate = scene.GetExitGateWorldPos();
+    hasCustomerTarget_ = true;
+    customerSeatTarget_ = gate;
+    ClearNavigationMove();
 
-	std::cout << "[SimpleNpcLogic] NPC leaving: heading to exit at ("
-		<< gate.x << "," << gate.y << ")\n";
+    //std::cout << "[SimpleNpcLogic] NPC leaving: heading to exit at ("
+    //    << gate.x << "," << gate.y << ")\n";
 
 	hasCustomerTarget_ = true;
 	//customerSeatTarget_ = exitGateWorldPos_;
@@ -364,24 +660,27 @@ void SimpleNpcLogic::TakePayment(Scene& scene) {
 	// NOTE: do NOT change customerTableID_ here — you still want to know which table to free.
 }
 
-void SimpleNpcLogic::SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos) {
-	customerTableID_ = tableObjectID;
-	customerSeatTarget_ = seatWorldPos;
-	hasCustomerTarget_ = true;
-	behaviourState_ = BehaviourState::WalkingToTable;
+void SimpleNpcLogic::SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos)
+{
+    customerTableID_ = tableObjectID;
+    customerSeatTarget_ = seatWorldPos;
+    hasCustomerTarget_ = true;
+    behaviourState_ = BehaviourState::WalkingToTable;
+    ClearNavigationMove();
 
-	std::cout << "[SimpleNpcLogic] SetCustomerTableTarget tableID=" << tableObjectID
-		<< " seat=(" << seatWorldPos.x << ", " << seatWorldPos.y << ")\n";
-
+    //std::cout << "[SimpleNpcLogic] SetCustomerTableTarget tableID=" << tableObjectID
+    //    << " seat=(" << seatWorldPos.x << ", " << seatWorldPos.y << ")\n";
 }
 
-void SimpleNpcLogic::ClearCustomerTableTarget() {
-	std::cout << "[SimpleNpcLogic] ClearCustomerTableTarget (was "
-		<< customerTableID_ << ")\n";
+void SimpleNpcLogic::ClearCustomerTableTarget()
+{
+    //std::cout << "[SimpleNpcLogic] ClearCustomerTableTarget (was "
+    //    << customerTableID_ << ")\n";
 
-	hasCustomerTarget_ = false;
-	customerTableID_ = kInvalidID;
-	customerSeatTarget_ = Math::Vector2D(0.0f, 0.0f);
+    hasCustomerTarget_ = false;
+    customerTableID_ = kInvalidID;
+    customerSeatTarget_ = Math::Vector2D(0.0f, 0.0f);
+    ClearNavigationMove();
 }
 
 void SimpleNpcLogic::CacheExitGatePos(Scene& scene) {
@@ -469,7 +768,7 @@ DishType SimpleNpcLogic::RollRandomDish() {
 
 	static std::mt19937 rng{ std::random_device{}() };
 	std::uniform_int_distribution<int> dist(0, (int)(sizeof(kPool) / sizeof(kPool[0])) - 1);
-	return kPool[dist(rng)];
+    return kPool[dist(EngineRng::Get())];
 }
 
 void SimpleNpcLogic::OnPatienceExpired(Scene& scene) {
@@ -479,10 +778,11 @@ void SimpleNpcLogic::OnPatienceExpired(Scene& scene) {
 	patienceRemaining_ = 0.f;
 	patienceRatioAtServe_ = 0.0f;
 
-	// Same behavior as wrong dish: go to Paying and pay $0
-	payZero_ = true;
-	hasPaid_ = false;
-	behaviourState_ = BehaviourState::Paying;
+    payZero_ = true;
+    hasPaid_ = false; // BeginLeaveToExit will set it true
+    behaviourState_ = BehaviourState::Paying; // (optional, just for clarity)
+
+    BeginLeaveToExit(scene, true);
 
 	// Optional safety: clear served food if anything got stuck
 	if (customerTableID_ != kInvalidID) {
@@ -492,6 +792,131 @@ void SimpleNpcLogic::OnPatienceExpired(Scene& scene) {
 		}
 	}
 
-	std::cout << "[SimpleNpcLogic] Patience expired. Switching to Paying (will pay $0)\n";
+	// std::cout << "[SimpleNpcLogic] Patience expired. Switching to Paying (will pay $0)\n";
 }
 
+void SimpleNpcLogic::UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm::vec2& moveDelta)
+{
+    if (!npc) return;
+
+    const float epsX = 0.01f;
+    const float epsY = 0.01f;
+
+    const float absX = std::abs(moveDelta.x);
+    const float absY = std::abs(moveDelta.y);
+    const bool moving = (absX > epsX) || (absY > epsY);
+
+    // --- Decide whether to face by movement or by table ---
+    const bool movementFacing =
+        (behaviourState_ == BehaviourState::WalkingToTable) ||
+        (behaviourState_ == BehaviourState::Leaving);
+
+    glm::vec2 tableDelta{};
+    const bool hasTable = TryGetDeltaToTable(scene, tableDelta);
+
+    // 1) Decide facingDir_
+    if (movementFacing)
+    {
+        // walking/leaving: use movement-based facing (your current behavior)
+        if (moving)
+        {
+            if (absX > epsX)
+                facingDir_ = (moveDelta.x > 0.0f) ? FacingDir::Right : FacingDir::Left;
+            else
+                facingDir_ = (moveDelta.y > 0.0f) ? FacingDir::Front : FacingDir::Back;
+        }
+    }
+    else
+    {
+        // all other states: face toward the table (if we have one)
+        if (hasTable)
+        {
+            facingDir_ = FacingFromDelta(tableDelta);
+        }
+        else if (moving)
+        {
+            // fallback if table missing
+            if (absX > epsX)
+                facingDir_ = (moveDelta.x > 0.0f) ? FacingDir::Right : FacingDir::Left;
+            else
+                facingDir_ = (moveDelta.y > 0.0f) ? FacingDir::Front : FacingDir::Back;
+        }
+    }
+
+    std::string desired;
+
+    // 2) Choose animation clip
+    if (behaviourState_ == BehaviourState::Eating)
+    {
+        // only have left/right eat, so pick based on table X when possible
+        if (facingDir_ == FacingDir::Left) desired = "EAT_LEFT";
+        else if (facingDir_ == FacingDir::Right) desired = "EAT_RIGHT";
+        else if (hasTable && std::abs(tableDelta.x) > 0.001f)
+            desired = (tableDelta.x < 0.0f) ? "EAT_LEFT" : "EAT_RIGHT";
+        else
+            desired = "EAT_RIGHT";
+    }
+    else if (moving)
+    {
+        switch (facingDir_)
+        {
+        case FacingDir::Front: desired = "WALK_FRONT"; break;
+        case FacingDir::Back:  desired = "WALK_BACK";  break;
+        case FacingDir::Left:  desired = "WALK_LEFT";  break;
+        case FacingDir::Right: desired = "WALK_RIGHT"; break;
+        }
+    }
+    else
+    {
+        switch (facingDir_)
+        {
+        case FacingDir::Left:  desired = "IDLE_LEFT";  break;
+        case FacingDir::Right: desired = "IDLE_RIGHT"; break;
+        case FacingDir::Front: desired = "IDLE_FRONT"; break;
+        case FacingDir::Back:  desired = "IDLE_BACK";  break;
+        }
+    }
+
+    const std::string current = scene.GetCurrentAnimationName(npc->GetID());
+    if (current != desired)
+        scene.SetAnimation(npc->GetID(), desired);
+}
+
+void SimpleNpcLogic::BeginLeaveToExit(Scene& scene, bool freeTableImmediately)
+{
+    // If already leaving, don't re-trigger
+    if (behaviourState_ == BehaviourState::Leaving)
+        return;
+
+#ifndef _DEBUG
+    // Optional: play "wrong order" sound immediately when leaving unhappy
+    if (payZero_) {
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            audioMgr->PlaySound("sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f, false);
+        }
+    }
+#endif
+
+    hasPaid_ = true; // "payment processed" (even if $0)
+    behaviourState_ = BehaviourState::Leaving;
+
+    // Walk to exit
+    Math::Vector2D gate = scene.GetExitGateWorldPos();
+    hasCustomerTarget_ = true;
+    customerSeatTarget_ = gate;
+    ClearNavigationMove();
+
+    // Free the table RIGHT NOW so another customer can take it
+    if (freeTableImmediately && customerTableID_ != kInvalidID)
+    {
+        LogicManager& logicMgr = scene.GetLogicManager();
+        if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_))
+        {
+            table->ClearCustomer();
+        }
+
+        // IMPORTANT:
+        // Prevent OnReachedExit() from clearing a NEW customer seated later.
+        customerTableID_ = kInvalidID;
+    }
+}

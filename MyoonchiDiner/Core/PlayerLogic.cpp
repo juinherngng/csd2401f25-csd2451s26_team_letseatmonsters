@@ -11,24 +11,94 @@
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
-#include "Core/AudioManager.hpp"
-#include "Core/CustomerTableLogic.hpp"
-#include "Core/DebugUI.hpp"
-#include "Core/IngredientBoxLogic.hpp"
-#include "Core/IngredientLogic.hpp"
-#include "Core/InputControls.hpp"
-#include "Core/InputManager.hpp"
-#include "Core/PlateLogic.hpp"
-#include "Core/TableLogic.hpp"
-#include "Core/TrashCanLogic.hpp"
-#include "Core/WorkTableLogic.hpp"
-#include "Graphics/SceneManager.hpp"
-
-#include "PlayerLogic.hpp"
+#include "../Core/AudioManager.hpp"
+#include "../Core/CustomerTableLogic.hpp"
+#include "../Core/DebugUI.hpp"
+#include "../Core/InputControls.hpp"
+#include "../Core/InputManager.hpp"
+#include "../Core/TableLogic.hpp"
+#include "../Core/TrashCanLogic.hpp"
+#include "../Core/WorkTableLogic.hpp"
+#include "../Core/SimpleNpcLogic.hpp"
+#include "../Core/CustomerOrderUILogic.hpp"
+#include "../Core/PlayerLogic.hpp"
+#include "../Core/EngineRng.hpp"
+#include "../Graphics/SceneManager.hpp"
 
 #include <algorithm>
 #include <iostream>
 #include <limits>
+
+namespace {
+	bool PointInsideObjectVisualRect(const glm::vec2& point, GameObject* obj)
+	{
+		if (!obj) return false;
+
+		const Math::Vector2D colSize = obj->GetColliderSize();
+		const Math::Vector2D colOffset = obj->GetColliderOffset();
+		const glm::vec3 scale = obj->GetScaleGLM();
+
+		const float width = (colSize.x > 0.0f) ? colSize.x : scale.x;
+		const float height = (colSize.y > 0.0f) ? colSize.y : scale.y;
+
+		if (width <= 0.0f || height <= 0.0f) {
+			return false;
+		}
+
+		const glm::vec3 pos = obj->GetPositionGLM();
+		const glm::vec2 center(pos.x + colOffset.x, pos.y + colOffset.y);
+
+		const float halfW = width * 0.5f;
+		const float halfH = height * 0.5f;
+
+		return
+			point.x >= center.x - halfW && point.x <= center.x + halfW &&
+			point.y >= center.y - halfH && point.y <= center.y + halfH;
+	}
+
+	float DistanceSqToObjectCenter(const glm::vec2& point, GameObject* obj)
+	{
+		if (!obj) return std::numeric_limits<float>::max();
+
+		const Math::Vector2D colOffset = obj->GetColliderOffset();
+		const glm::vec3 pos = obj->GetPositionGLM();
+		const glm::vec2 center(pos.x + colOffset.x, pos.y + colOffset.y);
+
+		const glm::vec2 d = point - center;
+		return d.x * d.x + d.y * d.y;
+	}
+
+	bool GetObjectRect(GameObject* obj, glm::vec2& outCenter, glm::vec2& outHalfExtents)
+	{
+		if (!obj) return false;
+
+		const Math::Vector2D colSize = obj->GetColliderSize();
+		const Math::Vector2D colOffset = obj->GetColliderOffset();
+		const glm::vec3 scale = obj->GetScaleGLM();
+
+		const float width = (colSize.x > 0.0f) ? colSize.x : scale.x;
+		const float height = (colSize.y > 0.0f) ? colSize.y : scale.y;
+
+		if (width <= 0.0f || height <= 0.0f) {
+			return false;
+		}
+
+		const glm::vec3 pos = obj->GetPositionGLM();
+		outCenter = glm::vec2(pos.x + colOffset.x, pos.y + colOffset.y);
+		outHalfExtents = glm::vec2(width * 0.5f, height * 0.5f);
+		return true;
+	}
+
+	float DistanceSqPointToExpandedRect(
+		const glm::vec2& point,
+		const glm::vec2& rectCenter,
+		const glm::vec2& rectHalfExtents)
+	{
+		const float dx = std::max(std::abs(point.x - rectCenter.x) - rectHalfExtents.x, 0.0f);
+		const float dy = std::max(std::abs(point.y - rectCenter.y) - rectHalfExtents.y, 0.0f);
+		return dx * dx + dy * dy;
+	}
+}
 
 // Constants and helper functions for PlayerLogic, in an anonymous namespace to limit scope to this file.
 namespace {
@@ -125,6 +195,7 @@ void PlayerLogic::Start(Scene& scene) {
 	carriedItemID = -1;
 	pendingTableID = -1;
 	facingDir = FacingDir::Front;
+	moveMode_ = MoveMode::None;
 	mouseDragActive_ = false;
 	hasLastDragWorld_ = false;
 	dragRetargetTimer_ = 0.0f;
@@ -132,9 +203,10 @@ void PlayerLogic::Start(Scene& scene) {
 	clickIndicatorID_ = -1;
 	clickIndicatorTimeLeft_ = 0.0f;
 
-	//GameObject* owner = GetOwner(scene);
-	//std::cout << "[PlayerLogic] Start on object ID "
-	//	<< (owner ? owner->GetID() : -1) << "\n";
+	pathPoints_.clear();
+	pathIndex_ = 0;
+	finalTarget_ = glm::vec2(0.0f, 0.0f);
+	directPathCheckTimer_ = 0.0f;
 }
 
 // Handle input and movement each frame
@@ -145,8 +217,13 @@ void PlayerLogic::ResetMouseDragState() {
 }
 
 //Get the mouse world position if the mouse is currently over the scene viewport
-bool PlayerLogic::TryGetMouseWorld(Scene& scene, glm::vec2& mouseWorld) const {
-	return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld);
+bool PlayerLogic::TryGetMouseWorld(Scene& scene, InputManager& input, glm::vec2& mouseWorld) const {
+	if (input.IsReplayOverride()) {
+		const glm::dvec2 replayMousePos = input.GetMousePosition();
+		return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, &replayMousePos);
+	}
+
+	return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, nullptr);
 }
 
 // Clear the current movement target and reset related state
@@ -168,6 +245,7 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 
 	const float moveThreshold = 0.01f;
 	std::string desiredAnimation;
+	const bool isHolding = carriedItemID >= 0;
 
 	float absX = std::abs(moveDirRaw.x);
 	float absY = std::abs(moveDirRaw.y);
@@ -175,30 +253,30 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	// Detect idle/no movement
 	if (glm::length(moveDirRaw) < moveThreshold) {
 		switch (facingDir) {
-		case FacingDir::Right: desiredAnimation = "IDLE_RIGHT"; break;
-		case FacingDir::Left:  desiredAnimation = "IDLE_LEFT";  break;
-		case FacingDir::Front: desiredAnimation = "IDLE_FRONT"; break;
-		case FacingDir::Back:  desiredAnimation = "IDLE_BACK";  break;
+		case FacingDir::Right: desiredAnimation = isHolding ? "IDLE_RIGHT_CARRY" : "IDLE_RIGHT"; break;
+		case FacingDir::Left:  desiredAnimation = isHolding ? "IDLE_LEFT_CARRY" : "IDLE_LEFT";  break;
+		case FacingDir::Front: desiredAnimation = isHolding ? "IDLE_FRONT_CARRY" : "IDLE_FRONT"; break;			// Using normal idle for front since we dont have idle front carry animations yet
+		case FacingDir::Back:  desiredAnimation = isHolding ? "IDLE_BACK_CARRY" : "IDLE_BACK";  break;			// Using normal idle for back since we dont have idle back carry animations yet
 		}
 	}
 	else {
 		if (absX > absY) {
 			if (moveDirRaw.x > 0.0f) {
-				desiredAnimation = "WALK_RIGHT";
+				desiredAnimation = isHolding ? "CARRY_RIGHT" : "WALK_RIGHT";
 				facingDir = FacingDir::Right;
 			}
 			else {
-				desiredAnimation = "WALK_LEFT";
+				desiredAnimation = isHolding ? "CARRY_LEFT" : "WALK_LEFT";
 				facingDir = FacingDir::Left;
 			}
 		}
 		else {
 			if (moveDirRaw.y > 0.0f) {
-				desiredAnimation = "WALK_FRONT";
+				desiredAnimation = isHolding ? "CARRY_FRONT" : "WALK_FRONT";
 				facingDir = FacingDir::Front;
 			}
 			else {
-				desiredAnimation = "WALK_BACK";
+				desiredAnimation = isHolding ? "CARRY_BACK" : "WALK_BACK";
 				facingDir = FacingDir::Back;
 			}
 		}
@@ -211,38 +289,146 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	}
 }
 
-// Set the player's movement target to the specified world position, and update sprite direction immediately based on the click direction.
-// This does NOT do any pathfinding or collision checks; it just sets the target and lets the movement system handle it. If the new target is very close to the current target, it will be ignored to prevent jitter.
-void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
-	if (hasMoveTarget) {
-		const glm::vec2 delta = dest - moveTarget;
-		if ((delta.x * delta.x + delta.y * delta.y) <=
-			(kMoveRetargetDeadzone * kMoveRetargetDeadzone)) {
+void PlayerLogic::MoveDirect(const glm::vec2& dest)
+{
+	const float kRetargetEpsSq = 16.0f * 16.0f;
+
+	if (hasMoveTarget && moveMode_ == MoveMode::Direct) {
+		glm::vec2 d = dest - finalTarget_;
+		if ((d.x * d.x + d.y * d.y) <= kRetargetEpsSq) {
 			return;
 		}
 	}
 
-	GameObject* player = GetOwner(scene);
-
-	//std::cout << "[PlayerLogic] MoveTo(" << dest.x << ", " << dest.y << ")\n";
-
-	if (player) {
-		glm::vec3 pos3 = player->GetPositionGLM();
-		glm::vec2 pos(pos3.x, pos3.y);
-		glm::vec2 delta = dest - pos;
-
-		// Update sprite immediately based on click direction
-		UpdateSprite(scene, player, delta);
-	}
-
+	finalTarget_ = dest;
 	moveTarget = dest;
+	pathPoints_.clear();
+	pathIndex_ = 0;
 	hasMoveTarget = true;
-	blockedMoveFrames_ = 0;
+	moveMode_ = MoveMode::Direct;
 }
 
-// Handle mouse click and hold input for movement and interaction.
-// On click, raycast to check if a table was clicked and move to its approach point if so.
-// If holding and dragging, continuously retarget movement to the mouse position with a small deadzone and retarget interval.
+void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest)
+{
+	GameObject* player = GetOwner(scene);
+	if (!player)
+		return;
+
+	glm::vec2 snappedDest = dest;
+
+	// Snap interactable destinations to the nearest walkable cell center
+	scene.GetNearestNavigationCellCenterForObject(player->GetID(), dest, snappedDest);
+
+	const float kRetargetEpsSq = 16.0f * 16.0f;
+
+	if (hasMoveTarget && moveMode_ == MoveMode::Pathfinding) {
+		glm::vec2 d = snappedDest - finalTarget_;
+		if ((d.x * d.x + d.y * d.y) <= kRetargetEpsSq) {
+			return;
+		}
+	}
+
+	finalTarget_ = snappedDest;
+	pathPoints_.clear();
+	pathIndex_ = 0;
+	hasMoveTarget = false;
+	moveMode_ = MoveMode::Pathfinding;
+
+	const glm::vec3 pos3 = player->GetPositionGLM();
+	const glm::vec2 startPos(pos3.x, pos3.y);
+
+	if (!scene.FindPathForObject(player->GetID(), startPos, finalTarget_, pathPoints_)) {
+		std::cout << "[PlayerLogic] No path found.\n";
+		pendingTableID = -1;
+		moveMode_ = MoveMode::None;
+		return;
+	}
+
+	while (!pathPoints_.empty()) {
+		glm::vec2 d = pathPoints_.front() - startPos;
+		const float kSkipWaypointRadius = 18.0f;
+		if ((d.x * d.x + d.y * d.y) <= kSkipWaypointRadius * kSkipWaypointRadius) {
+			pathPoints_.erase(pathPoints_.begin());
+		}
+		else {
+			break;
+		}
+	}
+
+	if (pathPoints_.empty()) {
+		moveMode_ = MoveMode::None;
+		OnArrived(scene);
+		return;
+	}
+
+	hasMoveTarget = true;
+	moveTarget = pathPoints_[0];
+}
+
+bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID)
+{
+	GameObject* player = GetOwner(scene);
+	GameObject* tableObj = scene.GetGameObjectByID(tableObjectID);
+	if (!player || !tableObj) {
+		return false;
+	}
+
+	LogicManager& logicMgr = scene.GetLogicManager();
+	TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableObjectID);
+
+	const glm::vec3 playerPos3 = player->GetPositionGLM();
+	const glm::vec2 playerPos(playerPos3.x, playerPos3.y);
+
+	if (tableLogic) {
+		Math::Vector2D from(playerPos.x, playerPos.y);
+		Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
+
+		const float dx = playerPos.x - approach.x;
+		const float dy = playerPos.y - approach.y;
+		const float distSq = dx * dx + dy * dy;
+
+		if (distSq <= kPlayerInteractRadius * kPlayerInteractRadius) {
+			return true;
+		}
+	}
+
+	glm::vec2 playerCenter, playerHalf;
+	glm::vec2 tableCenter, tableHalf;
+
+	if (GetObjectRect(player, playerCenter, playerHalf) &&
+		GetObjectRect(tableObj, tableCenter, tableHalf))
+	{
+		constexpr float kTouchPadding = 14.0f;
+
+		glm::vec2 expandedHalf(
+			tableHalf.x + playerHalf.x + kTouchPadding,
+			tableHalf.y + playerHalf.y + kTouchPadding
+		);
+
+		const float distSqToTableBody =
+			DistanceSqPointToExpandedRect(playerCenter, tableCenter, expandedHalf);
+
+		if (distSqToTableBody <= 0.0001f) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void PlayerLogic::CancelQueuedTableMove(Scene& scene)
+{
+	hasMoveTarget = false;
+	moveMode_ = MoveMode::None;
+	pathPoints_.clear();
+	pathIndex_ = 0;
+	pendingTableID = -1;
+
+	if (GameObject* player = GetOwner(scene)) {
+		scene.GetMovementManager().ClearMoveTarget(player->GetID());
+	}
+}
+
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) {
 	const bool lmbJustPressed = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
 	const bool lmbHeld = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
@@ -261,8 +447,7 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	}
 
 	glm::vec2 mouseWorld{};
-
-	if (!TryGetMouseWorld(scene, mouseWorld)) {
+	if (!TryGetMouseWorld(scene, input, mouseWorld)) {
 		return;
 	}
 
@@ -274,7 +459,6 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 		}
 
 		dragRetargetTimer_ -= dt;
-
 		const float minDragRetargetDistSq = kDragRetargetDistance * kDragRetargetDistance;
 		const glm::vec2 delta = mouseWorld - lastDragWorld_;
 		const bool movedEnough = !hasLastDragWorld_ || DistanceSquared(delta, glm::vec2(0.0f, 0.0f)) >= minDragRetargetDistSq;
@@ -287,7 +471,6 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 			hasLastDragWorld_ = true;
 			dragRetargetTimer_ = kDragRetargetInterval;
 		}
-
 		return;
 	}
 
@@ -296,26 +479,61 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	hasLastDragWorld_ = true;
 	dragRetargetTimer_ = 0.0f;
 
-	const ClickedTableResult clickedTable = FindClickedTable(scene, mouseWorld);
-	if (clickedTable.tableID >= 0 && clickedTable.tableLogic) {
-		pendingTableID = clickedTable.tableID;
+	LogicManager& logicMgr = scene.GetLogicManager();
+	int clickedTableID = -1;
+	TableLogic* clickedTableLogic = nullptr;
+	float bestDistSq = std::numeric_limits<float>::max();
+
+	auto considerTableTarget = [&](int tableID, GameObject* hitObject) {
+		if (tableID < 0 || !hitObject) return;
+		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableID);
+		if (!tableLogic) return;
+		const float distSq = DistanceSqToObjectCenter(mouseWorld, hitObject);
+		if (distSq < bestDistSq) {
+			bestDistSq = distSq;
+			clickedTableID = tableID;
+			clickedTableLogic = tableLogic;
+		}
+	};
+
+	for (GameObject* obj : scene.GetAllObjectsRaw()) {
+		if (!obj) continue;
+		const int id = obj->GetID();
+		if (!logicMgr.GetLogicForObject<TableLogic>(id)) continue;
+		if (!PointInsideObjectVisualRect(mouseWorld, obj)) continue;
+		considerTableTarget(id, obj);
+	}
+
+	for (GameObject* obj : scene.GetAllObjectsRaw()) {
+		if (!obj) continue;
+		const int id = obj->GetID();
+		SimpleNpcLogic* npcLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(id);
+		if (!npcLogic) continue;
+		const int customerTableID = npcLogic->GetCustomerTableID();
+		if (customerTableID < 0) continue;
+		const bool hitCustomer = PointInsideObjectVisualRect(mouseWorld, obj);
+		bool hitBubble = false;
+		if (CustomerOrderUILogic* uiLogic = logicMgr.GetLogicForObject<CustomerOrderUILogic>(id)) {
+			hitBubble = uiLogic->HitTestBubble(scene, mouseWorld);
+		}
+		if (!hitCustomer && !hitBubble) continue;
+		considerTableTarget(customerTableID, obj);
+	}
+
+	if (clickedTableID >= 0 && clickedTableLogic) {
+		if (IsInTableInteractionRange(scene, clickedTableID)) {
+			CancelQueuedTableMove(scene);
+			InteractWithTable(scene, clickedTableID);
+			return;
+		}
+
+		pendingTableID = clickedTableID;
 		const glm::vec2 playerPos = ToVec2(player->GetPositionGLM());
-
 		Math::Vector2D from(playerPos.x, playerPos.y);
-		Math::Vector2D approach = clickedTable.tableLogic->GetClosestApproachPoint(scene, from);
+		Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
 		const glm::vec2 target(approach.x, approach.y);
-
-		// If we're already within interaction range of the approach point, just interact immediately without moving.
-		if (DistanceSquared(target, playerPos) <= (kPlayerInteractRadius * kPlayerInteractRadius)) {
-			ClearMovementTarget(scene);
-			pendingTableID = -1;
-			InteractWithTable(scene, clickedTable.tableID);
-		}
-		else {
-			MoveTo(scene, target);
-			ShowClickMoveIndicator(scene, target);
-		}
-
+		MoveTo(scene, target);
+		ShowClickMoveIndicator(scene, target);
 		return;
 	}
 
@@ -326,141 +544,255 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 
 // Move owner GameObject towards moveTarget at moveSpeed
 void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
-	if (!hasMoveTarget) {
+	if (!hasMoveTarget)
 		return;
-	}
 
 	GameObject* player = GetOwner(scene);
-	if (!player) {
+	if (!player)
 		return;
-	}
 
 	glm::vec3 pos3 = player->GetPositionGLM();
 	glm::vec2 pos(pos3.x, pos3.y);
 
-	glm::vec2 dir = moveTarget - pos;
-	const float distSq = dir.x * dir.x + dir.y * dir.y;
+	// -------------------------------------------------
+// LIVE SHORTCUT CHECK:
+// while following an A* path, if final target is now
+// directly reachable, switch immediately to direct mode
+// -------------------------------------------------
+	if (moveMode_ == MoveMode::Pathfinding) {
+		directPathCheckTimer_ -= dt;
 
-	const float arriveRadiusSq = kArriveRadius * kArriveRadius;
+		if (directPathCheckTimer_ <= 0.0f) {
+			directPathCheckTimer_ = kDirectPathCheckInterval;
 
-	// ReachedDestination()
-	if (distSq <= arriveRadiusSq) {
-		ClearMovementTarget(scene);
+			if (scene.HasDirectPathForObject(player->GetID(), pos, finalTarget_)) {
+				moveMode_ = MoveMode::Direct;
+				moveTarget = finalTarget_;
+				pathPoints_.clear();
+				pathIndex_ = 0;
+				hasMoveTarget = true;
+			}
+		}
+	}
+
+	const float arriveRadius = 6.0f;
+	const float arriveRadiusSq = arriveRadius * arriveRadius;
+
+	// ---------------------------
+	// DIRECT FREE MOVEMENT MODE
+	// ---------------------------
+	if (moveMode_ == MoveMode::Direct)
+	{
+		moveTarget = finalTarget_;
+
+		glm::vec2 dir = moveTarget - pos;
+		float distSq = dir.x * dir.x + dir.y * dir.y;
+
+		if (distSq <= arriveRadiusSq) {
+			hasMoveTarget = false;
+			moveMode_ = MoveMode::None;
+			pathPoints_.clear();
+			pathIndex_ = 0;
+
+			if (GameObject* p = GetOwner(scene)) {
+				scene.GetMovementManager().ClearMoveTarget(p->GetID());
+			}
+
+			OnArrived(scene);
+			return;
+		}
+
+		float dist = std::sqrt(distSq);
+		if (dist > 0.0001f) {
+			dir.x /= dist;
+			dir.y /= dist;
+		}
+
+		float step = moveSpeed * dt;
+		if (step > dist)
+			step = dist;
+
+		glm::vec2 desiredDelta(dir.x * step, dir.y * step);
+		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+
+		const float allowedLenSq =
+			allowedDelta.x * allowedDelta.x +
+			allowedDelta.y * allowedDelta.y;
+
+		if (allowedLenSq < 0.0001f) {
+			std::vector<glm::vec2> newPath;
+
+			if (scene.FindPathForObject(player->GetID(), pos, finalTarget_, newPath)) {
+				pathPoints_ = newPath;
+				pathIndex_ = 0;
+				moveMode_ = MoveMode::Pathfinding;
+				hasMoveTarget = !pathPoints_.empty();
+
+				while (!pathPoints_.empty()) {
+					glm::vec2 d = pathPoints_.front() - pos;
+					if ((d.x * d.x + d.y * d.y) <= arriveRadiusSq) {
+						pathPoints_.erase(pathPoints_.begin());
+					}
+					else {
+						break;
+					}
+				}
+
+				if (!pathPoints_.empty()) {
+					moveTarget = pathPoints_.front();
+					return;
+				}
+			}
+
+			hasMoveTarget = false;
+			moveMode_ = MoveMode::None;
+			pathPoints_.clear();
+			pathIndex_ = 0;
+			pendingTableID = -1;
+
+			if (GameObject* p = GetOwner(scene)) {
+				scene.GetMovementManager().ClearMoveTarget(p->GetID());
+			}
+			return;
+		}
+
+		pos.x += allowedDelta.x;
+		pos.y += allowedDelta.y;
+
+		player->SetPosition(glm::vec3(pos.x, pos.y, pos3.z));
+		scene.ClampToWalkArea(player);
+
+		UpdateSprite(scene, player, allowedDelta);
+		return;
+	}
+
+	// ---------------------------
+	// PATHFINDING MODE
+	// ---------------------------
+	if (pathPoints_.empty()) {
+		hasMoveTarget = false;
+		moveMode_ = MoveMode::None;
+		return;
+	}
+
+	// Advance waypoint(s) if already reached
+	while (pathIndex_ < pathPoints_.size()) {
+		glm::vec2 toWaypoint = pathPoints_[pathIndex_] - pos;
+		float distSq = toWaypoint.x * toWaypoint.x + toWaypoint.y * toWaypoint.y;
+
+		if (distSq <= arriveRadiusSq) {
+			++pathIndex_;
+		}
+		else {
+			break;
+		}
+	}
+
+	if (pathIndex_ >= pathPoints_.size()) {
+		hasMoveTarget = false;
+		moveMode_ = MoveMode::None;
+		pathPoints_.clear();
+		pathIndex_ = 0;
+
+		if (GameObject* p = GetOwner(scene)) {
+			scene.GetMovementManager().ClearMoveTarget(p->GetID());
+		}
+
 		OnArrived(scene);
 		return;
 	}
 
-	const float dist = std::sqrt(distSq);
+	moveTarget = pathPoints_[pathIndex_];
+
+	glm::vec2 dir = moveTarget - pos;
+	float distSq = dir.x * dir.x + dir.y * dir.y;
+	float dist = std::sqrt(distSq);
+
 	if (dist > 0.0001f) {
 		dir.x /= dist;
 		dir.y /= dist;
 	}
 
 	float step = moveSpeed * dt;
-	if (step > dist) {
+	if (step > dist)
 		step = dist;
-	}
 
-	// Desired movement for this frame
 	glm::vec2 desiredDelta(dir.x * step, dir.y * step);
-
-	// Trim against static world (outer frame + wood + gate)
 	glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
 
-	// If we can't move at all (hit a wall and are stuck), treat it as "try to arrive"
-	// and let OnArrived decide if we are close enough to interact.
-	const float allowedLenSq = allowedDelta.x * allowedDelta.x +
+	const float allowedLenSq =
+		allowedDelta.x * allowedDelta.x +
 		allowedDelta.y * allowedDelta.y;
+
 	if (allowedLenSq < 0.0001f) {
-		++blockedMoveFrames_;
+		std::vector<glm::vec2> newPath;
 
-		// Give collision resolution a few frames to recover from corner/edge jitter before cancelling.
-		if (blockedMoveFrames_ >= kBlockedFramesBeforeCancel) {
-			std::cout << "[PlayerLogic] MoveTo blocked by collision for several frames, invoking OnArrived\n";
+		if (scene.FindPathForObject(player->GetID(), pos, finalTarget_, newPath)) {
+			pathPoints_ = newPath;
+			pathIndex_ = 0;
 
-			ClearMovementTarget(scene);
+			while (!pathPoints_.empty()) {
+				glm::vec2 d = pathPoints_.front() - pos;
+				if ((d.x * d.x + d.y * d.y) <= arriveRadiusSq) {
+					pathPoints_.erase(pathPoints_.begin());
+				}
+				else {
+					break;
+				}
+			}
 
-			// This will check distance to the table’s approach point using kInteractRadius
-			OnArrived(scene);
+			if (!pathPoints_.empty()) {
+				moveTarget = pathPoints_.front();
+				return;
+			}
 		}
 
+		std::cout << "[PlayerLogic] Path blocked and repath failed.\n";
+
+		hasMoveTarget = false;
+		moveMode_ = MoveMode::None;
+		pathPoints_.clear();
+		pathIndex_ = 0;
+		pendingTableID = -1;
+
+		if (GameObject* p = GetOwner(scene)) {
+			scene.GetMovementManager().ClearMoveTarget(p->GetID());
+		}
 		return;
 	}
-
-	blockedMoveFrames_ = 0;
 
 	pos.x += allowedDelta.x;
 	pos.y += allowedDelta.y;
 
 	player->SetPosition(glm::vec3(pos.x, pos.y, pos3.z));
-	scene.ClampToWalkArea(player); // still keep outer-frame clamp
+	scene.ClampToWalkArea(player);
 
-	// Use allowedDelta as movement direction for the sprite
-	glm::vec2 moveDir(allowedDelta.x, allowedDelta.y);
-	UpdateSprite(scene, player, moveDir);
+	UpdateSprite(scene, player, allowedDelta);
 
-	// Debug path line from player to target
 	if (DebugRenderer::IsEnabled() && hasMoveTarget) {
-		glm::vec3 from = player->GetPositionGLM();
-		glm::vec3 to(moveTarget.x, moveTarget.y, from.z);
-		DebugRenderer::DrawLine(from, to, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::vec2 prev(pos.x, pos.y);
+
+		for (std::size_t i = pathIndex_; i < pathPoints_.size(); ++i) {
+			glm::vec2 next = pathPoints_[i];
+			DebugRenderer::DrawLine(
+				glm::vec3(prev.x, prev.y, pos3.z),
+				glm::vec3(next.x, next.y, pos3.z),
+				glm::vec3(0.0f, 1.0f, 0.0f)
+			);
+			prev = next;
+		}
 	}
 }
 
 // Unity: OnArrived()
 // For now it's a stub; later you can branch by what we clicked (tables, spawners, etc.)
 void PlayerLogic::OnArrived(Scene& scene) {
-	//std::cout << "[PlayerLogic] Arrived at destination\n";
-
 	if (pendingTableID < 0) {
 		return;
 	}
 
-	GameObject* player = GetOwner(scene);
-	GameObject* tableObj = scene.GetGameObjectByID(pendingTableID);
-	if (!player || !tableObj) {
-		pendingTableID = -1;
-		return;
-	}
-
-	glm::vec3 pPos3 = player->GetPositionGLM();
-	const glm::vec2 pPos = ToVec2(pPos3);
-
-	// Get the table logic so we can ask for its approach point
-	LogicManager& logicMgr = scene.GetLogicManager();
-	TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(pendingTableID);
-
-	float distSq = 0.0f;
-
-	if (tableLogic) {
-		// Use the SAME approach-point logic that we used when clicking.
-		Math::Vector2D from(pPos.x, pPos.y);
-		Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
-
-		distSq = DistanceSquared(pPos, glm::vec2(approach.x, approach.y));
-
-		//std::cout << "[PlayerLogic] Dist to table APPROACH point: "
-		//	<< std::sqrt(distSq)
-		//	<< " (approach=(" << approach.x << ", " << approach.y << "))\n";
-	}
-	else {
-		// Fallback: no TableLogic (shouldn’t really happen for tables)
-		glm::vec3 tPos = tableObj->GetPositionGLM();
-		distSq = DistanceSquared(pPos, ToVec2(tPos));
-
-		//std::cout << "[PlayerLogic] Dist to table ORIGIN (fallback): "
-		//	<< std::sqrt(distSq) << "\n";
-	}
-
-	// Interaction radius around the approach point
-	if (distSq <= kPlayerInteractRadius * kPlayerInteractRadius) {
-		//std::cout << "[PlayerLogic] Close enough to table " << pendingTableID
-		//	<< " (approach), performing interaction\n";
+	if (IsInTableInteractionRange(scene, pendingTableID)) {
 		InteractWithTable(scene, pendingTableID);
-	}
-	else {
-		//std::cout << "[PlayerLogic] Arrived near click, but too far from table approach (dist="
-		//	<< std::sqrt(distSq) << ")\n";
 	}
 
 	pendingTableID = -1;
@@ -475,6 +807,10 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	}
 
 	carriedItemID = itemID;
+
+	// Store original layer so we can restore on drop
+	carriedItemOriginalLayer_ = scene.GetObjectLayer(itemID);
+	hasCarriedItemOriginalLayer_ = true;
 
 	// Play UI click sound for pickup feedback (release mode only)
 #ifndef _DEBUG
@@ -518,6 +854,9 @@ void PlayerLogic::Drop(Scene& scene) {
 		hasCarriedItemOriginalColliderSize = false;
 	}
 
+	// Restore original layer so it goes back to normal rendering order
+	RestoreCarriedItemLayer(scene, carriedItemID);
+
 	glm::vec3 p = player->GetPositionGLM();
 	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple �in front� drop
 	carriedItemID = -1;
@@ -533,23 +872,28 @@ void PlayerLogic::HandleKeyboardMovement(float dt, Scene& scene, InputManager& i
 
 	if (inputDir.x != 0.0f || inputDir.y != 0.0f) {
 		hasMoveTarget = false;
-		const glm::vec2 normalizedInput = NormalizeOrZero(inputDir);
-		const glm::vec2 desiredDelta = normalizedInput * kKeyboardMoveSpeed * dt;
-		const glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+		moveMode_ = MoveMode::None;
+		pathPoints_.clear();
+		pathIndex_ = 0;
+		pendingTableID = -1;
 
-		glm::vec3 nextPos = playerPos;
-		nextPos.x += allowedDelta.x;
-		nextPos.y += allowedDelta.y;
-		player->SetPosition(nextPos);
+		const glm::vec2 normalizedInput = NormalizeOrZero(inputDir);
+		glm::vec2 desiredDelta(normalizedInput.x * moveSpeed * dt,
+			normalizedInput.y * moveSpeed * dt);
+		glm::vec2 allowedDelta = scene.ResolveWorldStep(player, desiredDelta);
+
+		glm::vec3 pos3 = playerPos;
+		pos3.x += allowedDelta.x;
+		pos3.y += allowedDelta.y;
+		player->SetPosition(pos3);
 		scene.ClampToWalkArea(player);
-		UpdateSprite(scene, player, normalizedInput);
+		UpdateSprite(scene, player, allowedDelta);
 		return;
 	}
 
 	if (hasMoveTarget) {
-		UpdateSprite(scene, player, moveTarget - ToVec2(playerPos));
-	}
-	else {
+		UpdateSprite(scene, player, moveTarget - ToVec2(player->GetPositionGLM()));
+	} else {
 		UpdateSprite(scene, player, glm::vec2(0.0f, 0.0f));
 	}
 }
@@ -614,7 +958,8 @@ void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManag
 			trailPos.y -= dir.y * behind;
 
 			const glm::vec2 perp(-dir.y, dir.x);
-			const float jitter = ((std::rand() % 1000) / 1000.0f - 0.5f) * 3.0f;
+			static std::uniform_real_distribution<float> jitterDist(-1.5f, 1.5f);
+			const float jitter = jitterDist(EngineRng::Get());
 			trailPos.x += perp.x * jitter;
 			trailPos.y += perp.y * jitter;
 
@@ -661,11 +1006,10 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 // Optional: visual cues for interactable objects under mouse cursor
 void PlayerLogic::UpdateInteractableVisualCues(Scene& scene, InputManager& input, float dt) {
-	(void)input;
 	(void)dt;
 
 	glm::vec2 mouseWorld{};
-	const bool hasMouseWorld = scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld);
+	const bool hasMouseWorld = TryGetMouseWorld(scene, input, mouseWorld);
 
 	std::unordered_set<int> nextHighlighted;
 	nextHighlighted.reserve(16);
@@ -860,6 +1204,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 					hasCarriedItemOriginalColliderSize = false;
 				}
 
+				RestoreCarriedItemLayer(scene, itemToTrash);
+
 				// Clear carried item
 				carriedItemID = -1;
 			}
@@ -895,6 +1241,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 						item->SetColliderSize(carriedItemOriginalColliderSize);
 					hasCarriedItemOriginalColliderSize = false;
 				}
+				// R	estore original layer so it goes back to normal rendering order on the table
+				RestoreCarriedItemLayer(scene, carriedItemID);
 				carriedItemID = -1;
 
 				// Play put down sound effect (release mode only)
@@ -911,8 +1259,16 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 		else {
 			//std::cout << "  [PlayerLogic] CASE2: CanAcceptItem = false\n";
 		}
+		// --- NEW: if this is a cutting board and it started processing, lock player movement ---
+		if (WorkTableLogic* wt = logicMgr.GetLogicForObject<WorkTableLogic>(tableObjectID))
+		{
+			if (wt->LocksPlayerMovementWhileProcessing() && wt->IsProcessing())
+			{
+				BeginStationLock(scene, tableObjectID);
+			}
+		}
 		return;
-	}
+}
 
 	// CASE 3: Player holding something, table already has an item
 	//   -> typical case: table has a Plate, player has an Ingredient
@@ -950,10 +1306,24 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 
 						// Remember which GameObject is now visually sitting on this plate
 						plate->SetFirstIngredientObjectID(ingredientObjID);
+						ingredientObj->SetColliderSize(Math::Vector2D(0.f, 0.f));
+						ingredientObj->SetMovableByPhysics(false);
 					}
 				}
 
-				// Try to assemble a dish once we have enough ingredients
+				RestoreCarriedItemLayer(scene, carriedItemID);
+
+				//// If at some point TryAddIngredient decides to consume immediately,
+				//// we still support that (currently outConsumedNow is always false).
+				//bool carriedDespawned = false;
+				//if (consumedNow)
+				//{
+				//	scene.DespawnByID(ingredientObjID);
+				//	hasCarriedItemOriginalColliderSize = false;
+				//	carriedDespawned = true;
+				//}
+
+				// --- Try to assemble a dish once we have enough ingredients ---
 				DishType dishType;
 				std::vector<IngredientType> consumedTypes;
 				if (plate->TryAssembleDish(dishType, consumedTypes)) {
@@ -965,7 +1335,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 					int firstObjID = plate->GetFirstIngredientObjectID();
 					if (firstObjID >= 0) {
 						scene.DespawnByID(firstObjID);
-					}
+						plate->SetFirstIngredientObjectID(-1);
+				}
 
 					// Destroy the ingredient we just added (the one we were carrying)
 					if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
@@ -974,7 +1345,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 
 					// We won't restore its collider size because the object is gone.
 					hasCarriedItemOriginalColliderSize = false;
-				}
+			}
 
 
 				// Either way, we are no longer carrying this item
@@ -987,16 +1358,17 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
 				}
 #endif
-			}
-			else {
+		}
+			else
+			{
 				//std::cout << "  [PlayerLogic] CASE3: plate REJECTED ingredient\n";
 			}
 			return;
-		}
+	}
 
 		//std::cout << "  [PlayerLogic] CASE3: no (plate,ingredient) combo found\n";
 		return;
-	}
+}
 
 	//std::cout << "  [PlayerLogic] No case matched, doing nothing.\n";
 }
@@ -1017,11 +1389,244 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 		return;
 	}
 
+	const glm::vec2 carry = GetCarryOffsetForFacing();
 	glm::vec3 p = player->GetPositionGLM();
-	item->SetPosition(glm::vec3(p.x + carryOffset.x, p.y + carryOffset.y, p.z));
+	item->SetPosition(glm::vec3(p.x + carry.x,
+		p.y + carry.y,
+		p.z));
 
-	////Optional debug
+	// Base sort order for carried item
+	item->SetRenderSortOrder(0);
+
+	// Layer adjustment so the carried item renders above the player sprite
+	ApplyCarryLayer(scene, carriedItemID);
+
+	// If the carried item is a plate with 1 ingredient attached visually, move that ingredient too.
+	if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(carriedItemID))
+	{
+		const int child = plate->GetFirstIngredientObjectID();
+		if (child >= 0 && !plate->HasPreparedDish())
+		{
+			if (GameObject* ingObj = scene.GetGameObjectByID(child))
+			{
+				// Follow the plate exactly (same position as plate)
+				glm::vec3 platePos = item->GetPositionGLM();
+				ingObj->SetPosition(platePos);
+
+				// Also adjust layer to match the plate's layer offset (so it renders above the plate)
+				const std::string playerLayer = scene.GetObjectLayer(player->GetID());
+				const std::string childLayer = GetCarryChildLayerForFacing(playerLayer);
+				if (!childLayer.empty()) {
+					scene.AssignObjectToLayer(child, childLayer);
+				}
+
+				// Ensure stable ordering above the plate
+				ingObj->SetRenderSortOrder(1);
+
+				// Make sure it doesn't collide / get pushed
+				ingObj->SetColliderSize(Math::Vector2D(0.f, 0.f));
+				ingObj->SetMovableByPhysics(false);
+			}
+		}
+	}
+
+	// Debug
 	//std::cout << "[PlayerLogic] Updating carried item " << carriedItemID
 	//	<< " to follow player at (" << p.x + carryOffset.x << ", "
 	//	<< p.y + carryOffset.y << ")\n";
+}
+
+void PlayerLogic::BeginStationLock(Scene& scene, int tableID)
+{
+	movementLocked_ = true;
+	lockedTableID_ = tableID;
+
+	// Stop any click-to-move immediately
+	hasMoveTarget = false;
+	moveMode_ = MoveMode::None;
+
+	// Also clear any existing move target from the movement manager to be safe
+	if (GameObject* p = GetOwner(scene)) {
+		scene.GetMovementManager().ClearMoveTarget(p->GetID());
+		// Check if we should be playing the chopping animation right away (in case the table is already processing)	
+		if (ShouldPlayChopAnimation(scene)) {
+			EnsureChopAnimation(scene, p);
+		}
+	}
+}
+
+void PlayerLogic::EndStationLock()
+{
+	movementLocked_ = false;
+	lockedTableID_ = -1;
+}
+
+void PlayerLogic::UpdateStationLock(Scene& scene)
+{
+	if (!movementLocked_)
+		return;
+
+	// If the table vanished, unlock
+	if (lockedTableID_ < 0) {
+		EndStationLock();
+		return;
+	}
+
+	// Only remain locked while the cutting board is actively processing
+	WorkTableLogic* wt = scene.GetLogicManager().GetLogicForObject<WorkTableLogic>(lockedTableID_);
+	if (!wt || !wt->LocksPlayerMovementWhileProcessing() || !wt->IsProcessing()) {
+		EndStationLock();
+	}
+}
+
+bool PlayerLogic::ShouldPlayChopAnimation(Scene& scene) const
+{
+	if (lockedTableID_ < 0) {
+		return false;
+	}
+
+	WorkTableLogic* wt = scene.GetLogicManager().GetLogicForObject<WorkTableLogic>(lockedTableID_);
+	if (!wt) {
+		return false;
+	}
+
+	return wt->LocksPlayerMovementWhileProcessing() && wt->IsProcessing();
+}
+
+void PlayerLogic::EnsureChopAnimation(Scene& scene, GameObject* player)
+{
+	if (!player) {
+		return;
+	}
+
+	const std::string currentAnimation = scene.GetCurrentAnimationName(player->GetID());
+	if (currentAnimation != "CHOP") {
+		scene.SetAnimation(player->GetID(), "CHOP");
+	}
+}
+
+glm::vec2 PlayerLogic::GetCarryOffsetForFacing() const
+{
+	switch (facingDir) {
+	case FacingDir::Front: return carryOffsetFront_;
+	case FacingDir::Back:  return carryOffsetBack_;
+	case FacingDir::Left:  return carryOffsetLeft_;
+	case FacingDir::Right: return carryOffsetRight_;
+	default:               return carryOffset;
+	}
+}
+
+void PlayerLogic::ApplyCarryLayer(Scene& scene, int itemID)
+{
+	if (!hasCarriedItemOriginalLayer_) {
+		return;
+	}
+
+	GameObject* player = GetOwner(scene);
+	if (!player) {
+		return;
+	}
+
+	const std::string playerLayer = scene.GetObjectLayer(player->GetID());
+	const std::string desiredLayer = GetCarryLayerForFacing(playerLayer);
+	if (desiredLayer.empty()) {
+		return;
+	}
+
+	const std::string currentLayer = scene.GetObjectLayer(itemID);
+	if (currentLayer != desiredLayer) {
+		scene.AssignObjectToLayer(itemID, desiredLayer);
+	}
+}
+
+void PlayerLogic::RestoreCarriedItemLayer(Scene& scene, int itemID)
+{
+	if (!hasCarriedItemOriginalLayer_) {
+		return;
+	}
+
+	if (scene.GetGameObjectByID(itemID)) {
+		scene.AssignObjectToLayer(itemID, carriedItemOriginalLayer_);
+		if (GameObject* item = scene.GetGameObjectByID(itemID)) {
+			item->SetRenderSortOrder(0);
+		}
+	}
+
+	// If this is a plate with an ingredient visually attached, restore the ingredient's layer and order too.
+	if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(itemID)) {
+		const int child = plate->GetFirstIngredientObjectID();
+		if (child >= 0) {
+			const std::string childLayer = GetChildLayerAbove(carriedItemOriginalLayer_);
+			if (!childLayer.empty()) {
+				scene.AssignObjectToLayer(child, childLayer);
+			}
+			if (GameObject* ingObj = scene.GetGameObjectByID(child)) {
+				ingObj->SetRenderSortOrder(1);
+			}
+		}
+	}
+
+	carriedItemOriginalLayer_.clear();
+	hasCarriedItemOriginalLayer_ = false;
+}
+
+namespace {
+	bool TryParseLayerNumber(const std::string& layer, int& outValue) {
+		if (layer.empty()) {
+			return false;
+		}
+
+		int value = 0;
+		for (char c : layer) {
+			if (!std::isdigit(static_cast<unsigned char>(c))) {
+				return false;
+			}
+			value = value * 10 + (c - '0');
+		}
+
+		outValue = value;
+		return true;
+	}
+}
+
+std::string PlayerLogic::GetCarryLayerForFacing(const std::string& baseLayer) const
+{
+	int value = 0;
+	if (!TryParseLayerNumber(baseLayer, value)) {
+		return baseLayer;
+	}
+
+	const int offset = (facingDir == FacingDir::Front) ? 1 : -2;
+	int target = value + offset;
+	if (target < 0) {
+		target = 0;
+	}
+
+	return std::to_string(target);
+}
+
+std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& baseLayer) const
+{
+	int value = 0;
+	if (!TryParseLayerNumber(baseLayer, value)) {
+		return baseLayer;
+	}
+
+	const int offset = (facingDir == FacingDir::Front) ? 2 : -1;
+	int target = value + offset;
+	if (target < 0) {
+		target = 0;
+	}
+
+	return std::to_string(target);
+}
+
+std::string PlayerLogic::GetChildLayerAbove(const std::string& baseLayer) const
+{
+	int value = 0;
+	if (!TryParseLayerNumber(baseLayer, value)) {
+		return baseLayer;
+	}
+
+	return std::to_string(value + 1);
 }

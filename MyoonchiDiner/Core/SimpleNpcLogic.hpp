@@ -19,6 +19,8 @@
 #include "Math.hpp"
 
 #include <iostream>
+#include <glm/glm.hpp>
+#include <vector>
 
  // Forward declarations to avoid circular includes
 class SimpleNpcLogic : public GameObjectLogic {
@@ -65,11 +67,11 @@ public:
 		Leaving
 	};
 
-	// Table assignment -------------------------------------------------
-	void AssignCustomerTable(int tableObjectID);  // call when you pick a table
-	int  GetCustomerTableID() const {
-		return customerTableID_;
-	}
+    void UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm::vec2& moveDelta);
+
+    // Table assignment -------------------------------------------------
+    void AssignCustomerTable(int tableObjectID);  // call when you pick a table
+    int  GetCustomerTableID() const { return customerTableID_; }
 
 	// Call when movement/pathfinding detects NPC has reached their table.
 	void OnSeatedAtTable(Scene& scene);
@@ -185,11 +187,12 @@ public:
 		return patienceExpired_;
 	}
 
-	// Unified "will pay $0" for wrong dish OR patience timeout
-	bool WillPayZero() const {
-		return payZero_;
-	}
+    // Unified "will pay $0" for wrong dish OR patience timeout
+    bool WillPayZero() const { return payZero_; }
 
+	// --- Animation facing direction ---
+    enum class FacingDir { Front, Back, Left, Right };
+    FacingDir facingDir_ = FacingDir::Front;
 
 private:
 	// Internal movement state for simple up/down patrol when not doing customer behaviour.
@@ -206,8 +209,8 @@ private:
 	// Which direction we will move next after an Idle
 	bool nextMoveUp = false;     // start by moving DOWN
 
-	// ===================== New customer state data ====================
-	static constexpr int kInvalidID = -1;
+    // ===================== New customer state data ====================
+    static constexpr int kInvalidID = -1;
 
 	bool            hasCustomerTarget_ = false;
 	int             customerTableID_ = kInvalidID;
@@ -244,8 +247,34 @@ private:
 	// If true, payment should be $0 (wrong dish OR patience timeout)
 	bool  payZero_ = false;
 
-	// helper
-	void OnPatienceExpired(Scene& scene);
-	float patienceRatioAtServe_ = 0.0f; // 0..1 snapshot when correct dish is served
+    // helper
+    void OnPatienceExpired(Scene& scene);
+    float patienceRatioAtServe_ = 0.0f; // 0..1 snapshot when correct dish is served
+    bool TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const;
 
+    void BeginLeaveToExit(Scene& scene, bool freeTableImmediately);
+
+    enum class MoveMode {
+        None,
+        Direct,
+        Pathfinding
+    };
+
+    MoveMode moveMode_ = MoveMode::None;
+
+    glm::vec2 moveTarget_{ 0.0f, 0.0f };
+    bool hasMoveTarget_ = false;
+
+    std::vector<glm::vec2> pathPoints_;
+    std::size_t pathIndex_ = 0;
+    glm::vec2 finalTarget_{ 0.0f, 0.0f };
+
+    float directPathCheckTimer_ = 0.0f;
+    static constexpr float kDirectPathCheckInterval = 0.05f;
+
+    void ClearNavigationMove();
+    void BeginMoveDirect(const glm::vec2& dest);
+    void BeginMoveTo(Scene& scene, const glm::vec2& dest);
+    void EnsureNavigationPlan(Scene& scene, GameObject* npc, const glm::vec2& desiredTarget);
+    bool UpdateNavigationMove(float dt, Scene& scene, GameObject* npc);
 };

@@ -9,7 +9,7 @@
 					SimpleNpcLogic "customers" with CustomerTableLogic tables and assigns them
 					seat targets once per scene.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 #pragma once
@@ -41,15 +41,9 @@ public:
 	bool CanAcceptItem(Scene& scene, int itemID) const override;
 
 	// External control / queries
-	bool  IsProcessing() const {
-		return isProcessing_;
-	}
-	float GetProcessingTime() const {
-		return processingTime_;
-	}
-	float GetProcessingElapsed() const {
-		return timer_;
-	}
+	bool  IsProcessing() const { return isProcessing_; }
+	float GetProcessingTime() const { return processingTime_; }
+	float GetProcessingElapsed() const { return timer_; }
 	float GetProcessingProgress() const; // 0..1 (clamped), or 0 if not processing.
 
 	// Manually start or cancel processing (if you want external control).
@@ -62,11 +56,16 @@ public:
 	// Convenience: immediately mark an ingredient as processed, bypassing the timer.
 	// Useful for testing or for instant-process tables.
 	bool ProcessIngredientInstant(IngredientLogic& ingredient);
+	// WorkTableLogic.hpp
+	bool LocksPlayerMovementWhileProcessing() const
+	{
+		return stationType_ == StationType::CuttingBoard;
+	}
 
 
 protected:
-	// Optional type to distinguish different processing stations (e.g. cutting board vs stove).
-	enum class StationType {
+	enum class StationType
+	{
 		CuttingBoard, // veg
 		Grill,        // meat
 		Stove,        // shroom
@@ -104,7 +103,15 @@ protected:
 	float processingTime_ = 3.0f;  // seconds needed to process an ingredient
 	float timer_ = 0.0f;
 
-	std::string GetName() const override {
-		return "WorkTableLogic";
-	}
+	std::string GetName() const override { return "WorkTableLogic"; }
+
+	int vfxObjectID_ = -1;
+	glm::vec2 vfxOffset_{ -1.0f, -37.0f }; // tweak per station if needed
+
+	void SpawnProcessingVfx(Scene& scene);
+	void DespawnProcessingVfx(Scene& scene);
+	void UpdateProcessingVfxTransform(Scene& scene);
+
+	const char* GetVfxTextureForStation() const;
+	const char* GetVfxTagForStation() const;
 };

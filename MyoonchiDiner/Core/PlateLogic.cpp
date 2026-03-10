@@ -9,11 +9,12 @@
 					dish-recipe matching, storing ingredient types, and determining
 					the final dish output (VegDish, MeatDish, SoupDish, etc.).
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "Graphics/SceneManager.hpp"
+#include "../Core/PlateLogic.hpp"
+#include "../Graphics/SceneManager.hpp"
 
 #include "PlateLogic.hpp"
 
@@ -60,7 +61,21 @@ void PlateLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/)
 	// No per-frame logic needed yet.
 }
 
-bool PlateLogic::CanAcceptIngredientType(IngredientType type) const {
+void PlateLogic::OnDestroy(Scene& scene)
+{
+	// If this plate had an attached ingredient visual, delete it too.
+	if (firstIngredientObjectID_ >= 0)
+	{
+		if (scene.GetGameObjectByID(firstIngredientObjectID_))
+		{
+			scene.DespawnByID(firstIngredientObjectID_);
+		}
+		firstIngredientObjectID_ = -1;
+	}
+}
+
+bool PlateLogic::CanAcceptIngredientType(IngredientType type) const
+{
 	if (dishPrepared_)
 		return false;
 
