@@ -1070,13 +1070,13 @@ bool PlayerLogic::IsPointInsideObjectCollider(const GameObject* obj, const glm::
 		(worldPoint.y >= center.y - halfH && worldPoint.y <= center.y + halfH);
 }
 
-// Show a temporary indicator (e.g. a circle) at the clicked position for click-to-move feedback
+// Show a temporary indicator at the clicked position for click-to-move feedback
 void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint) {
 	const glm::vec3 markerPos(worldPoint.x, worldPoint.y, 0.0f);
 
 	GameObject* marker = scene.GetGameObjectByID(clickIndicatorID_);
 	if (!marker) {
-		marker = scene.SpawnStaticSprite("../assets/Coin.png", markerPos, glm::vec2(26.0f, 26.0f));
+		marker = scene.SpawnStaticSprite("../assets/Arrow_Merged.png", markerPos, glm::vec2(26.0f, 26.0f));
 		if (!marker) {
 			clickIndicatorID_ = -1;
 			clickIndicatorTimeLeft_ = 0.0f;
