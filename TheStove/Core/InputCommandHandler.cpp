@@ -16,6 +16,7 @@
 
 #include <iostream>
 
+ // Processes per-frame command inputs, including debug toggles and physics mode switching.
 void InputCommandHandler::ProcessCommands(InputManager& inputManager,
 	PhysicsManager& physicsManager,
 	MovementManager& movementManager,
@@ -26,6 +27,7 @@ void InputCommandHandler::ProcessCommands(InputManager& inputManager,
 	HandleForceToggle(inputManager, physicsManager, movementManager, playerID, useForces);
 }
 
+// Handles debug visualization toggles (G for colliders, H for auxiliary visuals).
 void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& showAuxDebug) {
 	// Toggle collider visualization
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_G)) {
@@ -46,6 +48,7 @@ void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& s
 	}
 }
 
+// Handles the physics mode toggle (F key) and updates the player's physics component accordingly, as well as the click-to-move path line visibility.
 void InputCommandHandler::HandleForceToggle(InputManager& inputManager,
 	PhysicsManager& physicsManager,
 	MovementManager& movementManager,

@@ -26,6 +26,7 @@ using nlohmann::json;
 namespace {
 	constexpr int LEVEL_SCHEMA_VERSION = 2;
 
+	// Applies necessary transformations to jsonData to ensure compatibility with the current schema version.
 	void ApplyLegacyMigrations(json& jsonData, int schemaVersion) {
 		if (schemaVersion < 1) {
 			if (!jsonData.contains("textObjects") && jsonData.contains("text_objects")) {

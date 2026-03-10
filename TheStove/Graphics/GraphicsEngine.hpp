@@ -35,6 +35,7 @@ namespace LEPANELFONTS {
 	struct TextObjectData;
 }
 
+// Forward declare Scene to avoid circular dependency
 class GraphicsEngine : public CoreFramework::SystemInterface {
 public:
 	GraphicsEngine();
@@ -160,6 +161,7 @@ private:
 		}
 	};
 
+	// Render statistics for the current frame, updated by RenderBatched
 	struct RenderStats {
 		int totalObjects = 0;
 		int totalBatches = 0;
@@ -167,6 +169,7 @@ private:
 		int drawCalls = 0;
 	};
 
+	// Scene transition phases for fade-out, hold, and fade-in
 	enum class TransitionPhase {
 		None,
 		FadeOut,
@@ -181,6 +184,7 @@ private:
 	glm::mat4 view{ 1.0f };
 	glm::mat4 projection{ 1.0f };
 
+	// Screen and viewport dimensions
 	int screenWidth = kRefW;
 	int screenHeight = kRefH;
 	float lastDt = 0.0f;
@@ -192,6 +196,7 @@ private:
 	int viewportH_ = 0;
 	float viewportScale_ = 1.0f;
 
+	// Off-screen framebuffer for scene rendering
 	unsigned int mSceneFBO = 0;
 	unsigned int mSceneColor = 0; // GL_RGBA8 color texture
 	unsigned int mSceneDepth = 0; // GL_DEPTH24_STENCIL8 renderbuffer
