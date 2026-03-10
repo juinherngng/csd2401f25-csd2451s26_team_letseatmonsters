@@ -86,6 +86,7 @@ namespace Framework {
 		// Switch to a JSON-backed state if mapping exists; returns true if handled
 		bool TrySwitchJsonState(int state, float dt);
 		void PreloadJsonStateAssets(int activeState);
+		void StopCurrentAudio();
 
 	private:
 		CoreFramework::MessageBus& messageBus;
@@ -100,5 +101,7 @@ namespace Framework {
 		bool wasPaused = false;    // Track pause state for audio
 		StateAudioPolicy stateAudioPolicy;
 		PauseAudioPolicy pauseAudioPolicy;
+		std::string currentAudio;
+		std::string currentAmbience;
 	};
 }
