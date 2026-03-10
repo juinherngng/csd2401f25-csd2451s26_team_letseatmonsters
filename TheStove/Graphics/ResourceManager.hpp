@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 // Forward declarations
@@ -64,6 +65,8 @@ public:
 	// Cleanup
 	void Clear();
 
+	std::string NormalizePathCached(const std::string& path);
+
 private:
 	ResourceManager() : isCleared(false), audioManager(nullptr) {
 	}
@@ -81,6 +84,8 @@ private:
 	std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
 	std::unordered_map<std::string, Texture*> textureAliases;
 	std::unordered_map<std::string, Texture*> texturePaths;
+	std::unordered_map<std::string, std::string> normalizedPathCache;
+	std::unordered_set<std::string> failedTexturePaths;
 
 	AudioManager* audioManager; // Non-owning pointer to AudioManager
 	bool isCleared;

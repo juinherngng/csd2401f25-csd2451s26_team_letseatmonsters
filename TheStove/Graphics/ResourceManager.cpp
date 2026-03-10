@@ -40,6 +40,22 @@ namespace {
 	}
 }
 
+// Caches normalized paths to avoid redundant filesystem calls for the same paths
+std::string ResourceManager::NormalizePathCached(const std::string& path) {
+	if (path.empty()) {
+		return path;
+	}
+
+	auto cached = normalizedPathCache.find(path);
+	if (cached != normalizedPathCache.end()) {
+		return cached->second;
+	}
+
+	std::string normalized = NormalizePath(path);
+	normalizedPathCache[path] = normalized;
+	return normalized;
+}
+
 // AudioManager injection
 void ResourceManager::SetAudioManager(AudioManager* audioMgr) {
 	audioManager = audioMgr;
@@ -114,7 +130,7 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 		return aliasIt->second;
 	}
 
-	const std::string normalizedPath = NormalizePath(filePath);
+	const std::string normalizedPath = NormalizePathCached(filePath);
 	auto pathIt = texturePaths.find(normalizedPath);
 	if (pathIt != texturePaths.end()) {
 		textureAliases[name] = pathIt->second;
@@ -122,14 +138,20 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 		return pathIt->second;
 	}
 
+	if (failedTexturePaths.find(normalizedPath) != failedTexturePaths.end()) {
+		return nullptr;
+	}
+
 	auto texture = std::make_unique<Texture>();
 	if (!texture->LoadFromFile(filePath)) {
+		failedTexturePaths.insert(normalizedPath);
 		return nullptr;
 	}
 
 	Texture* texturePtr = texture.get();
 	textures[name] = std::move(texture);
 	texturePaths[normalizedPath] = texturePtr;
+	failedTexturePaths.erase(normalizedPath);
 
 #ifndef NDEBUG
 	std::cout << "Loaded texture: " << name << std::endl;
@@ -174,8 +196,12 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 			continue;
 		}
 
-		const std::string normalizedPath = NormalizePath(filePath);
+		const std::string normalizedPath = NormalizePathCached(filePath);
 		if (texturePaths.find(normalizedPath) != texturePaths.end()) {
+			continue;
+		}
+
+		if (failedTexturePaths.find(normalizedPath) != failedTexturePaths.end()) {
 			continue;
 		}
 
@@ -214,6 +240,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 
 	auto consumeDecodedTexture = [&](DecodedTexture&& decoded) {
 		if (!decoded.ok) {
+			failedTexturePaths.insert(decoded.normalizedPath);
 			++failedCount;
 			return;
 		}
@@ -221,6 +248,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 		auto texture = std::make_unique<Texture>();
 		const auto uploadStart = std::chrono::steady_clock::now();
 		if (!texture->LoadFromMemory(decoded.data.data(), decoded.width, decoded.height, decoded.channels)) {
+			failedTexturePaths.insert(decoded.normalizedPath);
 			++failedCount;
 			return;
 		}
@@ -232,6 +260,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 		const std::string cacheKey = "preload_" + decoded.path;
 		textures[cacheKey] = std::move(texture);
 		texturePaths[decoded.normalizedPath] = texturePtr;
+		failedTexturePaths.erase(decoded.normalizedPath);
 		};
 
 	for (auto& pendingPath : uniquePaths) {
@@ -303,6 +332,8 @@ void ResourceManager::Clear() {
 		meshes.clear();
 		textureAliases.clear();
 		texturePaths.clear();
+		normalizedPathCache.clear();
+		failedTexturePaths.clear();
 		textures.clear();
 		// Note: Audio is managed by AudioManager, so we don't clear it here
 		// Note: Fonts are managed by FontManager, so we don't clear them here

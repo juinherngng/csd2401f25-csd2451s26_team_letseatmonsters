@@ -123,6 +123,17 @@ public:
 	/** @brief Set the colliders positional offset relative to object center. */
 	void SetColliderOffset(const Math::Vector2D& offset);
 
+	// Dirty-flag helpers used by physics/collision sync paths.
+	bool IsTransformDirty() const {
+		return m_TransformDirty;
+	}
+	bool IsBroadphaseDirty() const {
+		return m_BroadphaseDirty;
+	}
+	void MarkBroadphaseClean() {
+		m_BroadphaseDirty = false;
+	}
+
 	/** @brief Get the collider size. */
 	Math::Vector2D GetColliderSize() const;
 
@@ -242,4 +253,7 @@ private:
 
 	int renderLayer_ = 1; // Layer number for render ordering
 	int renderSortOrder_ = 0; // Tie-breaker for render ordering within a layer
+
+	bool m_TransformDirty = true;
+	bool m_BroadphaseDirty = true;
 };

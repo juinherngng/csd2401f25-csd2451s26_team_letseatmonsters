@@ -106,6 +106,7 @@ struct TextObjectData {
 };
 
 struct LevelData {
+	int schemaVersion{ 2 };
 	std::vector<LevelObject> objects{};
 	std::vector<LevelTextObject> textObjects{};  // text objects in the level
 	std::string background; // optional background texture path
