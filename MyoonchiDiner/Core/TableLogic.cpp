@@ -17,6 +17,7 @@
 #include "Graphics/GameObject.hpp"
 #include "Graphics/SceneManager.hpp"   // for Scene interface (GetGameObjectByID, etc.)
 
+#include "PlateLogic.hpp"
 #include "TableLogic.hpp"
 
 #include <iostream>

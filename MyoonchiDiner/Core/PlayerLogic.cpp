@@ -14,6 +14,7 @@
 #include "Core/AudioManager.hpp"
 #include "Core/CustomerTableLogic.hpp"
 #include "Core/DebugUI.hpp"
+#include "Core/EngineRng.hpp"
 #include "Core/IngredientBoxLogic.hpp"
 #include "Core/IngredientLogic.hpp"
 #include "Core/InputControls.hpp"
@@ -23,6 +24,10 @@
 #include "Core/TrashCanLogic.hpp"
 #include "Core/WorkTableLogic.hpp"
 #include "Graphics/SceneManager.hpp"
+
+#include "CustomerOrderUILogic.hpp"
+#include "PlayerLogic.hpp"
+#include "SimpleNpcLogic.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -1266,7 +1271,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 			}
 		}
 		return;
-}
+	}
 
 	// CASE 3: Player holding something, table already has an item
 	//   -> typical case: table has a Plate, player has an Ingredient
@@ -1289,7 +1294,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 			if (plate->TryAddIngredient(*ingr, consumedNow)) {
 				//std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient type\n";
 
-				// VISUAL: first ingredient goes onto the plate visually
+				// VISUAL: first ingredient goes onto the plate.
 				if (ingredientCountBefore == 0) // this is the first ingredient on this plate
 				{
 					GameObject* plateObj = scene.GetGameObjectByID(tableItemID);

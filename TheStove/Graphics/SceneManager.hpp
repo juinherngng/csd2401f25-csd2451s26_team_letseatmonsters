@@ -35,6 +35,8 @@
 #include "../Core/Physics.hpp"
 #include "../Core/PhysicsManager.hpp"
 #include "../Core/PlayerController.hpp"
+#include "../Core/ReplayManager.hpp"
+#include "../Core/GridPathfinder.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"
@@ -204,6 +206,7 @@ public:
 	using CutsceneFadeOutHook = std::function<void(Scene&, float)>;
 	using CutsceneFirstFrameHook = std::function<void(Scene&, const std::string&)>;
 	using CutsceneBeforeFinalLoadHook = std::function<void(Scene&, float)>;
+	using NavigationBlockerCollector = std::function<void(Scene&, int, std::vector<collision::AABB>&)>;
 	void SetTagLogicBinder(TagLogicBinder binder) {
 		tagLogicBinder_ = std::move(binder);
 	}
@@ -239,6 +242,9 @@ public:
 	}
 	void SetCutsceneBeforeFinalLoadHook(CutsceneBeforeFinalLoadHook hook) {
 		cutsceneBeforeFinalLoadHook_ = std::move(hook);
+	}
+	void SetNavigationBlockerCollector(NavigationBlockerCollector collector) {
+		navigationBlockerCollector_ = std::move(collector);
 	}
 	void SetPauseOverlayAudioChannels(std::string musicChannel, std::string ambienceChannel) {
 		pauseMusicChannel_ = std::move(musicChannel);
@@ -390,6 +396,7 @@ public:
 	collision::WalkArea GetWalkArea() const;
 	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
 	void ApplyFinalConstraints(EntityManager& entityMgr);
+	void CollectNavigationBlockerBoxes(int moverObjectID, std::vector<collision::AABB>& outBoxes);
 
 	// Expose EntityManager for systems that need it
 	EntityManager& GetEntityManager() {
@@ -614,6 +621,7 @@ private:
 	CutsceneFadeOutHook cutsceneFadeOutHook_;
 	CutsceneFirstFrameHook cutsceneFirstFrameHook_;
 	CutsceneBeforeFinalLoadHook cutsceneBeforeFinalLoadHook_;
+	NavigationBlockerCollector navigationBlockerCollector_;
 	std::string pauseMusicChannel_;
 	std::string pauseAmbienceChannel_;
 

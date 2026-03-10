@@ -490,7 +490,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 			playerPosM.y += kEps;
 		}
 		if (playerDelta.y < 0.0f) {
-			playerPosM.y -= kEps;
+		 playerPosM.y -= kEps;
 		}
 
 		// Apply the separation
@@ -548,6 +548,13 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 	}
 }
 
+void Scene::CollectNavigationBlockerBoxes(int moverObjectID, std::vector<collision::AABB>& outBoxes) {
+	outBoxes.clear();
+	if (navigationBlockerCollector_) {
+		navigationBlockerCollector_(*this, moverObjectID, outBoxes);
+	}
+}
+
 namespace {
 	void CompressCellPathToWaypoints(const NavGrid& grid,
 		const std::vector<GridCoord>& cells,
@@ -589,32 +596,7 @@ namespace {
 		int moverObjectID,
 		std::vector<collision::AABB>& outBoxes)
 	{
-		outBoxes.clear();
-
-		LogicManager& logicMgr = scene.GetLogicManager();
-
-		for (GameObject* obj : scene.GetAllObjectsRaw())
-		{
-			if (!obj) continue;
-			if (obj->GetID() == moverObjectID) continue;
-
-			TableLogic* table = logicMgr.GetLogicForObject<TableLogic>(obj->GetID());
-			if (!table) continue;
-
-			const Math::Vector2D colSize = obj->GetColliderSize();
-			if (colSize.x <= 0.0f || colSize.y <= 0.0f) continue;
-
-			const std::string layerName = scene.GetObjectLayer(obj->GetID());
-			Layer* layer = scene.GetLayer(layerName);
-			if (layer && (!layer->IsEnabled() || !layer->IsCollidable())) {
-				continue;
-			}
-
-			const glm::vec3 p = obj->GetPositionGLM();
-			outBoxes.push_back(
-				physics::MakeColliderBox(obj, Math::Vector3D(p.x, p.y, p.z))
-			);
-		}
+		scene.CollectNavigationBlockerBoxes(moverObjectID, outBoxes);
 	}
 
 	bool BoxHitsAnyNavigationBlocker(const collision::AABB& box,
@@ -690,33 +672,9 @@ bool Scene::BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid)
 
 	outGrid.Reset(walk.L, walk.T, kNavCellSize, width, height);
 
-	// Cache all table AABBs (only these are dynamic blockers for this first version)
+	// Cache all navigation blocker AABBs via the game-layer hook
 	std::vector<collision::AABB> tableBoxes;
-	LogicManager& logicMgr = GetLogicManager();
-
-	for (GameObject* obj : GetAllObjectsRaw())
-	{
-		if (!obj) continue;
-		if (obj->GetID() == moverObjectID) continue;
-
-		// Only tables and anything inheriting TableLogic should block the nav grid
-		TableLogic* table = logicMgr.GetLogicForObject<TableLogic>(obj->GetID());
-		if (!table) continue;
-
-		const Math::Vector2D colSize = obj->GetColliderSize();
-		if (colSize.x <= 0.0f || colSize.y <= 0.0f) continue;
-
-		const std::string layerName = GetObjectLayer(obj->GetID());
-		Layer* layer = GetLayer(layerName);
-		if (layer && (!layer->IsEnabled() || !layer->IsCollidable())) {
-			continue;
-		}
-
-		const glm::vec3 p = obj->GetPositionGLM();
-		tableBoxes.push_back(
-			physics::MakeColliderBox(obj, Math::Vector3D(p.x, p.y, p.z))
-		);
-	}
+	CollectNavigationBlockerBoxes(moverObjectID, tableBoxes);
 
 	// For each cell, test whether THIS mover can stand there
 	const Math::Vector2D moverOffset = mover->GetColliderOffset();

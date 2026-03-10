@@ -240,6 +240,35 @@ namespace {
 			logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
 		}
 	}
+
+	void CollectNavigationBlockersForGame(Scene& scene, int moverObjectID, std::vector<collision::AABB>& outBoxes) {
+		outBoxes.clear();
+
+		LogicManager& logicMgr = scene.GetLogicManager();
+
+		for (GameObject* obj : scene.GetAllObjectsRaw())
+		{
+			if (!obj) continue;
+			if (obj->GetID() == moverObjectID) continue;
+
+			TableLogic* table = logicMgr.GetLogicForObject<TableLogic>(obj->GetID());
+			if (!table) continue;
+
+			const Math::Vector2D colSize = obj->GetColliderSize();
+			if (colSize.x <= 0.0f || colSize.y <= 0.0f) continue;
+
+			const std::string layerName = scene.GetObjectLayer(obj->GetID());
+			Layer* layer = scene.GetLayer(layerName);
+			if (layer && (!layer->IsEnabled() || !layer->IsCollidable())) {
+				continue;
+			}
+
+			const glm::vec3 p = obj->GetPositionGLM();
+			outBoxes.push_back(
+				physics::MakeColliderBox(obj, Math::Vector3D(p.x, p.y, p.z))
+			);
+		}
+	}
 }
 
 void RegisterMyoonchiDinerBindings(Scene& scene) {
@@ -263,4 +292,5 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	scene.SetTagLogicBinder(AttachTagLogic);
 	scene.SetPauseOverlayButtonBinder(AttachPauseOverlayButton);
+	scene.SetNavigationBlockerCollector(CollectNavigationBlockersForGame);
 }
