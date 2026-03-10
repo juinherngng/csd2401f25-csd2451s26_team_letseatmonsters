@@ -69,11 +69,21 @@ private:
 	// Tracks whether template discovery has already run for the current scene
 	bool cachedTemplate_ = false;
 
+	// Optional customer spawn entry markers discovered in the level JSON.
+	std::vector<int> customerEntryIDs_;
+
+	// Round-robin index for choosing which customer entry marker to spawn from.
+	int nextEntryIndex_ = 0;
+	bool cachedEntries_ = false;
+
 	// Discover and cache all customer-table entity IDs in the scene
 	void CacheTables(Scene& scene);
 
 	// Discover and cache the customer template/prefab entity ID
 	void CacheTemplate(Scene& scene);
+
+	// Discover optional customer entry marker IDs (tag: customer_entry).
+	void CacheEntries(Scene& scene);
 
 	// Remove stale/dead customer IDs from the active customer list
 	void CleanupDeadCustomers(Scene& scene);
