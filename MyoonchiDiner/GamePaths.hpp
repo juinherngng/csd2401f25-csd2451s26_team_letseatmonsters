@@ -1,21 +1,48 @@
+/*
+----------------------------------------------------------------------------------------------------
+ FILE NAME:			GamePaths.hpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+
+ DESCRIPTION:		Centralized path and key constants for all Myoonchi Diner
+					game assets. Keeps every game-specific file path and audio
+					catalog key in one place so they can be referenced from
+					both the bootstrap layer and the game logic layer without
+					scattering magic strings.
+
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+----------------------------------------------------------------------------------------------------
+*/
+
 #pragma once
 
+/************************************************************************/
+/*!
+\brief
+	Game-specific asset path and audio key constants for Myoonchi Diner.
+	Organized into sub-namespaces by asset category.
+*/
+/************************************************************************/
 namespace MyoonchiPaths {
+
+	// JSON level files loaded by the GameStateManager
 	namespace Levels {
-		constexpr const char* MAIN_MENU = "../levels/main_menu.json";
+		constexpr const char* MAIN_MENU  = "../levels/main_menu.json";
 		constexpr const char* KITCHEN_01 = "../levels/kitchen01.json";
 	}
 
+	// Texture assets referenced at runtime
 	namespace Textures {
 		constexpr const char* BACKGROUND = "../assets/Background.png";
 	}
 
+	// Audio catalog keys (must match entries in AudioCatalog.json)
 	namespace Audio {
-		constexpr const char* BGM_MAIN_MENU = "bgm_MyoonchiDiner_MainMenu";
-		constexpr const char* BGM_LEVEL_THEME = "bgm_MyoonchiDiner_LevelTheme";
-		constexpr const char* BGM_KITCHEN_AMBIENCE = "bgm_KitchenAmbience";
-		constexpr const char* BGM_INTRO_CUTSCENE = "bgm_MyoonchiDiner_IntroCutscene";
-		constexpr const char* BGM_WIN_CUTSCENE = "bgm_win_cutscene";
-		constexpr const char* SFX_GAMEOVER = "sfx_gameover";
+		constexpr const char* BGM_MAIN_MENU			= "bgm_MyoonchiDiner_MainMenu";
+		constexpr const char* BGM_LEVEL_THEME		= "bgm_MyoonchiDiner_LevelTheme";
+		constexpr const char* BGM_KITCHEN_AMBIENCE  = "bgm_KitchenAmbience";
+		constexpr const char* BGM_INTRO_CUTSCENE    = "bgm_MyoonchiDiner_IntroCutscene";
+		constexpr const char* BGM_WIN_CUTSCENE      = "bgm_win_cutscene";
+		constexpr const char* SFX_GAMEOVER          = "sfx_gameover";
 	}
 }
