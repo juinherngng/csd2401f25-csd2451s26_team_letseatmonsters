@@ -615,14 +615,56 @@ void GraphicsEngine::BeginFrame() {
 }
 
 // Convert current mouse (screen) into scene world coords if within image
-bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld) const {
-	ImVec2 localPos;
-	ImVec2 sceneSize;
-	if (!TryGetMousePositionInScene(localPos, sceneSize)) {
+bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld, const glm::dvec2* mousePosOverride) const {
+
+	if (mousePosOverride == nullptr) {
+		ImVec2 localPos{}, sceneSize{};
+		if(!TryGetMousePositionInScene(localPos, sceneSize)) {
+			return false;
+		}
+		outWorld = ScenePixelToWorld(localPos, sceneSize);
+		return true;
+	}
+
+	const glm::dvec2 mousePos = mousePosOverride ? *mousePosOverride : InputManager::Get().GetMousePosition();
+
+#ifdef _DEBUG
+	if (_imguiInitialized && ImGui::GetCurrentContext() != nullptr) {
+		ImVec2 scenePos{}, sceneSize{};
+		ComputeSceneImageRect(scenePos, sceneSize);
+
+		if (sceneSize.x <= 0.0f || sceneSize.y <= 0.0f) {
+			return false;
+		}
+
+		const float localX = static_cast<float>(mousePos.x) - scenePos.x;
+		const float localY = static_cast<float>(mousePos.y) - scenePos.y;
+
+		if (localX < 0.0f || localY < 0.0f || localX > sceneSize.x || localY > sceneSize.y) {
+			return false;
+		}
+
+		outWorld = ScenePixelToWorld(ImVec2(localX, localY), sceneSize);
+		return true;
+	}
+#endif
+
+	// Release / no-ImGui-safe path (viewport space)
+	const float vx = static_cast<float>(viewportX_);
+	const float vy = static_cast<float>(viewportY_);
+	const float vw = static_cast<float>(viewportW_);
+	const float vh = static_cast<float>(viewportH_);
+	if (vw <= 0.0f || vh <= 0.0f) {
 		return false;
 	}
 
-	outWorld = ScenePixelToWorld(localPos, sceneSize);
+	const float localX = static_cast<float>(mousePos.x) - vx;
+	const float localY = static_cast<float>(mousePos.y) - vy;
+	if (localX < 0.0f || localY < 0.0f || localX > vw || localY > vh) {
+		return false;
+	}
+
+	outWorld = ScenePixelToWorld(ImVec2(localX, localY), ImVec2(vw, vh));
 	return true;
 }
 

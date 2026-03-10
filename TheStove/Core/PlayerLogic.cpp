@@ -217,8 +217,13 @@ void PlayerLogic::ResetMouseDragState() {
 }
 
 //Get the mouse world position if the mouse is currently over the scene viewport
-bool PlayerLogic::TryGetMouseWorld(Scene& scene, glm::vec2& mouseWorld) const {
-	return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld);
+bool PlayerLogic::TryGetMouseWorld(Scene& scene, InputManager& input, glm::vec2& mouseWorld) const {
+	if (input.IsReplayOverride()) {
+		const glm::dvec2 replayMousePos = input.GetMousePosition();
+		return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, &replayMousePos);
+	}
+
+	return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, nullptr);
 }
 
 // Clear the current movement target and reset related state
@@ -442,7 +447,7 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	}
 
 	glm::vec2 mouseWorld{};
-	if (!TryGetMouseWorld(scene, mouseWorld)) {
+	if (!TryGetMouseWorld(scene, input, mouseWorld)) {
 		return;
 	}
 
@@ -1001,11 +1006,10 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 // Optional: visual cues for interactable objects under mouse cursor
 void PlayerLogic::UpdateInteractableVisualCues(Scene& scene, InputManager& input, float dt) {
-	(void)input;
 	(void)dt;
 
 	glm::vec2 mouseWorld{};
-	const bool hasMouseWorld = scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld);
+	const bool hasMouseWorld = TryGetMouseWorld(scene, input, mouseWorld);
 
 	std::unordered_set<int> nextHighlighted;
 	nextHighlighted.reserve(16);

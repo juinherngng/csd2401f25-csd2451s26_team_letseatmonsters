@@ -13,7 +13,7 @@ public:
 		InputManager::Snapshot input{};
 	};
 
-	void StartRecording();
+	void StartRecording(const std::string& levelPath, bool simulationActive);
 	bool StopRecording(const std::string& path);
 
 	bool StartPlayback(const std::string& path);
@@ -29,10 +29,20 @@ public:
 		return seed_;
 	}
 
+	const std::string& GetRecordedLevelPath() const {
+		return recordedLevelPath_;
+		
+	}
+		bool GetRecordedSimulationActive() const {
+		return recordedSimulationActive_;
+	}
+
 private:
 	bool recording_ = false;
 	bool playback_ = false;
 	std::uint32_t seed_ = 0;
+	std::string recordedLevelPath_;
+	bool recordedSimulationActive_ = false;
 	std::vector<Frame> frames_;
 	std::size_t playbackIndex_ = 0;
 };

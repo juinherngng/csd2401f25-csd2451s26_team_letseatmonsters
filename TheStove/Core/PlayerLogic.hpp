@@ -131,7 +131,7 @@ private:
 	void UpdateClickMoveIndicator(Scene& scene, float dt);
 	void ClearInteractableVisualCues(Scene& scene);
 	void ResetMouseDragState();
-	bool TryGetMouseWorld(Scene& scene, glm::vec2& mouseWorld) const;
+	bool TryGetMouseWorld(Scene& scene, InputManager& input, glm::vec2& mouseWorld) const;
 	void HandleKeyboardMovement(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& playerPos);
 	void UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& beforePos, const glm::vec3& afterPos);
 	void ClearMovementTarget(Scene& scene);

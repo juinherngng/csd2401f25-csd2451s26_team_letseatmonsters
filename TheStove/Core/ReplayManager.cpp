@@ -9,11 +9,13 @@
 
 using nlohmann::json;
 
-void ReplayManager::StartRecording() {
+void ReplayManager::StartRecording(const std::string& levelPath, bool simulationActive) {
 	recording_ = true;
 	playback_ = false;
 	frames_.clear();
 	playbackIndex_ = 0;
+	recordedLevelPath_ = levelPath;
+	recordedSimulationActive_ = simulationActive;
 
 	seed_ = EngineRng::CreateSeed();
 	EngineRng::SetSeed(seed_);
@@ -37,6 +39,8 @@ bool ReplayManager::StopRecording(const std::string& path) {
 	json root;
 	root["version"] = 1;
 	root["seed"] = seed_;
+	root["levelPath"] = recordedLevelPath_;
+	root["simulationActive"] = recordedSimulationActive_;
 	root["frames"] = json::array();
 
 	for (const auto& frame : frames_) {
@@ -77,6 +81,8 @@ bool ReplayManager::StartPlayback(const std::string& path) {
 	playbackIndex_ = 0;
 
 	seed_ = root.value("seed", 0u);
+	recordedLevelPath_ = root.value("levelPath", std::string{});
+	recordedSimulationActive_ = root.value("simulationActive", false);
 	EngineRng::SetSeed(seed_);
 
 	const auto& frames = root["frames"];
@@ -105,7 +111,9 @@ bool ReplayManager::StartPlayback(const std::string& path) {
 	}
 
 	std::cout << "[Replay] Playback started: " << path
-		<< " (frames=" << frames_.size() << ", seed=" << seed_ << ")\n";
+		 << " (frames=" << frames_.size() << ", seed=" << seed_
+		 << ", levelPath=" << recordedLevelPath_
+		 << ", simulationActive=" << (recordedSimulationActive_ ? "true" : "false") << ")\n";
 	return true;
 }
 

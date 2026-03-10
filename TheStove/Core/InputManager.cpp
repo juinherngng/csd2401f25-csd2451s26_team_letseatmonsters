@@ -46,6 +46,7 @@ namespace {
 		GLFW_KEY_1,
 		GLFW_KEY_2,
 		GLFW_KEY_3,
+		GLFW_KEY_SPACE,
 		GLFW_KEY_ESCAPE, // Menu toggle in Release
 		GLFW_KEY_F1,		// FPS display toggle in Release
 		GLFW_KEY_F5,

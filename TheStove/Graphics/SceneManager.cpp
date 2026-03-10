@@ -124,35 +124,54 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 	static constexpr const char* kReplayFilePath = "replays/last.replay";
 
-	const bool allowReplayHotkeys = !replayManager_.IsPlaybackActive();
-	if (allowReplayHotkeys) {
+	// Replay/record control first, before any gameplay input is consumed.
+	if (!replayManager_.IsPlaybackActive()) {
 		if (inputManager.IsKeyJustPressed(GLFW_KEY_F5)) {
 			if (replayManager_.IsRecording()) {
 				replayManager_.StopRecording(kReplayFilePath);
 			}
 			else {
-				replayManager_.StartRecording();
+				replayManager_.StartRecording(currentLevelPath_, simulationActive);
 			}
 		}
 
 		if (inputManager.IsKeyJustPressed(GLFW_KEY_F6)) {
-			replayManager_.StartPlayback(kReplayFilePath);
+			if (replayManager_.StartPlayback(kReplayFilePath)) {
+				const std::string& replayLevelPath = replayManager_.GetRecordedLevelPath();
+				if (!replayLevelPath.empty()) {
+					if (RuntimeLevel::LoadAndBuild(replayLevelPath, *this)) {
+						currentLevelPath_ = replayLevelPath;
+						RebuildColliders();
+						SetSimulationActive(replayManager_.GetRecordedSimulationActive());
+						
+					}
+					 else {
+						std::cerr << "[Scene] Replay baseline load failed: " << replayLevelPath << std::endl;
+						
+					}		
+				}	
+				// Flush live edge states so replay starts cleanly.
+				inputManager.ClearState();
+				inputManager.SetReplayOverride(true);
+			}
 		}
 	}
 
 	float frameDt = deltaTime;
+
 	if (replayManager_.IsPlaybackActive()) {
 		InputManager::Snapshot snapshot{};
 		float replayDt = frameDt;
 
 		if (replayManager_.GetNextPlaybackFrame(snapshot, replayDt)) {
 			inputManager.SetReplayOverride(true);
-			inputManager.ApplySnapshot(snapshot);
+			inputManager.ApplySnapshot(snapshot); // authoritative input for this frame
 			frameDt = replayDt;
 		}
 		else {
 			replayManager_.StopPlayback();
 			inputManager.SetReplayOverride(false);
+			inputManager.ClearState();
 		}
 	}
 	else {
@@ -323,6 +342,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 				std::cerr << "[Scene] Deferred level load failed: " << pendingLevelPath_ << std::endl;
 			}
 			else {
+				currentLevelPath_ = pendingLevelPath_;
 				RebuildColliders();
 				SetSimulationActive(pendingLevelSimActive_);
 				inputManager.ClearState(); // avoid stale click replay
