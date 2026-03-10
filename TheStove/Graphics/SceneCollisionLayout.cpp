@@ -547,3 +547,314 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 		other->SetPosition(toG(otherPosM));
 	}
 }
+
+namespace {
+	void CompressCellPathToWaypoints(const NavGrid& grid,
+		const std::vector<GridCoord>& cells,
+		const glm::vec2& /*goalWorld*/,
+		std::vector<glm::vec2>& outWaypoints)
+	{
+		outWaypoints.clear();
+		if (cells.empty()) return;
+
+		// Same cell -> go to that cell center only
+		if (cells.size() == 1) {
+			outWaypoints.push_back(grid.CellCenter(cells[0]));
+			return;
+		}
+
+		GridCoord prevDir{
+			cells[1].x - cells[0].x,
+			cells[1].y - cells[0].y
+		};
+
+		for (std::size_t i = 2; i < cells.size(); ++i)
+		{
+			GridCoord curDir{
+				cells[i].x - cells[i - 1].x,
+				cells[i].y - cells[i - 1].y
+			};
+
+			if (curDir.x != prevDir.x || curDir.y != prevDir.y) {
+				outWaypoints.push_back(grid.CellCenter(cells[i - 1]));
+				prevDir = curDir;
+			}
+		}
+
+		// End exactly at the center of the final cell
+		outWaypoints.push_back(grid.CellCenter(cells.back()));
+	}
+
+	void CollectNavigationBlockers(Scene& scene,
+		int moverObjectID,
+		std::vector<collision::AABB>& outBoxes)
+	{
+		outBoxes.clear();
+
+		LogicManager& logicMgr = scene.GetLogicManager();
+
+		for (GameObject* obj : scene.GetAllObjectsRaw())
+		{
+			if (!obj) continue;
+			if (obj->GetID() == moverObjectID) continue;
+
+			TableLogic* table = logicMgr.GetLogicForObject<TableLogic>(obj->GetID());
+			if (!table) continue;
+
+			const Math::Vector2D colSize = obj->GetColliderSize();
+			if (colSize.x <= 0.0f || colSize.y <= 0.0f) continue;
+
+			const std::string layerName = scene.GetObjectLayer(obj->GetID());
+			Layer* layer = scene.GetLayer(layerName);
+			if (layer && (!layer->IsEnabled() || !layer->IsCollidable())) {
+				continue;
+			}
+
+			const glm::vec3 p = obj->GetPositionGLM();
+			outBoxes.push_back(
+				physics::MakeColliderBox(obj, Math::Vector3D(p.x, p.y, p.z))
+			);
+		}
+	}
+
+	bool BoxHitsAnyNavigationBlocker(const collision::AABB& box,
+		const collision::World& world,
+		const std::vector<collision::AABB>& blockers)
+	{
+		if (world.overlapsAnyWall(box)) {
+			return true;
+		}
+
+		Math::Vector2D mtv;
+		for (const collision::AABB& b : blockers) {
+			if (collision::overlapMTV(box, b, mtv)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void SmoothWaypointPath(Scene& scene,
+		int moverObjectID,
+		const glm::vec2& startWorld,
+		std::vector<glm::vec2>& path)
+	{
+		if (path.size() <= 1) {
+			return;
+		}
+
+		std::vector<glm::vec2> smoothed;
+		glm::vec2 anchor = startWorld;
+
+		std::size_t i = 0;
+		while (i < path.size())
+		{
+			std::size_t furthestVisible = i;
+
+			for (std::size_t j = i; j < path.size(); ++j)
+			{
+				if (scene.HasDirectPathForObject(moverObjectID, anchor, path[j])) {
+					furthestVisible = j;
+				}
+				else {
+					break;
+				}
+			}
+
+			smoothed.push_back(path[furthestVisible]);
+			anchor = path[furthestVisible];
+			i = furthestVisible + 1;
+		}
+
+		path.swap(smoothed);
+	}
+}
+
+bool Scene::BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid)
+{
+	outGrid = NavGrid();
+
+	GameObject* mover = GetGameObjectByID(moverObjectID);
+	if (!mover) {
+		return false;
+	}
+
+	const collision::WalkArea walk = GetWalkArea();
+
+	// Use the same tile size as your kitchen layout grid
+	constexpr float kNavCellSize = kTile;
+
+	const int width = std::max(1, static_cast<int>(std::ceil((walk.R - walk.L) / kNavCellSize)));
+	const int height = std::max(1, static_cast<int>(std::ceil((walk.B - walk.T) / kNavCellSize)));
+
+	outGrid.Reset(walk.L, walk.T, kNavCellSize, width, height);
+
+	// Cache all table AABBs (only these are dynamic blockers for this first version)
+	std::vector<collision::AABB> tableBoxes;
+	LogicManager& logicMgr = GetLogicManager();
+
+	for (GameObject* obj : GetAllObjectsRaw())
+	{
+		if (!obj) continue;
+		if (obj->GetID() == moverObjectID) continue;
+
+		// Only tables and anything inheriting TableLogic should block the nav grid
+		TableLogic* table = logicMgr.GetLogicForObject<TableLogic>(obj->GetID());
+		if (!table) continue;
+
+		const Math::Vector2D colSize = obj->GetColliderSize();
+		if (colSize.x <= 0.0f || colSize.y <= 0.0f) continue;
+
+		const std::string layerName = GetObjectLayer(obj->GetID());
+		Layer* layer = GetLayer(layerName);
+		if (layer && (!layer->IsEnabled() || !layer->IsCollidable())) {
+			continue;
+		}
+
+		const glm::vec3 p = obj->GetPositionGLM();
+		tableBoxes.push_back(
+			physics::MakeColliderBox(obj, Math::Vector3D(p.x, p.y, p.z))
+		);
+	}
+
+	// For each cell, test whether THIS mover can stand there
+	const Math::Vector2D moverOffset = mover->GetColliderOffset();
+
+	for (int y = 0; y < height; ++y)
+	{
+		for (int x = 0; x < width; ++x)
+		{
+			GridCoord c{ x, y };
+			const glm::vec2 cellCenter = outGrid.CellCenter(c);
+
+			// Convert desired collider-center back into object position
+			const Math::Vector3D probePos(
+				cellCenter.x - moverOffset.x,
+				cellCenter.y - moverOffset.y,
+				0.0f
+			);
+
+			const collision::AABB probeBox = physics::MakeColliderBox(mover, probePos);
+
+			bool blocked = false;
+
+			// Static walls / divider / gate
+			if (GetCollisionWorld().overlapsAnyWall(probeBox)) {
+				blocked = true;
+			}
+
+			// Dynamic table blockers
+			if (!blocked)
+			{
+				Math::Vector2D mtv;
+				for (const collision::AABB& tableBox : tableBoxes)
+				{
+					if (collision::overlapMTV(probeBox, tableBox, mtv)) {
+						blocked = true;
+						break;
+					}
+				}
+			}
+
+			outGrid.SetBlocked(x, y, blocked);
+		}
+	}
+
+	return true;
+}
+
+bool Scene::FindPathForObject(int moverObjectID, const glm::vec2& startWorld, const glm::vec2& goalWorld, std::vector<glm::vec2>& outPath)
+{
+	outPath.clear();
+
+	NavGrid grid;
+	if (!BuildNavigationGridForObject(moverObjectID, grid)) {
+		return false;
+	}
+
+	GridCoord startCell = grid.WorldToCell(startWorld);
+	GridCoord goalCell = grid.WorldToCell(goalWorld);
+
+	if (!grid.FindNearestWalkable(startCell, startCell)) {
+		return false;
+	}
+
+	if (!grid.FindNearestWalkable(goalCell, goalCell)) {
+		return false;
+	}
+
+	std::vector<GridCoord> rawCells;
+	if (!GridPathfinder::FindPath(grid, startCell, goalCell, rawCells)) {
+		return false;
+	}
+
+	CompressCellPathToWaypoints(grid, rawCells, goalWorld, outPath);
+	SmoothWaypointPath(*this, moverObjectID, startWorld, outPath);
+	return !outPath.empty();
+}
+
+bool Scene::GetNearestNavigationCellCenterForObject(int moverObjectID,
+	const glm::vec2& worldPos,
+	glm::vec2& outCenter)
+{
+	NavGrid grid;
+	if (!BuildNavigationGridForObject(moverObjectID, grid)) {
+		return false;
+	}
+
+	GridCoord cell = grid.WorldToCell(worldPos);
+
+	if (!grid.FindNearestWalkable(cell, cell)) {
+		return false;
+	}
+
+	outCenter = grid.CellCenter(cell);
+	return true;
+}
+
+bool Scene::HasDirectPathForObject(int moverObjectID,
+	const glm::vec2& startWorld,
+	const glm::vec2& goalWorld)
+{
+	GameObject* mover = GetGameObjectByID(moverObjectID);
+	if (!mover) {
+		return false;
+	}
+
+	std::vector<collision::AABB> blockers;
+	CollectNavigationBlockers(*this, moverObjectID, blockers);
+
+	glm::vec2 delta = goalWorld - startWorld;
+	float distance = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+
+	if (distance <= 0.001f) {
+		return true;
+	}
+
+	const Math::Vector2D moverSize = mover->GetColliderSize();
+
+	// smaller step = safer, but more checks
+	const float sampleStep = std::max(8.0f, std::min(moverSize.x, moverSize.y) * 0.25f);
+	const int sampleCount = std::max(1, static_cast<int>(std::ceil(distance / sampleStep)));
+
+	const float z = mover->GetPositionGLM().z;
+
+	// skip t=0 so we don't fail just because the player is already very close to something
+	for (int i = 1; i <= sampleCount; ++i)
+	{
+		float t = static_cast<float>(i) / static_cast<float>(sampleCount);
+		glm::vec2 probeWorld = startWorld + delta * t;
+
+		collision::AABB probeBox = physics::MakeColliderBox(
+			mover,
+			Math::Vector3D(probeWorld.x, probeWorld.y, z)
+		);
+
+		if (BoxHitsAnyNavigationBlocker(probeBox, GetCollisionWorld(), blockers)) {
+			return false;
+		}
+	}
+
+	return true;
+}

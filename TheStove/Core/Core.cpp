@@ -100,6 +100,24 @@ namespace CoreFramework {
 		lastTime = currentTime;
 	}
 
+	void CoreEngine::GameLoop(float dtOverride) {
+		using clock = std::chrono::high_resolution_clock;
+
+		deltaTime = dtOverride;
+
+		for (auto& s : Systems) {
+			auto sysStart = clock::now();
+			s->Update(deltaTime);
+
+			auto sysEnd = clock::now();
+			std::chrono::duration<float> sysElapsed = sysEnd - sysStart;
+			s->lastDt = sysElapsed.count();
+		}
+
+		messageBus.ProcessQueue();
+		lastTime = clock::now();
+	}
+
 	void CoreEngine::AddSystem(std::unique_ptr<SystemInterface> system) {
 		// add a new system to the list of systems
 		std::cout << "Added system: " << system->GetName() << std::endl;

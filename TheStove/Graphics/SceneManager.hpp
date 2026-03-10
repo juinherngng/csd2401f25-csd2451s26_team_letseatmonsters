@@ -12,7 +12,7 @@
 					entity creation and management, event handling, physics and collision simulation,
 					animation control, input processing, and rendering pipeline integration.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -421,6 +421,18 @@ public:
 		return pauseOverlayActive_;
 	}
 
+	// Replay state exposure
+	bool IsReplayPlaybackActive() const {
+		return replayManager_.IsPlaybackActive();
+	}
+	float GetReplayFrameDt() const {
+		return lastReplayFrameDt_;
+	}
+	bool HasReplayFrameDt() const {
+		return lastReplayFrameDt_ > 0.0f;
+	}
+
+
 	// Menu button text rendering
 #if 0
 	void CreateMenuButtonTexts();
@@ -489,6 +501,9 @@ public:
 		return cutscene_.active || cutTrans_.active;
 	}
 
+	// Skips whichever cutscene system is currently active and advances to queued target level.
+	void SkipActiveCutscene();
+
 private:
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
@@ -499,6 +514,7 @@ private:
 	MovementManager& movementManager;		// Changed from owned instance to reference
 	CollisionManager& collisionManager;		// Changed from owned instance to reference
 	PhysicsManager& physicsManager;			// Changed from owned instance to reference
+	ReplayManager replayManager_;
 
 	// Audio for UI sounds
 	AudioManager* audioManager_ = nullptr;
@@ -517,6 +533,9 @@ private:
 	bool simulationActive = false;
 	bool useForces_ = false;
 	bool showAuxDebug_ = false;
+
+	// Replay state
+	float lastReplayFrameDt_ = 0.0f;
 
 	// ID tracking for important objects (player, NPCs, etc.)
 	int spriteID = -1;
@@ -697,6 +716,20 @@ public:
 		bool activateSimulation,
 		float fadeOutSeconds = 0.35f,
 		float fadeInSeconds = 0.35f);
+
+		bool BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid);
+		bool FindPathForObject(int moverObjectID,
+			const glm::vec2& startWorld,
+			const glm::vec2& goalWorld,
+			std::vector<glm::vec2>& outPath);
+
+		bool GetNearestNavigationCellCenterForObject(int moverObjectID,
+			const glm::vec2& worldPos,
+			glm::vec2& outCenter);
+
+		bool HasDirectPathForObject(int moverObjectID,
+			const glm::vec2& startWorld,
+			const glm::vec2& goalWorld);
 
 private:
 	// Simpler version of cutscene transition for level changes without per-frame images. Reuses some cutTrans_ state for convenience.

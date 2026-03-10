@@ -263,8 +263,7 @@ namespace {
 	static void ClearUndoHistory() {
 		LECOMMAND::ClearHistory();
 	}
-
-#endif
+#endif // _DEBUG
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		LELINKS::PrefabLinkByID.clear();

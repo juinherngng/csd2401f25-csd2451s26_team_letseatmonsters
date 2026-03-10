@@ -12,7 +12,7 @@
 					items can be placed, manage processing states, and output the
 					refined ingredient when complete.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -80,21 +80,29 @@ void WorkTableLogic::Start(Scene& scene) {
 
 // ------------------- Update -------------------
 
-void WorkTableLogic::Update(float dt, Scene& scene, InputManager&) {
-	// Only do anything if we have an item and are currently processing
-	if (!isProcessing_ || !HasItem())
-		return;
+void WorkTableLogic::Update(float dt, Scene& scene, InputManager&)
+{
+    if (!scene.IsSimulationActive()) return;
+
+    // Only do anything if we have an item and are currently processing
+    if (!isProcessing_ || !HasItem())
+        return;
 
 	timer_ += dt;
 
-	//std::cout << "[WorkTableLogic] processing... t=" << timer_
-	//    << "/" << processingTime_ << "\n";
+    if(isProcessing_)
+    UpdateProcessingVfxTransform(scene);
 
-	if (timer_ >= processingTime_) {
-		timer_ = processingTime_;
-		isProcessing_ = false;
+    //std::cout << "[WorkTableLogic] processing... t=" << timer_
+    //    << "/" << processingTime_ << "\n";
 
-		// Stop station-specific processing sound when complete (release mode only)
+    if (timer_ >= processingTime_)
+    {
+        timer_ = processingTime_;
+        isProcessing_ = false;
+        DespawnProcessingVfx(scene);
+        
+        // Stop station-specific processing sound when complete (release mode only)
 #ifndef _DEBUG
 		if (AudioManager* audioMgr = scene.GetAudioManager()) {
 			const char* soundName = GetProcessingSoundName();
@@ -146,7 +154,7 @@ bool WorkTableLogic::IsItemProcessable(Scene& scene, const GameObject& item) con
 	// If your actual API is different, just swap this one line accordingly.
 	IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
 	if (!ing) {
-		// Not an ingredient – this table doesn’t know how to process it.
+		// Not an ingredient ï¿½ this table doesnï¿½t know how to process it.
 		return false;
 	}
 
@@ -182,9 +190,10 @@ void WorkTableLogic::CancelProcessing(Scene& scene) {
 			}
 		}
 #endif
-	}
-	isProcessing_ = false;
-	timer_ = 0.0f;
+    }
+    isProcessing_ = false;
+    timer_ = 0.0f;
+    DespawnProcessingVfx(scene);
 #ifdef _DEBUG
 	(void)scene;
 #endif
@@ -197,12 +206,12 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item) {
 	//std::cout << "[WorkTable] placed item=" << item.GetID()
 	//    << " hasIngredientLogic=" << (ing ? "YES" : "NO") << "\n";
 
-	CancelProcessing(scene); // always reset
-	if (IsItemProcessable(scene, item)) {
-		isProcessing_ = true;
-		timer_ = 0.0f;
-
-		// Play station-specific processing sound (release mode only)
+    CancelProcessing(scene); // always reset
+    if (IsItemProcessable(scene, item)) {
+        isProcessing_ = true;
+        timer_ = 0.0f;
+        SpawnProcessingVfx(scene);
+        // Play station-specific processing sound (release mode only)
 #ifndef _DEBUG
 		if (AudioManager* audioMgr = scene.GetAudioManager()) {
 			const char* soundName = GetProcessingSoundName();
@@ -248,13 +257,13 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item) {
 		// Look up the IngredientLogic for this item.
 	IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
 	if (!ing) {
-		//// Not an ingredient – nothing to do.
+		//// Not an ingredient ï¿½ nothing to do.
 		//std::cout << "[WorkTableLogic] OnProcessingComplete: item "
 		//    << item.GetID() << " has no IngredientLogic\n";
 		return;
 	}
 
-	// If your rule is “only raw gets processed”, respect that:
+	// If your rule is ï¿½only raw gets processedï¿½, respect that:
 	if (!CanProcessIngredient(*ing)) {
 		//std::cout << "[WorkTableLogic] OnProcessingComplete: ingredient "
 		//    << item.GetID() << " is not processable\n";
@@ -264,13 +273,10 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item) {
 	// Remember RAW type before MarkProcessed changes it
 	IngredientType rawType = ing->GetType();
 
-	// Update logic (raw -> refined)
-	CompleteProcessingForIngredient(*ing);
-
-	// Update sprite based on what was cooked
-	const char* texPath = GetProcessedTextureForRaw(rawType);
-	item.SetTexture(ResourceManager::Instance().LoadTexture(texPath, texPath));
-	scene.SetObjectTexturePath(item.GetID(), texPath);
+    // Update sprite based on what was cooked
+    const char* texPath = GetProcessedTextureForRaw(rawType);
+    item.SetTexture(ResourceManager::Instance().LoadTexture(texPath, texPath));
+    scene.SetObjectTexturePath(item.GetID(), texPath);
 
 	// This is where the magic happens:
 	//  - IngredientLogic::MarkProcessed()
@@ -306,4 +312,83 @@ void WorkTableLogic::CompleteProcessingForIngredient(IngredientLogic& ingredient
 	// This is the actual "logic" of processing:
 	// raw -> refined, via IngredientLogic.
 	ingredient.MarkProcessed();
+}
+
+const char* WorkTableLogic::GetVfxTextureForStation() const
+{
+    switch (stationType_)
+    {
+    case StationType::CuttingBoard: return "../assets/VFX SpriteSheet.png";
+    case StationType::Grill:        return "../assets/VFX SpriteSheet.png";
+    case StationType::Stove:        return "../assets/VFX SpriteSheet.png";
+    default:                        return nullptr;
+    }
+}
+
+const char* WorkTableLogic::GetVfxTagForStation() const
+{
+    switch (stationType_)
+    {
+    case StationType::CuttingBoard: return "work_vfx_cut";
+    case StationType::Grill:        return "work_vfx_grill";
+    case StationType::Stove:        return "work_vfx_stove";
+    default:                        return nullptr;
+    }
+}
+
+void WorkTableLogic::SpawnProcessingVfx(Scene& scene)
+{
+    if (vfxObjectID_ >= 0) return;
+
+    const char* tex = GetVfxTextureForStation();
+    const char* tag = GetVfxTagForStation();
+    if (!tex || !tag) return;
+
+    GameObject* table = scene.GetGameObjectByID(GetOwnerID());
+    if (!table) return;
+
+    glm::vec3 tp = table->GetPositionGLM();
+    glm::vec3 vfxPos{ tp.x + vfxOffset_.x, tp.y + vfxOffset_.y, tp.z + 0.001f };
+
+    // Create an animated sprite so AnimationManager can drive UVs
+    std::vector<glm::vec4> dummyFrames = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
+
+    // Put it on a higher layer than the table (simple version: hardcode a top-ish layer)
+    std::string vfxLayer = "50";
+
+    GameObject* vfx = scene.SpawnAnimatedSprite(tex, vfxPos, glm::vec2(170, 230),
+        dummyFrames, 0.1f, true, vfxLayer);
+
+    if (!vfx) return;
+
+    vfxObjectID_ = vfx->GetID();
+
+    // no collisions / no physics / no shadow
+    vfx->SetColliderSize(Math::Vector2D(0.f, 0.f));
+    vfx->SetColliderOffset(Math::Vector2D(0.f, 0.f));
+    vfx->SetMovableByPhysics(false);
+    vfx->EnableShadow(false);
+
+    // Tag + attach ONLY animations (via Scene::AttachLogicForTag)
+    scene.SetObjectTag(vfxObjectID_, tag);
+    scene.AttachLogicForTag(vfxObjectID_, tag);
+}
+
+void WorkTableLogic::DespawnProcessingVfx(Scene& scene)
+{
+    if (vfxObjectID_ < 0) return;
+    scene.RequestDespawn(vfxObjectID_);
+    vfxObjectID_ = -1;
+}
+
+void WorkTableLogic::UpdateProcessingVfxTransform(Scene& scene)
+{
+    if (vfxObjectID_ < 0) return;
+
+    GameObject* table = scene.GetGameObjectByID(GetOwnerID());
+    GameObject* vfx = scene.GetGameObjectByID(vfxObjectID_);
+    if (!table || !vfx) return;
+
+    glm::vec3 tp = table->GetPositionGLM();
+    vfx->SetPosition(glm::vec3(tp.x + vfxOffset_.x, tp.y + vfxOffset_.y, tp.z + 0.001f));
 }

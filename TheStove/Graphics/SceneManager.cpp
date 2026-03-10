@@ -116,16 +116,78 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	UpdateAnimationControls();
 #endif
 
+	static constexpr const char* kReplayFilePath = "replays/last.replay";
+
+	// Replay/record control first, before any gameplay input is consumed.
+	if (!replayManager_.IsPlaybackActive()) {
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_F5)) {
+			if (replayManager_.IsRecording()) {
+				replayManager_.StopRecording(kReplayFilePath);
+			}
+			else {
+				replayManager_.StartRecording(currentLevelPath_, simulationActive);
+			}
+		}
+
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_F6)) {
+			if (replayManager_.StartPlayback(kReplayFilePath)) {
+				const std::string& replayLevelPath = replayManager_.GetRecordedLevelPath();
+				if (!replayLevelPath.empty()) {
+					if (RuntimeLevel::LoadAndBuild(replayLevelPath, *this)) {
+						currentLevelPath_ = replayLevelPath;
+						RebuildColliders();
+						SetSimulationActive(replayManager_.GetRecordedSimulationActive());
+						
+					}
+					 else {
+						std::cerr << "[Scene] Replay baseline load failed: " << replayLevelPath << std::endl;
+						
+					}		
+				}	
+				// Flush live edge states so replay starts cleanly.
+				inputManager.ClearState();
+				inputManager.SetReplayOverride(true);
+			}
+		}
+	}
+
+	float frameDt = deltaTime;
+
+	if (replayManager_.IsPlaybackActive()) {
+		InputManager::Snapshot snapshot{};
+		float replayDt = frameDt;
+
+		if (replayManager_.GetNextPlaybackFrame(snapshot, replayDt)) {
+			inputManager.SetReplayOverride(true);
+			inputManager.ApplySnapshot(snapshot); // authoritative input for this frame
+			frameDt = replayDt;
+		}
+		else {
+			replayManager_.StopPlayback();
+			inputManager.SetReplayOverride(false);
+			inputManager.ClearState();
+		}
+	}
+	else {
+		inputManager.SetReplayOverride(false);
+	}
+
+	if (replayManager_.IsRecording()) {
+		replayManager_.RecordFrame(inputManager, frameDt);
+	}
+
+	lastReplayFrameDt_ = replayManager_.IsPlaybackActive() ? frameDt : 0.0f;
+
 	// Drive both cutscene players every frame so transitions progress
-	UpdateCutsceneTransitioned(deltaTime);
-	UpdateCutscene(deltaTime);
+	UpdateCutsceneTransitioned(frameDt);
+	UpdateCutscene(frameDt);
 
 	UpdateLevelTransition();
 
 	// Handle pending pause audio (pause channels after fade completes)
 #ifndef _DEBUG
 	if (pauseAudioPending_ && audioManager_) {
-		pauseAudioTimer_ -= deltaTime;
+		pauseAudioTimer_ -= frameDt;
 		if (pauseAudioTimer_ <= 0.0f) {
 			// Fade completed, now pause the channels to stop playback
 			if (!pauseMusicChannel_.empty()) {
@@ -147,8 +209,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		return;
 	}
 
-	// while any cutscene is active, discard input so UI/buttons cannot be pressed (this might need tweaking later, for future cutscenes that need input)
+	// while any cutscene is active, allow space to skip, then discard input
 	if (IsAnyCutsceneActive()) {
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_SPACE)) {
+			SkipActiveCutscene();
+		}
 		inputManager.ClearState();
 	}
 	else {
@@ -197,12 +262,12 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 #endif
 
-	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
+	const float physicsDt = physicsStep_.resolveDt(inputManager, frameDt);
 	lastPhysicsDt_ = physicsDt;
 
 	// Always update logic (menu buttons need this even with simulation disabled)
 	logicManager.StartAll(*this);
-	logicManager.UpdateAll(deltaTime, *this, inputManager);
+	logicManager.UpdateAll(frameDt, *this, inputManager);
 
 	// Seat customers at tables once
 	if (customerUpdateHook_) {
@@ -230,6 +295,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 				std::cerr << "[Scene] Deferred level load failed: " << pendingLevelPath_ << std::endl;
 			}
 			else {
+				currentLevelPath_ = pendingLevelPath_;
 				RebuildColliders();
 				SetSimulationActive(pendingLevelSimActive_);
 				inputManager.ClearState(); // avoid stale click replay
@@ -265,10 +331,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Update runtime particles
-	particleSystem_.Update(deltaTime, entityManager);
+	particleSystem_.Update(frameDt, entityManager);
 
 	// Update any UI slide-in animations regardless of simulation flag
-	UpdateUiSlides(deltaTime);
+	UpdateUiSlides(frameDt);
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
@@ -284,7 +350,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 #ifndef _DEBUG
 	// Update FPS accumulator when enabled (release builds only)
 	if (showFPS_) {
-		fpsAccumTime_ += deltaTime;
+		fpsAccumTime_ += frameDt;
 		fpsAccumFrames_ += 1;
 		if (fpsAccumTime_ >= fpsUpdateInterval_) {
 			float avg = static_cast<float>(fpsAccumFrames_) / fpsAccumTime_;
@@ -566,7 +632,14 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 				return la < lb;
 			}
 
-			// Same layer - lower Y drawn first (higher on screen appears behind)
+			// Same layer: use explicit sort order first
+			int sa = a->GetRenderSortOrder();
+			int sb = b->GetRenderSortOrder();
+			if (sa != sb) {
+				return sa < sb;
+			}
+
+			// Same layer & same sort order - lower Y drawn first (higher on screen appears behind)
 			return a->GetPosition().y < b->GetPosition().y;
 		}
 	);
@@ -1814,5 +1887,40 @@ void Scene::UpdateLevelTransition() {
 		cutTrans_.fadeInAfterLoad = true;
 
 		levelTrans_.active = false;
+	}
+}
+
+// Called from MenuButtonLogic when player clicks spacebar (to skip) during cutscene
+void Scene::SkipActiveCutscene() {
+	if (cutTrans_.active) {
+		auto& gfx = GetGraphicsEngine();
+		if (!gfx.IsTransitionActive()) {
+			gfx.StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+		}
+
+		cutTrans_.awaitingBlackout = true;
+		cutTrans_.holding = false;
+		cutTrans_.crossfading = false;
+		cutTrans_.holdElapsed = 0.0f;
+
+		if (!cutTrans_.images.empty()) {
+			cutTrans_.index = cutTrans_.images.size() - 1;
+		}
+
+#ifndef _DEBUG
+		if (audioManager_) {
+			audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", 0.0f, cutTrans_.outSeconds);
+		}
+#endif
+	}
+
+	if (cutscene_.active) {
+		CleanupCutsceneObjects();
+		cutscene_.active = false;
+
+		if (!cutscene_.queuedFinalLoad) {
+			cutscene_.queuedFinalLoad = true;
+			QueueLevelLoad(cutscene_.targetLevelJson, cutscene_.targetActivateSim);
+		}
 	}
 }

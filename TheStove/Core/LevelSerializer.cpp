@@ -172,7 +172,9 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "audio_on_processing", obj.audioOnProcessing },
 		{ "audio_loop", obj.audioLoop },
 		// Per-object visibility
-		{ "visible", obj.visible }
+		{ "visible", obj.visible },
+		// Shadow flag
+		{ "shadow", obj.shadow }
 	};
 
 	return jsonData;

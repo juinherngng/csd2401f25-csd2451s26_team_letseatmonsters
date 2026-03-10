@@ -59,6 +59,10 @@ public:
 	void AttachDinoAnimations(int objectID);
 	void AttachPlayerAnimations(int objectID);
 	void AttachNPCAnimations(int objectID);
+	void AttachCustomersAnimations(int objectID);
+	void AttachWorkVfxGrillAnimations(int objectID);
+	void AttachWorkVfxCutAnimations(int objectID);
+	void AttachWorkVfxStoveAnimations(int objectID);
 
 	// for menu-specific grid animations (6x5 sprite sheet)
 	void AttachMenuAnimations(int objectID);
@@ -97,4 +101,7 @@ private:
 
 	// build entire grid sequence (row-major)
 	std::vector<glm::vec4> CreateFullGridSequence(int totalRows, int totalCols);
+
+	// Flip existing frames horizontally (for mirrored animations)
+	std::vector<glm::vec4> CreateFlippedFramesX(const std::vector<glm::vec4>& frames);
 };
