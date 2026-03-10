@@ -25,10 +25,10 @@
 
 class EntityManager {
 public:
-	/** @brief Construct an empty entity manager. */
+	// Default constructor
 	EntityManager() = default;
 
-	/** @brief Destroy the entity manager and owned entities. */
+	// Default destructor
 	~EntityManager() = default;
 
 	EntityManager(const EntityManager&) = delete;
@@ -37,27 +37,12 @@ public:
 	EntityManager(EntityManager&&) noexcept = default;
 	EntityManager& operator=(EntityManager&&) noexcept = default;
 
-	/**
-	 * @brief Spawn a static sprite object.
-	 * @param texturePath Source texture file path.
-	 * @param pos World position for the sprite.
-	 * @param size 2D sprite size.
-	 * @return Pointer to the spawned GameObject.
-	 */
+	// Spawns a static sprite with a given texture, position, and size.
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
 		const glm::vec3& pos,
 		const glm::vec2& size);
 
-	/**
-	 * @brief Spawn an animated sprite object.
-	 * @param texturePath Source texture file path.
-	 * @param pos World position for the sprite.
-	 * @param size 2D sprite size.
-	 * @param frames UV frame rectangles for animation.
-	 * @param frameDuration Seconds each frame should stay visible.
-	 * @param loop Whether animation repeats after the final frame.
-	 * @return Pointer to the spawned GameObject.
-	 */
+	// Spawns an animated sprite with a given texture, size, and animation frames.
 	GameObject* SpawnAnimatedSprite(const std::string& texturePath,
 		const glm::vec3& pos,
 		const glm::vec2& size,
@@ -65,64 +50,50 @@ public:
 		float frameDuration,
 		bool loop);
 
-	/** @brief Lookup a GameObject by its unique ID. */
+	// Spawns a static sprite at the same position as ownerID, with given texture, size, and layer.
 	GameObject* GetByID(int id);
+	const GameObject* GetByID(int id) const;
 
-	/** @brief Return raw pointers to all currently alive objects. */
+	// Returns a vector of raw pointers to all alive GameObjects.
 	std::vector<GameObject*> GetAllObjects();
 
-	/** @brief Access internal object storage (avoids temporary pointer vector allocations). */
+	// Returns a const reference to the internal vector of unique_ptrs.
 	const std::vector<std::unique_ptr<GameObject>>& GetObjectStorage() const {
 		return sceneObjects_;
 	}
 
-	/** @brief Return the total number of alive objects. */
+	// Returns the number of currently alive GameObjects.
 	size_t GetObjectCount() const {
 		return sceneObjects_.size();
 	}
 
-	/** @brief Despawn a GameObject by ID and trigger despawn callbacks. */
+	// Despawn the object with the given ID, if it exists. Also invokes any registered despawn callbacks with the ID.
 	void DespawnByID(int id);
 
-	/** @brief Despawn all objects and reset manager-owned bookkeeping. */
+	// Collect raw pointers to all alive GameObjects into the provided vector.
 	void Clear();
 
-	/** @brief Register a callback invoked whenever an entity is despawned. */
+	// Register a callback to be invoked when an object is despawned.
 	void RegisterDespawnCallback(const std::function<void(int)>& cb);
 
-	/** @brief Update cached position for an object ID. */
-	void SetPosition(int id, const glm::vec3& pos) {
-		spritePositions_[id] = pos;
-	}
+	// Set the position, scale, and rotation (in radians) of an object by its ID.
+	void SetPosition(int id, const glm::vec3& pos);
+	void SetScale(int id, const glm::vec3& scale);
+	void SetRotation(int id, float rot);
 
-	/** @brief Update cached scale for an object ID. */
-	void SetScale(int id, const glm::vec3& scale) {
-		spriteScales_[id] = scale;
-	}
-
-	/** @brief Update cached rotation for an object ID. */
-	void SetRotation(int id, float rot) {
-		spriteRotations_[id] = rot;
-	}
-
-	/** @brief Read cached position for an object ID. */
+	// Get the position, scale, and rotation of an object by its ID.
 	glm::vec3 GetPosition(int id) const;
-
-	/** @brief Read cached scale for an object ID. */
 	glm::vec3 GetScale(int id) const;
-
-	/** @brief Read cached rotation for an object ID. */
 	float GetRotation(int id) const;
 
-	/** @brief Cache texture path used by an object ID. */
+	// Texture path metadata management for objects.
 	void SetTexturePath(int id, const std::string& path) {
 		texturePathByID_[id] = path;
 	}
-
-	/** @brief Read cached texture path for an object ID. */
 	const std::string& GetTexturePath(int id) const;
 
 private:
+	// Internal storage of GameObjects using unique_ptr for automatic memory management.
 	std::vector<std::unique_ptr<GameObject>> sceneObjects_;
 	std::vector<int> freeIDs_;
 	int nextID_ = 0;
@@ -130,15 +101,12 @@ private:
 	// Callbacks invoked when an entity is despawned. Signature: void(int id)
 	std::vector<std::function<void(int)>> despawnCbs_;
 
-	// Transform maps 
-	std::unordered_map<int, glm::vec3> spritePositions_;
-	std::unordered_map<int, glm::vec3> spriteScales_;
-	std::unordered_map<int, float> spriteRotations_;
+	// Metadata mapping from object ID to texture path (used for level editor and JSON serialization)
 	std::unordered_map<int, std::string> texturePathByID_;
 
-	/** @brief Acquire a reusable ID, or allocate a new one if needed. */
+	// Cached transform data for quick access by ID (optional optimization)
 	int AcquireID();
 
-	/** @brief Return an ID to the free-list for future reuse. */
+	// Returns an ID to the free pool for reuse. Does not check if the ID is valid or currently in use, so caller must ensure correctness.
 	void ReleaseID(int id);
 };

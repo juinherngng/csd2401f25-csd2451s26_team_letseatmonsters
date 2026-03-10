@@ -26,7 +26,6 @@
 #include <array>
 #include <cctype>
 #include <Core/RuntimeLevel.hpp>
-#include <Core/RuntimeLevel.hpp>
 #include <exception>
 #include <fstream>
 #include <glm/ext/matrix_clip_space.hpp>
@@ -116,12 +115,34 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	UpdateAnimationControls();
 #endif
 
+	UpdateCutscenePhase(deltaTime);
+	if (!UpdateInputPhase(deltaTime)) {
+		return;
+	}
+
+	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
+	lastPhysicsDt_ = physicsDt;
+
+	UpdateSimulationPhase(deltaTime, physicsDt);
+	HandleDeferredLoads();
+	UpdateUiPhase(deltaTime, window);
+	FinalizeFramePhase(deltaTime);
+}
+
+// Advances both cutscene state machines and level-transition state.
+// Must run before input so active cutscenes can suppress gameplay/UI controls.
+void Scene::UpdateCutscenePhase(float deltaTime) {
+
 	// Drive both cutscene players every frame so transitions progress
 	UpdateCutsceneTransitioned(deltaTime);
 	UpdateCutscene(deltaTime);
 
 	UpdateLevelTransition();
+}
 
+// Consumes input, toggles editor/FPS UI, and may clear the whole scene.
+// Must run before physics-step resolution and simulation update.
+bool Scene::UpdateInputPhase(float deltaTime) {
 	// Handle pending pause audio (pause channels after fade completes)
 #ifndef _DEBUG
 	if (pauseAudioPending_ && audioManager_) {
@@ -144,10 +165,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		ClearAll();
 		RebuildColliders();
 		pendingClear_ = false;
-		return;
+		return false;
 	}
 
-	// while any cutscene is active, discard input so UI/buttons cannot be pressed (this might need tweaking later, for future cutscenes that need input)
+	// While any cutscene is active, discard input so UI/buttons cannot be pressed (this might need tweaking later, for future cutscenes that need input)
 	if (IsAnyCutsceneActive()) {
 		inputManager.ClearState();
 	}
@@ -197,9 +218,12 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 #endif
 
-	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
-	lastPhysicsDt_ = physicsDt;
+	return true;
+}
 
+// Updates game logic, hooks, forces/physics, NPC movement, and collision constraints.
+// Must run after input handling and before deferred level loads/UI updates.
+void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 	// Always update logic (menu buttons need this even with simulation disabled)
 	logicManager.StartAll(*this);
 	logicManager.UpdateAll(deltaTime, *this, inputManager);
@@ -222,7 +246,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		HandlePlayerCollisions(physicsDt, entityManager);
 		ApplyFinalConstraints(entityManager);
 	}
+}
 
+// Rebuilds a new level, resets simulation/input state, and triggers post-load hooks.
+// Must run after logic iteration completes to avoid mutating entities mid-update.
+void Scene::HandleDeferredLoads() {
 	// Process deferred level load after logic iteration completes
 	if (hasPendingLevel_) {
 		if (!pendingLevelPath_.empty()) {
@@ -263,7 +291,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 		hasPendingLevel_ = false;
 		pendingLevelPath_.clear();
 	}
+}
 
+// Advances particles and UI slide animations; may draw debug overlays.
+// Should run after simulation/deferred loads so visuals match the latest world state.
+void Scene::UpdateUiPhase(float deltaTime, GLFWwindow* window) {
 	// Update runtime particles
 	particleSystem_.Update(deltaTime, entityManager);
 
@@ -274,7 +306,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 #endif
 	(void)window;
+}
 
+// Despawns queued entities, updates FPS text, and handles pause-overlay toggles.
+// Must run at end of frame after all gameplay/UI work is complete.
+void Scene::FinalizeFramePhase(float deltaTime) {
 	for (int id : pendingDespawns_) {
 		DespawnByID(id);
 	}
@@ -585,16 +621,10 @@ void Scene::SetTransformFromLevel(int id,
 	// Convert degrees to radians ONCE here
 	const float rotationRad = rotationDeg * 3.14159265358979323846f / 180.0f;
 
+	// EntityManager transform wrappers forward directly to the owning GameObject.
 	entityManager.SetPosition(id, pos);
 	entityManager.SetScale(id, scale);
 	entityManager.SetRotation(id, rotationRad);
-
-	GameObject* obj = GetGameObjectByID(id);
-	if (obj) {
-		obj->SetPosition(pos);
-		obj->SetScale(scale);
-		obj->SetRotation(rotationRad, glm::vec3(0.0f, 0.0f, 1.0f));
-	}
 
 	collisionManager.MarkStaticStateDirty();
 }
