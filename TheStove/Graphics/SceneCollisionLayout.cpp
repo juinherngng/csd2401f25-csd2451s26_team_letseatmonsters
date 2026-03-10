@@ -24,6 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <filesystem>
 
  // Level constants (reference resolution + tile size)
 static constexpr float kRefW = static_cast<float>(GraphicsEngine::kRefW);
@@ -114,14 +115,33 @@ namespace {
 		std::vector<collision::AABB> walls;
 	};
 
-	constexpr const char* kCollisionLevel1Path = "../levels/collision_level1.json";
-	constexpr const char* kCollisionLevel2Path = "../levels/collision_level2.json";
+	constexpr const char* kCollisionLevel1File = "collision_level1.json";
+	constexpr const char* kCollisionLevel2File = "collision_level2.json";
 
-	const char* ResolveCollisionLayoutPath(const std::string& levelPath) {
-		if (levelPath.find("kitchen02") != std::string::npos) {
-			return kCollisionLevel2Path;
+	std::string ResolveCollisionLayoutPathFromFile(const char* filename) {
+		namespace fs = std::filesystem;
+		const std::array<fs::path, 5> candidates = {
+			fs::path("levels") / filename,
+			fs::path("../levels") / filename,
+			fs::path("../../levels") / filename,
+			fs::path("../../../levels") / filename,
+			fs::path("../../../../levels") / filename
+		};
+
+		for (const fs::path& candidate : candidates) {
+			if (fs::exists(candidate)) {
+				return candidate.lexically_normal().string();
+			}
 		}
-		return kCollisionLevel1Path;
+
+		return candidates.front().lexically_normal().string();
+	}
+
+	std::string ResolveCollisionLayoutPath(const std::string& levelPath) {
+		if (levelPath.find("kitchen02") != std::string::npos) {
+			return ResolveCollisionLayoutPathFromFile(kCollisionLevel2File);
+		}
+		return ResolveCollisionLayoutPathFromFile(kCollisionLevel1File);
 	}
 
 	CollisionLayoutData BuildFallbackLayout() {
@@ -196,7 +216,7 @@ namespace {
 
 	CollisionLayoutData GetCollisionLayoutForScene(const Scene& scene) {
 		CollisionLayoutData data;
-		const char* path = ResolveCollisionLayoutPath(scene.GetCurrentLevelPath());
+		const std::string path = ResolveCollisionLayoutPath(scene.GetCurrentLevelPath());
 
 		try {
 			if (LoadCollisionLayout(path, data)) {
