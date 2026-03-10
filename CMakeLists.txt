@@ -58,6 +58,9 @@ set(GAME_FILES_IN_THESTOVE
     ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/SimpleNpcLogic.hpp
     ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerOrderUILogic.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerOrderUILogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/Quota.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/Quota.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/FoodTypes.hpp
     ${CMAKE_CURRENT_LIST_DIR}/TheStove/Main.cpp
 )
 

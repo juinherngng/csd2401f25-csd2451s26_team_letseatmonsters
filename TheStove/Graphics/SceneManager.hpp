@@ -185,6 +185,10 @@ public:
 	void SetAnimation(int objID, const std::string& newAnim);
 	void AttachPlayerAnimations(int objID);
 	void AttachDinoAnimations(int objID);
+	void AttachCustomersAnimations(int objID);
+	void AttachWorkVfxCutAnimations(int objID);
+	void AttachWorkVfxGrillAnimations(int objID);
+	void AttachWorkVfxStoveAnimations(int objID);
 	void MarkAnimated(int id, bool state);
 	void AttachMenuAnimations(int objID);
 
@@ -206,6 +210,8 @@ public:
 	using CutsceneFadeOutHook = std::function<void(Scene&, float)>;
 	using CutsceneFirstFrameHook = std::function<void(Scene&, const std::string&)>;
 	using CutsceneBeforeFinalLoadHook = std::function<void(Scene&, float)>;
+	using SkipCutsceneAudioHook = std::function<void(Scene&, float)>;
+	using TagUsesVelocityHook = std::function<bool(const std::string&)>;
 	using NavigationBlockerCollector = std::function<void(Scene&, int, std::vector<collision::AABB>&)>;
 	void SetTagLogicBinder(TagLogicBinder binder) {
 		tagLogicBinder_ = std::move(binder);
@@ -245,6 +251,12 @@ public:
 	}
 	void SetNavigationBlockerCollector(NavigationBlockerCollector collector) {
 		navigationBlockerCollector_ = std::move(collector);
+	}
+	void SetSkipCutsceneAudioHook(SkipCutsceneAudioHook hook) {
+		skipCutsceneAudioHook_ = std::move(hook);
+	}
+	void SetTagUsesVelocityHook(TagUsesVelocityHook hook) {
+		tagUsesVelocityHook_ = std::move(hook);
 	}
 	void SetPauseOverlayAudioChannels(std::string musicChannel, std::string ambienceChannel) {
 		pauseMusicChannel_ = std::move(musicChannel);
@@ -622,6 +634,8 @@ private:
 	CutsceneFirstFrameHook cutsceneFirstFrameHook_;
 	CutsceneBeforeFinalLoadHook cutsceneBeforeFinalLoadHook_;
 	NavigationBlockerCollector navigationBlockerCollector_;
+	SkipCutsceneAudioHook skipCutsceneAudioHook_;
+	TagUsesVelocityHook tagUsesVelocityHook_;
 	std::string pauseMusicChannel_;
 	std::string pauseAmbienceChannel_;
 

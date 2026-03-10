@@ -697,6 +697,22 @@ void Scene::AttachDinoAnimations(int objID) {
 	animationManager.AttachDinoAnimations(objID);
 }
 
+void Scene::AttachCustomersAnimations(int objID) {
+	animationManager.AttachCustomersAnimations(objID);
+}
+
+void Scene::AttachWorkVfxCutAnimations(int objID) {
+	animationManager.AttachWorkVfxCutAnimations(objID);
+}
+
+void Scene::AttachWorkVfxGrillAnimations(int objID) {
+	animationManager.AttachWorkVfxGrillAnimations(objID);
+}
+
+void Scene::AttachWorkVfxStoveAnimations(int objID) {
+	animationManager.AttachWorkVfxStoveAnimations(objID);
+}
+
 void Scene::AttachMenuAnimations(int objID) {
 	animationManager.AttachMenuAnimations(objID);
 }
@@ -745,7 +761,10 @@ std::string Scene::GetObjectTag(int id) const {
 }
 
 bool Scene::TagUsesVelocity(const std::string& tag) const {
-	return (tag == "npc1" || tag == "npc2" || tag == "dino");
+	if (tagUsesVelocityHook_) {
+		return tagUsesVelocityHook_(tag);
+	}
+	return false;
 }
 
 void Scene::ApplyTagRules(int id, const std::string& tag, float speedX, float speedY) {
@@ -1908,8 +1927,8 @@ void Scene::SkipActiveCutscene() {
 		}
 
 #ifndef _DEBUG
-		if (audioManager_) {
-			audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", 0.0f, cutTrans_.outSeconds);
+		if (skipCutsceneAudioHook_) {
+			skipCutsceneAudioHook_(*this, cutTrans_.outSeconds);
 		}
 #endif
 	}

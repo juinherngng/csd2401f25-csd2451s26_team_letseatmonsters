@@ -533,19 +533,8 @@ namespace LEPANELPREFABS {
 					);
 					scene.SetNPCVelocity(g->GetID(), data.speedX, data.speedY);
 
-					// Re-assign special IDs if the prefab carries a tag
-					if (data.tag == "player") {
-						scene.SetPlayerID(g->GetID());
-					}
-					else if (data.tag == "npc1") {
-						scene.SetNPC1ID(g->GetID());
-					}
-					else if (data.tag == "npc2") {
-						scene.SetNPC2ID(g->GetID());
-					}
-					else if (data.tag == "dino") {
-						scene.SetDinoID(g->GetID());
-					}
+					// Re-assign special IDs via tag rules hook
+					scene.ApplyTagRules(g->GetID(), data.tag, data.speedX, data.speedY);
 
 					// Keep within walkable area
 					scene.ClampToWalkArea(g);

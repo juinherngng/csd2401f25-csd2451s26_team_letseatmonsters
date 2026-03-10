@@ -195,7 +195,8 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
     // Tag + attach logic/animations the same way JSON spawning does
     scene.SetObjectTag(npcID, "customer_template");
     scene.AttachLogicForTag(npcID, "customer_template");
-    if (!npc) return false;
+    scene.AttachCustomersAnimations(npcID);
+    scene.SetAnimation(npcID, "IDLE_FRONT");
 
     // Apply collider/profile settings
     npc->SetColliderSize(Math::Vector2D(prof.colSize.x, prof.colSize.y));

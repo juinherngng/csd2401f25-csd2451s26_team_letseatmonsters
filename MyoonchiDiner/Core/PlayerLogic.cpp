@@ -998,6 +998,14 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
+	UpdateStationLock(scene);
+
+	if (movementLocked_ && ShouldPlayChopAnimation(scene)) {
+		EnsureChopAnimation(scene, player);
+		UpdateCarriedItemTransform(scene);
+		return;
+	}
+
 	HandleKeyboardMovement(dt, scene, input, player, beforePos);
 	HandleClickInput(scene, input, dt);
 	UpdateClickMoveIndicator(scene, dt);

@@ -13,13 +13,16 @@
 #include "Core/CustomerTableLogic.hpp"
 #include "Core/ExitGateLogic.hpp"
 #include "Core/CustomerManagerLogic.hpp"
+#include "Core/SimpleNpcLogic.hpp"
 #include "Core/Quota.hpp"
 #include "Graphics/SceneManager.hpp"
 
 #include "GamePaths.hpp"
 
+#include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace {
 	void ApplyTagRules(Scene& scene, int id, const std::string& tag, float speedX, float speedY) {
@@ -51,6 +54,10 @@ namespace {
 		if (tag == "menu_anim") {
 			scene.AttachMenuAnimations(id);
 			scene.SetAnimation(id, animName.empty() ? "FULL" : animName);
+		}
+		else if (tag == "customer_template") {
+			scene.AttachCustomersAnimations(id);
+			scene.SetAnimation(id, animName.empty() ? "IDLE_FRONT" : animName);
 		}
 		else if (texturePath.find("dino") != std::string::npos || tag == "dino") {
 			scene.AttachDinoAnimations(id);
@@ -180,50 +187,79 @@ namespace {
 #endif
 	}
 
+	using TagHandler = std::function<void(Scene&, int)>;
+
+	// I used a dispatch table here using unordered_map for O(1) average lookup instead of if else statements.
+	// Very scalable and easy to maintain as more tags are added.
+	const std::unordered_map<std::string, TagHandler>& GetTagDispatchTable() {
+		static const std::unordered_map<std::string, TagHandler> table = {
+			{ "player", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<PlayerLogic>(id);
+				scene.SetPlayerID(id);
+				scene.AttachPlayerAnimations(id);
+			}},
+			{ "customer_template", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<SimpleNpcLogic>(id);
+			}},
+			{ "work_vfx_cut", [](Scene& scene, int id) {
+				scene.AttachWorkVfxCutAnimations(id);
+				scene.SetAnimation(id, "LOOP");
+			}},
+			{ "work_vfx_grill", [](Scene& scene, int id) {
+				scene.AttachWorkVfxGrillAnimations(id);
+				scene.SetAnimation(id, "LOOP");
+			}},
+			{ "work_vfx_stove", [](Scene& scene, int id) {
+				scene.AttachWorkVfxStoveAnimations(id);
+				scene.SetAnimation(id, "LOOP");
+			}},
+			{ "table", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<TableLogic>(id);
+			}},
+			{ "work_table", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<WorkTableLogic>(id);
+			}},
+			{ "customer_table", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<CustomerTableLogic>(id);
+			}},
+			{ "ingredient_box", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<IngredientBoxLogic>(id);
+			}},
+			{ "plate_box", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<IngredientBoxLogic>(id);
+			}},
+			{ "exit_gate", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<ExitGateLogic>(id);
+				scene.RegisterExitGate(id);
+			}},
+			{ "trash_box", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<TrashCanLogic>(id);
+				scene.RegisterExitGate(id);
+			}},
+			{ "order_ui_logic", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<OrderUILogic>(id);
+			}},
+			{ "btn_play", [](Scene& scene, int id) {
+				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, MyoonchiPaths::Levels::KITCHEN_01, true);
+				if (logic && scene.GetAudioManager()) {
+					logic->SetAudioManager(scene.GetAudioManager());
+				}
+			}},
+			{ "btn_howtoplay", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<HowToPlayButtonLogic>(id);
+			}},
+			{ "btn_quit", [](Scene& scene, int id) {
+				scene.GetLogicManager().AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+			}},
+		};
+		return table;
+	}
+
 	void AttachTagLogic(Scene& scene, int id, const std::string& tag) {
-		LogicManager& logicManager = scene.GetLogicManager();
-
-		if (tag == "player") {
-			logicManager.AddLogic<PlayerLogic>(id);
-			scene.SetPlayerID(id);
-			scene.AttachPlayerAnimations(id);
-			return;
-		}
-
-		if (tag == "table") {
-			logicManager.AddLogic<TableLogic>(id);
-		}
-		else if (tag == "work_table") {
-			logicManager.AddLogic<WorkTableLogic>(id);
-		}
-		else if (tag == "customer_table") {
-			logicManager.AddLogic<CustomerTableLogic>(id);
-		}
-		else if (tag == "ingredient_box" || tag == "plate_box") {
-			logicManager.AddLogic<IngredientBoxLogic>(id);
-		}
-		else if (tag == "exit_gate") {
-			logicManager.AddLogic<ExitGateLogic>(id);
-			scene.RegisterExitGate(id);
-		}
-		else if (tag == "trash_box") {
-			logicManager.AddLogic<TrashCanLogic>(id);
-			scene.RegisterExitGate(id);
-		}
-		else if (tag == "order_ui_logic") {
-			logicManager.AddLogic<OrderUILogic>(id);
-		}
-		else if (tag == "btn_play") {
-			auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, MyoonchiPaths::Levels::KITCHEN_01, true);
-			if (logic && scene.GetAudioManager()) {
-				logic->SetAudioManager(scene.GetAudioManager());
-			}
-		}
-		else if (tag == "btn_howtoplay") {
-			logicManager.AddLogic<HowToPlayButtonLogic>(id);
-		}
-		else if (tag == "btn_quit") {
-			logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+		const auto& table = GetTagDispatchTable();
+		auto it = table.find(tag);
+		if (it != table.end()) {
+			it->second(scene, id);
 		}
 	}
 
@@ -293,4 +329,17 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	scene.SetTagLogicBinder(AttachTagLogic);
 	scene.SetPauseOverlayButtonBinder(AttachPauseOverlayButton);
 	scene.SetNavigationBlockerCollector(CollectNavigationBlockersForGame);
+	scene.SetSkipCutsceneAudioHook([](Scene& s, float outSeconds) {
+#ifndef _DEBUG
+		if (AudioManager* audioManager = s.GetAudioManager()) {
+			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, outSeconds);
+		}
+#else
+		(void)s;
+		(void)outSeconds;
+#endif
+	});
+	scene.SetTagUsesVelocityHook([](const std::string& tag) {
+		return (tag == "npc1" || tag == "npc2" || tag == "dino");
+	});
 }
