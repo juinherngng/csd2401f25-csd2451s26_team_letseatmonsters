@@ -67,6 +67,7 @@ static std::filesystem::path GetExeDir() {
 	return std::filesystem::path(buf).parent_path();
 }
 
+// Utility function to find the repository root by looking for specific subdirectories.
 static std::filesystem::path FindRepoRoot() {
 	namespace fs = std::filesystem;
 	fs::path p = GetExeDir();
@@ -91,6 +92,7 @@ static std::filesystem::path FindRepoRoot() {
 
 namespace {
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	// Hashing function for LevelData to optimize change detection.
 	static std::size_t HashLevelData(const LevelData& level) {
 		std::size_t seed = std::hash<std::string>{}(level.background);
 		seed ^= std::hash<std::size_t>{}(level.objects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -113,6 +115,7 @@ namespace {
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
 
+	// Caches a sorted list of unique layer names from the scene for UI dropdowns, with change detection based on hashing.
 	static std::vector<std::string> BuildLayerNameList(const Scene& scene) {
 		struct LayerCache {
 			std::size_t keyHash = 0;
@@ -229,11 +232,13 @@ namespace {
 	}
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	// Undo/redo system using LevelData snapshots.
 	static void CaptureEditorState(Scene& scene, LevelData& outState) {
 		SyncSceneToLevel(scene, outState);
 		SyncTextObjectsToLevel(outState);
 	}
 
+	// Restore the editor state from a LevelData snapshot, rebuilding the scene and syncing text objects.
 	static void RestoreEditorState(LevelEditor& editor, Scene& scene, const LevelData& state) {
 		scene.ClearAll();
 		SyncLevelToScene(state, scene);
@@ -244,22 +249,26 @@ namespace {
 		SyncTextObjectsToEditor(state);
 	}
 
+	// Push a snapshot of the current editor state onto the undo stack before a mutation occurs.
 	static void PushUndoSnapshot(LevelEditor& editor, Scene& scene) {
 		LECOMMAND::RecordPreMutationSnapshot(editor, [&](LevelData& outState) { CaptureEditorState(scene, outState); });
 	}
 
+	// Perform an undo operation, restoring the previous state if available.
 	static bool PerformUndo(LevelEditor& editor, Scene& scene) {
 		return LECOMMAND::Undo(editor,
 			[&](LevelData& outState) { CaptureEditorState(scene, outState); },
 			[&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
 	}
 
+	// Perform a redo operation, restoring the next state if available.
 	static bool PerformRedo(LevelEditor& editor, Scene& scene) {
 		return LECOMMAND::Redo(editor,
 			[&](LevelData& outState) { CaptureEditorState(scene, outState); },
 			[&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
 	}
 
+	// Clear the undo/redo history, typically called when loading a new level or starting a new one.
 	static void ClearUndoHistory() {
 		LECOMMAND::ClearHistory();
 	}
@@ -339,6 +348,7 @@ namespace {
 			// Store transform and defaults
 			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, obj.z }, { obj.w, obj.h, 1.0f }, obj.rotation);
 
+			// Store defaults for saving later
 			Scene::Defaults defs{};
 			defs.pos = { obj.x, obj.y, obj.z };
 			defs.size = { obj.w, obj.h };

@@ -18,6 +18,7 @@
 namespace collision {
 	static constexpr float kEPS = 1e-4f;
 
+	// Helper functions
 	static inline float clampf(float v, float lo, float hi) {
 		return std::max(lo, std::min(v, hi));
 	}
@@ -38,7 +39,7 @@ namespace collision {
 		return overlapExists;
 	}
 
-	// Primitives 
+	// Internal method to compute the Minimum Translation Vector (MTV) to resolve an overlap between two AABBs.
 	bool overlapMTV(const AABB& a, const AABB& b, Math::Vector2D& mtvOut) {
 		// Signed gaps (A relative to B)
 		float left = b.min.x - a.max.x;

@@ -54,7 +54,7 @@ void LevelEditor::DrawUI(Scene& scene) {
 	// The scene viewport should not capture game mouse by default while drawing editor UI
 	InputManager::Get().SetSceneViewportWantsGameMouse(false);
 
-	// ----- Panels -----
+	// Panels
 	LEPANELLEVEL::DrawLevelPanel(*this, scene, selectedIndex, selectedObjectId);
 	LEPANELPREFABS::DrawPrefabsPanel(*this, scene, selectedObjectId);
 	LEPANELASSETS::DrawAssetsPanel(*this, scene, selectedIndex, selectedObjectId);
