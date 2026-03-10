@@ -1146,7 +1146,7 @@ void GraphicsEngine::RenderTextObjects() {
 	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-	_sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
+	sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
