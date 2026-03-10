@@ -4,12 +4,7 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
- DESCRIPTION:       Level panel for the Level Editor.
-					- Load/Save level JSON files
-					- Manage play/stop state
-					- Display scene hierarchy and object properties
-					- Handle prefab/texture drag-drop instantiation
-					- Sync LevelData <-> Scene
+ DESCRIPTION:       Header for the Level panel in the Level Editor, which manages the overall level state and provides
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

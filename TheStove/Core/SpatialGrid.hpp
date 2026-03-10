@@ -71,6 +71,7 @@ private:
 	std::unordered_map<GameObject*, collision::AABB> objectAABBs_;
 	mutable std::unordered_map<GameObject*, std::uint32_t> queryVisitStamp_;
 	mutable std::vector<Key> queryCellCache_;
+	std::vector<Key> updateCellCache_;
 	mutable std::uint32_t queryStamp_ = 1;
 	mutable ProfileCounters profile_;
 };

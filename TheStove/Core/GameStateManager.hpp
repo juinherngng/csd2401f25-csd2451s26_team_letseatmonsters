@@ -85,6 +85,7 @@ namespace Framework {
 
 		// Switch to a JSON-backed state if mapping exists; returns true if handled
 		bool TrySwitchJsonState(int state, float dt);
+		void PreloadJsonStateAssets(int activeState);
 
 	private:
 		CoreFramework::MessageBus& messageBus;

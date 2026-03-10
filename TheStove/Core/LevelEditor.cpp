@@ -14,9 +14,6 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Graphics/ResourceManager.hpp"
-#include "../Graphics/SceneManager.hpp"
-
 #include "InputManager.hpp"
 #include "LevelEditor.hpp"
 #include "LevelEditorPanelAssets.hpp"

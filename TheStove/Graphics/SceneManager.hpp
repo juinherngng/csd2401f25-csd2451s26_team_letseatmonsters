@@ -154,6 +154,7 @@ public:
 	// Spawns an animated sprite at the same position as ownerID, with given texture/size/frames/layer.
 	GameObject* GetGameObjectByID(int targetID);
 	std::vector<GameObject*> GetAllObjectsRaw();
+	const std::vector<std::unique_ptr<GameObject>>& GetObjectStorageRaw() const;
 	void DespawnByID(int targetID);
 	void CollectRenderablePointers(std::vector<GameObject*>& out);
 

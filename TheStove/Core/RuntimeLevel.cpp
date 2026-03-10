@@ -28,6 +28,35 @@
 #include <vector>
 
 namespace RuntimeLevel {
+
+	struct LevelManifest {
+		std::vector<std::string> textures;
+	};
+
+	LevelManifest BuildLevelManifest(const LevelData& data) {
+		LevelManifest manifest;
+		manifest.textures.reserve(data.objects.size() + 1);
+
+		std::unordered_set<std::string> seenTexturePaths;
+		seenTexturePaths.reserve(data.objects.size() + 1);
+
+		if (!data.background.empty() && seenTexturePaths.insert(data.background).second) {
+			manifest.textures.push_back(data.background);
+		}
+
+		for (const auto& obj : data.objects) {
+			if (obj.texture.empty()) {
+				continue;
+			}
+
+			if (seenTexturePaths.insert(obj.texture).second) {
+				manifest.textures.push_back(obj.texture);
+			}
+		}
+
+		return manifest;
+	}
+
 	void BuildSceneFromLevel(const LevelData& levelIn, Scene& scene) {
 		static const std::string kDefaultLayer = "1";
 		static const std::vector<glm::vec4> kFullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
@@ -147,23 +176,14 @@ namespace RuntimeLevel {
 			scene.SetSceneBackground(data.background);
 		}
 
-		// Decode image files in parallel before spawning objects to reduce load stutter.
-		std::vector<std::string> texturesToPreload;
-		texturesToPreload.reserve(data.objects.size());
-		std::unordered_set<std::string> seenTexturePaths;
-		seenTexturePaths.reserve(data.objects.size());
-		for (const auto& obj : data.objects) {
-			if (obj.texture.empty()) {
-				continue;
-			}
-			if (seenTexturePaths.insert(obj.texture).second) {
-				texturesToPreload.push_back(obj.texture);
-			}
-		}
+		const LevelManifest manifest = BuildLevelManifest(data);
 
 		const auto preloadStart = std::chrono::steady_clock::now();
-		ResourceManager::Instance().PreloadTextures(texturesToPreload);
+		ResourceManager::Instance().PreloadTextures(manifest.textures);
 		const double preloadMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - preloadStart).count();
+#ifdef NDEBUG
+		(void)preloadMs;
+#endif
 
 		const auto buildStart = std::chrono::steady_clock::now();
 		BuildSceneFromLevel(data, scene);
@@ -198,7 +218,7 @@ namespace RuntimeLevel {
 #ifndef NDEBUG
 		const double buildMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - buildStart).count();
 		const double totalMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - loadStart).count();
-		std::cout << "[RuntimeLevel] LoadAndBuild '" << path << "': textures=" << texturesToPreload.size()
+		std::cout << "[RuntimeLevel] LoadAndBuild '" << path << "': textures=" << manifest.textures.size()
 			<< ", preload=" << preloadMs << " ms, build=" << buildMs << " ms, total=" << totalMs << " ms" << std::endl;
 #endif
 

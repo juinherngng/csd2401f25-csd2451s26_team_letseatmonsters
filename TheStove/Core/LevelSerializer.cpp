@@ -17,10 +17,46 @@
 
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 
 namespace fs = std::filesystem;
 
 using nlohmann::json;
+
+namespace {
+	constexpr int LEVEL_SCHEMA_VERSION = 2;
+
+	void ApplyLegacyMigrations(json& jsonData, int schemaVersion) {
+		if (schemaVersion < 1) {
+			if (!jsonData.contains("textObjects") && jsonData.contains("text_objects")) {
+				jsonData["textObjects"] = jsonData["text_objects"];
+			}
+		}
+
+		if (schemaVersion < 2 && jsonData.contains("objects") && jsonData["objects"].is_array()) {
+			for (auto& jsonObj : jsonData["objects"]) {
+				if (!jsonObj.is_object()) {
+					continue;
+				}
+
+				if (!jsonObj.contains("prefab_path") && jsonObj.contains("prefabPath")) {
+					jsonObj["prefab_path"] = jsonObj["prefabPath"];
+				}
+			}
+		}
+
+		if (schemaVersion < 2 && jsonData.contains("textObjects") && jsonData["textObjects"].is_array()) {
+			for (auto& jsonObj : jsonData["textObjects"]) {
+				if (!jsonObj.is_object()) {
+					continue;
+				}
+				if (!jsonObj.contains("visible")) {
+					jsonObj["visible"] = true;
+				}
+			}
+		}
+	}
+}
 
 // Helpers (local)
 static LevelObject ReadLevelObject(const json& jsonObj) {
@@ -184,6 +220,15 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	outLevel.textObjects.clear();
 	outLevel.background.clear();
 
+	outLevel.schemaVersion = jsonData.value("schema_version", 0);
+	ApplyLegacyMigrations(jsonData, outLevel.schemaVersion);
+	if (outLevel.schemaVersion > LEVEL_SCHEMA_VERSION) {
+		std::cerr << "[LevelSerializer] Warning: loading newer schema version " << outLevel.schemaVersion
+			<< " with reader version " << LEVEL_SCHEMA_VERSION << std::endl;
+	}
+
+	outLevel.schemaVersion = LEVEL_SCHEMA_VERSION;
+
 	// optional background
 	outLevel.background = jsonData.value("background", "");
 
@@ -240,6 +285,8 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 		// Optional: erase background if you want to remove it
 		// jsonData.erase("background");
 	}
+
+	jsonData["schema_version"] = LEVEL_SCHEMA_VERSION;
 
 	// Replace ONLY the "objects" array
 	jsonData["objects"] = json::array();
