@@ -745,7 +745,7 @@ void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoi
 
 	marker->SetPosition(markerPos);
 	marker->SetScale(glm::vec3(26.0f, 26.0f, 1.0f));
-	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.95f));
+	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	clickIndicatorTimeLeft_ = kClickIndicatorLifetime;
 }
 
@@ -771,9 +771,8 @@ void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
 	}
 
 	const float t = std::clamp(clickIndicatorTimeLeft_ / kClickIndicatorLifetime, 0.0f, 1.0f);
-	const float alpha = 0.25f + 0.70f * t;
 	const float size = 18.0f + (1.0f - t) * 28.0f;
-	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, alpha));
+	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	marker->SetScale(glm::vec3(size, size, 1.0f));
 }
 
