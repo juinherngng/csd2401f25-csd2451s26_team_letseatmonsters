@@ -15,12 +15,12 @@
  */
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
-#include <cmath>
 #include <unordered_map>
 
 #ifdef _DEBUG
@@ -564,43 +564,82 @@ namespace LEPANELPREFABS {
 
 		ImGui::EndDisabled(); // !prefabExists
 
-		// Propagate prefab changes to all instances linked to this prefab path
-		if (ImGui::Button("Propagate prefab changes")) {
-			if (prefabExists && selectedObjectId >= 0) {
-				GameObject* src = scene.GetGameObjectByID(selectedObjectId);
-				if (src) {
-					const std::string normalizedPrefabPath = NormalizePrefabPath(prefabPath);
+		const auto propagatePrefabChanges = [&]() {
+			if (!prefabExists || selectedObjectId < 0) {
+				return;
+			}
 
-					// Build prefab based on UPDATED editor values
-					LevelObject updated = BuildPrefabFromObject(scene, src);
-					updated.prefabPath = normalizedPrefabPath;
+			GameObject* src = scene.GetGameObjectByID(selectedObjectId);
+			if (!src) {
+				return;
+			}
 
-					// Save updated prefab JSON
-					SavePrefabToFile(prefabPath, updated);
+			const std::string normalizedPrefabPath = NormalizePrefabPath(prefabPath);
 
-					// Apply to all linked instances in currently open scene
-					std::vector<GameObject*> objs;
-					scene.CollectRenderablePointers(objs);
+			// Build prefab based on UPDATED editor values
+			LevelObject updated = BuildPrefabFromObject(scene, src);
+			updated.prefabPath = normalizedPrefabPath;
 
-					int updatedCurrentScene = 0;
-					for (auto* g : objs) {
-						if (!g) continue;
-						const int gid = g->GetID();
-						auto it = PrefabLinkByID.find(gid);
+			// Save updated prefab JSON
+			SavePrefabToFile(prefabPath, updated);
 
-						if (it != PrefabLinkByID.end() && IsSamePrefabPath(it->second, normalizedPrefabPath)) {
-							ApplyPrefabToObjectKeepPosition(updated, scene, g);
-							it->second = normalizedPrefabPath;
-							++updatedCurrentScene;
-						}
-					}
+			// Apply to all linked instances in currently open scene
+			std::vector<GameObject*> objs;
+			scene.CollectRenderablePointers(objs);
 
-					const int updatedAcrossLevels = PropagatePrefabToAllLevelFiles(normalizedPrefabPath, updated);
-					std::cout << "[Prefab] Propagated '" << normalizedPrefabPath << "' to "
-						<< updatedCurrentScene << " live objects and "
-						<< updatedAcrossLevels << " saved level objects." << std::endl;
+			int updatedCurrentScene = 0;
+			for (auto* g : objs) {
+				if (!g) continue;
+				const int gid = g->GetID();
+				auto it = PrefabLinkByID.find(gid);
+
+				if (it != PrefabLinkByID.end() && IsSamePrefabPath(it->second, normalizedPrefabPath)) {
+					ApplyPrefabToObjectKeepPosition(updated, scene, g);
+					it->second = normalizedPrefabPath;
+					++updatedCurrentScene;
 				}
 			}
+			};
+
+		// Propagate prefab changes to all instances linked to this prefab path
+		if (ImGui::Button("Propagate prefab changes")) {
+			ImGui::OpenPopup("Confirm Propagate Prefab");
+		}
+
+		ShowButtonTooltip("Update all linked instances in open scene + level files.");
+
+		if (ImGui::BeginPopupModal("Confirm Propagate Prefab", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			ImGui::TextUnformatted("Apply prefab changes to all linked instances?");
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 28.0f);
+			ImGui::Text("Prefab: %s", prefabPath.c_str());
+			ImGui::PopTextWrapPos();
+			ImGui::Spacing();
+
+			GameObject* src = (selectedObjectId >= 0) ? scene.GetGameObjectByID(selectedObjectId) : nullptr;
+			const bool canPropagate = prefabExists && (src != nullptr);
+			if (!canPropagate) {
+				ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.25f, 1.0f),
+					"Select a valid object and prefab path before propagating.");
+				ImGui::Spacing();
+			}
+
+			ImGui::Separator();
+			if (!canPropagate) {
+				ImGui::BeginDisabled();
+			}
+			if (ImGui::Button("Propagate", ImVec2(120.0f, 0.0f))) {
+				propagatePrefabChanges();
+				ImGui::CloseCurrentPopup();
+			}
+			if (!canPropagate) {
+				ImGui::EndDisabled();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f))) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
 		}
 
 		ImGui::End();

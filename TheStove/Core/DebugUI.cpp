@@ -845,20 +845,24 @@ namespace Debug {
 		ImGui::SliderFloat("Fade Out", &mFadeOutSec, 0.0f, 2.0f, "%.2f s");
 		ImGui::SliderFloat("Fade In", &mFadeInSec, 0.0f, 2.0f, "%.2f s");
 
-		if (ImGui::Button("Start", ImVec2(110.0f, 0.0f))) {
+		const float spacing = ImGui::GetStyle().ItemSpacing.x;
+		const float availableWidth = ImGui::GetContentRegionAvail().x;
+		const float buttonWidth = (availableWidth - (spacing * 3.0f)) / 4.0f;
+
+		if (ImGui::Button("Start", ImVec2(buttonWidth, 0.0f))) {
 			gfx->StartSceneTransition(mFadeOutSec, mFadeInSec);
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Blackout", ImVec2(110.0f, 0.0f))) {
+		if (ImGui::Button("Blackout", ImVec2(buttonWidth, 0.0f))) {
 			// Simulate blackout: start transition with zero fade-out then immediately continue
 			gfx->StartSceneTransition(0.0f, mFadeInSec);
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Continue", ImVec2(110.0f, 0.0f))) {
+		if (ImGui::Button("Continue", ImVec2(buttonWidth, 0.0f))) {
 			gfx->ContinueTransitionFadeIn();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel", ImVec2(110.0f, 0.0f))) {
+		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f))) {
 			// Simple cancel: start transition with zero durations to clear state
 			gfx->StartSceneTransition(0.0f, 0.0f);
 		}

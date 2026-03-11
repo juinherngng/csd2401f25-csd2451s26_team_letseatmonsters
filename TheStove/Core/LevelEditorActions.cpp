@@ -72,41 +72,54 @@ namespace LEACTIONS {
 		(void)editor;
 		(void)callbacks;
 #else
-		if (ImGui::BeginTable("##LevelActionsGrid", 4, ImGuiTableFlags_SizingStretchSame)) {
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 4.0f));
+
+		if (ImGui::BeginTable("##LevelActionsGroups", 3, ImGuiTableFlags_SizingStretchSame)) {
 			ImGui::TableNextRow();
+
 			ImGui::TableSetColumnIndex(0);
-			DrawActionButton("Load Level", callbacks.onLoad);
+			ImGui::TextDisabled("File");
+			DrawActionButton("Load", callbacks.onLoad);
+			DrawActionButton("New", callbacks.onNewScene);
+			DrawActionButton("Save", callbacks.onSave);
 
 			ImGui::TableSetColumnIndex(1);
-			DrawActionButton("New Scene", callbacks.onNewScene);
-
-			ImGui::TableSetColumnIndex(2);
-			DrawActionButton("Save Level", callbacks.onSave);
-
-			ImGui::TableSetColumnIndex(3);
-			DrawActionButtonDisabled("Play", editor.IsPlaying(), callbacks.onPlay);
-
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
+			ImGui::TextDisabled("History");
 			DrawActionButtonDisabled("Undo", editor.IsPlaying(), callbacks.onUndo);
-
-			ImGui::TableSetColumnIndex(1);
 			DrawActionButtonDisabled("Redo", editor.IsPlaying(), callbacks.onRedo);
 
 			ImGui::TableSetColumnIndex(2);
-			DrawActionButtonDisabled("Stop", !editor.IsPlaying(), callbacks.onStop);
+			ImGui::TextDisabled("Simulation");
 
-			ImGui::TableSetColumnIndex(3);
+			const bool isPlaying = editor.IsPlaying();
 			const bool isSimActive = scene.IsSimulationActive();
+
+			if (!isPlaying) {
+				const ImVec4 primary = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
+				ImGui::PushStyleColor(ImGuiCol_Button, primary);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, primary);
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, primary);
+				DrawActionButton("Play", callbacks.onPlay);
+				ImGui::PopStyleColor(3);
+			}
+			else {
+				DrawActionButtonDisabled("Play", true, callbacks.onPlay);
+			}
+
+			DrawActionButtonDisabled("Stop", !isPlaying, callbacks.onStop);
+
 			const char* pauseLabel = isSimActive ? "Pause" : "Resume";
-			ImGui::BeginDisabled(!editor.IsPlaying());
+			ImGui::BeginDisabled(!isPlaying);
 			if (ImGui::Button(pauseLabel, ImVec2(-FLT_MIN, 0.0f))) {
 				scene.SetSimulationActive(!isSimActive);
 			}
 
 			ImGui::EndDisabled();
+
 			ImGui::EndTable();
 		}
+
+		ImGui::PopStyleVar();
 #endif
 	}
 }

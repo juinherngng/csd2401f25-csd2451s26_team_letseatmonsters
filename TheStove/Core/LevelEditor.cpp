@@ -43,9 +43,10 @@ void LevelEditor::DrawUI(Scene& scene) {
 	// Now safe to call ImGui APIs
 	ImGuiStyle& st = ImGui::GetStyle();
 	st.FrameRounding = 3;
-	st.FramePadding = ImVec2(5, 3);
-	st.ItemSpacing = ImVec2(6, 4);
+	st.FramePadding = ImVec2(6, 4);
+	st.ItemSpacing = ImVec2(8, 6);
 	st.WindowPadding = ImVec2(10, 10);
+	st.CellPadding = ImVec2(6, 4);
 
 	// Panels maintain these between frames; static matches your existing behavior
 	static int selectedIndex = -1;    // index in hierarchy list

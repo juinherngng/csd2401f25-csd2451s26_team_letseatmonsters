@@ -812,9 +812,54 @@ namespace LEPANELLEVEL {
 		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
 		if (ImGui::CollapsingHeader("Hierarchy", ImGuiTreeNodeFlags_DefaultOpen)) {
 			static char sHierarchyFilter[128] = "";
+			enum class HierarchyQuickFilter {
+				All = 0, LayerCurrent, HasCollider, HasAudio
+			};
+			static HierarchyQuickFilter sQuickFilter = HierarchyQuickFilter::All;
+
 			ImGui::SetNextItemWidth(-FLT_MIN);
 			ImGui::InputTextWithHint("##HierarchyFilter", "Filter by name, ID, or layer", sHierarchyFilter, IM_ARRAYSIZE(sHierarchyFilter));
 			const std::string filterLower = LEHIERARCHY::ToLowerCopy(std::string(sHierarchyFilter));
+
+			if (ImGui::RadioButton("All", sQuickFilter == HierarchyQuickFilter::All)) {
+				sQuickFilter = HierarchyQuickFilter::All;
+			}
+			ImGui::SameLine();
+			if (ImGui::RadioButton("Layer", sQuickFilter == HierarchyQuickFilter::LayerCurrent)) {
+				sQuickFilter = HierarchyQuickFilter::LayerCurrent;
+			}
+			ImGui::SameLine();
+			if (ImGui::RadioButton("Collider", sQuickFilter == HierarchyQuickFilter::HasCollider)) {
+				sQuickFilter = HierarchyQuickFilter::HasCollider;
+			}
+			ImGui::SameLine();
+			if (ImGui::RadioButton("Audio", sQuickFilter == HierarchyQuickFilter::HasAudio)) {
+				sQuickFilter = HierarchyQuickFilter::HasAudio;
+			}
+
+			const std::string activeLayer = (selectedObjectId != -1) ? scene.GetObjectLayer(selectedObjectId) : "";
+
+			auto PassesQuickFilter = [&](GameObject* gameObject) {
+				if (!gameObject) {
+					return false;
+				}
+
+				const int gameObjectId = gameObject->GetID();
+				const Scene::Defaults objDefaults = scene.GetDefaults(gameObjectId);
+				auto collider = gameObject->GetColliderSize();
+
+				switch (sQuickFilter) {
+				case HierarchyQuickFilter::LayerCurrent:
+					return !activeLayer.empty() && scene.GetObjectLayer(gameObjectId) == activeLayer;
+				case HierarchyQuickFilter::HasCollider:
+					return collider.x > 0.0f && collider.y > 0.0f;
+				case HierarchyQuickFilter::HasAudio:
+					return !objDefaults.audioOnSpawn.empty() || !objDefaults.audioOnInteract.empty() || !objDefaults.audioOnDestroy.empty() || !objDefaults.audioOnProcessing.empty();
+				case HierarchyQuickFilter::All:
+				default:
+					return true;
+				}
+				};
 
 			// Remove objects whose layer is currently hidden
 			objectList.erase(
@@ -870,7 +915,7 @@ namespace LEPANELLEVEL {
 
 					const int gid = g->GetID();
 					const std::string& label = LEHIERARCHY::GetCachedLabel(scene, gid);
-					if (!LEHIERARCHY::PassesFilterCached(gid, filterLower)) {
+					if (!LEHIERARCHY::PassesFilterCached(gid, filterLower) || !PassesQuickFilter(g)) {
 						continue;
 					}
 
@@ -909,7 +954,14 @@ namespace LEPANELLEVEL {
 							continue;
 						}
 
-						std::string lbl = "[Text] " + t.name + " (" + t.fontName + ") [Layer: " + t.layer + "]";
+						if (sQuickFilter == HierarchyQuickFilter::HasCollider || sQuickFilter == HierarchyQuickFilter::HasAudio) {
+							continue;
+						}
+						if (sQuickFilter == HierarchyQuickFilter::LayerCurrent && (!activeLayer.empty() && t.layer != activeLayer)) {
+							continue;
+						}
+
+						std::string lbl = "[Text] " + t.name + " [L" + t.layer + "]";
 						if (!LEHIERARCHY::PassesFilter(lbl, filterLower)) {
 							continue;
 						}
@@ -1248,147 +1300,157 @@ namespace LEPANELLEVEL {
 				});
 			ImGui::NextColumn();
 
-			// Animation
-			ImGui::Separator();
-			ImGui::Text("Animation");
-			ImGui::NextColumn();
-			FullWidthNext();
+			ImGui::Columns(1);
+			const bool showAdvancedInspector = ImGui::CollapsingHeader("Advanced Transform & Collider");
+			if (showAdvancedInspector) {
+				ImGui::Columns(2, nullptr, false);
+				ImGui::SetColumnWidth(0, labelColWidth);
 
-			if (id != -1) {
-				bool hasAnimator = scene.HasAnimations(id); // auto-detected from scene
-				ImGui::BeginDisabled();                     // make the checkbox read-only
-				ImGui::Checkbox("Animated", &hasAnimator);
-				ImGui::EndDisabled();
-				ImGui::SameLine();
-				ImGui::TextDisabled("(auto-detected)");
+				// Animation
+				ImGui::Separator();
+				ImGui::Text("Animation");
+				ImGui::NextColumn();
+				FullWidthNext();
 
-				if (hasAnimator) {
-					std::vector<std::string> animList = scene.GetAnimationList(id);
-					std::string current = scene.GetCurrentAnimationName(id);
+				if (id != -1) {
+					bool hasAnimator = scene.HasAnimations(id); // auto-detected from scene
+					ImGui::BeginDisabled();                     // make the checkbox read-only
+					ImGui::Checkbox("Animated", &hasAnimator);
+					ImGui::EndDisabled();
+					ImGui::SameLine();
+					ImGui::TextDisabled("(auto-detected)");
 
-					if (animList.empty()) {
-						ImGui::TextDisabled("No clips found");
-					}
-					else {
-						const char* preview = current.c_str();
-						if (ImGui::BeginCombo("Current", preview)) {
-							for (const std::string& name : animList) {
-								bool selected = (current == name);
-								if (ImGui::Selectable(name.c_str(), selected)) {
-									PushUndoSnapshot(editor, scene);
-									scene.SetAnimation(id, name.c_str());
+					if (hasAnimator) {
+						std::vector<std::string> animList = scene.GetAnimationList(id);
+						std::string current = scene.GetCurrentAnimationName(id);
+
+						if (animList.empty()) {
+							ImGui::TextDisabled("No clips found");
+						}
+						else {
+							const char* preview = current.c_str();
+							if (ImGui::BeginCombo("Current", preview)) {
+								for (const std::string& name : animList) {
+									bool selected = (current == name);
+									if (ImGui::Selectable(name.c_str(), selected)) {
+										PushUndoSnapshot(editor, scene);
+										scene.SetAnimation(id, name.c_str());
+									}
+
+									if (selected) {
+										ImGui::SetItemDefaultFocus();
+									}
 								}
 
-								if (selected) {
-									ImGui::SetItemDefaultFocus();
-								}
+								ImGui::EndCombo();
 							}
-
-							ImGui::EndCombo();
 						}
 					}
 				}
-			}
 
-			ImGui::NextColumn();
+				ImGui::NextColumn();
 
-			// Rotation
-			ImGui::Text("Rotation (deg)"); ImGui::NextColumn();
-			FullWidthNext();
-			DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.8f, [&](bool) {
-				// Clamp to [0, 360) before applying so it never stores huge angles
-				rotationDeg = std::fmod(rotationDeg, 360.0f);
-				if (rotationDeg < 0.0f) {
-					rotationDeg += 360.0f;
+				// Rotation
+				ImGui::Text("Rotation (deg)"); ImGui::NextColumn();
+				FullWidthNext();
+				DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.8f, [&](bool) {
+					// Clamp to [0, 360) before applying so it never stores huge angles
+					rotationDeg = std::fmod(rotationDeg, 360.0f);
+					if (rotationDeg < 0.0f) {
+						rotationDeg += 360.0f;
+					}
+
+					obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
+					scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
+					});
+				ImGui::NextColumn();
+
+				// Collider
+				ImGui::Text("Collider");
+				ImGui::NextColumn();
+				FullWidthNext();
+
+				if (ImGui::Checkbox("Enable Collider", &colliderEnabled)) {
+					PushUndoSnapshot(editor, scene);
+
+					if (!colliderEnabled) {
+						colliderSize = { 0.f, 0.f };
+						colliderOff = { 0.f, 0.f };
+						obj->SetColliderSize({ 0.f, 0.f });
+						obj->SetColliderOffset({ 0.f, 0.f });
+					}
+					else {
+						// default collider when adding
+						colliderSize = { size.x, size.y };
+						colliderOff = { 0.f, 0.f };
+						obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+						obj->SetColliderOffset({ 0.f, 0.f });
+					}
+
+					scene.RebuildColliders();
 				}
 
-				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
-				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
-				});
-			ImGui::NextColumn();
+				if (colliderEnabled) {
+					float avail = ImGui::GetContentRegionAvail().x;
+					float gap = ImGui::GetStyle().ItemInnerSpacing.x;
+					float fieldW = (avail - gap) * 0.5f;
 
-			// Collider
-			ImGui::Text("Collider");
-			ImGui::NextColumn();
-			FullWidthNext();
+					// Size
+					ImGui::TextUnformatted("Size");
+					// row of 2 fields (x, y)
+					ImGui::PushItemWidth(fieldW);
+					bool sizeChangedX = ImGui::DragFloat("x##col_size_x", &colliderSize.x, 1.0f, 0.0f, 99999.0f);
+					bool sizeActivatedX = ImGui::IsItemActivated();
+					ImGui::SameLine(0.0f, gap);
+					bool sizeChangedY = ImGui::DragFloat("y##col_size_y", &colliderSize.y, 1.0f, 0.0f, 99999.0f);
+					bool sizeActivatedY = ImGui::IsItemActivated();
+					ImGui::PopItemWidth();
 
-			if (ImGui::Checkbox("Enable Collider", &colliderEnabled)) {
-				PushUndoSnapshot(editor, scene);
+					if (sizeActivatedX || sizeActivatedY) {
+						PushUndoSnapshot(editor, scene);
+					}
 
-				if (!colliderEnabled) {
-					colliderSize = { 0.f, 0.f };
-					colliderOff = { 0.f, 0.f };
-					obj->SetColliderSize({ 0.f, 0.f });
-					obj->SetColliderOffset({ 0.f, 0.f });
+					if (sizeChangedX || sizeChangedY) {
+						obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+						scene.RebuildColliders();
+					}
+
+					ImGui::Spacing();
+
+					// Offset
+					ImGui::TextUnformatted("Offset");
+					ImGui::PushItemWidth(fieldW);
+					bool offChangedX = ImGui::DragFloat("x##col_off_x", &colliderOff.x, 1.0f, -99999.0f, 99999.0f);
+					bool offActivatedX = ImGui::IsItemActivated();
+					ImGui::SameLine(0.0f, gap);
+					bool offChangedY = ImGui::DragFloat("y##col_off_y", &colliderOff.y, 1.0f, -99999.0f, 99999.0f);
+					bool offActivatedY = ImGui::IsItemActivated();
+					ImGui::PopItemWidth();
+
+					if (offActivatedX || offActivatedY) {
+						PushUndoSnapshot(editor, scene);
+					}
+
+					if (offChangedX || offChangedY) {
+						obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
+						scene.RebuildColliders();
+					}
 				}
 				else {
-					// default collider when adding
-					colliderSize = { size.x, size.y };
-					colliderOff = { 0.f, 0.f };
-					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
-					obj->SetColliderOffset({ 0.f, 0.f });
+					ImGui::TextDisabled("Collider disabled");
 				}
 
-				scene.RebuildColliders();
-			}
+				ImGui::NextColumn();
 
-			if (colliderEnabled) {
-				float avail = ImGui::GetContentRegionAvail().x;
-				float gap = ImGui::GetStyle().ItemInnerSpacing.x;
-				float fieldW = (avail - gap) * 0.5f;
-
-				// Size
-				ImGui::TextUnformatted("Size");
-				// row of 2 fields (x, y)
-				ImGui::PushItemWidth(fieldW);
-				bool sizeChangedX = ImGui::DragFloat("x##col_size_x", &colliderSize.x, 1.0f, 0.0f, 99999.0f);
-				bool sizeActivatedX = ImGui::IsItemActivated();
-				ImGui::SameLine(0.0f, gap);
-				bool sizeChangedY = ImGui::DragFloat("y##col_size_y", &colliderSize.y, 1.0f, 0.0f, 99999.0f);
-				bool sizeActivatedY = ImGui::IsItemActivated();
-				ImGui::PopItemWidth();
-
-				if (sizeActivatedX || sizeActivatedY) {
-					PushUndoSnapshot(editor, scene);
-				}
-
-				if (sizeChangedX || sizeChangedY) {
-					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
-					scene.RebuildColliders();
-				}
-
-				ImGui::Spacing();
-
-				// Offset
-				ImGui::TextUnformatted("Offset");
-				ImGui::PushItemWidth(fieldW);
-				bool offChangedX = ImGui::DragFloat("x##col_off_x", &colliderOff.x, 1.0f, -99999.0f, 99999.0f);
-				bool offActivatedX = ImGui::IsItemActivated();
-				ImGui::SameLine(0.0f, gap);
-				bool offChangedY = ImGui::DragFloat("y##col_off_y", &colliderOff.y, 1.0f, -99999.0f, 99999.0f);
-				bool offActivatedY = ImGui::IsItemActivated();
-				ImGui::PopItemWidth();
-
-				if (offActivatedX || offActivatedY) {
-					PushUndoSnapshot(editor, scene);
-				}
-
-				if (offChangedX || offChangedY) {
-					obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
-					scene.RebuildColliders();
-				}
+				ImGui::Columns(1);
 			}
 			else {
-				ImGui::TextDisabled("Collider disabled");
+				ImGui::TextDisabled("Advanced controls are collapsed.");
 			}
-
-			ImGui::NextColumn();
-
-			ImGui::Columns(1);
 
 			// ========== Audio Bindings Section ==========
 			ImGui::Spacing();
-			if (ImGui::CollapsingHeader("Audio Bindings", ImGuiTreeNodeFlags_DefaultOpen)) {
+			if (ImGui::CollapsingHeader("Audio Bindings")) {
 				ImGui::Indent(8.0f);
 
 				// Get available audio assets from catalog
