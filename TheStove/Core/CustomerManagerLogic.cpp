@@ -279,6 +279,7 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 
 	if (auto* npcLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(npcID)) {
 		npcLogic->SetCustomerTableTarget(chosenTableID, seatWorld);
+		npcLogic->SetLeaveTarget(spawn2);
 	}
 
 	scene.ClampToWalkArea(npc);

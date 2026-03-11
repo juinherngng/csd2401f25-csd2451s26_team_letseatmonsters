@@ -352,6 +352,11 @@ void GraphicsEngine::Resize(int width, int height) {
 		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
 			static_cast<float>(kRefH), 1.0f));
 	}
+	if (backgroundOverlayObject) {
+		backgroundOverlayObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
+		backgroundOverlayObject->SetScale(glm::vec3(static_cast<float>(kRefW),
+			static_cast<float>(kRefH), 1.0f));
+	}
 }
 
 // Apply the current letterboxed viewport (use before world rendering)
@@ -450,9 +455,38 @@ void GraphicsEngine::SetBackground(const std::string& texturePath) {
 	}
 }
 
+void GraphicsEngine::SetBackgroundOverlay(const std::string& texturePath) {
+	std::string key = "background_overlay_" + std::filesystem::path(texturePath).filename().string();
+
+	Texture* overlayTexture = resourceManager.LoadTexture(key, texturePath);
+	if (!overlayTexture) {
+		std::cerr << "Failed to load background overlay texture: " << texturePath << std::endl;
+		return;
+	}
+
+	if (!backgroundOverlayObject) {
+		Mesh* quadMesh = resourceManager.GetMesh("fullscreen_quad");
+		Shader* textureShader = resourceManager.GetShader("texture");
+
+		if (quadMesh && textureShader) {
+			backgroundOverlayObject = std::make_unique<GameObject>(quadMesh, textureShader);
+			backgroundOverlayObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
+			backgroundOverlayObject->SetScale(glm::vec3(static_cast<float>(kRefW), static_cast<float>(kRefH), 1.0f));
+		}
+	}
+
+	if (backgroundOverlayObject) {
+		backgroundOverlayObject->SetTexture(overlayTexture);
+	}
+}
+
 // Remove the background object (if present).
 void GraphicsEngine::ClearBackground() {
 	backgroundObject.reset();
+}
+
+void GraphicsEngine::ClearBackgroundOverlay() {
+	backgroundOverlayObject.reset();
 }
 
 // Start a new ImGui frame and host a global DockSpace
@@ -527,6 +561,37 @@ void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::ma
 	}
 
 	Mesh* mesh = backgroundObject->GetMesh();
+	if (mesh) {
+		mesh->Draw();
+	}
+}
+
+void GraphicsEngine::RenderBackgroundOverlay(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+	if (!backgroundOverlayObject) {
+		return;
+	}
+
+	const ScopedRenderPassState passState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = true
+		});
+
+	Shader* shader = backgroundOverlayObject->GetShader();
+	if (shader) {
+		shader->Use();
+		shader->SetModelMatrix(backgroundOverlayObject->GetModelMatrix());
+		shader->SetViewMatrix(viewMatrix);
+		shader->SetProjectionMatrix(projectionMatrix);
+	}
+
+	Texture* tex = backgroundOverlayObject->GetTexture();
+	if (tex && shader) {
+		tex->Bind(0);
+		shader->SetTexture("u_Texture", 0);
+	}
+
+	Mesh* mesh = backgroundOverlayObject->GetMesh();
 	if (mesh) {
 		mesh->Draw();
 	}
@@ -742,6 +807,7 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 
 	// Draw background first
 	RenderBackground(viewMatrix, projectionMatrix);
+	RenderBackgroundOverlay(viewMatrix, projectionMatrix);
 
 	// Draw shadows before sprites
 	DrawSpriteShadows(objects, viewMatrix, projectionMatrix);
@@ -807,6 +873,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 	// Draw background first
 	RenderBackground(view, projection);
+	RenderBackgroundOverlay(view, projection);
 
 	// Draw shadows before sprites 
 	DrawSpriteShadows(objects, view, projection);
@@ -1170,6 +1237,7 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 // Clean up resources and ImGui context
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
+	backgroundOverlayObject.reset();
 	DebugRenderer::Shutdown();
 
 	// Shutdown FontSystem

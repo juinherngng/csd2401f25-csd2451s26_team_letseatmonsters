@@ -47,6 +47,9 @@ void SimpleNpcLogic::Awake(Scene& scene) {
     pathIndex_ = 0;
     finalTarget_ = glm::vec2(0.0f, 0.0f);
     directPathCheckTimer_ = 0.0f;
+
+    leaveTargetWorldPos_ = Math::Vector2D(0.0f, 0.0f);
+    hasLeaveTarget_ = false;
 }
 
 void SimpleNpcLogic::ClearNavigationMove()
@@ -645,16 +648,16 @@ void SimpleNpcLogic::TakePayment(Scene& scene)
 	hasPaid_ = true;
 	behaviourState_ = BehaviourState::Leaving;
 
-    Math::Vector2D gate = scene.GetExitGateWorldPos();
-    hasCustomerTarget_ = true;
-    customerSeatTarget_ = gate;
+    if (hasLeaveTarget_) {
+        hasCustomerTarget_ = true;
+        customerSeatTarget_ = leaveTargetWorldPos_;
+    }
+    else {
+        Math::Vector2D gate = scene.GetExitGateWorldPos();
+        hasCustomerTarget_ = true;
+        customerSeatTarget_ = gate;
+    }
     ClearNavigationMove();
-
-    //std::cout << "[SimpleNpcLogic] NPC leaving: heading to exit at ("
-    //    << gate.x << "," << gate.y << ")\n";
-
-	hasCustomerTarget_ = true;
-	//customerSeatTarget_ = exitGateWorldPos_;
 
 	// NOTE: do NOT change customerTableID_ here — you still want to know which table to free.
 }
@@ -669,6 +672,12 @@ void SimpleNpcLogic::SetCustomerTableTarget(int tableObjectID, const Math::Vecto
 
     //std::cout << "[SimpleNpcLogic] SetCustomerTableTarget tableID=" << tableObjectID
     //    << " seat=(" << seatWorldPos.x << ", " << seatWorldPos.y << ")\n";
+}
+
+void SimpleNpcLogic::SetLeaveTarget(const Math::Vector2D& leaveWorldPos)
+{
+    leaveTargetWorldPos_ = leaveWorldPos;
+    hasLeaveTarget_ = true;
 }
 
 void SimpleNpcLogic::ClearCustomerTableTarget()
@@ -911,10 +920,16 @@ void SimpleNpcLogic::BeginLeaveToExit(Scene& scene, bool freeTableImmediately)
     hasPaid_ = true; // "payment processed" (even if $0)
     behaviourState_ = BehaviourState::Leaving;
 
-    // Walk to exit
-    Math::Vector2D gate = scene.GetExitGateWorldPos();
-    hasCustomerTarget_ = true;
-    customerSeatTarget_ = gate;
+    // Walk to the authored leave target (defaults to exit gate when unavailable)
+    if (hasLeaveTarget_) {
+        hasCustomerTarget_ = true;
+        customerSeatTarget_ = leaveTargetWorldPos_;
+    }
+    else {
+        Math::Vector2D gate = scene.GetExitGateWorldPos();
+        hasCustomerTarget_ = true;
+        customerSeatTarget_ = gate;
+    }
     ClearNavigationMove();
 
     // Free the table RIGHT NOW so another customer can take it

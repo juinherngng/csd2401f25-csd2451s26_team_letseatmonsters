@@ -95,9 +95,17 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.animated = jsonObj.value("animated", false);
 	obj.animName = jsonObj.value("anim_name", "");
 
-	// Approach offset (safe for existing JSON, defaults to 0)
+	// Approach offsets (safe for existing JSON)
 	obj.approachOffsetX = jsonObj.value("approach_offx", 0.0f);
 	obj.approachOffsetY = jsonObj.value("approach_offy", 0.0f);
+	obj.hasApproachOffset2 = jsonObj.contains("approach2_offx") || jsonObj.contains("approach2_offy");
+	obj.approachOffset2X = jsonObj.value("approach2_offx", 0.0f);
+	obj.approachOffset2Y = jsonObj.value("approach2_offy", 0.0f);
+
+	// Optional explicit customer seating offset
+	obj.hasCustomerSeatOffset = jsonObj.contains("customer_seat_offx") || jsonObj.contains("customer_seat_offy");
+	obj.customerSeatOffsetX = jsonObj.value("customer_seat_offx", 0.0f);
+	obj.customerSeatOffsetY = jsonObj.value("customer_seat_offy", 0.0f);
 
 	// Audio bindings (safe for existing JSON, defaults to empty)
 	obj.audioOnSpawn = jsonObj.value("audio_on_spawn", "");
@@ -162,9 +170,14 @@ static json WriteLevelObject(const LevelObject& obj) {
 		{ "animated", obj.animated },
 		{ "anim_name", obj.animName },
 		{ "shadow", obj.shadow },
-		// Approach offset
+		// Approach offsets
 		{ "approach_offx", obj.approachOffsetX },
 		{ "approach_offy", obj.approachOffsetY },
+		{ "approach2_offx", obj.approachOffset2X },
+		{ "approach2_offy", obj.approachOffset2Y },
+		// Optional customer seating offset
+		{ "customer_seat_offx", obj.customerSeatOffsetX },
+		{ "customer_seat_offy", obj.customerSeatOffsetY },
 		// Audio bindings
 		{ "audio_on_spawn", obj.audioOnSpawn },
 		{ "audio_on_interact", obj.audioOnInteract },
@@ -221,6 +234,7 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	outLevel.objects.clear();
 	outLevel.textObjects.clear();
 	outLevel.background.clear();
+	outLevel.backgroundOverlay.clear();
 
 	outLevel.schemaVersion = jsonData.value("schema_version", 0);
 	ApplyLegacyMigrations(jsonData, outLevel.schemaVersion);
@@ -233,6 +247,7 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 
 	// optional background
 	outLevel.background = jsonData.value("background", "");
+	outLevel.backgroundOverlay = jsonData.value("background_overlay", "");
 
 	if (jsonData.contains("objects") && jsonData["objects"].is_array()) {
 		outLevel.objects.reserve(jsonData["objects"].size());
@@ -286,6 +301,10 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	else {
 		// Optional: erase background if you want to remove it
 		// jsonData.erase("background");
+	}
+
+	if (!inLevel.backgroundOverlay.empty()) {
+		jsonData["background_overlay"] = inLevel.backgroundOverlay;
 	}
 
 	jsonData["schema_version"] = LEVEL_SCHEMA_VERSION;

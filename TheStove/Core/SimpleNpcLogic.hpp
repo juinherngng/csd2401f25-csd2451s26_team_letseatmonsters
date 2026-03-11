@@ -146,6 +146,7 @@ public:
 	// should sit. If you call this, the NPC will try to walk to that point
 	// instead of doing the up/down patrol.
 	void SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos);
+	void SetLeaveTarget(const Math::Vector2D& leaveWorldPos);
 
 	// Clear any assigned customer table � NPC will go back to normal patrol.
 	void ClearCustomerTableTarget();
@@ -217,6 +218,8 @@ private:
 	bool            hasCustomerTarget_ = false;
 	int             customerTableID_ = kInvalidID;
 	Math::Vector2D  customerSeatTarget_{ 0.0f, 0.0f };
+	Math::Vector2D  leaveTargetWorldPos_{ 0.0f, 0.0f };
+	bool            hasLeaveTarget_ = false;
 	float           arriveThreshold_ = 8.0f; // how close counts as "arrived"
 
 	BehaviourState behaviourState_ = BehaviourState::Idle;

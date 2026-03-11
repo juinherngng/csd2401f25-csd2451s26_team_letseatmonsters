@@ -172,6 +172,8 @@ public:
 
 	// Set the scene background texture
 	void SetSceneBackground(const std::string& texturePath);
+	void SetSceneBackgroundOverlay(const std::string& texturePath);
+	void ClearSceneBackgroundOverlay();
 
 	// Set the transform of the object with given ID, using level editor semantics
 	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
@@ -279,7 +281,11 @@ public:
 		glm::vec2 colSize{ 64,128 };
 		glm::vec2 colOff{ 0,0 };
 		glm::vec2 vel{ 0,0 };
-		glm::vec2 approachOffset{ 0,0 }; // Table approach point
+		glm::vec2 approachOffset{ 0,0 }; // Primary table approach point
+		bool hasApproachOffset2{ false };
+		glm::vec2 approachOffset2{ 0,0 }; // Optional secondary approach point
+		bool hasCustomerSeatOffset{ false };
+		glm::vec2 customerSeatOffset{ 0,0 }; // Optional explicit customer seat point
 		std::string texture;
 		std::string tag;
 		std::string layer;

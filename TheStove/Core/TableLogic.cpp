@@ -49,9 +49,14 @@ void TableLogic::Start(Scene& scene) {
 
 	Scene::Defaults def = scene.GetDefaults(GetOwnerID());
 
-	// Only override if level/spawner actually set a non-zero vel.
+	// Load authored approach points from JSON defaults.
+	ClearApproachOffsets();
 	if (def.approachOffset.x != 0.0f || def.approachOffset.y != 0.0f) {
-		SetSingleApproachOffset(Math::Vector2D(def.approachOffset.x, def.approachOffset.y));
+		AddApproachOffset(Math::Vector2D(def.approachOffset.x, def.approachOffset.y));
+	}
+
+	if (def.hasApproachOffset2) {
+		AddApproachOffset(Math::Vector2D(def.approachOffset2.x, def.approachOffset2.y));
 	}
 }
 

@@ -662,6 +662,14 @@ void Scene::SetSceneBackground(const std::string& texturePath) {
 	graphicsEngine.SetBackground(texturePath);
 }
 
+void Scene::SetSceneBackgroundOverlay(const std::string& texturePath) {
+	graphicsEngine.SetBackgroundOverlay(texturePath);
+}
+
+void Scene::ClearSceneBackgroundOverlay() {
+	graphicsEngine.ClearBackgroundOverlay();
+}
+
 // Sets the position, scale, and rotation (in degrees) of an object by its ID. Converts rotation from degrees to radians for internal use. Also updates the GameObject's transform if it exists.
 void Scene::SetTransformFromLevel(int id,
 	const glm::vec3& pos,

@@ -1,5 +1,6 @@
 {
   "background": "../assets/Background2.png",
+  "background_overlay": "../assets/Background2_Over.png",
   "objects": [
     {
       "anim_name": "IDLE_FRONT",
@@ -809,7 +810,11 @@
       "w": 85.0,
       "x": 435.2615051269531,
       "y": 245.41900634765625,
-      "z": 0.0
+      "z": 0.0,
+      "approach2_offx": -90.0,
+      "approach2_offy": -0.0,
+      "customer_seat_offx": 90.0,
+      "customer_seat_offy": 0.0
     },
     {
       "anim_name": "",
@@ -838,8 +843,12 @@
       "visible": true,
       "w": 85.0,
       "x": 259.83599853515625,
-      "y": 245.41897583007813,
-      "z": 0.0
+      "y": 245.41897583007812,
+      "z": 0.0,
+      "approach2_offx": 90.0,
+      "approach2_offy": -0.0,
+      "customer_seat_offx": -90.0,
+      "customer_seat_offy": 0.0
     },
     {
       "anim_name": "",
@@ -869,7 +878,11 @@
       "w": 85.0,
       "x": 259.836181640625,
       "y": 493.45928955078125,
-      "z": 0.0
+      "z": 0.0,
+      "approach2_offx": -90.0,
+      "approach2_offy": -0.0,
+      "customer_seat_offx": 90.0,
+      "customer_seat_offy": 0.0
     },
     {
       "anim_name": "",
@@ -899,7 +912,11 @@
       "w": 85.0,
       "x": 435.2619934082031,
       "y": 493.4590148925781,
-      "z": 0.0
+      "z": 0.0,
+      "approach2_offx": 90.0,
+      "approach2_offy": -0.0,
+      "customer_seat_offx": -90.0,
+      "customer_seat_offy": 0.0
     },
     {
       "anim_name": "",
@@ -929,7 +946,11 @@
       "w": 180.0,
       "x": 325.3688659667969,
       "y": 787.5,
-      "z": 0.0
+      "z": 0.0,
+      "approach2_offx": 90.0,
+      "approach2_offy": -0.0,
+      "customer_seat_offx": -90.0,
+      "customer_seat_offy": 0.0
     },
     {
       "anim_name": "",
@@ -958,8 +979,12 @@
       "visible": true,
       "w": 85.0,
       "x": 1348.582275390625,
-      "y": 518.6890258789063,
-      "z": 0.0
+      "y": 518.6890258789062,
+      "z": 0.0,
+      "approach2_offx": -90.0,
+      "approach2_offy": -0.0,
+      "customer_seat_offx": 90.0,
+      "customer_seat_offy": 0.0
     },
     {
       "anim_name": "",
@@ -989,7 +1014,11 @@
       "w": 85.0,
       "x": 1355.6397705078125,
       "y": 750.0,
-      "z": 0.0
+      "z": 0.0,
+      "approach2_offx": 90.0,
+      "approach2_offy": -0.0,
+      "customer_seat_offx": -90.0,
+      "customer_seat_offy": 0.0
     },
     {
       "anim_name": "",
@@ -1019,7 +1048,11 @@
       "w": 85.0,
       "x": 1177.1895751953125,
       "y": 750.0,
-      "z": 0.0
+      "z": 0.0,
+      "approach2_offx": -90.0,
+      "approach2_offy": -0.0,
+      "customer_seat_offx": 90.0,
+      "customer_seat_offy": 0.0
     },
     {
       "anim_name": "",
@@ -1049,7 +1082,11 @@
       "w": 85.0,
       "x": 1177.18994140625,
       "y": 518.689208984375,
-      "z": 0.0
+      "z": 0.0,
+      "approach2_offx": 90.0,
+      "approach2_offy": -0.0,
+      "customer_seat_offx": -90.0,
+      "customer_seat_offy": 0.0
     },
     {
       "anim_name": "",
@@ -1079,7 +1116,11 @@
       "w": 180.0,
       "x": 1257.8446044921875,
       "y": 202.5,
-      "z": 0.0
+      "z": 0.0,
+      "approach2_offx": 90.0,
+      "approach2_offy": -0.0,
+      "customer_seat_offx": -90.0,
+      "customer_seat_offy": 0.0
     },
     {
       "anim_name": "",
