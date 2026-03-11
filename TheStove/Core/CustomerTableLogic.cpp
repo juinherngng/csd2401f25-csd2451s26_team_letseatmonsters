@@ -51,11 +51,22 @@ void CustomerTableLogic::Start(Scene& scene) {
 	const int id = owner->GetID();
 	Scene::Defaults defs = scene.GetDefaults(id);
 
+	// Player interaction should use ONLY the main approach point.
+	// Secondary authored offsets on customer tables are reserved for customer seating.
+	ClearApproachOffsets();
+	if (defs.approachOffset.x != 0.0f || defs.approachOffset.y != 0.0f) {
+		AddApproachOffset(Math::Vector2D(defs.approachOffset.x, defs.approachOffset.y));
+	}
+
 	// Customer seat can be authored independently from player approach points.
 	if (defs.hasCustomerSeatOffset) {
 		customerSeatOffset_ = Math::Vector2D(defs.customerSeatOffset.x,
 			defs.customerSeatOffset.y);
 	}
+	else if (defs.hasApproachOffset2) {
+		// Secondary customer-table approach point acts as a customer-only seat anchor.
+		customerSeatOffset_ = Math::Vector2D(defs.approachOffset2.x, defs.approachOffset2.y);
+	}	
 	else if (defs.approachOffset.x != 0.0f || defs.approachOffset.y != 0.0f) {
 		// Backward compatibility: if explicit seat is missing, keep previous behavior
 		// where approach_offx/y represented customer seating.

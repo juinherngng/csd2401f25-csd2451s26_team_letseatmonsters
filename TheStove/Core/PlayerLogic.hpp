@@ -151,7 +151,10 @@ private:
 	std::unordered_set<int> highlightedInteractableIDs_;
 
 	// Click indicator state
-	int clickIndicatorID_ = -1;
+	int clickIndicatorBaseID_ = -1;
+	int clickIndicatorMainID_ = -1;
+	glm::vec2 clickIndicatorAnchor_{ 0.0f, 0.0f };
+	float clickIndicatorBobTime_ = 0.0f;
 	float clickIndicatorTimeLeft_ = 0.0f;
 
 	// Trail effect state

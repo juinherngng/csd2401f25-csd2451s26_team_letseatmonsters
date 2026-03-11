@@ -112,7 +112,12 @@ namespace {
 	constexpr float kKeyboardMoveSpeed = 200.0f;
 	constexpr float kTrailJitterEpsilon = 0.25f;
 	constexpr float kFootstepInterval = 0.3f;
-	constexpr float kClickIndicatorLifetime = 0.35f;
+	constexpr float kClickIndicatorLifetime = 0.6f;
+	constexpr float kClickIndicatorBaseSize = 30.0f;
+	constexpr float kClickIndicatorMainSize = 34.0f;
+	constexpr float kClickIndicatorMainBaseHeight = 26.0f;
+	constexpr float kClickIndicatorMainBobAmplitude = 6.0f;
+	constexpr float kClickIndicatorMainBobSpeed = 7.5f;
 
 	// Squared distance between two points (avoids sqrt for efficiency when comparing distances)
 	float DistanceSquared(const glm::vec2& a, const glm::vec2& b) {
@@ -199,7 +204,10 @@ void PlayerLogic::Start(Scene& scene) {
 	hasLastDragWorld_ = false;
 	dragRetargetTimer_ = 0.0f;
 	highlightedInteractableIDs_.clear();
-	clickIndicatorID_ = -1;
+	clickIndicatorBaseID_ = -1;
+	clickIndicatorMainID_ = -1;
+	clickIndicatorAnchor_ = glm::vec2(0.0f, 0.0f);
+	clickIndicatorBobTime_ = 0.0f;
 	clickIndicatorTimeLeft_ = 0.0f;
 
 	pathPoints_.clear();
@@ -1079,55 +1087,102 @@ bool PlayerLogic::IsPointInsideObjectCollider(const GameObject* obj, const glm::
 		(worldPoint.y >= center.y - halfH && worldPoint.y <= center.y + halfH);
 }
 
-// Show a temporary indicator (e.g. a circle) at the clicked position for click-to-move feedback
+// Show a temporary destination indicator at the clicked position for click-to-move feedback
 void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint) {
-	const glm::vec3 markerPos(worldPoint.x, worldPoint.y, 0.0f);
+	clickIndicatorAnchor_ = worldPoint;
+	clickIndicatorBobTime_ = 0.0f;
 
-	GameObject* marker = scene.GetGameObjectByID(clickIndicatorID_);
-	if (!marker) {
-		marker = scene.SpawnStaticSprite("../assets/Coin.png", markerPos, glm::vec2(26.0f, 26.0f));
-		if (!marker) {
-			clickIndicatorID_ = -1;
+	const glm::vec3 basePos(clickIndicatorAnchor_.x, clickIndicatorAnchor_.y, 0.0f);
+	const glm::vec3 mainPos(clickIndicatorAnchor_.x, clickIndicatorAnchor_.y + kClickIndicatorMainBaseHeight, 0.0f);
+
+	GameObject* baseMarker = scene.GetGameObjectByID(clickIndicatorBaseID_);
+	if (!baseMarker) {
+		baseMarker = scene.SpawnStaticSprite("../assets/arrow_base.png", basePos, glm::vec2(kClickIndicatorBaseSize, kClickIndicatorBaseSize));
+		if (!baseMarker) {
+			clickIndicatorBaseID_ = -1;
+			clickIndicatorMainID_ = -1;
 			clickIndicatorTimeLeft_ = 0.0f;
 			return;
 		}
 
-		clickIndicatorID_ = marker->GetID();
-		marker->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+		clickIndicatorBaseID_ = baseMarker->GetID();
+		baseMarker->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
 	}
 
-	marker->SetPosition(markerPos);
-	marker->SetScale(glm::vec3(26.0f, 26.0f, 1.0f));
-	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.95f));
+	GameObject* mainMarker = scene.GetGameObjectByID(clickIndicatorMainID_);
+	if (!mainMarker) {
+		mainMarker = scene.SpawnStaticSprite("../assets/arrow_main.png", mainPos, glm::vec2(kClickIndicatorMainSize, kClickIndicatorMainSize));
+		if (!mainMarker) {
+			if (clickIndicatorBaseID_ >= 0) {
+				scene.DespawnByID(clickIndicatorBaseID_);
+			}
+			clickIndicatorBaseID_ = -1;
+			clickIndicatorMainID_ = -1;
+			clickIndicatorTimeLeft_ = 0.0f;
+			return;
+		}
+
+		clickIndicatorMainID_ = mainMarker->GetID();
+		mainMarker->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+	}
+
+	baseMarker->SetPosition(basePos);
+	baseMarker->SetScale(glm::vec3(kClickIndicatorBaseSize, kClickIndicatorBaseSize, 1.0f));
+	baseMarker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.95f));
+
+	mainMarker->SetPosition(mainPos);
+	mainMarker->SetScale(glm::vec3(kClickIndicatorMainSize, kClickIndicatorMainSize, 1.0f));
+	mainMarker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.95f));
 	clickIndicatorTimeLeft_ = kClickIndicatorLifetime;
 }
 
-// Update the click move indicator (scaling and fading) and despawn when time is up
+// Update the click move indicator (bobbing + fading) and despawn when time is up
 void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
-	if (clickIndicatorID_ < 0) {
+	if (clickIndicatorBaseID_ < 0 || clickIndicatorMainID_ < 0) {
 		return;
 	}
 
-	GameObject* marker = scene.GetGameObjectByID(clickIndicatorID_);
-	if (!marker) {
-		clickIndicatorID_ = -1;
+	GameObject* baseMarker = scene.GetGameObjectByID(clickIndicatorBaseID_);
+	GameObject* mainMarker = scene.GetGameObjectByID(clickIndicatorMainID_);
+	if (!baseMarker || !mainMarker) {
+		if (clickIndicatorBaseID_ >= 0) {
+			scene.DespawnByID(clickIndicatorBaseID_);
+		}
+		if (clickIndicatorMainID_ >= 0) {
+			scene.DespawnByID(clickIndicatorMainID_);
+		}
+		clickIndicatorBaseID_ = -1;
+		clickIndicatorMainID_ = -1;
 		clickIndicatorTimeLeft_ = 0.0f;
 		return;
 	}
 
 	clickIndicatorTimeLeft_ -= dt;
-	if (clickIndicatorTimeLeft_ <= 0.0f) {
-		scene.DespawnByID(clickIndicatorID_);
-		clickIndicatorID_ = -1;
+	if (clickIndicatorTimeLeft_ <= 0.0f)
+	{
+		scene.DespawnByID(clickIndicatorBaseID_);
+		scene.DespawnByID(clickIndicatorMainID_);
+		clickIndicatorBaseID_ = -1;
+		clickIndicatorMainID_ = -1;
 		clickIndicatorTimeLeft_ = 0.0f;
 		return;
 	}
 
+	clickIndicatorBobTime_ += dt * kClickIndicatorMainBobSpeed;
 	const float t = std::clamp(clickIndicatorTimeLeft_ / kClickIndicatorLifetime, 0.0f, 1.0f);
 	const float alpha = 0.25f + 0.70f * t;
-	const float size = 18.0f + (1.0f - t) * 28.0f;
-	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, alpha));
-	marker->SetScale(glm::vec3(size, size, 1.0f));
+	const float bobOffset = std::sin(clickIndicatorBobTime_) * kClickIndicatorMainBobAmplitude;
+
+	baseMarker->SetPosition(glm::vec3(clickIndicatorAnchor_.x, clickIndicatorAnchor_.y, 0.0f));
+	baseMarker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, alpha));
+	baseMarker->SetScale(glm::vec3(kClickIndicatorBaseSize, kClickIndicatorBaseSize, 1.0f));
+
+	mainMarker->SetPosition(glm::vec3(
+		clickIndicatorAnchor_.x,
+		clickIndicatorAnchor_.y + kClickIndicatorMainBaseHeight + bobOffset,
+		0.0f));
+	mainMarker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, alpha));
+	mainMarker->SetScale(glm::vec3(kClickIndicatorMainSize, kClickIndicatorMainSize, 1.0f));
 }
 
 // Reset color tints on previously highlighted interactables

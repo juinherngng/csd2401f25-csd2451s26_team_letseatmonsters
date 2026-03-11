@@ -807,7 +807,6 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 
 	// Draw background first
 	RenderBackground(viewMatrix, projectionMatrix);
-	RenderBackgroundOverlay(viewMatrix, projectionMatrix);
 
 	// Draw shadows before sprites
 	DrawSpriteShadows(objects, viewMatrix, projectionMatrix);
@@ -858,6 +857,10 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		}
 	}
 
+	// Draw optional scene overlay above all world/text content.
+	// Keep transition fade as the true top-most pass.
+	RenderBackgroundOverlay(viewMatrix, projectionMatrix);
+
 	// Draw transition overlay into the scene FBO before unbinding
 	DrawTransitionOverlay();
 
@@ -873,7 +876,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 	// Draw background first
 	RenderBackground(view, projection);
-	RenderBackgroundOverlay(view, projection);
 
 	// Draw shadows before sprites 
 	DrawSpriteShadows(objects, view, projection);
@@ -940,6 +942,8 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			RenderSingleTextObject(*sortedTextObjects[i].data);
 		}
 #endif
+		// Draw optional scene overlay above the rest of the scene.
+		RenderBackgroundOverlay(view, projection);
 
 		// Draw transition overlay even if empty scene
 		DrawTransitionOverlay();
@@ -1104,6 +1108,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 		DebugRenderer::Flush(view, projection);
 	}
+	// Draw optional scene overlay above all world/text content.
+	// Keep transition fade as the true top-most pass.
+	RenderBackgroundOverlay(view, projection);
 
 	// Draw transition overlay on top of everything in the scene FBO
 	DrawTransitionOverlay();
