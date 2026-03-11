@@ -42,7 +42,6 @@ public:
 	explicit SpatialGrid(float cellSize);
 	void Clear();
 
-	// Getters/setters
 	float CellSize() const;
 
 	// Insert or update an object with its current AABB. Automatically handles cell associations.

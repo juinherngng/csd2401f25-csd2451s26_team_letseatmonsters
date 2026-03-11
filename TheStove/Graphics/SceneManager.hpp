@@ -765,12 +765,4 @@ private:
 	} levelTrans_;
 
 	void UpdateLevelTransition();
-
-	// Per-frame update phases (kept in strict orchestration order by Scene::Update)
-	void UpdateCutscenePhase(float deltaTime);
-	bool UpdateInputPhase(float deltaTime);
-	void UpdateSimulationPhase(float deltaTime, float physicsDt);
-	void HandleDeferredLoads();
-	void UpdateUiPhase(float deltaTime, GLFWwindow* window);
-	void FinalizeFramePhase(float deltaTime);
 };

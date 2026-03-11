@@ -25,7 +25,11 @@
 #include "CollisionManager.hpp"
 #include "Physics.hpp"
 
- // Forward declare Scene to avoid circular dependency.
+ /**
+  * @class NPCSystem
+  * @brief Orchestrates lane-bound and generic NPC updates, including
+  *        movement, simple collision response, and walk-area clamping.
+  */
 class NPCSystem {
 public:
 	NPCSystem() = default;

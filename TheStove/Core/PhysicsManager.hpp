@@ -32,7 +32,14 @@
 
 class Scene;
 
-// Forward declare GameObject to avoid circular dependency.
+/**
+ * @brief Lightweight force-based physics for entities.
+ *
+ * Manages per-entity physics states (mass, velocity, damping) and integrates them
+ * under forces such as seek/arrive and drag. Movement is trimmed against the world
+ * using CollisionManager::resolve(); on impact, the active seek is cleared and
+ * velocity is zeroed (hard stop).
+ */
 class PhysicsManager : public CoreFramework::SystemInterface {
 public:
 	PhysicsManager() = default;

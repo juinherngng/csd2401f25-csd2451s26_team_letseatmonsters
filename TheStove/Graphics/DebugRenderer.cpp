@@ -22,7 +22,6 @@ namespace {
 		glm::vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 	};
 
-	// A batch of points with the same color and size.
 	struct PointBatch {
 		std::vector<glm::vec3> points;
 		glm::vec4 color{ 1.0f, 1.0f, 1.0f, 1.0f };

@@ -26,10 +26,17 @@
 struct LevelData;
 class Scene;
 
-// Controller for the in-engine level editor. Manages the editor UI, maintains edit/play state, and exposes shared state to panels.
+/**
+ * @class LevelEditor
+ * @brief Editor UI and state manager for authoring levels at runtime.
+ *
+ * Notes:
+ * - Rotation in JSON/UI is stored in DEGREES. Convert to RADIANS at engine call-sites.
+ * - Panels access levelPath directly in current code; kept public to avoid breaking calls.
+ */
 class LevelEditor {
 public:
-	// Visibility
+	// ----- Visibility -----
 	bool IsEnabled() const {
 		return isEnabled;
 	}
@@ -37,7 +44,7 @@ public:
 		isEnabled = !isEnabled;
 	}
 
-	// Level path control (kept public for existing panel code)
+	// ----- Level path control (kept public for existing panel code) -----
 	void SetPath(const std::string& path) {
 		levelPath = path;
 	}
@@ -46,7 +53,7 @@ public:
 	}
 	std::string levelPath{}; // public on purpose to preserve existing panel access
 
-	// Runtime / Playback
+	// ----- Runtime / Playback -----
 	bool IsPlaying() const {
 		return isPlaying;
 	}
@@ -62,11 +69,11 @@ public:
 		return playStartSnapshot;
 	}
 
-	// UI Entrypoint
+	// ----- UI Entrypoint -----
 	void DrawUI(Scene& scene);
 
 private:
-	// Flags
+	// ----- Flags -----
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	bool isEnabled = true;
 #else
@@ -74,7 +81,7 @@ private:
 #endif
 	bool isPlaying = false;
 
-	// Data Models
+	// ----- Data Models -----
 	LevelData level{};             // Working copy while editing
 	LevelData playStartSnapshot{}; // Snapshot captured at Play
 };

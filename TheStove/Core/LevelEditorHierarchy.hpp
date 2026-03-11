@@ -25,8 +25,7 @@ namespace LEHIERARCHY {
 	// Retrieves the cached label for a given object ID, generating and caching it if necessary based on the object's tag, texture path, and layer.
 	const std::string& GetCachedLabel(Scene& scene, int objectId);
 
-	// Prunes cache entries for objects that no longer exist in the scene by comparing the set of live object IDs
-	// with the keys in the cache and erasing any entries that do not correspond to live objects.
+	// Prunes cache entries for objects that no longer exist in the scene by comparing the set of live object IDs with the keys in the cache and erasing any entries that do not correspond to live objects.
 	void PruneDeadObjects(Scene& scene);
 
 	// Checks if a given label passes the current filter by converting both the label and filter to lowercase and checking if the filter is a substring of the label.

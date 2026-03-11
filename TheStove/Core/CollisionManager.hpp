@@ -30,21 +30,28 @@
 
 class Scene;
 
-// Forward declare GameObject to avoid circular dependency.
+/**
+ * @class CollisionManager
+ * @brief Broad-phase grid + world collision owner. Rebuilt every frame from EntityManager,
+ *        supports movement trimming via resolve(), and simple spatial queries.
+ */
 class CollisionManager : public CoreFramework::SystemInterface {
 public:
-	// Public interface methods.
+	// Public interface methods
 	explicit CollisionManager(float cellSize = 100.0f);
 
-	// SystemInterface implementation.
+	// SystemInterface implementation
 	void Initialize() override;
 	void Update(float deltaTime) override;
 	std::string GetName() override;
 
-	// Set the EntityManager reference (must be called after construction).
+	// Set the EntityManager reference (must be called after construction)
 	void SetEntityManager(EntityManager* entityMgr);
 
-	// Main update method to rebuild broad-phase grid and update collision world as needed.
+	/**
+	 * @brief Rebuild spatial grid from current objects each frame.
+	 * @param entityManager Reference to entity manager with all game objects.
+	 */
 	void UpdateCollisions(EntityManager& entityManager);
 
 	// Build static world geometry from authoring structs.
@@ -55,10 +62,16 @@ public:
 	// Query grid for objects overlapping an AABB.
 	std::vector<GameObject*> QueryNearby(const collision::AABB& queryBox) const;
 
-	// Query grid for objects containing a point.
+	/**
+	 * @brief Query grid for objects overlapping a point.
+	 * @param point 2D point to query.
+	 * @return Vector of GameObject pointers that contain the point.
+	 */
 	std::vector<GameObject*> QueryPoint(const Math::Vector2D& point) const;
 
-	// Access to the static collision world for trimming and other queries.
+	/**
+	 * @brief Collision world access
+	 */
 	collision::World& GetCollisionWorld() {
 		return collisionWorld_;
 	}
@@ -66,7 +79,7 @@ public:
 		return collisionWorld_;
 	}
 
-	// Access to the spatial grid for direct updates or queries.
+	// Spatial grid access
 	SpatialGrid& GetSpatialGrid() {
 		return spatialGrid_;
 	}
@@ -74,13 +87,12 @@ public:
 		return spatialGrid_;
 	}
 
-	// Add static rectangles to the collision world.
 	void AddStaticRects(const std::vector<collision::AABB>& rects);
 
-	// Set the current scene reference.
 	void SetScene(Scene* scene) {
 		scene_ = scene;
 	}
+
 	void MarkStaticStateDirty() {
 		staticStateDirty_ = true;
 	}
@@ -88,7 +100,6 @@ public:
 	// Clear both the grid and the world geometry.
 	void Clear();
 
-	// Profiling counters for performance analysis.
 	struct ProfileCounters {
 		std::uint64_t updateCalls = 0;
 		std::uint64_t earlyOutNoGridChange = 0;
@@ -98,7 +109,6 @@ public:
 		std::uint64_t narrowPhaseCollisions = 0;
 	};
 
-	// Access profiling counters for performance analysis.
 	const ProfileCounters& GetProfileCounters() const {
 		return profile_;
 	}
@@ -107,7 +117,6 @@ public:
 	}
 
 private:
-	// Internal struct to track broad-phase relevant state for each object and detect changes.
 	struct ObjectBroadphaseState {
 		int objectID = -1;
 		glm::vec3 pos{ 0.0f, 0.0f, 0.0f };
@@ -119,13 +128,11 @@ private:
 		bool dynamic = false;
 		bool broadphaseDirty = true;
 	};
-
-	// Internal methods for broad-phase management and change detection.
 	bool ShouldRebuildGrid(const std::vector<std::unique_ptr<GameObject>>& allObjects);
 	ObjectBroadphaseState BuildBroadphaseState(const GameObject* obj) const;
 	bool IsDynamicObject(const GameObject* obj) const;
 
-	// Internal helper methods and state.
+	// Internal helper methods and state
 	EntityManager* entityManager_ = nullptr;	// Reference to EntityManager (set externally)
 	SpatialGrid spatialGrid_;					// Broad-phase acceleration structure
 	collision::World collisionWorld_;			// Static world used for trimming
@@ -138,7 +145,6 @@ private:
 	bool gridBuilt_ = false;
 	bool staticStateDirty_ = true;
 
-	// Reference to the current scene.
 	Scene* scene_ = nullptr;
 	mutable ProfileCounters profile_;
 };

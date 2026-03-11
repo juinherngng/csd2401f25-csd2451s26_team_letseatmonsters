@@ -28,7 +28,13 @@
 #include <unordered_set>
 #include <vector>
 
- // Forward declare Scene to avoid circular dependency
+ /**
+  * @class InputManager
+  * @brief Manages input polling for keyboard and mouse using GLFW.
+  *
+  * Provides per-frame input update, state tracking, and query functions
+  * for detecting presses, releases, and edge transitions.
+  */
 class InputManager : public CoreFramework::SystemInterface {
 public:
 

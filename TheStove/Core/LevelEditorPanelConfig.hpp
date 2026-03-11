@@ -18,7 +18,6 @@
 class LevelEditor;
 class Scene;
 
-// Forward declare GameObject to avoid circular dependency.
 namespace LEPANELCONFIG {
 	// Draw the Config panel window.
 	void DrawConfigPanel(LevelEditor& editor, Scene& scene);

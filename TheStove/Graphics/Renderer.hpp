@@ -12,7 +12,6 @@
 
 #pragma once
 
- // Forward declare Renderer to avoid circular dependency.
 class Renderer {
 public:
 	void Initialize();

@@ -39,7 +39,6 @@ struct ApplicationState {
 extern ApplicationState* g_AppState;
 
 namespace {
-	// Resolves the config file path by checking multiple candidate locations relative to the current working directory.
 	std::string ResolveConfigPath() {
 		namespace fs = std::filesystem;
 
@@ -65,8 +64,6 @@ namespace {
 
 namespace LEPANELCONFIG {
 #ifdef _DEBUG
-	// Draws the Config panel in the level editor, allowing users to view and edit display and audio settings from config.txt,
-	// apply audio changes live, and save changes back to the config file.
 	void DrawConfigPanel(LevelEditor& editor, Scene& scene) {
 		(void)editor;
 		(void)scene;

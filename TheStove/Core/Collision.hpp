@@ -31,7 +31,6 @@ namespace collision {
 		float edgeThick;  // boundary wall thickness
 	};
 
-	// Vertical slabs with a gap in the middle, used for wood and end gate obstacles.
 	struct WoodVertical {
 		float x0, x1;			// slab x-range
 		float topMinY, topMaxY; // top solid segment
@@ -39,7 +38,6 @@ namespace collision {
 		float botMinY, botMaxY; // bottom solid segment
 	};
 
-	// Similar to WoodVertical but with different dimensions, used for the stage end gate.
 	struct StageEndGateVertical {
 		float x0, x1;			// slab x-range
 		float topMinY, topMaxY; // top solid segment

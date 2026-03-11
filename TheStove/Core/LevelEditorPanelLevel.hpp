@@ -15,7 +15,10 @@
 class LevelEditor;
 class Scene;
 
-// Forward declare GameObject to avoid circular dependency.
+/**
+ * @namespace LEPANELLEVEL
+ * @brief ImGui Level panel that manages the overall level state.
+ */
 namespace LEPANELLEVEL {
 	// Draw the Level panel window and handle all interactions.
 	void DrawLevelPanel(LevelEditor& editor,
@@ -23,6 +26,6 @@ namespace LEPANELLEVEL {
 		int& selectedIndex,
 		int& selectedObjectId);
 
-	// Allow other modules(pick / drag) to push an undo snapshot.
+	// Allow other modules(pick / drag) to push an undo snapshot
 	void RecordUndoSnapshot(LevelEditor& editor, Scene& scene);
 }

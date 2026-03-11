@@ -19,60 +19,71 @@
 #include <string>
 #include <vector>
 
- // Forward declare GameObject to avoid circular dependency.
 class Layer {
 public:
-	// Construct a layer with the default name "Layer".
+	/** @brief Construct an unnamed layer with default enabled flags. */
 	Layer() : name("") {
 	}
 
-	// Construct a layer with a specified name.
+	/** @brief Construct a layer with a custom display name. */
 	Layer(const std::string& name) : name(name) {
 	}
 
-	// Add an object ID to the layer if it's not already present.
+	/** @brief Add an object ID if it is not already present. */
 	void AddObject(int id) {
 		if (std::find(objectIDs.begin(), objectIDs.end(), id) == objectIDs.end()) {
 			objectIDs.push_back(id);
 		}
 	}
+
+	/** @brief Remove all occurrences of an object ID from this layer. */
 	void RemoveObject(int id) {
 		objectIDs.erase(
 			std::remove(objectIDs.begin(), objectIDs.end(), id),
 			objectIDs.end());
 	}
+
+	/** @brief Get the ordered list of object IDs assigned to this layer. */
 	const std::vector<int>& GetObjects() const {
 		return objectIDs;
 	}
-	
-	// Get the name of the layer.
+
+	/** @brief Get the layer name. */
 	std::string GetName() const {
 		return name;
 	}
+
+	/** @brief Rename the layer. */
 	void SetName(const std::string& newName) {
 		name = newName;
 	}
 
-	// Check whether this layer is visible for rendering.
+	/** @brief Check whether this layer should be rendered. */
 	bool IsVisible() const {
 		return visible;
 	}
+
+	/** @brief Set whether this layer should be rendered. */
 	void SetVisible(bool v) {
 		visible = v;
 	}
 
-	// Check whether this layer participates in collision logic.
+	/** @brief Check whether this layer participates in collision logic. */
 	bool IsCollidable() const {
 		return collidable;
 	}
+
+	/** @brief Set whether this layer participates in collision logic. */
 	void SetCollidable(bool c) {
 		collidable = c;
 	}
 
-	// Check whether this layer is enabled (active in the scene). If disabled, it should not be visible or collidable.
+	/** @brief Check whether this layer is enabled for simulation. */
 	bool IsEnabled() const {
 		return enabled;
 	}
+
+	/** @brief Enable/disable this layer and sync visibility/collision when disabled. */
 	void SetEnabled(bool e) {
 		enabled = e;
 		// Optional: if a layer is disabled, it should not be visible/collidable either
@@ -83,11 +94,9 @@ public:
 	}
 
 private:
-	// The name of the layer, used for organization and referencing in the level editor and JSON.
 	std::string name;
 	std::vector<int> objectIDs;
 
-	// Layer properties that affect rendering and collision logic. These can be set per layer to control visibility and collision behavior of all objects in the layer.
 	bool visible = true;
 	bool collidable = true;
 	bool enabled = true;

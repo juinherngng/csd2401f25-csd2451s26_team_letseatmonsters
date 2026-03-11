@@ -24,7 +24,10 @@
 
 #include <vector>
 
-// Forward declare GameObject to avoid circular dependency.
+/**
+ * @class DebugVisualizer
+ * @brief Static helper for drawing runtime debug visuals (colliders, grids, paths).
+ */
 class DebugVisualizer {
 public:
 	DebugVisualizer() = default;
