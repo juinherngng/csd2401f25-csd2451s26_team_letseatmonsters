@@ -134,8 +134,8 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 void Scene::UpdateCutscenePhase(float deltaTime) {
 
 	// Drive both cutscene players every frame so transitions progress
-	UpdateCutsceneTransitioned(frameDt);
-	UpdateCutscene(frameDt);
+	UpdateCutsceneTransitioned(deltaTime);
+	UpdateCutscene(deltaTime);
 
 	UpdateLevelTransition();
 }
@@ -232,7 +232,7 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 	// Always update logic (menu buttons need this even with simulation disabled)
 	logicManager.StartAll(*this);
-	logicManager.UpdateAll(frameDt, *this, inputManager);
+	logicManager.UpdateAll(deltaTime, *this, inputManager);
 
 	// Seat customers at tables once
 	if (customerUpdateHook_) {
@@ -304,10 +304,10 @@ void Scene::HandleDeferredLoads() {
 // Should run after simulation/deferred loads so visuals match the latest world state.
 void Scene::UpdateUiPhase(float deltaTime, GLFWwindow* window) {
 	// Update runtime particles
-	particleSystem_.Update(frameDt, entityManager);
+	particleSystem_.Update(deltaTime, entityManager);
 
 	// Update any UI slide-in animations regardless of simulation flag
-	UpdateUiSlides(frameDt);
+	UpdateUiSlides(deltaTime);
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
@@ -330,7 +330,7 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 #ifndef _DEBUG
 	// Update FPS accumulator when enabled (release builds only)
 	if (showFPS_) {
-		fpsAccumTime_ += frameDt;
+		fpsAccumTime_ += deltaTime;
 		fpsAccumFrames_ += 1;
 		if (fpsAccumTime_ >= fpsUpdateInterval_) {
 			float avg = static_cast<float>(fpsAccumFrames_) / fpsAccumTime_;
