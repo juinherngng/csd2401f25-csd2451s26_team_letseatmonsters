@@ -35,6 +35,8 @@ public:
 		case DishType::VegDish:  return "VegDish";
 		case DishType::SoupDish: return "SoupDish";
 		case DishType::PoopDish: return "PoopDish";
+		case DishType::SkewerDish: return "SkewerDish";
+		case DishType::CarrotSaladDish: return "CarrotSaladDish";
 		default: return "Unknown";
 		}
 	}
@@ -237,7 +239,7 @@ private:
 
 	bool exitProcessed_ = false;
 	bool dishRolled_ = false;
-	DishType RollRandomDish();
+	DishType RollRandomDish(Scene& scene);
 
 	// ===== Customer patience =====
 	float patienceMax_ = 45.0f;

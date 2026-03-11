@@ -51,12 +51,11 @@ public:
 		spawnMode_ = mode;
 	}
 
-	// Convenience: configure as "vegetable box"
+	// Convenience: boxes configuration
 	void ConfigureAsVegetableBox();
-
 	void ConfigureAsMeatBox();
-
 	void ConfigureAsShroomBox();
+	void ConfigureAsCarrotBox();
 
 	// Convenience: configure as "plate box"
 	void ConfigureAsPlateBox();

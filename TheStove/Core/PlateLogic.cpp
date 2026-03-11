@@ -23,8 +23,10 @@ static const char* GetDishTexturePath(DishType t) {
 	case DishType::VegDish:  return "../assets/Salad.png";
 	case DishType::MeatDish: return "../assets/Meat.png";
 	case DishType::SoupDish: return "../assets/Soup.png";
+	case DishType::SkewerDish: return "../assets/Food_Meat_n_carrot.png";
+	case DishType::CarrotSaladDish: return "../assets/Food_Salad_n_carrot.png";
 	case DishType::PoopDish: return "../assets/PoopDish.png";
-	default:                return "../assets/PoopDish.png";
+	default:                return "../assets/salad.png";
 	}
 }
 
@@ -84,6 +86,7 @@ bool PlateLogic::CanAcceptIngredientType(IngredientType type) const
 	case IngredientType::Refined_Veg:
 	case IngredientType::Refined_Meat:
 	case IngredientType::Refined_Shroom:
+	case IngredientType::Refined_Carrot:
 		break;
 	default:
 		return false;
@@ -152,6 +155,8 @@ DishType PlateLogic::ComputeDishFromPair(IngredientType a, IngredientType b) con
 	const bool bVeg = (b == IngredientType::Refined_Veg);
 	const bool aShroom = (a == IngredientType::Refined_Shroom);
 	const bool bShroom = (b == IngredientType::Refined_Shroom);
+	const bool aCarrot = (a == IngredientType::Refined_Carrot);
+	const bool bCarrot = (b == IngredientType::Refined_Carrot);
 
 	// Meat + Veg (any order) => MeatDish
 	if ((aMeat && bVeg) || (aVeg && bMeat)) {
@@ -166,6 +171,16 @@ DishType PlateLogic::ComputeDishFromPair(IngredientType a, IngredientType b) con
 	// Veg + Veg => VegDish
 	if ((aVeg && bVeg)) {
 		return DishType::VegDish;
+	}
+
+	// Meat + Carrot (any order) => SkewerDish
+	if ((aMeat && bCarrot) || (aCarrot && bMeat)) {
+		return DishType::SkewerDish;
+	}
+
+	// Veg + Carrot (any order) => CarrotSaladDish
+	if ((aVeg && bCarrot) || (aCarrot && bVeg)) {
+		return DishType::CarrotSaladDish;
 	}
 
 	// Anything else => PoopDish

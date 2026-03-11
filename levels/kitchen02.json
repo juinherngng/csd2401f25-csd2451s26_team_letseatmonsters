@@ -898,7 +898,7 @@
       "visible": true,
       "w": 85.0,
       "x": 435.2615051269531,
-      "y": 256.50909423828125,
+      "y": 245.41900634765625,
       "z": 0.0
     },
     {
@@ -927,8 +927,8 @@
       "texture": "../assets/Customertable_Topleft.png",
       "visible": true,
       "w": 85.0,
-      "x": 260.8443298339844,
-      "y": 257.51727294921875,
+      "x": 259.83599853515625,
+      "y": 245.41897583007813,
       "z": 0.0
     },
     {
@@ -957,8 +957,8 @@
       "texture": "../assets/Customertable_Topleft.png",
       "visible": true,
       "w": 85.0,
-      "x": 256.81158447265625,
-      "y": 492.45111083984375,
+      "x": 259.836181640625,
+      "y": 493.45928955078125,
       "z": 0.0
     },
     {
@@ -987,8 +987,8 @@
       "texture": "../assets/Customertable_Topleft.png",
       "visible": true,
       "w": 85.0,
-      "x": 439.2943115234375,
-      "y": 498.1569519042969,
+      "x": 435.2619934082031,
+      "y": 493.4590148925781,
       "z": 0.0
     },
     {
@@ -1005,7 +1005,7 @@
       "col_offx": 0.0,
       "col_offy": 0.0,
       "col_w": 180.0,
-      "h": 125.0,
+      "h": 100.8033447265625,
       "has_collider": true,
       "layer": "1",
       "prefab_path": "",
@@ -1014,11 +1014,11 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "customer_table",
-      "texture": "../assets/Customertable_Bottomleft.png",
+      "texture": "../assets/CustomerTable_Horizontal_No_Bottom.png",
       "visible": true,
       "w": 180.0,
-      "x": 328.39337158203125,
-      "y": 762.5,
+      "x": 325.3688659667969,
+      "y": 787.5,
       "z": 0.0
     },
     {
@@ -1048,7 +1048,7 @@
       "visible": true,
       "w": 85.0,
       "x": 1348.582275390625,
-      "y": 514.63134765625,
+      "y": 518.6890258789063,
       "z": 0.0
     },
     {
@@ -1077,8 +1077,8 @@
       "texture": "../assets/Customertable_Topleft.png",
       "visible": true,
       "w": 85.0,
-      "x": 1353.623291015625,
-      "y": 725.0,
+      "x": 1355.6397705078125,
+      "y": 750.0,
       "z": 0.0
     },
     {
@@ -1107,8 +1107,8 @@
       "texture": "../assets/Customertable_Topleft.png",
       "visible": true,
       "w": 85.0,
-      "x": 1180.214111328125,
-      "y": 725.0,
+      "x": 1177.1895751953125,
+      "y": 750.0,
       "z": 0.0
     },
     {
@@ -1137,7 +1137,7 @@
       "texture": "../assets/Customertable_Topleft.png",
       "visible": true,
       "w": 85.0,
-      "x": 1176.1812744140625,
+      "x": 1177.18994140625,
       "y": 518.689208984375,
       "z": 0.0
     },
@@ -1197,8 +1197,8 @@
       "texture": "../assets/invis.png",
       "visible": false,
       "w": 1.0,
-      "x": 154.6666717529297,
-      "y": 760.0,
+      "x": 131.6666717529297,
+      "y": 677.3283081054688,
       "z": 0.0
     },
     {
@@ -1227,8 +1227,38 @@
       "texture": "../assets/invis.png",
       "visible": false,
       "w": 1.0,
-      "x": 1660.0,
-      "y": 760.0,
+      "x": 1510.064453125,
+      "y": 282.1171875,
+      "z": 0.0
+    },
+    {
+      "anim_name": "",
+      "animated": false,
+      "approach_offx": 0.0,
+      "approach_offy": 90.0,
+      "audio_loop": false,
+      "audio_on_destroy": "",
+      "audio_on_interact": "",
+      "audio_on_processing": "",
+      "audio_on_spawn": "",
+      "col_h": 80.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "col_w": 80.0,
+      "h": 80.0,
+      "has_collider": true,
+      "layer": "1",
+      "prefab_path": "",
+      "rotation": 0.0,
+      "shadow": false,
+      "speed_x": 0.0,
+      "speed_y": 0.0,
+      "tag": "ingredient_box",
+      "texture": "../assets/CarrotIngredientBox.png",
+      "visible": true,
+      "w": 80.0,
+      "x": 640.0,
+      "y": 179.266357421875,
       "z": 0.0
     }
   ],

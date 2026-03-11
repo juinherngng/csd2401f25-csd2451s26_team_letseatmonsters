@@ -49,6 +49,9 @@ void IngredientLogic::MarkProcessed() {
 	case IngredientType::Shroom:
 		type_ = IngredientType::Refined_Shroom;
 		break;
+	case IngredientType::Carrot:
+		type_ = IngredientType::Refined_Carrot;
+		break;
 	default:
 		// Already refined; nothing to do.
 		break;

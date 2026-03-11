@@ -522,7 +522,7 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene) {
 	}
 
 	if (!dishRolled_) {
-		desiredDishType_ = RollRandomDish();
+        desiredDishType_ = RollRandomDish(scene);
 		dishRolled_ = true;
 
 		std::cout << "[SimpleNpcLogic] Rolled desired dish = "
@@ -755,19 +755,31 @@ void SimpleNpcLogic::OnReachedExit(Scene& scene) {
 	}
 }
 
-DishType SimpleNpcLogic::RollRandomDish() {
-	// Replace this pool with the dish types you actually support.
-	// (Using PoopDish just because it exists in your enum right now.)
-	static const DishType kPool[] = {
+DishType SimpleNpcLogic::RollRandomDish(Scene& scene) {
+    static const DishType kPoolBase[] = {
 		DishType::VegDish,
 		DishType::MeatDish,
 		DishType::SoupDish
 		//DishType::PoopDish
 	};
 
+    static const DishType kPoolLevel2[] = {
+    DishType::VegDish,
+    DishType::MeatDish,
+    DishType::SoupDish,
+    DishType::SkewerDish,
+    DishType::CarrotSaladDish
+    };
+
+    const bool isLevel2 = scene.GetCurrentLevelPath().find("kitchen02") != std::string::npos;
+    const DishType* pool = isLevel2 ? kPoolLevel2 : kPoolBase;
+    const int poolSize = isLevel2
+        ? (int)(sizeof(kPoolLevel2) / sizeof(kPoolLevel2[0]))
+        : (int)(sizeof(kPoolBase) / sizeof(kPoolBase[0]));
+
 	static std::mt19937 rng{ std::random_device{}() };
-	std::uniform_int_distribution<int> dist(0, (int)(sizeof(kPool) / sizeof(kPool[0])) - 1);
-	return kPool[dist(rng)];
+    std::uniform_int_distribution<int> dist(0, poolSize - 1);
+    return pool[dist(rng)];
 }
 
 void SimpleNpcLogic::OnPatienceExpired(Scene& scene) {

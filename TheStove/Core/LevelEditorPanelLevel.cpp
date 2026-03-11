@@ -767,6 +767,7 @@ namespace LEPANELLEVEL {
 
 				LevelData& work = editor.MutableLevel();
 				if (LevelSerializer::Load(editor.levelPath, work)) {
+					scene.SetCurrentLevelPath(editor.levelPath);
 					scene.ClearAll();
 					LEPANELFONTS::ClearTextObjects();  // Clear text objects before loading
 					SyncLevelToScene(work, scene);

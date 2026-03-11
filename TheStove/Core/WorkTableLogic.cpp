@@ -54,6 +54,7 @@ const char* WorkTableLogic::GetProcessedTextureForRaw(IngredientType rawType) co
 	case IngredientType::Vegetable: return "../assets/Cabbage_CUT_Ingredient.png";
 	case IngredientType::Meat:      return "../assets/Meat_CUT_Ingredient.png";
 	case IngredientType::Shroom:    return "../assets/Mushroom_CUT_Ingredient.png";
+	case IngredientType::Carrot:    return "../assets/CUT_Carrot_Ingredient.png";
 	default:                        return "../assets/Cabbage_CUT_Ingredient.png";
 	}
 }
@@ -236,6 +237,14 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item) {
 
     CancelProcessing(scene); // always reset
     if (IsItemProcessable(scene, item)) {
+		if (IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID())) {
+			switch (stationType_) {
+			case StationType::CuttingBoard: processingTime_ = 3.0f; break;
+			case StationType::Grill:        processingTime_ = 5.0f; break;
+			case StationType::Stove:        processingTime_ = (ing->GetType() == IngredientType::Carrot) ? 5.0f : 7.0f; break;
+			default:                        processingTime_ = 3.0f; break;
+			}
+		}
         isProcessing_ = true;
         timer_ = 0.0f;
         SpawnProcessingVfx(scene);
@@ -323,7 +332,7 @@ bool WorkTableLogic::CanProcessIngredient(const IngredientLogic& ingredient) con
 	switch (stationType_) {
 	case StationType::CuttingBoard: return ingredient.GetType() == IngredientType::Vegetable;
 	case StationType::Grill:        return ingredient.GetType() == IngredientType::Meat;
-	case StationType::Stove:        return ingredient.GetType() == IngredientType::Shroom;
+	case StationType::Stove:        return ingredient.GetType() == IngredientType::Shroom || ingredient.GetType() == IngredientType::Carrot;
 	default:                        return true; // Generic accepts any raw ingredient
 	}
 }
