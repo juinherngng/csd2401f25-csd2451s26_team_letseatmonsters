@@ -156,8 +156,10 @@ namespace LEPANELASSETS {
 
 		TryConsumeRefreshJobs();
 
-		// Cache to avoid reloading preview textures every frame
-		static std::unordered_map<std::string, Texture*> sTexturePreviewCache;
+		// Stable preview cache key prefix inside ResourceManager.
+		// We intentionally avoid storing raw Texture* pointers in this panel,
+		// because ResourceManager::Clear() can invalidate them between frames.
+		static constexpr const char* kPreviewTextureKeyPrefix = "le_preview_";
 
 		// Audio icon for audio assets
 		static Texture* sAudioIcon = nullptr;
@@ -419,22 +421,16 @@ namespace LEPANELASSETS {
 
 				ImGui::PushID(path.c_str());
 
-				// Fetch or load preview texture for this path
-				Texture* previewTex = nullptr;
-				auto it = sTexturePreviewCache.find(path);
-				if (it != sTexturePreviewCache.end()) {
-					previewTex = it->second;
-				}
-				else {
-					// Use your existing loader
-					previewTex = LoadTextureBypassingCache(path);
-					sTexturePreviewCache[path] = previewTex;
-				}
+				// Fetch or load preview texture by a deterministic key.
+				// This keeps ownership in ResourceManager and avoids stale pointers
+				// when resources are cleared/reloaded.
+				const std::string previewKey = std::string(kPreviewTextureKeyPrefix) + path;
+				Texture* previewTex = ResourceManager::Instance().LoadTexture(previewKey, path);
 
 				const float iconSize = textureIconSize;
 
 				// If we have a texture, draw its image first
-				if (previewTex) {
+				if (previewTex && previewTex->GetID() != 0) {
 					ImTextureID texID = (ImTextureID)(intptr_t)previewTex->GetID();
 
 					// Draw the thumbnail (UVs flipped vertically for OpenGL)
