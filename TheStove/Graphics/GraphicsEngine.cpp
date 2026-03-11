@@ -689,6 +689,8 @@ bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& out
 
 	ImVec2 scenePos;
 	ComputeSceneImageRect(scenePos, outSceneSize);
+
+	// First try ImGui's mouse position (which accounts for multiple viewports and should be more robust), but fall back to InputManager if it's not finite (can happen during docking/layout changes).
 	ImVec2 mouse = ImGui::GetMousePos();
 	if (!std::isfinite(mouse.x) || !std::isfinite(mouse.y)) {
 		const glm::dvec2 mousePos = InputManager::Get().GetMousePosition();
