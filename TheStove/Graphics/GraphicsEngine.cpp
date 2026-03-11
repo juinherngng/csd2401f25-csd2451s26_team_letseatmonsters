@@ -689,12 +689,28 @@ bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& out
 
 	ImVec2 scenePos;
 	ComputeSceneImageRect(scenePos, outSceneSize);
-	if (outSceneSize.x <= 0.0f || outSceneSize.y <= 0.0f) {
-		return false;
+	ImVec2 mouse = ImGui::GetMousePos();
+	if (!std::isfinite(mouse.x) || !std::isfinite(mouse.y)) {
+		const glm::dvec2 mousePos = InputManager::Get().GetMousePosition();
+		mouse = ImVec2(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
 	}
 
-	const glm::dvec2 mousePos = InputManager::Get().GetMousePosition();
-	const ImVec2 mouse(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+	if (outSceneSize.x <= 0.0f || outSceneSize.y <= 0.0f) {
+		// Fallback to the runtime viewport bounds when the scene tab has not produced a
+		// valid image rect yet (e.g. first frame after docking/layout changes).
+		const float vx = static_cast<float>(viewportX_);
+		const float vy = static_cast<float>(viewportY_);
+		const float vw = static_cast<float>(viewportW_);
+		const float vh = static_cast<float>(viewportH_);
+		if (vw <= 0.0f || vh <= 0.0f || mouse.x < vx || mouse.y < vy ||
+			mouse.x >(vx + vw) || mouse.y >(vy + vh)) {
+			return false;
+		}
+
+		outSceneSize = ImVec2(vw, vh);
+		outLocalPos = ImVec2(mouse.x - vx, mouse.y - vy);
+		return true;
+	}
 
 	if (mouse.x < scenePos.x || mouse.y < scenePos.y ||
 		mouse.x > scenePos.x + outSceneSize.x || mouse.y > scenePos.y + outSceneSize.y) {
