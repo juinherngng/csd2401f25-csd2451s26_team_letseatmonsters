@@ -84,14 +84,14 @@ namespace LEACTIONS {
 			DrawActionButton("Save Level", callbacks.onSave);
 
 			ImGui::TableSetColumnIndex(3);
-			DrawActionButtonDisabled("Undo", editor.IsPlaying(), callbacks.onUndo);
+			DrawActionButtonDisabled("Play", editor.IsPlaying(), callbacks.onPlay);
 
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
-			DrawActionButtonDisabled("Redo", editor.IsPlaying(), callbacks.onRedo);
+			DrawActionButtonDisabled("Undo", editor.IsPlaying(), callbacks.onUndo);
 
 			ImGui::TableSetColumnIndex(1);
-			DrawActionButtonDisabled("Play", editor.IsPlaying(), callbacks.onPlay);
+			DrawActionButtonDisabled("Redo", editor.IsPlaying(), callbacks.onRedo);
 
 			ImGui::TableSetColumnIndex(2);
 			DrawActionButtonDisabled("Stop", !editor.IsPlaying(), callbacks.onStop);

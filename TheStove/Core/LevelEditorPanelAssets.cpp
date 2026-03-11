@@ -35,6 +35,7 @@
 #endif
 
 #include <future>
+#include <cctype>
 #include <chrono>
 
 namespace fs = std::filesystem;
@@ -359,6 +360,10 @@ namespace LEPANELASSETS {
 
 		// Textures section
 		if (ImGui::CollapsingHeader("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
+			static char sTextureFilter[128] = "";
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::InputTextWithHint("##TextureFilter", "Search textures...", sTextureFilter, IM_ARRAYSIZE(sTextureFilter));
+
 			if (ImGui::Button("Refresh##tex")) {
 				QueueTextureRefresh();
 			}
@@ -371,6 +376,19 @@ namespace LEPANELASSETS {
 			bool refreshTextures = false;
 
 			for (const auto& path : sTextures) {
+				const std::string displayName = fs::path(path).filename().string();
+				if (sTextureFilter[0] != '\0') {
+					std::string filterLower = sTextureFilter;
+					std::transform(filterLower.begin(), filterLower.end(), filterLower.begin(),
+						[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+					std::string nameLower = displayName;
+					std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
+						[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+					if (nameLower.find(filterLower) == std::string::npos) {
+						continue;
+					}
+				}
+
 				ImGui::PushID(path.c_str());
 
 				// Fetch or load preview texture for this path
@@ -401,7 +419,10 @@ namespace LEPANELASSETS {
 				}
 
 				// Make the selectable at least as tall as the icon so they line up nicely
-				ImGui::Selectable(path.c_str(), false, 0, ImVec2(0.0f, iconSize));
+				ImGui::Selectable(displayName.c_str(), false, 0, ImVec2(0.0f, iconSize));
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("%s", path.c_str());
+				}
 
 				// Double-click to apply to current selection
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&

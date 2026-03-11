@@ -833,28 +833,32 @@ namespace Debug {
 
 		// Status
 		const bool active = gfx->IsTransitionActive();
-		ImGui::Text("Active: %s", active ? "Yes" : "No");
-		ImGui::Text("At Blackout: %s", gfx->IsAtBlackout() ? "Yes" : "No");
+		ImGui::TextColored(active ? ImVec4(0.45f, 0.85f, 0.45f, 1.0f) : ImVec4(0.65f, 0.65f, 0.65f, 1.0f),
+			"%s", active ? "Active" : "Inactive");
+		ImGui::SameLine();
+		const bool atBlackout = gfx->IsAtBlackout();
+		ImGui::TextColored(atBlackout ? ImVec4(0.90f, 0.75f, 0.35f, 1.0f) : ImVec4(0.65f, 0.65f, 0.65f, 1.0f),
+			"%s", atBlackout ? "Blackout" : "No Blackout");
 
 		// Controls
 		ImGui::Separator();
-		ImGui::SliderFloat("Fade Out (s)", &mFadeOutSec, 0.0f, 2.0f);
-		ImGui::SliderFloat("Fade In (s)", &mFadeInSec, 0.0f, 2.0f);
+		ImGui::SliderFloat("Fade Out", &mFadeOutSec, 0.0f, 2.0f, "%.2f s");
+		ImGui::SliderFloat("Fade In", &mFadeInSec, 0.0f, 2.0f, "%.2f s");
 
-		if (ImGui::Button("Start Transition")) {
+		if (ImGui::Button("Start", ImVec2(110.0f, 0.0f))) {
 			gfx->StartSceneTransition(mFadeOutSec, mFadeInSec);
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Force Blackout")) {
+		if (ImGui::Button("Blackout", ImVec2(110.0f, 0.0f))) {
 			// Simulate blackout: start transition with zero fade-out then immediately continue
 			gfx->StartSceneTransition(0.0f, mFadeInSec);
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Continue Fade-In")) {
+		if (ImGui::Button("Continue", ImVec2(110.0f, 0.0f))) {
 			gfx->ContinueTransitionFadeIn();
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Cancel")) {
+		if (ImGui::Button("Cancel", ImVec2(110.0f, 0.0f))) {
 			// Simple cancel: start transition with zero durations to clear state
 			gfx->StartSceneTransition(0.0f, 0.0f);
 		}
