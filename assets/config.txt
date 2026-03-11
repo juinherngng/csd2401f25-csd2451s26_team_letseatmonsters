@@ -4,13 +4,3 @@ fullscreen=false
 master_volume=1
 bgm_volume=0.5
 vfx_volume=0.8
-
-# click indicator tuning
-click_indicator_profile=0
-click_indicator_lifetime=0.45
-click_indicator_spawn_size=26
-click_indicator_base_size=26
-click_indicator_pop_size=36
-click_indicator_shrink_out_duration=0.08
-click_indicator_min_scale_factor=0.2
-click_indicator_peak_time=0.22
