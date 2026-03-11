@@ -168,9 +168,28 @@ namespace LEPANELASSETS {
 		static bool sAudioErrorPending = false;
 		static bool sAudioPopupOpen = true;
 		static std::string sAudioErrorMessage;
+		static bool sTextureCompactDensity = false;
+		static bool sAudioCompactDensity = false;
 
-		// Import row
-		if (ImGui::Button("Import Texture...")) {
+		auto ShowTooltip = [](const char* text) {
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+				ImGui::SetTooltip("%s", text);
+			}
+			};
+
+		auto IconButton = [&](const char* id, const char* label, const char* tooltip) {
+			const std::string buttonLabel = std::string(label) + "##" + id;
+			const bool pressed = ImGui::Button(buttonLabel.c_str(), ImVec2(26.0f, 0.0f));
+			ShowTooltip(tooltip);
+			return pressed;
+			};
+
+		// Import row (auto-fit buttons to panel width)
+		const float importSpacing = ImGui::GetStyle().ItemSpacing.x;
+		const float importAvailWidth = ImGui::GetContentRegionAvail().x;
+		const float importButtonWidth = std::max(110.0f, (importAvailWidth - importSpacing) * 0.5f);
+
+		if (ImGui::Button("Import Texture", ImVec2(importButtonWidth, 0.0f))) {
 			const std::string pickedPath =
 				OpenFileDialog("PNG files\0*.png\0All files\0*.*\0");
 
@@ -218,7 +237,7 @@ namespace LEPANELASSETS {
 		ImGui::SameLine();
 
 		// Import Audio (.wav and .mp3 supported)
-		if (ImGui::Button("Import Audio...")) {
+		if (ImGui::Button("Import Audio", ImVec2(importButtonWidth, 0.0f))) {
 			const std::string picked =
 				OpenFileDialog("Audio Files\0*.wav;*.mp3\0WAV Files\0*.wav\0MP3 Files\0*.mp3\0All Files\0*.*\0");
 
