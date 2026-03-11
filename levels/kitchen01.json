@@ -356,8 +356,8 @@
     },
     {
       "animated": false,
-      "approach_offx": -70.0,
-      "approach_offy": -20.0,
+      "approach_offx": 0.0,
+      "approach_offy": -100.0,
       "audio_loop": false,
       "audio_on_destroy": "",
       "audio_on_interact": "",
@@ -383,8 +383,8 @@
     },
     {
       "animated": false,
-      "approach_offx": -70.0,
-      "approach_offy": 0.0,
+      "approach_offx": 0.0,
+      "approach_offy": 100.0,
       "audio_loop": false,
       "audio_on_destroy": "",
       "audio_on_interact": "",
@@ -410,8 +410,8 @@
     },
     {
       "animated": false,
-      "approach_offx": -70.0,
-      "approach_offy": -20.0,
+      "approach_offx": 0.0,
+      "approach_offy": -100.0,
       "audio_loop": false,
       "audio_on_destroy": "",
       "audio_on_interact": "",
@@ -437,8 +437,8 @@
     },
     {
       "animated": false,
-      "approach_offx": -70.0,
-      "approach_offy": 0.0,
+      "approach_offx": 0.0,
+      "approach_offy": 100.0,
       "audio_loop": false,
       "audio_on_destroy": "",
       "audio_on_interact": "",

@@ -166,35 +166,71 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 
 	LogicManager& logicMgr = scene.GetLogicManager();
 
-	// Find an empty customer table
-	CustomerTableLogic* chosenTable = nullptr;
-	int chosenTableID = -1;
+	// Compute a horizontal split for table-side matching.
+	float tableSplitX = 0.0f;
+	int tableCount = 0;
 
 	for (int tableID : customerTableIDs_) {
-		auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(tableID);
-		if (!table) continue;
-		if (table->IsAvailableForSeating()) {
-			chosenTable = table;
-			chosenTableID = tableID;
-			break;
+		if (GameObject* tableObj = scene.GetGameObjectByID(tableID)) {
+			tableSplitX += tableObj->GetPositionGLM().x;
+			++tableCount;
 		}
 	}
+	if (tableCount > 0) {
+		tableSplitX /= static_cast<float>(tableCount);
+	}
+
+	// Read profile from template
+	auto findAvailableTableForSpawnX = [&](float spawnX, CustomerTableLogic*& outTable, int& outTableID) -> bool {
+		const bool wantsLeftSide = (spawnX < tableSplitX);
+
+		// First pass: strictly match table side to spawner side.
+		for (int tableID : customerTableIDs_) {
+			auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(tableID);
+			if (!table || !table->IsAvailableForSeating()) continue;
+
+			GameObject* tableObj = scene.GetGameObjectByID(tableID);
+			if (!tableObj) continue;
+
+			const bool tableIsLeftSide = (tableObj->GetPositionGLM().x < tableSplitX);
+			if (tableIsLeftSide == wantsLeftSide) {
+				outTable = table;
+				outTableID = tableID;
+				return true;
+			}
+		}
+
+		return false;
+		};
+
+	// Find a spawn entry and a matching-side empty customer table.
+	CustomerTableLogic* chosenTable = nullptr;
+	int chosenTableID = -1;
+	Math::Vector2D spawn2 = scene.GetExitGateWorldPos();
+
+	if (!customerEntryIDs_.empty()) {
+		const int entryCount = static_cast<int>(customerEntryIDs_.size());
+		for (int attempt = 0; attempt < entryCount; ++attempt) {
+			const int idx = (nextEntryIndex_ + attempt) % entryCount;
+			GameObject* entryObj = scene.GetGameObjectByID(customerEntryIDs_[idx]);
+			if (!entryObj) continue;
+			const glm::vec3 p = entryObj->GetPositionGLM();
+			if (findAvailableTableForSpawnX(p.x, chosenTable, chosenTableID)) {
+				spawn2 = { p.x, p.y };
+				nextEntryIndex_ = (idx + 1) % entryCount;
+				break;
+			}
+		}
+	}
+	else {
+		findAvailableTableForSpawnX(spawn2.x, chosenTable, chosenTableID);
+	}
+
 	if (!chosenTable) return false;
 
 	// Read profile from template
 	Scene::Defaults prof = scene.GetDefaults(customerTemplateID_);
 
-	// Spawn position: use authored customer entry markers when present,
-	// otherwise fall back to the legacy exit gate spawn point.
-	Math::Vector2D spawn2 = scene.GetExitGateWorldPos();
-	if (!customerEntryIDs_.empty()) {
-		const int idx = nextEntryIndex_ % static_cast<int>(customerEntryIDs_.size());
-		nextEntryIndex_ = (nextEntryIndex_ + 1) % static_cast<int>(customerEntryIDs_.size());
-		if (GameObject* entryObj = scene.GetGameObjectByID(customerEntryIDs_[idx])) {
-			const glm::vec3 p = entryObj->GetPositionGLM();
-			spawn2 = { p.x, p.y };
-		}
-	}
 	glm::vec3 spawnPos{ spawn2.x, spawn2.y, 0.0f };
 
     // Spawn an ANIMATED sprite so UVRect animation actually works
