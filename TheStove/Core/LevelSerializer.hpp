@@ -96,6 +96,7 @@ struct LevelTextObject {
 	bool visible{ true };
 };
 
+// Separate struct for editor use (no need to store font size in JSON or runtime)
 struct TextObjectData {
 	std::string name;
 	std::string fontName;
@@ -105,6 +106,7 @@ struct TextObjectData {
 	float scale = 1.0f;
 };
 
+// Top-level level data structure for JSON (de)serialization
 struct LevelData {
 	int schemaVersion{ 2 };
 	std::vector<LevelObject> objects{};

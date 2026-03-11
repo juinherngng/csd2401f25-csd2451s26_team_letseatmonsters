@@ -107,6 +107,7 @@ bool CollisionManager::ShouldRebuildGrid(const std::vector<std::unique_ptr<GameO
 	forceFullRebuild_ = !gridBuilt_;
 
 	if (!forceFullRebuild_ && nextState.size() != broadphaseStateCache_.size()) {
+		// Object count changed (spawn/despawn), so positional diffs are no longer index-safe.
 		forceFullRebuild_ = true;
 		staticStateDirty_ = true;
 	}
@@ -177,6 +178,7 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 
 	dirtyObjectLookupCache_.clear();
 	if (!forceFullRebuild_) {
+		// Build a lookup cache of dirty object IDs for efficient per-object updates.
 		dirtyObjectLookupCache_.reserve(dirtyObjectIDs_.size());
 		dirtyObjectLookupCache_.insert(dirtyObjectIDs_.begin(), dirtyObjectIDs_.end());
 	}

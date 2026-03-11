@@ -17,19 +17,13 @@
 #include <string>
 
 namespace ConfigManager {
-	/**
-	 * @struct Resolution
-	 * @brief Stores window resolution dimensions.
-	 */
+	// Forward declare Resolution struct for use in Settings.
 	struct Resolution {
 		int width{};
 		int height{};
 	};
 
-	/**
-	 * @struct Settings
-	 * @brief Stores all configurable settings for the game.
-	 */
+	// Configuration structure representing all configurable settings for the application.
 	struct Settings {
 		int schemaVersion{ 1 };
 		Resolution resolution{};
@@ -39,67 +33,22 @@ namespace ConfigManager {
 		float vfxVolume{};
 	};
 
-	/**
-	 * @brief Ensures settings are within valid ranges.
-	 * @param[in,out] s Settings structure to validate.
-	 */
+	// Current config schema version. Increment this when making breaking changes to the config format.
 	void Validate(Settings& s);
 
-	/**
-	 * @brief Returns a copy of given settings with updated resolution.
-	 * @param s Existing settings.
-	 * @param width Desired width.
-	 * @param height Desired height.
-	 * @return Modified settings with new resolution.
-	 */
+	// Helper functions to create modified copies of Settings with specific fields updated.
 	Settings WithResolution(Settings s, int width, int height);
-
-	/**
-	 * @brief Returns a copy of given settings with fullscreen mode updated.
-	 * @param s Existing settings.
-	 * @param fullscreenEnabled Fullscreen flag to apply.
-	 * @return Modified settings with new fullscreen mode.
-	 */
 	Settings WithFullscreen(Settings s, bool fullscreenEnabled);
-
-	/**
-	 * @brief Returns a copy of given settings with volume values updated and clamped.
-	 * @param s Existing settings.
-	 * @param master Master volume [0, 1].
-	 * @param bgm Background music volume [0, 1].
-	 * @param vfx Sound effects volume [0, 1].
-	 * @return Modified settings with updated volume values.
-	 */
 	Settings WithVolumes(Settings s, float master, float bgm, float vfx);
 
-	/**
-	 * @brief Loads settings from a given file path.
-	 * @param path Path to the config file.
-	 * @param[out] out Settings structure to populate.
-	 * @return True if loaded successfully, false otherwise.
-	 */
+	// Load settings from a file at the given path. Returns true if successful, false if file not found or parse error.
 	bool Load(const std::string& filePath, Settings& out);
-
-	/**
-	 * @brief Saves settings to a given file path.
-	 * @param path Path where to save.
-	 * @param s Settings to write.
-	 * @return True if successfully written.
-	 */
 	bool Save(const std::string& filePath, const Settings& s);
 
-	/**
-	 * @brief Tries to load settings from `assets/config.txt` relative to executable.
-	 * @param[out] out Settings structure to populate.
-	 * @param filename Optional filename (defaults to "config.txt").
-	 * @return True if file found and loaded.
-	 */
+	// Attempts to load settings from common asset locations (e.g. "assets/config.txt" or parent directories).
 	bool LoadFromAssets(Settings& out, const char* filename = "config.txt");
 
-	/**
-	 * @brief Loads settings from assets or falls back to defaults if not found.
-	 * @return Loaded or default-initialized Settings.
-	 */
+	// Convenience function to load settings from assets with defaults applied. Defaults are used if file is missing or keys are missing.
 	inline Settings LoadFromAssetsOrDefaults(const char* filename = "config.txt") {
 		Settings s;
 		// Set default fullscreen to true
