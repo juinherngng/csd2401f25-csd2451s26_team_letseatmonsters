@@ -48,10 +48,10 @@
 
 class AudioManager;
 
-/**
- * @class Scene
- * @brief Manages the lifecycle of a game scene, including objects, animations, and input.
- */
+ /**
+  * @class Scene
+  * @brief Manages the lifecycle of a game scene, including objects, animations, and input.
+  */
 class Scene {
 public:
 	// Systems and managers
@@ -739,19 +739,19 @@ public:
 		float fadeOutSeconds = 0.35f,
 		float fadeInSeconds = 0.35f);
 
-	bool BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid);
-	bool FindPathForObject(int moverObjectID,
-		const glm::vec2& startWorld,
-		const glm::vec2& goalWorld,
-		std::vector<glm::vec2>& outPath);
+		bool BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid);
+		bool FindPathForObject(int moverObjectID,
+			const glm::vec2& startWorld,
+			const glm::vec2& goalWorld,
+			std::vector<glm::vec2>& outPath);
 
-	bool GetNearestNavigationCellCenterForObject(int moverObjectID,
-		const glm::vec2& worldPos,
-		glm::vec2& outCenter);
+		bool GetNearestNavigationCellCenterForObject(int moverObjectID,
+			const glm::vec2& worldPos,
+			glm::vec2& outCenter);
 
-	bool HasDirectPathForObject(int moverObjectID,
-		const glm::vec2& startWorld,
-		const glm::vec2& goalWorld);
+		bool HasDirectPathForObject(int moverObjectID,
+			const glm::vec2& startWorld,
+			const glm::vec2& goalWorld);
 
 private:
 	// Simpler version of cutscene transition for level changes without per-frame images. Reuses some cutTrans_ state for convenience.

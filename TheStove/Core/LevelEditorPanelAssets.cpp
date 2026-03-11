@@ -168,28 +168,9 @@ namespace LEPANELASSETS {
 		static bool sAudioErrorPending = false;
 		static bool sAudioPopupOpen = true;
 		static std::string sAudioErrorMessage;
-		static bool sTextureCompactDensity = false;
-		static bool sAudioCompactDensity = false;
 
-		auto ShowTooltip = [](const char* text) {
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
-				ImGui::SetTooltip("%s", text);
-			}
-			};
-
-		auto IconButton = [&](const char* id, const char* label, const char* tooltip) {
-			const std::string buttonLabel = std::string(label) + "##" + id;
-			const bool pressed = ImGui::Button(buttonLabel.c_str(), ImVec2(26.0f, 0.0f));
-			ShowTooltip(tooltip);
-			return pressed;
-			};
-
-		// Import row (auto-fit buttons to panel width)
-		const float importSpacing = ImGui::GetStyle().ItemSpacing.x;
-		const float importAvailWidth = ImGui::GetContentRegionAvail().x;
-		const float importButtonWidth = std::max(110.0f, (importAvailWidth - importSpacing) * 0.5f);
-
-		if (ImGui::Button("Import Texture", ImVec2(importButtonWidth, 0.0f))) {
+		// Import row
+		if (ImGui::Button("Import Texture...")) {
 			const std::string pickedPath =
 				OpenFileDialog("PNG files\0*.png\0All files\0*.*\0");
 
@@ -237,7 +218,7 @@ namespace LEPANELASSETS {
 		ImGui::SameLine();
 
 		// Import Audio (.wav and .mp3 supported)
-		if (ImGui::Button("Import Audio", ImVec2(importButtonWidth, 0.0f))) {
+		if (ImGui::Button("Import Audio...")) {
 			const std::string picked =
 				OpenFileDialog("Audio Files\0*.wav;*.mp3\0WAV Files\0*.wav\0MP3 Files\0*.mp3\0All Files\0*.*\0");
 
@@ -381,21 +362,13 @@ namespace LEPANELASSETS {
 
 		// Textures section
 		if (ImGui::CollapsingHeader("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
-			const float textureIconSize = sTextureCompactDensity ? 22.0f : 32.0f;
-			const float textureListHeight = sTextureCompactDensity ? 180.0f : 240.0f;
 			static char sTextureFilter[128] = "";
 			ImGui::SetNextItemWidth(-FLT_MIN);
 			ImGui::InputTextWithHint("##TextureFilter", "Search textures...", sTextureFilter, IM_ARRAYSIZE(sTextureFilter));
 
-			if (IconButton("refresh_tex", "R", "Refresh texture index")) {
+			if (ImGui::Button("Refresh##tex")) {
 				QueueTextureRefresh();
 			}
-
-			ImGui::SameLine();
-			if (ImGui::Checkbox("Compact##tex", &sTextureCompactDensity)) {
-			}
-
-			ShowTooltip("Toggle compact row density for texture list");
 
 			if (sTextureRefreshInProgress) {
 				ImGui::SameLine();
@@ -403,7 +376,6 @@ namespace LEPANELASSETS {
 			}
 
 			bool refreshTextures = false;
-			ImGui::BeginChild("##TexturesList", ImVec2(0.0f, textureListHeight), true);
 
 			for (const auto& path : sTextures) {
 				const std::string displayName = fs::path(path).filename().string();
@@ -427,7 +399,7 @@ namespace LEPANELASSETS {
 				const std::string previewKey = std::string(kPreviewTextureKeyPrefix) + path;
 				Texture* previewTex = ResourceManager::Instance().LoadTexture(previewKey, path);
 
-				const float iconSize = textureIconSize;
+				const float iconSize = 32.0f;
 
 				// If we have a texture, draw its image first
 				if (previewTex && previewTex->GetID() != 0) {
@@ -444,8 +416,6 @@ namespace LEPANELASSETS {
 
 				// Make the selectable at least as tall as the icon so they line up nicely
 				ImGui::Selectable(displayName.c_str(), false, 0, ImVec2(0.0f, iconSize));
-				ImGui::SameLine();
-				ImGui::TextDisabled("[%s]", fs::path(path).extension().string().c_str());
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("%s", path.c_str());
 				}
@@ -500,8 +470,6 @@ namespace LEPANELASSETS {
 				ImGui::PopID();
 			}
 
-			ImGui::EndChild();
-
 			if (refreshTextures) {
 				QueueTextureRefresh();
 			}
@@ -511,7 +479,7 @@ namespace LEPANELASSETS {
 		if (ImGui::CollapsingHeader("Audio", ImGuiTreeNodeFlags_DefaultOpen)) {
 			// Catalog management buttons
 			ImGui::BeginGroup();
-			if (IconButton("refresh_audio", "R", "Refresh audio index")) {
+			if (ImGui::Button("Refresh##audio")) {
 				QueueAudioRefresh();
 			}
 
@@ -521,14 +489,8 @@ namespace LEPANELASSETS {
 			}
 
 			ImGui::SameLine();
-			if (ImGui::Checkbox("Compact##aud", &sAudioCompactDensity)) {
-			}
 
-			ShowTooltip("Toggle compact row density for audio list");
-
-			ImGui::SameLine();
-
-			if (ImGui::Button("Save##AudioCatalog")) {
+			if (ImGui::Button("Save Catalog")) {
 				// Save to SOURCE directory, not build directory
 				const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
 				if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
@@ -536,11 +498,9 @@ namespace LEPANELASSETS {
 				}
 			}
 
-			ShowTooltip("Save audio catalog to disk");
-
 			ImGui::SameLine();
 
-			if (ImGui::Button("Reload##AudioCatalog")) {
+			if (ImGui::Button("Reload Catalog")) {
 				Audio::AudioCatalog::UnloadAllAudio();
 				// Load from SOURCE directory
 				const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
@@ -549,8 +509,6 @@ namespace LEPANELASSETS {
 					ImGui::OpenPopup("Catalog Reloaded");
 				}
 			}
-
-			ShowTooltip("Reload audio catalog from disk");
 
 			// Success popups
 			if (ImGui::BeginPopupModal("Catalog Saved", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
@@ -763,13 +721,13 @@ namespace LEPANELASSETS {
 
 							ImGui::SameLine();
 
-							if (IconButton("edit_audio", "E", "Edit audio asset")) {
+							if (ImGui::Button("Edit")) {
 								editMode = true;
 								editingName = asset.name;
 								editBuffer = asset;
 							}
 							ImGui::SameLine();
-							if (IconButton("remove_audio", "X", "Remove audio asset from catalog")) {
+							if (ImGui::Button("Remove")) {
 								// Stop if currently playing
 								if (isPlaying && g_AppState && g_AppState->coreEngine) {
 									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
@@ -810,143 +768,106 @@ namespace LEPANELASSETS {
 			}
 
 			bool refreshAudio = false;
-			const float iconSize = sAudioCompactDensity ? 22.0f : 32.0f;
+			const float iconSize = 32.0f;
 
-			if (ImGui::CollapsingHeader("Audio Files", ImGuiTreeNodeFlags_DefaultOpen)) {
-				const float audioListHeight = sAudioCompactDensity ? 180.0f : 240.0f;
-				static char sAudioFilter[128] = "";
-				ImGui::SetNextItemWidth(-FLT_MIN);
-				ImGui::InputTextWithHint("##AudioFilter", "Search audio...", sAudioFilter, IM_ARRAYSIZE(sAudioFilter));
+			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.9f, 1.0f), "Audio Files (%zu):", sAudio.size());
 
-				if (IconButton("refresh_audio_files", "R", "Refresh audio files list")) {
-					QueueAudioRefresh();
-				}
+			for (const auto& path : sAudio) {
+				ImGui::PushID(path.c_str());
 
-				if (sAudioRefreshInProgress) {
+				// Draw icon, same style as textures/prefabs
+				if (sAudioIcon) {
+					ImTextureID texID = (ImTextureID)(intptr_t)sAudioIcon->GetID();
+					ImGui::Image(
+						texID,
+						ImVec2(iconSize, iconSize),
+						ImVec2(0, 1),
+						ImVec2(1, 0));
 					ImGui::SameLine();
-					ImGui::TextDisabled("Indexing audio...");
 				}
 
-				ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.9f, 1.0f), "Audio Files (%zu):", sAudio.size());
-				ImGui::BeginChild("##AudioFilesList", ImVec2(0.0f, audioListHeight), true);
+				// Make the selectable at least as tall as the icon
+				ImGui::Selectable(path.c_str(), false, 0, ImVec2(0.0f, iconSize));
 
-				for (const auto& path : sAudio) {
-					const std::string displayName = fs::path(path).filename().string();
-					if (sAudioFilter[0] != '\0') {
-						std::string filterLower = sAudioFilter;
-						std::transform(filterLower.begin(), filterLower.end(), filterLower.begin(),
-							[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-						std::string nameLower = displayName;
-						std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
-							[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-						if (nameLower.find(filterLower) == std::string::npos) {
-							continue;
+				// Double-click to add to catalog if not already there
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
+					ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+
+					// Check if already in catalog
+					bool inCatalog = false;
+					for (const auto& asset : catalogAssets) {
+						if (asset.filepath == path) {
+							inCatalog = true;
+							break;
 						}
 					}
 
-					ImGui::PushID(path.c_str());
+					if (!inCatalog) {
+						// Normalize the path for FMOD
+						const std::string normalizedPath = NormalizeAudioPath(path);
 
-					// Draw icon, same style as textures/prefabs
-					if (sAudioIcon) {
-						ImTextureID texID = (ImTextureID)(intptr_t)sAudioIcon->GetID();
-						ImGui::Image(
-							texID,
-							ImVec2(iconSize, iconSize),
-							ImVec2(0, 1),
-							ImVec2(1, 0));
-						ImGui::SameLine();
-					}
+						// Auto-add to catalog
+						Audio::AudioAsset newAsset;
+						newAsset.filepath = normalizedPath;
 
-					// Make the selectable at least as tall as the icon
-					ImGui::Selectable(displayName.c_str(), false, 0, ImVec2(0.0f, iconSize));
-					ImGui::SameLine();
-					ImGui::TextDisabled("[%s]", fs::path(path).extension().string().c_str());
-					if (ImGui::IsItemHovered()) {
-						ImGui::SetTooltip("%s", path.c_str());
-					}
+						// Extract name from filepath
+						size_t lastSlash = normalizedPath.find_last_of("/\\");
+						size_t lastDot = normalizedPath.find_last_of('.');
 
-					// Double-click to add to catalog if not already there
-					if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
-						ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-
-						// Check if already in catalog
-						bool inCatalog = false;
-						for (const auto& asset : catalogAssets) {
-							if (asset.filepath == path) {
-								inCatalog = true;
-								break;
-							}
+						if (lastSlash != std::string::npos && lastDot != std::string::npos) {
+							newAsset.name = normalizedPath.substr(lastSlash + 1, lastDot - lastSlash - 1);
+						}
+						else {
+							newAsset.name = "audio_" + std::to_string(catalogAssets.size());
 						}
 
-						if (!inCatalog) {
-							// Normalize the path for FMOD
-							const std::string normalizedPath = NormalizeAudioPath(path);
+						newAsset.loop = false;
+						newAsset.stream = false;
+						newAsset.category = DetectCategoryFromName(newAsset.name); // Auto-detect from name
+						newAsset.volume = 1.0f;
 
-							// Auto-add to catalog
-							Audio::AudioAsset newAsset;
-							newAsset.filepath = normalizedPath;
+						if (Audio::AudioCatalog::AddAudioAsset(newAsset)) {
+							ResourceManager::Instance().LoadAudio(
+								newAsset.name,
+								newAsset.filepath,
+								newAsset.loop,
+								newAsset.stream
+							);
 
-							// Extract name from filepath
-							size_t lastSlash = normalizedPath.find_last_of("/\\");
-							size_t lastDot = normalizedPath.find_last_of('.');
-
-							if (lastSlash != std::string::npos && lastDot != std::string::npos) {
-								newAsset.name = normalizedPath.substr(lastSlash + 1, lastDot - lastSlash - 1);
-							}
-							else {
-								newAsset.name = "audio_" + std::to_string(catalogAssets.size());
-							}
-
-							newAsset.loop = false;
-							newAsset.stream = false;
-							newAsset.category = DetectCategoryFromName(newAsset.name); // Auto-detect from name
-							newAsset.volume = 1.0f;
-
-							if (Audio::AudioCatalog::AddAudioAsset(newAsset)) {
-								ResourceManager::Instance().LoadAudio(
-									newAsset.name,
-									newAsset.filepath,
-									newAsset.loop,
-									newAsset.stream
-								);
-
-								// Auto-save catalog to SOURCE directory after successful addition
-								const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
-								if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
-									std::cout << "[Assets Panel] Catalog auto-saved after double-click add to: " << catalogPath << std::endl;
-								}
+							// Auto-save catalog to SOURCE directory after successful addition
+							const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
+							if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
+								std::cout << "[Assets Panel] Catalog auto-saved after double-click add to: " << catalogPath << std::endl;
 							}
 						}
 					}
-
-					// Drag source so other panels can receive audio
-					if (ImGui::BeginDragDropSource()) {
-						ImGui::SetDragDropPayload("AUDIO_PATH", path.c_str(), path.size() + 1);
-						ImGui::TextUnformatted("Audio");
-						ImGui::TextWrapped("%s", path.c_str());
-						ImGui::EndDragDropSource();
-					}
-
-					// Right-click context menu: soft delete
-					if (ImGui::BeginPopupContextItem(
-						(std::string("ctx_audio##") + path).c_str())) {
-						if (ImGui::MenuItem("Delete File")) {
-							if (MoveToTrash(path)) {
-								refreshAudio = true;
-							}
-						}
-
-						ImGui::EndPopup();
-					}
-
-					ImGui::PopID();
 				}
 
-				ImGui::EndChild();
-
-				if (refreshAudio) {
-					QueueAudioRefresh();
+				// Drag source so other panels can receive audio
+				if (ImGui::BeginDragDropSource()) {
+					ImGui::SetDragDropPayload("AUDIO_PATH", path.c_str(), path.size() + 1);
+					ImGui::TextUnformatted("Audio");
+					ImGui::TextWrapped("%s", path.c_str());
+					ImGui::EndDragDropSource();
 				}
+
+				// Right-click context menu: soft delete
+				if (ImGui::BeginPopupContextItem(
+					(std::string("ctx_audio##") + path).c_str())) {
+					if (ImGui::MenuItem("Delete File")) {
+						if (MoveToTrash(path)) {
+							refreshAudio = true;
+						}
+					}
+
+					ImGui::EndPopup();
+				}
+
+				ImGui::PopID();
+			}
+
+			if (refreshAudio) {
+				QueueAudioRefresh();
 			}
 		}
 
