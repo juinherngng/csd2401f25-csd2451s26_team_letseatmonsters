@@ -18,8 +18,6 @@
 
 #include "PlayerController.hpp"
 
-#include <algorithm>
-
 void PlayerController::HandleInput(float deltaTime,
 	InputManager& inputManager,
 	EntityManager& entityManager,
@@ -47,8 +45,6 @@ void PlayerController::HandleInput(float deltaTime,
 	// Handle click-to-move (Left mouse)
 	HandleClickToMove(inputManager, entityManager, movementManager,
 		physicsManager, graphicsEngine, playerID, useForces);
-
-	UpdateClickIndicator(deltaTime, entityManager);
 }
 
 void PlayerController::HandleScaleInput(InputManager& inputManager, GameObject* sprite, float deltaTime) {
@@ -126,47 +122,6 @@ void PlayerController::HandleClickToMove(InputManager& inputManager,
 	const glm::vec3 pos = sprite->GetPositionGLM();
 	const glm::vec2 toTarget = mouseWorld - glm::vec2(pos.x, pos.y);
 	UpdateSpriteDirection(toTarget, sprite);
-
-	// Trigger click indicator using the new arrow artwork.
-	clickIndicatorWorld_ = mouseWorld;
-	clickIndicatorTimer_ = 0.5f;
-}
-
-void PlayerController::UpdateClickIndicator(float deltaTime, EntityManager& entityManager) {
-	if (clickIndicatorTimer_ <= 0.0f) {
-		return;
-	}
-
-	if (clickIndicatorID_ < 0 || entityManager.GetByID(clickIndicatorID_) == nullptr) {
-		constexpr float kIndicatorSize = 96.0f;
-		GameObject* indicator = entityManager.SpawnStaticSprite(
-			"../assets/Arrow_Merged.png",
-			glm::vec3(clickIndicatorWorld_.x, clickIndicatorWorld_.y, 0.0f),
-			glm::vec2(kIndicatorSize, kIndicatorSize));
-
-		if (!indicator) {
-			return;
-		}
-
-		clickIndicatorID_ = indicator->GetID();
-		indicator->SetRenderLayer(99);
-		indicator->SetRenderSortOrder(1000);
-	}
-
-	GameObject* indicator = entityManager.GetByID(clickIndicatorID_);
-	if (!indicator) {
-		clickIndicatorID_ = -1;
-		return;
-	}
-
-	clickIndicatorTimer_ = std::max(0.0f, clickIndicatorTimer_ - deltaTime);
-
-	const float normalized = clickIndicatorTimer_ / 0.5f;
-	const float pulse = 1.0f + 0.08f * std::sin((1.0f - normalized) * 14.0f);
-
-	indicator->SetPosition(glm::vec3(clickIndicatorWorld_.x, clickIndicatorWorld_.y, 0.0f));
-	indicator->SetScale(glm::vec3(96.0f * pulse));
-	indicator->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, normalized));
 }
 
 void PlayerController::UpdateSpriteDirection(const glm::vec2& direction, GameObject* sprite) {
