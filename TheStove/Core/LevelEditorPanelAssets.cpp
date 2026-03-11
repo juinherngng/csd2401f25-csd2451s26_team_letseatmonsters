@@ -792,6 +792,7 @@ namespace LEPANELASSETS {
 			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.9f, 1.0f), "Audio Files (%zu):", sAudio.size());
 
 			for (const auto& path : sAudio) {
+				const std::string displayName = fs::path(path).filename().string();
 				ImGui::PushID(path.c_str());
 
 				// Draw icon, same style as textures/prefabs
@@ -806,7 +807,10 @@ namespace LEPANELASSETS {
 				}
 
 				// Make the selectable at least as tall as the icon
-				ImGui::Selectable(path.c_str(), false, 0, ImVec2(0.0f, iconSize));
+				ImGui::Selectable(displayName.c_str(), false, 0, ImVec2(0.0f, iconSize));
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+					ImGui::SetTooltip("%s", path.c_str());
+				}
 
 				// Double-click to add to catalog if not already there
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
