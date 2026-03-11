@@ -222,8 +222,12 @@ void PlayerLogic::ResetMouseDragState() {
 
 //Get the mouse world position if the mouse is currently over the scene viewport
 bool PlayerLogic::TryGetMouseWorld(Scene& scene, InputManager& input, glm::vec2& mouseWorld) const {
-	const glm::dvec2 mousePos = input.GetMousePosition();
-	return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, &mousePos);
+	if (input.IsReplayOverride()) {
+		const glm::dvec2 replayMousePos = input.GetMousePosition();
+		return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, &replayMousePos);
+	}
+
+	return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, nullptr);
 }
 
 // Clear the current movement target and reset related state

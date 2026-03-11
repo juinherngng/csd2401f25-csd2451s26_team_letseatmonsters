@@ -77,9 +77,6 @@ public:
 	void SetReplayOverride(bool enable);
 	bool IsReplayOverride() const;
 
-	// Marks a new frame boundary so input polling happens at most once per frame.
-	void BeginFrameInput();
-
 private:
 	// Internal update method that takes window
 	void UpdateInternal(GLFWwindow* window);
@@ -104,8 +101,4 @@ private:
 	std::unordered_set<int> mConsumeNextMousePress;
 
 	bool replayOverride_ = false;
-
-	// Frame dedupe for polling
-	unsigned long long mFrameToken = 0;
-	unsigned long long mLastPolledFrameToken = ~0ull;
 };
