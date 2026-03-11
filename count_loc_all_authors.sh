@@ -8,7 +8,7 @@
 # - This measures contribution (what was added/deleted in commits), not current file size.
 # - It uses git patches (-p) and filters lines, similar to count_loc.sh.
 
-SINCE_DATE="2025-12-06"
+SINCE_DATE="2026-02-16"
 OUTPUT_DIR="loc_reports"
 
 echo "=========================================="
@@ -136,7 +136,7 @@ while IFS= read -r AUTHOR; do
         else
             echo "$STATS" \
             | awk -F'\t' '{ printf "%-70s %10d %10d %10d\n", $1, $2, $3, $4 }' \
-            | sort -k4 -nr
+            | sort -k1,1V
         fi
 
         echo "--------------------------------------------------------------------------------------------"

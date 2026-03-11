@@ -253,8 +253,7 @@ void AnimationManager::AttachCustomersAnimations(int objectID) {
 	std::cout << "[AnimationManager] Attached NPC animations to object " << objectID << std::endl;
 }
 
-void AnimationManager::AttachWorkVfxCutAnimations(int objectID)
-{
+void AnimationManager::AttachWorkVfxCutAnimations(int objectID) {
 	Animator2D& anim = animators_[objectID];
 
 	auto frames = CreateFrameSequenceRow(1, 0, 3, 6, 6);
@@ -266,8 +265,7 @@ void AnimationManager::AttachWorkVfxCutAnimations(int objectID)
 	anim.Play();
 }
 
-void AnimationManager::AttachWorkVfxGrillAnimations(int objectID)
-{
+void AnimationManager::AttachWorkVfxGrillAnimations(int objectID) {
 	Animator2D& anim = animators_[objectID];
 
 	auto frames = CreateFrameSequenceRow(4, 0, 3, 6, 6);
@@ -279,8 +277,7 @@ void AnimationManager::AttachWorkVfxGrillAnimations(int objectID)
 	anim.Play();
 }
 
-void AnimationManager::AttachWorkVfxStoveAnimations(int objectID)
-{
+void AnimationManager::AttachWorkVfxStoveAnimations(int objectID) {
 	Animator2D& anim = animators_[objectID];
 
 	auto frames = CreateFrameSequenceRow(5, 0, 3, 6, 6);

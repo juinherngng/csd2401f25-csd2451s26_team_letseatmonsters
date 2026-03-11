@@ -44,7 +44,7 @@ public:
 	const std::vector<int>& GetObjects() const {
 		return objectIDs;
 	}
-	
+
 	// Get the name of the layer.
 	std::string GetName() const {
 		return name;

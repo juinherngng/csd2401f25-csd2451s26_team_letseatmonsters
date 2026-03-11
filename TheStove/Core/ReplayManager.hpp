@@ -31,9 +31,9 @@ public:
 
 	const std::string& GetRecordedLevelPath() const {
 		return recordedLevelPath_;
-		
+
 	}
-		bool GetRecordedSimulationActive() const {
+	bool GetRecordedSimulationActive() const {
 		return recordedSimulationActive_;
 	}
 

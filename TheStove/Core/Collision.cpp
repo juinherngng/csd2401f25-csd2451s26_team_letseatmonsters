@@ -253,8 +253,7 @@ namespace collision {
 		return box;
 	}
 
-	bool World::overlapsAnyWall(const AABB& box) const
-	{
+	bool World::overlapsAnyWall(const AABB& box) const {
 		Math::Vector2D mtv;
 		for (const auto& wall : mWalls) {
 			if (overlapMTV(box, wall, mtv)) {

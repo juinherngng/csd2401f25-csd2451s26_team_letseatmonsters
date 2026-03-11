@@ -6,8 +6,8 @@
 
  DESCRIPTION:		Declares the game-side bootstrap interface that the engine
 					calls at startup. Each function is implemented by the active
-					game project (MyoonchiDiner) and allows the game to inject 
-					its bindings, state mappings, and audio policies without 
+					game project (MyoonchiDiner) and allows the game to inject
+					its bindings, state mappings, and audio policies without
 					the engine depending on any game-specific types.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
