@@ -148,6 +148,38 @@ namespace ConfigManager {
 				if (ParseFloat(val, parsedFloat)) cfg.vfxVolume = parsedFloat;
 				return true;
 			}
+			if (key == "click_indicator_profile") {
+				if (ParseInt(val, parsedInt)) cfg.clickIndicatorProfile = parsedInt;
+				return true;
+			}
+			if (key == "click_indicator_lifetime") {
+				if (ParseFloat(val, parsedFloat)) cfg.clickIndicatorLifetime = parsedFloat;
+				return true;
+			}
+			if (key == "click_indicator_spawn_size") {
+				if (ParseFloat(val, parsedFloat)) cfg.clickIndicatorSpawnSize = parsedFloat;
+				return true;
+			}
+			if (key == "click_indicator_base_size") {
+				if (ParseFloat(val, parsedFloat)) cfg.clickIndicatorBaseSize = parsedFloat;
+				return true;
+			}
+			if (key == "click_indicator_pop_size") {
+				if (ParseFloat(val, parsedFloat)) cfg.clickIndicatorPopSize = parsedFloat;
+				return true;
+			}
+			if (key == "click_indicator_shrink_out_duration") {
+				if (ParseFloat(val, parsedFloat)) cfg.clickIndicatorShrinkOutDuration = parsedFloat;
+				return true;
+			}
+			if (key == "click_indicator_min_scale_factor") {
+				if (ParseFloat(val, parsedFloat)) cfg.clickIndicatorMinScaleFactor = parsedFloat;
+				return true;
+			}
+			if (key == "click_indicator_peak_time") {
+				if (ParseFloat(val, parsedFloat)) cfg.clickIndicatorPeakTime = parsedFloat;
+				return true;
+			}
 
 			if (key == "audio_volume") {
 				if (ParseFloat(val, parsedFloat)) {
@@ -177,6 +209,15 @@ namespace ConfigManager {
 		s.masterVolume = clamp01(s.masterVolume);
 		s.bgmVolume = clamp01(s.bgmVolume);
 		s.vfxVolume = clamp01(s.vfxVolume);
+
+		s.clickIndicatorProfile = std::clamp(s.clickIndicatorProfile, 0, 3);
+		s.clickIndicatorLifetime = std::clamp(s.clickIndicatorLifetime, 0.1f, 2.0f);
+		s.clickIndicatorSpawnSize = std::clamp(s.clickIndicatorSpawnSize, 4.0f, 256.0f);
+		s.clickIndicatorBaseSize = std::clamp(s.clickIndicatorBaseSize, 4.0f, 256.0f);
+		s.clickIndicatorPopSize = std::clamp(s.clickIndicatorPopSize, s.clickIndicatorBaseSize, 320.0f);
+		s.clickIndicatorShrinkOutDuration = std::clamp(s.clickIndicatorShrinkOutDuration, 0.01f, s.clickIndicatorLifetime);
+		s.clickIndicatorMinScaleFactor = std::clamp(s.clickIndicatorMinScaleFactor, 0.0f, 1.0f);
+		s.clickIndicatorPeakTime = std::clamp(s.clickIndicatorPeakTime, 0.05f, 0.9f);
 	}
 
 	// Fluent setters for chaining (returns modified copy)
@@ -280,6 +321,14 @@ namespace ConfigManager {
 		ofs << "master_volume=" << validatedSettings.masterVolume << "\n";
 		ofs << "bgm_volume=" << validatedSettings.bgmVolume << "\n";
 		ofs << "vfx_volume=" << validatedSettings.vfxVolume << "\n";
+		ofs << "click_indicator_profile=" << validatedSettings.clickIndicatorProfile << "\n";
+		ofs << "click_indicator_lifetime=" << validatedSettings.clickIndicatorLifetime << "\n";
+		ofs << "click_indicator_spawn_size=" << validatedSettings.clickIndicatorSpawnSize << "\n";
+		ofs << "click_indicator_base_size=" << validatedSettings.clickIndicatorBaseSize << "\n";
+		ofs << "click_indicator_pop_size=" << validatedSettings.clickIndicatorPopSize << "\n";
+		ofs << "click_indicator_shrink_out_duration=" << validatedSettings.clickIndicatorShrinkOutDuration << "\n";
+		ofs << "click_indicator_min_scale_factor=" << validatedSettings.clickIndicatorMinScaleFactor << "\n";
+		ofs << "click_indicator_peak_time=" << validatedSettings.clickIndicatorPeakTime << "\n";
 		ofs.flush();
 
 		return static_cast<bool>(ofs);

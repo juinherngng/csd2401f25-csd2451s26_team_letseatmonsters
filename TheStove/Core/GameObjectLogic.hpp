@@ -18,6 +18,9 @@
 class Scene;
 class InputManager;
 class GameObject;
+namespace ConfigManager {
+	struct Settings;
+}
 
 class GameObjectLogic {
 public:
@@ -37,6 +40,11 @@ public:
 	}
 	virtual void OnDestroy(Scene& scene) {
 		(void)scene;
+	}
+
+	// Runtime config hook for engine/editor-driven live tuning.
+	virtual void ApplyRuntimeConfig(const ConfigManager::Settings& settings) {
+		(void)settings;
 	}
 
 	int GetOwnerID() const {
