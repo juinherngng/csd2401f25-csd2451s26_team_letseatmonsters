@@ -4,11 +4,8 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
- DESCRIPTION:       Picking & dragging helpers for the Level Editor.
-					- Convert mouse to scene/world coordinates
-					- Pick topmost object under cursor
-					- Drag selected object while holding LMB
-					- Respect ImGui mouse capture to avoid UI conflicts
+ DESCRIPTION:       Header for picking and dragging utilities in the Level Editor, which handle
+					mouse input to select and manipulate scene objects in the Scene viewport.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

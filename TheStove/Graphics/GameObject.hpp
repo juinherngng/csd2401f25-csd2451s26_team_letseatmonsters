@@ -252,8 +252,8 @@ private:
 	glm::vec4 colorTint_{ 1.0f, 1.0f, 1.0f, 1.0f }; // RGBA tint, 1=opaque
 
 	int renderLayer_ = 1; // Layer number for render ordering
-	int renderSortOrder_ = 0; // Tie-breaker for render ordering within a layer
 
 	bool m_TransformDirty = true;
 	bool m_BroadphaseDirty = true;
+	int renderSortOrder_ = 0; // Tie-breaker for render ordering within a layer
 };

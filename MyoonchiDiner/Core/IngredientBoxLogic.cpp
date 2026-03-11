@@ -13,8 +13,8 @@
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
-#include "../Core/LogicManager.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Core/LogicManager.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "IngredientBoxLogic.hpp"
 

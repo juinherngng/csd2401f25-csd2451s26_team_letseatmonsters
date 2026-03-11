@@ -18,8 +18,6 @@
 #include "../Core/AudioManager.hpp"
 #include "../Core/FilePaths.hpp"
 #include "../Core/LevelEditorPanelFonts.hpp"
-#include "../Core/MenuButtonLogic.hpp"
-#include "../Core/PauseButtonLogic.hpp" 
 
 #include "GraphicsEngine.hpp"
 #include "SceneManager.hpp"
@@ -102,18 +100,14 @@ Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& a
 // Load a scene by name (currently just a stub that clears and sets a background, but can be expanded to load from JSON or other formats)
 void Scene::LoadScene(const std::string& sceneName) {
 	(void)sceneName;
-
-	// Remember which level JSON we're using
-	currentLevelPath_ = FilePaths::Levels::KITCHEN_01;
-
-	// Optional: just pre-fill the path field for convenience
-	mLevelEditor.SetPath(FilePaths::Levels::KITCHEN_01);
+	currentLevelPath_.clear();
 
 	// Ensure we start EMPTY per rubric (no auto-spawned objects)
 	ClearAll();
 
-	// You can keep a background even with an empty level (or move this into JSON later)
-	SetSceneBackground(FilePaths::Textures::BACKGROUND);
+	if (defaultSceneSetupHook_) {
+		defaultSceneSetupHook_(*this);
+	}
 }
 
 // Per-frame update: drive all systems, logic, and cutscenes; handle pending clear requests; manage simulation state and input processing
@@ -122,20 +116,86 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	UpdateAnimationControls();
 #endif
 
+	static constexpr const char* kReplayFilePath = "replays/last.replay";
+
+	// Replay/record control first, before any gameplay input is consumed.
+	if (!replayManager_.IsPlaybackActive()) {
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_F5)) {
+			if (replayManager_.IsRecording()) {
+				replayManager_.StopRecording(kReplayFilePath);
+			}
+			else {
+				replayManager_.StartRecording(currentLevelPath_, simulationActive);
+			}
+		}
+
+		if (inputManager.IsKeyJustPressed(GLFW_KEY_F6)) {
+			if (replayManager_.StartPlayback(kReplayFilePath)) {
+				const std::string& replayLevelPath = replayManager_.GetRecordedLevelPath();
+				if (!replayLevelPath.empty()) {
+					if (RuntimeLevel::LoadAndBuild(replayLevelPath, *this)) {
+						currentLevelPath_ = replayLevelPath;
+						RebuildColliders();
+						SetSimulationActive(replayManager_.GetRecordedSimulationActive());
+						
+					}
+					 else {
+						std::cerr << "[Scene] Replay baseline load failed: " << replayLevelPath << std::endl;
+						
+					}		
+				}	
+				// Flush live edge states so replay starts cleanly.
+				inputManager.ClearState();
+				inputManager.SetReplayOverride(true);
+			}
+		}
+	}
+
+	float frameDt = deltaTime;
+
+	if (replayManager_.IsPlaybackActive()) {
+		InputManager::Snapshot snapshot{};
+		float replayDt = frameDt;
+
+		if (replayManager_.GetNextPlaybackFrame(snapshot, replayDt)) {
+			inputManager.SetReplayOverride(true);
+			inputManager.ApplySnapshot(snapshot); // authoritative input for this frame
+			frameDt = replayDt;
+		}
+		else {
+			replayManager_.StopPlayback();
+			inputManager.SetReplayOverride(false);
+			inputManager.ClearState();
+		}
+	}
+	else {
+		inputManager.SetReplayOverride(false);
+	}
+
+	if (replayManager_.IsRecording()) {
+		replayManager_.RecordFrame(inputManager, frameDt);
+	}
+
+	lastReplayFrameDt_ = replayManager_.IsPlaybackActive() ? frameDt : 0.0f;
+
 	// Drive both cutscene players every frame so transitions progress
-	UpdateCutsceneTransitioned(deltaTime);
-	UpdateCutscene(deltaTime);
+	UpdateCutsceneTransitioned(frameDt);
+	UpdateCutscene(frameDt);
 
 	UpdateLevelTransition();
 
 	// Handle pending pause audio (pause channels after fade completes)
 #ifndef _DEBUG
 	if (pauseAudioPending_ && audioManager_) {
-		pauseAudioTimer_ -= deltaTime;
+		pauseAudioTimer_ -= frameDt;
 		if (pauseAudioTimer_ <= 0.0f) {
 			// Fade completed, now pause the channels to stop playback
-			audioManager_->PauseChannel("bgm_MyoonchiDiner_LevelTheme");
-			audioManager_->PauseChannel("bgm_KitchenAmbience");
+			if (!pauseMusicChannel_.empty()) {
+				audioManager_->PauseChannel(pauseMusicChannel_);
+			}
+			if (!pauseAmbienceChannel_.empty()) {
+				audioManager_->PauseChannel(pauseAmbienceChannel_);
+			}
 			pauseAudioPending_ = false;
 			std::cout << "[Scene] Paused audio channels after fade" << std::endl;
 		}
@@ -202,65 +262,20 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 
 #endif
 
-	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
+	const float physicsDt = physicsStep_.resolveDt(inputManager, frameDt);
 	lastPhysicsDt_ = physicsDt;
 
 	// Always update logic (menu buttons need this even with simulation disabled)
 	logicManager.StartAll(*this);
-	logicManager.UpdateAll(deltaTime, *this, inputManager);
+	logicManager.UpdateAll(frameDt, *this, inputManager);
 
 	// Seat customers at tables once
-	customerManager_.Update(physicsDt, *this);
+	if (customerUpdateHook_) {
+		customerUpdateHook_(physicsDt, *this);
+	}
 
-	if (simulationActive) {
-		float prevTime = Economy::gTimeRemaining;
-		Economy::Update(deltaTime, *this);
-#ifdef _DEBUG
-		(void)prevTime;
-#endif
-
-		// Play timer warning sounds (release mode only)
-#ifndef _DEBUG
-		if (audioManager_) {
-			float currentTime = Economy::gTimeRemaining;
-
-			// Play sfx_remaining_time when timer reaches 10 seconds
-			if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
-				Economy::gPlayed10SecWarning = true;
-				if (audioManager_->HasSound("sfx_remaining_time")) {
-					audioManager_->PlaySound("sfx_remaining_time", audioManager_->GetVfxVolume(), false);
-				}
-			}
-
-			// Play sfx_beep at 3, 2, and 1 seconds
-			if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
-				Economy::gPlayed3SecBeep = true;
-				if (audioManager_->HasSound("sfx_beep")) {
-					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
-				}
-			}
-			if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
-				Economy::gPlayed2SecBeep = true;
-				if (audioManager_->HasSound("sfx_beep")) {
-					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
-				}
-			}
-			if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
-				Economy::gPlayed1SecBeep = true;
-				if (audioManager_->HasSound("sfx_beep")) {
-					audioManager_->PlaySound("sfx_beep", audioManager_->GetVfxVolume(), false);
-				}
-			}
-
-			// Play sfx_time_up when timer reaches 0
-			if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
-				Economy::gPlayedTimeUp = true;
-				if (audioManager_->HasSound("sfx_time_up")) {
-					audioManager_->PlaySound("sfx_time_up", audioManager_->GetVfxVolume(), false);
-				}
-			}
-		}
-#endif
+	if (simulationActive && simulationUpdateHook_) {
+		simulationUpdateHook_(deltaTime, *this);
 	}
 
 	if (simulationActive) {
@@ -301,38 +316,9 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 					// Check if we're loading main menu (from win/lose cutscene)
 					// If simulation is NOT active, this is likely the main menu
 					// Re-enable layer 10 only when returning to main menu from win/lose
-#ifndef _DEBUG
-					if (!pendingLevelSimActive_) {
-						// Re-enable layer 10 for main menu buttons (was disabled during intro cutscene)
-						if (Layer* menuLayer = GetLayer("10")) {
-							menuLayer->SetVisible(true);
-							menuLayer->SetEnabled(true);
-							std::cout << "[Scene] Re-enabled layer 10 for main menu after win/lose cutscene" << std::endl;
-						}
+					if (postLevelLoadHook_) {
+						postLevelLoadHook_(*this, pendingLevelSimActive_);
 					}
-
-					if (audioManager_) {
-						if (!pendingLevelSimActive_) {
-							// Loading main menu - play main menu BGM
-							audioManager_->PlaySound("bgm_MyoonchiDiner_MainMenu", audioManager_->GetBgmVolume(), false);
-							std::cout << "[Scene] Playing main menu BGM after win/lose cutscene" << std::endl;
-						}
-						else {
-							// Loading gameplay level - play level theme with fade-in
-							const float levelBgmFadeIn = 1.0f;
-
-							// Play level theme music with fade-in
-							audioManager_->PlaySound("bgm_MyoonchiDiner_LevelTheme", 0.0f, false);
-							audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", audioManager_->GetBgmVolume(), levelBgmFadeIn);
-							std::cout << "[Scene] Playing level theme music with fade-in after cutscene" << std::endl;
-
-							// Play kitchen ambience at 50% of BGM volume, also with fade-in
-							audioManager_->PlaySound("bgm_KitchenAmbience", 0.0f, false);
-							audioManager_->FadeChannel("bgm_KitchenAmbience", audioManager_->GetBgmVolume() * 0.5f, levelBgmFadeIn);
-							std::cout << "[Scene] Playing kitchen ambience with fade-in after cutscene" << std::endl;
-						}
-					}
-#endif
 				}
 
 				LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
@@ -345,10 +331,10 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 	}
 
 	// Update runtime particles
-	particleSystem_.Update(deltaTime, entityManager);
+	particleSystem_.Update(frameDt, entityManager);
 
 	// Update any UI slide-in animations regardless of simulation flag
-	UpdateUiSlides(deltaTime);
+	UpdateUiSlides(frameDt);
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
@@ -364,7 +350,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 #ifndef _DEBUG
 	// Update FPS accumulator when enabled (release builds only)
 	if (showFPS_) {
-		fpsAccumTime_ += deltaTime;
+		fpsAccumTime_ += frameDt;
 		fpsAccumFrames_ += 1;
 		if (fpsAccumTime_ >= fpsUpdateInterval_) {
 			float avg = static_cast<float>(fpsAccumFrames_) / fpsAccumTime_;
@@ -434,7 +420,9 @@ void Scene::ClearAll() {
 	animationManager.Clear();
 	movementManager.Clear();
 	npcSystem.Clear();
-	customerManager_.Reset();
+	if (customerResetHook_) {
+		customerResetHook_(*this);
+	}
 	//ClearMenuButtonTexts();
 
 	spriteID = -1;
@@ -709,8 +697,28 @@ void Scene::SetAnimation(int objID, const std::string& animName) {
 	animationManager.SetAnimation(objID, animName);
 }
 
+void Scene::AttachPlayerAnimations(int objID) {
+	animationManager.AttachPlayerAnimations(objID);
+}
+
 void Scene::AttachDinoAnimations(int objID) {
 	animationManager.AttachDinoAnimations(objID);
+}
+
+void Scene::AttachCustomersAnimations(int objID) {
+	animationManager.AttachCustomersAnimations(objID);
+}
+
+void Scene::AttachWorkVfxCutAnimations(int objID) {
+	animationManager.AttachWorkVfxCutAnimations(objID);
+}
+
+void Scene::AttachWorkVfxGrillAnimations(int objID) {
+	animationManager.AttachWorkVfxGrillAnimations(objID);
+}
+
+void Scene::AttachWorkVfxStoveAnimations(int objID) {
+	animationManager.AttachWorkVfxStoveAnimations(objID);
 }
 
 void Scene::AttachMenuAnimations(int objID) {
@@ -736,60 +744,8 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	// ALWAYS wipe old logic from this object
 	logicManager.RemoveAllFor(id, *this);
 
-	//std::cout << "[Scene] AttachLogicForTag id=" << id << " tag='" << tag << "'\n";
-
-	// Add only the logic that matches the new tag
-	if (tag == "player") {
-		logicManager.AddLogic<PlayerLogic>(id);
-		spriteID = id;
-		animationManager.AttachPlayerAnimations(id);
-	}
-	else if (tag == "customer_template") {
-		logicManager.AddLogic<SimpleNpcLogic>(id);
-		animationManager.AttachCustomersAnimations(id);
-	}
-	else if (tag == "table") {
-		logicManager.AddLogic<TableLogic>(id);
-	}
-	else if (tag == "work_table") {
-		logicManager.AddLogic<WorkTableLogic>(id);
-	}
-	else if (tag == "work_vfx_cut") { animationManager.AttachWorkVfxCutAnimations(id); }
-	else if (tag == "work_vfx_grill") { animationManager.AttachWorkVfxGrillAnimations(id); }
-	else if (tag == "work_vfx_stove") { animationManager.AttachWorkVfxStoveAnimations(id); }
-	else if (tag == "customer_table") {
-		logicManager.AddLogic<CustomerTableLogic>(id);
-	}
-	else if (tag == "ingredient_box") {
-		logicManager.AddLogic<IngredientBoxLogic>(id);
-	}
-	else if (tag == "plate_box") {
-		logicManager.AddLogic<IngredientBoxLogic>(id);
-	}
-	else if (tag == "exit_gate") {
-		logicManager.AddLogic<ExitGateLogic>(id);
-		RegisterExitGate(id);
-	}
-	else if (tag == "trash_box") {
-		logicManager.AddLogic<TrashCanLogic>(id);
-		RegisterExitGate(id);
-	}
-	else if (tag == "order_ui_logic") {
-		logicManager.AddLogic<OrderUILogic>(id);
-	}
-
-	// Menu buttons etc
-	else if (tag == "btn_play") {
-		auto* logic = logicManager.AddLogic<MenuButtonLogic>(id, FilePaths::Levels::KITCHEN_01, true);
-		if (logic && audioManager_) {
-			logic->SetAudioManager(audioManager_);
-		}
-	}
-	else if (tag == "btn_howtoplay") {
-		logicManager.AddLogic<HowToPlayButtonLogic>(id);
-	}
-	else if (tag == "btn_quit") {
-		logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+	if (tagLogicBinder_) {
+		tagLogicBinder_(*this, id, tag);
 	}
 }
 
@@ -813,27 +769,15 @@ std::string Scene::GetObjectTag(int id) const {
 }
 
 bool Scene::TagUsesVelocity(const std::string& tag) const {
-	return (tag == "npc1" || tag == "npc2" || tag == "dino");
+	if (tagUsesVelocityHook_) {
+		return tagUsesVelocityHook_(tag);
+	}
+	return false;
 }
 
 void Scene::ApplyTagRules(int id, const std::string& tag, float speedX, float speedY) {
-	// Central place for special IDs (so the editor doesn't do string if-else)
-	if (tag == "player") {
-		SetPlayerID(id);
-	}
-	else if (tag == "npc1") {
-		SetNPC1ID(id);
-	}
-	else if (tag == "npc2") {
-		SetNPC2ID(id);
-	}
-	else if (tag == "dino") {
-		SetDinoID(id);
-	}
-
-	// Only apply NPC velocity when this tag actually uses it
-	if (TagUsesVelocity(tag)) {
-		SetNPCVelocity(id, speedX, speedY);
+	if (tagRuleHook_) {
+		tagRuleHook_(*this, id, tag, speedX, speedY);
 	}
 }
 
@@ -1012,8 +956,12 @@ void Scene::ShowPauseOverlay() {
 
 		// Fade to 0, the AudioManager will handle the fade over time
 		// We'll pause the channels after the fade completes (handled in Update or via callback)
-		audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", 0.0f, pauseFadeOut);
-		audioManager_->FadeChannel("bgm_KitchenAmbience", 0.0f, pauseFadeOut);
+		if (!pauseMusicChannel_.empty()) {
+			audioManager_->FadeChannel(pauseMusicChannel_, 0.0f, pauseFadeOut);
+		}
+		if (!pauseAmbienceChannel_.empty()) {
+			audioManager_->FadeChannel(pauseAmbienceChannel_, 0.0f, pauseFadeOut);
+		}
 
 		// Schedule pause after fade completes
 		pauseAudioPending_ = true;
@@ -1033,37 +981,24 @@ void Scene::ShowPauseOverlay() {
 		std::cout << "  [Scene] Pause background id=" << dim->GetID() << "\n";
 	}
 
-	auto spawnPauseBtn = [&](const char* tex, const glm::vec2& pos, PauseAction action) {
+	auto spawnPauseBtn = [&](const char* tex, const glm::vec2& pos, const std::string& action) {
 		if (GameObject* b = SpawnStaticSprite(tex, { pos.x, pos.y, 0.0f }, { 350.0f, 100.0f }, uiLayer)) {
 			const int id = b->GetID();
 			pauseOverlayObjectIds_.push_back(id);
 			SetObjectTexturePath(id, tex);
 
-			switch (action) {
-			case PauseAction::Resume:
-				logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Resume);
-				std::cout << "  [Scene] Spawned Resume button id=" << id << " with PauseButtonLogic\n";
-				break;
-
-			case PauseAction::HowToPlay:
-				logicManager.AddLogic<HowToPlayButtonLogic>(id);
-				std::cout << "  [Scene] Spawned HowToPlay button id=" << id << " with HowToPlayButtonLogic\n";
-				break;
-
-			case PauseAction::Quit:
-				logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
-				std::cout << "  [Scene] Spawned Quit button id=" << id << " with PauseButtonLogic\n";
-				break;
+			if (pauseOverlayButtonBinder_) {
+				pauseOverlayButtonBinder_(*this, id, action);
 			}
 		}
 		else {
-			std::cout << "  [Scene] ERROR: failed to spawn pause button for action=" << (int)action << "\n";
+			std::cout << "  [Scene] ERROR: failed to spawn pause button for action=" << action << "\n";
 		}
 		};
 
-	spawnPauseBtn(FilePaths::Textures::BTN_RESUME, { 1300.f, 454.f }, PauseAction::Resume);
-	spawnPauseBtn(FilePaths::Textures::BTN_HOW, { 1300.f, 584.f }, PauseAction::HowToPlay);
-	spawnPauseBtn(FilePaths::Textures::BTN_QUIT, { 1300.f, 714.f }, PauseAction::Quit);
+	spawnPauseBtn(FilePaths::Textures::BTN_RESUME, { 1300.f, 454.f }, "resume");
+	spawnPauseBtn(FilePaths::Textures::BTN_HOW, { 1300.f, 584.f }, "howtoplay");
+	spawnPauseBtn(FilePaths::Textures::BTN_QUIT, { 1300.f, 714.f }, "quit");
 #endif
 }
 
@@ -1086,12 +1021,20 @@ void Scene::HidePauseOverlay() {
 		const float pauseFadeIn = 0.2f; // 200ms fade in for smooth transition
 
 		// Resume channels first (they were paused after fade out)
-		audioManager_->ResumeChannel("bgm_MyoonchiDiner_LevelTheme");
-		audioManager_->ResumeChannel("bgm_KitchenAmbience");
+		if (!pauseMusicChannel_.empty()) {
+			audioManager_->ResumeChannel(pauseMusicChannel_);
+		}
+		if (!pauseAmbienceChannel_.empty()) {
+			audioManager_->ResumeChannel(pauseAmbienceChannel_);
+		}
 
 		// Then fade back to original volumes
-		audioManager_->FadeChannel("bgm_MyoonchiDiner_LevelTheme", pausedBgmVolume_, pauseFadeIn);
-		audioManager_->FadeChannel("bgm_KitchenAmbience", pausedAmbienceVolume_, pauseFadeIn);
+		if (!pauseMusicChannel_.empty()) {
+			audioManager_->FadeChannel(pauseMusicChannel_, pausedBgmVolume_, pauseFadeIn);
+		}
+		if (!pauseAmbienceChannel_.empty()) {
+			audioManager_->FadeChannel(pauseAmbienceChannel_, pausedAmbienceVolume_, pauseFadeIn);
+		}
 
 		std::cout << "[Scene] Resumed and fading in level BGM and ambience after pause menu" << std::endl;
 	}
@@ -1721,10 +1664,8 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 
 				// Fade out cutscene BGM as we transition to the level
 #ifndef _DEBUG
-				if (audioManager_) {
-					const float cutsceneBgmFadeOut = cutTrans_.outSeconds; // Match visual fade-out duration
-					audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", 0.0f, cutsceneBgmFadeOut);
-					std::cout << "[Scene] Fading out cutscene BGM as cutscene ends" << std::endl;
+				if (cutsceneFadeOutHook_) {
+					cutsceneFadeOutHook_(*this, cutTrans_.outSeconds);
 				}
 #endif
 			}
@@ -1749,14 +1690,8 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 			// Start win cutscene BGM after initial fade-in (when first image appears)
 			// Check if this is the win cutscene by looking at the image paths
 #ifndef _DEBUG
-			if (audioManager_ && !cutTrans_.images.empty()) {
-				const std::string& firstImage = cutTrans_.images[0];
-				if (firstImage.find("Win") != std::string::npos || firstImage.find("daychange") != std::string::npos) {
-					if (audioManager_->HasSound("bgm_win_cutscene")) {
-						audioManager_->PlaySound("bgm_win_cutscene", audioManager_->GetBgmVolume(), false);
-						std::cout << "[Scene] Playing win cutscene BGM after initial fade-in" << std::endl;
-					}
-				}
+			if (cutsceneFirstFrameHook_ && !cutTrans_.images.empty()) {
+				cutsceneFirstFrameHook_(*this, cutTrans_.images[0]);
 			}
 #endif
 			return;
@@ -1786,21 +1721,8 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 
 			// Stop the cutscene BGM completely before loading the level
 #ifndef _DEBUG
-			if (audioManager_) {
-				audioManager_->StopSound("bgm_MyoonchiDiner_IntroCutscene");
-				std::cout << "[Scene] Stopped cutscene BGM before loading level" << std::endl;
-
-				// Fade out game over sound effect if it's playing (from lose cutscene)
-				if (audioManager_->HasSound("sfx_gameover")) {
-					audioManager_->FadeChannel("sfx_gameover", 0.0f, cutTrans_.outSeconds);
-					std::cout << "[Scene] Fading out game over SFX before loading level" << std::endl;
-				}
-
-				// Fade out win cutscene music if it's playing (from win cutscene)
-				if (audioManager_->HasSound("bgm_win_cutscene")) {
-					audioManager_->FadeChannel("bgm_win_cutscene", 0.0f, cutTrans_.outSeconds);
-					std::cout << "[Scene] Fading out win cutscene BGM before loading level" << std::endl;
-				}
+			if (cutsceneBeforeFinalLoadHook_) {
+				cutsceneBeforeFinalLoadHook_(*this, cutTrans_.outSeconds);
 			}
 #endif
 
@@ -2013,8 +1935,8 @@ void Scene::SkipActiveCutscene() {
 		}
 
 #ifndef _DEBUG
-		if (audioManager_) {
-			audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", 0.0f, cutTrans_.outSeconds);
+		if (skipCutsceneAudioHook_) {
+			skipCutsceneAudioHook_(*this, cutTrans_.outSeconds);
 		}
 #endif
 	}

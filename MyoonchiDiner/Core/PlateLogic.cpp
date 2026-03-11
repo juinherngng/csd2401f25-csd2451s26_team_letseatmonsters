@@ -13,8 +13,7 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/PlateLogic.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "PlateLogic.hpp"
 

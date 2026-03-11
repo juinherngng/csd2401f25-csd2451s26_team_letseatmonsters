@@ -14,12 +14,10 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/TableLogic.hpp"
-#include "../Core/LogicManager.hpp"
-#include "../Core/PlateLogic.hpp"
-#include "../Graphics/SceneManager.hpp"   // for Scene interface (GetGameObjectByID, etc.)
-#include "../Graphics/GameObject.hpp"
+#include "Graphics/GameObject.hpp"
+#include "Graphics/SceneManager.hpp"   // for Scene interface (GetGameObjectByID, etc.)
 
+#include "PlateLogic.hpp"
 #include "TableLogic.hpp"
 
 #include <iostream>

@@ -16,9 +16,9 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/AudioManager.hpp"
-#include "../Graphics/GameObject.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Core/AudioManager.hpp"
+#include "Graphics/GameObject.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "WorkTableLogic.hpp"
 

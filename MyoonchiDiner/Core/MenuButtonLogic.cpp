@@ -13,9 +13,9 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Graphics/GraphicsEngine.hpp"
-#include "../Graphics/ResourceManager.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Graphics/GraphicsEngine.hpp"
+#include "Graphics/ResourceManager.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "AudioManager.hpp"
 #include "FilePaths.hpp"
@@ -151,12 +151,18 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	}
 
 	glm::vec2 mouseWorld{};
-	bool insideScene = GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld);
+	bool insideScene = false;
+
+	if (input.IsReplayOverride()) {
+		const glm::dvec2 replayMousePos = input.GetMousePosition();
+		insideScene = scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, &replayMousePos);
+	}
+	else {
+		insideScene = scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, nullptr);
+	}
+
 	if (!insideScene) {
-		glm::vec3 w = input.ScreenToWorld(
-			static_cast<float>(input.GetMousePosition().x),
-			static_cast<float>(input.GetMousePosition().y));
-		mouseWorld = glm::vec2(w.x, w.y);
+		return;
 	}
 
 	GameObject* owner = GetOwner(scene);

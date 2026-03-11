@@ -23,20 +23,11 @@ class AudioManager;
 // Logic component for menu buttons that load levels or toggle simulation when clicked.
 class MenuButtonLogic final : public GameObjectLogic {
 public:
-	// Constructor takes the target JSON path to determine which level to load, and whether to activate simulation.
+	// Constructor takes explicit target JSON path and simulation activation.
 	explicit MenuButtonLogic(int ownerID, std::string targetJson, bool activateSimulation)
 		: GameObjectLogic(ownerID),
-		activateSimulation_(activateSimulation) {
-		// Determine which state to load based on the JSON path BEFORE moving
-		if (targetJson.find("kitchen01") != std::string::npos) {
-			stateToLoad_ = 1; // GS_Level2 = gameplay
-		}
-		else {
-			stateToLoad_ = 0; // GS_Level1 = main menu
-		}
-		// Now store the path after we've checked it
-		targetJson_ = std::move(targetJson);
-	}
+		targetJson_(std::move(targetJson)),
+		activateSimulation_(activateSimulation) {}
 
 	// Override Update to handle hover state and click interactions
 	void Update(float dt, Scene& scene, InputManager& input) override;
@@ -50,7 +41,6 @@ private:
 	// Click target
 	std::string targetJson_;
 	bool activateSimulation_ = false;
-	int stateToLoad_ = 0;
 
 	// Hover state cache
 	bool initialized_ = false;

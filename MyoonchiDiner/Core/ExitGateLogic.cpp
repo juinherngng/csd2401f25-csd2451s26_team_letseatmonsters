@@ -11,9 +11,9 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/ExitGateLogic.hpp"
-#include "../Graphics/GameObject.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Core/ExitGateLogic.hpp"
+#include "Graphics/GameObject.hpp"
+#include "Graphics/SceneManager.hpp"
 
 Math::Vector2D ExitGateLogic::GetExitTargetWorld(Scene& scene) const {
 	GameObject* owner = GetOwner(scene);

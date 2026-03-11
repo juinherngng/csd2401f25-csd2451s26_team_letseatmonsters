@@ -99,7 +99,7 @@ public:
 
 	// ImGui and picking
 	void DrawSceneDockWindow();                           // Draws Scene window with FBO image
-	bool GetMouseWorldInScene(glm::vec2& outWorld) const; // Screen->world if within Scene image
+	bool GetMouseWorldInScene(glm::vec2& outWorld, const glm::dvec2* mousePosOverride = nullptr) const; // Screen->world if within Scene image
 	ImGuiID GetMainDockspaceID() const;
 
 	// Camera accessors for external use (e.g. text rendering)

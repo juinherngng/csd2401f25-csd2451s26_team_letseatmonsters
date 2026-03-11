@@ -20,6 +20,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <cmath>
 #include <unordered_map>
 
 #ifdef _DEBUG
@@ -80,6 +81,26 @@ namespace LEPANELPREFABS {
 		out.speedY = v.y;
 
 		return out;
+	}
+
+	static bool NearlyEqual(float a, float b, float epsilon = 0.01f) {
+		return std::fabs(a - b) <= epsilon;
+	}
+
+	static bool IsPrefabEquivalent(const LevelObject& lhs, const LevelObject& rhs) {
+		return lhs.texture == rhs.texture &&
+			lhs.tag == rhs.tag &&
+			lhs.layer == rhs.layer &&
+			NearlyEqual(lhs.w, rhs.w) &&
+			NearlyEqual(lhs.h, rhs.h) &&
+			NearlyEqual(lhs.rotation, rhs.rotation) &&
+			NearlyEqual(lhs.colWidth, rhs.colWidth) &&
+			NearlyEqual(lhs.colHeight, rhs.colHeight) &&
+			NearlyEqual(lhs.colOffsetX, rhs.colOffsetX) &&
+			NearlyEqual(lhs.colOffsetY, rhs.colOffsetY) &&
+			NearlyEqual(lhs.speedX, rhs.speedX) &&
+			NearlyEqual(lhs.speedY, rhs.speedY) &&
+			(lhs.animated == rhs.animated);
 	}
 
 	// Ensure a .json extension for save paths
@@ -419,6 +440,46 @@ namespace LEPANELPREFABS {
 			ImGui::EndDisabled();
 		}
 
+		GameObject* selectedObj = (selectedObjectId >= 0)
+			? scene.GetGameObjectByID(selectedObjectId)
+			: nullptr;
+		const bool hasSelection = (selectedObj != nullptr);
+
+		LevelObject loadedPrefab{};
+		const bool prefabLoaded = prefabExists && LoadPrefabFromFile(prefabPath, loadedPrefab);
+		const bool canUsePrefabWorkflow = hasSelection && prefabLoaded;
+
+		ImGui::BeginDisabled(!canUsePrefabWorkflow || editor.IsPlaying());
+		if (ImGui::Button("Apply to selected instance")) {
+			ApplyPrefabToObjectKeepPosition(loadedPrefab, scene, selectedObj);
+			PrefabLinkByID[selectedObjectId] = NormalizePrefabPath(prefabPath);
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Revert prefab from selected")) {
+			LevelObject updated = BuildPrefabFromObject(scene, selectedObj);
+			updated.prefabPath = NormalizePrefabPath(prefabPath);
+			if (SavePrefabToFile(prefabPath, updated)) {
+				PrefabLinkByID[selectedObjectId] = NormalizePrefabPath(prefabPath);
+				sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+			}
+		}
+
+		ImGui::EndDisabled();
+
+		if (canUsePrefabWorkflow) {
+			const LevelObject live = BuildPrefabFromObject(scene, selectedObj);
+			const bool diverged = !IsPrefabEquivalent(live, loadedPrefab);
+			if (diverged) {
+				ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f),
+					"Status: Diverged from prefab defaults");
+			}
+			else {
+				ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f),
+					"Status: In sync with prefab");
+			}
+		}
+
 		// Instantiate from prefab (disabled if path not found)
 		ImGui::BeginDisabled(!prefabExists);
 		if (ImGui::Button("Instantiate from prefab")) {
@@ -472,19 +533,8 @@ namespace LEPANELPREFABS {
 					);
 					scene.SetNPCVelocity(g->GetID(), data.speedX, data.speedY);
 
-					// Re-assign special IDs if the prefab carries a tag
-					if (data.tag == "player") {
-						scene.SetPlayerID(g->GetID());
-					}
-					else if (data.tag == "npc1") {
-						scene.SetNPC1ID(g->GetID());
-					}
-					else if (data.tag == "npc2") {
-						scene.SetNPC2ID(g->GetID());
-					}
-					else if (data.tag == "dino") {
-						scene.SetDinoID(g->GetID());
-					}
+					// Re-assign special IDs via tag rules hook
+					scene.ApplyTagRules(g->GetID(), data.tag, data.speedX, data.speedY);
 
 					// Keep within walkable area
 					scene.ClampToWalkArea(g);

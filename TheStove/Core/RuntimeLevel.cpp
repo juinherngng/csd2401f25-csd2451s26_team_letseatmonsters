@@ -84,18 +84,6 @@ namespace RuntimeLevel {
 					continue;
 				}
 
-				// Menu animation: 6x5 sheet, separate from dino/goat
-				if (obj.tag == "menu_anim") {
-					// Use AnimationManager via Scene helper APIs
-					scene.AttachMenuAnimations(g->GetID());
-					// Choose the full-sheet looping clip (or allow obj.animName to override)
-					scene.SetAnimation(g->GetID(), obj.animName.empty() ? "FULL" : obj.animName);
-				}
-				// Existing cases (unchanged)
-				else if (obj.texture.find("dino") != std::string::npos || obj.tag == "dino") {
-					scene.AttachDinoAnimations(g->GetID());
-					scene.SetAnimation(g->GetID(), obj.animName.empty() ? "IDLE" : obj.animName);
-				}
 			}
 			else {
 				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
@@ -129,22 +117,8 @@ namespace RuntimeLevel {
 			// Track texture path for editor/runtime
 			scene.SetObjectTexturePath(g->GetID(), obj.texture);
 
-			// Tag setup + optional velocity
-			if (obj.tag == "player") {
-				scene.SetPlayerID(g->GetID());
-			}
-			else if (obj.tag == "npc1") {
-				scene.SetNPC1ID(g->GetID());
-				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
-			}
-			else if (obj.tag == "npc2") {
-				scene.SetNPC2ID(g->GetID());
-				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
-			}
-			else if (obj.tag == "dino") {
-				scene.SetDinoID(g->GetID());
-				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
-			}
+			scene.ApplyTagRules(g->GetID(), obj.tag, obj.speedX, obj.speedY);
+			scene.ApplyRuntimeObjectSetup(g->GetID(), obj.tag, obj.texture, obj.animated, obj.animName, obj.speedX, obj.speedY);
 
 			if (g) {
 				// Default shadow off unless specified
@@ -223,6 +197,9 @@ namespace RuntimeLevel {
 		const auto preloadStart = std::chrono::steady_clock::now();
 		ResourceManager::Instance().PreloadTextures(manifest.textures);
 		const double preloadMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - preloadStart).count();
+#ifdef NDEBUG
+		(void)preloadMs;
+#endif
 
 		const auto buildStart = std::chrono::steady_clock::now();
 		BuildSceneFromLevel(data, scene);

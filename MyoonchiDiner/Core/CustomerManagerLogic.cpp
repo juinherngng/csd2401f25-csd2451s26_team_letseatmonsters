@@ -15,15 +15,15 @@
  */
 
 
-#include "../Core/AudioManager.hpp"
-#include "../Core/CustomerManagerLogic.hpp"
-#include "../Core/CustomerOrderUILogic.hpp"
-#include "../Core/CustomerTableLogic.hpp"
-#include "../Core/LogicManager.hpp"
-#include "../Core/Math.hpp"
-#include "../Core/SimpleNpcLogic.hpp"
-#include "../Graphics/GameObject.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Core/AudioManager.hpp"
+#include "Core/CustomerManagerLogic.hpp"
+#include "Core/CustomerOrderUILogic.hpp"
+#include "Core/CustomerTableLogic.hpp"
+#include "Core/LogicManager.hpp"
+#include "Core/Math.hpp"
+#include "Core/SimpleNpcLogic.hpp"
+#include "Graphics/GameObject.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -260,7 +260,8 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
     // Tag + attach logic/animations the same way JSON spawning does
     scene.SetObjectTag(npcID, "customer_template");
     scene.AttachLogicForTag(npcID, "customer_template");
-    if (!npc) return false;
+    scene.AttachCustomersAnimations(npcID);
+    scene.SetAnimation(npcID, "IDLE_FRONT");
 
     // Apply collider/profile settings
     npc->SetColliderSize(Math::Vector2D(prof.colSize.x, prof.colSize.y));

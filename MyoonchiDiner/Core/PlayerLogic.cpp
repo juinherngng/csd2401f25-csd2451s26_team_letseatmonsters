@@ -11,18 +11,23 @@
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
-#include "../Core/AudioManager.hpp"
-#include "../Core/CustomerTableLogic.hpp"
-#include "../Core/DebugUI.hpp"
-#include "../Core/InputControls.hpp"
-#include "../Core/InputManager.hpp"
-#include "../Core/TableLogic.hpp"
-#include "../Core/TrashCanLogic.hpp"
-#include "../Core/WorkTableLogic.hpp"
-#include "../Core/SimpleNpcLogic.hpp"
-#include "../Core/CustomerOrderUILogic.hpp"
-#include "../Core/PlayerLogic.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Core/AudioManager.hpp"
+#include "Core/CustomerTableLogic.hpp"
+#include "Core/DebugUI.hpp"
+#include "Core/EngineRng.hpp"
+#include "Core/IngredientBoxLogic.hpp"
+#include "Core/IngredientLogic.hpp"
+#include "Core/InputControls.hpp"
+#include "Core/InputManager.hpp"
+#include "Core/PlateLogic.hpp"
+#include "Core/TableLogic.hpp"
+#include "Core/TrashCanLogic.hpp"
+#include "Core/WorkTableLogic.hpp"
+#include "Graphics/SceneManager.hpp"
+
+#include "CustomerOrderUILogic.hpp"
+#include "PlayerLogic.hpp"
+#include "SimpleNpcLogic.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -216,8 +221,13 @@ void PlayerLogic::ResetMouseDragState() {
 }
 
 //Get the mouse world position if the mouse is currently over the scene viewport
-bool PlayerLogic::TryGetMouseWorld(Scene& scene, glm::vec2& mouseWorld) const {
-	return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld);
+bool PlayerLogic::TryGetMouseWorld(Scene& scene, InputManager& input, glm::vec2& mouseWorld) const {
+	if (input.IsReplayOverride()) {
+		const glm::dvec2 replayMousePos = input.GetMousePosition();
+		return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, &replayMousePos);
+	}
+
+	return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, nullptr);
 }
 
 // Clear the current movement target and reset related state
@@ -249,8 +259,8 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 		switch (facingDir) {
 		case FacingDir::Right: desiredAnimation = isHolding ? "IDLE_RIGHT_CARRY" : "IDLE_RIGHT"; break;
 		case FacingDir::Left:  desiredAnimation = isHolding ? "IDLE_LEFT_CARRY" : "IDLE_LEFT";  break;
-		case FacingDir::Front: desiredAnimation = isHolding ? "IDLE_FRONT" : "IDLE_FRONT"; break;			// Using normal idle for front since we dont have idle front carry animations yet
-		case FacingDir::Back:  desiredAnimation = isHolding ? "IDLE_BACK" : "IDLE_BACK";  break;			// Using normal idle for back since we dont have idle back carry animations yet
+		case FacingDir::Front: desiredAnimation = isHolding ? "IDLE_FRONT_CARRY" : "IDLE_FRONT"; break;			// Using normal idle for front since we dont have idle front carry animations yet
+		case FacingDir::Back:  desiredAnimation = isHolding ? "IDLE_BACK_CARRY" : "IDLE_BACK";  break;			// Using normal idle for back since we dont have idle back carry animations yet
 		}
 	}
 	else {
@@ -446,7 +456,7 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	}
 
 	glm::vec2 mouseWorld{};
-	if (!TryGetMouseWorld(scene, mouseWorld)) {
+	if (!TryGetMouseWorld(scene, input, mouseWorld)) {
 		return;
 	}
 
@@ -965,7 +975,8 @@ void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManag
 			trailPos.y -= dir.y * behind;
 
 			const glm::vec2 perp(-dir.y, dir.x);
-			const float jitter = ((std::rand() % 1000) / 1000.0f - 0.5f) * 3.0f;
+			static std::uniform_real_distribution<float> jitterDist(-1.5f, 1.5f);
+			const float jitter = jitterDist(EngineRng::Get());
 			trailPos.x += perp.x * jitter;
 			trailPos.y += perp.y * jitter;
 
@@ -1002,6 +1013,14 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
+	UpdateStationLock(scene);
+
+	if (movementLocked_ && ShouldPlayChopAnimation(scene)) {
+		EnsureChopAnimation(scene, player);
+		UpdateCarriedItemTransform(scene);
+		return;
+	}
+
 	HandleKeyboardMovement(dt, scene, input, player, beforePos);
 	HandleClickInput(scene, input, dt);
 	UpdateClickMoveIndicator(scene, dt);
@@ -1014,11 +1033,10 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 // Optional: visual cues for interactable objects under mouse cursor
 void PlayerLogic::UpdateInteractableVisualCues(Scene& scene, InputManager& input, float dt) {
-	(void)input;
 	(void)dt;
 
 	glm::vec2 mouseWorld{};
-	const bool hasMouseWorld = scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld);
+	const bool hasMouseWorld = TryGetMouseWorld(scene, input, mouseWorld);
 
 	std::unordered_set<int> nextHighlighted;
 	nextHighlighted.reserve(16);
@@ -1079,13 +1097,13 @@ bool PlayerLogic::IsPointInsideObjectCollider(const GameObject* obj, const glm::
 		(worldPoint.y >= center.y - halfH && worldPoint.y <= center.y + halfH);
 }
 
-// Show a temporary indicator (e.g. a circle) at the clicked position for click-to-move feedback
+// Show a temporary indicator at the clicked position for click-to-move feedback
 void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint) {
 	const glm::vec3 markerPos(worldPoint.x, worldPoint.y, 0.0f);
 
 	GameObject* marker = scene.GetGameObjectByID(clickIndicatorID_);
 	if (!marker) {
-		marker = scene.SpawnStaticSprite("../assets/Coin.png", markerPos, glm::vec2(26.0f, 26.0f));
+		marker = scene.SpawnStaticSprite("../assets/Arrow_Merged.png", markerPos, glm::vec2(26.0f, 26.0f));
 		if (!marker) {
 			clickIndicatorID_ = -1;
 			clickIndicatorTimeLeft_ = 0.0f;
@@ -1098,7 +1116,7 @@ void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoi
 
 	marker->SetPosition(markerPos);
 	marker->SetScale(glm::vec3(26.0f, 26.0f, 1.0f));
-	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.95f));
+	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	clickIndicatorTimeLeft_ = kClickIndicatorLifetime;
 }
 
@@ -1124,9 +1142,8 @@ void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
 	}
 
 	const float t = std::clamp(clickIndicatorTimeLeft_ / kClickIndicatorLifetime, 0.0f, 1.0f);
-	const float alpha = 0.25f + 0.70f * t;
 	const float size = 18.0f + (1.0f - t) * 28.0f;
-	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, alpha));
+	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	marker->SetScale(glm::vec3(size, size, 1.0f));
 }
 
@@ -1277,7 +1294,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 			}
 		}
 		return;
-}
+	}
 
 	// CASE 3: Player holding something, table already has an item
 	//   -> typical case: table has a Plate, player has an Ingredient
@@ -1300,7 +1317,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 			if (plate->TryAddIngredient(*ingr, consumedNow)) {
 				//std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient type\n";
 
-				// VISUAL: first ingredient goes onto the plate visually
+				// VISUAL: first ingredient goes onto the plate.
 				if (ingredientCountBefore == 0) // this is the first ingredient on this plate
 				{
 					GameObject* plateObj = scene.GetGameObjectByID(tableItemID);

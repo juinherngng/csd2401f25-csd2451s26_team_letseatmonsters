@@ -22,6 +22,7 @@
 #include "Core/DebugUI.hpp"
 #include "Core/FileDropHandler.hpp"
 #include "Core/FilePaths.hpp"
+#include "Core/GameBootstrap.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/LevelEditorFileIO.hpp"
 #include "Core/MovementManager.hpp"
@@ -689,6 +690,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Create Scene with smart pointer, passing all manager references
 	app.currentScene = std::make_unique<Scene>(*graphicsEngine, *inputMgr, *animMgr,
 		*movementMgr, *physicsMgr, *collisionMgr);
+	RegisterGameBindings(*app.currentScene);
 
 	// Get AudioManager and set it on Scene for UI sounds
 	AudioManager* audioMgr = app.coreEngine->GetSystem<AudioManager>();
@@ -736,9 +738,8 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 				gsm->SetAudioManager(audioMgrGsm);
 			}
 
-			// Map states to JSON files
-			gsm->RegisterJsonState(Framework::GS_Level1, FilePaths::Levels::MAIN_MENU);	// state 0 = menu
-			gsm->RegisterJsonState(Framework::GS_Level2, FilePaths::Levels::KITCHEN_01);	// state 1 = gameplay
+			ConfigureGameStates(*gsm);
+			ConfigureGameStateAudioPolicy(*gsm);
 
 			// Initialize to main menu state
 			gsm->InitializeGameState(Framework::GS_Level1, 0.0f);
@@ -771,8 +772,10 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 static void update(ApplicationState& app) {
 	// Calculate delta time
 	float currentFrame = static_cast<float>(glfwGetTime());
-	float deltaTime = currentFrame - app.lastFrame;
+	float rawDeltaTime = currentFrame - app.lastFrame;
 	app.lastFrame = currentFrame;
+
+	float frameDt = rawDeltaTime;
 
 	glfwPollEvents();
 
@@ -790,8 +793,8 @@ static void update(ApplicationState& app) {
 	if (app.pausedByOSFocus) {
 		// You can still keep FPS stats if you like, or set them to 0
 		app.smoothedDt = (app.smoothedDt == 0.0f)
-			? deltaTime
-			: (0.96f * app.smoothedDt) + (0.04f * deltaTime);
+			? frameDt
+			: (0.96f * app.smoothedDt) + (0.04f * frameDt);
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 		if (app.debugApp) {
@@ -807,7 +810,12 @@ static void update(ApplicationState& app) {
 	// engine.BeginImGuiFrame();
 
 	// Update scene with delta time and window pointer
-	app.currentScene->Update(deltaTime, app.window);
+	app.currentScene->Update(frameDt, app.window);
+
+	const float replayDt = app.currentScene->GetReplayFrameDt();
+	const bool replayActive = app.currentScene->IsReplayPlaybackActive();
+	const bool hasReplayDt = app.currentScene->HasReplayFrameDt();
+	frameDt = (replayActive && hasReplayDt) ? replayDt : frameDt;
 
 	// Get GraphicsEngine for transitions
 	auto* graphicsEngine = app.coreEngine->GetSystem<GraphicsEngine>();
@@ -834,7 +842,7 @@ static void update(ApplicationState& app) {
 	if (graphicsEngine && graphicsEngine->IsAtBlackout() && app.pendingStateAfterFade >= 0) {
 		if (auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>()) {
 			std::cout << "[Main] Blackout reached; switching to state " << app.pendingStateAfterFade << std::endl;
-			gsm->UpdateGameState(app.pendingStateAfterFade, deltaTime);
+			gsm->UpdateGameState(app.pendingStateAfterFade, frameDt);
 		}
 		else {
 			std::cerr << "[Main] ERROR: GameStateManager not found!" << std::endl;
@@ -854,7 +862,7 @@ static void update(ApplicationState& app) {
 	// This controls how fast the fps counter reacts to changes
 	// (higher value = smoother fps) else 
 	// (lower value = faster fps change response but more jittery)
-	app.smoothedDt = (app.smoothedDt == 0.0f) ? deltaTime : (0.96f * app.smoothedDt) + (0.04f * deltaTime);
+	app.smoothedDt = (app.smoothedDt == 0.0f) ? frameDt : (0.96f * app.smoothedDt) + (0.04f * frameDt);
 
 	// Update FPS display variables for DebuggerApp
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
@@ -864,7 +872,12 @@ static void update(ApplicationState& app) {
 	}
 #endif
 
-	app.coreEngine->GameLoop();
+	if (replayActive && hasReplayDt) {
+		app.coreEngine->GameLoop(frameDt);
+	}
+	else {
+		app.coreEngine->GameLoop();
+	}
 }
 
 static void draw(ApplicationState& app) {

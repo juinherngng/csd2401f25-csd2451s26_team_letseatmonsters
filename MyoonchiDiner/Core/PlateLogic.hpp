@@ -16,9 +16,9 @@
 #pragma once
 
 #include <vector>
-#include "../Core/GameObjectLogic.hpp"
-#include "../Core/FoodTypes.hpp"
-#include "../Core/IngredientLogic.hpp"
+#include "Core/GameObjectLogic.hpp"
+#include "Core/FoodTypes.hpp"
+#include "Core/IngredientLogic.hpp"
 
  // PlateLogic
  //  - Represents a plate that can accept refined ingredients and assemble them into a dish.

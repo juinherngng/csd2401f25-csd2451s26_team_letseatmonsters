@@ -13,7 +13,7 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Graphics/SceneManager.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "IngredientLogic.hpp"
 

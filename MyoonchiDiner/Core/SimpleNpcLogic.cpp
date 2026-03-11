@@ -12,10 +12,13 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/AudioManager.hpp"
-#include "../Core/Collision.hpp"  // for WalkArea definition
-#include "../Core/Physics.hpp"      // optional, if you want clamp helpers
-#include "../Graphics/SceneManager.hpp"
+#include "Core/AudioManager.hpp"
+#include "Core/Collision.hpp"  // for WalkArea definition
+#include "Core/CustomerTableLogic.hpp"
+#include "Core/EngineRng.hpp"
+#include "Core/ExitGateLogic.hpp"
+#include "Core/Physics.hpp"      // optional, if you want clamp helpers
+#include "Graphics/SceneManager.hpp"
 
 #include "SimpleNpcLogic.hpp"
 
@@ -788,7 +791,7 @@ DishType SimpleNpcLogic::RollRandomDish(Scene& scene) {
 
 	static std::mt19937 rng{ std::random_device{}() };
     std::uniform_int_distribution<int> dist(0, poolSize - 1);
-    return pool[dist(rng)];
+    return kPool[dist(EngineRng::Get())];
 }
 
 void SimpleNpcLogic::OnPatienceExpired(Scene& scene) {

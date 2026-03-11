@@ -13,9 +13,9 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include "../Core/AudioManager.hpp"
-#include "../Core/Quota.hpp"
-#include "../Graphics/SceneManager.hpp"
+#include "Core/AudioManager.hpp"
+#include "Core/Quota.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "FilePaths.hpp"
 

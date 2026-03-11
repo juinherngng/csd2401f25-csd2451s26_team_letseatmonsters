@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -34,18 +35,7 @@
 #include "../Core/Physics.hpp"
 #include "../Core/PhysicsManager.hpp"
 #include "../Core/PlayerController.hpp"
-#include "../Core/PlayerLogic.hpp"
-#include "../Core/SimpleNpcLogic.hpp"
-#include "../Core/TableLogic.hpp"
-#include "../Core/WorkTableLogic.hpp"
-#include "../Core/CustomerTableLogic.hpp"
-#include "../Core/IngredientBoxLogic.hpp"
-#include "../Core/CustomerManagerLogic.hpp"
-#include "../Core/ExitGateLogic.hpp"
-#include "../Core/HowToPlayButtonLogic.hpp"
-#include "../Core/TrashCanLogic.hpp"
-#include "../Core/Quota.hpp"
-#include "../Core/OrderUILogic.hpp"
+#include "../Core/ReplayManager.hpp"
 #include "../Core/GridPathfinder.hpp"
 
 #include "AnimationManager.hpp"
@@ -55,6 +45,8 @@
 #include "Layer.hpp"
 #include "ParticleSystem.hpp"
 #include "../Core/FontSystem.hpp"
+
+class AudioManager;
 
  /**
   * @class Scene
@@ -193,7 +185,12 @@ public:
 
 	// Set the current animation of the object with given ID. Does nothing if object doesn't exist or doesn't have that animation.
 	void SetAnimation(int objID, const std::string& newAnim);
+	void AttachPlayerAnimations(int objID);
 	void AttachDinoAnimations(int objID);
+	void AttachCustomersAnimations(int objID);
+	void AttachWorkVfxCutAnimations(int objID);
+	void AttachWorkVfxGrillAnimations(int objID);
+	void AttachWorkVfxStoveAnimations(int objID);
 	void MarkAnimated(int id, bool state);
 	void AttachMenuAnimations(int objID);
 
@@ -203,6 +200,75 @@ public:
 
 	// Tag-based logic helpers
 	void AttachLogicForTag(int id, const std::string& tag);
+	using TagLogicBinder = std::function<void(Scene&, int, const std::string&)>;
+	using TagRuleHook = std::function<void(Scene&, int, const std::string&, float, float)>;
+	using PauseOverlayButtonBinder = std::function<void(Scene&, int, const std::string&)>;
+	using CustomerUpdateHook = std::function<void(float, Scene&)>;
+	using CustomerResetHook = std::function<void(Scene&)>;
+	using RuntimeObjectSetupHook = std::function<void(Scene&, int, const std::string&, const std::string&, bool, const std::string&, float, float)>;
+	using SimulationUpdateHook = std::function<void(float, Scene&)>;
+	using DefaultSceneSetupHook = std::function<void(Scene&)>;
+	using PostLevelLoadHook = std::function<void(Scene&, bool)>;
+	using CutsceneFadeOutHook = std::function<void(Scene&, float)>;
+	using CutsceneFirstFrameHook = std::function<void(Scene&, const std::string&)>;
+	using CutsceneBeforeFinalLoadHook = std::function<void(Scene&, float)>;
+	using SkipCutsceneAudioHook = std::function<void(Scene&, float)>;
+	using TagUsesVelocityHook = std::function<bool(const std::string&)>;
+	using NavigationBlockerCollector = std::function<void(Scene&, int, std::vector<collision::AABB>&)>;
+	void SetTagLogicBinder(TagLogicBinder binder) {
+		tagLogicBinder_ = std::move(binder);
+	}
+	void SetPauseOverlayButtonBinder(PauseOverlayButtonBinder binder) {
+		pauseOverlayButtonBinder_ = std::move(binder);
+	}
+	void SetTagRuleHook(TagRuleHook hook) {
+		tagRuleHook_ = std::move(hook);
+	}
+	void SetCustomerUpdateHook(CustomerUpdateHook hook) {
+		customerUpdateHook_ = std::move(hook);
+	}
+	void SetCustomerResetHook(CustomerResetHook hook) {
+		customerResetHook_ = std::move(hook);
+	}
+	void SetRuntimeObjectSetupHook(RuntimeObjectSetupHook hook) {
+		runtimeObjectSetupHook_ = std::move(hook);
+	}
+	void SetSimulationUpdateHook(SimulationUpdateHook hook) {
+		simulationUpdateHook_ = std::move(hook);
+	}
+	void SetDefaultSceneSetupHook(DefaultSceneSetupHook hook) {
+		defaultSceneSetupHook_ = std::move(hook);
+	}
+	void SetPostLevelLoadHook(PostLevelLoadHook hook) {
+		postLevelLoadHook_ = std::move(hook);
+	}
+	void SetCutsceneFadeOutHook(CutsceneFadeOutHook hook) {
+		cutsceneFadeOutHook_ = std::move(hook);
+	}
+	void SetCutsceneFirstFrameHook(CutsceneFirstFrameHook hook) {
+		cutsceneFirstFrameHook_ = std::move(hook);
+	}
+	void SetCutsceneBeforeFinalLoadHook(CutsceneBeforeFinalLoadHook hook) {
+		cutsceneBeforeFinalLoadHook_ = std::move(hook);
+	}
+	void SetNavigationBlockerCollector(NavigationBlockerCollector collector) {
+		navigationBlockerCollector_ = std::move(collector);
+	}
+	void SetSkipCutsceneAudioHook(SkipCutsceneAudioHook hook) {
+		skipCutsceneAudioHook_ = std::move(hook);
+	}
+	void SetTagUsesVelocityHook(TagUsesVelocityHook hook) {
+		tagUsesVelocityHook_ = std::move(hook);
+	}
+	void SetPauseOverlayAudioChannels(std::string musicChannel, std::string ambienceChannel) {
+		pauseMusicChannel_ = std::move(musicChannel);
+		pauseAmbienceChannel_ = std::move(ambienceChannel);
+	}
+	void ApplyRuntimeObjectSetup(int id, const std::string& tag, const std::string& texturePath, bool animated, const std::string& animName, float speedX, float speedY) {
+		if (runtimeObjectSetupHook_) {
+			runtimeObjectSetupHook_(*this, id, tag, texturePath, animated, animName, speedX, speedY);
+		}
+	}
 
 	// Centralized tag metadata
 	void SetObjectTag(int id, const std::string& tag);
@@ -348,6 +414,7 @@ public:
 	collision::WalkArea GetWalkArea() const;
 	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
 	void ApplyFinalConstraints(EntityManager& entityMgr);
+	void CollectNavigationBlockerBoxes(int moverObjectID, std::vector<collision::AABB>& outBoxes);
 
 	// Expose EntityManager for systems that need it
 	EntityManager& GetEntityManager() {
@@ -384,6 +451,18 @@ public:
 	bool IsPauseOverlayActive() const {
 		return pauseOverlayActive_;
 	}
+
+	// Replay state exposure
+	bool IsReplayPlaybackActive() const {
+		return replayManager_.IsPlaybackActive();
+	}
+	float GetReplayFrameDt() const {
+		return lastReplayFrameDt_;
+	}
+	bool HasReplayFrameDt() const {
+		return lastReplayFrameDt_ > 0.0f;
+	}
+
 
 	// Menu button text rendering
 #if 0
@@ -466,6 +545,7 @@ private:
 	MovementManager& movementManager;		// Changed from owned instance to reference
 	CollisionManager& collisionManager;		// Changed from owned instance to reference
 	PhysicsManager& physicsManager;			// Changed from owned instance to reference
+	ReplayManager replayManager_;
 
 	// Audio for UI sounds
 	AudioManager* audioManager_ = nullptr;
@@ -475,7 +555,6 @@ private:
 	PlayerController playerController;
 	NPCSystem npcSystem;
 	DebugVisualizer debugVisualizer;
-	CustomerManagerSystem customerManager_;
 
 	// Step-by-step controller
 	physics::StepController physicsStep_;
@@ -485,6 +564,9 @@ private:
 	bool simulationActive = false;
 	bool useForces_ = false;
 	bool showAuxDebug_ = false;
+
+	// Replay state
+	float lastReplayFrameDt_ = 0.0f;
 
 	// ID tracking for important objects (player, NPCs, etc.)
 	int spriteID = -1;
@@ -551,6 +633,23 @@ private:
 	LevelEditor mLevelEditor;
 	std::unordered_map<int, std::string> mTexturePathByID;
 	std::unordered_map<int, std::string> objectTags_;
+	TagLogicBinder tagLogicBinder_;
+	TagRuleHook tagRuleHook_;
+	PauseOverlayButtonBinder pauseOverlayButtonBinder_;
+	CustomerUpdateHook customerUpdateHook_;
+	CustomerResetHook customerResetHook_;
+	RuntimeObjectSetupHook runtimeObjectSetupHook_;
+	SimulationUpdateHook simulationUpdateHook_;
+	DefaultSceneSetupHook defaultSceneSetupHook_;
+	PostLevelLoadHook postLevelLoadHook_;
+	CutsceneFadeOutHook cutsceneFadeOutHook_;
+	CutsceneFirstFrameHook cutsceneFirstFrameHook_;
+	CutsceneBeforeFinalLoadHook cutsceneBeforeFinalLoadHook_;
+	NavigationBlockerCollector navigationBlockerCollector_;
+	SkipCutsceneAudioHook skipCutsceneAudioHook_;
+	TagUsesVelocityHook tagUsesVelocityHook_;
+	std::string pauseMusicChannel_;
+	std::string pauseAmbienceChannel_;
 
 	bool howToPlayOverlayActive_ = false;
 
