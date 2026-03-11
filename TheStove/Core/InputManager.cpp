@@ -75,15 +75,24 @@ InputManager& InputManager::Get() {
 void InputManager::Initialize() {
 	// Nothing to initialize - window will be set externally
 }
+void InputManager::BeginFrameInput() {
+	++mFrameToken;
+}
 void InputManager::Update(float dt) {
-	(void)dt; // Suppress unused parameter warning	
+	(void)dt;
 
 	if (replayOverride_) {
 		return;
 	}
 
+	// Prevent double-polling in the same frame (manual pre-scene poll + CoreEngine loop poll)
+	if (mLastPolledFrameToken == mFrameToken) {
+		return;
+	}
+
 	if (mWindow) {
 		UpdateInternal(mWindow);
+		mLastPolledFrameToken = mFrameToken;
 	}
 }
 
@@ -104,26 +113,17 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	mPreviousKeyStates = mCurrentKeyStates;
 	mPrevMouseButtons = mMouseButtons;
 
+	// Always sample raw cursor first
+	glfwGetCursorPos(window, &mMousePos.x, &mMousePos.y);
+
 #if defined(_DEBUG)
 	ImGuiIO& io = ImGui::GetIO();
-	bool wantCaptureKeyboard = io.WantCaptureKeyboard;
+	const bool wantCaptureKeyboard = io.WantCaptureKeyboard;
 #else
-	bool wantCaptureKeyboard = false;
+	const bool wantCaptureKeyboard = false;
 #endif
 
-	// Poll commonly used keys
-	int keys[] = {
-		GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN,
-		GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D,
-		// physics dt, collider, points/lines, force, level editor
-		GLFW_KEY_P, GLFW_KEY_G, GLFW_KEY_H, GLFW_KEY_F, GLFW_KEY_L,
-		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3,
-		GLFW_KEY_ESCAPE,
-		GLFW_KEY_F1,  // FPS display toggle in Release
-		GLFW_KEY_SPACE
-	};
-
-	// If ImGui wants the keyboard, clear key states so gameplay won't react
+	// Keyboard can still be gated by ImGui capture
 	if (!wantCaptureKeyboard) {
 		for (int key : kTrackedKeys) {
 			mCurrentKeyStates[key] = (glfwGetKey(window, key) == GLFW_PRESS);
@@ -135,13 +135,12 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 		}
 	}
 
-	// Always track mouse button states, let individual systems check WantCaptureMouse themselves
+	// IMPORTANT:
+	// Always track mouse button states.
+	// Scene/editor/gameplay should decide whether to consume the click based on hover/focus/world hit tests.
 	for (int b : kTrackedMouseButtons) {
 		mMouseButtons[b] = (glfwGetMouseButton(window, b) == GLFW_PRESS);
 	}
-
-	// Get mouse cursor position
-	glfwGetCursorPos(window, &mMousePos.x, &mMousePos.y);
 }
 
 void InputManager::ClearState() {

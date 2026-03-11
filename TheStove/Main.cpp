@@ -779,6 +779,12 @@ static void update(ApplicationState& app) {
 
 	glfwPollEvents();
 
+	// Poll input BEFORE scene consumes input
+	if (auto* inputMgr = app.coreEngine->GetSystem<InputManager>()) {
+		inputMgr->BeginFrameInput();
+		inputMgr->Update(frameDt);
+	}
+
 	// Handle F11 for fullscreen toggle (global hotkey)
 	int f11State = glfwGetKey(app.window, GLFW_KEY_F11);
 	bool f11Down = (f11State == GLFW_PRESS || f11State == GLFW_REPEAT);
@@ -802,14 +808,10 @@ static void update(ApplicationState& app) {
 			app.debugApp->msperFrame = 0.0f;
 		}
 #endif
-
-		// Do NOT update scene or core engine while paused
 		return;
 	}
 
-	// engine.BeginImGuiFrame();
-
-	// Update scene with delta time and window pointer
+	// Update scene with current-frame input available
 	app.currentScene->Update(frameDt, app.window);
 
 	const float replayDt = app.currentScene->GetReplayFrameDt();

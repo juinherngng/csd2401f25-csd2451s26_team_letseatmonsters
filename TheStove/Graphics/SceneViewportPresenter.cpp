@@ -12,6 +12,7 @@
 
 #include "imgui_internal.h"
 #include "SceneViewportPresenter.hpp"
+#include "../Core/InputManager.hpp"
 
 #include <cstdint>
 
@@ -70,6 +71,7 @@ void SceneViewportPresenter::DrawSceneWindow(unsigned int sceneColorTexture,
 	ImGui::SetNextWindowDockID(dockspaceId, ImGuiCond_FirstUseEver);
 
 	if (!ImGui::Begin("Scene###SceneWindow")) {
+		InputManager::Get().SetSceneViewportWantsGameMouse(false);
 		ImGui::End();
 		return;
 	}
@@ -95,11 +97,18 @@ void SceneViewportPresenter::DrawSceneWindow(unsigned int sceneColorTexture,
 		ImVec2(1, 0)
 	);
 
+	bool sceneWantsGameMouse = false;
 	if (outSceneImageSize.x > 1.0f && outSceneImageSize.y > 1.0f) {
 		ImGui::SetCursorScreenPos(outSceneImagePos);
 		ImGui::InvisibleButton("##SceneImageBtn", outSceneImageSize);
+
+		sceneWantsGameMouse =
+			ImGui::IsItemHovered() ||
+			ImGui::IsItemActive() ||
+			ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows);
 	}
 
+	InputManager::Get().SetSceneViewportWantsGameMouse(sceneWantsGameMouse);
 	ImGui::End();
 }
 
