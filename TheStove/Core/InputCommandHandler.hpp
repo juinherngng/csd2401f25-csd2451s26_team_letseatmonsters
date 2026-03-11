@@ -23,15 +23,7 @@
 #include "MovementManager.hpp"
 #include "PhysicsManager.hpp"
 
- /**
-  * @class InputCommandHandler
-  * @brief Small utility that maps keys to engine/debug actions.
-  *
-  * Controls:
-  *  - G: toggle collider DebugRenderer visibility.
-  *  - H: toggle auxiliary debug visuals flag (provided by caller).
-  *  - F: toggle "use forces" mode and enable/disable physics on the player.
-  */
+ // Forward declare Scene to avoid circular dependency.
 class InputCommandHandler {
 public:
 	InputCommandHandler() = default;

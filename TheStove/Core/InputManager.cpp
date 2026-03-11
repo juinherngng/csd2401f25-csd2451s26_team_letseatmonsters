@@ -143,6 +143,7 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	}
 }
 
+// Clear all input state (used when losing/regaining focus)
 void InputManager::ClearState() {
 	mCurrentKeyStates.clear();
 	mPreviousKeyStates.clear();
@@ -155,7 +156,6 @@ void InputManager::ClearState() {
 bool InputManager::IsKeyPressed(int key) const {
 	return GetButtonState(mCurrentKeyStates, key);
 }
-
 bool InputManager::IsKeyJustPressed(int key) const {
 	const bool curr = GetButtonState(mCurrentKeyStates, key);
 	const bool prev = GetButtonState(mPreviousKeyStates, key);
@@ -167,7 +167,6 @@ bool InputManager::IsKeyJustPressed(int key) const {
 bool InputManager::IsMouseButtonPressed(int button) const {
 	return GetButtonState(mMouseButtons, button);
 }
-
 bool InputManager::IsMouseButtonJustPressed(int button) {
 	const bool curr = GetButtonState(mMouseButtons, button);
 	const bool prev = GetButtonState(mPrevMouseButtons, button);
@@ -180,14 +179,12 @@ bool InputManager::IsMouseButtonJustPressed(int button) {
 
 	return justPressed;
 }
-
 bool InputManager::IsMouseButtonJustReleased(int button) const {
 	const bool curr = GetButtonState(mMouseButtons, button);
 	const bool prev = GetButtonState(mPrevMouseButtons, button);
 
 	return !curr && prev;
 }
-
 glm::dvec2 InputManager::GetMousePosition() const {
 	return mMousePos;
 }
@@ -212,11 +209,9 @@ glm::vec3 InputManager::ScreenToWorld(float mouseX, float mouseY) const {
 
 	return glm::vec3(world.x, world.y, world.z);
 }
-
 void InputManager::ConsumeNextMousePress(int button) {
 	mConsumeNextMousePress.insert(button);
 }
-
 void InputManager::ClearMouseConsume(int button) {
 	mConsumeNextMousePress.erase(button);
 }

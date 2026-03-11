@@ -55,11 +55,13 @@ namespace physics {
 		Math::Vector2D& desiredMove, bool& hasClickTarget,
 		float splitPlayer);
 
+	// Lane motion with bounce: tries to move in Y direction, but bounces back if blocked by world geometry.
 	void MoveYLaneWithBounce(
 		collision::World& world,
 		GameObject* gameObj, Math::Vector3D& pos, Math::Vector2D& vel,
 		float laneX, float physicsDt);
 
+	// Elastic bounce with equal mass: computes new velocities for two objects after a perfectly elastic collision.
 	void ElasticBounceEqualMass(
 		GameObject* firstObj, GameObject* secondObj,
 		Math::Vector3D& firstPos, Math::Vector3D& secondPos,
