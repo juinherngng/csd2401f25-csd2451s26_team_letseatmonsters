@@ -77,13 +77,6 @@ public:
 		logicMap.erase(it);
 	}
 
-	/** @brief Apply runtime config settings to all logic components. */
-	void ApplyRuntimeConfigToAll(const ConfigManager::Settings& settings) {
-		for (auto& [id, list] : logicMap)
-			for (auto& l : list)
-				l->ApplyRuntimeConfig(settings);
-	}
-
 	/** @brief Destroy and remove all logic components across the whole scene. */
 	void Clear(Scene& scene) {
 		for (auto& [id, list] : logicMap)

@@ -31,16 +31,6 @@ namespace ConfigManager {
 		float masterVolume{};
 		float bgmVolume{};
 		float vfxVolume{};
-
-		// Click indicator tuning (used by gameplay systems such as PlayerLogic).
-		int clickIndicatorProfile{ 0 }; // 0=Custom, 1=Snappy, 2=Soft, 3=Minimal
-		float clickIndicatorLifetime{ 0.45f };
-		float clickIndicatorSpawnSize{ 26.0f };
-		float clickIndicatorBaseSize{ 26.0f };
-		float clickIndicatorPopSize{ 36.0f };
-		float clickIndicatorShrinkOutDuration{ 0.08f };
-		float clickIndicatorMinScaleFactor{ 0.2f };
-		float clickIndicatorPeakTime{ 0.22f };
 	};
 
 	// Current config schema version. Increment this when making breaking changes to the config format.
