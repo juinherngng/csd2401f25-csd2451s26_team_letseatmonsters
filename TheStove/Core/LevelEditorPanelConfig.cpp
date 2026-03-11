@@ -143,20 +143,42 @@ namespace LEPANELCONFIG {
 		ImGui::SliderFloat("BGM Volume", &settings.bgmVolume, 0.0f, 1.0f, "%.2f");
 		ImGui::SliderFloat("VFX Volume", &settings.vfxVolume, 0.0f, 1.0f, "%.2f");
 
+		ImGui::SeparatorText("Click Indicator Settings");
+		const char* indicatorProfiles[] = { "Custom", "Snappy", "Soft", "Minimal" };
+		ImGui::Combo("Indicator Profile", &settings.clickIndicatorProfile, indicatorProfiles, IM_ARRAYSIZE(indicatorProfiles));
+		ImGui::SliderFloat("Indicator Lifetime", &settings.clickIndicatorLifetime, 0.1f, 2.0f, "%.2f s");
+		ImGui::SliderFloat("Indicator Spawn Size", &settings.clickIndicatorSpawnSize, 4.0f, 256.0f, "%.1f");
+		ImGui::SliderFloat("Indicator Base Size", &settings.clickIndicatorBaseSize, 4.0f, 256.0f, "%.1f");
+		ImGui::SliderFloat("Indicator Pop Size", &settings.clickIndicatorPopSize, 4.0f, 320.0f, "%.1f");
+		ImGui::SliderFloat("Indicator Shrink Duration", &settings.clickIndicatorShrinkOutDuration, 0.01f, 1.0f, "%.2f s");
+		ImGui::SliderFloat("Indicator Min Scale Factor", &settings.clickIndicatorMinScaleFactor, 0.0f, 1.0f, "%.2f");
+		ImGui::SliderFloat("Indicator Peak Time", &settings.clickIndicatorPeakTime, 0.05f, 0.9f, "%.2f");
+
 		ConfigManager::Validate(settings);
 
-		if (ImGui::Button("Apply Audio Runtime", ImVec2(170, 0))) {
+		if (ImGui::Button("Apply Runtime", ImVec2(170, 0))) {
+			bool audioApplied = false;
 			if (g_AppState && g_AppState->coreEngine) {
 				if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
 					audioMgr->ApplySettings(settings);
-					ImGui::OpenPopup("Audio Applied");
-				}
-				else {
-					ImGui::OpenPopup("Audio Apply Failed");
+					audioApplied = true;
 				}
 			}
+
+			for (auto* obj : scene.GetAllObjectsRaw()) {
+				if (!obj) {
+					continue;
+				}
+				if (PlayerLogic* playerLogic = scene.GetLogicManager().GetLogicForObject<PlayerLogic>(obj->GetID())) {
+					playerLogic->ApplyClickIndicatorTuning(settings);
+				}
+			}
+
+			if (audioApplied) {
+				ImGui::OpenPopup("Runtime Applied");
+			}
 			else {
-				ImGui::OpenPopup("Audio Apply Failed");
+				ImGui::OpenPopup("Runtime Applied (No Audio Manager)");
 			}
 		}
 
@@ -170,11 +192,11 @@ namespace LEPANELCONFIG {
 			}
 		}
 
-		ImGui::TextDisabled("Display changes are saved for next startup.");
+		ImGui::TextDisabled("Display settings apply next startup. Runtime apply updates audio + click indicator immediately.");
 
-		if (ImGui::BeginPopupModal("Audio Applied", nullptr,
+		if (ImGui::BeginPopupModal("Runtime Applied", nullptr,
 			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
-			ImGui::Text("Applied audio settings at runtime.");
+			ImGui::Text("Applied runtime settings (audio + click indicator).");
 			if (ImGui::Button("OK", ImVec2(120, 0))) {
 				ImGui::CloseCurrentPopup();
 			}
@@ -182,9 +204,9 @@ namespace LEPANELCONFIG {
 			ImGui::EndPopup();
 		}
 
-		if (ImGui::BeginPopupModal("Audio Apply Failed", nullptr,
+		if (ImGui::BeginPopupModal("Runtime Applied (No Audio Manager)", nullptr,
 			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
-			ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Audio manager unavailable.");
+			ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "Applied click-indicator runtime settings. Audio manager unavailable.");
 			if (ImGui::Button("OK", ImVec2(120, 0))) {
 				ImGui::CloseCurrentPopup();
 			}

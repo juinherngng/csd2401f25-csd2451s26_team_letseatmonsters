@@ -16,6 +16,7 @@
 #pragma once
 
 #include "Core/GameObjectLogic.hpp"
+#include "Core/ConfigManager.hpp"
 
 #include "Math.hpp"
 
@@ -34,6 +35,10 @@ public:
 	std::string GetName() const override {
 		return "PlayerLogic";
 	}
+
+	// Reload click-indicator tuning from config file at runtime.
+	void ReloadClickIndicatorTuning();
+	void ApplyClickIndicatorTuning(const ConfigManager::Settings& settings);
 
 	// Carry state helpers
 	bool IsHolding() const {
@@ -137,6 +142,7 @@ private:
 	void ClearMovementTarget(Scene& scene);
 	bool IsInTableInteractionRange(Scene& scene, int tableObjectID);
 	void CancelQueuedTableMove(Scene& scene);
+	void LoadClickIndicatorTuningFromConfig();
 
 	// Particle footsteps
 	float footstepDistanceAcc_ = 0.0f;
@@ -153,6 +159,16 @@ private:
 	// Click indicator state
 	int clickIndicatorID_ = -1;
 	float clickIndicatorTimeLeft_ = 0.0f;
+
+	// Click indicator tuning (loaded from config.txt with sensible defaults).
+	int clickIndicatorProfile_ = 0;
+	float clickIndicatorLifetime_ = 0.45f;
+	float clickIndicatorSpawnSize_ = 26.0f;
+	float clickIndicatorBaseSize_ = 26.0f;
+	float clickIndicatorPopSize_ = 36.0f;
+	float clickIndicatorShrinkOutDuration_ = 0.08f;
+	float clickIndicatorMinScaleFactor_ = 0.2f;
+	float clickIndicatorPeakTime_ = 0.22f;
 
 	// Trail effect state
 	glm::vec3 lastTrailPos_{ 0.0f, 0.0f, 0.0f };
