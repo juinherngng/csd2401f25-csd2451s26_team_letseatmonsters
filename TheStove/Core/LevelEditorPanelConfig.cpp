@@ -21,6 +21,7 @@
 #include "LevelEditor.hpp"
 #include "LevelEditorPanelConfig.hpp"
 
+#include <cfloat>
 #include <filesystem>
 #include <string>
 
@@ -124,28 +125,44 @@ namespace LEPANELCONFIG {
 			ImGui::EndPopup();
 		}
 
-		ImGui::SeparatorText("Display Settings");
+		ImGui::SeparatorText("Display");
 
 		int width = settings.resolution.width;
 		int height = settings.resolution.height;
-		if (ImGui::InputInt("Window Width", &width)) {
+		ImGui::TextUnformatted("Resolution");
+		ImGui::SetNextItemWidth((ImGui::GetContentRegionAvail().x - 36.0f) * 0.5f);
+		if (ImGui::InputInt("##WindowWidth", &width)) {
 			settings.resolution.width = width;
 		}
 
-		if (ImGui::InputInt("Window Height", &height)) {
+		ImGui::SameLine();
+		ImGui::TextUnformatted("x");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(-FLT_MIN);
+		if (ImGui::InputInt("##WindowHeight", &height)) {
 			settings.resolution.height = height;
 		}
 
 		ImGui::Checkbox("Fullscreen", &settings.fullscreen);
 
-		ImGui::SeparatorText("Audio Settings");
+		ImGui::SeparatorText("Audio");
 		ImGui::SliderFloat("Master Volume", &settings.masterVolume, 0.0f, 1.0f, "%.2f");
 		ImGui::SliderFloat("BGM Volume", &settings.bgmVolume, 0.0f, 1.0f, "%.2f");
 		ImGui::SliderFloat("VFX Volume", &settings.vfxVolume, 0.0f, 1.0f, "%.2f");
 
 		ConfigManager::Validate(settings);
 
-		if (ImGui::Button("Apply Audio Runtime", ImVec2(170, 0))) {
+		if (ImGui::Button("Save Config", ImVec2(140, 0))) {
+			if (ConfigManager::Save(configPath, settings)) {
+				ImGui::OpenPopup("Config Saved");
+			}
+			else {
+				ImGui::OpenPopup("Config Save Failed");
+			}
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Apply Audio", ImVec2(140, 0))) {
 			if (g_AppState && g_AppState->coreEngine) {
 				if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
 					audioMgr->ApplySettings(settings);
@@ -157,16 +174,6 @@ namespace LEPANELCONFIG {
 			}
 			else {
 				ImGui::OpenPopup("Audio Apply Failed");
-			}
-		}
-
-		ImGui::SameLine();
-		if (ImGui::Button("Save Config", ImVec2(120, 0))) {
-			if (ConfigManager::Save(configPath, settings)) {
-				ImGui::OpenPopup("Config Saved");
-			}
-			else {
-				ImGui::OpenPopup("Config Save Failed");
 			}
 		}
 

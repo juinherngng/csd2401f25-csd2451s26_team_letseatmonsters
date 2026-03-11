@@ -498,12 +498,12 @@ namespace {
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	// Draws the advanced Layering System UI (debug-only)
 	static void DrawLayerManager(Scene& scene, int selectedObjectId) {
-		if (!ImGui::CollapsingHeader("Layering System", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (!ImGui::CollapsingHeader("Layers")) {
 			return;
 		}
 
 		// New layer creation
-		ImGui::TextUnformatted("Create a new layer:");
+		ImGui::TextUnformatted("New Layer");
 		static char newLayerBuf[64] = "";
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 88.0f);
 		ImGui::InputText("##NewLayerName", newLayerBuf, IM_ARRAYSIZE(newLayerBuf));
@@ -519,7 +519,7 @@ namespace {
 		}
 
 		ImGui::Separator();
-		ImGui::TextUnformatted("Existing layers:");
+		ImGui::TextUnformatted("Layers");
 
 		const auto& layerMap = scene.GetAllLayers();
 		if (layerMap.empty()) {
@@ -808,137 +808,138 @@ namespace LEPANELLEVEL {
 
 		DrawLayerManager(scene, selectedObjectId);
 
-		ImGui::SeparatorText("Hierarchy");
-		static char sHierarchyFilter[128] = "";
-		ImGui::SetNextItemWidth(-FLT_MIN);
-		ImGui::InputTextWithHint("##HierarchyFilter", "Filter by name, ID, or layer", sHierarchyFilter, IM_ARRAYSIZE(sHierarchyFilter));
-		const std::string filterLower = LEHIERARCHY::ToLowerCopy(std::string(sHierarchyFilter));
-
 		// Object Hierarchy – stable order independent of movement
 		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
+		if (ImGui::CollapsingHeader("Hierarchy", ImGuiTreeNodeFlags_DefaultOpen)) {
+			static char sHierarchyFilter[128] = "";
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::InputTextWithHint("##HierarchyFilter", "Filter by name, ID, or layer", sHierarchyFilter, IM_ARRAYSIZE(sHierarchyFilter));
+			const std::string filterLower = LEHIERARCHY::ToLowerCopy(std::string(sHierarchyFilter));
 
-		// Remove objects whose layer is currently hidden
-		objectList.erase(
-			std::remove_if(objectList.begin(), objectList.end(),
-				[&](GameObject* g) {
+			// Remove objects whose layer is currently hidden
+			objectList.erase(
+				std::remove_if(objectList.begin(), objectList.end(),
+					[&](GameObject* g) {
+						if (!g) {
+							return true;
+						}
+						std::string layerName = scene.GetObjectLayer(g->GetID());
+						Layer* layer = scene.GetLayer(layerName);
+						return (layer && !layer->IsVisible());
+					}),
+				objectList.end());
+
+			// Sort by ID so list doesn’t reshuffle when objects move
+			std::sort(objectList.begin(), objectList.end(),
+				[](GameObject* a, GameObject* b) {
+					return a->GetID() < b->GetID();
+				});
+
+			// Keep hierarchy cache bounded to live objects
+			LEHIERARCHY::PruneDeadObjects(scene);
+			ImGui::TextDisabled("%d objects", static_cast<int>(objectList.size()));
+
+			// Keep hierarchy row in sync with selection by ID (click in Scene)
+			if (selectedObjectId != -1) {
+				int foundIndex = -1;
+				for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
+					GameObject* g = objectList[i];
+					if (g && g->GetID() == selectedObjectId) {
+						foundIndex = i;
+						break;
+					}
+				}
+
+				selectedIndex = foundIndex;
+
+				// If the object was deleted or is on a hidden layer, clear selection
+				if (selectedIndex == -1) {
+					selectedObjectId = -1;
+				}
+			}
+
+			// Hierarchy
+			if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200.0f))) {
+				// Game Objects
+				int visibleGameObjectRows = 0;
+				for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
+					GameObject* g = objectList[i];
 					if (!g) {
-						return true;
-					}
-					std::string layerName = scene.GetObjectLayer(g->GetID());
-					Layer* layer = scene.GetLayer(layerName);
-					return (layer && !layer->IsVisible());
-				}),
-			objectList.end());
-
-		// Sort by ID so list doesn’t reshuffle when objects move
-		std::sort(objectList.begin(), objectList.end(),
-			[](GameObject* a, GameObject* b) {
-				return a->GetID() < b->GetID();
-			});
-
-		// Keep hierarchy cache bounded to live objects
-		LEHIERARCHY::PruneDeadObjects(scene);
-
-		// Keep hierarchy row in sync with selection by ID (click in Scene)
-		if (selectedObjectId != -1) {
-			int foundIndex = -1;
-			for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
-				GameObject* g = objectList[i];
-				if (g && g->GetID() == selectedObjectId) {
-					foundIndex = i;
-					break;
-				}
-			}
-
-			selectedIndex = foundIndex;
-
-			// If the object was deleted or is on a hidden layer, clear selection
-			if (selectedIndex == -1) {
-				selectedObjectId = -1;
-			}
-		}
-
-		// Hierarchy
-		if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200.0f))) {
-			// Game Objects
-			int visibleGameObjectRows = 0;
-			for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
-				GameObject* g = objectList[i];
-				if (!g) {
-					continue;
-				}
-
-				const int gid = g->GetID();
-				const std::string& label = LEHIERARCHY::GetCachedLabel(scene, gid);
-				if (!LEHIERARCHY::PassesFilterCached(gid, filterLower)) {
-					continue;
-				}
-
-				++visibleGameObjectRows;
-				ImGui::PushID(gid);
-				bool isSelected = (selectedObjectId == gid);
-
-				// When playing, draw items but DO NOT allow selection to change
-				if (editor.IsPlaying()) {
-					ImGui::Selectable(label.c_str(), isSelected, ImGuiSelectableFlags_Disabled);
-				}
-				else {
-					if (ImGui::Selectable(label.c_str(), isSelected)) {
-						selectedIndex = i;
-						selectedObjectId = gid;
-						// Deselect any text object when selecting a game object
-						LEPANELFONTS::SetSelectedTextIndex(-1);
-					}
-				}
-
-				ImGui::PopID();
-			}
-
-			// Text Objects in Hierarchy (inside the same listbox)
-			{
-				const auto& textObjs = LEPANELFONTS::GetTextObjects();
-				int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
-				int visibleTextRows = 0;
-
-				for (size_t i = 0; i < textObjs.size(); ++i) {
-					const auto& t = textObjs[i];
-
-					// Check if layer is visible
-					Layer* layer = scene.GetLayer(t.layer);
-					if (layer && !layer->IsVisible()) {
 						continue;
 					}
 
-					std::string lbl = "[Text] " + t.name + " (" + t.fontName + ") [Layer: " + t.layer + "]";
-					if (!LEHIERARCHY::PassesFilter(lbl, filterLower)) {
+					const int gid = g->GetID();
+					const std::string& label = LEHIERARCHY::GetCachedLabel(scene, gid);
+					if (!LEHIERARCHY::PassesFilterCached(gid, filterLower)) {
 						continue;
 					}
 
-					++visibleTextRows;
+					++visibleGameObjectRows;
+					ImGui::PushID(gid);
+					bool isSelected = (selectedObjectId == gid);
 
-					ImGui::PushID(static_cast<int>(i) + 100000);
-					bool isSelected = (selectedObjectId == -1 && selectedTextIdx == static_cast<int>(i));
-
+					// When playing, draw items but DO NOT allow selection to change
 					if (editor.IsPlaying()) {
-						ImGui::Selectable(lbl.c_str(), isSelected, ImGuiSelectableFlags_Disabled);
+						ImGui::Selectable(label.c_str(), isSelected, ImGuiSelectableFlags_Disabled);
 					}
 					else {
-						if (ImGui::Selectable(lbl.c_str(), isSelected)) {
-							selectedIndex = -1;
-							selectedObjectId = -1;
-							LEPANELFONTS::SetSelectedTextIndex(static_cast<int>(i));
+						if (ImGui::Selectable(label.c_str(), isSelected)) {
+							selectedIndex = i;
+							selectedObjectId = gid;
+							// Deselect any text object when selecting a game object
+							LEPANELFONTS::SetSelectedTextIndex(-1);
 						}
 					}
 
 					ImGui::PopID();
 				}
 
-				if (visibleGameObjectRows == 0 && visibleTextRows == 0) {
-					ImGui::TextDisabled("No objects match the active filter.");
-				}
-			}
+				// Text Objects in Hierarchy (inside the same listbox)
+				{
+					const auto& textObjs = LEPANELFONTS::GetTextObjects();
+					int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
+					int visibleTextRows = 0;
 
-			ImGui::EndListBox();
+					for (size_t i = 0; i < textObjs.size(); ++i) {
+						const auto& t = textObjs[i];
+
+						// Check if layer is visible
+						Layer* layer = scene.GetLayer(t.layer);
+						if (layer && !layer->IsVisible()) {
+							continue;
+						}
+
+						std::string lbl = "[Text] " + t.name + " (" + t.fontName + ") [Layer: " + t.layer + "]";
+						if (!LEHIERARCHY::PassesFilter(lbl, filterLower)) {
+							continue;
+						}
+
+						++visibleTextRows;
+
+						ImGui::PushID(static_cast<int>(i) + 100000);
+						bool isSelected = (selectedObjectId == -1 && selectedTextIdx == static_cast<int>(i));
+
+						if (editor.IsPlaying()) {
+							ImGui::Selectable(lbl.c_str(), isSelected, ImGuiSelectableFlags_Disabled);
+						}
+						else {
+							if (ImGui::Selectable(lbl.c_str(), isSelected)) {
+								selectedIndex = -1;
+								selectedObjectId = -1;
+								LEPANELFONTS::SetSelectedTextIndex(static_cast<int>(i));
+							}
+						}
+
+						ImGui::PopID();
+					}
+
+					if (visibleGameObjectRows == 0 && visibleTextRows == 0) {
+						ImGui::TextDisabled("No objects match the active filter.");
+					}
+				}
+
+				ImGui::EndListBox();
+			}
 		}
 
 		if (editor.IsPlaying()) {
@@ -1015,7 +1016,7 @@ namespace LEPANELLEVEL {
 
 			Scene::Defaults defaults = scene.GetDefaults(id);
 
-			ImGui::SeparatorText("Properties Inspector");
+			ImGui::SeparatorText("Inspector");
 			ImGui::TextDisabled("Selected ID: %d", id);
 
 			// Gather current values
