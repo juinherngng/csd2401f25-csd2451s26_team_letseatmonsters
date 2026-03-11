@@ -36,7 +36,9 @@
 #include "Core/CustomerManagerLogic.hpp"
 #include "Core/SimpleNpcLogic.hpp"
 #include "Core/Quota.hpp"
+#include "Core/StartGamePromptLogic.hpp"
 #include "Graphics/SceneManager.hpp"
+
 
 #include "GamePaths.hpp"
 
@@ -46,6 +48,123 @@
 #include <unordered_map>
 
 namespace {
+	enum class TutorialStep {
+		Move = 0,
+		PickIngredient,
+		ProcessIngredient,
+		PlateDish,
+		ServeDish,
+		Done
+	};
+
+	struct TutorialFlow {
+		bool active = false;
+		TutorialStep step = TutorialStep::Move;
+		glm::vec2 moveStart{ 0.0f, 0.0f };
+		bool moveStartCaptured = false;
+		int lastMoney = 0;
+
+		void Reset(Scene& scene, bool enable) {
+			active = enable;
+			step = TutorialStep::Move;
+			moveStart = { 0.0f, 0.0f };
+			moveStartCaptured = false;
+			lastMoney = Economy::gPlayerMoney;
+
+			LEPANELFONTS::SetTextByName("TutorialText", active ? "Click anywhere to move." : "");
+		}
+
+		void Advance(const std::string& nextText) {
+			if (step != TutorialStep::Done) {
+				step = static_cast<TutorialStep>(static_cast<int>(step) + 1);
+			}
+			LEPANELFONTS::SetTextByName("TutorialText", nextText);
+		}
+
+		void Update(Scene& scene) {
+			if (!active || !scene.IsSimulationActive()) {
+				return;
+			}
+
+			const int playerId = scene.GetPlayerID();
+			GameObject* player = scene.GetGameObjectByID(playerId);
+			if (!player) {
+				return;
+			}
+
+			LogicManager& logic = scene.GetLogicManager();
+			PlayerLogic* playerLogic = logic.GetLogicForObject<PlayerLogic>(playerId);
+			if (!playerLogic) {
+				return;
+			}
+
+			switch (step) {
+			case TutorialStep::Move:
+			{
+				glm::vec3 p = player->GetPositionGLM();
+				if (!moveStartCaptured) {
+					moveStart = { p.x, p.y };
+					moveStartCaptured = true;
+				}
+				glm::vec2 d = glm::vec2(p.x, p.y) - moveStart;
+				if (glm::dot(d, d) > (40.0f * 40.0f)) {
+					Advance("Click an ingredient box, then pick up the spawned ingredient.");
+				}
+				break;
+			}
+
+			case TutorialStep::PickIngredient:
+			{
+				if (playerLogic->IsHolding()) {
+					int heldId = playerLogic->GetCarriedItemID();
+					if (logic.GetLogicForObject<IngredientLogic>(heldId) != nullptr) {
+						Advance("Bring it to a workstation and start processing.");
+					}
+				}
+				break;
+			}
+
+			case TutorialStep::ProcessIngredient:
+			{
+				for (GameObject* obj : scene.GetAllObjectsRaw()) {
+					if (!obj) continue;
+					if (auto* wt = logic.GetLogicForObject<WorkTableLogic>(obj->GetID()); wt && wt->IsProcessing()) {
+						Advance("Place refined ingredient(s) on a plate to assemble a dish.");
+						break;
+					}
+				}
+				break;
+			}
+
+			case TutorialStep::PlateDish:
+			{
+				for (GameObject* obj : scene.GetAllObjectsRaw()) {
+					if (!obj) continue;
+					if (auto* plate = logic.GetLogicForObject<PlateLogic>(obj->GetID()); plate && plate->HasPreparedDish()) {
+						Advance("Serve the dish to a customer table.");
+						break;
+					}
+				}
+				break;
+			}
+
+			case TutorialStep::ServeDish:
+			{
+				if (Economy::gPlayerMoney > lastMoney) {
+					lastMoney = Economy::gPlayerMoney;
+					step = TutorialStep::Done;
+					LEPANELFONTS::SetTextByName("TutorialText", "Tutorial complete. Keep serving!");
+				}
+				break;
+			}
+
+			case TutorialStep::Done:
+				break;
+			}
+		}
+	};
+
+	static TutorialFlow gTutorialFlow;
 	/************************************************************************/
 	/*!
 	\brief
@@ -128,6 +247,7 @@ namespace {
 	void UpdateSimulationPolicy(float dt, Scene& scene) {
 		float prevTime = Economy::gTimeRemaining;
 		Economy::Update(dt, scene);
+		gTutorialFlow.Update(scene);
 
 #ifndef _DEBUG
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
@@ -197,6 +317,8 @@ namespace {
 	*/
 	/************************************************************************/
 	void OnPostLevelLoaded(Scene& scene, bool simulationActive) {
+
+		gTutorialFlow.Reset(scene, simulationActive);
 #ifndef _DEBUG
 		if (!simulationActive) {
 			// Ensure the main-menu UI layer is visible and interactive
@@ -358,7 +480,7 @@ namespace {
 				scene.GetLogicManager().AddLogic<OrderUILogic>(id);
 			}},
 			{ "btn_play", [](Scene& scene, int id) {
-				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, MyoonchiPaths::Levels::KITCHEN_01, true);
+				auto* logic = scene.GetLogicManager().AddLogic<StartGamePromptLogic>(id, MyoonchiPaths::Levels::TUTORIAL, MyoonchiPaths::Levels::KITCHEN_01, true);
 				if (logic && scene.GetAudioManager()) {
 					logic->SetAudioManager(scene.GetAudioManager());
 				}

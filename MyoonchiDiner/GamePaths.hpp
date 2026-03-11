@@ -29,6 +29,7 @@ namespace MyoonchiPaths {
 	namespace Levels {
 		constexpr const char* MAIN_MENU  = "../levels/main_menu.json";
 		constexpr const char* KITCHEN_01 = "../levels/kitchen01.json";
+		constexpr const char* TUTORIAL = "../levels/tutorial.json";
 	}
 
 	// Texture assets referenced at runtime
