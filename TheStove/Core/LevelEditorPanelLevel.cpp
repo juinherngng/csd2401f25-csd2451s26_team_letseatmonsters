@@ -351,6 +351,10 @@ namespace {
 
 			// Approach offset
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+			defs.hasApproachOffset2 = obj.hasApproachOffset2;
+			defs.approachOffset2 = { obj.approachOffset2X, obj.approachOffset2Y };
+			defs.hasCustomerSeatOffset = obj.hasCustomerSeatOffset;
+			defs.customerSeatOffset = { obj.customerSeatOffsetX, obj.customerSeatOffsetY };
 
 			// Audio bindings
 			defs.audioOnSpawn = obj.audioOnSpawn;
@@ -435,6 +439,12 @@ namespace {
 
 			out.approachOffsetX = defs.approachOffset.x;
 			out.approachOffsetY = defs.approachOffset.y;
+			out.hasApproachOffset2 = defs.hasApproachOffset2;
+			out.approachOffset2X = defs.approachOffset2.x;
+			out.approachOffset2Y = defs.approachOffset2.y;
+			out.hasCustomerSeatOffset = defs.hasCustomerSeatOffset;
+			out.customerSeatOffsetX = defs.customerSeatOffset.x;
+			out.customerSeatOffsetY = defs.customerSeatOffset.y;
 
 			// Audio bindings from defaults
 			out.audioOnSpawn = defs.audioOnSpawn;

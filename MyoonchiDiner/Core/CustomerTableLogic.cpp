@@ -56,6 +56,11 @@ void CustomerTableLogic::Start(Scene& scene) {
 		customerSeatOffset_ = Math::Vector2D(defs.customerSeatOffset.x,
 			defs.customerSeatOffset.y);
 	}
+	else if (defs.hasApproachOffset2) {
+		// Preferred fallback: if an explicit customer seat isn't authored,
+		// use the secondary approach point instead of the player's main point.
+		customerSeatOffset_ = Math::Vector2D(defs.approachOffset2.x, defs.approachOffset2.y);
+	}
 	else if (defs.approachOffset.x != 0.0f || defs.approachOffset.y != 0.0f) {
 		// Backward compatibility: if explicit seat is missing, keep previous behavior
 		// where approach_offx/y represented customer seating.
