@@ -14,8 +14,8 @@
 */
 
 #include "../Core/FontSystem.hpp"
-#include "../Core/LevelEditorPanelFonts.hpp"
 #include "../Core/InputManager.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
@@ -619,7 +619,7 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld, const glm::dvec2*
 
 	if (mousePosOverride == nullptr) {
 		ImVec2 localPos{}, sceneSize{};
-		if(!TryGetMousePositionInScene(localPos, sceneSize)) {
+		if (!TryGetMousePositionInScene(localPos, sceneSize)) {
 			return false;
 		}
 		outWorld = ScenePixelToWorld(localPos, sceneSize);
@@ -741,7 +741,7 @@ bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& out
 	const float vw = static_cast<float>(viewportW_);
 	const float vh = static_cast<float>(viewportH_);
 	if (vw <= 0.0f || vh <= 0.0f || mouseX < vx || mouseY < vy ||
-		mouseX > (vx + vw) || mouseY > (vy + vh)) {
+		mouseX >(vx + vw) || mouseY >(vy + vh)) {
 		return false;
 	}
 
@@ -1162,7 +1162,7 @@ void GraphicsEngine::RenderTextObjects() {
 	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-	sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
+		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),

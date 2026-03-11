@@ -812,6 +812,7 @@ namespace LEPANELLEVEL {
 		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
 		if (ImGui::CollapsingHeader("Hierarchy", ImGuiTreeNodeFlags_DefaultOpen)) {
 			static char sHierarchyFilter[128] = "";
+			static bool sHierarchyCompactDensity = false;
 			enum class HierarchyQuickFilter {
 				All = 0, LayerCurrent, HasCollider, HasAudio
 			};
@@ -819,6 +820,7 @@ namespace LEPANELLEVEL {
 
 			ImGui::SetNextItemWidth(-FLT_MIN);
 			ImGui::InputTextWithHint("##HierarchyFilter", "Filter by name, ID, or layer", sHierarchyFilter, IM_ARRAYSIZE(sHierarchyFilter));
+			ImGui::Checkbox("Compact##Hierarchy", &sHierarchyCompactDensity);
 			const std::string filterLower = LEHIERARCHY::ToLowerCopy(std::string(sHierarchyFilter));
 
 			if (ImGui::RadioButton("All", sQuickFilter == HierarchyQuickFilter::All)) {
@@ -904,7 +906,7 @@ namespace LEPANELLEVEL {
 			}
 
 			// Hierarchy
-			if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200.0f))) {
+			if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, sHierarchyCompactDensity ? 180.0f : 240.0f))) {
 				// Game Objects
 				int visibleGameObjectRows = 0;
 				for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
@@ -999,7 +1001,7 @@ namespace LEPANELLEVEL {
 		}
 
 		// Add
-		if (ImGui::Button("Add Object")) {
+		if (ImGui::Button("Add")) {
 			// Snapshot BEFORE adding
 			PushUndoSnapshot(editor, scene);
 
@@ -1043,7 +1045,7 @@ namespace LEPANELLEVEL {
 		ImGui::SameLine();
 
 		// Remove
-		if (ImGui::Button("Remove Selected") &&
+		if (ImGui::Button("Remove") &&
 			selectedIndex >= 0 && selectedIndex < static_cast<int>(objectList.size()) && objectList[selectedIndex]) {
 			// Snapshot BEFORE removing
 			PushUndoSnapshot(editor, scene);
