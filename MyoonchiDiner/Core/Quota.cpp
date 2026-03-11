@@ -171,7 +171,7 @@ namespace Economy {
 		scene.StartCutsceneTransitionedBounded(
 			frames,
 			boundaries,
-			FilePaths::Levels::MAIN_MENU,   // <-- changed from WIN to MAIN_MENU
+			FilePaths::Levels::KITCHEN_02,   // load next stage after level 1 win cutscene
 			false,
 			2.0f,   // fadeOutSeconds - 2 second fade out for win cutscene
 			0.35f,  // fadeInSeconds

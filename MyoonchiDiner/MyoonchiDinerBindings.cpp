@@ -476,6 +476,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	});
 	scene.SetCustomerResetHook([customerManager](Scene& s) {
 		customerManager->Reset();
+		Economy::Reset();
 		(void)s;
 	});
 	scene.SetRuntimeObjectSetupHook(ApplyRuntimeObjectSetup);
