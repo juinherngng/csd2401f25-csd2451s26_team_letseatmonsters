@@ -791,7 +791,7 @@ DishType SimpleNpcLogic::RollRandomDish(Scene& scene) {
 
 	static std::mt19937 rng{ std::random_device{}() };
     std::uniform_int_distribution<int> dist(0, poolSize - 1);
-    return kPool[dist(EngineRng::Get())];
+    return pool[dist(EngineRng::Get())];
 }
 
 void SimpleNpcLogic::OnPatienceExpired(Scene& scene) {
