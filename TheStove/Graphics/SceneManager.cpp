@@ -63,7 +63,15 @@ void Scene::SetSimulationActive(bool active) {
 		animationManager.Play();
 	}
 	else {
-		animationManager.Stop();
+		const std::string levelPath = GetCurrentLevelPath();
+		const bool isMainMenu = levelPath.find("main_menu") != std::string::npos;
+
+		if (isMainMenu) {
+			animationManager.Play();
+		}
+		else {
+			animationManager.Stop();
+		}
 	}
 }
 

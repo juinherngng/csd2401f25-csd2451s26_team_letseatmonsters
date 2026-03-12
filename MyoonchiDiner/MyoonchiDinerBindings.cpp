@@ -1,21 +1,49 @@
 /*
 ----------------------------------------------------------------------------------------------------
- FILE NAME:			MyoonchiDinerBindings.cpp
- PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ FILE NAME:          MyoonchiDinerBindings.cpp
+ PROJECT NAME:       Project GAM200
+ AUTHOR:             Ng Juin Herng, juinherng.ng@digipen.edu (60%)
+ CO-AUTHOR:          Seah Wang Hua, wanghua.seah@digipen.edu (40%)
 
- DESCRIPTION:		Implements all Myoonchi Diner game-specific hooks that are
-					injected into the engine's Scene at startup. This includes:
-					  - Tag-to-logic dispatch (via a static hash-map table)
-					  - Tag-based ID/velocity rules for special objects
-					  - Runtime animation attachment for animated objects
-					  - Per-frame economy/timer simulation policy
-					  - Post-level-load audio and UI setup
-					  - Cutscene audio hooks (fade-out, first-frame, pre-load)
-					  - Pause overlay button binding
-					  - Navigation blocker collection for pathfinding
+ DESCRIPTION:
+	Central game-integration layer for Myoonchi Diner.
 
-		All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+	This file registers and implements Scene hooks that connect engine systems
+	to game-specific behavior. In practice, this file is the "policy + glue"
+	layer between data-driven level content and runtime game logic.
+
+	Responsibilities:
+	  1) Object bootstrap from level JSON
+		 - Tag -> logic binding (table dispatch)
+		 - Role IDs and authored velocity application
+		 - Runtime animation attachment rules
+
+	  2) Global simulation policy
+		 - Economy update and time-based SFX warnings
+		 - Level-specific customer/economy tuning
+
+	  3) Scene lifecycle orchestration
+		 - Default scene setup
+		 - Post-load menu/audio setup
+		 - Cutscene audio transitions and cleanup
+
+	  4) Tutorial runtime controller
+		 - Step-gated tutorial progression
+		 - Context-sensitive world highlights
+		 - Completion popup handling and return-to-menu flow
+
+	  5) Pause/navigation integration
+		 - Pause overlay button action binding
+		 - Navigation blocker extraction for pathfinding
+
+	Design notes:
+	  - Anonymous-namespace helpers are internal and file-local.
+	  - Hook callbacks are intentionally lightweight wrappers that delegate
+		detailed behavior to focused helper functions.
+	  - Tutorial flow is updated from the customer update hook so popup input
+		remains responsive even when simulation is paused/disabled.
+
+	All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -42,7 +70,9 @@
 #include "Graphics/SceneManager.hpp"
 #include "Graphics/ResourceManager.hpp"
 #include "Core/LevelEditorPanelFonts.hpp"
-
+#include "Core/FilePaths.hpp"
+#include "Core/InputManager.hpp"
+#include "Graphics/GraphicsEngine.hpp"
 
 #include "GamePaths.hpp"
 
@@ -52,6 +82,18 @@
 #include <unordered_map>
 
 namespace {
+	/************************************************************************/
+	/*!
+	\brief
+		File-local query/helper utilities used by tutorial flow and hook
+		callbacks. These helpers perform object scans and lightweight state
+		inference from Scene + LogicManager.
+
+	\details
+		Most helpers return IDs or booleans and intentionally avoid side effects.
+		This keeps hook implementations deterministic and easy to reason about.
+	*/
+	/************************************************************************/
 
 	static int FindFirstByTagAndTexture(Scene& scene, const std::string& tag, const char* texContains) {
 		for (GameObject* obj : scene.GetAllObjectsRaw()) {
@@ -83,6 +125,7 @@ namespace {
 				return npc->GetDesiredDishType();
 			}
 		}
+
 		return std::nullopt;
 	}
 
@@ -155,14 +198,11 @@ namespace {
 		return TryGetCurrentOrderDish(scene).has_value();
 	}
 
-	static bool IsTutorialLevelLoaded() {
-		for (const auto& textObj : LEPANELFONTS::GetTextObjects()) {
-			if (textObj.name == "TutorialText") {
-				return true;
-			}
-		}
-		return false;
-	}
+	static bool IsTutorialLevelLoaded(Scene& scene) {
+	const std::string levelPath = scene.GetCurrentLevelPath();
+	return levelPath == MyoonchiPaths::Levels::TUTORIAL ||
+		levelPath.find("tutorial") != std::string::npos;
+}
 
 
 	static const char* IngredientBoxTokenForDish(DishType d) {
@@ -274,6 +314,17 @@ namespace {
 }
 
 namespace {
+	/************************************************************************/
+	/*!
+	\brief
+		Tutorial finite-state controller.
+
+	\details
+		Owns tutorial progression state, highlight overlays, and completion popup
+		interaction. The flow is level-gated (tutorial-only) and is safe to tick
+		every frame, including while gameplay simulation is inactive.
+	*/
+	/************************************************************************/
 	enum class TutorialStep {
 		Move = 0,
 		WaitForFirstCustomerOrder,
@@ -287,6 +338,7 @@ namespace {
 		ServeDish,
 		WaitForCustomerToFinishFood,
 		CollectMoneyFromCustomer,
+		FinalCustomerFreePlay,
 		Done
 	};
 
@@ -296,6 +348,9 @@ namespace {
 		glm::vec2 moveStart{ 0.0f, 0.0f };
 		bool moveStartCaptured = false;
 		int lastMoney = 0;
+		int paymentsCollected_ = 0;
+		bool completionPopupShown_ = false;
+		std::vector<int> completionPopupIDs_{};
 
 		float blinkAccum_ = 0.0f;
 		bool blinkOn_ = true;
@@ -314,6 +369,63 @@ namespace {
 		OutlineSet ingredientOutline_{};
 		OutlineSet stationOutline_{};
 		std::vector<OutlineSet> extraStationOutlines_{};
+
+		int completionMenuButtonID_ = -1;
+		bool popupMouseHeld_ = false;
+
+		bool GetMouseWorld(InputManager& input, glm::vec2& outWorld) {
+			if (GraphicsEngine::Instance().GetMouseWorldInScene(outWorld)) {
+				return true;
+			}
+			glm::vec3 w = input.ScreenToWorld(
+				static_cast<float>(input.GetMousePosition().x),
+				static_cast<float>(input.GetMousePosition().y));
+			outWorld = glm::vec2(w.x, w.y);
+			return true;
+		}
+
+		bool IsPointInObject(Scene& scene, int objectID, const glm::vec2& p) {
+			GameObject* obj = scene.GetGameObjectByID(objectID);
+			if (!obj) return false;
+
+			const glm::vec3 pos = obj->GetPositionGLM();
+			const glm::vec3 sz = obj->GetScaleGLM();
+			const glm::vec2 min(pos.x - sz.x * 0.5f, pos.y - sz.y * 0.5f);
+			const glm::vec2 max(pos.x + sz.x * 0.5f, pos.y + sz.y * 0.5f);
+
+			return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y;
+		}
+
+		void HandleCompletionPopupInput(Scene& scene) {
+			GLFWwindow* window = glfwGetCurrentContext();
+			if (!window) {
+				return;
+			}
+
+			const bool mouseDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+			const bool clickEdge = mouseDown && !popupMouseHeld_;
+			popupMouseHeld_ = mouseDown;
+
+			if (!clickEdge) {
+				return;
+			}
+
+			double mx = 0.0;
+			double my = 0.0;
+			glfwGetCursorPos(window, &mx, &my);
+
+			glm::vec2 mouseWorld{};
+			if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {
+				InputManager& input = InputManager::Get();
+				glm::vec3 w = input.ScreenToWorld(static_cast<float>(mx), static_cast<float>(my));
+				mouseWorld = glm::vec2(w.x, w.y);
+			}
+
+			if (IsPointInObject(scene, completionMenuButtonID_, mouseWorld)) {
+				ClearCompletionPopup(scene);
+				scene.StartLevelTransition(MyoonchiPaths::Levels::MAIN_MENU, false);
+			}
+		}
 
 		void ClearExtraStationOutlines(Scene& scene) {
 			for (auto& set : extraStationOutlines_) {
@@ -539,7 +651,7 @@ else if (step == TutorialStep::PickSecondIngredient) {
 				if (playerLogic && playerLogic->IsHolding()) {
 					const int heldID = playerLogic->GetCarriedItemID();
 					if (auto* ing = logic.GetLogicForObject<IngredientLogic>(heldID); ing && ing->IsRaw()) {
-						if (const char* mapped = StationTokenForRawIngredient(ing->GetType())) {
+						if (const char* mapped = StationTokenForRawIngredient( ing->GetType())) {
 							stationToken = mapped;
 						}
 					}
@@ -604,11 +716,13 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 
 		void Reset(Scene& scene, bool enable) {
 			ClearHighlights(scene);
+			ClearCompletionPopup(scene);
 			active = enable;
 			step = TutorialStep::Move;
 			moveStart = { 0.0f, 0.0f };
 			moveStartCaptured = false;
 			lastMoney = Economy::gPlayerMoney;
+			paymentsCollected_ = 0;
 			LEPANELFONTS::SetTextByName("TutorialText", active ? "Click anywhere to move." : "");
 		}
 
@@ -620,10 +734,24 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 		}
 
 		void Update(Scene& scene, float dt) {
-			if (!active || !scene.IsSimulationActive()) {
-				ClearHighlights(scene);
-				return;
-			}
+	const bool isTutorial = IsTutorialLevelLoaded(scene);
+	if (!isTutorial) {
+		ClearHighlights(scene);
+		ClearCompletionPopup(scene);
+		active = false;
+		return;
+	}
+
+	if (completionPopupShown_) {
+		ClearHighlights(scene);
+		HandleCompletionPopupInput(scene);
+		return;
+	}
+
+	if (!active || !scene.IsSimulationActive()) {
+		ClearHighlights(scene);
+		return;
+	}
 
 			const int playerId = scene.GetPlayerID();
 			GameObject* player = scene.GetGameObjectByID(playerId);
@@ -693,7 +821,7 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 				}
 
 				if (startedProcessing || holdingProcessed) {
-					Advance("Take a plate from the plate box, place it on an empty table.");
+					Advance("Take a plate from the plate box, place it on any empty table.");
 				}
 				break;
 			}
@@ -829,8 +957,34 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 			{
 				if (Economy::gPlayerMoney > lastMoney) {
 					lastMoney = Economy::gPlayerMoney;
-					step = TutorialStep::Done;
-					LEPANELFONTS::SetTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
+					++paymentsCollected_;
+
+					if (paymentsCollected_ >= 2) {
+						step = TutorialStep::Done;
+						LEPANELFONTS::SetTextByName("TutorialText", "");
+						ShowCompletionPopup(scene);
+					}
+					else {
+						// No walkthrough for customer 2; just show one final objective line.
+						step = TutorialStep::FinalCustomerFreePlay;
+						LEPANELFONTS::SetTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
+					}
+				}
+				break;
+			}
+
+			case TutorialStep::FinalCustomerFreePlay:
+			{
+				// Free-play phase: no step-by-step gating/highlights, only wait for final payment.
+				if (Economy::gPlayerMoney > lastMoney) {
+					lastMoney = Economy::gPlayerMoney;
+					++paymentsCollected_;
+
+					if (paymentsCollected_ >= 2) {
+						step = TutorialStep::Done;
+						LEPANELFONTS::SetTextByName("TutorialText", "");
+						ShowCompletionPopup(scene);
+					}
 				}
 				break;
 			}
@@ -846,6 +1000,52 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 				UpdateHighlights(scene, playerLogic, logic, dt);
 			}
 		}
+
+		void ClearCompletionPopup(Scene& scene) {
+	for (int id : completionPopupIDs_) {
+		if (id >= 0 && scene.GetGameObjectByID(id)) {
+			scene.DespawnByID(id);
+		}
+	}
+	completionPopupIDs_.clear();
+	completionPopupShown_ = false;
+	completionMenuButtonID_ = -1;
+	popupMouseHeld_ = false;
+}
+
+		void ShowCompletionPopup(Scene& scene) {
+	if (completionPopupShown_) return;
+	completionPopupShown_ = true;
+
+	// Freeze gameplay while popup is shown.
+	scene.SetSimulationActive(false);
+
+	const glm::vec3 center{
+		static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
+		static_cast<float>(GraphicsEngine::kRefH) * 0.5f,
+		0.0f
+	};
+	const std::string uiLayer = "999999";
+
+	if (GameObject* popup = scene.SpawnStaticSprite(
+		"../assets/tutorial_complete.png",
+		center,
+		glm::vec2(1152.0f, 648.0f),
+		uiLayer)) {
+		completionPopupIDs_.push_back(popup->GetID());
+	}
+
+	if (GameObject* menu = scene.SpawnStaticSprite(
+		FilePaths::Textures::BTN_QUIT,
+		glm::vec3(center.x, center.y + 160.0f, 0.0f),
+		glm::vec2(350.0f, 100.0f),
+		uiLayer)) {
+		completionMenuButtonID_ = menu->GetID();
+		completionPopupIDs_.push_back(completionMenuButtonID_);
+		scene.SetObjectTexturePath(completionMenuButtonID_, FilePaths::Textures::BTN_QUIT);
+		// Do NOT attach MenuButtonLogic here.
+	}
+}
 	};
 
 	static TutorialFlow gTutorialFlow;
@@ -931,46 +1131,45 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 	void UpdateSimulationPolicy(float dt, Scene& scene) {
 		float prevTime = Economy::gTimeRemaining;
 		Economy::Update(dt, scene);
-		gTutorialFlow.Update(scene, dt);
 
-if (AudioManager* audioManager = scene.GetAudioManager()) {
-float currentTime = Economy::gTimeRemaining;
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			float currentTime = Economy::gTimeRemaining;
 
-if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
-Economy::gPlayed10SecWarning = true;
-if (audioManager->HasSound("sfx_clock_ticking_10secs")) {
-audioManager->PlaySound("sfx_clock_ticking_10secs", audioManager->GetVfxVolume() * 1.2f, false);
-}
-}
+			if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
+				Economy::gPlayed10SecWarning = true;
+				if (audioManager->HasSound("sfx_clock_ticking_10secs")) {
+					audioManager->PlaySound("sfx_clock_ticking_10secs", audioManager->GetVfxVolume() * 1.2f, false);
+				}
+			}
 
-if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
-Economy::gPlayed3SecBeep = true;
-if (audioManager->HasSound("sfx_beep")) {
-audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
-}
-}
+			if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
+				Economy::gPlayed3SecBeep = true;
+				if (audioManager->HasSound("sfx_beep")) {
+					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+				}
+			}
 
-if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
-Economy::gPlayed2SecBeep = true;
-if (audioManager->HasSound("sfx_beep")) {
-audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
-}
-}
+			if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
+				Economy::gPlayed2SecBeep = true;
+				if (audioManager->HasSound("sfx_beep")) {
+					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+				}
+			}
 
-if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
-Economy::gPlayed1SecBeep = true;
-if (audioManager->HasSound("sfx_beep")) {
-audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
-}
-}
+			if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
+				Economy::gPlayed1SecBeep = true;
+				if (audioManager->HasSound("sfx_beep")) {
+					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+				}
+			}
 
-if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
-Economy::gPlayedTimeUp = true;
-if (audioManager->HasSound("sfx_time_up")) {
-audioManager->PlaySound("sfx_time_up", audioManager->GetVfxVolume(), false);
-}
-}
-}
+			if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
+				Economy::gPlayedTimeUp = true;
+				if (audioManager->HasSound("sfx_time_up")) {
+					audioManager->PlaySound("sfx_time_up", audioManager->GetVfxVolume(), false);
+				}
+			}
+		}
 	}
 
 	/************************************************************************/
@@ -996,45 +1195,49 @@ audioManager->PlaySound("sfx_time_up", audioManager->GetVfxVolume(), false);
 	*/
 	/************************************************************************/
 	void OnPostLevelLoaded(Scene& scene, bool simulationActive, CustomerManagerSystem& customerManager) {
-		gTutorialFlow.Reset(scene, simulationActive);
+	const bool isTutorial = simulationActive && IsTutorialLevelLoaded(scene);
+	gTutorialFlow.Reset(scene, isTutorial);
 
-		if (simulationActive && IsTutorialLevelLoaded()) {
-			customerManager.SetMaxCustomers(2);
-			customerManager.SetTotalSpawnLimit(2);
-			customerManager.SetSpawnedCustomersInfinitePatience(true);
-		}
-		else {
-			customerManager.SetMaxCustomers(4);
-			customerManager.ClearTotalSpawnLimit();
-			customerManager.SetSpawnedCustomersInfinitePatience(false);
-		}
+	if (isTutorial) {
+		customerManager.SetMaxCustomers(2);
+		customerManager.SetTotalSpawnLimit(2);
+		customerManager.SetSpawnedCustomersInfinitePatience(true);
+
+		// Prevent normal quota win cutscene during tutorial.
+		Economy::SetQuota(999);
+		Economy::gQuotaReached = false;
+	}
+	else {
+		customerManager.SetMaxCustomers(4);
+		customerManager.ClearTotalSpawnLimit();
+		customerManager.SetSpawnedCustomersInfinitePatience(false);
+	}
 
 #ifndef _DEBUG
-		// existing audio/UI logic unchanged...
+	// existing audio/UI logic unchanged...
+	if (!simulationActive) {
+		if (Layer* menuLayer = scene.GetLayer("10")) {
+			menuLayer->SetVisible(true);
+			menuLayer->SetEnabled(true);
+		}
+	}
+
+	if (AudioManager* audioManager = scene.GetAudioManager()) {
 		if (!simulationActive) {
-			// Ensure the main-menu UI layer is visible and interactive
-			if (Layer* menuLayer = scene.GetLayer("10")) {
-				menuLayer->SetVisible(true);
-				menuLayer->SetEnabled(true);
-			}
+			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
 		}
+		else {
+			const float fadeIn = 1.0f;
+			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
+			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
 
-		if (AudioManager* audioManager = scene.GetAudioManager()) {
-			if (!simulationActive) {
-				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
-			}
-			else {
-				const float fadeIn = 1.0f;
-				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
-				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
-
-				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
-				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
-			}
+			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
+			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
 		}
+	}
 #else
-		(void)scene;
-		(void)simulationActive;
+	(void)scene;
+	(void)simulationActive;
 #endif
 	}
 
@@ -1306,11 +1509,17 @@ audioManager->PlaySound("sfx_time_up", audioManager->GetVfxVolume(), false);
 /************************************************************************/
 /*!
 \brief
-	Wires every Myoonchi Diner game hook into the engine's Scene.
-	Sets up customer management, object/animation setup, simulation
-	updates, scene lifecycle hooks, cutscene audio, pause overlay,
-	navigation blockers, and tag-velocity classification.
-\param scene  The engine Scene to register all hooks on.
+	Hook registration entry point.
+
+\details
+	Order of registration:
+	  1) Customer hooks (update/reset)
+	  2) Runtime/tag setup hooks
+	  3) Simulation and scene lifecycle hooks
+	  4) Cutscene and pause/audio hooks
+	  5) Logic binders and navigation collector
+
+	This function should remain side-effect free beyond hook wiring.
 */
 /************************************************************************/
 void RegisterMyoonchiDinerBindings(Scene& scene) {
@@ -1318,10 +1527,15 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	auto customerManager = std::make_shared<CustomerManagerSystem>();
 	auto applyLevelGameplayTuning = [customerManager](Scene& s) {
 		ConfigureLevelGameplayTuning(s, *customerManager);
-		};
+	};
+
 	scene.SetCustomerUpdateHook([customerManager](float dt, Scene& s) {
 		customerManager->Update(dt, s);
-		});
+
+		// Always tick tutorial flow so completion popup input still works
+		// even when simulation is disabled.
+		gTutorialFlow.Update(s, dt);
+	});
 	scene.SetCustomerResetHook([customerManager, applyLevelGameplayTuning](Scene& s) {
 		customerManager->Reset();
 		applyLevelGameplayTuning(s);
@@ -1335,7 +1549,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	// Scene lifecycle hooks
 	scene.SetDefaultSceneSetupHook(ApplyDefaultSceneSetup);
-	scene.SetPostLevelLoadHook([applyLevelGameplayTuning](Scene& s, bool simulationActive) {
+	scene.SetPostLevelLoadHook([customerManager, applyLevelGameplayTuning](Scene& s, bool simulationActive) {
 		OnPostLevelLoaded(s, simulationActive, *customerManager);
 		if (simulationActive) {
 			applyLevelGameplayTuning(s);
