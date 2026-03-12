@@ -118,6 +118,10 @@ namespace {
 	constexpr float kClickIndicatorBaseSize = 26.0f;
 	constexpr float kClickIndicatorPopSize = 36.0f;
 
+	// Clamp large frame spikes (for example right after pause/resume)
+	// so movement cannot jump/teleport in a single update.
+	constexpr float kMaxPlayerUpdateDt = 1.0f / 30.0f;
+
 	// Squared distance between two points (avoids sqrt for efficiency when comparing distances)
 	float DistanceSquared(const glm::vec2& a, const glm::vec2& b) {
 		const glm::vec2 delta = a - b;
@@ -1006,6 +1010,8 @@ void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManag
 
 // Main update loop for player logic: handle input, movement, sprite updates, interactions, and footstep effects.
 void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
+	const float safeDt = std::clamp(dt, 0.0f, kMaxPlayerUpdateDt);
+
 	if (!scene.IsSimulationActive() || scene.IsPauseOverlayActive()) {
 		EnterPauseState(scene);
 		return;
@@ -1038,13 +1044,13 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	UpdateStationLock(scene);
 
-	UpdateInteractableVisualCues(scene, input, dt);
+	UpdateInteractableVisualCues(scene, input, safeDt);
 	const glm::vec3 beforePos = player->GetPositionGLM();
 
 	const float physicsDt = scene.GetLastPhysicsDt();
 	const bool stepMode = scene.GetStepController().enabled;
 	if (stepMode && physicsDt <= 0.0f) {
-		HandleClickInput(scene, input, dt);
+		HandleClickInput(scene, input, safeDt);
 		return;
 	}
 
@@ -1056,13 +1062,13 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
-	HandleKeyboardMovement(dt, scene, input, player, beforePos);
-	HandleClickInput(scene, input, dt);
-	UpdateClickMoveIndicator(scene, dt);
-	UpdateMovement(dt, scene);
+	HandleKeyboardMovement(safeDt, scene, input, player, beforePos);
+	HandleClickInput(scene, input, safeDt);
+	UpdateClickMoveIndicator(scene, safeDt);
+	UpdateMovement(safeDt, scene);
 
 	const glm::vec3 afterPos = player->GetPositionGLM();
-	UpdateFootstepTrailAndAudio(dt, scene, input, player, beforePos, afterPos);
+	UpdateFootstepTrailAndAudio(safeDt, scene, input, player, beforePos, afterPos);
 	UpdateCarriedItemTransform(scene);
 }
 

@@ -454,6 +454,7 @@ public:
 	// Pause overlay methods
 	void ShowPauseOverlay();
 	void HidePauseOverlay();
+	void RequestResumeFromPauseOverlay();
 	bool IsPauseOverlayActive() const {
 		return pauseOverlayActive_;
 	}
@@ -614,6 +615,7 @@ private:
 
 	// Pause overlay state
 	bool pauseOverlayActive_ = false;
+	bool resumeFromPausePending_ = false;
 	std::vector<int> pauseOverlayObjectIds_;
 
 	// Pause audio fade state

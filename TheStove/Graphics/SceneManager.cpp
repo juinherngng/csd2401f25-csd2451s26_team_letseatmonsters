@@ -358,7 +358,7 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
 		if (IsPauseOverlayActive()) {
 			HidePauseOverlay();
-			SetSimulationActive(true);
+			RequestResumeFromPauseOverlay();
 			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
 		}
 		else if (IsSimulationActive()) {
@@ -366,6 +366,13 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 			ShowPauseOverlay();
 			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
 		}
+	}
+#endif
+
+#ifndef _DEBUG
+	if (resumeFromPausePending_ && !pauseOverlayActive_) {
+		SetSimulationActive(true);
+		resumeFromPausePending_ = false;
 	}
 #endif
 
@@ -1001,7 +1008,13 @@ void Scene::ShowPauseOverlay() {
 #endif
 }
 
-
+void Scene::RequestResumeFromPauseOverlay() {
+#ifndef _DEBUG
+	// Defer simulation re-enable until end-of-frame to avoid
+	// running physics/collision in the same frame the pause UI click is handled.
+	resumeFromPausePending_ = true;
+#endif
+}
 
 void Scene::HidePauseOverlay() {
 #ifndef _DEBUG
