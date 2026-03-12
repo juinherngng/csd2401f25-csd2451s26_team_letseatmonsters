@@ -273,7 +273,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_angry_01.wav",
       "loop": false,
       "name": "vo_customer_angry_01",
@@ -281,7 +281,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_angry_02.wav",
       "loop": false,
       "name": "vo_customer_angry_02",
@@ -289,7 +289,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_angry_03.wav",
       "loop": false,
       "name": "vo_customer_angry_03",
@@ -297,7 +297,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_angry_04.wav",
       "loop": false,
       "name": "vo_customer_angry_04",
@@ -305,7 +305,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_angry_05.wav",
       "loop": false,
       "name": "vo_customer_angry_05",
@@ -313,7 +313,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_angry_06.wav",
       "loop": false,
       "name": "vo_customer_angry_06",
@@ -321,7 +321,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_angry_07.wav",
       "loop": false,
       "name": "vo_customer_angry_07",
@@ -329,7 +329,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_angry_08.wav",
       "loop": false,
       "name": "vo_customer_angry_08",
@@ -337,7 +337,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_happy_01.wav",
       "loop": false,
       "name": "vo_customer_happy_01",
@@ -345,7 +345,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_happy_02.wav",
       "loop": false,
       "name": "vo_customer_happy_02",
@@ -353,7 +353,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_happy_03.wav",
       "loop": false,
       "name": "vo_customer_happy_03",
@@ -361,7 +361,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_happy_04.wav",
       "loop": false,
       "name": "vo_customer_happy_04",
@@ -369,7 +369,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_happy_05.wav",
       "loop": false,
       "name": "vo_customer_happy_05",
@@ -377,7 +377,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_happy_06.wav",
       "loop": false,
       "name": "vo_customer_happy_06",
@@ -385,7 +385,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_happy_07.wav",
       "loop": false,
       "name": "vo_customer_happy_07",
@@ -393,7 +393,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_happy_08.wav",
       "loop": false,
       "name": "vo_customer_happy_08",
@@ -401,7 +401,7 @@
       "volume": 1.0
     },
     {
-      "category": "other",
+      "category": "sfx",
       "filepath": "../../assets/Audio/vo_customer_happy_09.wav",
       "loop": false,
       "name": "vo_customer_happy_09",
@@ -409,5 +409,5 @@
       "volume": 1.0
     }
   ],
-  "version": "5.0"
+  "version": "5.1"
 }

@@ -353,6 +353,102 @@ public:
 	/************************************************************************/
 	void PlayUIClickSound();
 
+	// 3D Spatial Audio
+
+	/************************************************************************/
+	/*!
+	\brief
+	Loads a sound file with 3D spatial attributes.
+	\param name
+	The name to reference the sound.
+	\param filepath
+	The file path to the sound file.
+	\param loop
+	Whether the sound should loop.
+	\param stream
+	Whether to stream the sound from disk (true) or load it fully into memory (false).
+	\return
+	Pointer to the loaded FMOD::Sound, or nullptr if loading failed.
+	*/
+	/************************************************************************/
+	FMOD::Sound* LoadSound3D(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
+	/************************************************************************/
+	/*!
+	\brief
+	Plays a loaded sound at a 3D position in the world.
+	\param name
+	The name of the sound to play.
+	\param posX
+	X world position of the sound source.
+	\param posY
+	Y world position of the sound source.
+	\param posZ
+	Z world position of the sound source (default 0 for 2D games).
+	\param volume
+	Playback volume (0.0 to 1.0).
+	\param minDistance
+	Distance at which sound starts to attenuate.
+	\param maxDistance
+	Distance at which sound is fully attenuated.
+	\param paused
+	Whether to start the sound paused.
+	*/
+	/************************************************************************/
+	void PlaySound3D(std::string const& name, float posX, float posY, float posZ = 0.0f,
+		float volume = 1.0f, float minDistance = 1.0f, float maxDistance = 50.0f, bool paused = false);
+	/************************************************************************/
+	/*!
+	\brief
+	Sets the 3D listener position (typically the camera or player position).
+	\param posX
+	X world position of the listener.
+	\param posY
+	Y world position of the listener.
+	\param posZ
+	Z world position of the listener (default 0 for 2D games).
+	*/
+	/************************************************************************/
+	void SetListenerPosition(float posX, float posY, float posZ = 0.0f);
+	/************************************************************************/
+	/*!
+	\brief
+	Updates the 3D position of an already-playing sound channel.
+	\param name
+	The name of the sound channel to update.
+	\param posX
+	New X world position.
+	\param posY
+	New Y world position.
+	\param posZ
+	New Z world position (default 0 for 2D games).
+	*/
+	/************************************************************************/
+	void Set3DChannelPosition(std::string const& name, float posX, float posY, float posZ = 0.0f);
+	/************************************************************************/
+	/*!
+	\brief
+	Queues a request to play a 3D sound next update rather than immediately.
+	\param name
+	Logical name of the sound (as loaded in AudioManager).
+	\param posX
+	X world position of the sound source.
+	\param posY
+	Y world position of the sound source.
+	\param posZ
+	Z world position of the sound source.
+	\param volume
+	Initial playback volume (0.f to 1.f).
+	\param minDistance
+	Distance at which sound starts to attenuate.
+	\param maxDistance
+	Distance at which sound is fully attenuated.
+	\param paused
+	If true, starts the channel paused.
+	*/
+	/************************************************************************/
+	void EnqueuePlay3D(std::string const& name, float posX, float posY, float posZ = 0.0f,
+		float volume = 1.0f, float minDistance = 1.0f, float maxDistance = 50.0f, bool paused = false);
+
 	void PauseAll();   // pause all currently playing sounds/music
 	void ResumeAll();  // resume everything that was paused
 
@@ -393,6 +489,7 @@ private:
 	void OnToggleDebugInfo(const CoreFramework::Message& msg);
 	void OnPlayAudio(const CoreFramework::Message& msg);
 	void OnStopAudio(const CoreFramework::Message& msg);
+	void OnPlayAudio3D(const CoreFramework::Message& msg);
 
 	// FMOD System and resources
 	FMOD::System* system;
@@ -408,6 +505,15 @@ private:
 		bool paused;
 	};
 
+	struct PendingPlay3D {
+		std::string name;
+		float posX, posY, posZ;
+		float volume;
+		float minDistance;
+		float maxDistance;
+		bool paused;
+	};
+
 	struct VolumeFade {
 		float fromVolume;
 		float toVolume;
@@ -416,6 +522,7 @@ private:
 	};
 
 	std::vector<PendingPlay> pendingPlays;                      // queued play requests
+	std::vector<PendingPlay3D> pendingPlays3D;                  // queued 3D play requests
 	std::unordered_map<std::string, VolumeFade> activeFades;    // per-sound active fades
 	std::vector<FMOD::Channel*> pendingStops;                   // channels silenced this frame, stopped next frame
 
@@ -424,4 +531,5 @@ private:
 	CoreFramework::SubscriberId debugInfoSubId;
 	CoreFramework::SubscriberId playAudioSubId;
 	CoreFramework::SubscriberId stopAudioSubId;
+	CoreFramework::SubscriberId playAudio3DSubId;
 };

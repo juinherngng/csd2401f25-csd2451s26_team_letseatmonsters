@@ -291,6 +291,15 @@ bool ResourceManager::LoadAudio(const std::string& name, const std::string& file
 	auto* sound = audioManager->LoadSound(name, filePath, loop, stream);
 	return sound != nullptr;
 }
+bool ResourceManager::LoadAudio3D(const std::string& name, const std::string& filePath, bool loop, bool stream) {
+	if (!audioManager) {
+		std::cerr << "AudioManager not set in ResourceManager! Cannot load 3D audio." << std::endl;
+		return false;
+	}
+
+	auto* sound = audioManager->LoadSound3D(name, filePath, loop, stream);
+	return sound != nullptr;
+}
 bool ResourceManager::HasAudio(const std::string& name) const {
 	if (!audioManager) {
 		std::cerr << "AudioManager not set in ResourceManager! Cannot check audio." << std::endl;

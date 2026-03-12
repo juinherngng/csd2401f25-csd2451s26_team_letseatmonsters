@@ -58,6 +58,7 @@ public:
 
 	// Audio management (delegates to AudioManager)
 	bool LoadAudio(const std::string& name, const std::string& filePath, bool loop = false, bool stream = false);
+	bool LoadAudio3D(const std::string& name, const std::string& filePath, bool loop = false, bool stream = false);
 	bool HasAudio(const std::string& name) const;
 	void UnloadAudio(const std::string& name);
 	bool GetAudioInfo(const std::string& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const;

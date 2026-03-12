@@ -550,12 +550,10 @@ void SimpleNpcLogic::TakeOrder(Scene& scene) {
 	orderTaken_ = true;
 	patienceRatioAtServe_ = 1.0f; // starts full; will be snapshotted on serve
 
-	// Play new order sound effect (release mode only)
-#ifndef _DEBUG
+	// Play new order sound effect
 	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		audioMgr->PlaySound("sfx_new_order", audioMgr->GetVfxVolume() * 0.3f, false);
+		audioMgr->PlaySound("sfx_new_order_v2", audioMgr->GetVfxVolume() * 0.8f, false);
 	}
-#endif
 
 	// Start patience timer now that we are waiting for food
 	patienceRemaining_ = patienceMax_;
@@ -634,16 +632,26 @@ void SimpleNpcLogic::TakePayment(Scene& scene) {
 	hasPaid_ = true;
 	behaviourState_ = BehaviourState::Leaving;
 
-	if (hasLeaveTarget_) {
-		hasCustomerTarget_ = true;
-		customerSeatTarget_ = leaveTargetWorldPos_;
+	// Play a random happy customer voice line when leaving after successful payment
+	if (!payZero_) {
+		if (AudioManager* audioMgr = scene.GetAudioManager()) {
+			std::uniform_int_distribution<int> dist(1, 9);
+			int variant = dist(EngineRng::Get());
+			std::string sfxName = "vo_customer_happy_0" + std::to_string(variant);
+			audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume());
+		}
 	}
-	else {
-		Math::Vector2D gate = scene.GetExitGateWorldPos();
-		hasCustomerTarget_ = true;
-		customerSeatTarget_ = gate;
-	}
-	ClearNavigationMove();
+
+    if (hasLeaveTarget_) {
+        hasCustomerTarget_ = true;
+        customerSeatTarget_ = leaveTargetWorldPos_;
+    }
+    else {
+        Math::Vector2D gate = scene.GetExitGateWorldPos();
+        hasCustomerTarget_ = true;
+        customerSeatTarget_ = gate;
+    }
+    ClearNavigationMove();
 
 	// NOTE: do NOT change customerTableID_ here — you still want to know which table to free.
 }
@@ -879,29 +887,37 @@ void SimpleNpcLogic::BeginLeaveToExit(Scene& scene, bool freeTableImmediately) {
 	if (behaviourState_ == BehaviourState::Leaving)
 		return;
 
-#ifndef _DEBUG
-	// Optional: play "wrong order" sound immediately when leaving unhappy
-	if (payZero_) {
-		if (AudioManager* audioMgr = scene.GetAudioManager()) {
-			audioMgr->PlaySound("sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f, false);
-		}
-	}
-#endif
+    // Play "wrong order" sound immediately when leaving unhappy
+    if (payZero_) {
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            audioMgr->PlaySound("sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f, false);
+        }
+    }
 
 	hasPaid_ = true; // "payment processed" (even if $0)
 	behaviourState_ = BehaviourState::Leaving;
 
-	// Walk to the authored leave target (defaults to exit gate when unavailable)
-	if (hasLeaveTarget_) {
-		hasCustomerTarget_ = true;
-		customerSeatTarget_ = leaveTargetWorldPos_;
-	}
-	else {
-		Math::Vector2D gate = scene.GetExitGateWorldPos();
-		hasCustomerTarget_ = true;
-		customerSeatTarget_ = gate;
-	}
-	ClearNavigationMove();
+    // Play a random angry customer voice line when leaving unhappy
+    if (payZero_) {
+        if (AudioManager* audioMgr = scene.GetAudioManager()) {
+            std::uniform_int_distribution<int> dist(1, 8);
+            int variant = dist(EngineRng::Get());
+            std::string sfxName = "vo_customer_angry_0" + std::to_string(variant);
+            audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume());
+        }
+    }
+
+    // Walk to the authored leave target (defaults to exit gate when unavailable)
+    if (hasLeaveTarget_) {
+        hasCustomerTarget_ = true;
+        customerSeatTarget_ = leaveTargetWorldPos_;
+    }
+    else {
+        Math::Vector2D gate = scene.GetExitGateWorldPos();
+        hasCustomerTarget_ = true;
+        customerSeatTarget_ = gate;
+    }
+    ClearNavigationMove();
 
 	// Free the table RIGHT NOW so another customer can take it
 	if (freeTableImmediately && customerTableID_ != kInvalidID) {

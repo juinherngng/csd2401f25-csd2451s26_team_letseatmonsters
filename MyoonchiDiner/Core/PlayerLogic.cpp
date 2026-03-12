@@ -845,7 +845,9 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	// Play UI click sound for pickup feedback (release mode only)
 #ifndef _DEBUG
 	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		audioMgr->PlaySound("ui_click", audioMgr->GetVfxVolume() * 0.05f, false);
+		glm::vec3 playerPos = player->GetPositionGLM();
+		audioMgr->PlaySound3D("ui_click", playerPos.x, playerPos.y, playerPos.z,
+			audioMgr->GetVfxVolume() * 0.3f);
 	}
 #endif
 
@@ -956,7 +958,8 @@ void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManag
 	if (footstepEmitTimer_ >= kFootstepInterval) {
 		footstepEmitTimer_ = 0.0f;
 		if (AudioManager* audioMgr = scene.GetAudioManager()) {
-			audioMgr->PlaySound("sfx_step_1", audioMgr->GetVfxVolume() * 0.04f, false);
+			audioMgr->PlaySound3D("sfx_step_1", afterPos.x, afterPos.y, afterPos.z,
+				audioMgr->GetVfxVolume() * 0.04f);
 		}
 	}
 #endif
@@ -1327,7 +1330,9 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 				// Play put down sound effect (release mode only)
 #ifndef _DEBUG
 				if (AudioManager* audioMgr = scene.GetAudioManager()) {
-					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
+					glm::vec3 playerPos = player->GetPositionGLM();
+					audioMgr->PlaySound3D("sfx_put_down", playerPos.x, playerPos.y, playerPos.z,
+						audioMgr->GetVfxVolume() * 0.8f);
 				}
 #endif
 			}
@@ -1432,7 +1437,9 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 				// Play put down sound effect (release mode only)
 #ifndef _DEBUG
 				if (AudioManager* audioMgr = scene.GetAudioManager()) {
-					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
+					glm::vec3 playerPos = player->GetPositionGLM();
+					audioMgr->PlaySound3D("sfx_put_down", playerPos.x, playerPos.y, playerPos.z,
+						audioMgr->GetVfxVolume() * 0.8f);
 				}
 #endif
 			}

@@ -129,49 +129,44 @@ namespace {
 		float prevTime = Economy::gTimeRemaining;
 		Economy::Update(dt, scene);
 
-#ifndef _DEBUG
-		if (AudioManager* audioManager = scene.GetAudioManager()) {
-			float currentTime = Economy::gTimeRemaining;
+if (AudioManager* audioManager = scene.GetAudioManager()) {
+float currentTime = Economy::gTimeRemaining;
 
-			if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
-				Economy::gPlayed10SecWarning = true;
-				if (audioManager->HasSound("sfx_remaining_time")) {
-					audioManager->PlaySound("sfx_remaining_time", audioManager->GetVfxVolume(), false);
-				}
-			}
+if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
+Economy::gPlayed10SecWarning = true;
+if (audioManager->HasSound("sfx_clock_ticking_10secs")) {
+audioManager->PlaySound("sfx_clock_ticking_10secs", audioManager->GetVfxVolume() * 1.2f, false);
+}
+}
 
-			if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
-				Economy::gPlayed3SecBeep = true;
-				if (audioManager->HasSound("sfx_beep")) {
-					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
-				}
-			}
+if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
+Economy::gPlayed3SecBeep = true;
+if (audioManager->HasSound("sfx_beep")) {
+audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+}
+}
 
-			if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
-				Economy::gPlayed2SecBeep = true;
-				if (audioManager->HasSound("sfx_beep")) {
-					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
-				}
-			}
+if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
+Economy::gPlayed2SecBeep = true;
+if (audioManager->HasSound("sfx_beep")) {
+audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+}
+}
 
-			if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
-				Economy::gPlayed1SecBeep = true;
-				if (audioManager->HasSound("sfx_beep")) {
-					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
-				}
-			}
+if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
+Economy::gPlayed1SecBeep = true;
+if (audioManager->HasSound("sfx_beep")) {
+audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+}
+}
 
-			if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
-				Economy::gPlayedTimeUp = true;
-				if (audioManager->HasSound("sfx_time_up")) {
-					audioManager->PlaySound("sfx_time_up", audioManager->GetVfxVolume(), false);
-				}
-			}
-		}
-#else
-		(void)scene;
-		(void)prevTime;
-#endif
+if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
+Economy::gPlayedTimeUp = true;
+if (audioManager->HasSound("sfx_time_up")) {
+audioManager->PlaySound("sfx_time_up", audioManager->GetVfxVolume(), false);
+}
+}
+}
 	}
 
 	/************************************************************************/
@@ -551,9 +546,13 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 			// OnCutsceneBeforeFinalLoad hard-stopping the channel mid-fade.
 			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
 
-			// Play skip cutscene SFX
+			// Play skip cutscene SFX at the listener position (screen center)
+			// so the 3D-loaded sound is heard at full volume
 			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE)) {
-				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE, audioManager->GetVfxVolume(), false);
+				float cx = static_cast<float>(GraphicsEngine::kRefW) * 0.5f;
+				float cy = static_cast<float>(GraphicsEngine::kRefH) * 0.5f;
+				audioManager->PlaySound3D(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE,
+					cx, cy, 0.0f, audioManager->GetVfxVolume());
 			}
 		}
 #else
