@@ -745,6 +745,7 @@ namespace LEPANELLEVEL {
 			});
 
 		static std::size_t sLastSavedHash = 0;
+		static std::string sLastSavedPath;
 
 		LEACTIONS::DrawActionGrid(editor, scene, {
 			[&]() {
@@ -767,6 +768,7 @@ namespace LEPANELLEVEL {
 					selectedObjectId = -1;
 					LEHIERARCHY::InvalidateCache();
 					sLastSavedHash = HashLevelData(work);
+					sLastSavedPath = editor.levelPath;
 					ClearUndoHistory();
 				}
 			},
@@ -786,6 +788,7 @@ namespace LEPANELLEVEL {
 				fresh.background.clear();
 				LEHIERARCHY::InvalidateCache();
 				sLastSavedHash = HashLevelData(fresh);
+				sLastSavedPath.clear();
 				ClearUndoHistory();
 			},
 			[&]() {
@@ -793,9 +796,11 @@ namespace LEPANELLEVEL {
 				SyncSceneToLevel(scene, dst);
 				SyncTextObjectsToLevel(dst);
 				const std::size_t currentHash = HashLevelData(dst);
+				const bool savePathChanged = (editor.levelPath != sLastSavedPath);
 
-				if (currentHash != sLastSavedHash && LevelSerializer::Save(editor.levelPath, dst)) {
+				if ((currentHash != sLastSavedHash || savePathChanged) && LevelSerializer::Save(editor.levelPath, dst)) {
 					sLastSavedHash = currentHash;
+					sLastSavedPath = editor.levelPath;
 				}
 			},
 			[&]() { return PerformUndo(editor, scene); },
