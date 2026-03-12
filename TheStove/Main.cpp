@@ -904,6 +904,15 @@ static void draw(ApplicationState& app) {
 	}
 #endif
 
+#ifndef _DEBUG
+	const bool pauseOverlayActive = app.currentScene->IsPauseOverlayActive();
+
+	// When paused: draw level text first so pause overlay renders above it.
+	if (pauseOverlayActive) {
+		app.currentScene->RenderLevelTextObjects();
+	}
+#endif
+
 	//graphicsEngine->Render(drawList);
 	graphicsEngine->RenderBatched(drawList);
 
@@ -914,7 +923,10 @@ static void draw(ApplicationState& app) {
 	app.currentScene->RenderFPSText();
 
 #ifndef _DEBUG
-	app.currentScene->RenderLevelTextObjects();
+	// Normal case only: keep text on top when pause overlay is not active.
+	if (!pauseOverlayActive) {
+		app.currentScene->RenderLevelTextObjects();
+	}
 #endif
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
