@@ -163,9 +163,21 @@ namespace LEFILEIO {
 
 	// Move to trash
 	bool MoveToTrash(const std::string& filePath) {
-		std::error_code ec;
+		if (filePath.empty()) {
+			return false;
+		}
 
-		const fs::path src(filePath);
+		std::error_code ec;
+		fs::path src(filePath);
+
+		if (!fs::exists(src, ec)) {
+			ec.clear();
+			const fs::path fallback = fs::current_path(ec) / src;
+			if (!ec && fs::exists(fallback, ec)) {
+				src = fallback;
+			}
+		}
+
 		if (!fs::exists(src, ec)) {
 			return false;
 		}
@@ -173,12 +185,33 @@ namespace LEFILEIO {
 		const fs::path trashDir = src.parent_path() / "trash";
 		if (!fs::exists(trashDir, ec)) {
 			fs::create_directories(trashDir, ec);
+			if (ec) {
+				return false;
+			}
 		}
 
 		const fs::path dst = MakeUniquePath(trashDir, src.filename());
 		fs::rename(src, dst, ec);
+		if (!ec) {
+			return true;
+		}
 
-		return !ec;
+		// Fallback when rename fails (e.g., crossing filesystems).
+		ec.clear();
+		fs::copy_file(src, dst, fs::copy_options::overwrite_existing, ec);
+		if (ec) {
+			return false;
+		}
+
+		ec.clear();
+		fs::remove(src, ec);
+		if (ec) {
+			std::error_code cleanupEc;
+			fs::remove(dst, cleanupEc);
+			return false;
+		}
+
+		return true;
 	}
 
 	// List all .json files in a directory.
