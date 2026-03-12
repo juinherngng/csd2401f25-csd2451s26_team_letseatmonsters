@@ -214,6 +214,10 @@ namespace LEPANELPREFABS {
 			prefabPathInitialized = true;
 		}
 		static std::vector<std::string> sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+		auto GetPrefabDisplayName = [](const std::string& prefabPath) {
+			const std::string filename = fs::path(prefabPath).filename().string();
+			return filename.empty() ? prefabPath : filename;
+			};
 
 		// Cache for prefab thumbnails (keyed by prefab JSON path)
 		static std::unordered_map<std::string, Texture*> sPrefabPreviewCache;
@@ -251,12 +255,19 @@ namespace LEPANELPREFABS {
 			}
 		}
 
+		std::string selectedPrefabLabel = GetPrefabDisplayName(prefabPathBuf);
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-		if (ImGui::BeginCombo("##PrefabCombo", prefabPathBuf)) {
+		if (ImGui::BeginCombo("##PrefabCombo", selectedPrefabLabel.c_str())) {
 			for (size_t i = 0; i < sPrefabs.size(); ++i) {
+				const std::string displayName = GetPrefabDisplayName(sPrefabs[i]);
 				bool selected = (sPrefabs[i] == prefabPathBuf);
-				if (ImGui::Selectable(sPrefabs[i].c_str(), selected)) {
+				const std::string comboLabel = displayName + "##combo_prefab_" + std::to_string(i);
+				if (ImGui::Selectable(comboLabel.c_str(), selected)) {
 					std::snprintf(prefabPathBuf, sizeof(prefabPathBuf), "%s", sPrefabs[i].c_str());
+				}
+
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+					ImGui::SetTooltip("%s", sPrefabs[i].c_str());
 				}
 
 				if (selected) {
@@ -296,14 +307,16 @@ namespace LEPANELPREFABS {
 				return true;
 			}
 
+			const std::string filterTarget = GetPrefabDisplayName(value);
+
 			auto it = std::search(
-				value.begin(), value.end(),
+				filterTarget.begin(), filterTarget.end(),
 				prefabFilter.begin(), prefabFilter.end(),
 				[](char lhs, char rhs) {
 					return std::tolower(static_cast<unsigned char>(lhs)) ==
 						std::tolower(static_cast<unsigned char>(rhs));
 				});
-			return it != value.end();
+			return it != filterTarget.end();
 			};
 
 		// Scrollable area for prefab thumbnails + paths
@@ -354,12 +367,17 @@ namespace LEPANELPREFABS {
 
 			// Highlight currently selected prefab (the one in prefabPathBuf)
 			bool isSelected = (std::strcmp(prefabPathBuf, path.c_str()) == 0);
-			if (ImGui::Selectable(path.c_str(), isSelected,
+			const std::string displayName = GetPrefabDisplayName(path);
+			if (ImGui::Selectable(displayName.c_str(), isSelected,
 				0, ImVec2(0.0f, iconSize))) {
 				// Clicking on list item updates the active prefab path
 				std::snprintf(prefabPathBuf,
 					sizeof(prefabPathBuf),
 					"%s", path.c_str());
+			}
+
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+				ImGui::SetTooltip("%s", path.c_str());
 			}
 
 			// Drag source: other panels can accept "PREFAB_PATH"
