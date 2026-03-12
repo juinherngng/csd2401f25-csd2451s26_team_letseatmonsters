@@ -419,6 +419,39 @@ namespace {
 	/************************************************************************/
 	/*!
 	\brief
+		Applies level-specific gameplay tuning for customer flow and
+		economy progression based on the currently loaded kitchen level.
+
+	\param scene
+		The active Scene used to identify the current level.
+
+	\param customerManager
+		The CustomerManagerSystem to configure with level-specific
+		spawn cooldown and customer capacity values.
+	*/
+	/************************************************************************/
+	void ConfigureLevelGameplayTuning(Scene& scene, CustomerManagerSystem& customerManager) {
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
+		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
+
+		if (isLevel2) {
+			customerManager.SetSpawnCooldown(6.0f);
+			customerManager.SetMaxCustomers(12);
+			Economy::SetTimeLimitSeconds(240.0f);
+			Economy::SetQuota(310);
+		}
+		else if (isLevel1) {
+			customerManager.SetSpawnCooldown(10.0f);
+			customerManager.SetMaxCustomers(4);
+			Economy::SetTimeLimitSeconds(180.0f);
+			Economy::SetQuota(200);
+		}
+	}
+
+	/************************************************************************/
+	/*!
+	\brief
 		Builds a list of AABB blockers for the pathfinding system by
 		collecting every table-tagged object that has a valid collider
 		on an enabled, collidable layer. The mover's own object is
@@ -476,8 +509,8 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	});
 	scene.SetCustomerResetHook([customerManager](Scene& s) {
 		customerManager->Reset();
+		ConfigureLevelGameplayTuning(s, *customerManager);
 		Economy::Reset();
-		(void)s;
 	});
 	scene.SetRuntimeObjectSetupHook(ApplyRuntimeObjectSetup);
 	scene.SetTagRuleHook(ApplyTagRules);

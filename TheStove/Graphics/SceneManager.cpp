@@ -608,14 +608,17 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 
 // Scene / Transform Utilities
 void Scene::SetSceneBackground(const std::string& texturePath) {
+	sceneBackgroundPath_ = texturePath;
 	graphicsEngine.SetBackground(texturePath);
 }
 
 void Scene::SetSceneBackgroundOverlay(const std::string& texturePath) {
+	sceneBackgroundOverlayPath_ = texturePath;
 	graphicsEngine.SetBackgroundOverlay(texturePath);
 }
 
 void Scene::ClearSceneBackgroundOverlay() {
+	sceneBackgroundOverlayPath_.clear();
 	graphicsEngine.ClearBackgroundOverlay();
 }
 

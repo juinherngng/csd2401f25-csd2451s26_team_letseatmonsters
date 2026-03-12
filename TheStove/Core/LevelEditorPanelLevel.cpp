@@ -237,6 +237,8 @@ namespace {
 	static void CaptureEditorState(Scene& scene, LevelData& outState) {
 		SyncSceneToLevel(scene, outState);
 		SyncTextObjectsToLevel(outState);
+		outState.background = scene.GetSceneBackground();
+		outState.backgroundOverlay = scene.GetSceneBackgroundOverlay();
 	}
 
 	// Restore the editor state from a LevelData snapshot, rebuilding the scene and syncing text objects.
@@ -1034,6 +1036,12 @@ namespace LEPANELLEVEL {
 
 			Scene::Defaults defaults = scene.GetDefaults(id);
 
+			auto SyncColliderDefaults = [&](const Math::Vector2D& colSize, const Math::Vector2D& colOff) {
+				defaults.colSize = { colSize.x, colSize.y };
+				defaults.colOff = { colOff.x, colOff.y };
+				scene.SetDefaults(id, defaults);
+				};
+
 			ImGui::SeparatorText("Properties Inspector");
 			ImGui::TextDisabled("Selected ID: %d", id);
 
@@ -1179,6 +1187,7 @@ namespace LEPANELLEVEL {
 					colliderSize.y = size.y;
 					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
 					obj->SetColliderOffset({ 0.f, 0.f });
+					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, { 0.f, 0.f });
 					scene.RebuildColliders();
 				}
 			}
@@ -1260,6 +1269,7 @@ namespace LEPANELLEVEL {
 					colliderSize.x = size.x;
 					colliderSize.y = size.y;
 					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, colliderOff);
 					scene.RebuildColliders();
 				}
 
@@ -1338,6 +1348,7 @@ namespace LEPANELLEVEL {
 					colliderOff = { 0.f, 0.f };
 					obj->SetColliderSize({ 0.f, 0.f });
 					obj->SetColliderOffset({ 0.f, 0.f });
+					SyncColliderDefaults({ 0.f, 0.f }, { 0.f, 0.f });
 				}
 				else {
 					// default collider when adding
@@ -1345,6 +1356,7 @@ namespace LEPANELLEVEL {
 					colliderOff = { 0.f, 0.f };
 					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
 					obj->SetColliderOffset({ 0.f, 0.f });
+					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, { 0.f, 0.f });
 				}
 
 				scene.RebuildColliders();
@@ -1373,6 +1385,7 @@ namespace LEPANELLEVEL {
 				if (sizeChangedX || sizeChangedY) {
 					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
 					scene.RebuildColliders();
+					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, colliderOff);
 				}
 
 				ImGui::Spacing();
@@ -1393,6 +1406,7 @@ namespace LEPANELLEVEL {
 
 				if (offChangedX || offChangedY) {
 					obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
+					SyncColliderDefaults(colliderSize, { colliderOff.x, colliderOff.y });
 					scene.RebuildColliders();
 				}
 			}

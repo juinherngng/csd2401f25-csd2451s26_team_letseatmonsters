@@ -959,7 +959,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 #ifdef _DEBUG
-	// Get text objects and sort by layer for interleaved rendering
+	// Get text objects and sort by layer for deterministic top-level text rendering
 	const auto& textObjects = LEPANELFONTS::GetTextObjects();
 	struct SortedTextEntry {
 		const LEPANELFONTS::TextObjectData* data;
@@ -987,35 +987,18 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			return a.data->y < b.data->y;
 		});
 
-	size_t textIndex = 0; // Track which text objects have been rendered
-	int lastProcessedLayer = 0; // Track the last layer we finished processing
-
-	// Lambda to render text objects up to and including a certain layer
-	auto renderTextUpToLayer = [&](int maxLayerNumber) {
-		while (textIndex < sortedTextObjects.size()) {
-			if (sortedTextObjects[textIndex].layer <= maxLayerNumber) {
-				RenderSingleTextObject(*sortedTextObjects[textIndex].data);
-				++textIndex;
-			}
-			else {
-				break; // Text belongs to a higher layer, stop
-			}
-		}
-		};
 #endif
 
-	// Early out if no objects (but still render text)
+	// Early out if no objects (but still render overlay/text)
 	if (objects.empty()) {
+		// Keep overlay above world content (none in this case).
+		RenderBackgroundOverlay(view, projection);
 #ifdef _DEBUG
-		// Render all text objects
+		// Render all text objects after overlay to keep text above it.
 		for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
 			RenderSingleTextObject(*sortedTextObjects[i].data);
 		}
 #endif
-
-		// Keep overlay above any scene/text content.
-		RenderBackgroundOverlay(view, projection);
-
 		// Draw transition overlay even if empty scene
 		DrawTransitionOverlay();
 		EndSceneAndPresent();
@@ -1098,7 +1081,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 		};
 
-	// Build runs in order, interleaving text objects at layer boundaries
+	// Build runs in order while preserving scene object layering
 	for (auto* obj : objects) {
 		if (!obj) {
 			continue;
@@ -1111,26 +1094,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 
 		Texture* texture = obj->GetTexture();
-		int objLayer = obj->GetRenderLayer();
-#ifndef _DEBUG
-		(void)objLayer;
-#endif
-
-#ifdef _DEBUG
-		// When we move to a new (higher) layer, first render text objects
-		// from the previous layers that haven't been rendered yet
-		if (objLayer > lastProcessedLayer) {
-			// Flush current batch before rendering text
-			if (!instanceBatch.empty()) {
-				flushBatch(instanceBatch, currentKey);
-				instanceBatch.clear();
-			}
-
-			// Render text objects up to and including the previous layer
-			renderTextUpToLayer(objLayer - 1);
-			lastProcessedLayer = objLayer;
-		}
-#endif
 
 		RenderKey key{ mesh, shader, texture };
 
@@ -1157,10 +1120,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	}
 
 #ifdef _DEBUG
-	// Render remaining text objects (those in layers >= the last game object layer)
-	while (textIndex < sortedTextObjects.size()) {
-		RenderSingleTextObject(*sortedTextObjects[textIndex].data);
-		++textIndex;
+	// Render all text after the overlay so text remains readable and always on top of it.
+	for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
+		RenderSingleTextObject(*sortedTextObjects[i].data);
 	}
 #endif
 
@@ -1179,10 +1141,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 		DebugRenderer::Flush(view, projection);
 	}
-
-	// Draw background overlay after scene/text/debug so it appears as the
-	// foreground layer while still staying below transition effects.
-	RenderBackgroundOverlay(view, projection);
 
 	// Draw transition overlay on top of everything in the scene FBO
 	DrawTransitionOverlay();

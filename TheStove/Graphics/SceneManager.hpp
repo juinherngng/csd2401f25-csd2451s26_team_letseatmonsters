@@ -166,6 +166,12 @@ public:
 	void SetSceneBackground(const std::string& texturePath);
 	void SetSceneBackgroundOverlay(const std::string& texturePath);
 	void ClearSceneBackgroundOverlay();
+	const std::string& GetSceneBackground() const {
+		return sceneBackgroundPath_;
+	}
+	const std::string& GetSceneBackgroundOverlay() const {
+		return sceneBackgroundOverlayPath_;
+	}
 
 	// Set the transform of the object with given ID, using level editor semantics
 	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
@@ -594,6 +600,8 @@ private:
 	bool pendingClear_ = false;
 	int editorSelectedId = -1;
 	std::string currentLevelPath_;
+	std::string sceneBackgroundPath_;
+	std::string sceneBackgroundOverlayPath_;
 
 	// Pending level load state
 	std::string pendingLevelPath_;
