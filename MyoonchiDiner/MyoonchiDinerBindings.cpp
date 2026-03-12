@@ -37,6 +37,7 @@
 #include "Core/SimpleNpcLogic.hpp"
 #include "Core/Quota.hpp"
 #include "Graphics/SceneManager.hpp"
+#include "FilePaths.hpp"
 
 #include "GamePaths.hpp"
 
@@ -368,6 +369,24 @@ namespace {
 			}},
 			{ "btn_quit", [](Scene& scene, int id) {
 				scene.GetLogicManager().AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+			}},
+			{ "btn_next_level", [](Scene& scene, int id) {
+				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::KITCHEN_02, true);
+				if (logic && scene.GetAudioManager()) {
+					logic->SetAudioManager(scene.GetAudioManager());
+				}
+			}},
+			{ "btn_retry_level", [](Scene& scene, int id) {
+				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, scene.GetCurrentLevelPath(), true);
+				if (logic && scene.GetAudioManager()) {
+					logic->SetAudioManager(scene.GetAudioManager());
+				}
+			}},
+			{ "btn_main_menu", [](Scene& scene, int id) {
+				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::MAIN_MENU, false);
+				if (logic && scene.GetAudioManager()) {
+					logic->SetAudioManager(scene.GetAudioManager());
+				}
 			}},
 		};
 		return table;
