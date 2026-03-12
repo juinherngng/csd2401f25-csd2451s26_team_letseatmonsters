@@ -533,7 +533,7 @@ namespace {
 		ImGui::InputText("##NewLayerName", newLayerBuf, IM_ARRAYSIZE(newLayerBuf));
 		ImGui::SameLine();
 
-		if (ImGui::Button("Add", ImVec2(56.0f, 0.0f)) && newLayerBuf[0] != '\0') {
+		if (ImGui::Button("Add##LayerAdd", ImVec2(56.0f, 0.0f)) && newLayerBuf[0] != '\0') {
 			scene.AddLayer(newLayerBuf);
 			newLayerBuf[0] = '\0';
 		}
@@ -1022,7 +1022,7 @@ namespace LEPANELLEVEL {
 		}
 
 		// Add
-		if (ImGui::Button("Add")) {
+		if (ImGui::Button("Add##ObjectAdd")) {
 			// Snapshot BEFORE adding
 			PushUndoSnapshot(editor, scene);
 
