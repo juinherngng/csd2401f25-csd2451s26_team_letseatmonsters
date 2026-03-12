@@ -507,6 +507,11 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 #ifndef _DEBUG
 		if (AudioManager* audioManager = s.GetAudioManager()) {
 			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, outSeconds);
+
+			// Play skip cutscene SFX
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE)) {
+				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE, audioManager->GetVfxVolume(), false);
+			}
 		}
 #else
 		(void)s;
