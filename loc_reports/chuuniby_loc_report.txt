@@ -3,7 +3,7 @@ Lines of Code Report (Diff-based)
 ==========================================
 Author: chuuniby
 Since: 2026-02-16
-Generated: Thu Mar 12 01:07:17 +08 2026
+Generated: Fri Mar 13 02:24:58 +08 2026
 ==========================================
 
 ==========================================
@@ -13,58 +13,95 @@ Tracked extensions: .cpp .hpp .h .c
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
+MyoonchiDiner/Core/CustomerManagerLogic.hpp                                     4          1          3
+MyoonchiDiner/Core/CustomerTableLogic.cpp                                       3          0          3
+MyoonchiDiner/Core/Quota.cpp                                                    2          2          0
+MyoonchiDiner/Core/Quota.hpp                                                    8          2          6
+MyoonchiDiner/Core/SimpleNpcLogic.cpp                                           1          1          0
+MyoonchiDiner/MyoonchiDinerBindings.cpp                                        38          4         34
 TheStove/Core/Collision.cpp                                                    11          1         10
 TheStove/Core/Collision.hpp                                                     1          0          1
-TheStove/Core/CustomerManagerLogic.cpp                                         52          8         44
-TheStove/Core/CustomerManagerLogic.hpp                                          1          1          0
-TheStove/Core/CustomerOrderUILogic.cpp                                         25         20          5
+TheStove/Core/CustomerManagerLogic.cpp                                        119         22         97
+TheStove/Core/CustomerManagerLogic.hpp                                          5          1          4
+TheStove/Core/CustomerOrderUILogic.cpp                                         28         21          7
 TheStove/Core/CustomerOrderUILogic.hpp                                          6         10         -4
+TheStove/Core/CustomerTableLogic.cpp                                           20         18          2
+TheStove/Core/FilePaths.hpp                                                     1          0          1
+TheStove/Core/FoodTypes.hpp                                                     5          1          4
 TheStove/Core/GridPathfinder.cpp                                              180          0        180
 TheStove/Core/GridPathfinder.hpp                                              100          0        100
-TheStove/Core/LevelEditorPanelLevel.cpp                                         0          1         -1
-TheStove/Core/PlateLogic.cpp                                                   12          1         11
+TheStove/Core/IngredientBoxLogic.cpp                                           11          0         11
+TheStove/Core/IngredientBoxLogic.hpp                                            1          0          1
+TheStove/Core/IngredientLogic.cpp                                               3          0          3
+TheStove/Core/LevelEditorPanelLevel.cpp                                        83        102        -19
+TheStove/Core/LevelEditorPickDrag.cpp                                           1          0          1
+TheStove/Core/LevelSerializer.cpp                                              15          0         15
+TheStove/Core/LevelSerializer.hpp                                               7          0          7
+TheStove/Core/OrderUILogic.cpp                                                 15          1         14
+TheStove/Core/PlateLogic.cpp                                                   24          2         22
 TheStove/Core/PlateLogic.hpp                                                    4          3          1
-TheStove/Core/PlayerLogic.cpp                                                 516        259        257
-TheStove/Core/PlayerLogic.hpp                                                  20          1         19
+TheStove/Core/PlayerLogic.cpp                                                 622        354        268
+TheStove/Core/PlayerLogic.hpp                                                  25          6         19
 TheStove/Core/Quota.hpp                                                         1          1          0
-TheStove/Core/SimpleNpcLogic.cpp                                              388         61        327
-TheStove/Core/SimpleNpcLogic.hpp                                               27          2         25
-TheStove/Core/TableLogic.cpp                                                   14          1         13
-TheStove/Core/WorkTableLogic.cpp                                               65          2         63
-TheStove/Core/WorkTableLogic.hpp                                               52         41         11
+TheStove/Core/RuntimeLevel.cpp                                                 16          2         14
+TheStove/Core/SimpleNpcLogic.cpp                                              430         73        357
+TheStove/Core/SimpleNpcLogic.hpp                                               33          3         30
+TheStove/Core/TableLogic.cpp                                                   19          2         17
+TheStove/Core/WorkTableLogic.cpp                                              165          8        157
+TheStove/Core/WorkTableLogic.hpp                                               66         41         25
 TheStove/Graphics/AnimationManager.cpp                                         80          9         71
 TheStove/Graphics/AnimationManager.hpp                                          4          0          4
-TheStove/Graphics/SceneCollisionLayout.cpp                                    235          0        235
-TheStove/Graphics/SceneManager.cpp                                              8          1          7
-TheStove/Graphics/SceneManager.hpp                                             13          0         13
+TheStove/Graphics/GameObject.hpp                                                1          1          0
+TheStove/Graphics/GraphicsEngine.cpp                                           68         39         29
+TheStove/Graphics/GraphicsEngine.hpp                                            4          0          4
+TheStove/Graphics/SceneCollisionLayout.cpp                                    407         65        342
+TheStove/Graphics/SceneManager.cpp                                             18          1         17
+TheStove/Graphics/SceneManager.hpp                                             34          1         33
 --------------------------------------------------------------------------------------------
 
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    1815
-Lines Deleted:  423
-Net Change:     1392
-Total Commits:  16
+Lines Added:    2689
+Lines Deleted:  798
+Net Change:     1891
+Total Commits:  42
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
 ==========================================
 
+MyoonchiDiner/Core/CustomerManagerLogic.hpp
+MyoonchiDiner/Core/CustomerTableLogic.cpp
+MyoonchiDiner/Core/Quota.cpp
+MyoonchiDiner/Core/Quota.hpp
+MyoonchiDiner/Core/SimpleNpcLogic.cpp
+MyoonchiDiner/MyoonchiDinerBindings.cpp
 TheStove/Core/Collision.cpp
 TheStove/Core/Collision.hpp
 TheStove/Core/CustomerManagerLogic.cpp
 TheStove/Core/CustomerManagerLogic.hpp
 TheStove/Core/CustomerOrderUILogic.cpp
 TheStove/Core/CustomerOrderUILogic.hpp
+TheStove/Core/CustomerTableLogic.cpp
+TheStove/Core/FilePaths.hpp
+TheStove/Core/FoodTypes.hpp
 TheStove/Core/GridPathfinder.cpp
 TheStove/Core/GridPathfinder.hpp
+TheStove/Core/IngredientBoxLogic.cpp
+TheStove/Core/IngredientBoxLogic.hpp
+TheStove/Core/IngredientLogic.cpp
 TheStove/Core/LevelEditorPanelLevel.cpp
+TheStove/Core/LevelEditorPickDrag.cpp
+TheStove/Core/LevelSerializer.cpp
+TheStove/Core/LevelSerializer.hpp
+TheStove/Core/OrderUILogic.cpp
 TheStove/Core/PlateLogic.cpp
 TheStove/Core/PlateLogic.hpp
 TheStove/Core/PlayerLogic.cpp
 TheStove/Core/PlayerLogic.hpp
 TheStove/Core/Quota.hpp
+TheStove/Core/RuntimeLevel.cpp
 TheStove/Core/SimpleNpcLogic.cpp
 TheStove/Core/SimpleNpcLogic.hpp
 TheStove/Core/TableLogic.cpp
@@ -72,16 +109,35 @@ TheStove/Core/WorkTableLogic.cpp
 TheStove/Core/WorkTableLogic.hpp
 TheStove/Graphics/AnimationManager.cpp
 TheStove/Graphics/AnimationManager.hpp
+TheStove/Graphics/GameObject.hpp
+TheStove/Graphics/GraphicsEngine.cpp
+TheStove/Graphics/GraphicsEngine.hpp
 TheStove/Graphics/SceneCollisionLayout.cpp
 TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
+assets/Background2.png
+assets/Background2_Full.png
+assets/Background2_Over.png
+assets/CUT_Carrot_Ingredient.png
+assets/CarrotIngredientBox.png
 assets/Coin.png
+assets/CustomerTable_Horizontal.png
+assets/CustomerTable_Horizontal_No_Bottom.png
+assets/Customertable_new.png
+assets/Food_Meat_n_carrot.png
+assets/Food_Salad_n_carrot.png
 assets/HappyFace.png
+assets/Ingredient_Carrot.png
 assets/Reaction_Angry_Face.png
 assets/Reaction_Happy_Face.png
 assets/Reaction_Money.png
 assets/SadFace.png
+assets/arrow_base.png
+assets/arrow_main.png
 assets/goat-Sheet.png
 assets/goat_spritesheet.png
 imgui.ini
+levels/collision_level1.json
+levels/collision_level2.json
 levels/kitchen01.json
+levels/kitchen02.json

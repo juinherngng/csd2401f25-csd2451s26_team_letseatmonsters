@@ -3,7 +3,7 @@ Lines of Code Report (Diff-based)
 ==========================================
 Author: CookieWasTaken
 Since: 2026-02-16
-Generated: Thu Mar 12 01:07:16 +08 2026
+Generated: Fri Mar 13 02:24:55 +08 2026
 ==========================================
 
 ==========================================
@@ -13,32 +13,70 @@ Tracked extensions: .cpp .hpp .h .c
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
+MyoonchiDiner/Core/MenuButtonLogic.cpp                                          9          5          4
 MyoonchiDiner/Core/PlayerLogic.cpp                                              5          1          4
 MyoonchiDiner/Core/SimpleNpcLogic.cpp                                           1          0          1
 MyoonchiDiner/Core/TableLogic.cpp                                               1          0          1
-MyoonchiDiner/MyoonchiDinerBindings.cpp                                        23          0         23
+MyoonchiDiner/GamePaths.hpp                                                     2          0          2
+MyoonchiDiner/MyoonchiDinerBindings.cpp                                        28          1         27
+TheStove/Core/AudioManager.cpp                                                 28          4         24
+TheStove/Core/AudioManager.hpp                                                  1          0          1
 TheStove/Core/GameStateManager.hpp                                              3          0          3
 TheStove/Graphics/SceneCollisionLayout.cpp                                      9         40        -31
-TheStove/Graphics/SceneManager.hpp                                              8          0          8
+TheStove/Graphics/SceneManager.cpp                                              4          1          3
+TheStove/Graphics/SceneManager.hpp                                              9          0          9
 --------------------------------------------------------------------------------------------
 
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    50
-Lines Deleted:  41
-Net Change:     9
-Total Commits:  4
+Lines Added:    100
+Lines Deleted:  52
+Net Change:     48
+Total Commits:  13
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
 ==========================================
 
+MyoonchiDiner/Core/MenuButtonLogic.cpp
 MyoonchiDiner/Core/PlayerLogic.cpp
 MyoonchiDiner/Core/SimpleNpcLogic.cpp
 MyoonchiDiner/Core/TableLogic.cpp
+MyoonchiDiner/GamePaths.hpp
 MyoonchiDiner/MyoonchiDinerBindings.cpp
+TheStove/Core/AudioManager.cpp
+TheStove/Core/AudioManager.hpp
 TheStove/Core/GameStateManager.hpp
 TheStove/Graphics/SceneCollisionLayout.cpp
+TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
+assets/Audio/AudioCatalog.json
+assets/Audio/sfx_clock_ticking_10secs.wav
+assets/Audio/sfx_new_order_v2.wav
+assets/Audio/sfx_pickup_cabbage_1.wav
+assets/Audio/sfx_pickup_cabbage_2.wav
+assets/Audio/sfx_pickup_cabbage_3.wav
+assets/Audio/sfx_pickup_cabbage_4.wav
+assets/Audio/sfx_serve_dish.wav
+assets/Audio/sfx_skip_intro_cutscene.wav
+assets/Audio/sfx_start_button.wav
+assets/Audio/sfx_timer_run_out.wav
+assets/Audio/vo_customer_angry_01.wav
+assets/Audio/vo_customer_angry_02.wav
+assets/Audio/vo_customer_angry_03.wav
+assets/Audio/vo_customer_angry_04.wav
+assets/Audio/vo_customer_angry_05.wav
+assets/Audio/vo_customer_angry_06.wav
+assets/Audio/vo_customer_angry_07.wav
+assets/Audio/vo_customer_angry_08.wav
+assets/Audio/vo_customer_happy_01.wav
+assets/Audio/vo_customer_happy_02.wav
+assets/Audio/vo_customer_happy_03.wav
+assets/Audio/vo_customer_happy_04.wav
+assets/Audio/vo_customer_happy_05.wav
+assets/Audio/vo_customer_happy_06.wav
+assets/Audio/vo_customer_happy_07.wav
+assets/Audio/vo_customer_happy_08.wav
+assets/Audio/vo_customer_happy_09.wav
 levels/kitchen01.autosave.json

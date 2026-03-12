@@ -2,13 +2,13 @@
 SUMMARY - All Authors (Diff-based Code Only)
 ==========================================
 Since: 2026-02-16
-Generated: Thu Mar 12 01:07:19 +08 2026
+Generated: Fri Mar 13 02:25:03 +08 2026
 ==========================================
 
 Author                       Commits  Lines Added    Lines Del   Net Change
 --------------------------------------------------------------------------------
-Chun Wee                          82         9066         7134         1932
-CookieWasTaken                     4           50           41            9
+Chun Wee                         118        12302         9989         2313
+CookieWasTaken                    13          100           52           48
 Wang Hua                          11          760          131          629
-chuuniby                          16         1815          423         1392
-juinherngng                        7          904          424          480
+chuuniby                          42         2689          798         1891
+juinherngng                       10         1048          426          622
