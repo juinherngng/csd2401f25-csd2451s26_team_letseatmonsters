@@ -903,6 +903,13 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		shader->SetViewMatrix(viewMatrix);
 		shader->SetProjectionMatrix(projectionMatrix);
 
+		Shader* animShader = resourceManager.GetShader("animatedsprite");
+		if (shader == animShader) {
+			const glm::vec4 uv = obj->GetUVRect();
+			shader->SetUVOffset(glm::vec2(uv.x, uv.y));
+			shader->SetUVScale(glm::vec2(uv.z, uv.w));
+		}
+
 		// set per-object tint (u_Color)
 		shader->SetColorTint(obj->GetColorTint());
 

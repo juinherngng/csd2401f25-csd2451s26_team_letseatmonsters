@@ -141,7 +141,7 @@ public:
 	GameObject* SpawnAnimatedSprite(const std::string& texturePath,
 		const glm::vec3 position,
 		const glm::vec2 size,
-		const std::vector<glm::vec4> frames,
+		const std::vector<glm::vec4>& frames,
 		float frameDuration, bool loop,
 		const std::string& layer);
 

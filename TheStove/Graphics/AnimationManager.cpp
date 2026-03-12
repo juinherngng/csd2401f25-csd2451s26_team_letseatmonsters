@@ -480,3 +480,36 @@ void AnimationManager::Stop() {
 	}
 }
 
+void AnimationManager::AttachRuntimeAnimation(int objectID,
+	const std::vector<glm::vec4>& frames,
+	float frameDuration,
+	bool loop,
+	const std::string& animName) {
+	if (frames.empty()) {
+		std::cerr << "[AnimationManager] AttachRuntimeAnimation failed: no frames for object "
+			<< objectID << std::endl;
+		return;
+	}
+
+	Animator2D& anim = animators_[objectID];
+
+	animationSets_[objectID].clear();
+	animationSets_[objectID][animName] = AnimationSet{ frames, frameDuration, loop };
+
+	anim.SetFrames(frames, frameDuration, loop);
+	currentAnimations_[objectID] = animName;
+
+	// Keep manager state consistent
+	if (isPlaying) {
+		anim.Play();
+	}
+	else {
+		anim.Pause();
+	}
+}
+
+void AnimationManager::RemoveAnimator(int objectID) {
+	animators_.erase(objectID);
+	currentAnimations_.erase(objectID);
+	animationSets_.erase(objectID);
+}

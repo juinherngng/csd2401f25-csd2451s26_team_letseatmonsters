@@ -443,7 +443,7 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
 	const glm::vec3 position,
 	const glm::vec2 size,
-	const std::vector<glm::vec4> frames,
+	const std::vector<glm::vec4>& frames,
 	float frameDuration, bool loop,
 	const std::string& layer) {
 	GameObject* obj = entityManager.SpawnAnimatedSprite(texturePath, position, size, frames, frameDuration, loop);
@@ -451,16 +451,18 @@ GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
 	if (obj) {
 		int id = obj->GetID();
 		AssignObjectToLayer(id, layer);
-
 		InitDefaultCollider(obj);
+
+		// This is the missing step:
+		animationManager.AttachRuntimeAnimation(id, frames, frameDuration, loop);
 	}
 
-	// Disabled by default, controlled by JSON
-	obj->EnableShadow(false);
-
-	obj->SetShadowSize(glm::vec2(size.x * 0.8f, size.y * 0.33f)); // ellipse sized to sprite
-	obj->SetShadowOffset(glm::vec2(0.0f, 55.0f));       // sit near feet (tweak per origin)
-	obj->SetShadowOpacity(0.65f);
+	if (obj) {
+		obj->EnableShadow(false);
+		obj->SetShadowSize(glm::vec2(size.x * 0.8f, size.y * 0.33f));
+		obj->SetShadowOffset(glm::vec2(0.0f, 55.0f));
+		obj->SetShadowOpacity(0.65f);
+	}
 
 	return obj;
 }
@@ -534,6 +536,8 @@ void Scene::DespawnByID(int targetID) {
 	logicManager.RemoveAllFor(targetID, *this);
 
 	objectTags_.erase(targetID);
+
+	animationManager.RemoveAnimator(targetID);
 
 	// Remove from entity manager (handles transforms too)
 	entityManager.DespawnByID(targetID);
