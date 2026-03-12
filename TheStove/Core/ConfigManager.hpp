@@ -48,6 +48,10 @@ namespace ConfigManager {
 	// Attempts to load settings from common asset locations (e.g. "assets/config.txt" or parent directories).
 	bool LoadFromAssets(Settings& out, const char* filename = "config.txt");
 
+	// Resolves the first config file path that would be used by LoadFromAssets.
+	// Returns true when an existing file is found and writes it to outFilePath.
+	bool ResolveAssetPath(std::string& outFilePath, const char* filename = "config.txt");
+
 	// Convenience function to load settings from assets with defaults applied. Defaults are used if file is missing or keys are missing.
 	inline Settings LoadFromAssetsOrDefaults(const char* filename = "config.txt") {
 		Settings s;

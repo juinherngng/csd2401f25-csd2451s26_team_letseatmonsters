@@ -23,7 +23,9 @@
 
 #include <cfloat>
 #include <filesystem>
+#include <set>
 #include <string>
+#include <vector>
 
 #ifdef _DEBUG
 #include <imgui.h>
@@ -40,27 +42,39 @@ struct ApplicationState {
 extern ApplicationState* g_AppState;
 
 namespace {
-	// Resolves the config file path by checking multiple candidate locations relative to the current working directory.
+	// Resolves the config file path using the same candidate order as ConfigManager::LoadFromAssets.
 	std::string ResolveConfigPath() {
+		std::string resolvedPath;
+		if (ConfigManager::ResolveAssetPath(resolvedPath)) {
+			return resolvedPath;
+		}
+
 		namespace fs = std::filesystem;
-
 		const fs::path cwd = fs::current_path();
-		const fs::path candidates[] = {
-			cwd / "../../assets/config.txt",
-			cwd / "../assets/config.txt",
-			cwd / "assets/config.txt",
-			cwd / "config.txt"
-		};
+		return (cwd / "assets/config.txt").lexically_normal().string();
+	}
 
-		for (const auto& path : candidates) {
-			std::error_code ec;
-			if (fs::exists(path, ec)) {
-				return path.lexically_normal().string();
+	// Collects source/build config candidates so Save can keep both runtime and source config files in sync.
+	std::vector<std::string> CollectConfigSaveTargets(const std::string& primaryPath) {
+		namespace fs = std::filesystem;
+		const fs::path cwd = fs::current_path();
+		std::vector<fs::path> candidates;
+		candidates.emplace_back(primaryPath);
+		candidates.emplace_back(cwd / "../../assets/config.txt");
+		candidates.emplace_back(cwd / "../assets/config.txt");
+		candidates.emplace_back(cwd / "assets/config.txt");
+		candidates.emplace_back(cwd / "config.txt");
+
+		std::set<std::string> seen;
+		std::vector<std::string> targets;
+		for (const auto& candidate : candidates) {
+			const std::string normalized = candidate.lexically_normal().string();
+			if (seen.insert(normalized).second) {
+				targets.push_back(normalized);
 			}
 		}
 
-		// Fallback to the most common source-tree path.
-		return (cwd / "../../assets/config.txt").lexically_normal().string();
+		return targets;
 	}
 }
 
@@ -153,7 +167,16 @@ namespace LEPANELCONFIG {
 		ConfigManager::Validate(settings);
 
 		if (ImGui::Button("Save Config", ImVec2(140, 0))) {
-			if (ConfigManager::Save(configPath, settings)) {
+			const std::vector<std::string> saveTargets = CollectConfigSaveTargets(configPath);
+			bool savedPrimary = false;
+			for (const auto& targetPath : saveTargets) {
+				const bool saveOk = ConfigManager::Save(targetPath, settings);
+				if (targetPath == configPath) {
+					savedPrimary = saveOk;
+				}
+			}
+
+			if (savedPrimary) {
 				ImGui::OpenPopup("Config Saved");
 			}
 			else {

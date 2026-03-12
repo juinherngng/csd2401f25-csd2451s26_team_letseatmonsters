@@ -285,31 +285,46 @@ namespace ConfigManager {
 		return static_cast<bool>(ofs);
 	}
 
-	// Attempts to load config from multiple candidate locations in the executable's directory hierarchy. Falls back to defaults if not found.
-	bool LoadFromAssets(Settings& out, const char* filename) {
-		const char* fname = filename ? filename : "config.txt";
+	namespace {
+		std::vector<fs::path> BuildAssetCandidates(const char* filename) {
+			const char* fname = filename ? filename : "config.txt";
 
-		char exePath[MAX_PATH]{};
-		if (!GetModuleFileNameA(nullptr, exePath, MAX_PATH)) {
-			return false;
+			char exePath[MAX_PATH]{};
+			if (!GetModuleFileNameA(nullptr, exePath, MAX_PATH)) {
+				return {};
+			}
+
+			fs::path exeDir = fs::path(exePath).parent_path();
+
+			// Candidate search order (nearest first)
+			std::vector<fs::path> candidates;
+			candidates.emplace_back(exeDir / "assets" / fname);
+			candidates.emplace_back(exeDir.parent_path() / "assets" / fname);
+			candidates.emplace_back(exeDir.parent_path().parent_path() / "assets" / fname);
+			candidates.emplace_back(exeDir / fname);
+			return candidates;
 		}
+	}
 
-		fs::path exeDir = fs::path(exePath).parent_path();
-
-		// Candidate search order (nearest first)
-		std::vector<fs::path> candidates;
-		candidates.emplace_back(exeDir / "assets" / fname);
-		candidates.emplace_back(exeDir.parent_path() / "assets" / fname);
-		candidates.emplace_back(exeDir.parent_path().parent_path() / "assets" / fname);
-		candidates.emplace_back(exeDir / fname);
-
-		for (const auto& candidate : candidates) {
+	bool ResolveAssetPath(std::string& outFilePath, const char* filename) {
+		for (const auto& candidate : BuildAssetCandidates(filename)) {
 			std::error_code ec;
 			if (fs::exists(candidate, ec)) {
-				return Load(candidate.string(), out);
+				outFilePath = candidate.lexically_normal().string();
+				return true;
 			}
 		}
 
 		return false;
+	}
+
+	// Attempts to load config from multiple candidate locations in the executable's directory hierarchy. Falls back to defaults if not found.
+	bool LoadFromAssets(Settings& out, const char* filename) {
+		std::string resolvedPath;
+		if (!ResolveAssetPath(resolvedPath, filename)) {
+			return false;
+		}
+
+		return Load(resolvedPath, out);
 	}
 }
