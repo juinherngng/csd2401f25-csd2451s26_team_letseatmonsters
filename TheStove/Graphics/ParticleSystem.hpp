@@ -68,9 +68,11 @@ public:
 		std::mt19937 rng{ std::random_device{}() };
 	};
 
+	// Register a new particle effect preset. Must be called before emitting any particles with the preset.
 	void RegisterPreset(const Preset& preset, EntityManager& em);
 	void Update(float dt, EntityManager& em);
 
+	// Emit a particle effect at the specified position.
 	void Emit(const std::string& presetName,
 		EntityManager& em,
 		const glm::vec3& pos,
@@ -82,6 +84,7 @@ public:
 	void EmitTrail(EntityManager& em, const glm::vec3& pos, float baseZ, const glm::vec2& moveDir);
 
 private:
+	// Internal struct to track active particle instances and their state
 	struct ParticleInstance {
 		int id = -1;
 		GameObject* obj = nullptr;
@@ -99,15 +102,16 @@ private:
 		float baseSize = 1.0f; // pixels
 	};
 
+	// Internal struct to manage a pool of particle instances for a given preset
 	struct Pool {
 		bool initialized = false;
 		std::vector<ParticleInstance> p;
 		std::vector<size_t> freeList; // indices into p
 	};
 
+	// Registered presets and their associated pools
 	std::unordered_map<std::string, Preset> presets_;
 	std::unordered_map<std::string, Pool> pools_;
-
 	std::mt19937 rng_{ std::random_device{}() };
 
 	// Whether we've registered callbacks with the EntityManager
@@ -126,6 +130,7 @@ private:
 	// Seed the RNG for deterministic particle behavior (useful for tests/replays)
 	void SetSeed(uint32_t seed);
 
+	// Random utility functions
 	float rand01_();
 	float rand01_(std::mt19937& r);
 	float randRange_(float a, float b);

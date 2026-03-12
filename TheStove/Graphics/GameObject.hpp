@@ -215,8 +215,12 @@ public:
 	}
 
 	// Secondary render order within the same layer (higher draws later)
-	void SetRenderSortOrder(int order) { renderSortOrder_ = order; }
-	int GetRenderSortOrder() const { return renderSortOrder_; }
+	void SetRenderSortOrder(int order) {
+		renderSortOrder_ = order;
+	}
+	int GetRenderSortOrder() const {
+		return renderSortOrder_;
+	}
 
 private:
 	Mesh* m_Mesh;

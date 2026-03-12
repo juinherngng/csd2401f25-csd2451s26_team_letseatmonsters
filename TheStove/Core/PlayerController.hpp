@@ -29,11 +29,7 @@
 #include <glm/gtc/constants.hpp>
 #include <iostream>
 
- /**
-  * @class PlayerController
-  * @brief High-level input bridge for the player. Reads input and delegates actions to the
-  *        movement and physics systems while keeping the sprite visuals in sync.
-  */
+ // Forward declare GraphicsEngine to avoid circular dependency.
 class PlayerController {
 public:
 	PlayerController() = default;
@@ -52,7 +48,7 @@ public:
 		return rotation_;
 	}
 
-	// -------- New: input snapshot for PlayerLogic / other systems --------
+	// Input snapshot for PlayerLogic / other systems
 	// Sample input for this frame (WASD + click-to-move) WITHOUT moving anything.
 	void SampleInput(float deltaTime,
 		InputManager& inputManager,
@@ -93,6 +89,7 @@ private:
 	// Rotation state (degrees).
 	float rotation_ = 0.0f;
 
+	// Movement input state for this frame
 	glm::vec2 moveAxis_{ 0.0f, 0.0f };  // WASD movement axis
 	bool clickToMoveJustPressed_ = false;
 	bool clickWorldValid_ = false;

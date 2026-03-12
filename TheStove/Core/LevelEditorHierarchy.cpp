@@ -38,6 +38,7 @@ namespace {
 	std::unordered_map<int, HierarchyLabelCacheEntry> sHierarchyLabelCache;
 }
 
+// Utility function to convert a string to lowercase. Used for generating search tokens for filtering.
 namespace LEHIERARCHY {
 	std::string ToLowerCopy(std::string value) {
 		std::transform(value.begin(), value.end(), value.begin(),
@@ -111,6 +112,7 @@ namespace LEHIERARCHY {
 			}
 		}
 
+		// Erase cache entries for IDs that are no longer live in the scene. Iterate with an iterator to safely erase while iterating.
 		for (auto it = sHierarchyLabelCache.begin(); it != sHierarchyLabelCache.end();) {
 			if (liveIds.find(it->first) == liveIds.end()) {
 				it = sHierarchyLabelCache.erase(it);

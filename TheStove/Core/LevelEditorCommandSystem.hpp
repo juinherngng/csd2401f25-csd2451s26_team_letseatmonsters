@@ -19,6 +19,7 @@ class LevelEditor;
 struct LevelData;
 
 namespace LECOMMAND {
+	// Type aliases for snapshot capture and restore functions.
 	using CaptureStateFn = std::function<void(LevelData&)>;
 	using RestoreStateFn = std::function<void(const LevelData&)>;
 

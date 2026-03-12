@@ -25,12 +25,14 @@
 namespace LEACTIONS {
 #ifdef _DEBUG
 	namespace {
+		// Helper function to draw a full-width button with a callback.
 		inline void DrawActionButton(const char* label, const std::function<void()>& callback) {
 			if (ImGui::Button(label, ImVec2(-FLT_MIN, 0.0f)) && callback) {
 				callback();
 			}
 		}
 
+		// Helper function to draw a full-width button that can be disabled based on the 'disabled' flag.
 		inline void DrawActionButtonDisabled(const char* label, bool disabled, const std::function<void()>& callback) {
 			ImGui::BeginDisabled(disabled);
 			DrawActionButton(label, callback);

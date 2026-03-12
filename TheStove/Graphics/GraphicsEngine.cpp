@@ -14,8 +14,8 @@
 */
 
 #include "../Core/FontSystem.hpp"
-#include "../Core/LevelEditorPanelFonts.hpp"
 #include "../Core/InputManager.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
@@ -684,7 +684,7 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld, const glm::dvec2*
 
 	if (mousePosOverride == nullptr) {
 		ImVec2 localPos{}, sceneSize{};
-		if(!TryGetMousePositionInScene(localPos, sceneSize)) {
+		if (!TryGetMousePositionInScene(localPos, sceneSize)) {
 			return false;
 		}
 		outWorld = ScenePixelToWorld(localPos, sceneSize);
@@ -754,12 +754,30 @@ bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& out
 
 	ImVec2 scenePos;
 	ComputeSceneImageRect(scenePos, outSceneSize);
-	if (outSceneSize.x <= 0.0f || outSceneSize.y <= 0.0f) {
-		return false;
+
+	// First try ImGui's mouse position (which accounts for multiple viewports and should be more robust), but fall back to InputManager if it's not finite (can happen during docking/layout changes).
+	ImVec2 mouse = ImGui::GetMousePos();
+	if (!std::isfinite(mouse.x) || !std::isfinite(mouse.y)) {
+		const glm::dvec2 mousePos = InputManager::Get().GetMousePosition();
+		mouse = ImVec2(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
 	}
 
-	const glm::dvec2 mousePos = InputManager::Get().GetMousePosition();
-	const ImVec2 mouse(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
+	if (outSceneSize.x <= 0.0f || outSceneSize.y <= 0.0f) {
+		// Fallback to the runtime viewport bounds when the scene tab has not produced a
+		// valid image rect yet (e.g. first frame after docking/layout changes).
+		const float vx = static_cast<float>(viewportX_);
+		const float vy = static_cast<float>(viewportY_);
+		const float vw = static_cast<float>(viewportW_);
+		const float vh = static_cast<float>(viewportH_);
+		if (vw <= 0.0f || vh <= 0.0f || mouse.x < vx || mouse.y < vy ||
+			mouse.x >(vx + vw) || mouse.y >(vy + vh)) {
+			return false;
+		}
+
+		outSceneSize = ImVec2(vw, vh);
+		outLocalPos = ImVec2(mouse.x - vx, mouse.y - vy);
+		return true;
+	}
 
 	if (mouse.x < scenePos.x || mouse.y < scenePos.y ||
 		mouse.x > scenePos.x + outSceneSize.x || mouse.y > scenePos.y + outSceneSize.y) {
@@ -790,7 +808,7 @@ bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& out
 	const float vw = static_cast<float>(viewportW_);
 	const float vh = static_cast<float>(viewportH_);
 	if (vw <= 0.0f || vh <= 0.0f || mouseX < vx || mouseY < vy ||
-		mouseX > (vx + vw) || mouseY > (vy + vh)) {
+		mouseX >(vx + vw) || mouseY >(vy + vh)) {
 		return false;
 	}
 
@@ -1213,7 +1231,7 @@ void GraphicsEngine::RenderTextObjects() {
 	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-	sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
+		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),

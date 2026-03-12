@@ -2,8 +2,8 @@
 Lines of Code Report (Diff-based)
 ==========================================
 Author: chuuniby
-Since: 2025-12-06
-Generated: Thu Feb  5 18:56:34 +08 2026
+Since: 2026-02-16
+Generated: Thu Mar 12 01:07:17 +08 2026
 ==========================================
 
 ==========================================
@@ -13,146 +13,75 @@ Tracked extensions: .cpp .hpp .h .c
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-TheStove/Core/OrderUILogic.cpp                                                300         21        279
-TheStove/Core/CustomerOrderUILogic.cpp                                        273          1        272
-TheStove/Core/SimpleNpcLogic.cpp                                              193         44        149
-TheStove/Core/Quota.cpp                                                       152         13        139
-TheStove/Graphics/SceneManager.cpp                                            132         42         90
-TheStove/Core/OrderUILogic.hpp                                                 88          6         82
-TheStove/Core/Quota.hpp                                                        96         20         76
-TheStove/Core/CustomerOrderUILogic.hpp                                         70          2         68
-TheStove/Core/CustomerManagerLogic.cpp                                        112         48         64
-TheStove/Core/CustomerTableLogic.cpp                                           79         21         58
-TheStove/Core/SimpleNpcLogic.hpp                                               52          7         45
-TheStove/Core/TrashCanLogic.cpp                                                43          0         43
-TheStove/Graphics/SceneManager.hpp                                             37          0         37
-TheStove/Core/IngredientBoxLogic.cpp                                           45         13         32
-TheStove/Core/TrashCanLogic.hpp                                                23          0         23
-TheStove/Core/PlateLogic.cpp                                                   23          0         23
-TheStove/Core/RuntimeLevel.cpp                                                 21          0         21
-TheStove/Core/ExitGateLogic.hpp                                                21          0         21
-TheStove/Core/WorkTableLogic.cpp                                               57         37         20
-TheStove/Core/ExitGateLogic.cpp                                                18          0         18
-TheStove/Core/CustomerManagerLogic.hpp                                         21          8         13
-TheStove/Core/WorkTableLogic.hpp                                               10          0         10
-TheStove/Core/LevelSerializer.hpp                                               8          0          8
-TheStove/Core/LevelEditorPanelFonts.hpp                                        10          5          5
-TheStove/Core/CustomerTableLogic.hpp                                            5          0          5
-TheStove/Graphics/EntityManager.hpp                                             4          0          4
-TheStove/Core/IngredientBoxLogic.hpp                                            7          5          2
-TheStove/Core/FilePaths.hpp                                                     3          1          2
-TheStove/Main.cpp                                                               1          0          1
-TheStove/Core/PlateLogic.hpp                                                    5          4          1
-TheStove/Core/LevelEditorPanelLevel.cpp                                         5          4          1
-TheStove/Graphics/SceneCollisionLayout.cpp                                      1          1          0
-TheStove/Core/PlayerLogic.hpp                                                   1          1          0
-TheStove/Graphics/GraphicsEngine.cpp                                            0          2         -2
-TheStove/Core/TableLogic.cpp                                                    5         30        -25
-TheStove/Core/PlayerLogic.cpp                                                  33         82        -49
-TheStove/Core/LevelEditorPanelFonts.cpp                                       175        227        -52
+TheStove/Core/Collision.cpp                                                    11          1         10
+TheStove/Core/Collision.hpp                                                     1          0          1
+TheStove/Core/CustomerManagerLogic.cpp                                         52          8         44
+TheStove/Core/CustomerManagerLogic.hpp                                          1          1          0
+TheStove/Core/CustomerOrderUILogic.cpp                                         25         20          5
+TheStove/Core/CustomerOrderUILogic.hpp                                          6         10         -4
+TheStove/Core/GridPathfinder.cpp                                              180          0        180
+TheStove/Core/GridPathfinder.hpp                                              100          0        100
+TheStove/Core/LevelEditorPanelLevel.cpp                                         0          1         -1
+TheStove/Core/PlateLogic.cpp                                                   12          1         11
+TheStove/Core/PlateLogic.hpp                                                    4          3          1
+TheStove/Core/PlayerLogic.cpp                                                 516        259        257
+TheStove/Core/PlayerLogic.hpp                                                  20          1         19
+TheStove/Core/Quota.hpp                                                         1          1          0
+TheStove/Core/SimpleNpcLogic.cpp                                              388         61        327
+TheStove/Core/SimpleNpcLogic.hpp                                               27          2         25
+TheStove/Core/TableLogic.cpp                                                   14          1         13
+TheStove/Core/WorkTableLogic.cpp                                               65          2         63
+TheStove/Core/WorkTableLogic.hpp                                               52         41         11
+TheStove/Graphics/AnimationManager.cpp                                         80          9         71
+TheStove/Graphics/AnimationManager.hpp                                          4          0          4
+TheStove/Graphics/SceneCollisionLayout.cpp                                    235          0        235
+TheStove/Graphics/SceneManager.cpp                                              8          1          7
+TheStove/Graphics/SceneManager.hpp                                             13          0         13
 --------------------------------------------------------------------------------------------
 
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    2129
-Lines Deleted:  645
-Net Change:     1484
-Total Commits:  26
+Lines Added:    1815
+Lines Deleted:  423
+Net Change:     1392
+Total Commits:  16
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
 ==========================================
 
+TheStove/Core/Collision.cpp
+TheStove/Core/Collision.hpp
 TheStove/Core/CustomerManagerLogic.cpp
 TheStove/Core/CustomerManagerLogic.hpp
 TheStove/Core/CustomerOrderUILogic.cpp
 TheStove/Core/CustomerOrderUILogic.hpp
-TheStove/Core/CustomerTableLogic.cpp
-TheStove/Core/CustomerTableLogic.hpp
-TheStove/Core/ExitGateLogic.cpp
-TheStove/Core/ExitGateLogic.hpp
-TheStove/Core/FilePaths.hpp
-TheStove/Core/IngredientBoxLogic.cpp
-TheStove/Core/IngredientBoxLogic.hpp
-TheStove/Core/LevelEditorPanelFonts.cpp
-TheStove/Core/LevelEditorPanelFonts.hpp
+TheStove/Core/GridPathfinder.cpp
+TheStove/Core/GridPathfinder.hpp
 TheStove/Core/LevelEditorPanelLevel.cpp
-TheStove/Core/LevelSerializer.hpp
-TheStove/Core/OrderUILogic.cpp
-TheStove/Core/OrderUILogic.hpp
 TheStove/Core/PlateLogic.cpp
 TheStove/Core/PlateLogic.hpp
 TheStove/Core/PlayerLogic.cpp
 TheStove/Core/PlayerLogic.hpp
-TheStove/Core/Quota.cpp
 TheStove/Core/Quota.hpp
-TheStove/Core/RuntimeLevel.cpp
 TheStove/Core/SimpleNpcLogic.cpp
 TheStove/Core/SimpleNpcLogic.hpp
 TheStove/Core/TableLogic.cpp
-TheStove/Core/TrashCanLogic.cpp
-TheStove/Core/TrashCanLogic.hpp
 TheStove/Core/WorkTableLogic.cpp
 TheStove/Core/WorkTableLogic.hpp
-TheStove/Graphics/EntityManager.hpp
-TheStove/Graphics/GraphicsEngine.cpp
+TheStove/Graphics/AnimationManager.cpp
+TheStove/Graphics/AnimationManager.hpp
 TheStove/Graphics/SceneCollisionLayout.cpp
 TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
-TheStove/Main.cpp
-assets/BottomRightLongTableNoLeg.png
 assets/Coin.png
-assets/Customer_Order.png
-assets/Customer_Timer_Bar.png
-assets/Customer_Timer_Green.png
-assets/Customer_Timer_Red.png
-assets/Grills_1.png
-assets/Grills_2.png
 assets/HappyFace.png
-assets/LongTableTopLeg.png
-assets/Lose/Cutscene_gameover1.png
-assets/Lose/Cutscene_gameover2.png
-assets/Lose/Cutscene_gameover3.png
-assets/Lose/Cutscene_gameover4.png
-assets/Lose/Cutscene_gameover5.png
-assets/Lose/Cutscene_gameover6.png
-assets/Lose/Cutscene_gameover7.png
-assets/Lose/Cutscene_gameover8.png
-assets/Lose/Cutscene_gameover9.png
-assets/Meat.png
-assets/MeatIngredientBox.png
-assets/Meat_CUT_Ingredient.png
-assets/Meat_Ingredient.png
-assets/Mushroom_CUT_Ingredient.png
-assets/Mushroom_Ingredient.png
+assets/Reaction_Angry_Face.png
+assets/Reaction_Happy_Face.png
+assets/Reaction_Money.png
 assets/SadFace.png
-assets/ShroomIngredientBox.png
-assets/Soup.png
-assets/Stove_1.png
-assets/Stove_2.png
-assets/TrashBox.png
-assets/VegIngredientBox.png
-assets/Win/Cutscene_daychange_1.1.png
-assets/Win/Cutscene_daychange_1.2.png
-assets/Win/Cutscene_daychange_1.3.png
-assets/Win/Cutscene_daychange_2,3.png
-assets/Win/Cutscene_daychange_2.1.png
-assets/Win/Cutscene_daychange_2.2.png
-assets/Win/Cutscene_daychange_3.1.png
-assets/Win/Cutscene_daychange_3.2.png
-assets/Win/Cutscene_daychange_3.3.png
-assets/Win/Cutscene_daychange_4.1.png
-assets/Win/Cutscene_daychange_4.2.png
-assets/Win/Cutscene_daychange_4.3.png
-assets/Win/Cutscene_daychange_5.1.png
-assets/Win/Cutscene_daychange_5.2.png
-assets/Win/Cutscene_daychange_5.3.png
-assets/Win/Cutscene_daychange_6.1.png
-assets/Win/Cutscene_daychange_6.2.png
-assets/Win/Cutscene_daychange_6.3.png
-assets/invis.png
+assets/goat-Sheet.png
+assets/goat_spritesheet.png
 imgui.ini
 levels/kitchen01.json
-levels/lose.json
-levels/win.json

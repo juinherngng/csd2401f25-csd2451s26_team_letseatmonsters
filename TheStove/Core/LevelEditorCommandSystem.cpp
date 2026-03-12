@@ -21,6 +21,7 @@ namespace {
 	constexpr const char* kUndoLimitEnvVar = "LE_EDITOR_UNDO_LIMIT";
 	constexpr int kDefaultUndoLimit = 50;
 
+	// Reads an environment variable and returns its value as a string.
 	std::string ReadEnvVar(const char* key) {
 #ifdef _WIN32
 		char* rawValue = nullptr;
@@ -38,6 +39,7 @@ namespace {
 #endif
 	}
 
+	// Parses a string as a positive integer, returning a fallback value if parsing fails or if the value is not positive.
 	int ParsePositiveInt(const std::string& value, int fallback) {
 		if (value.empty()) {
 			return fallback;
@@ -52,6 +54,7 @@ namespace {
 		return static_cast<int>(parsed);
 	}
 
+	// Retrieves the undo limit from the environment variable, parsing it as a positive integer and falling back to a default value if necessary.
 	int GetUndoLimit() {
 		static const int undoLimit = ParsePositiveInt(ReadEnvVar(kUndoLimitEnvVar), kDefaultUndoLimit);
 		return undoLimit;
@@ -68,6 +71,7 @@ namespace {
 		}
 	}
 
+	// Applies a snapshot from the source history stack to the editor, moving the current state to the destination stack.
 	template <typename CaptureFn, typename RestoreFn>
 	bool ApplySnapshotFromHistory(LevelEditor& editor,
 		std::vector<LevelData>& source,
