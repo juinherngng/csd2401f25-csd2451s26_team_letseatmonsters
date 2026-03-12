@@ -173,12 +173,15 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 
 	// While any cutscene is active, discard input so UI/buttons cannot be pressed (this might need tweaking later, for future cutscenes that need input)
 	if (IsAnyCutsceneActive()) {
-		if (inputManager.IsKeyJustPressed(GLFW_KEY_SPACE)) {
+		const bool spaceHeld = inputManager.IsKeyPressed(GLFW_KEY_SPACE);
+		if (spaceHeld && !cutsceneSkipSpaceHeld_) {
 			SkipActiveCutscene();
 		}
+		cutsceneSkipSpaceHeld_ = spaceHeld;
 		inputManager.ClearState();
 	}
 	else {
+		cutsceneSkipSpaceHeld_ = false;
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 		inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager, spriteID, useForces_, showAuxDebug_);
 #endif

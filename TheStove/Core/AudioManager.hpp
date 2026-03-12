@@ -417,6 +417,7 @@ private:
 
 	std::vector<PendingPlay> pendingPlays;                      // queued play requests
 	std::unordered_map<std::string, VolumeFade> activeFades;    // per-sound active fades
+	std::vector<FMOD::Channel*> pendingStops;                   // channels silenced this frame, stopped next frame
 
 	// Pub/sub
 	CoreFramework::MessageBus& messageBus;

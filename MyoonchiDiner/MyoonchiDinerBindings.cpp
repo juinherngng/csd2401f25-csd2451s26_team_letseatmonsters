@@ -543,11 +543,19 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	scene.SetPauseOverlayButtonBinder(AttachPauseOverlayButton);
 	scene.SetNavigationBlockerCollector(CollectNavigationBlockersForGame);
 
-	// Skip-cutscene audio: fade out intro BGM when player skips
+	// Skip-cutscene audio: stop intro BGM and play skip SFX when player skips
 	scene.SetSkipCutsceneAudioHook([](Scene& s, float outSeconds) {
 #ifndef _DEBUG
+		(void)outSeconds;
 		if (AudioManager* audioManager = s.GetAudioManager()) {
-			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, outSeconds);
+			// Stop intro BGM immediately to avoid an audio pop caused by
+			// OnCutsceneBeforeFinalLoad hard-stopping the channel mid-fade.
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
+
+			// Play skip cutscene SFX
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE)) {
+				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE, audioManager->GetVfxVolume(), false);
+			}
 		}
 #else
 		(void)s;

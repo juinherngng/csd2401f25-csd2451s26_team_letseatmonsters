@@ -191,6 +191,62 @@
       "name": "bgm_win_cutscene",
       "stream": false,
       "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_start_button.wav",
+      "loop": false,
+      "name": "sfx_start_button",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_serve_dish.wav",
+      "loop": false,
+      "name": "sfx_serve_dish",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_skip_intro_cutscene.wav",
+      "loop": false,
+      "name": "sfx_skip_intro_cutscene",
+      "stream": false,
+      "volume": 0.5
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_pickup_cabbage_1.wav",
+      "loop": false,
+      "name": "sfx_pickup_cabbage_1",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_pickup_cabbage_2.wav",
+      "loop": false,
+      "name": "sfx_pickup_cabbage_2",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_pickup_cabbage_3.wav",
+      "loop": false,
+      "name": "sfx_pickup_cabbage_3",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_pickup_cabbage_4.wav",
+      "loop": false,
+      "name": "sfx_pickup_cabbage_4",
+      "stream": false,
+      "volume": 1.0
     }
   ],
   "version": "1.0"

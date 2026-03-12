@@ -21,6 +21,8 @@
 #include "FilePaths.hpp"
 #include "MenuButtonLogic.hpp"
 
+#include "../GamePaths.hpp"
+
 #include <array>
 #include <cmath>
 #include <filesystem>
@@ -192,9 +194,14 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		if (audioManager_) {
 			audioManager_->PlayUIClickSound();
 
+			// Play the start button SFX
+			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_START_BUTTON)) {
+				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_START_BUTTON, audioManager_->GetVfxVolume(), false);
+			}
+
 			// Fade out main menu BGM during the fade-to-black transition
 			const float menuBgmFadeDuration = 0.35f; // Match the visual fade-out duration
-			audioManager_->FadeChannel("bgm_MyoonchiDiner_MainMenu", 0.0f, menuBgmFadeDuration);
+			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_MAIN_MENU, 0.0f, menuBgmFadeDuration);
 		}
 		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 
@@ -233,8 +240,8 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		if (audioManager_) {
 			const float cutsceneBgmFadeIn = 1.0f; // Fade in over 1 second
 			// Play at volume 0, then fade up (40% louder than normal BGM volume)
-			audioManager_->PlaySound("bgm_MyoonchiDiner_IntroCutscene", 0.0f, false);
-			audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", audioManager_->GetBgmVolume() * 1.6f, cutsceneBgmFadeIn);
+			audioManager_->PlaySound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, false);
+			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, audioManager_->GetBgmVolume() * 1.6f, cutsceneBgmFadeIn);
 		}
 	}
 #endif // _DEBUG
