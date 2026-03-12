@@ -91,6 +91,9 @@ namespace LEPANELPREFABS {
 		return lhs.texture == rhs.texture &&
 			lhs.tag == rhs.tag &&
 			lhs.layer == rhs.layer &&
+			NearlyEqual(lhs.x, rhs.x) &&
+			NearlyEqual(lhs.y, rhs.y) &&
+			NearlyEqual(lhs.z, rhs.z) &&
 			NearlyEqual(lhs.w, rhs.w) &&
 			NearlyEqual(lhs.h, rhs.h) &&
 			NearlyEqual(lhs.rotation, rhs.rotation) &&
@@ -108,6 +111,18 @@ namespace LEPANELPREFABS {
 		if (fs::path(path).extension().empty()) {
 			path += ".json";
 		}
+	}
+
+	static std::string ResolvePrefabPathFromInput(const std::string& inputPath) {
+		fs::path resolved(inputPath);
+
+		if (!resolved.has_parent_path()) {
+			resolved = fs::path(FilePaths::Dirs::PREFABS_EDITOR) / resolved;
+		}
+
+		std::string out = resolved.generic_string();
+		EnsureJsonExt(out);
+		return out;
 	}
 
 	static std::string NormalizePrefabPath(const std::string& path) {
@@ -227,6 +242,7 @@ namespace LEPANELPREFABS {
 
 		if (ImGui::Button("Refresh##pf")) {
 			sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+			sPrefabPreviewCache.clear();
 		}
 
 		ImGui::SameLine();
@@ -243,6 +259,7 @@ namespace LEPANELPREFABS {
 				if (!projPath.empty()) {
 					// Rebuild list in this panel
 					sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+					sPrefabPreviewCache.clear();
 
 					// Optional: auto-select the imported prefab in the combo
 					fs::path filename = fs::path(projPath).filename();
@@ -281,8 +298,7 @@ namespace LEPANELPREFABS {
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		ImGui::InputText("##PrefabPathEdit", prefabPathBuf, IM_ARRAYSIZE(prefabPathBuf));
 
-		std::string prefabPath = prefabPathBuf;
-		EnsureJsonExt(prefabPath);
+		std::string prefabPath = ResolvePrefabPathFromInput(prefabPathBuf);
 		const bool prefabExists = fs::exists(prefabPath);
 
 		// Prefab list
@@ -499,6 +515,7 @@ namespace LEPANELPREFABS {
 					if (SavePrefabToFile(savePath, out)) {
 						std::snprintf(prefabPathBuf, sizeof(prefabPathBuf), "%s", savePath.c_str());
 						sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+						sPrefabPreviewCache.erase(savePath);
 
 						// Link this instance to the prefab we just saved
 						PrefabLinkByID[selectedObjectId] = NormalizePrefabPath(savePath);

@@ -583,7 +583,16 @@ namespace {
 			ImGui::SameLine();
 			if (ImGui::Checkbox("V", &visible)) {
 				layer->SetVisible(visible);
+
+				// Keep editor text objects in sync with layer visibility toggles.
+				auto& textObjects = LEPANELFONTS::GetMutableTextObjects();
+				for (auto& textObject : textObjects) {
+					if (textObject.layer == layerName) {
+						textObject.visible = visible;
+					}
+				}
 			}
+
 			if (ImGui::IsItemHovered()) {
 				ImGui::SetTooltip("Layer visibility");
 			}

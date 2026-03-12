@@ -108,6 +108,7 @@ namespace LEPANELCONFIG {
 		ImGui::TextWrapped("Path: %s", configPath.c_str());
 
 		if (ImGui::Button("Reload From File")) {
+			configPath = ResolveConfigPath();
 			ConfigManager::Settings reloaded = settings;
 			if (ConfigManager::Load(configPath, reloaded)) {
 				settings = reloaded;
@@ -167,6 +168,7 @@ namespace LEPANELCONFIG {
 		ConfigManager::Validate(settings);
 
 		if (ImGui::Button("Save Config", ImVec2(140, 0))) {
+			configPath = ResolveConfigPath();
 			const std::vector<std::string> saveTargets = CollectConfigSaveTargets(configPath);
 			bool savedPrimary = false;
 			for (const auto& targetPath : saveTargets) {

@@ -531,9 +531,24 @@ void Scene::DespawnByID(int targetID) {
 	// Play destroy audio before removing the object
 	PlayDestroyAudio(targetID);
 
+	// Remove stale layer membership and metadata before despawning.
+	auto defaultsIt = defaults_.find(targetID);
+	if (defaultsIt != defaults_.end()) {
+		const std::string& layerName = defaultsIt->second.layer;
+		if (!layerName.empty()) {
+			auto layerIt = layers.find(layerName);
+			if (layerIt != layers.end()) {
+				layerIt->second.RemoveObject(targetID);
+			}
+		}
+
+		defaults_.erase(defaultsIt);
+	}
+
 	logicManager.RemoveAllFor(targetID, *this);
 
 	objectTags_.erase(targetID);
+	mTexturePathByID.erase(targetID);
 
 	// Remove from entity manager (handles transforms too)
 	entityManager.DespawnByID(targetID);

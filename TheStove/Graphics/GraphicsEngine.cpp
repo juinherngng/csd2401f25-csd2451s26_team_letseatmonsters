@@ -1152,6 +1152,10 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 // Render a single text object (for layered rendering)
 void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& data) {
+	if (!data.visible || data.text.empty()) {
+		return;
+	}
+
 	// Get the font from ResourceManager
 	FontSystem::Font* font = ResourceManager::Instance().GetFont(data.fontName);
 	if (!font) {
@@ -1324,6 +1328,13 @@ void GraphicsEngine::ContinueTransitionFadeIn() {
 		transitionTimer_ = 0.0f;
 		transitionAlpha_ = 1.0f;
 	}
+}
+
+// Immediately cancel any active transition and reset state
+void GraphicsEngine::CancelSceneTransition() {
+	transitionPhase_ = TransitionPhase::None;
+	transitionTimer_ = 0.0f;
+	transitionAlpha_ = 0.0f;
 }
 
 // Update transition state; should be called every frame with delta time
