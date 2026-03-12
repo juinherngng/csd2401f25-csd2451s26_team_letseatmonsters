@@ -13,23 +13,11 @@ namespace {
 
 	const std::vector<std::string> kIntroCutsceneFrames = {
 		"../assets/Cutscenes/Cutscene_starting_1.1.png",
-		"../assets/Cutscenes/Cutscene_starting_1.2.png",
-		"../assets/Cutscenes/Cutscene_starting_1.3.png",
 		"../assets/Cutscenes/Cutscene_starting_2.1.png",
-		"../assets/Cutscenes/Cutscene_starting_2.2.png",
-		"../assets/Cutscenes/Cutscene_starting_2.3.png",
 		"../assets/Cutscenes/Cutscene_starting_3.1.png",
-		"../assets/Cutscenes/Cutscene_starting_3.2.png",
-		"../assets/Cutscenes/Cutscene_starting_3.3.png",
 		"../assets/Cutscenes/Cutscene_starting_4.1.png",
-		"../assets/Cutscenes/Cutscene_starting_4.2.png",
-		"../assets/Cutscenes/Cutscene_starting_4.3.png",
 		"../assets/Cutscenes/Cutscene_starting_5.1.png",
-		"../assets/Cutscenes/Cutscene_starting_5.2.png",
-		"../assets/Cutscenes/Cutscene_starting_5.3.png",
 		"../assets/Cutscenes/Cutscene_starting_6.1.png",
-		"../assets/Cutscenes/Cutscene_starting_6.2.png",
-		"../assets/Cutscenes/Cutscene_starting_6.3.png"
 	};
 
 	static std::string MakeHoverPath(const std::string& path) {
@@ -172,15 +160,23 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	else if (IsPointInRect(mouseWorld, skipMin, skipMax)) {
 		ClosePrompt(scene);
 
-		scene.StartCutsceneTransitioned(
+		scene.StartCutsceneTransitionedBounded(
 			kIntroCutsceneFrames,
+			{
+				true,  // 1.1
+				true,  // 2.1
+				true,  // 3.1
+				true,  // 4.1
+				true,  // 5.1
+				true,  // 6.1
+			},
 			skipJson_,
 			activateSimulation_,
-			0.25f, // fade out
-			0.25f, // fade in
-			0.80f, // hold per frame
-			-1,    // no special crossfade index
-			0.20f  // crossfade duration (unused when index < 0)
+			0.35f, // fade out at boundaries
+			0.35f, // fade in at boundaries
+			1.50f, // per-frame hold (animation cadence)
+			5,     // crossfade to frame index 5 (6.1)
+			1.5f
 		);
 	}
 }
