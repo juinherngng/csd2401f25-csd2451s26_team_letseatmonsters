@@ -3,7 +3,7 @@
   "walk_area": {
     "_comment": "Walk area is the playable rectangle. left/right/top/bottom set its bounds. edge_thickness is the thickness (in px) used by outer border wall pieces.",
     "left": 131.0,
-    "right": 1733.0,
+    "right": 1750.0,
     "top": 140.0,
     "bottom": 850.0,
     "edge_thickness": 3.0
@@ -11,8 +11,11 @@
   "walls_comment": "Each entry is one blocking AABB rectangle. min=[xMin,yMin], max=[xMax,yMax]. Increasing xMax widens right; decreasing xMin widens left; increasing yMax extends down; decreasing yMin extends up.",
   "walls": [
     { "comment": "Outer left border wall (uses walk_area.left and edge thickness).", "min": [131.0, 100.0], "max": [134.0, 825.0] },
-    { "comment": "Outer right border - top segment; gap between this and next segment is a passage.", "min": [1733.0, 100.0], "max": [1736.0, 320.0] },
-    { "comment": "Outer right border - bottom segment; changing min.y changes where right-side passage starts.", "min": [1733.0, 570.0], "max": [1736.0, 825.0] },
+    { "comment": "Outer right border - top segment; gap between this and next segment is a passage.", "min": [1500.0, 100.0], "max": [1503.0, 200.0] },
+    { "comment": "Outer right block - block off exit passage so player cant pass through.", "min": [1500.0, 300.0], "max": [1503.0, 825.0] },
+    { "comment": "Outer right bottom block - block off exit passage below so player cant pass through.", "min": [1500.0, 300.0], "max": [1750.0, 303.0] },
+
+    { "comment": "Outer right border - bottom segment; changing min.y changes where right-side passage starts.", "min": [1590.0, 300.0], "max": [1593.0, 825.0] },
     { "comment": "Outer top border wall.", "min": [131.0, 140.0], "max": [1733.0, 143.0] },
     { "comment": "Outer bottom border wall (Level 2 is lower, so this uses y=870/873).", "min": [131.0, 850.0], "max": [1733.0, 853.0] }
   ]

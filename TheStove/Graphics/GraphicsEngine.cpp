@@ -877,7 +877,6 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 
 	// Draw background first
 	RenderBackground(viewMatrix, projectionMatrix);
-	RenderBackgroundOverlay(viewMatrix, projectionMatrix);
 
 	// Draw shadows before sprites
 	DrawSpriteShadows(objects, viewMatrix, projectionMatrix);
@@ -928,6 +927,10 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		}
 	}
 
+	// Draw background overlay after scene objects so foreground overlays
+	// (e.g. countertop tops/walls) can sit above gameplay sprites.
+	RenderBackgroundOverlay(viewMatrix, projectionMatrix);
+
 	// Draw transition overlay into the scene FBO before unbinding
 	DrawTransitionOverlay();
 
@@ -943,7 +946,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 	// Draw background first
 	RenderBackground(view, projection);
-	RenderBackgroundOverlay(view, projection);
 
 	// Draw shadows before sprites 
 	DrawSpriteShadows(objects, view, projection);
@@ -1010,6 +1012,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 			RenderSingleTextObject(*sortedTextObjects[i].data);
 		}
 #endif
+
+		// Keep overlay above any scene/text content.
+		RenderBackgroundOverlay(view, projection);
 
 		// Draw transition overlay even if empty scene
 		DrawTransitionOverlay();
@@ -1174,6 +1179,10 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 		DebugRenderer::Flush(view, projection);
 	}
+
+	// Draw background overlay after scene/text/debug so it appears as the
+	// foreground layer while still staying below transition effects.
+	RenderBackgroundOverlay(view, projection);
 
 	// Draw transition overlay on top of everything in the scene FBO
 	DrawTransitionOverlay();

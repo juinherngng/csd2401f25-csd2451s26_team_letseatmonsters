@@ -56,7 +56,7 @@ public:
 
 private:
     int maxCustomers_ = 4;				// hard cap on simultaneous customers; set by level design or difficulty settings
-    float spawnCooldown_ = 15.0f;       // small delay between spawns
+    float spawnCooldown_ = 10.0f;       // small delay between spawns
     float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
 
 	std::vector<int> activeCustomers_;  // ids of customers alive

@@ -95,6 +95,7 @@ namespace {
 	// Hashing function for LevelData to optimize change detection.
 	static std::size_t HashLevelData(const LevelData& level) {
 		std::size_t seed = std::hash<std::string>{}(level.background);
+		seed ^= std::hash<std::string>{}(level.backgroundOverlay) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 		seed ^= std::hash<std::size_t>{}(level.objects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 		seed ^= std::hash<std::size_t>{}(level.textObjects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 
@@ -276,6 +277,17 @@ namespace {
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		LELINKS::PrefabLinkByID.clear();
+
+		if (!levelIn.background.empty()) {
+			scene.SetSceneBackground(levelIn.background);
+		}
+
+		if (!levelIn.backgroundOverlay.empty()) {
+			scene.SetSceneBackgroundOverlay(levelIn.backgroundOverlay);
+		}
+		else {
+			scene.ClearSceneBackgroundOverlay();
+		}
 
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
@@ -748,10 +760,6 @@ namespace LEPANELLEVEL {
 					scene.RebuildColliders();
 					scene.SetSimulationActive(false);
 					scene.ResetResizeBaseline();
-
-					if (!work.background.empty()) {
-						scene.SetSceneBackground(work.background);
-					}
 
 					selectedIndex = -1;
 					selectedObjectId = -1;
