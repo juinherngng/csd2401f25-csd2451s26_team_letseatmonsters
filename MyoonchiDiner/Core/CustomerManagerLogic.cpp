@@ -184,7 +184,7 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	auto findAvailableTableForSpawnX = [&](float spawnX, CustomerTableLogic*& outTable, int& outTableID) -> bool {
 		const bool wantsLeftSide = (spawnX < tableSplitX);
 
-		// First pass: strictly match table side to spawner side.
+		// First pass: prefer same-side table
 		for (int tableID : customerTableIDs_) {
 			auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(tableID);
 			if (!table || !table->IsAvailableForSeating()) continue;
@@ -198,6 +198,16 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 				outTableID = tableID;
 				return true;
 			}
+		}
+
+		// Second pass: if no same-side table exists, use any free table
+		for (int tableID : customerTableIDs_) {
+			auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(tableID);
+			if (!table || !table->IsAvailableForSeating()) continue;
+
+			outTable = table;
+			outTableID = tableID;
+			return true;
 		}
 
 		return false;

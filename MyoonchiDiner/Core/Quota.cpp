@@ -229,17 +229,4 @@ namespace Economy {
 			0.0f
 		);
 	}
-
-
-
 }
-
-
-
-
-
-
-
-
-
-
