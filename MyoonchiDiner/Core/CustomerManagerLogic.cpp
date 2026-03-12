@@ -64,12 +64,15 @@ void CustomerManagerSystem::Reset()
 {
     activeCustomers_.clear();
     customerTableIDs_.clear();
+    customerEntryIDs_.clear();
 
 	cachedTables_ = false;
 
 	customerTemplateID_ = -1;
 	cachedTemplate_ = false;
 
+	nextEntryIndex_ = 0;
+	cachedEntries_ = false;
 	spawnTimer_ = 180.0f;
 }
 
@@ -115,6 +118,23 @@ void CustomerManagerSystem::CacheTemplate(Scene& scene) {
 }
 
 
+
+void CustomerManagerSystem::CacheEntries(Scene& scene) {
+	customerEntryIDs_.clear();
+
+	for (GameObject* obj : scene.GetAllObjectsRaw()) {
+		if (!obj) continue;
+		const int id = obj->GetID();
+		Scene::Defaults d = scene.GetDefaults(id);
+		if (d.tag == "customer_entry") {
+			customerEntryIDs_.push_back(id);
+		}
+	}
+
+	std::cout << "[CustomerManager] Cached " << customerEntryIDs_.size() << " customer entries\n";
+	cachedEntries_ = true;
+}
+
 void CustomerManagerSystem::CleanupDeadCustomers(Scene& scene)
 {
     LogicManager& logicMgr = scene.GetLogicManager();
@@ -146,26 +166,71 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 
 	LogicManager& logicMgr = scene.GetLogicManager();
 
-	// Find an empty customer table
-	CustomerTableLogic* chosenTable = nullptr;
-	int chosenTableID = -1;
+	// Compute a horizontal split for table-side matching.
+	float tableSplitX = 0.0f;
+	int tableCount = 0;
 
 	for (int tableID : customerTableIDs_) {
-		auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(tableID);
-		if (!table) continue;
-		if (table->IsAvailableForSeating()) {
-			chosenTable = table;
-			chosenTableID = tableID;
-			break;
+		if (GameObject* tableObj = scene.GetGameObjectByID(tableID)) {
+			tableSplitX += tableObj->GetPositionGLM().x;
+			++tableCount;
 		}
 	}
+	if (tableCount > 0) {
+		tableSplitX /= static_cast<float>(tableCount);
+	}
+
+	// Read profile from template
+	auto findAvailableTableForSpawnX = [&](float spawnX, CustomerTableLogic*& outTable, int& outTableID) -> bool {
+		const bool wantsLeftSide = (spawnX < tableSplitX);
+
+		// First pass: strictly match table side to spawner side.
+		for (int tableID : customerTableIDs_) {
+			auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(tableID);
+			if (!table || !table->IsAvailableForSeating()) continue;
+
+			GameObject* tableObj = scene.GetGameObjectByID(tableID);
+			if (!tableObj) continue;
+
+			const bool tableIsLeftSide = (tableObj->GetPositionGLM().x < tableSplitX);
+			if (tableIsLeftSide == wantsLeftSide) {
+				outTable = table;
+				outTableID = tableID;
+				return true;
+			}
+		}
+
+		return false;
+		};
+
+	// Find a spawn entry and a matching-side empty customer table.
+	CustomerTableLogic* chosenTable = nullptr;
+	int chosenTableID = -1;
+	Math::Vector2D spawn2 = scene.GetExitGateWorldPos();
+
+	if (!customerEntryIDs_.empty()) {
+		const int entryCount = static_cast<int>(customerEntryIDs_.size());
+		for (int attempt = 0; attempt < entryCount; ++attempt) {
+			const int idx = (nextEntryIndex_ + attempt) % entryCount;
+			GameObject* entryObj = scene.GetGameObjectByID(customerEntryIDs_[idx]);
+			if (!entryObj) continue;
+			const glm::vec3 p = entryObj->GetPositionGLM();
+			if (findAvailableTableForSpawnX(p.x, chosenTable, chosenTableID)) {
+				spawn2 = { p.x, p.y };
+				nextEntryIndex_ = (idx + 1) % entryCount;
+				break;
+			}
+		}
+	}
+	else {
+		findAvailableTableForSpawnX(spawn2.x, chosenTable, chosenTableID);
+	}
+
 	if (!chosenTable) return false;
 
 	// Read profile from template
 	Scene::Defaults prof = scene.GetDefaults(customerTemplateID_);
 
-	// Spawn position (you�re using exit gate right now; later make a dedicated entrance)
-	Math::Vector2D spawn2 = scene.GetExitGateWorldPos();
 	glm::vec3 spawnPos{ spawn2.x, spawn2.y, 0.0f };
 
     // Spawn an ANIMATED sprite so UVRect animation actually works
@@ -215,6 +280,7 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 
 	if (auto* npcLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(npcID)) {
 		npcLogic->SetCustomerTableTarget(chosenTableID, seatWorld);
+		npcLogic->SetLeaveTarget(spawn2);
 	}
 
 	scene.ClampToWalkArea(npc);
@@ -241,6 +307,7 @@ void CustomerManagerSystem::Update(float dt, Scene& scene) {
 
 	if (!cachedTables_) CacheTables(scene);
 	if (!cachedTemplate_) CacheTemplate(scene);
+	if (!cachedEntries_) CacheEntries(scene);
 
 	CleanupDeadCustomers(scene);
 

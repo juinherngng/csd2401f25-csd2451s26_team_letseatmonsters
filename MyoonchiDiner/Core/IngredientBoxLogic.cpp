@@ -56,6 +56,16 @@ void IngredientBoxLogic::ConfigureAsShroomBox() {
 	ingredientLayer_ = "3";
 }
 
+void IngredientBoxLogic::ConfigureAsCarrotBox() {
+	spawnMode_ = BoxSpawnMode::Ingredient;
+	spawnType_ = IngredientType::Carrot;
+
+	ingredientTexture_ = "../assets/Ingredient_Carrot.png";
+	ingredientWidth_ = 64.0f;
+	ingredientHeight_ = 64.0f;
+	ingredientLayer_ = "3";
+}
+
 void IngredientBoxLogic::ConfigureAsPlateBox() {
 	spawnMode_ = BoxSpawnMode::Plate;
 
@@ -99,6 +109,9 @@ void IngredientBoxLogic::Start(Scene& scene) {
 		}
 		else if (tex.find("ShroomIngredientBox") != std::string::npos) {
 			ConfigureAsShroomBox();
+		}
+		else if (tex.find("CarrotIngredientBox") != std::string::npos) {
+			ConfigureAsCarrotBox();
 		}
 		else {
 			ConfigureAsVegetableBox();

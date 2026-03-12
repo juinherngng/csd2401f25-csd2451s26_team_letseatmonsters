@@ -886,6 +886,9 @@ namespace LEPICKDRAG {
 					defs.colSize = glm::vec2(colSize.x, colSize.y);
 					defs.colOff = glm::vec2(colOffset.x, colOffset.y);
 					scene.SetDefaults(draggingId, defs);
+
+					// Ensure movement/collision systems immediately use the edited collider.
+					scene.RebuildColliders();
 				}
 
 				scene.SetTransformFromLevel(

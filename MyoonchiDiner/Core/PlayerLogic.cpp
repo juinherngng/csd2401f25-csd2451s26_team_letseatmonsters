@@ -436,6 +436,11 @@ void PlayerLogic::CancelQueuedTableMove(Scene& scene)
 }
 
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) {
+	if (movementLocked_) {
+		ResetMouseDragState();
+		return;
+	}
+
 	const bool lmbJustPressed = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
 	const bool lmbHeld = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
 
@@ -550,6 +555,9 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 
 // Move owner GameObject towards moveTarget at moveSpeed
 void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
+	if (movementLocked_)
+		return;
+
 	if (!hasMoveTarget)
 		return;
 
@@ -870,6 +878,11 @@ void PlayerLogic::Drop(Scene& scene) {
 
 // Main update loop for player logic: handle input, movement, sprite updates, interactions, and footstep effects.
 void PlayerLogic::HandleKeyboardMovement(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& playerPos) {
+	if (movementLocked_) {
+		UpdateSprite(scene, player, glm::vec2(0.0f, 0.0f));
+		return;
+	}
+
 	glm::vec2 inputDir(0.0f, 0.0f);
 	if (input.IsKeyPressed(GLFW_KEY_A)) inputDir.x -= 1.0f;
 	if (input.IsKeyPressed(GLFW_KEY_D)) inputDir.x += 1.0f;
@@ -989,6 +1002,8 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	if (!player) {
 		return;
 	}
+
+	UpdateStationLock(scene);
 
 	UpdateInteractableVisualCues(scene, input, dt);
 	const glm::vec3 beforePos = player->GetPositionGLM();

@@ -51,28 +51,34 @@ void CustomerTableLogic::Start(Scene& scene) {
 	const int id = owner->GetID();
 	Scene::Defaults defs = scene.GetDefaults(id);
 
-	// We interpret defs.approachOffset as the CUSTOMER seat offset.
-	if (defs.approachOffset.x != 0.0f || defs.approachOffset.y != 0.0f) {
-		// Customer sits at the authored offset (e.g. 90, 0)
-		customerSeatOffset_ = Math::Vector2D(defs.approachOffset.x,
-			defs.approachOffset.y);
-
-		// PLAYER approach is mirrored across the table center (e.g. -90, 0)
-		Math::Vector2D playerOffset(-defs.approachOffset.x,
-			-defs.approachOffset.y);
-
-		// Override the base TableLogic approach point for this table
-		SetSingleApproachOffset(playerOffset);
-
-		std::cout << "[CustomerTableLogic] ownerID=" << GetOwnerID()
-			<< " customerSeatOffset=(" << customerSeatOffset_.x << ", " << customerSeatOffset_.y << ")"
-			<< " playerApproachOffset=(" << playerOffset.x << ", " << playerOffset.y << ")\n";
+	// Customer seat can be authored independently from player approach points.
+	if (defs.hasCustomerSeatOffset) {
+		customerSeatOffset_ = Math::Vector2D(defs.customerSeatOffset.x,
+			defs.customerSeatOffset.y);
+	}
+	else if (defs.hasApproachOffset2) {
+		// Preferred fallback: if an explicit customer seat isn't authored,
+		// use the secondary approach point instead of the player's main point.
+		customerSeatOffset_ = Math::Vector2D(defs.approachOffset2.x, defs.approachOffset2.y);
+	}
+	else if (defs.approachOffset.x != 0.0f || defs.approachOffset.y != 0.0f) {
+		// Backward compatibility: if explicit seat is missing, keep previous behavior
+		// where approach_offx/y represented customer seating.
+		customerSeatOffset_ = Math::Vector2D(defs.approachOffset.x, defs.approachOffset.y);
 	}
 	else {
-		// Fallback if nothing authored: simple defaults
-		customerSeatOffset_ = Math::Vector2D(0.0f, -90.0f);   // customer just "above"
-		SetSingleApproachOffset(Math::Vector2D(0.0f, 90.0f)); // player "below"
+		// Fallback if nothing authored
+		customerSeatOffset_ = Math::Vector2D(0.0f, -90.0f);
 	}
+
+	// Guarantee there is at least one player approach offset to interact with this table.
+	if (approachOffsets_.empty()) {
+		SetSingleApproachOffset(Math::Vector2D(-customerSeatOffset_.x, -customerSeatOffset_.y));
+	}
+
+	std::cout << "[CustomerTableLogic] ownerID=" << GetOwnerID()
+		<< " customerSeatOffset=(" << customerSeatOffset_.x << ", " << customerSeatOffset_.y << ")"
+		<< " approachPoints=" << approachOffsets_.size() << "\n";
 }
 
 void CustomerTableLogic::OnDestroy(Scene& scene) {

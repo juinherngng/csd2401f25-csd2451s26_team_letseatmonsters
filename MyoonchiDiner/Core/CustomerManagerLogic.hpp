@@ -53,10 +53,16 @@ public:
 	void SetMaxCustomers(int n) {
 		maxCustomers_ = n;
 	}
-
+	/**
+	* @brief Set cooldown time between customer spawns.
+	* @param seconds Seconds to wait before spawning the next customer.
+	*/
+	void SetSpawnCooldown(float seconds) {
+		spawnCooldown_ = seconds;
+	}
 private:
     int maxCustomers_ = 4;				// hard cap on simultaneous customers; set by level design or difficulty settings
-    float spawnCooldown_ = 15.0f;       // small delay between spawns
+    float spawnCooldown_ = 10.0f;       // small delay between spawns
     float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
 
 	std::vector<int> activeCustomers_;  // ids of customers alive
@@ -69,11 +75,21 @@ private:
 	// Tracks whether template discovery has already run for the current scene
 	bool cachedTemplate_ = false;
 
+	// Optional customer spawn entry markers discovered in the level JSON.
+	std::vector<int> customerEntryIDs_;
+
+	// Round-robin index for choosing which customer entry marker to spawn from.
+	int nextEntryIndex_ = 0;
+	bool cachedEntries_ = false;
+
 	// Discover and cache all customer-table entity IDs in the scene
 	void CacheTables(Scene& scene);
 
 	// Discover and cache the customer template/prefab entity ID
 	void CacheTemplate(Scene& scene);
+
+	// Discover optional customer entry marker IDs (tag: customer_entry).
+	void CacheEntries(Scene& scene);
 
 	// Remove stale/dead customer IDs from the active customer list
 	void CleanupDeadCustomers(Scene& scene);

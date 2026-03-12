@@ -13,7 +13,7 @@
 					- Handling prefab/texture drag-drop instantiation
 					- Synchronizing LevelData with the Scene
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -95,6 +95,7 @@ namespace {
 	// Hashing function for LevelData to optimize change detection.
 	static std::size_t HashLevelData(const LevelData& level) {
 		std::size_t seed = std::hash<std::string>{}(level.background);
+		seed ^= std::hash<std::string>{}(level.backgroundOverlay) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 		seed ^= std::hash<std::size_t>{}(level.objects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 		seed ^= std::hash<std::size_t>{}(level.textObjects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 
@@ -236,6 +237,8 @@ namespace {
 	static void CaptureEditorState(Scene& scene, LevelData& outState) {
 		SyncSceneToLevel(scene, outState);
 		SyncTextObjectsToLevel(outState);
+		outState.background = scene.GetSceneBackground();
+		outState.backgroundOverlay = scene.GetSceneBackgroundOverlay();
 	}
 
 	// Restore the editor state from a LevelData snapshot, rebuilding the scene and syncing text objects.
@@ -276,6 +279,17 @@ namespace {
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		LELINKS::PrefabLinkByID.clear();
+
+		if (!levelIn.background.empty()) {
+			scene.SetSceneBackground(levelIn.background);
+		}
+
+		if (!levelIn.backgroundOverlay.empty()) {
+			scene.SetSceneBackgroundOverlay(levelIn.backgroundOverlay);
+		}
+		else {
+			scene.ClearSceneBackgroundOverlay();
+		}
 
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
@@ -361,6 +375,10 @@ namespace {
 
 			// Approach offset
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+			defs.hasApproachOffset2 = obj.hasApproachOffset2;
+			defs.approachOffset2 = { obj.approachOffset2X, obj.approachOffset2Y };
+			defs.hasCustomerSeatOffset = obj.hasCustomerSeatOffset;
+			defs.customerSeatOffset = { obj.customerSeatOffsetX, obj.customerSeatOffsetY };
 
 			// Audio bindings
 			defs.audioOnSpawn = obj.audioOnSpawn;
@@ -405,7 +423,7 @@ namespace {
 			out.animated = scene.HasAnimations(id);
 			out.animName = scene.GetCurrentAnimationName(id);
 
-			// Layer — use the layering system, fall back to "1"
+			// Layer ï¿½ use the layering system, fall back to "1"
 			out.layer = scene.GetObjectLayer(id);
 			if (out.layer.empty()) {
 				out.layer = "1";
@@ -445,6 +463,12 @@ namespace {
 
 			out.approachOffsetX = defs.approachOffset.x;
 			out.approachOffsetY = defs.approachOffset.y;
+			out.hasApproachOffset2 = defs.hasApproachOffset2;
+			out.approachOffset2X = defs.approachOffset2.x;
+			out.approachOffset2Y = defs.approachOffset2.y;
+			out.hasCustomerSeatOffset = defs.hasCustomerSeatOffset;
+			out.customerSeatOffsetX = defs.customerSeatOffset.x;
+			out.customerSeatOffsetY = defs.customerSeatOffset.y;
 
 			// Audio bindings from defaults
 			out.audioOnSpawn = defs.audioOnSpawn;
@@ -730,6 +754,7 @@ namespace LEPANELLEVEL {
 
 				LevelData& work = editor.MutableLevel();
 				if (LevelSerializer::Load(editor.levelPath, work)) {
+					scene.SetCurrentLevelPath(editor.levelPath);
 					scene.ClearAll();
 					LEPANELFONTS::ClearTextObjects();
 					SyncLevelToScene(work, scene);
@@ -737,10 +762,6 @@ namespace LEPANELLEVEL {
 					scene.RebuildColliders();
 					scene.SetSimulationActive(false);
 					scene.ResetResizeBaseline();
-
-					if (!work.background.empty()) {
-						scene.SetSceneBackground(work.background);
-					}
 
 					selectedIndex = -1;
 					selectedObjectId = -1;
@@ -808,7 +829,7 @@ namespace LEPANELLEVEL {
 
 		DrawLayerManager(scene, selectedObjectId);
 
-		// Object Hierarchy – stable order independent of movement
+		// Object Hierarchy ï¿½ stable order independent of movement
 		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
 		if (ImGui::CollapsingHeader("Hierarchy", ImGuiTreeNodeFlags_DefaultOpen)) {
 			static char sHierarchyFilter[128] = "";
@@ -876,7 +897,7 @@ namespace LEPANELLEVEL {
 					}),
 				objectList.end());
 
-			// Sort by ID so list doesn’t reshuffle when objects move
+			// Sort by ID so list doesnï¿½t reshuffle when objects move
 			std::sort(objectList.begin(), objectList.end(),
 				[](GameObject* a, GameObject* b) {
 					return a->GetID() < b->GetID();
@@ -1070,7 +1091,13 @@ namespace LEPANELLEVEL {
 
 			Scene::Defaults defaults = scene.GetDefaults(id);
 
-			ImGui::SeparatorText("Inspector");
+			auto SyncColliderDefaults = [&](const Math::Vector2D& colSize, const Math::Vector2D& colOff) {
+				defaults.colSize = { colSize.x, colSize.y };
+				defaults.colOff = { colOff.x, colOff.y };
+				scene.SetDefaults(id, defaults);
+				};
+
+			ImGui::SeparatorText("Properties Inspector");
 			ImGui::TextDisabled("Selected ID: %d", id);
 
 			// Gather current values
@@ -1095,7 +1122,7 @@ namespace LEPANELLEVEL {
 
 			if (!std::isfinite(rotationDeg)) {
 				rotationDeg = 0.0f;
-				// Also push this clean value into the object so it doesn’t stay corrupted
+				// Also push this clean value into the object so it doesnï¿½t stay corrupted
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 			}
 
@@ -1215,6 +1242,7 @@ namespace LEPANELLEVEL {
 					colliderSize.y = size.y;
 					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
 					obj->SetColliderOffset({ 0.f, 0.f });
+					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, { 0.f, 0.f });
 					scene.RebuildColliders();
 				}
 			}
@@ -1296,6 +1324,7 @@ namespace LEPANELLEVEL {
 					colliderSize.x = size.x;
 					colliderSize.y = size.y;
 					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, colliderOff);
 					scene.RebuildColliders();
 				}
 
@@ -1440,11 +1469,72 @@ namespace LEPANELLEVEL {
 				}
 				else {
 					ImGui::TextDisabled("Collider disabled");
+				if (!colliderEnabled) {
+					colliderSize = { 0.f, 0.f };
+					colliderOff = { 0.f, 0.f };
+					obj->SetColliderSize({ 0.f, 0.f });
+					obj->SetColliderOffset({ 0.f, 0.f });
+					SyncColliderDefaults({ 0.f, 0.f }, { 0.f, 0.f });
+				}
+				else {
+					// default collider when adding
+					colliderSize = { size.x, size.y };
+					colliderOff = { 0.f, 0.f };
+					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+					obj->SetColliderOffset({ 0.f, 0.f });
+					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, { 0.f, 0.f });
 				}
 
 				ImGui::NextColumn();
 
 				ImGui::Columns(1);
+			if (colliderEnabled) {
+				float avail = ImGui::GetContentRegionAvail().x;
+				float gap = ImGui::GetStyle().ItemInnerSpacing.x;
+				float fieldW = (avail - gap) * 0.5f;
+
+				// Size
+				ImGui::TextUnformatted("Size");
+				// row of 2 fields (x, y)
+				ImGui::PushItemWidth(fieldW);
+				bool sizeChangedX = ImGui::DragFloat("x##col_size_x", &colliderSize.x, 1.0f, 0.0f, 99999.0f);
+				bool sizeActivatedX = ImGui::IsItemActivated();
+				ImGui::SameLine(0.0f, gap);
+				bool sizeChangedY = ImGui::DragFloat("y##col_size_y", &colliderSize.y, 1.0f, 0.0f, 99999.0f);
+				bool sizeActivatedY = ImGui::IsItemActivated();
+				ImGui::PopItemWidth();
+
+				if (sizeActivatedX || sizeActivatedY) {
+					PushUndoSnapshot(editor, scene);
+				}
+
+				if (sizeChangedX || sizeChangedY) {
+					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+					scene.RebuildColliders();
+					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, colliderOff);
+				}
+
+				ImGui::Spacing();
+
+				// Offset
+				ImGui::TextUnformatted("Offset");
+				ImGui::PushItemWidth(fieldW);
+				bool offChangedX = ImGui::DragFloat("x##col_off_x", &colliderOff.x, 1.0f, -99999.0f, 99999.0f);
+				bool offActivatedX = ImGui::IsItemActivated();
+				ImGui::SameLine(0.0f, gap);
+				bool offChangedY = ImGui::DragFloat("y##col_off_y", &colliderOff.y, 1.0f, -99999.0f, 99999.0f);
+				bool offActivatedY = ImGui::IsItemActivated();
+				ImGui::PopItemWidth();
+
+				if (offActivatedX || offActivatedY) {
+					PushUndoSnapshot(editor, scene);
+				}
+
+				if (offChangedX || offChangedY) {
+					obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
+					SyncColliderDefaults(colliderSize, { colliderOff.x, colliderOff.y });
+					scene.RebuildColliders();
+				}
 			}
 			else {
 				ImGui::TextDisabled("Advanced controls are collapsed.");

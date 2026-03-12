@@ -55,7 +55,9 @@ public:
 	void EndImGuiFrame();    // Render ImGui
 
 	// Background
+	void SetBackgroundOverlay(const std::string& texturePath); // Create/update fullscreen overlay quad (drawn above background)
 	void SetBackground(const std::string& texturePath); // Create/update fullscreen background quad
+	void ClearBackgroundOverlay();                      // Remove overlay background
 	void ClearBackground();                             // Remove background
 
 	// Viewport and resizing
@@ -181,6 +183,7 @@ private:
 	Renderer renderer;
 	ResourceManager& resourceManager;
 	std::unique_ptr<GameObject> backgroundObject;
+	std::unique_ptr<GameObject> backgroundOverlayObject;
 	glm::mat4 view{ 1.0f };
 	glm::mat4 projection{ 1.0f };
 
@@ -234,6 +237,7 @@ private:
 	void EndSceneAndPresent();
 	void DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void RenderBackground(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+	void RenderBackgroundOverlay(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void PresentSceneToDefaultFramebuffer();
 
 	// Coordinate conversion helpers

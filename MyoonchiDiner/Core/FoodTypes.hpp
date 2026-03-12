@@ -20,9 +20,11 @@ enum class IngredientType {
 	Vegetable,
 	Meat,
 	Shroom,
+	Carrot,
 	Refined_Veg,
 	Refined_Meat,
-	Refined_Shroom
+	Refined_Shroom,
+	Refined_Carrot
 };
 
 // Types of finished dishes that can be served to customers.
@@ -30,5 +32,7 @@ enum class DishType {
 	MeatDish,
 	VegDish,
 	SoupDish,
+	SkewerDish,
+	CarrotSaladDish,
 	PoopDish
 };

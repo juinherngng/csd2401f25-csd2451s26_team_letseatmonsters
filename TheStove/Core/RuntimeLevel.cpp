@@ -35,13 +35,17 @@ namespace RuntimeLevel {
 
 	LevelManifest BuildLevelManifest(const LevelData& data) {
 		LevelManifest manifest;
-		manifest.textures.reserve(data.objects.size() + 1);
+		manifest.textures.reserve(data.objects.size() + 2);
 
 		std::unordered_set<std::string> seenTexturePaths;
-		seenTexturePaths.reserve(data.objects.size() + 1);
+		seenTexturePaths.reserve(data.objects.size() + 2);
 
 		if (!data.background.empty() && seenTexturePaths.insert(data.background).second) {
 			manifest.textures.push_back(data.background);
+		}
+
+		if (!data.backgroundOverlay.empty() && seenTexturePaths.insert(data.backgroundOverlay).second) {
+			manifest.textures.push_back(data.backgroundOverlay);
 		}
 
 		for (const auto& obj : data.objects) {
@@ -141,6 +145,10 @@ namespace RuntimeLevel {
 			defs.tag = obj.tag;
 			defs.layer = obj.layer;
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+			defs.hasApproachOffset2 = obj.hasApproachOffset2;
+			defs.approachOffset2 = { obj.approachOffset2X, obj.approachOffset2Y };
+			defs.hasCustomerSeatOffset = obj.hasCustomerSeatOffset;
+			defs.customerSeatOffset = { obj.customerSeatOffsetX, obj.customerSeatOffsetY };
 			defs.visible = obj.visible;
 
 			scene.SetDefaults(g->GetID(), defs);
@@ -174,6 +182,14 @@ namespace RuntimeLevel {
 		if (!data.background.empty()) {
 			std::cout << "[RuntimeLevel] Background set: " << data.background << std::endl;
 			scene.SetSceneBackground(data.background);
+		}
+
+		if (!data.backgroundOverlay.empty()) {
+			std::cout << "[RuntimeLevel] Background overlay set: " << data.backgroundOverlay << std::endl;
+			scene.SetSceneBackgroundOverlay(data.backgroundOverlay);
+		}
+		else {
+			scene.ClearSceneBackgroundOverlay();
 		}
 
 		const LevelManifest manifest = BuildLevelManifest(data);

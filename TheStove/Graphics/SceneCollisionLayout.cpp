@@ -16,10 +16,15 @@
  */
 
 #include "SceneManager.hpp"
+#include "../Core/JSONInclude.hpp"
 
 #include <array>
 #include <cmath>
 #include <vector>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <filesystem>
 
  // Level constants (reference resolution + tile size)
 static constexpr float kRefW = static_cast<float>(GraphicsEngine::kRefW);
@@ -103,6 +108,140 @@ namespace {
 
 	inline glm::vec3 toG(const Math::Vector3D& v) {
 		return glm::vec3(v.x, v.y, v.z);
+	}
+
+	struct CollisionLayoutData {
+		collision::WalkArea walkArea{};
+		std::vector<collision::AABB> walls;
+	};
+
+	constexpr const char* kCollisionLevel1File = "collision_level1.json";
+	constexpr const char* kCollisionLevel2File = "collision_level2.json";
+
+	bool IsLevel2Path(const std::string& levelPath) {
+		return levelPath.find("kitchen02") != std::string::npos;
+	}
+
+	std::string ResolveCollisionLayoutPathFromFile(const char* filename) {
+		namespace fs = std::filesystem;
+		const std::array<fs::path, 5> candidates = {
+			fs::path("levels") / filename,
+			fs::path("../levels") / filename,
+			fs::path("../../levels") / filename,
+			fs::path("../../../levels") / filename,
+			fs::path("../../../../levels") / filename
+		};
+
+		for (const fs::path& candidate : candidates) {
+			if (fs::exists(candidate)) {
+				return candidate.lexically_normal().string();
+			}
+		}
+
+		return candidates.front().lexically_normal().string();
+	}
+
+	std::string ResolveCollisionLayoutPath(const std::string& levelPath) {
+		if (IsLevel2Path(levelPath)) {
+			return ResolveCollisionLayoutPathFromFile(kCollisionLevel2File);
+		}
+		return ResolveCollisionLayoutPathFromFile(kCollisionLevel1File);
+	}
+
+	CollisionLayoutData BuildFallbackLayout(bool isLevel2) {
+		CollisionLayoutData data;
+		data.walkArea = collision::WalkArea{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+
+		collision::WoodVertical wood{
+			kWoodX0, kWoodX1,
+			kWoodTopMinY, kWoodTopMaxY,
+			kWoodGapMinY, kWoodGapMaxY,
+			kWoodBotMinY, kWoodBotMaxY
+		};
+
+		collision::StageEndGateVertical gate{
+			kEndVX0, kEndVX1,
+			kEndVTopMinY, kEndVTopMaxY,
+			kEndVGapMinY, kEndVGapMaxY,
+			kEndVBotMinY, kEndVBotMaxY
+		};
+
+		auto pushRect = [&data](float x0, float y0, float x1, float y1) {
+			collision::AABB r{};
+			r.min = Math::Vector2D(x0, y0);
+			r.max = Math::Vector2D(x1, y1);
+			data.walls.push_back(r);
+			};
+
+		pushRect(data.walkArea.L - data.walkArea.edgeThick, data.walkArea.T, data.walkArea.L, data.walkArea.B);
+		if (isLevel2) {
+			pushRect(data.walkArea.R, data.walkArea.T, data.walkArea.R + data.walkArea.edgeThick, data.walkArea.B);
+		}
+		else {
+			pushRect(data.walkArea.R, data.walkArea.T, data.walkArea.R + data.walkArea.edgeThick, gate.gapMinY);
+			pushRect(data.walkArea.R, gate.gapMaxY, data.walkArea.R + data.walkArea.edgeThick, data.walkArea.B);
+		}
+		pushRect(data.walkArea.L, data.walkArea.T - data.walkArea.edgeThick, data.walkArea.R, data.walkArea.T);
+		pushRect(data.walkArea.L, data.walkArea.B, data.walkArea.R, data.walkArea.B + data.walkArea.edgeThick);
+		if (!isLevel2) {
+			pushRect(wood.x0, wood.topMinY, wood.x1, wood.topMaxY);
+			pushRect(wood.x0, wood.botMinY, wood.x1, wood.botMaxY);
+			pushRect(gate.x0, gate.topMinY, gate.x1, gate.topMaxY);
+			pushRect(gate.x0, gate.botMinY, gate.x1, gate.botMaxY);
+		}
+
+		return data;
+	}
+
+	bool LoadCollisionLayout(const std::string& path, CollisionLayoutData& out) {
+		std::ifstream input(path);
+		if (!input.is_open()) {
+			return false;
+		}
+
+		nlohmann::json root;
+		input >> root;
+
+		const auto& walk = root.at("walk_area");
+		out.walkArea = collision::WalkArea{
+			walk.at("left").get<float>(),
+			walk.at("right").get<float>(),
+			walk.at("top").get<float>(),
+			walk.at("bottom").get<float>(),
+			walk.at("edge_thickness").get<float>()
+		};
+
+		out.walls.clear();
+		for (const auto& wall : root.at("walls")) {
+			const auto& min = wall.at("min");
+			const auto& max = wall.at("max");
+
+			collision::AABB box{};
+			box.min = Math::Vector2D(min.at(0).get<float>(), min.at(1).get<float>());
+			box.max = Math::Vector2D(max.at(0).get<float>(), max.at(1).get<float>());
+			out.walls.push_back(box);
+		}
+
+		return !out.walls.empty();
+	}
+
+	CollisionLayoutData GetCollisionLayoutForScene(const Scene& scene) {
+		CollisionLayoutData data;
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		const std::string path = ResolveCollisionLayoutPath(levelPath);
+		const bool isLevel2 = IsLevel2Path(levelPath);
+
+		try {
+			if (LoadCollisionLayout(path, data)) {
+				return data;
+			}
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "[SceneCollisionLayout] Failed to parse collision layout '" << path << "': " << ex.what() << std::endl;
+		}
+
+		std::cerr << "[SceneCollisionLayout] Using fallback collision layout for: " << path << std::endl;
+		return BuildFallbackLayout(isLevel2);
 	}
 
 	// Build an AABB in world/reference space from tile coordinates.
@@ -217,30 +356,15 @@ glm::vec2 Scene::ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta
 }
 
 collision::WalkArea Scene::GetWalkArea() const {
-	// Uses the internal level constants defined at top of this file
-	return collision::WalkArea{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	return GetCollisionLayoutForScene(*this).walkArea;
 }
 
 // Collision world construction for this level
 void Scene::BuildLevelColliders() {
-	collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	const CollisionLayoutData layout = GetCollisionLayoutForScene(*this);
 
-	collision::WoodVertical wood{
-		kWoodX0, kWoodX1,
-		kWoodTopMinY, kWoodTopMaxY,
-		kWoodGapMinY, kWoodGapMaxY,
-		kWoodBotMinY, kWoodBotMaxY
-	};
-
-	collision::StageEndGateVertical gate{
-		kEndVX0, kEndVX1,
-		kEndVTopMinY, kEndVTopMaxY,
-		kEndVGapMinY, kEndVGapMaxY,
-		kEndVBotMinY, kEndVBotMaxY
-	};
-
-	// Build all static walls (outer frame + wood + gate)
-	collisionManager.BuildWalls(walk, wood, gate);
+	collisionManager.Clear();
+	collisionManager.AddStaticRects(layout.walls);
 
 	// Get a pointer to the shared collision world
 	collision::World* world = &collisionManager.GetCollisionWorld();
@@ -266,18 +390,21 @@ void Scene::ApplyFinalConstraints(EntityManager& entityMgr) {
 
 	glm::vec3 position = sprite->GetPositionGLM();
 
-	// Gate clamp (stage end)
-	const collision::StageEndGateVertical gate{
-		kEndVX0, kEndVX1,
-		kEndVTopMinY, kEndVTopMaxY,
-		kEndVGapMinY, kEndVGapMaxY,
-		kEndVBotMinY, kEndVBotMaxY
-	};
-
-	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	const collision::WalkArea walk = GetWalkArea();
 
 	Math::Vector3D posM = toM(position);
-	physics::ClampInsideWalkWithGate(walk, gate, sprite, posM);
+	if (IsLevel2Path(GetCurrentLevelPath())) {
+		physics::ClampInsideWalk(walk, sprite, posM);
+	}
+	else {
+		const collision::StageEndGateVertical gate{
+			kEndVX0, kEndVX1,
+			kEndVTopMinY, kEndVTopMaxY,
+			kEndVGapMinY, kEndVGapMaxY,
+			kEndVBotMinY, kEndVBotMaxY
+		};
+		physics::ClampInsideWalkWithGate(walk, gate, sprite, posM);
+	}
 	position = toG(posM);
 
 	// Final world boundary clamps
@@ -293,80 +420,75 @@ void Scene::ApplyFinalConstraints(EntityManager& entityMgr) {
 
 // Resolve initial static overlaps vs benches / dividers
 void Scene::ResolveInitialStaticOverlaps() {
+	const bool isLevel2 = IsLevel2Path(GetCurrentLevelPath());
+
 	// Wood (middle divider) in pixels
 	const float woodX0 = kWoodX0;
 	const float woodX1 = kWoodX1;
 	const float woodTopY0 = kWoodTopMinY, woodTopY1 = kWoodTopMaxY;
 	const float woodBotY0 = kWoodBotMinY, woodBotY1 = kWoodBotMaxY;
 
-	// End-of-stage gate in pixels (same shape used by BuildWalls)
+	// End-of-stage gate in pixels
 	const float gateX0 = kEndVX0;
 	const float gateX1 = kEndVX1;
 	const float gateTopY0 = kEndVTopMinY, gateTopY1 = kEndVTopMaxY;
 	const float gateBotY0 = kEndVBotMinY, gateBotY1 = kEndVBotMaxY;
 
-	// Walkable outer frame – clamp into this first.
-	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	const collision::WalkArea walk = GetWalkArea();
 
 	std::vector<GameObject*> objs = entityManager.GetAllObjects();
 
 	for (GameObject* g : objs) {
-		if (!g) {
-			continue;
-		}
+		if (!g) continue;
 
 		// Skip UI / non-collidable layers
 		const std::string layerName = GetObjectLayer(g->GetID());
 		Layer* layer = GetLayer(layerName);
-		if (layer && !layer->IsCollidable()) {
-			continue;
-		}
+		if (layer && !layer->IsCollidable()) continue;
 
-		// (Optional but consistent) also skip empty-tag objects like ClampToWalkArea does
+		// Skip empty-tag objects
 		const std::string tag = GetObjectTag(g->GetID());
-		if (tag == "") {
-			continue;
-		}
+		if (tag == "") continue;
 
-		// Work in M-space (your math structs)
 		Math::Vector3D pM(g->GetPositionGLM().x, g->GetPositionGLM().y, g->GetPositionGLM().z);
 
-		// Keep inside big walk rect (outer boundary)
+		// Keep inside big walk rect
 		physics::ClampInsideWalk(walk, g, pM);
 
-		// Build the object's collider AABB at this tentative position
+		// Build collider AABB at tentative position
 		collision::AABB box = physics::MakeColliderBox(g, pM);
 
-		// Wood divider: snap horizontally out of the top/bottom vertical planks
-		if (OverlapsRect(box, woodX0, woodX1, woodTopY0, woodTopY1)) {
-			SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
-			box = physics::MakeColliderBox(g, pM);
-		}
-		if (OverlapsRect(box, woodX0, woodX1, woodBotY0, woodBotY1)) {
-			SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
-			box = physics::MakeColliderBox(g, pM);
+		if (!isLevel2) {
+			// Wood divider
+			if (OverlapsRect(box, woodX0, woodX1, woodTopY0, woodTopY1)) {
+				SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
+				box = physics::MakeColliderBox(g, pM);
+			}
+			if (OverlapsRect(box, woodX0, woodX1, woodBotY0, woodBotY1)) {
+				SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
+				box = physics::MakeColliderBox(g, pM);
+			}
+
+			// Gate
+			if (OverlapsRect(box, gateX0, gateX1, gateTopY0, gateTopY1)) {
+				SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
+				box = physics::MakeColliderBox(g, pM);
+			}
+			if (OverlapsRect(box, gateX0, gateX1, gateBotY0, gateBotY1)) {
+				SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
+				box = physics::MakeColliderBox(g, pM);
+			}
 		}
 
-		// Gate: same idea as wood (vertical band, top/bottom solid segments)
-		if (OverlapsRect(box, gateX0, gateX1, gateTopY0, gateTopY1)) {
-			SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
-			box = physics::MakeColliderBox(g, pM);
-		}
-		if (OverlapsRect(box, gateX0, gateX1, gateBotY0, gateBotY1)) {
-			SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
-			box = physics::MakeColliderBox(g, pM);
-		}
-
-		// Commit corrected position
+		// Commit corrected position (ALWAYS, not only level1)
 		g->SetPosition(glm::vec3(pM.x, pM.y, pM.z));
 	}
 
-	// Rebuild collision world once with the final positions.
+	// Rebuild collision world once with final positions.
 	RebuildColliders();
 }
 
 void Scene::RebuildColliders() {
-	collisionManager.Clear();
 	BuildLevelColliders();
 }
 
