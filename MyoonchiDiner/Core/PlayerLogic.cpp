@@ -20,6 +20,7 @@
 #include "Core/InputControls.hpp"
 #include "Core/InputManager.hpp"
 #include "Core/PlateLogic.hpp"
+#include "Core/Quota.hpp"
 #include "Core/TableLogic.hpp"
 #include "Core/TrashCanLogic.hpp"
 #include "Core/WorkTableLogic.hpp"
@@ -34,8 +35,7 @@
 #include <limits>
 
 namespace {
-	bool PointInsideObjectVisualRect(const glm::vec2& point, GameObject* obj)
-	{
+	bool PointInsideObjectVisualRect(const glm::vec2& point, GameObject* obj) {
 		if (!obj) return false;
 
 		const Math::Vector2D colSize = obj->GetColliderSize();
@@ -60,8 +60,7 @@ namespace {
 			point.y >= center.y - halfH && point.y <= center.y + halfH;
 	}
 
-	float DistanceSqToObjectCenter(const glm::vec2& point, GameObject* obj)
-	{
+	float DistanceSqToObjectCenter(const glm::vec2& point, GameObject* obj) {
 		if (!obj) return std::numeric_limits<float>::max();
 
 		const Math::Vector2D colOffset = obj->GetColliderOffset();
@@ -72,8 +71,7 @@ namespace {
 		return d.x * d.x + d.y * d.y;
 	}
 
-	bool GetObjectRect(GameObject* obj, glm::vec2& outCenter, glm::vec2& outHalfExtents)
-	{
+	bool GetObjectRect(GameObject* obj, glm::vec2& outCenter, glm::vec2& outHalfExtents) {
 		if (!obj) return false;
 
 		const Math::Vector2D colSize = obj->GetColliderSize();
@@ -96,8 +94,7 @@ namespace {
 	float DistanceSqPointToExpandedRect(
 		const glm::vec2& point,
 		const glm::vec2& rectCenter,
-		const glm::vec2& rectHalfExtents)
-	{
+		const glm::vec2& rectHalfExtents) {
 		const float dx = std::max(std::abs(point.x - rectCenter.x) - rectHalfExtents.x, 0.0f);
 		const float dy = std::max(std::abs(point.y - rectCenter.y) - rectHalfExtents.y, 0.0f);
 		return dx * dx + dy * dy;
@@ -295,8 +292,7 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	}
 }
 
-void PlayerLogic::MoveDirect(const glm::vec2& dest)
-{
+void PlayerLogic::MoveDirect(const glm::vec2& dest) {
 	const float kRetargetEpsSq = 16.0f * 16.0f;
 
 	if (hasMoveTarget && moveMode_ == MoveMode::Direct) {
@@ -314,8 +310,7 @@ void PlayerLogic::MoveDirect(const glm::vec2& dest)
 	moveMode_ = MoveMode::Direct;
 }
 
-void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest)
-{
+void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 	GameObject* player = GetOwner(scene);
 	if (!player)
 		return;
@@ -371,8 +366,7 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest)
 	moveTarget = pathPoints_[0];
 }
 
-bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID)
-{
+bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID) {
 	GameObject* player = GetOwner(scene);
 	GameObject* tableObj = scene.GetGameObjectByID(tableObjectID);
 	if (!player || !tableObj) {
@@ -402,8 +396,7 @@ bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID)
 	glm::vec2 tableCenter, tableHalf;
 
 	if (GetObjectRect(player, playerCenter, playerHalf) &&
-		GetObjectRect(tableObj, tableCenter, tableHalf))
-	{
+		GetObjectRect(tableObj, tableCenter, tableHalf)) {
 		constexpr float kTouchPadding = 14.0f;
 
 		glm::vec2 expandedHalf(
@@ -422,8 +415,7 @@ bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID)
 	return false;
 }
 
-void PlayerLogic::CancelQueuedTableMove(Scene& scene)
-{
+void PlayerLogic::CancelQueuedTableMove(Scene& scene) {
 	hasMoveTarget = false;
 	moveMode_ = MoveMode::None;
 	pathPoints_.clear();
@@ -505,7 +497,7 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 			clickedTableID = tableID;
 			clickedTableLogic = tableLogic;
 		}
-	};
+		};
 
 	for (GameObject* obj : scene.GetAllObjectsRaw()) {
 		if (!obj) continue;
@@ -595,8 +587,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	// ---------------------------
 	// DIRECT FREE MOVEMENT MODE
 	// ---------------------------
-	if (moveMode_ == MoveMode::Direct)
-	{
+	if (moveMode_ == MoveMode::Direct) {
 		moveTarget = finalTarget_;
 
 		glm::vec2 dir = moveTarget - pos;
@@ -912,7 +903,8 @@ void PlayerLogic::HandleKeyboardMovement(float dt, Scene& scene, InputManager& i
 
 	if (hasMoveTarget) {
 		UpdateSprite(scene, player, moveTarget - ToVec2(player->GetPositionGLM()));
-	} else {
+	}
+	else {
 		UpdateSprite(scene, player, glm::vec2(0.0f, 0.0f));
 	}
 }
@@ -995,6 +987,16 @@ void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManag
 void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	if (!scene.IsSimulationActive() || scene.IsPauseOverlayActive()) {
 		ClearInteractableVisualCues(scene);
+		return;
+	}
+
+	// Debug shortcut: instantly trigger the win condition so we can quickly
+	// validate transition/cutscene flow without playing a full round.
+	if (input.IsKeyJustPressed(GLFW_KEY_F10) && !Economy::gQuotaReached) {
+		Economy::gPlayerMoney = Economy::kQuota;
+		Economy::SyncUI();
+		Economy::gQuotaReached = true;
+		Economy::OnQuotaReached(scene);
 		return;
 	}
 
@@ -1291,10 +1293,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 			//std::cout << "  [PlayerLogic] CASE2: CanAcceptItem = false\n";
 		}
 		// --- NEW: if this is a cutting board and it started processing, lock player movement ---
-		if (WorkTableLogic* wt = logicMgr.GetLogicForObject<WorkTableLogic>(tableObjectID))
-		{
-			if (wt->LocksPlayerMovementWhileProcessing() && wt->IsProcessing())
-			{
+		if (WorkTableLogic* wt = logicMgr.GetLogicForObject<WorkTableLogic>(tableObjectID)) {
+			if (wt->LocksPlayerMovementWhileProcessing() && wt->IsProcessing()) {
 				BeginStationLock(scene, tableObjectID);
 			}
 		}
@@ -1367,7 +1367,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 					if (firstObjID >= 0) {
 						scene.DespawnByID(firstObjID);
 						plate->SetFirstIngredientObjectID(-1);
-				}
+					}
 
 					// Destroy the ingredient we just added (the one we were carrying)
 					if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
@@ -1376,7 +1376,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 
 					// We won't restore its collider size because the object is gone.
 					hasCarriedItemOriginalColliderSize = false;
-			}
+				}
 
 
 				// Either way, we are no longer carrying this item
@@ -1389,17 +1389,16 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 					audioMgr->PlaySound("sfx_put_down", audioMgr->GetVfxVolume() * 0.4f, false);
 				}
 #endif
-		}
-			else
-			{
+			}
+			else {
 				//std::cout << "  [PlayerLogic] CASE3: plate REJECTED ingredient\n";
 			}
 			return;
-	}
+		}
 
 		//std::cout << "  [PlayerLogic] CASE3: no (plate,ingredient) combo found\n";
 		return;
-}
+	}
 
 	//std::cout << "  [PlayerLogic] No case matched, doing nothing.\n";
 }
@@ -1433,13 +1432,10 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	ApplyCarryLayer(scene, carriedItemID);
 
 	// If the carried item is a plate with 1 ingredient attached visually, move that ingredient too.
-	if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(carriedItemID))
-	{
+	if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(carriedItemID)) {
 		const int child = plate->GetFirstIngredientObjectID();
-		if (child >= 0 && !plate->HasPreparedDish())
-		{
-			if (GameObject* ingObj = scene.GetGameObjectByID(child))
-			{
+		if (child >= 0 && !plate->HasPreparedDish()) {
+			if (GameObject* ingObj = scene.GetGameObjectByID(child)) {
 				// Follow the plate exactly (same position as plate)
 				glm::vec3 platePos = item->GetPositionGLM();
 				ingObj->SetPosition(platePos);
@@ -1467,8 +1463,7 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	//	<< p.y + carryOffset.y << ")\n";
 }
 
-void PlayerLogic::BeginStationLock(Scene& scene, int tableID)
-{
+void PlayerLogic::BeginStationLock(Scene& scene, int tableID) {
 	movementLocked_ = true;
 	lockedTableID_ = tableID;
 
@@ -1486,14 +1481,12 @@ void PlayerLogic::BeginStationLock(Scene& scene, int tableID)
 	}
 }
 
-void PlayerLogic::EndStationLock()
-{
+void PlayerLogic::EndStationLock() {
 	movementLocked_ = false;
 	lockedTableID_ = -1;
 }
 
-void PlayerLogic::UpdateStationLock(Scene& scene)
-{
+void PlayerLogic::UpdateStationLock(Scene& scene) {
 	if (!movementLocked_)
 		return;
 
@@ -1510,8 +1503,7 @@ void PlayerLogic::UpdateStationLock(Scene& scene)
 	}
 }
 
-bool PlayerLogic::ShouldPlayChopAnimation(Scene& scene) const
-{
+bool PlayerLogic::ShouldPlayChopAnimation(Scene& scene) const {
 	if (lockedTableID_ < 0) {
 		return false;
 	}
@@ -1524,8 +1516,7 @@ bool PlayerLogic::ShouldPlayChopAnimation(Scene& scene) const
 	return wt->LocksPlayerMovementWhileProcessing() && wt->IsProcessing();
 }
 
-void PlayerLogic::EnsureChopAnimation(Scene& scene, GameObject* player)
-{
+void PlayerLogic::EnsureChopAnimation(Scene& scene, GameObject* player) {
 	if (!player) {
 		return;
 	}
@@ -1536,8 +1527,7 @@ void PlayerLogic::EnsureChopAnimation(Scene& scene, GameObject* player)
 	}
 }
 
-glm::vec2 PlayerLogic::GetCarryOffsetForFacing() const
-{
+glm::vec2 PlayerLogic::GetCarryOffsetForFacing() const {
 	switch (facingDir) {
 	case FacingDir::Front: return carryOffsetFront_;
 	case FacingDir::Back:  return carryOffsetBack_;
@@ -1547,8 +1537,7 @@ glm::vec2 PlayerLogic::GetCarryOffsetForFacing() const
 	}
 }
 
-void PlayerLogic::ApplyCarryLayer(Scene& scene, int itemID)
-{
+void PlayerLogic::ApplyCarryLayer(Scene& scene, int itemID) {
 	if (!hasCarriedItemOriginalLayer_) {
 		return;
 	}
@@ -1570,8 +1559,7 @@ void PlayerLogic::ApplyCarryLayer(Scene& scene, int itemID)
 	}
 }
 
-void PlayerLogic::RestoreCarriedItemLayer(Scene& scene, int itemID)
-{
+void PlayerLogic::RestoreCarriedItemLayer(Scene& scene, int itemID) {
 	if (!hasCarriedItemOriginalLayer_) {
 		return;
 	}
@@ -1620,8 +1608,7 @@ namespace {
 	}
 }
 
-std::string PlayerLogic::GetCarryLayerForFacing(const std::string& baseLayer) const
-{
+std::string PlayerLogic::GetCarryLayerForFacing(const std::string& baseLayer) const {
 	int value = 0;
 	if (!TryParseLayerNumber(baseLayer, value)) {
 		return baseLayer;
@@ -1636,8 +1623,7 @@ std::string PlayerLogic::GetCarryLayerForFacing(const std::string& baseLayer) co
 	return std::to_string(target);
 }
 
-std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& baseLayer) const
-{
+std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& baseLayer) const {
 	int value = 0;
 	if (!TryParseLayerNumber(baseLayer, value)) {
 		return baseLayer;
@@ -1652,8 +1638,7 @@ std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& baseLaye
 	return std::to_string(target);
 }
 
-std::string PlayerLogic::GetChildLayerAbove(const std::string& baseLayer) const
-{
+std::string PlayerLogic::GetChildLayerAbove(const std::string& baseLayer) const {
 	int value = 0;
 	if (!TryParseLayerNumber(baseLayer, value)) {
 		return baseLayer;

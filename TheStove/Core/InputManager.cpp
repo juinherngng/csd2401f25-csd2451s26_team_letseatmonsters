@@ -38,19 +38,20 @@ namespace {
 		GLFW_KEY_A,
 		GLFW_KEY_S,
 		GLFW_KEY_D,
-		GLFW_KEY_P, // Pause menu in Release, debug toggle in Debug
-		GLFW_KEY_G, // Grid toggle in Release, debug toggle in Debug
-		GLFW_KEY_H, // Hitbox toggle in Release, debug toggle in Debug
-		GLFW_KEY_F, // FPS toggle in Release, debug toggle in Debug
-		GLFW_KEY_L, // Level reload in Release, debug toggle in Debug
-		GLFW_KEY_1,
-		GLFW_KEY_2,
-		GLFW_KEY_3,
-		GLFW_KEY_SPACE,
+		GLFW_KEY_P,		 // Pause menu in Release, debug toggle in Debug
+		GLFW_KEY_G,		 // Grid toggle in Release, debug toggle in Debug
+		GLFW_KEY_H,		 // Hitbox toggle in Release, debug toggle in Debug
+		GLFW_KEY_F,		 // FPS toggle in Release, debug toggle in Debug
+		GLFW_KEY_L,		 // Level reload in Release, debug toggle in Debug
+		GLFW_KEY_1,	     // Debug shortcuts for quick testing of various conditions (e.g., spawn item, trigger event, etc.)
+		GLFW_KEY_2,		 // Debug shortcuts for quick testing of various conditions (e.g., spawn item, trigger event, etc.)
+		GLFW_KEY_3,		 // Debug shortcuts for quick testing of various conditions (e.g., spawn item, trigger event, etc.)
+		GLFW_KEY_SPACE,  // Used for various gameplay actions, so we track it even in Debug
 		GLFW_KEY_ESCAPE, // Menu toggle in Release
-		GLFW_KEY_F1,		// FPS display toggle in Release
-		GLFW_KEY_F5,
-		GLFW_KEY_F6
+		GLFW_KEY_F1,	 // FPS display toggle in Release
+		GLFW_KEY_F5,	 // Scene reload in Release, debug toggle in Debug
+		GLFW_KEY_F6,	 // Level editor toggle
+		GLFW_KEY_F10	 // Gameplay debug shortcut (e.g., force-win testing)
 	};
 
 	// We track mouse buttons separately since they have different semantics and are often used in combination with ImGui's WantCaptureMouse.

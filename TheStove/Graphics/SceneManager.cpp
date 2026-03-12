@@ -560,6 +560,7 @@ void Scene::DespawnByID(int targetID) {
 // Collects pointers to all GameObjects that should be rendered, sorted by layer and Y position for correct draw order. Applies visibility rules based on per-object defaults and layer settings.
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	out.clear();
+	const bool cutsceneActive = IsAnyCutsceneActive();
 
 	const auto& all = entityManager.GetObjectStorage();
 	out.reserve(all.size());
@@ -579,6 +580,14 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 			}
 		}
 
+		const std::string layerName = (defIt != defaults_.end()) ? defIt->second.layer : "";
+
+		// While cutscenes are active, render only cutscene/pause overlay layers.
+		// This prevents gameplay objects/HUD strips from bleeding through in debug builds.
+		if (cutsceneActive && layerName != cutTrans_.uiLayer && layerName != cutscene_.uiLayer && layerName != "999999") {
+			continue;
+		}
+
 		// Check the layer's visibility flag
 		Layer* layer = GetObjectLayerPtr(objId);
 		if (layer) {
@@ -590,8 +599,6 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 				continue;
 			}
 		}
-
-		const std::string layerName = (defIt != defaults_.end()) ? defIt->second.layer : "";
 
 		// Set the render layer on the object for use in GraphicsEngine
 		const std::string& texturePath = GetObjectTexturePath(objId);
@@ -1352,6 +1359,8 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 		return;
 	}
 
+	SetSimulationActive(false);
+
 	// Clear any existing UI or pause overlays to avoid conflicts
 	HidePauseOverlay();
 
@@ -1502,9 +1511,7 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 		return;
 	}
 
-#ifndef _DEBUG
 	SetSimulationActive(false);
-#endif
 	HidePauseOverlay();
 
 	if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
@@ -1801,6 +1808,8 @@ void Scene::RenderLevelTextObjects() {
 	if (objs.empty()) return;
 
 	const bool cutsceneActive = IsAnyCutsceneActive();
+	if (cutsceneActive) return;
+
 	const bool pauseActive = IsPauseOverlayActive();
 	static const std::unordered_set<std::string> kHudTextNames = {
 		"MoneyText", "QuotaText", "TimerText"
