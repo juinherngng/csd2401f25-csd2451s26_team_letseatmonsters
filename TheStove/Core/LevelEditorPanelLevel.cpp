@@ -1409,6 +1409,7 @@ namespace LEPANELLEVEL {
 						colliderOff = { 0.f, 0.f };
 						obj->SetColliderSize({ 0.f, 0.f });
 						obj->SetColliderOffset({ 0.f, 0.f });
+						SyncColliderDefaults({ 0.f, 0.f }, { 0.f, 0.f });
 					}
 					else {
 						// default collider when adding
@@ -1416,78 +1417,12 @@ namespace LEPANELLEVEL {
 						colliderOff = { 0.f, 0.f };
 						obj->SetColliderSize({ colliderSize.x, colliderSize.y });
 						obj->SetColliderOffset({ 0.f, 0.f });
+						SyncColliderDefaults({ colliderSize.x, colliderSize.y }, { 0.f, 0.f });
 					}
 
 					scene.RebuildColliders();
 				}
 
-				if (colliderEnabled) {
-					float avail = ImGui::GetContentRegionAvail().x;
-					float gap = ImGui::GetStyle().ItemInnerSpacing.x;
-					float fieldW = (avail - gap) * 0.5f;
-
-					// Size
-					ImGui::TextUnformatted("Size");
-					// row of 2 fields (x, y)
-					ImGui::PushItemWidth(fieldW);
-					bool sizeChangedX = ImGui::DragFloat("x##col_size_x", &colliderSize.x, 1.0f, 0.0f, 99999.0f);
-					bool sizeActivatedX = ImGui::IsItemActivated();
-					ImGui::SameLine(0.0f, gap);
-					bool sizeChangedY = ImGui::DragFloat("y##col_size_y", &colliderSize.y, 1.0f, 0.0f, 99999.0f);
-					bool sizeActivatedY = ImGui::IsItemActivated();
-					ImGui::PopItemWidth();
-
-					if (sizeActivatedX || sizeActivatedY) {
-						PushUndoSnapshot(editor, scene);
-					}
-
-					if (sizeChangedX || sizeChangedY) {
-						obj->SetColliderSize({ colliderSize.x, colliderSize.y });
-						scene.RebuildColliders();
-					}
-
-					ImGui::Spacing();
-
-					// Offset
-					ImGui::TextUnformatted("Offset");
-					ImGui::PushItemWidth(fieldW);
-					bool offChangedX = ImGui::DragFloat("x##col_off_x", &colliderOff.x, 1.0f, -99999.0f, 99999.0f);
-					bool offActivatedX = ImGui::IsItemActivated();
-					ImGui::SameLine(0.0f, gap);
-					bool offChangedY = ImGui::DragFloat("y##col_off_y", &colliderOff.y, 1.0f, -99999.0f, 99999.0f);
-					bool offActivatedY = ImGui::IsItemActivated();
-					ImGui::PopItemWidth();
-
-					if (offActivatedX || offActivatedY) {
-						PushUndoSnapshot(editor, scene);
-					}
-
-					if (offChangedX || offChangedY) {
-						obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
-						scene.RebuildColliders();
-					}
-				}
-				else {
-					ImGui::TextDisabled("Collider disabled");
-				if (!colliderEnabled) {
-					colliderSize = { 0.f, 0.f };
-					colliderOff = { 0.f, 0.f };
-					obj->SetColliderSize({ 0.f, 0.f });
-					obj->SetColliderOffset({ 0.f, 0.f });
-					SyncColliderDefaults({ 0.f, 0.f }, { 0.f, 0.f });
-				}
-				else {
-					// default collider when adding
-					colliderSize = { size.x, size.y };
-					colliderOff = { 0.f, 0.f };
-					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
-					obj->SetColliderOffset({ 0.f, 0.f });
-					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, { 0.f, 0.f });
-				}
-
-				ImGui::NextColumn();
-
-				ImGui::Columns(1);
 			if (colliderEnabled) {
 				float avail = ImGui::GetContentRegionAvail().x;
 				float gap = ImGui::GetStyle().ItemInnerSpacing.x;
@@ -1537,8 +1472,12 @@ namespace LEPANELLEVEL {
 				}
 			}
 			else {
-				ImGui::TextDisabled("Advanced controls are collapsed.");
+				ImGui::TextDisabled("Collider disabled");
 			}
+
+			ImGui::NextColumn();
+
+			ImGui::Columns(1);
 
 			// ========== Audio Bindings Section ==========
 			ImGui::Spacing();
