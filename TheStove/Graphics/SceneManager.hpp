@@ -655,6 +655,9 @@ private:
 
 	std::vector<int> pendingDespawns_;
 
+	// Prevent repeated skip-trigger while space is held during cutscenes.
+	bool cutsceneSkipSpaceHeld_ = false;
+
 	// Basic cutscene runner with simple fade-out, image swap, fade-in sequence. No cross-fade or separate hold time.
 	struct CutsceneState {
 		bool active = false;
