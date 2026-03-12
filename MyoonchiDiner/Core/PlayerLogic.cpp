@@ -205,6 +205,7 @@ void PlayerLogic::Start(Scene& scene) {
 	highlightedInteractableIDs_.clear();
 	clickIndicatorID_ = -1;
 	clickIndicatorTimeLeft_ = 0.0f;
+	suppressMouseUntilRelease_ = false;
 
 	pathPoints_.clear();
 	pathIndex_ = 0;
@@ -427,7 +428,23 @@ void PlayerLogic::CancelQueuedTableMove(Scene& scene) {
 	}
 }
 
+void PlayerLogic::EnterPauseState(Scene& scene) {
+	ClearInteractableVisualCues(scene);
+	ClearClickMoveIndicator(scene);
+	CancelQueuedTableMove(scene);
+	ResetMouseDragState();
+	suppressMouseUntilRelease_ = true;
+}
+
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) {
+	if (suppressMouseUntilRelease_) {
+		if (!input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+			suppressMouseUntilRelease_ = false;
+		}
+		ResetMouseDragState();
+		return;
+	}
+
 	if (movementLocked_) {
 		ResetMouseDragState();
 		return;
@@ -986,8 +1003,16 @@ void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManag
 // Main update loop for player logic: handle input, movement, sprite updates, interactions, and footstep effects.
 void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	if (!scene.IsSimulationActive() || scene.IsPauseOverlayActive()) {
-		ClearInteractableVisualCues(scene);
+		EnterPauseState(scene);
 		return;
+	}
+
+	if (suppressMouseUntilRelease_) {
+		if (input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+			return;
+		}
+
+		suppressMouseUntilRelease_ = false;
 	}
 
 	// Debug shortcut: instantly trigger the win condition so we can quickly
@@ -1152,6 +1177,15 @@ void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
 	const float size = kClickIndicatorBaseSize + pulse * (kClickIndicatorPopSize - kClickIndicatorBaseSize);
 	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	marker->SetScale(glm::vec3(size, size, 1.0f));
+}
+
+void PlayerLogic::ClearClickMoveIndicator(Scene& scene) {
+	if (clickIndicatorID_ >= 0) {
+		scene.DespawnByID(clickIndicatorID_);
+	}
+
+	clickIndicatorID_ = -1;
+	clickIndicatorTimeLeft_ = 0.0f;
 }
 
 // Reset color tints on previously highlighted interactables

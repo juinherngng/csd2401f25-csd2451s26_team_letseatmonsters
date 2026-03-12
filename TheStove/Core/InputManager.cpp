@@ -151,6 +151,8 @@ void InputManager::ClearState() {
 	mPreviousKeyStates.clear();
 	mMouseButtons.clear();
 	mPrevMouseButtons.clear();
+	mConsumeNextMousePress.clear();
+	mConsumeNextKeyPress.clear();
 	mMousePos = glm::dvec2(0.0, 0.0);
 }
 
@@ -158,11 +160,16 @@ void InputManager::ClearState() {
 bool InputManager::IsKeyPressed(int key) const {
 	return GetButtonState(mCurrentKeyStates, key);
 }
-bool InputManager::IsKeyJustPressed(int key) const {
+bool InputManager::IsKeyJustPressed(int key) {
 	const bool curr = GetButtonState(mCurrentKeyStates, key);
 	const bool prev = GetButtonState(mPreviousKeyStates, key);
+	const bool justPressed = curr && !prev;
 
-	return curr && !prev;
+	if (justPressed && mConsumeNextKeyPress.erase(key) > 0) {
+		return false;
+	}
+
+	return justPressed;
 }
 
 // Mouse Queries
@@ -216,6 +223,14 @@ void InputManager::ConsumeNextMousePress(int button) {
 }
 void InputManager::ClearMouseConsume(int button) {
 	mConsumeNextMousePress.erase(button);
+}
+
+void InputManager::ConsumeNextKeyPress(int key) {
+	mConsumeNextKeyPress.insert(key);
+}
+
+void InputManager::ClearKeyConsume(int key) {
+	mConsumeNextKeyPress.erase(key);
 }
 
 void InputManager::CaptureSnapshot(Snapshot& out) const {

@@ -68,6 +68,9 @@ public:
 	// Unity: Drop()
 	void Drop(Scene& scene);
 
+	// Force-clear movement/click state while pause overlay is active or before resume.
+	void EnterPauseState(Scene& scene);
+
 private:
 	enum class MoveMode {
 		None,
@@ -129,6 +132,7 @@ private:
 	bool IsPointInsideObjectCollider(const GameObject* obj, const glm::vec2& worldPoint) const;
 	void ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint);
 	void UpdateClickMoveIndicator(Scene& scene, float dt);
+	void ClearClickMoveIndicator(Scene& scene);
 	void ClearInteractableVisualCues(Scene& scene);
 	void ResetMouseDragState();
 	bool TryGetMouseWorld(Scene& scene, InputManager& input, glm::vec2& mouseWorld) const;
@@ -153,6 +157,7 @@ private:
 	// Click indicator state
 	int clickIndicatorID_ = -1;
 	float clickIndicatorTimeLeft_ = 0.0f;
+	bool suppressMouseUntilRelease_ = false;
 
 	// Trail effect state
 	glm::vec3 lastTrailPos_{ 0.0f, 0.0f, 0.0f };

@@ -356,9 +356,15 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 	// Handle ESC to toggle pause overlay in Release
 #ifndef _DEBUG
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
-		if (IsSimulationActive()) {
+		if (IsPauseOverlayActive()) {
+			HidePauseOverlay();
+			SetSimulationActive(true);
+			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
+		}
+		else if (IsSimulationActive()) {
 			// Only allow pause during gameplay (not in main menu)
 			ShowPauseOverlay();
+			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
 		}
 	}
 #endif
