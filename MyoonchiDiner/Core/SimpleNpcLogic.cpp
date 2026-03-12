@@ -563,12 +563,10 @@ void SimpleNpcLogic::TakeOrder(Scene& scene) {
 	orderTaken_ = true;
 	patienceRatioAtServe_ = 1.0f; // starts full; will be snapshotted on serve
 
-	// Play new order sound effect (release mode only)
-#ifndef _DEBUG
+	// Play new order sound effect
 	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		audioMgr->PlaySound("sfx_new_order", audioMgr->GetVfxVolume() * 0.3f, false);
+		audioMgr->PlaySound("sfx_new_order_v2", audioMgr->GetVfxVolume() * 0.8f, false);
 	}
-#endif
 
 	// Start patience timer now that we are waiting for food
 	patienceRemaining_ = patienceMax_;
