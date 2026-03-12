@@ -217,31 +217,17 @@ namespace LEPANELPREFABS {
 
 		// Cache for prefab thumbnails (keyed by prefab JSON path)
 		static std::unordered_map<std::string, Texture*> sPrefabPreviewCache;
-		static bool sPrefabCompactDensity = false;
-
-		auto ShowTooltip = [](const char* text) {
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
-				ImGui::SetTooltip("%s", text);
-			}
-			};
-
-		auto IconButton = [&](const char* id, const char* label, const char* tooltip) {
-			const std::string buttonLabel = std::string(label) + "##" + id;
-			const bool pressed = ImGui::Button(buttonLabel.c_str(), ImVec2(26.0f, 0.0f));
-			ShowTooltip(tooltip);
-			return pressed;
-			};
 
 		ImGui::TextUnformatted("Prefab path");
 		ImGui::SameLine();
 
-		if (IconButton("refresh_pf_top", "R", "Refresh prefab index")) {
+		if (ImGui::Button("Refresh##pf")) {
 			sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
 		}
 
 		ImGui::SameLine();
 
-		if (ImGui::Button("Import Prefab")) {
+		if (ImGui::Button("Import Prefab...")) {
 			const std::string picked =
 				OpenFileDialog("JSON files\0*.json\0All files\0*.*\0");
 
@@ -292,16 +278,10 @@ namespace LEPANELPREFABS {
 		ImGui::Spacing();
 		ImGui::SeparatorText("Prefab Library");
 
-		if (IconButton("refresh_pf_list", "R", "Refresh prefab library")) {
+		if (ImGui::Button("Refresh##pf_list")) {
 			sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
 			sPrefabPreviewCache.clear();
 		}
-
-		ImGui::SameLine();
-		if (ImGui::Checkbox("Compact##prefab", &sPrefabCompactDensity)) {
-		}
-
-		ShowTooltip("Toggle compact row density for prefab list");
 
 		static char prefabFilterBuf[128] = {};
 		static bool showOnlyMatchingPrefabs = true;
@@ -327,14 +307,13 @@ namespace LEPANELPREFABS {
 			};
 
 		// Scrollable area for prefab thumbnails + paths
-		ImGui::BeginChild("##PrefabList", ImVec2(0, sPrefabCompactDensity ? 180.0f : 240.0f), true);
+		ImGui::BeginChild("##PrefabList", ImVec2(0, 200.0f), true);
 
 		bool refreshPrefabs = false;
-		const float iconSize = sPrefabCompactDensity ? 22.0f : 32.0f;
+		const float iconSize = 32.0f;
 		int visiblePrefabCount = 0;
 
 		for (const auto& path : sPrefabs) {
-			const std::string displayName = fs::path(path).filename().string();
 			const bool matchesFilter = matchesPrefabFilter(path);
 			if (showOnlyMatchingPrefabs && !matchesFilter) {
 				continue;
@@ -375,7 +354,7 @@ namespace LEPANELPREFABS {
 
 			// Highlight currently selected prefab (the one in prefabPathBuf)
 			bool isSelected = (std::strcmp(prefabPathBuf, path.c_str()) == 0);
-			if (ImGui::Selectable(displayName.c_str(), isSelected,
+			if (ImGui::Selectable(path.c_str(), isSelected,
 				0, ImVec2(0.0f, iconSize))) {
 				// Clicking on list item updates the active prefab path
 				std::snprintf(prefabPathBuf,
@@ -384,12 +363,6 @@ namespace LEPANELPREFABS {
 			}
 
 			// Drag source: other panels can accept "PREFAB_PATH"
-			ImGui::SameLine();
-			ImGui::TextDisabled("[.json]");
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
-				ImGui::SetTooltip("%s", path.c_str());
-			}
-
 			if (ImGui::BeginDragDropSource()) {
 				ImGui::SetDragDropPayload("PREFAB_PATH",
 					path.c_str(),
@@ -450,7 +423,7 @@ namespace LEPANELPREFABS {
 			ImGui::BeginDisabled();
 		}
 
-		if (ImGui::Button("Save Prefab")) {
+		if (ImGui::Button("Save selected as prefab")) {
 			if (selectedObjectId >= 0) {
 				// Find the selected GameObject
 				GameObject* gSel = scene.GetGameObjectByID(selectedObjectId);
@@ -524,7 +497,7 @@ namespace LEPANELPREFABS {
 
 		// Instantiate from prefab (disabled if path not found)
 		ImGui::BeginDisabled(!prefabExists);
-		if (ImGui::Button("Instantiate")) {
+		if (ImGui::Button("Instantiate from prefab")) {
 			LevelObject data{};
 			if (LoadPrefabFromFile(prefabPath, data)) {
 				GameObject* g = nullptr;
@@ -637,7 +610,7 @@ namespace LEPANELPREFABS {
 			};
 
 		// Propagate prefab changes to all instances linked to this prefab path
-		if (ImGui::Button("Propagate")) {
+		if (ImGui::Button("Propagate prefab changes")) {
 			ImGui::OpenPopup("Confirm Propagate Prefab");
 		}
 
