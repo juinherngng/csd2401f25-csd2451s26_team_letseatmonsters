@@ -607,8 +607,13 @@ namespace LEPANELPREFABS {
 			LevelObject updated = BuildPrefabFromObject(scene, src);
 			updated.prefabPath = normalizedPrefabPath;
 
-			// Save updated prefab JSON
-			SavePrefabToFile(prefabPath, updated);
+			LevelObject currentPrefab{};
+			const bool hasCurrentPrefab = LoadPrefabFromFile(prefabPath, currentPrefab);
+
+			// Save updated prefab JSON only when prefab content changed.
+			if (!hasCurrentPrefab || !IsPrefabEquivalent(currentPrefab, updated)) {
+				SavePrefabToFile(prefabPath, updated);
+			}
 
 			// Apply to all linked instances in currently open scene
 			std::vector<GameObject*> objs;
@@ -626,6 +631,9 @@ namespace LEPANELPREFABS {
 					++updatedCurrentScene;
 				}
 			}
+
+			// Apply to all linked instances in other level files.
+			PropagatePrefabToAllLevelFiles(normalizedPrefabPath, updated);
 			};
 
 		// Propagate prefab changes to all instances linked to this prefab path
