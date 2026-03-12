@@ -624,6 +624,11 @@ namespace LEPANELASSETS {
 				static std::string editingName = "";
 				static bool editMode = false;
 				static Audio::AudioAsset editBuffer;
+				static bool applyRemove = false;
+				static std::string pendingRemoveName = "";
+				static bool applyEdit = false;
+				static std::string originalEditName = "";
+				static Audio::AudioAsset pendingEditBuffer;
 
 				// State for tracking which audio is currently playing (for UI feedback)
 				static std::string currentlyPlaying = "";
@@ -671,19 +676,10 @@ namespace LEPANELASSETS {
 							ImGui::TextWrapped("File: %s", editBuffer.filepath.c_str());
 
 							if (ImGui::Button("Save##Edit")) {
-								// Apply changes
-								Audio::AudioCatalog::RemoveAudioAsset(editingName);
-								Audio::AudioCatalog::AddAudioAsset(editBuffer);
-
-								// Reload the audio
-								ResourceManager::Instance().UnloadAudio(editingName);
-								ResourceManager::Instance().LoadAudio(
-									editBuffer.name,
-									editBuffer.filepath,
-									editBuffer.loop,
-									editBuffer.stream
-								);
-
+								// Queue catalog mutation until after the UI iteration.
+								originalEditName = editingName;
+								pendingEditBuffer = editBuffer;
+								applyEdit = true;
 								editMode = false;
 								editingName = "";
 							}
@@ -745,6 +741,7 @@ namespace LEPANELASSETS {
 								editingName = asset.name;
 								editBuffer = asset;
 							}
+
 							ImGui::SameLine();
 							if (ImGui::Button("Remove")) {
 								// Stop if currently playing
@@ -752,6 +749,7 @@ namespace LEPANELASSETS {
 									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
 									currentlyPlaying = "";
 								}
+
 								ImGui::OpenPopup("Confirm Remove Audio");
 							}
 
@@ -761,13 +759,16 @@ namespace LEPANELASSETS {
 								ImGui::Separator();
 
 								if (ImGui::Button("Yes", ImVec2(120, 0))) {
-									Audio::AudioCatalog::RemoveAudioAsset(asset.name);
+									pendingRemoveName = asset.name;
+									applyRemove = true;
 									ImGui::CloseCurrentPopup();
 								}
+
 								ImGui::SameLine();
 								if (ImGui::Button("No", ImVec2(120, 0))) {
 									ImGui::CloseCurrentPopup();
 								}
+
 								ImGui::EndPopup();
 							}
 						}
@@ -776,6 +777,38 @@ namespace LEPANELASSETS {
 					}
 
 					ImGui::PopID();
+				}
+
+				if (applyRemove) {
+					Audio::AudioCatalog::RemoveAudioAsset(pendingRemoveName);
+
+					if (currentlyPlaying == pendingRemoveName) {
+						currentlyPlaying.clear();
+					}
+
+					if (editingName == pendingRemoveName) {
+						editMode = false;
+						editingName.clear();
+					}
+
+					pendingRemoveName.clear();
+					applyRemove = false;
+				}
+
+				if (applyEdit) {
+					Audio::AudioCatalog::RemoveAudioAsset(originalEditName);
+					Audio::AudioCatalog::AddAudioAsset(pendingEditBuffer);
+
+					ResourceManager::Instance().UnloadAudio(originalEditName);
+					ResourceManager::Instance().LoadAudio(
+						pendingEditBuffer.name,
+						pendingEditBuffer.filepath,
+						pendingEditBuffer.loop,
+						pendingEditBuffer.stream
+					);
+
+					applyEdit = false;
+					originalEditName.clear();
 				}
 
 				ImGui::Separator();

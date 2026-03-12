@@ -534,7 +534,7 @@ namespace LEPANELPREFABS {
 					);
 
 					// Optional: project-specific animation attach
-					if (data.texture.find("dino") != std::string::npos) {
+					if (g && data.texture.find("dino") != std::string::npos) {
 						scene.AttachDinoAnimations(g->GetID());
 						scene.SetAnimation(g->GetID(), "IDLE");
 					}

@@ -303,7 +303,7 @@ namespace {
 				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, obj.z }, { obj.w, obj.h },
 					fullFrame, 0.25f, true, layerName);
 
-				if (obj.texture.find("dino") != std::string::npos) {
+				if (g && obj.texture.find("dino") != std::string::npos) {
 					scene.AttachDinoAnimations(g->GetID());
 
 					const std::string clip = obj.animName.empty() ? "IDLE" : obj.animName;
