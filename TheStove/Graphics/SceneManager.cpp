@@ -254,6 +254,13 @@ void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 		npcSystem.Update(physicsDt, entityManager, collisionManager, walk);
 		HandlePlayerCollisions(physicsDt, entityManager);
 		ApplyFinalConstraints(entityManager);
+
+		// Update 3D audio listener position to the center of the reference canvas
+		if (audioManager_) {
+			float listenerX = static_cast<float>(GraphicsEngine::kRefW) * 0.5f;
+			float listenerY = static_cast<float>(GraphicsEngine::kRefH) * 0.5f;
+			audioManager_->SetListenerPosition(listenerX, listenerY, 0.0f);
+		}
 	}
 }
 
@@ -1243,11 +1250,9 @@ void Scene::PlaySpawnAudio(int objectId) {
 	const Defaults& defs = it->second;
 	if (defs.audioOnSpawn.empty()) return;
 
-	// Check if sound exists and play it
+	// Check if sound exists and play it at the object's position
 	if (audioManager_->HasSound(defs.audioOnSpawn)) {
-		// For looping audio, we need to handle it specially
-		// The sound should have been loaded with loop flag from AudioCatalog
-		audioManager_->PlaySound(defs.audioOnSpawn, 1.0f, false);
+		audioManager_->PlaySound3D(defs.audioOnSpawn, defs.pos.x, defs.pos.y, defs.pos.z);
 		std::cout << "[Scene] Playing spawn audio '" << defs.audioOnSpawn << "' for object " << objectId << std::endl;
 	}
 	else {
@@ -1265,7 +1270,7 @@ void Scene::PlayInteractAudio(int objectId) {
 	if (defs.audioOnInteract.empty()) return;
 
 	if (audioManager_->HasSound(defs.audioOnInteract)) {
-		audioManager_->PlaySound(defs.audioOnInteract, 1.0f, false);
+		audioManager_->PlaySound3D(defs.audioOnInteract, defs.pos.x, defs.pos.y, defs.pos.z);
 		std::cout << "[Scene] Playing interact audio '" << defs.audioOnInteract << "' for object " << objectId << std::endl;
 	}
 	else {
@@ -1283,7 +1288,7 @@ void Scene::PlayDestroyAudio(int objectId) {
 	if (defs.audioOnDestroy.empty()) return;
 
 	if (audioManager_->HasSound(defs.audioOnDestroy)) {
-		audioManager_->PlaySound(defs.audioOnDestroy, 1.0f, false);
+		audioManager_->PlaySound3D(defs.audioOnDestroy, defs.pos.x, defs.pos.y, defs.pos.z);
 		std::cout << "[Scene] Playing destroy audio '" << defs.audioOnDestroy << "' for object " << objectId << std::endl;
 	}
 	else {
@@ -1301,7 +1306,7 @@ void Scene::PlayProcessingAudio(int objectId) {
 	if (defs.audioOnProcessing.empty()) return;
 
 	if (audioManager_->HasSound(defs.audioOnProcessing)) {
-		audioManager_->PlaySound(defs.audioOnProcessing, 1.0f, false);
+		audioManager_->PlaySound3D(defs.audioOnProcessing, defs.pos.x, defs.pos.y, defs.pos.z);
 		std::cout << "[Scene] Playing processing audio '" << defs.audioOnProcessing << "' for object " << objectId << std::endl;
 	}
 	else {
