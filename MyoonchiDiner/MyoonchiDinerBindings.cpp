@@ -504,12 +504,15 @@ namespace {
 void RegisterMyoonchiDinerBindings(Scene& scene) {
 	// Customer management system (shared across hooks)
 	auto customerManager = std::make_shared<CustomerManagerSystem>();
+	auto applyLevelGameplayTuning = [customerManager](Scene& s) {
+		ConfigureLevelGameplayTuning(s, *customerManager);
+		};
 	scene.SetCustomerUpdateHook([customerManager](float dt, Scene& s) {
 		customerManager->Update(dt, s);
 	});
-	scene.SetCustomerResetHook([customerManager](Scene& s) {
+	scene.SetCustomerResetHook([customerManager, applyLevelGameplayTuning](Scene& s) {
 		customerManager->Reset();
-		ConfigureLevelGameplayTuning(s, *customerManager);
+		applyLevelGameplayTuning(s);
 		Economy::Reset();
 	});
 	scene.SetRuntimeObjectSetupHook(ApplyRuntimeObjectSetup);
@@ -520,7 +523,12 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	// Scene lifecycle hooks
 	scene.SetDefaultSceneSetupHook(ApplyDefaultSceneSetup);
-	scene.SetPostLevelLoadHook(OnPostLevelLoaded);
+	scene.SetPostLevelLoadHook([applyLevelGameplayTuning](Scene& s, bool simulationActive) {
+		OnPostLevelLoaded(s, simulationActive);
+		if (simulationActive) {
+			applyLevelGameplayTuning(s);
+		}
+		});
 
 	// Cutscene audio hooks
 	scene.SetCutsceneFadeOutHook(OnCutsceneFadeOut);
