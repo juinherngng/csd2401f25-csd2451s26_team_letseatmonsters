@@ -44,9 +44,17 @@ struct LevelObject {
 	float speedX{ 0.0f };
 	float speedY{ 0.0f };
 
-	// Approach offset (relative to object center)
+	// Approach offsets (relative to object center)
 	float approachOffsetX{ 0.0f };
 	float approachOffsetY{ 0.0f };
+	bool hasApproachOffset2{ false };
+	float approachOffset2X{ 0.0f };
+	float approachOffset2Y{ 0.0f };
+
+	// Customer table seat offset (relative to object center)
+	bool hasCustomerSeatOffset{ false };
+	float customerSeatOffsetX{ 0.0f };
+	float customerSeatOffsetY{ 0.0f };
 
 	// Animation flag
 	bool animated{ false };
@@ -112,6 +120,7 @@ struct LevelData {
 	std::vector<LevelObject> objects{};
 	std::vector<LevelTextObject> textObjects{};  // text objects in the level
 	std::string background; // optional background texture path
+	std::string backgroundOverlay; // optional overlay texture path drawn above background
 };
 
 // Public Interface

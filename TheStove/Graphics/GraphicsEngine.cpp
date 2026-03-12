@@ -14,8 +14,8 @@
 */
 
 #include "../Core/FontSystem.hpp"
-#include "../Core/LevelEditorPanelFonts.hpp"
 #include "../Core/InputManager.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
@@ -353,6 +353,11 @@ void GraphicsEngine::Resize(int width, int height) {
 		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
 			static_cast<float>(kRefH), 1.0f));
 	}
+	if (backgroundOverlayObject) {
+		backgroundOverlayObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
+		backgroundOverlayObject->SetScale(glm::vec3(static_cast<float>(kRefW),
+			static_cast<float>(kRefH), 1.0f));
+	}
 }
 
 // Apply the current letterboxed viewport (use before world rendering)
@@ -456,9 +461,38 @@ void GraphicsEngine::SetBackground(const std::string& texturePath) {
 	}
 }
 
+void GraphicsEngine::SetBackgroundOverlay(const std::string& texturePath) {
+	std::string key = "background_overlay_" + std::filesystem::path(texturePath).filename().string();
+
+	Texture* overlayTexture = resourceManager.LoadTexture(key, texturePath);
+	if (!overlayTexture) {
+		std::cerr << "Failed to load background overlay texture: " << texturePath << std::endl;
+		return;
+	}
+
+	if (!backgroundOverlayObject) {
+		Mesh* quadMesh = resourceManager.GetMesh("fullscreen_quad");
+		Shader* textureShader = resourceManager.GetShader("texture");
+
+		if (quadMesh && textureShader) {
+			backgroundOverlayObject = std::make_unique<GameObject>(quadMesh, textureShader);
+			backgroundOverlayObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
+			backgroundOverlayObject->SetScale(glm::vec3(static_cast<float>(kRefW), static_cast<float>(kRefH), 1.0f));
+		}
+	}
+
+	if (backgroundOverlayObject) {
+		backgroundOverlayObject->SetTexture(overlayTexture);
+	}
+}
+
 // Remove the background object (if present).
 void GraphicsEngine::ClearBackground() {
 	backgroundObject.reset();
+}
+
+void GraphicsEngine::ClearBackgroundOverlay() {
+	backgroundOverlayObject.reset();
 }
 
 // Start a new ImGui frame and host a global DockSpace
@@ -533,6 +567,37 @@ void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::ma
 	}
 
 	Mesh* mesh = backgroundObject->GetMesh();
+	if (mesh) {
+		mesh->Draw();
+	}
+}
+
+void GraphicsEngine::RenderBackgroundOverlay(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
+	if (!backgroundOverlayObject) {
+		return;
+	}
+
+	const ScopedRenderPassState passState({
+		.depthTestEnabled = false,
+		.depthWriteEnabled = true,
+		.blendingEnabled = true
+		});
+
+	Shader* shader = backgroundOverlayObject->GetShader();
+	if (shader) {
+		shader->Use();
+		shader->SetModelMatrix(backgroundOverlayObject->GetModelMatrix());
+		shader->SetViewMatrix(viewMatrix);
+		shader->SetProjectionMatrix(projectionMatrix);
+	}
+
+	Texture* tex = backgroundOverlayObject->GetTexture();
+	if (tex && shader) {
+		tex->Bind(0);
+		shader->SetTexture("u_Texture", 0);
+	}
+
+	Mesh* mesh = backgroundOverlayObject->GetMesh();
 	if (mesh) {
 		mesh->Draw();
 	}
@@ -624,7 +689,7 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld, const glm::dvec2*
 
 	if (mousePosOverride == nullptr) {
 		ImVec2 localPos{}, sceneSize{};
-		if(!TryGetMousePositionInScene(localPos, sceneSize)) {
+		if (!TryGetMousePositionInScene(localPos, sceneSize)) {
 			return false;
 		}
 		outWorld = ScenePixelToWorld(localPos, sceneSize);
@@ -694,6 +759,8 @@ bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& out
 
 	ImVec2 scenePos;
 	ComputeSceneImageRect(scenePos, outSceneSize);
+
+	// First try ImGui's mouse position (which accounts for multiple viewports and should be more robust), but fall back to InputManager if it's not finite (can happen during docking/layout changes).
 	ImVec2 mouse = ImGui::GetMousePos();
 	if (!std::isfinite(mouse.x) || !std::isfinite(mouse.y)) {
 		const glm::dvec2 mousePos = InputManager::Get().GetMousePosition();
@@ -746,7 +813,7 @@ bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& out
 	const float vw = static_cast<float>(viewportW_);
 	const float vh = static_cast<float>(viewportH_);
 	if (vw <= 0.0f || vh <= 0.0f || mouseX < vx || mouseY < vy ||
-		mouseX > (vx + vw) || mouseY > (vy + vh)) {
+		mouseX >(vx + vw) || mouseY >(vy + vh)) {
 		return false;
 	}
 
@@ -865,6 +932,10 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 		}
 	}
 
+	// Draw background overlay after scene objects so foreground overlays
+	// (e.g. countertop tops/walls) can sit above gameplay sprites.
+	RenderBackgroundOverlay(viewMatrix, projectionMatrix);
+
 	// Draw transition overlay into the scene FBO before unbinding
 	DrawTransitionOverlay();
 
@@ -893,60 +964,51 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 #ifdef _DEBUG
-	// Get text objects and sort by layer for interleaved rendering
+	// Get text objects and sort by layer for deterministic top-level text rendering
 	const auto& textObjects = LEPANELFONTS::GetTextObjects();
+	const bool renderDebugText = !suppressDebugTextRendering_;
 	struct SortedTextEntry {
 		const LEPANELFONTS::TextObjectData* data;
 		int layer;
 	};
 	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
-	for (const auto& data : textObjects) {
-		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
+	if (renderDebugText) {
+		for (const auto& data : textObjects) {
+			sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
+		}
+
+		std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
+			[](const SortedTextEntry& a, const SortedTextEntry& b) {
+				// Lower layer number = rendered first (behind)
+				// Higher layer number = rendered later (on top)
+				if (a.layer != b.layer) {
+					return a.layer < b.layer;
+				}
+
+				// Same layer: use depth first, then Y position for sorting
+				if (a.data->depth != b.data->depth) {
+					return a.data->depth < b.data->depth;
+				}
+
+				return a.data->y < b.data->y;
+			});
 	}
 
-	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
-		[](const SortedTextEntry& a, const SortedTextEntry& b) {
-			// Lower layer number = rendered first (behind)
-			// Higher layer number = rendered later (on top)
-			if (a.layer != b.layer) {
-				return a.layer < b.layer;
-			}
-
-			// Same layer: use depth first, then Y position for sorting
-			if (a.data->depth != b.data->depth) {
-				return a.data->depth < b.data->depth;
-			}
-
-			return a.data->y < b.data->y;
-		});
-
-	size_t textIndex = 0; // Track which text objects have been rendered
-	int lastProcessedLayer = 0; // Track the last layer we finished processing
-
-	// Lambda to render text objects up to and including a certain layer
-	auto renderTextUpToLayer = [&](int maxLayerNumber) {
-		while (textIndex < sortedTextObjects.size()) {
-			if (sortedTextObjects[textIndex].layer <= maxLayerNumber) {
-				RenderSingleTextObject(*sortedTextObjects[textIndex].data);
-				++textIndex;
-			}
-			else {
-				break; // Text belongs to a higher layer, stop
-			}
-		}
-		};
 #endif
 
-	// Early out if no objects (but still render text)
+	// Early out if no objects (but still render overlay/text)
 	if (objects.empty()) {
+		// Keep overlay above world content (none in this case).
+		RenderBackgroundOverlay(view, projection);
 #ifdef _DEBUG
-		// Render all text objects
-		for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
-			RenderSingleTextObject(*sortedTextObjects[i].data);
+		// Render all text objects after overlay to keep text above it.
+		if (renderDebugText) {
+			for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
+				RenderSingleTextObject(*sortedTextObjects[i].data);
+			}
 		}
 #endif
-
 		// Draw transition overlay even if empty scene
 		DrawTransitionOverlay();
 		EndSceneAndPresent();
@@ -1029,7 +1091,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 		};
 
-	// Build runs in order, interleaving text objects at layer boundaries
+	// Build runs in order while preserving scene object layering
 	for (auto* obj : objects) {
 		if (!obj) {
 			continue;
@@ -1042,26 +1104,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		}
 
 		Texture* texture = obj->GetTexture();
-		int objLayer = obj->GetRenderLayer();
-#ifndef _DEBUG
-		(void)objLayer;
-#endif
-
-#ifdef _DEBUG
-		// When we move to a new (higher) layer, first render text objects
-		// from the previous layers that haven't been rendered yet
-		if (objLayer > lastProcessedLayer) {
-			// Flush current batch before rendering text
-			if (!instanceBatch.empty()) {
-				flushBatch(instanceBatch, currentKey);
-				instanceBatch.clear();
-			}
-
-			// Render text objects up to and including the previous layer
-			renderTextUpToLayer(objLayer - 1);
-			lastProcessedLayer = objLayer;
-		}
-#endif
 
 		RenderKey key{ mesh, shader, texture };
 
@@ -1088,10 +1130,11 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	}
 
 #ifdef _DEBUG
-	// Render remaining text objects (those in layers >= the last game object layer)
-	while (textIndex < sortedTextObjects.size()) {
-		RenderSingleTextObject(*sortedTextObjects[textIndex].data);
-		++textIndex;
+	// Render all text after the overlay so text remains readable and always on top of it.
+	if (renderDebugText) {
+		for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
+			RenderSingleTextObject(*sortedTextObjects[i].data);
+		}
 	}
 #endif
 
@@ -1121,6 +1164,10 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 // Render a single text object (for layered rendering)
 void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& data) {
+	if (!data.visible || data.text.empty()) {
+		return;
+	}
+
 	// Get the font from ResourceManager
 	FontSystem::Font* font = ResourceManager::Instance().GetFont(data.fontName);
 	if (!font) {
@@ -1152,6 +1199,10 @@ void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& 
 // Render text objects
 void GraphicsEngine::RenderTextObjects() {
 #ifdef _DEBUG
+	if (suppressDebugTextRendering_) {
+		return;
+	}
+
 	// In debug builds, get text from the editor panel
 	const auto& textObjects = LEPANELFONTS::GetTextObjects();
 
@@ -1167,7 +1218,7 @@ void GraphicsEngine::RenderTextObjects() {
 	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
 	for (const auto& data : textObjects) {
-	sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
+		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
 	}
 
 	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
@@ -1243,6 +1294,7 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 // Clean up resources and ImGui context
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
+	backgroundOverlayObject.reset();
 	DebugRenderer::Shutdown();
 
 	// Shutdown FontSystem
@@ -1292,6 +1344,13 @@ void GraphicsEngine::ContinueTransitionFadeIn() {
 		transitionTimer_ = 0.0f;
 		transitionAlpha_ = 1.0f;
 	}
+}
+
+// Immediately cancel any active transition and reset state
+void GraphicsEngine::CancelSceneTransition() {
+	transitionPhase_ = TransitionPhase::None;
+	transitionTimer_ = 0.0f;
+	transitionAlpha_ = 0.0f;
 }
 
 // Update transition state; should be called every frame with delta time

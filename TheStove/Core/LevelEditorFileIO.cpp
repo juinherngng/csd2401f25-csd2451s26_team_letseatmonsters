@@ -47,6 +47,17 @@ namespace fs = std::filesystem;
 
 // Helper functions for path normalization, relative path construction, extension filtering, and unique path generation
 namespace {
+	// Checks if the given path contains a specific component (e.g., "assets" or "prefabs")
+	bool PathContainsComponent(const fs::path& path, const std::string& componentName) {
+		for (const auto& part : path) {
+			if (part == componentName) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	std::string NormalizeDirectoryPath(std::string dir) {
 		std::replace(dir.begin(), dir.end(), '\\', '/');
 		if (!dir.empty() && dir.back() != '/') {
@@ -163,9 +174,21 @@ namespace LEFILEIO {
 
 	// Move to trash
 	bool MoveToTrash(const std::string& filePath) {
-		std::error_code ec;
+		if (filePath.empty()) {
+			return false;
+		}
 
-		const fs::path src(filePath);
+		std::error_code ec;
+		fs::path src(filePath);
+
+		if (!fs::exists(src, ec)) {
+			ec.clear();
+			const fs::path fallback = fs::current_path(ec) / src;
+			if (!ec && fs::exists(fallback, ec)) {
+				src = fallback;
+			}
+		}
+
 		if (!fs::exists(src, ec)) {
 			return false;
 		}
@@ -173,12 +196,33 @@ namespace LEFILEIO {
 		const fs::path trashDir = src.parent_path() / "trash";
 		if (!fs::exists(trashDir, ec)) {
 			fs::create_directories(trashDir, ec);
+			if (ec) {
+				return false;
+			}
 		}
 
 		const fs::path dst = MakeUniquePath(trashDir, src.filename());
 		fs::rename(src, dst, ec);
+		if (!ec) {
+			return true;
+		}
 
-		return !ec;
+		// Fallback when rename fails (e.g., crossing filesystems).
+		ec.clear();
+		fs::copy_file(src, dst, fs::copy_options::overwrite_existing, ec);
+		if (ec) {
+			return false;
+		}
+
+		ec.clear();
+		fs::remove(src, ec);
+		if (ec) {
+			std::error_code cleanupEc;
+			fs::remove(dst, cleanupEc);
+			return false;
+		}
+
+		return true;
 	}
 
 	// List all .json files in a directory.
@@ -212,16 +256,32 @@ namespace LEFILEIO {
 				return;
 			}
 
+			// Exclude any files in "trash" subdirectories at any level
+			const fs::path relativePath = fs::relative(entry.path(), rootPath, ec);
+			if (!ec && PathContainsComponent(relativePath, "trash")) {
+				return;
+			}
+
+			ec.clear();
+
 			if (ExtensionAllowed(entry.path(), normalizedExts)) {
 				out.push_back(BuildRelativePathFromRoot(normalizedDir, rootPath, entry.path()));
 			}
 			};
 
 		if (recursive) {
-			for (const auto& entry : fs::recursive_directory_iterator(rootPath, ec)) {
+			for (auto it = fs::recursive_directory_iterator(rootPath, ec); !ec && it != fs::recursive_directory_iterator(); ++it) {
+				const auto& entry = *it;
+
+				if (entry.is_directory() && entry.path().filename() == "trash") {
+					it.disable_recursion_pending();
+					continue;
+				}
+
 				if (ec) {
 					break;
 				}
+
 				appendIfMatch(entry);
 			}
 		}

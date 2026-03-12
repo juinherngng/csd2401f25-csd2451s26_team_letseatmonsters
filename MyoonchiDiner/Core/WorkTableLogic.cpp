@@ -12,7 +12,7 @@
 					items can be placed, manage processing states, and output the
 					refined ingredient when complete.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -26,6 +26,19 @@ static bool Contains(const std::string& s, const char* sub) {
 	return s.find(sub) != std::string::npos;
 }
 
+static void DespawnIfAlive(Scene& scene, int& id) {
+	if (id >= 0) {
+		scene.DespawnByID(id);
+		id = -1;
+	}
+}
+
+static float Clamp01Value(float v) {
+	if (v < 0.f) return 0.f;
+	if (v > 1.f) return 1.f;
+	return v;
+}
+
 WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const std::string& texPath) const {
 	// Detect by the workstation sprite (the table's texture)
 	if (Contains(texPath, "Cutting_Board")) return StationType::CuttingBoard;
@@ -34,13 +47,13 @@ WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const s
 	return StationType::Generic;
 }
 
-
 const char* WorkTableLogic::GetProcessedTextureForRaw(IngredientType rawType) const {
 	// IMPORTANT: Replace these 2 paths with your actual cooked meat/shroom assets.
 	switch (rawType) {
 	case IngredientType::Vegetable: return "../assets/Cabbage_CUT_Ingredient.png";
 	case IngredientType::Meat:      return "../assets/Meat_CUT_Ingredient.png";
 	case IngredientType::Shroom:    return "../assets/Mushroom_CUT_Ingredient.png";
+	case IngredientType::Carrot:    return "../assets/CUT_Carrot_Ingredient.png";
 	default:                        return "../assets/Cabbage_CUT_Ingredient.png";
 	}
 }
@@ -78,31 +91,42 @@ void WorkTableLogic::Start(Scene& scene) {
 	}
 }
 
+void WorkTableLogic::OnDestroy(Scene& scene) {
+	DestroyCookingTimerBar(scene);
+	DespawnProcessingVfx(scene);
+	TableLogic::OnDestroy(scene);
+}
+
 // ------------------- Update -------------------
 
-void WorkTableLogic::Update(float dt, Scene& scene, InputManager&)
-{
-    if (!scene.IsSimulationActive()) return;
+void WorkTableLogic::Update(float dt, Scene& scene, InputManager&) {
+	if (!scene.IsSimulationActive()) return;
 
-    // Only do anything if we have an item and are currently processing
-    if (!isProcessing_ || !HasItem())
-        return;
+	// Only do anything if we have an item and are currently processing
+	if (!isProcessing_ || !HasItem()) {
+		DestroyCookingTimerBar(scene);
+		return;
+	}
 
 	timer_ += dt;
 
-    if(isProcessing_)
-    UpdateProcessingVfxTransform(scene);
+	if (isProcessing_) {
+		UpdateProcessingVfxTransform(scene);
+		EnsureCookingTimerBar(scene);
+		FollowCookingTimerBar(scene);
+		UpdateCookingTimerFill(scene, 1.0f - GetProcessingProgress());
+	}
 
-    //std::cout << "[WorkTableLogic] processing... t=" << timer_
-    //    << "/" << processingTime_ << "\n";
+	//std::cout << "[WorkTableLogic] processing... t=" << timer_
+	//    << "/" << processingTime_ << "\n";
 
-    if (timer_ >= processingTime_)
-    {
-        timer_ = processingTime_;
-        isProcessing_ = false;
-        DespawnProcessingVfx(scene);
-        
-        // Stop station-specific processing sound when complete (release mode only)
+	if (timer_ >= processingTime_) {
+		timer_ = processingTime_;
+		isProcessing_ = false;
+		DespawnProcessingVfx(scene);
+		DestroyCookingTimerBar(scene);
+
+		// Stop station-specific processing sound when complete (release mode only)
 #ifndef _DEBUG
 		if (AudioManager* audioMgr = scene.GetAudioManager()) {
 			const char* soundName = GetProcessingSoundName();
@@ -190,10 +214,11 @@ void WorkTableLogic::CancelProcessing(Scene& scene) {
 			}
 		}
 #endif
-    }
-    isProcessing_ = false;
-    timer_ = 0.0f;
-    DespawnProcessingVfx(scene);
+	}
+	isProcessing_ = false;
+	timer_ = 0.0f;
+	DespawnProcessingVfx(scene);
+	DestroyCookingTimerBar(scene);
 #ifdef _DEBUG
 	(void)scene;
 #endif
@@ -206,12 +231,20 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item) {
 	//std::cout << "[WorkTable] placed item=" << item.GetID()
 	//    << " hasIngredientLogic=" << (ing ? "YES" : "NO") << "\n";
 
-    CancelProcessing(scene); // always reset
-    if (IsItemProcessable(scene, item)) {
-        isProcessing_ = true;
-        timer_ = 0.0f;
-        SpawnProcessingVfx(scene);
-        // Play station-specific processing sound (release mode only)
+	CancelProcessing(scene); // always reset
+	if (IsItemProcessable(scene, item)) {
+		if (IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID())) {
+			switch (stationType_) {
+			case StationType::CuttingBoard: processingTime_ = 3.0f; break;
+			case StationType::Grill:        processingTime_ = 5.0f; break;
+			case StationType::Stove:        processingTime_ = (ing->GetType() == IngredientType::Carrot) ? 5.0f : 7.0f; break;
+			default:                        processingTime_ = 3.0f; break;
+			}
+		}
+		isProcessing_ = true;
+		timer_ = 0.0f;
+		SpawnProcessingVfx(scene);
+		// Play station-specific processing sound (release mode only)
 #ifndef _DEBUG
 		if (AudioManager* audioMgr = scene.GetAudioManager()) {
 			const char* soundName = GetProcessingSoundName();
@@ -273,10 +306,10 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item) {
 	// Remember RAW type before MarkProcessed changes it
 	IngredientType rawType = ing->GetType();
 
-    // Update sprite based on what was cooked
-    const char* texPath = GetProcessedTextureForRaw(rawType);
-    item.SetTexture(ResourceManager::Instance().LoadTexture(texPath, texPath));
-    scene.SetObjectTexturePath(item.GetID(), texPath);
+	// Update sprite based on what was cooked
+	const char* texPath = GetProcessedTextureForRaw(rawType);
+	item.SetTexture(ResourceManager::Instance().LoadTexture(texPath, texPath));
+	scene.SetObjectTexturePath(item.GetID(), texPath);
 
 	// This is where the magic happens:
 	//  - IngredientLogic::MarkProcessed()
@@ -295,7 +328,7 @@ bool WorkTableLogic::CanProcessIngredient(const IngredientLogic& ingredient) con
 	switch (stationType_) {
 	case StationType::CuttingBoard: return ingredient.GetType() == IngredientType::Vegetable;
 	case StationType::Grill:        return ingredient.GetType() == IngredientType::Meat;
-	case StationType::Stove:        return ingredient.GetType() == IngredientType::Shroom;
+	case StationType::Stove:        return ingredient.GetType() == IngredientType::Shroom || ingredient.GetType() == IngredientType::Carrot;
 	default:                        return true; // Generic accepts any raw ingredient
 	}
 }
@@ -314,81 +347,146 @@ void WorkTableLogic::CompleteProcessingForIngredient(IngredientLogic& ingredient
 	ingredient.MarkProcessed();
 }
 
-const char* WorkTableLogic::GetVfxTextureForStation() const
-{
-    switch (stationType_)
-    {
-    case StationType::CuttingBoard: return "../assets/VFX SpriteSheet.png";
-    case StationType::Grill:        return "../assets/VFX SpriteSheet.png";
-    case StationType::Stove:        return "../assets/VFX SpriteSheet.png";
-    default:                        return nullptr;
-    }
+const char* WorkTableLogic::GetVfxTextureForStation() const {
+	switch (stationType_) {
+	case StationType::CuttingBoard: return "../assets/VFX SpriteSheet.png";
+	case StationType::Grill:        return "../assets/VFX SpriteSheet.png";
+	case StationType::Stove:        return "../assets/VFX SpriteSheet.png";
+	default:                        return nullptr;
+	}
 }
 
-const char* WorkTableLogic::GetVfxTagForStation() const
-{
-    switch (stationType_)
-    {
-    case StationType::CuttingBoard: return "work_vfx_cut";
-    case StationType::Grill:        return "work_vfx_grill";
-    case StationType::Stove:        return "work_vfx_stove";
-    default:                        return nullptr;
-    }
+const char* WorkTableLogic::GetVfxTagForStation() const {
+	switch (stationType_) {
+	case StationType::CuttingBoard: return "work_vfx_cut";
+	case StationType::Grill:        return "work_vfx_grill";
+	case StationType::Stove:        return "work_vfx_stove";
+	default:                        return nullptr;
+	}
 }
 
-void WorkTableLogic::SpawnProcessingVfx(Scene& scene)
-{
-    if (vfxObjectID_ >= 0) return;
+void WorkTableLogic::SpawnProcessingVfx(Scene& scene) {
+	if (vfxObjectID_ >= 0) return;
 
-    const char* tex = GetVfxTextureForStation();
-    const char* tag = GetVfxTagForStation();
-    if (!tex || !tag) return;
+	const char* tex = GetVfxTextureForStation();
+	const char* tag = GetVfxTagForStation();
+	if (!tex || !tag) return;
 
-    GameObject* table = scene.GetGameObjectByID(GetOwnerID());
-    if (!table) return;
+	GameObject* table = scene.GetGameObjectByID(GetOwnerID());
+	if (!table) return;
 
-    glm::vec3 tp = table->GetPositionGLM();
-    glm::vec3 vfxPos{ tp.x + vfxOffset_.x, tp.y + vfxOffset_.y, tp.z + 0.001f };
+	glm::vec3 tp = table->GetPositionGLM();
+	glm::vec3 vfxPos{ tp.x + vfxOffset_.x, tp.y + vfxOffset_.y, tp.z + 0.001f };
 
-    // Create an animated sprite so AnimationManager can drive UVs
-    std::vector<glm::vec4> dummyFrames = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
+	// Create an animated sprite so AnimationManager can drive UVs
+	std::vector<glm::vec4> dummyFrames = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 
-    // Put it on a higher layer than the table (simple version: hardcode a top-ish layer)
-    std::string vfxLayer = "50";
+	// Put it on a higher layer than the table (simple version: hardcode a top-ish layer)
+	std::string vfxLayer = "50";
 
-    GameObject* vfx = scene.SpawnAnimatedSprite(tex, vfxPos, glm::vec2(170, 230),
-        dummyFrames, 0.1f, true, vfxLayer);
+	GameObject* vfx = scene.SpawnAnimatedSprite(tex, vfxPos, glm::vec2(170, 230),
+		dummyFrames, 0.1f, true, vfxLayer);
 
-    if (!vfx) return;
+	if (!vfx) return;
 
-    vfxObjectID_ = vfx->GetID();
+	vfxObjectID_ = vfx->GetID();
 
-    // no collisions / no physics / no shadow
-    vfx->SetColliderSize(Math::Vector2D(0.f, 0.f));
-    vfx->SetColliderOffset(Math::Vector2D(0.f, 0.f));
-    vfx->SetMovableByPhysics(false);
-    vfx->EnableShadow(false);
+	// no collisions / no physics / no shadow
+	vfx->SetColliderSize(Math::Vector2D(0.f, 0.f));
+	vfx->SetColliderOffset(Math::Vector2D(0.f, 0.f));
+	vfx->SetMovableByPhysics(false);
+	vfx->EnableShadow(false);
 
-    // Tag + attach ONLY animations (via Scene::AttachLogicForTag)
-    scene.SetObjectTag(vfxObjectID_, tag);
-    scene.AttachLogicForTag(vfxObjectID_, tag);
+	// Tag + attach ONLY animations (via Scene::AttachLogicForTag)
+	scene.SetObjectTag(vfxObjectID_, tag);
+	scene.AttachLogicForTag(vfxObjectID_, tag);
 }
 
-void WorkTableLogic::DespawnProcessingVfx(Scene& scene)
-{
-    if (vfxObjectID_ < 0) return;
-    scene.RequestDespawn(vfxObjectID_);
-    vfxObjectID_ = -1;
+void WorkTableLogic::DespawnProcessingVfx(Scene& scene) {
+	if (vfxObjectID_ < 0) return;
+	scene.RequestDespawn(vfxObjectID_);
+	vfxObjectID_ = -1;
 }
 
-void WorkTableLogic::UpdateProcessingVfxTransform(Scene& scene)
-{
-    if (vfxObjectID_ < 0) return;
+void WorkTableLogic::UpdateProcessingVfxTransform(Scene& scene) {
+	if (vfxObjectID_ < 0) return;
 
-    GameObject* table = scene.GetGameObjectByID(GetOwnerID());
-    GameObject* vfx = scene.GetGameObjectByID(vfxObjectID_);
-    if (!table || !vfx) return;
+	GameObject* table = scene.GetGameObjectByID(GetOwnerID());
+	GameObject* vfx = scene.GetGameObjectByID(vfxObjectID_);
+	if (!table || !vfx) return;
 
-    glm::vec3 tp = table->GetPositionGLM();
-    vfx->SetPosition(glm::vec3(tp.x + vfxOffset_.x, tp.y + vfxOffset_.y, tp.z + 0.001f));
+	glm::vec3 tp = table->GetPositionGLM();
+	vfx->SetPosition(glm::vec3(tp.x + vfxOffset_.x, tp.y + vfxOffset_.y, tp.z + 0.001f));
+}
+
+void WorkTableLogic::EnsureCookingTimerBar(Scene& scene) {
+	GameObject* table = scene.GetGameObjectByID(GetOwnerID());
+	if (!table) return;
+
+	glm::vec3 p = table->GetPositionGLM();
+
+	if (timerBarBG_ID_ < 0) {
+		if (GameObject* bg = scene.SpawnStaticSprite(
+			timerBarBGPath_,
+			{ p.x + timerBarOffset_.x, p.y + timerBarOffset_.y, p.z },
+			timerBarBGSize_,
+			timerBarLayerBG_)) {
+			timerBarBG_ID_ = bg->GetID();
+			bg->SetColliderSize(Math::Vector2D(0.f, 0.f));
+			scene.SetObjectTexturePath(timerBarBG_ID_, timerBarBGPath_);
+		}
+	}
+
+	if (timerBarFill_ID_ < 0) {
+		if (GameObject* fill = scene.SpawnStaticSprite(
+			timerBarFillPath_,
+			{ p.x + timerBarOffset_.x, p.y + timerBarOffset_.y, p.z },
+			timerBarFillSize_,
+			timerBarLayerTop_)) {
+			timerBarFill_ID_ = fill->GetID();
+			fill->SetColliderSize(Math::Vector2D(0.f, 0.f));
+			scene.SetObjectTexturePath(timerBarFill_ID_, timerBarFillPath_);
+		}
+	}
+}
+
+void WorkTableLogic::DestroyCookingTimerBar(Scene& scene) {
+	DespawnIfAlive(scene, timerBarFill_ID_);
+	DespawnIfAlive(scene, timerBarBG_ID_);
+}
+
+void WorkTableLogic::FollowCookingTimerBar(Scene& scene) {
+	GameObject* table = scene.GetGameObjectByID(GetOwnerID());
+	if (!table) return;
+
+	glm::vec3 p = table->GetPositionGLM();
+
+	if (timerBarBG_ID_ >= 0) {
+		if (GameObject* bg = scene.GetGameObjectByID(timerBarBG_ID_)) {
+			bg->SetPosition(Math::Vector3D(p.x + timerBarOffset_.x, p.y + timerBarOffset_.y, p.z));
+		}
+	}
+}
+
+void WorkTableLogic::UpdateCookingTimerFill(Scene& scene, float ratio01) {
+	if (timerBarBG_ID_ < 0 || timerBarFill_ID_ < 0) return;
+
+	GameObject* bg = scene.GetGameObjectByID(timerBarBG_ID_);
+	GameObject* fill = scene.GetGameObjectByID(timerBarFill_ID_);
+	if (!bg || !fill) return;
+
+	ratio01 = Clamp01Value(ratio01);
+	glm::vec3 bgPos = bg->GetPositionGLM();
+
+	const float fullW = timerBarFillSize_.x;
+	const float fullH = timerBarFillSize_.y;
+
+	float newW = fullW * ratio01;
+	if (newW < 0.f) newW = 0.f;
+
+	float leftX = bgPos.x - (fullW * 0.5f);
+	float centerX = leftX + (newW * 0.5f);
+
+	fill->SetScale({ newW, fullH, 1.0f });
+	fill->SetPosition(Math::Vector3D(centerX, bgPos.y, bgPos.z));
 }

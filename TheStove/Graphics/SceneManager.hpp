@@ -48,10 +48,10 @@
 
 class AudioManager;
 
- /**
-  * @class Scene
-  * @brief Manages the lifecycle of a game scene, including objects, animations, and input.
-  */
+/**
+ * @class Scene
+ * @brief Manages the lifecycle of a game scene, including objects, animations, and input.
+ */
 class Scene {
 public:
 	// Systems and managers
@@ -164,6 +164,14 @@ public:
 
 	// Set the scene background texture
 	void SetSceneBackground(const std::string& texturePath);
+	void SetSceneBackgroundOverlay(const std::string& texturePath);
+	void ClearSceneBackgroundOverlay();
+	const std::string& GetSceneBackground() const {
+		return sceneBackgroundPath_;
+	}
+	const std::string& GetSceneBackgroundOverlay() const {
+		return sceneBackgroundOverlayPath_;
+	}
 
 	// Set the transform of the object with given ID, using level editor semantics
 	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
@@ -345,7 +353,11 @@ public:
 		glm::vec2 colSize{ 64,128 };
 		glm::vec2 colOff{ 0,0 };
 		glm::vec2 vel{ 0,0 };
-		glm::vec2 approachOffset{ 0,0 }; // Table approach point
+		glm::vec2 approachOffset{ 0,0 }; // Primary table approach point
+		bool hasApproachOffset2{ false };
+		glm::vec2 approachOffset2{ 0,0 }; // Optional secondary approach point
+		bool hasCustomerSeatOffset{ false };
+		glm::vec2 customerSeatOffset{ 0,0 }; // Optional explicit customer seat point
 		std::string texture;
 		std::string tag;
 		std::string layer;
@@ -417,6 +429,12 @@ public:
 
 	// Level loading queue
 	void QueueLevelLoad(const std::string& path, bool activateSimulation);
+	void SetCurrentLevelPath(const std::string& path) {
+		currentLevelPath_ = path;
+	}
+	const std::string& GetCurrentLevelPath() const {
+		return currentLevelPath_;
+	}
 	bool HasPendingLevel() const {
 		return hasPendingLevel_;
 	}
@@ -436,6 +454,7 @@ public:
 	// Pause overlay methods
 	void ShowPauseOverlay();
 	void HidePauseOverlay();
+	void RequestResumeFromPauseOverlay();
 	bool IsPauseOverlayActive() const {
 		return pauseOverlayActive_;
 	}
@@ -582,6 +601,8 @@ private:
 	bool pendingClear_ = false;
 	int editorSelectedId = -1;
 	std::string currentLevelPath_;
+	std::string sceneBackgroundPath_;
+	std::string sceneBackgroundOverlayPath_;
 
 	// Pending level load state
 	std::string pendingLevelPath_;
@@ -594,6 +615,7 @@ private:
 
 	// Pause overlay state
 	bool pauseOverlayActive_ = false;
+	bool resumeFromPausePending_ = false;
 	std::vector<int> pauseOverlayObjectIds_;
 
 	// Pause audio fade state
@@ -642,6 +664,9 @@ private:
 	bool howToPlayOverlayActive_ = false;
 
 	std::vector<int> pendingDespawns_;
+
+	// Prevent repeated skip-trigger while space is held during cutscenes.
+	bool cutsceneSkipSpaceHeld_ = false;
 
 	// Basic cutscene runner with simple fade-out, image swap, fade-in sequence. No cross-fade or separate hold time.
 	struct CutsceneState {
@@ -739,19 +764,19 @@ public:
 		float fadeOutSeconds = 0.35f,
 		float fadeInSeconds = 0.35f);
 
-		bool BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid);
-		bool FindPathForObject(int moverObjectID,
-			const glm::vec2& startWorld,
-			const glm::vec2& goalWorld,
-			std::vector<glm::vec2>& outPath);
+	bool BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid);
+	bool FindPathForObject(int moverObjectID,
+		const glm::vec2& startWorld,
+		const glm::vec2& goalWorld,
+		std::vector<glm::vec2>& outPath);
 
-		bool GetNearestNavigationCellCenterForObject(int moverObjectID,
-			const glm::vec2& worldPos,
-			glm::vec2& outCenter);
+	bool GetNearestNavigationCellCenterForObject(int moverObjectID,
+		const glm::vec2& worldPos,
+		glm::vec2& outCenter);
 
-		bool HasDirectPathForObject(int moverObjectID,
-			const glm::vec2& startWorld,
-			const glm::vec2& goalWorld);
+	bool HasDirectPathForObject(int moverObjectID,
+		const glm::vec2& startWorld,
+		const glm::vec2& goalWorld);
 
 private:
 	// Simpler version of cutscene transition for level changes without per-frame images. Reuses some cutTrans_ state for convenience.

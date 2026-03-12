@@ -10,12 +10,12 @@
 					to JSON levels, and defining per-state audio playback and
 					pause/resume policies.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
-#include "Core/GameBootstrap.hpp"
 #include "Core/AudioManager.hpp"
+#include "Core/GameBootstrap.hpp"
 #include "Core/GameStateManager.hpp"
 
 #include "GamePaths.hpp"
@@ -24,23 +24,23 @@
 #include <string>
 
 namespace {
-// Tracks the currently playing background music channel name so it can be
-// stopped cleanly on the next state transition.
-std::string gCurrentAudio;
+	// Tracks the currently playing background music channel name so it can be
+	// stopped cleanly on the next state transition.
+	std::string gCurrentAudio;
 
-// Tracks the currently playing ambience channel name (used in gameplay).
-std::string gCurrentAmbience;
+	// Tracks the currently playing ambience channel name (used in gameplay).
+	std::string gCurrentAmbience;
 
-/************************************************************************/
-/*!
-\brief
-Stops any currently playing background music and ambience channels,
-then clears the tracking strings. Safe to call with a null pointer.
-\param audioManager
-Pointer to the AudioManager.
-*/
-/************************************************************************/
-void StopCurrentAudio(AudioManager* audioManager) {
+	/************************************************************************/
+	/*!
+	\brief
+	Stops any currently playing background music and ambience channels,
+	then clears the tracking strings. Safe to call with a null pointer.
+	\param audioManager
+	Pointer to the AudioManager.
+	*/
+	/************************************************************************/
+	void StopCurrentAudio(AudioManager* audioManager) {
 		if (!audioManager) {
 			return;
 		}
@@ -60,7 +60,7 @@ void RegisterGameBindings(Scene& scene) {
 }
 
 void ConfigureGameStates(Framework::GameStateManager& gsm) {
-// GS_Level1 = main menu, GS_Level2 = first kitchen gameplay level
+	// GS_Level1 = main menu, GS_Level2 = first kitchen gameplay level, GS_TUTORIAL = tutorial walkthrough
 	gsm.RegisterJsonState(Framework::GS_Level1, MyoonchiPaths::Levels::MAIN_MENU);
 	gsm.RegisterJsonState(Framework::GS_Level2, MyoonchiPaths::Levels::KITCHEN_01);
 	gsm.RegisterJsonState(Framework::GS_Tutorial, MyoonchiPaths::Levels::TUTORIAL); 
@@ -99,7 +99,7 @@ void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 		(void)audioManager;
 		(void)state;
 #endif
-	});
+		});
 
 
 	// Only active during gameplay (GS_Level2). Pauses all audio channels
@@ -119,5 +119,5 @@ void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 		else if (!isPaused && wasPaused) {
 			audioManager->ResumeAll();
 		}
-	});
+		});
 }

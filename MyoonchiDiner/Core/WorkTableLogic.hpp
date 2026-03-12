@@ -9,7 +9,7 @@
 					SimpleNpcLogic "customers" with CustomerTableLogic tables and assigns them
 					seat targets once per scene.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 #pragma once
@@ -33,6 +33,7 @@ public:
 
 	// Called once when the scene starts (after Awake). Default implementation does nothing.
 	void Start(Scene& scene) override;
+	void OnDestroy(Scene& scene) override;
 
 	// Called every frame by the logic system.
 	void Update(float dt, Scene& scene, InputManager&) override;
@@ -41,9 +42,15 @@ public:
 	bool CanAcceptItem(Scene& scene, int itemID) const override;
 
 	// External control / queries
-	bool  IsProcessing() const { return isProcessing_; }
-	float GetProcessingTime() const { return processingTime_; }
-	float GetProcessingElapsed() const { return timer_; }
+	bool  IsProcessing() const {
+		return isProcessing_;
+	}
+	float GetProcessingTime() const {
+		return processingTime_;
+	}
+	float GetProcessingElapsed() const {
+		return timer_;
+	}
 	float GetProcessingProgress() const; // 0..1 (clamped), or 0 if not processing.
 
 	// Manually start or cancel processing (if you want external control).
@@ -57,21 +64,19 @@ public:
 	// Useful for testing or for instant-process tables.
 	bool ProcessIngredientInstant(IngredientLogic& ingredient);
 	// WorkTableLogic.hpp
-	bool LocksPlayerMovementWhileProcessing() const
-	{
+	bool LocksPlayerMovementWhileProcessing() const {
 		return stationType_ == StationType::CuttingBoard;
 	}
 
 
 protected:
-	enum class StationType
-	{
+	enum class StationType {
 		CuttingBoard, // veg
 		Grill,        // meat
 		Stove,        // shroom
 		Generic
 	};
-	
+
 	// You can set this in the constructor of derived classes to customize behavior based on station type.
 	StationType stationType_ = StationType::Generic;
 
@@ -103,7 +108,9 @@ protected:
 	float processingTime_ = 3.0f;  // seconds needed to process an ingredient
 	float timer_ = 0.0f;
 
-	std::string GetName() const override { return "WorkTableLogic"; }
+	std::string GetName() const override {
+		return "WorkTableLogic";
+	}
 
 	int vfxObjectID_ = -1;
 	glm::vec2 vfxOffset_{ -1.0f, -37.0f }; // tweak per station if needed
@@ -114,4 +121,22 @@ protected:
 
 	const char* GetVfxTextureForStation() const;
 	const char* GetVfxTagForStation() const;
+
+	void EnsureCookingTimerBar(Scene& scene);
+	void DestroyCookingTimerBar(Scene& scene);
+	void FollowCookingTimerBar(Scene& scene);
+	void UpdateCookingTimerFill(Scene& scene, float ratio01);
+
+	int timerBarBG_ID_ = -1;
+	int timerBarFill_ID_ = -1;
+
+	std::string timerBarLayerBG_ = "50";
+	std::string timerBarLayerTop_ = "51";
+
+	glm::vec2 timerBarOffset_ = { 0.f, 58.f };     // a few pixels below workstation
+	glm::vec2 timerBarBGSize_ = { 120.f, 14.f };
+	glm::vec2 timerBarFillSize_ = { 112.f, 10.f };
+
+	const char* timerBarBGPath_ = "../assets/Customer_Timer_Red.png";
+	const char* timerBarFillPath_ = "../assets/Customer_Timer_Green.png";
 };

@@ -2,8 +2,8 @@
 Lines of Code Report (Diff-based)
 ==========================================
 Author: CookieWasTaken
-Since: 2025-12-06
-Generated: Thu Feb  5 18:56:31 +08 2026
+Since: 2026-02-16
+Generated: Fri Mar 13 02:24:55 +08 2026
 ==========================================
 
 ==========================================
@@ -13,69 +13,70 @@ Tracked extensions: .cpp .hpp .h .c
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-TheStove/Core/LevelEditorPanelLevel.cpp                                       206          6        200
-TheStove/Graphics/SceneManager.cpp                                            200         66        134
-TheStove/Graphics/GraphicsEngine.cpp                                          129         19        110
-TheStove/Core/LevelEditorPanelFonts.cpp                                        61          1         60
-TheStove/Core/LevelSerializer.cpp                                              62          6         56
-TheStove/Core/LevelSerializer.hpp                                              26          4         22
-TheStove/Core/AudioManager.cpp                                                 28          8         20
-TheStove/Graphics/SceneManager.hpp                                             18          0         18
-TheStove/Core/AudioLoading.cpp                                                 17          0         17
-TheStove/Core/FontSystem.cpp                                                   14          1         13
-TheStove/Core/AudioManager.hpp                                                 10          0         10
-TheStove/Core/Quota.cpp                                                        10          2          8
-TheStove/Core/LevelEditorPanelAudioControl.cpp                                  6          0          6
-TheStove/Core/WorkTableLogic.cpp                                                7          2          5
-TheStove/Main.cpp                                                               4          0          4
-TheStove/Graphics/GraphicsEngine.hpp                                            4          0          4
-TheStove/Core/LevelEditorPanelFonts.hpp                                         4          0          4
-TheStove/Graphics/GameObject.hpp                                                3          0          3
-TheStove/Core/GameStateManager.cpp                                             15         12          3
-TheStove/Core/PlayerLogic.cpp                                                   1          0          1
-TheStove/Core/Quota.hpp                                                         1          1          0
-TheStove/Core/MenuButtonLogic.cpp                                               1          1          0
-TheStove/Core/HowToPlayButtonLogic.cpp                                          1          2         -1
+MyoonchiDiner/Core/MenuButtonLogic.cpp                                          9          5          4
+MyoonchiDiner/Core/PlayerLogic.cpp                                              5          1          4
+MyoonchiDiner/Core/SimpleNpcLogic.cpp                                           1          0          1
+MyoonchiDiner/Core/TableLogic.cpp                                               1          0          1
+MyoonchiDiner/GamePaths.hpp                                                     2          0          2
+MyoonchiDiner/MyoonchiDinerBindings.cpp                                        28          1         27
+TheStove/Core/AudioManager.cpp                                                 28          4         24
+TheStove/Core/AudioManager.hpp                                                  1          0          1
+TheStove/Core/GameStateManager.hpp                                              3          0          3
+TheStove/Graphics/SceneCollisionLayout.cpp                                      9         40        -31
+TheStove/Graphics/SceneManager.cpp                                              4          1          3
+TheStove/Graphics/SceneManager.hpp                                              9          0          9
 --------------------------------------------------------------------------------------------
 
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    828
-Lines Deleted:  131
-Net Change:     697
+Lines Added:    100
+Lines Deleted:  52
+Net Change:     48
 Total Commits:  13
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
 ==========================================
 
-TheStove/Core/AudioLoading.cpp
+MyoonchiDiner/Core/MenuButtonLogic.cpp
+MyoonchiDiner/Core/PlayerLogic.cpp
+MyoonchiDiner/Core/SimpleNpcLogic.cpp
+MyoonchiDiner/Core/TableLogic.cpp
+MyoonchiDiner/GamePaths.hpp
+MyoonchiDiner/MyoonchiDinerBindings.cpp
 TheStove/Core/AudioManager.cpp
 TheStove/Core/AudioManager.hpp
-TheStove/Core/FontSystem.cpp
-TheStove/Core/GameStateManager.cpp
-TheStove/Core/HowToPlayButtonLogic.cpp
-TheStove/Core/LevelEditorPanelAudioControl.cpp
-TheStove/Core/LevelEditorPanelFonts.cpp
-TheStove/Core/LevelEditorPanelFonts.hpp
-TheStove/Core/LevelEditorPanelLevel.cpp
-TheStove/Core/LevelSerializer.cpp
-TheStove/Core/LevelSerializer.hpp
-TheStove/Core/MenuButtonLogic.cpp
-TheStove/Core/PlayerLogic.cpp
-TheStove/Core/Quota.cpp
-TheStove/Core/Quota.hpp
-TheStove/Core/WorkTableLogic.cpp
-TheStove/Graphics/GameObject.hpp
-TheStove/Graphics/GraphicsEngine.cpp
-TheStove/Graphics/GraphicsEngine.hpp
+TheStove/Core/GameStateManager.hpp
+TheStove/Graphics/SceneCollisionLayout.cpp
 TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
-TheStove/Main.cpp
 assets/Audio/AudioCatalog.json
-assets/Audio/bgm_win_cutscene.mp3
-assets/Audio/sfx_lose.wav
-assets/Audio/sfx_win.wav
-assets/Font/AGENCYB.TTF
-imgui.ini
+assets/Audio/sfx_clock_ticking_10secs.wav
+assets/Audio/sfx_new_order_v2.wav
+assets/Audio/sfx_pickup_cabbage_1.wav
+assets/Audio/sfx_pickup_cabbage_2.wav
+assets/Audio/sfx_pickup_cabbage_3.wav
+assets/Audio/sfx_pickup_cabbage_4.wav
+assets/Audio/sfx_serve_dish.wav
+assets/Audio/sfx_skip_intro_cutscene.wav
+assets/Audio/sfx_start_button.wav
+assets/Audio/sfx_timer_run_out.wav
+assets/Audio/vo_customer_angry_01.wav
+assets/Audio/vo_customer_angry_02.wav
+assets/Audio/vo_customer_angry_03.wav
+assets/Audio/vo_customer_angry_04.wav
+assets/Audio/vo_customer_angry_05.wav
+assets/Audio/vo_customer_angry_06.wav
+assets/Audio/vo_customer_angry_07.wav
+assets/Audio/vo_customer_angry_08.wav
+assets/Audio/vo_customer_happy_01.wav
+assets/Audio/vo_customer_happy_02.wav
+assets/Audio/vo_customer_happy_03.wav
+assets/Audio/vo_customer_happy_04.wav
+assets/Audio/vo_customer_happy_05.wav
+assets/Audio/vo_customer_happy_06.wav
+assets/Audio/vo_customer_happy_07.wav
+assets/Audio/vo_customer_happy_08.wav
+assets/Audio/vo_customer_happy_09.wav
+levels/kitchen01.autosave.json

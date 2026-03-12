@@ -15,7 +15,7 @@
 					  - Pause overlay button binding
 					  - Navigation blocker collection for pathfinding
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -933,49 +933,44 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 		Economy::Update(dt, scene);
 		gTutorialFlow.Update(scene, dt);
 
-#ifndef _DEBUG
-		if (AudioManager* audioManager = scene.GetAudioManager()) {
-			float currentTime = Economy::gTimeRemaining;
+if (AudioManager* audioManager = scene.GetAudioManager()) {
+float currentTime = Economy::gTimeRemaining;
 
-			if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
-				Economy::gPlayed10SecWarning = true;
-				if (audioManager->HasSound("sfx_remaining_time")) {
-					audioManager->PlaySound("sfx_remaining_time", audioManager->GetVfxVolume(), false);
-				}
-			}
+if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
+Economy::gPlayed10SecWarning = true;
+if (audioManager->HasSound("sfx_clock_ticking_10secs")) {
+audioManager->PlaySound("sfx_clock_ticking_10secs", audioManager->GetVfxVolume() * 1.2f, false);
+}
+}
 
-			if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
-				Economy::gPlayed3SecBeep = true;
-				if (audioManager->HasSound("sfx_beep")) {
-					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
-				}
-			}
+if (!Economy::gPlayed3SecBeep && prevTime > 3.0f && currentTime <= 3.0f) {
+Economy::gPlayed3SecBeep = true;
+if (audioManager->HasSound("sfx_beep")) {
+audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+}
+}
 
-			if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
-				Economy::gPlayed2SecBeep = true;
-				if (audioManager->HasSound("sfx_beep")) {
-					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
-				}
-			}
+if (!Economy::gPlayed2SecBeep && prevTime > 2.0f && currentTime <= 2.0f) {
+Economy::gPlayed2SecBeep = true;
+if (audioManager->HasSound("sfx_beep")) {
+audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+}
+}
 
-			if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
-				Economy::gPlayed1SecBeep = true;
-				if (audioManager->HasSound("sfx_beep")) {
-					audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
-				}
-			}
+if (!Economy::gPlayed1SecBeep && prevTime > 1.0f && currentTime <= 1.0f) {
+Economy::gPlayed1SecBeep = true;
+if (audioManager->HasSound("sfx_beep")) {
+audioManager->PlaySound("sfx_beep", audioManager->GetVfxVolume(), false);
+}
+}
 
-			if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
-				Economy::gPlayedTimeUp = true;
-				if (audioManager->HasSound("sfx_time_up")) {
-					audioManager->PlaySound("sfx_time_up", audioManager->GetVfxVolume(), false);
-				}
-			}
-		}
-#else
-		(void)scene;
-		(void)prevTime;
-#endif
+if (!Economy::gPlayedTimeUp && currentTime <= 0.0f) {
+Economy::gPlayedTimeUp = true;
+if (audioManager->HasSound("sfx_time_up")) {
+audioManager->PlaySound("sfx_time_up", audioManager->GetVfxVolume(), false);
+}
+}
+}
 	}
 
 	/************************************************************************/
@@ -1090,7 +1085,7 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 	/************************************************************************/
 	/*!
 	\brief
-		Cutscene pre-final-load hook. Cleans up all cutscene audio by stopping 
+		Cutscene pre-final-load hook. Cleans up all cutscene audio by stopping
 		or fading them out before the target level is loaded.
 	\param scene       The active Scene.
 	\param outSeconds  Fade-out duration in seconds for lingering channels.
@@ -1237,6 +1232,39 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 	/************************************************************************/
 	/*!
 	\brief
+		Applies level-specific gameplay tuning for customer flow and
+		economy progression based on the currently loaded kitchen level.
+
+	\param scene
+		The active Scene used to identify the current level.
+
+	\param customerManager
+		The CustomerManagerSystem to configure with level-specific
+		spawn cooldown and customer capacity values.
+	*/
+	/************************************************************************/
+	void ConfigureLevelGameplayTuning(Scene& scene, CustomerManagerSystem& customerManager) {
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
+		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
+
+		if (isLevel2) {
+			customerManager.SetSpawnCooldown(6.0f);
+			customerManager.SetMaxCustomers(12);
+			Economy::SetTimeLimitSeconds(240.0f);
+			Economy::SetQuota(310);
+		}
+		else if (isLevel1) {
+			customerManager.SetSpawnCooldown(10.0f);
+			customerManager.SetMaxCustomers(4);
+			Economy::SetTimeLimitSeconds(180.0f);
+			Economy::SetQuota(200);
+		}
+	}
+
+	/************************************************************************/
+	/*!
+	\brief
 		Builds a list of AABB blockers for the pathfinding system by
 		collecting every table-tagged object that has a valid collider
 		on an enabled, collidable layer. The mover's own object is
@@ -1251,8 +1279,7 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 
 		LogicManager& logicMgr = scene.GetLogicManager();
 
-		for (GameObject* obj : scene.GetAllObjectsRaw())
-		{
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
 			if (!obj) continue;
 			if (obj->GetID() == moverObjectID) continue;
 
@@ -1289,13 +1316,17 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 void RegisterMyoonchiDinerBindings(Scene& scene) {
 	// Customer management system (shared across hooks)
 	auto customerManager = std::make_shared<CustomerManagerSystem>();
+	auto applyLevelGameplayTuning = [customerManager](Scene& s) {
+		ConfigureLevelGameplayTuning(s, *customerManager);
+		};
 	scene.SetCustomerUpdateHook([customerManager](float dt, Scene& s) {
 		customerManager->Update(dt, s);
-	});
-	scene.SetCustomerResetHook([customerManager](Scene& s) {
+		});
+	scene.SetCustomerResetHook([customerManager, applyLevelGameplayTuning](Scene& s) {
 		customerManager->Reset();
-		(void)s;
-	});
+		applyLevelGameplayTuning(s);
+		Economy::Reset();
+		});
 	scene.SetRuntimeObjectSetupHook(ApplyRuntimeObjectSetup);
 	scene.SetTagRuleHook(ApplyTagRules);
 
@@ -1304,9 +1335,12 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	// Scene lifecycle hooks
 	scene.SetDefaultSceneSetupHook(ApplyDefaultSceneSetup);
-	scene.SetPostLevelLoadHook([customerManager](Scene& s, bool simulationActive) {
+	scene.SetPostLevelLoadHook([applyLevelGameplayTuning](Scene& s, bool simulationActive) {
 		OnPostLevelLoaded(s, simulationActive, *customerManager);
-	});
+		if (simulationActive) {
+			applyLevelGameplayTuning(s);
+		}
+		});
 
 	// Cutscene audio hooks
 	scene.SetCutsceneFadeOutHook(OnCutsceneFadeOut);
@@ -1321,22 +1355,34 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	scene.SetPauseOverlayButtonBinder(AttachPauseOverlayButton);
 	scene.SetNavigationBlockerCollector(CollectNavigationBlockersForGame);
 
-	// Skip-cutscene audio: fade out intro BGM when player skips
+	// Skip-cutscene audio: stop intro BGM and play skip SFX when player skips
 	scene.SetSkipCutsceneAudioHook([](Scene& s, float outSeconds) {
 #ifndef _DEBUG
+		(void)outSeconds;
 		if (AudioManager* audioManager = s.GetAudioManager()) {
-			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, outSeconds);
+			// Stop intro BGM immediately to avoid an audio pop caused by
+			// OnCutsceneBeforeFinalLoad hard-stopping the channel mid-fade.
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
+
+			// Play skip cutscene SFX at the listener position (screen center)
+			// so the 3D-loaded sound is heard at full volume
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE)) {
+				float cx = static_cast<float>(GraphicsEngine::kRefW) * 0.5f;
+				float cy = static_cast<float>(GraphicsEngine::kRefH) * 0.5f;
+				audioManager->PlaySound3D(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE,
+					cx, cy, 0.0f, audioManager->GetVfxVolume());
+			}
 		}
 #else
 		(void)s;
 		(void)outSeconds;
 #endif
-	});
+		});
 
 	// Tag velocity hook: tells engine which tags use authored velocity
 	scene.SetTagUsesVelocityHook([](const std::string& tag) {
 		return (tag == "npc1" || tag == "npc2" || tag == "dino");
-	});
+		});
 }
 
 

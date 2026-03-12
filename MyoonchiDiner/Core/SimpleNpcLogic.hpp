@@ -18,8 +18,8 @@
 #include "GameObjectLogic.hpp"
 #include "Math.hpp"
 
-#include <iostream>
 #include <glm/glm.hpp>
+#include <iostream>
 #include <vector>
 
  // Forward declarations to avoid circular includes
@@ -35,6 +35,8 @@ public:
 		case DishType::VegDish:  return "VegDish";
 		case DishType::SoupDish: return "SoupDish";
 		case DishType::PoopDish: return "PoopDish";
+		case DishType::SkewerDish: return "SkewerDish";
+		case DishType::CarrotSaladDish: return "CarrotSaladDish";
 		default: return "Unknown";
 		}
 	}
@@ -67,11 +69,13 @@ public:
 		Leaving
 	};
 
-    void UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm::vec2& moveDelta);
+	void UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm::vec2& moveDelta);
 
-    // Table assignment -------------------------------------------------
-    void AssignCustomerTable(int tableObjectID);  // call when you pick a table
-    int  GetCustomerTableID() const { return customerTableID_; }
+	// Table assignment -------------------------------------------------
+	void AssignCustomerTable(int tableObjectID);  // call when you pick a table
+	int  GetCustomerTableID() const {
+		return customerTableID_;
+	}
 
 	// Call when movement/pathfinding detects NPC has reached their table.
 	void OnSeatedAtTable(Scene& scene);
@@ -144,6 +148,7 @@ public:
 	// should sit. If you call this, the NPC will try to walk to that point
 	// instead of doing the up/down patrol.
 	void SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos);
+	void SetLeaveTarget(const Math::Vector2D& leaveWorldPos);
 
 	// Clear any assigned customer table � NPC will go back to normal patrol.
 	void ClearCustomerTableTarget();
@@ -187,12 +192,16 @@ public:
 		return patienceExpired_;
 	}
 
-    // Unified "will pay $0" for wrong dish OR patience timeout
-    bool WillPayZero() const { return payZero_; }
+	// Unified "will pay $0" for wrong dish OR patience timeout
+	bool WillPayZero() const {
+		return payZero_;
+	}
 
 	// --- Animation facing direction ---
-    enum class FacingDir { Front, Back, Left, Right };
-    FacingDir facingDir_ = FacingDir::Front;
+	enum class FacingDir {
+		Front, Back, Left, Right
+	};
+	FacingDir facingDir_ = FacingDir::Front;
 
 	void SetInfinitePatience(bool enabled = true) {
 		if (enabled) {
@@ -218,12 +227,14 @@ private:
 	// Which direction we will move next after an Idle
 	bool nextMoveUp = false;     // start by moving DOWN
 
-    // ===================== New customer state data ====================
-    static constexpr int kInvalidID = -1;
+	// ===================== New customer state data ====================
+	static constexpr int kInvalidID = -1;
 
 	bool            hasCustomerTarget_ = false;
 	int             customerTableID_ = kInvalidID;
 	Math::Vector2D  customerSeatTarget_{ 0.0f, 0.0f };
+	Math::Vector2D  leaveTargetWorldPos_{ 0.0f, 0.0f };
+	bool            hasLeaveTarget_ = false;
 	float           arriveThreshold_ = 8.0f; // how close counts as "arrived"
 
 	BehaviourState behaviourState_ = BehaviourState::Idle;
@@ -246,7 +257,7 @@ private:
 
 	bool exitProcessed_ = false;
 	bool dishRolled_ = false;
-	DishType RollRandomDish();
+	DishType RollRandomDish(Scene& scene);
 
 	// ===== Customer patience =====
 	float patienceMax_ = 45.0f;
@@ -256,34 +267,34 @@ private:
 	// If true, payment should be $0 (wrong dish OR patience timeout)
 	bool  payZero_ = false;
 
-    // helper
-    void OnPatienceExpired(Scene& scene);
-    float patienceRatioAtServe_ = 0.0f; // 0..1 snapshot when correct dish is served
-    bool TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const;
+	// helper
+	void OnPatienceExpired(Scene& scene);
+	float patienceRatioAtServe_ = 0.0f; // 0..1 snapshot when correct dish is served
+	bool TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const;
 
-    void BeginLeaveToExit(Scene& scene, bool freeTableImmediately);
+	void BeginLeaveToExit(Scene& scene, bool freeTableImmediately);
 
-    enum class MoveMode {
-        None,
-        Direct,
-        Pathfinding
-    };
+	enum class MoveMode {
+		None,
+		Direct,
+		Pathfinding
+	};
 
-    MoveMode moveMode_ = MoveMode::None;
+	MoveMode moveMode_ = MoveMode::None;
 
-    glm::vec2 moveTarget_{ 0.0f, 0.0f };
-    bool hasMoveTarget_ = false;
+	glm::vec2 moveTarget_{ 0.0f, 0.0f };
+	bool hasMoveTarget_ = false;
 
-    std::vector<glm::vec2> pathPoints_;
-    std::size_t pathIndex_ = 0;
-    glm::vec2 finalTarget_{ 0.0f, 0.0f };
+	std::vector<glm::vec2> pathPoints_;
+	std::size_t pathIndex_ = 0;
+	glm::vec2 finalTarget_{ 0.0f, 0.0f };
 
-    float directPathCheckTimer_ = 0.0f;
-    static constexpr float kDirectPathCheckInterval = 0.05f;
+	float directPathCheckTimer_ = 0.0f;
+	static constexpr float kDirectPathCheckInterval = 0.05f;
 
-    void ClearNavigationMove();
-    void BeginMoveDirect(const glm::vec2& dest);
-    void BeginMoveTo(Scene& scene, const glm::vec2& dest);
-    void EnsureNavigationPlan(Scene& scene, GameObject* npc, const glm::vec2& desiredTarget);
-    bool UpdateNavigationMove(float dt, Scene& scene, GameObject* npc);
+	void ClearNavigationMove();
+	void BeginMoveDirect(const glm::vec2& dest);
+	void BeginMoveTo(Scene& scene, const glm::vec2& dest);
+	void EnsureNavigationPlan(Scene& scene, GameObject* npc, const glm::vec2& desiredTarget);
+	bool UpdateNavigationMove(float dt, Scene& scene, GameObject* npc);
 };

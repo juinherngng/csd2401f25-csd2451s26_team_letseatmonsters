@@ -38,19 +38,20 @@ namespace {
 		GLFW_KEY_A,
 		GLFW_KEY_S,
 		GLFW_KEY_D,
-		GLFW_KEY_P, // Pause menu in Release, debug toggle in Debug
-		GLFW_KEY_G, // Grid toggle in Release, debug toggle in Debug
-		GLFW_KEY_H, // Hitbox toggle in Release, debug toggle in Debug
-		GLFW_KEY_F, // FPS toggle in Release, debug toggle in Debug
-		GLFW_KEY_L, // Level reload in Release, debug toggle in Debug
-		GLFW_KEY_1,
-		GLFW_KEY_2,
-		GLFW_KEY_3,
-		GLFW_KEY_SPACE,
+		GLFW_KEY_P,		 // Pause menu in Release, debug toggle in Debug
+		GLFW_KEY_G,		 // Grid toggle in Release, debug toggle in Debug
+		GLFW_KEY_H,		 // Hitbox toggle in Release, debug toggle in Debug
+		GLFW_KEY_F,		 // FPS toggle in Release, debug toggle in Debug
+		GLFW_KEY_L,		 // Level reload in Release, debug toggle in Debug
+		GLFW_KEY_1,	     // Debug shortcuts for quick testing of various conditions (e.g., spawn item, trigger event, etc.)
+		GLFW_KEY_2,		 // Debug shortcuts for quick testing of various conditions (e.g., spawn item, trigger event, etc.)
+		GLFW_KEY_3,		 // Debug shortcuts for quick testing of various conditions (e.g., spawn item, trigger event, etc.)
+		GLFW_KEY_SPACE,  // Used for various gameplay actions, so we track it even in Debug
 		GLFW_KEY_ESCAPE, // Menu toggle in Release
-		GLFW_KEY_F1,		// FPS display toggle in Release
-		GLFW_KEY_F5,
-		GLFW_KEY_F6
+		GLFW_KEY_F1,	 // FPS display toggle in Release
+		GLFW_KEY_F5,	 // Scene reload in Release, debug toggle in Debug
+		GLFW_KEY_F6,	 // Level editor toggle
+		GLFW_KEY_F10	 // Gameplay debug shortcut (e.g., force-win testing)
 	};
 
 	// We track mouse buttons separately since they have different semantics and are often used in combination with ImGui's WantCaptureMouse.
@@ -66,6 +67,7 @@ InputManager* InputManager::sActive = nullptr;
 InputManager::InputManager() {
 	sActive = this;
 }
+
 InputManager& InputManager::Get() {
 	static InputManager fallback;
 	return sActive ? *sActive : fallback;
@@ -75,6 +77,7 @@ InputManager& InputManager::Get() {
 void InputManager::Initialize() {
 	// Nothing to initialize - window will be set externally
 }
+
 void InputManager::Update(float dt) {
 	(void)dt; // Suppress unused parameter warning	
 
@@ -150,6 +153,8 @@ void InputManager::ClearState() {
 	mPreviousKeyStates.clear();
 	mMouseButtons.clear();
 	mPrevMouseButtons.clear();
+	mConsumeNextMousePress.clear();
+	mConsumeNextKeyPress.clear();
 	mMousePos = glm::dvec2(0.0, 0.0);
 }
 
@@ -157,17 +162,24 @@ void InputManager::ClearState() {
 bool InputManager::IsKeyPressed(int key) const {
 	return GetButtonState(mCurrentKeyStates, key);
 }
-bool InputManager::IsKeyJustPressed(int key) const {
+
+bool InputManager::IsKeyJustPressed(int key) {
 	const bool curr = GetButtonState(mCurrentKeyStates, key);
 	const bool prev = GetButtonState(mPreviousKeyStates, key);
+	const bool justPressed = curr && !prev;
 
-	return curr && !prev;
+	if (justPressed && mConsumeNextKeyPress.erase(key) > 0) {
+		return false;
+	}
+
+	return justPressed;
 }
 
 // Mouse Queries
 bool InputManager::IsMouseButtonPressed(int button) const {
 	return GetButtonState(mMouseButtons, button);
 }
+
 bool InputManager::IsMouseButtonJustPressed(int button) {
 	const bool curr = GetButtonState(mMouseButtons, button);
 	const bool prev = GetButtonState(mPrevMouseButtons, button);
@@ -180,12 +192,14 @@ bool InputManager::IsMouseButtonJustPressed(int button) {
 
 	return justPressed;
 }
+
 bool InputManager::IsMouseButtonJustReleased(int button) const {
 	const bool curr = GetButtonState(mMouseButtons, button);
 	const bool prev = GetButtonState(mPrevMouseButtons, button);
 
 	return !curr && prev;
 }
+
 glm::dvec2 InputManager::GetMousePosition() const {
 	return mMousePos;
 }
@@ -210,11 +224,41 @@ glm::vec3 InputManager::ScreenToWorld(float mouseX, float mouseY) const {
 
 	return glm::vec3(world.x, world.y, world.z);
 }
+
 void InputManager::ConsumeNextMousePress(int button) {
+	const bool curr = GetButtonState(mMouseButtons, button);
+	const bool prev = GetButtonState(mPrevMouseButtons, button);
+
+	// If the edge happened this frame, consume it immediately so later
+	// systems in the same frame do not see the click.
+	if (curr && !prev) {
+		mPrevMouseButtons[button] = true;
+		return;
+	}
+
 	mConsumeNextMousePress.insert(button);
 }
+
 void InputManager::ClearMouseConsume(int button) {
 	mConsumeNextMousePress.erase(button);
+}
+
+void InputManager::ConsumeNextKeyPress(int key) {
+	const bool curr = GetButtonState(mCurrentKeyStates, key);
+	const bool prev = GetButtonState(mPreviousKeyStates, key);
+
+	// If the edge happened this frame, consume it immediately so later
+	// systems in the same frame do not see the key press.
+	if (curr && !prev) {
+		mPreviousKeyStates[key] = true;
+		return;
+	}
+
+	mConsumeNextKeyPress.insert(key);
+}
+
+void InputManager::ClearKeyConsume(int key) {
+	mConsumeNextKeyPress.erase(key);
 }
 
 void InputManager::CaptureSnapshot(Snapshot& out) const {

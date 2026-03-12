@@ -21,8 +21,11 @@
 #include "LevelEditor.hpp"
 #include "LevelEditorPanelConfig.hpp"
 
+#include <cfloat>
 #include <filesystem>
+#include <set>
 #include <string>
+#include <vector>
 
 #ifdef _DEBUG
 #include <imgui.h>
@@ -39,27 +42,39 @@ struct ApplicationState {
 extern ApplicationState* g_AppState;
 
 namespace {
-	// Resolves the config file path by checking multiple candidate locations relative to the current working directory.
+	// Resolves the config file path using the same candidate order as ConfigManager::LoadFromAssets.
 	std::string ResolveConfigPath() {
+		std::string resolvedPath;
+		if (ConfigManager::ResolveAssetPath(resolvedPath)) {
+			return resolvedPath;
+		}
+
 		namespace fs = std::filesystem;
-
 		const fs::path cwd = fs::current_path();
-		const fs::path candidates[] = {
-			cwd / "../../assets/config.txt",
-			cwd / "../assets/config.txt",
-			cwd / "assets/config.txt",
-			cwd / "config.txt"
-		};
+		return (cwd / "assets/config.txt").lexically_normal().string();
+	}
 
-		for (const auto& path : candidates) {
-			std::error_code ec;
-			if (fs::exists(path, ec)) {
-				return path.lexically_normal().string();
+	// Collects source/build config candidates so Save can keep both runtime and source config files in sync.
+	std::vector<std::string> CollectConfigSaveTargets(const std::string& primaryPath) {
+		namespace fs = std::filesystem;
+		const fs::path cwd = fs::current_path();
+		std::vector<fs::path> candidates;
+		candidates.emplace_back(primaryPath);
+		candidates.emplace_back(cwd / "../../assets/config.txt");
+		candidates.emplace_back(cwd / "../assets/config.txt");
+		candidates.emplace_back(cwd / "assets/config.txt");
+		candidates.emplace_back(cwd / "config.txt");
+
+		std::set<std::string> seen;
+		std::vector<std::string> targets;
+		for (const auto& candidate : candidates) {
+			const std::string normalized = candidate.lexically_normal().string();
+			if (seen.insert(normalized).second) {
+				targets.push_back(normalized);
 			}
 		}
 
-		// Fallback to the most common source-tree path.
-		return (cwd / "../../assets/config.txt").lexically_normal().string();
+		return targets;
 	}
 }
 
@@ -93,6 +108,7 @@ namespace LEPANELCONFIG {
 		ImGui::TextWrapped("Path: %s", configPath.c_str());
 
 		if (ImGui::Button("Reload From File")) {
+			configPath = ResolveConfigPath();
 			ConfigManager::Settings reloaded = settings;
 			if (ConfigManager::Load(configPath, reloaded)) {
 				settings = reloaded;
@@ -124,28 +140,54 @@ namespace LEPANELCONFIG {
 			ImGui::EndPopup();
 		}
 
-		ImGui::SeparatorText("Display Settings");
+		ImGui::SeparatorText("Display");
 
 		int width = settings.resolution.width;
 		int height = settings.resolution.height;
-		if (ImGui::InputInt("Window Width", &width)) {
+		ImGui::TextUnformatted("Resolution");
+		ImGui::SetNextItemWidth((ImGui::GetContentRegionAvail().x - 36.0f) * 0.5f);
+		if (ImGui::InputInt("##WindowWidth", &width)) {
 			settings.resolution.width = width;
 		}
 
-		if (ImGui::InputInt("Window Height", &height)) {
+		ImGui::SameLine();
+		ImGui::TextUnformatted("x");
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(-FLT_MIN);
+		if (ImGui::InputInt("##WindowHeight", &height)) {
 			settings.resolution.height = height;
 		}
 
 		ImGui::Checkbox("Fullscreen", &settings.fullscreen);
 
-		ImGui::SeparatorText("Audio Settings");
+		ImGui::SeparatorText("Audio");
 		ImGui::SliderFloat("Master Volume", &settings.masterVolume, 0.0f, 1.0f, "%.2f");
 		ImGui::SliderFloat("BGM Volume", &settings.bgmVolume, 0.0f, 1.0f, "%.2f");
 		ImGui::SliderFloat("VFX Volume", &settings.vfxVolume, 0.0f, 1.0f, "%.2f");
 
 		ConfigManager::Validate(settings);
 
-		if (ImGui::Button("Apply Audio Runtime", ImVec2(170, 0))) {
+		if (ImGui::Button("Save Config", ImVec2(140, 0))) {
+			configPath = ResolveConfigPath();
+			const std::vector<std::string> saveTargets = CollectConfigSaveTargets(configPath);
+			bool savedPrimary = false;
+			for (const auto& targetPath : saveTargets) {
+				const bool saveOk = ConfigManager::Save(targetPath, settings);
+				if (targetPath == configPath) {
+					savedPrimary = saveOk;
+				}
+			}
+
+			if (savedPrimary) {
+				ImGui::OpenPopup("Config Saved");
+			}
+			else {
+				ImGui::OpenPopup("Config Save Failed");
+			}
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Apply Audio", ImVec2(140, 0))) {
 			if (g_AppState && g_AppState->coreEngine) {
 				if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
 					audioMgr->ApplySettings(settings);
@@ -157,16 +199,6 @@ namespace LEPANELCONFIG {
 			}
 			else {
 				ImGui::OpenPopup("Audio Apply Failed");
-			}
-		}
-
-		ImGui::SameLine();
-		if (ImGui::Button("Save Config", ImVec2(120, 0))) {
-			if (ConfigManager::Save(configPath, settings)) {
-				ImGui::OpenPopup("Config Saved");
-			}
-			else {
-				ImGui::OpenPopup("Config Save Failed");
 			}
 		}
 

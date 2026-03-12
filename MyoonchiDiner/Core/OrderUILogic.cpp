@@ -33,8 +33,10 @@ const char* OrderUILogic::DishToIconPath(DishType t) const {
 	case DishType::VegDish:  return "../assets/Salad.png";
 	case DishType::MeatDish: return "../assets/Meat.png";
 	case DishType::SoupDish: return "../assets/Soup.png";
+	case DishType::SkewerDish: return "../assets/Food_Meat_n_carrot.png";
+	case DishType::CarrotSaladDish: return "../assets/Food_Salad_n_carrot.png";
 	case DishType::PoopDish: return "../assets/PoopDish.png";
-	default:                 return "../assets/PoopDish.png";
+	default:                 return "../assets/Salad.png";
 	}
 }
 
@@ -242,6 +244,19 @@ void OrderUILogic::GetRecipeIconPaths(DishType dish,
 		outStationTex.push_back("../assets/Stove_2.png");
 		break;
 
+	case DishType::SkewerDish:
+		outIngredientTex.push_back("../assets/Meat_Ingredient.png");
+		outIngredientTex.push_back("../assets/Ingredient_Carrot.png");
+		outStationTex.push_back("../assets/Grills_2.png");
+		outStationTex.push_back("../assets/Stove_2.png");
+		break;
+
+	case DishType::CarrotSaladDish:
+		outIngredientTex.push_back("../assets/Cabbage_Ingredient.png");
+		outIngredientTex.push_back("../assets/Ingredient_Carrot.png");
+		outStationTex.push_back("../assets/Cutting_Board.png");
+		outStationTex.push_back("../assets/Stove_2.png");
+		break;
 	default:
 		// no recipe -> show nothing
 		break;

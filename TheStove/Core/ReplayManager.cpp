@@ -111,9 +111,9 @@ bool ReplayManager::StartPlayback(const std::string& path) {
 	}
 
 	std::cout << "[Replay] Playback started: " << path
-		 << " (frames=" << frames_.size() << ", seed=" << seed_
-		 << ", levelPath=" << recordedLevelPath_
-		 << ", simulationActive=" << (recordedSimulationActive_ ? "true" : "false") << ")\n";
+		<< " (frames=" << frames_.size() << ", seed=" << seed_
+		<< ", levelPath=" << recordedLevelPath_
+		<< ", simulationActive=" << (recordedSimulationActive_ ? "true" : "false") << ")\n";
 	return true;
 }
 

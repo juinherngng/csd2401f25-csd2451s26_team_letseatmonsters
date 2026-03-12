@@ -33,6 +33,12 @@ AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), sy
 		CoreFramework::MessageType::STOP_AUDIO,
 		[this](const CoreFramework::Message& msg) { OnStopAudio(msg); }
 	);
+
+	// Subscribe to PLAY_AUDIO_3D messages
+	playAudio3DSubId = messageBus.Subscribe(
+		CoreFramework::MessageType::PLAY_AUDIO_3D,
+		[this](const CoreFramework::Message& msg) { OnPlayAudio3D(msg); }
+	);
 }
 
 AudioManager::~AudioManager() {
@@ -40,6 +46,7 @@ AudioManager::~AudioManager() {
 	messageBus.Unsubscribe(CoreFramework::MessageType::TOGGLE_DEBUG_INFO, debugInfoSubId);
 	messageBus.Unsubscribe(CoreFramework::MessageType::PLAY_AUDIO, playAudioSubId);
 	messageBus.Unsubscribe(CoreFramework::MessageType::STOP_AUDIO, stopAudioSubId);
+	messageBus.Unsubscribe(CoreFramework::MessageType::PLAY_AUDIO_3D, playAudio3DSubId);
 
 	Shutdown();
 }
@@ -69,6 +76,15 @@ void AudioManager::Update(float dt) {
 		pendingPlays.clear();
 	}
 
+	// process queued 3D play requests
+	if (!pendingPlays3D.empty()) {
+		for (const auto& playReq : pendingPlays3D) {
+			PlaySound3D(playReq.name, playReq.posX, playReq.posY, playReq.posZ,
+				playReq.volume, playReq.minDistance, playReq.maxDistance, playReq.paused);
+		}
+		pendingPlays3D.clear();
+	}
+
 	// process active volume fades
 	if (!activeFades.empty()) {
 		for (auto it = activeFades.begin(); it != activeFades.end(); ) {
@@ -95,6 +111,15 @@ void AudioManager::Update(float dt) {
 	// Update FMOD system
 	system->update();
 
+	// Stop channels that were silenced last frame — FMOD has now mixed
+	// at least one block of silence so stopping won't produce a click.
+	for (FMOD::Channel* ch : pendingStops) {
+		if (ch) {
+			ch->stop();
+		}
+	}
+	pendingStops.clear();
+
 	// Clean up finished channels
 	for (auto it = channels.begin(); it != channels.end(); ) {
 		bool playing = false;
@@ -107,6 +132,12 @@ void AudioManager::Update(float dt) {
 		else
 			++it;
 	}
+
+	// Perform deferred stop on channels
+	for (auto& channel : pendingStops) {
+		channel->stop();
+	}
+	pendingStops.clear();
 }
 
 void AudioManager::OnToggleDebugInfo(const CoreFramework::Message& msg) {
@@ -135,6 +166,13 @@ void AudioManager::OnStopAudio(const CoreFramework::Message& msg) {
 	}
 }
 
+void AudioManager::OnPlayAudio3D(const CoreFramework::Message& msg) {
+	const auto& playMsg = static_cast<const CoreFramework::PlayAudio3DMessage&>(msg);
+
+	EnqueuePlay3D(playMsg.soundName, playMsg.posX, playMsg.posY, playMsg.posZ,
+		playMsg.volume, playMsg.minDistance, playMsg.maxDistance, playMsg.paused);
+}
+
 std::string AudioManager::GetName() {
 	return "AudioManager";
 }
@@ -148,8 +186,8 @@ bool AudioManager::InitializeSystem() {
 
 	if (result != FMOD_OK) return false;
 
-	// default init with 512 channels
-	result = system->init(512, FMOD_INIT_NORMAL, nullptr);
+	// default init with 512 channels, enable 3D spatial audio
+	result = system->init(512, FMOD_INIT_NORMAL | FMOD_INIT_3D_RIGHTHANDED, nullptr);
 	CheckError(result, "system->init");
 
 	if (result != FMOD_OK) return false;
@@ -172,6 +210,11 @@ bool AudioManager::InitializeSystem() {
 void AudioManager::Shutdown() {
 	// stop all sounds and clear channels
 	StopAllSounds();
+	// Flush any deferred stops immediately since the system is shutting down
+	for (FMOD::Channel* ch : pendingStops) {
+		if (ch) ch->stop();
+	}
+	pendingStops.clear();
 	channels.clear();
 
 	// Release all loaded sounds
@@ -317,8 +360,10 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 		return;
 	}
 
+	// Always start paused so we can set volume before any audio is mixed,
+	// preventing a brief burst at default volume (FMOD best practice).
 	FMOD::Channel* channel = nullptr;
-	FMOD_RESULT result = system->playSound(sound, nullptr, paused, &channel);
+	FMOD_RESULT result = system->playSound(sound, nullptr, true, &channel);
 	CheckError(result, "playSound: " + name);
 
 	// set volume based on type, multiplied by master volume
@@ -341,6 +386,11 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 		channel->setVolume(finalVolume);
 		channels[name] = channel;
 
+		// Unpause now that volume is set, unless caller requested paused start
+		if (!paused) {
+			channel->setPaused(false);
+		}
+
 		std::cout << "[AudioManager] Playing sound '" << name << "' at volume " << finalVolume << std::endl;
 	}
 }
@@ -350,16 +400,28 @@ void AudioManager::StopSound(std::string const& name) {
 	auto it = channels.find(name);
 
 	if (it != channels.end() && it->second) {
-		it->second->stop();
+		// Silence the channel immediately and defer the actual stop to the
+		// next Update() so FMOD's mixer processes at least one silent block
+		// before the channel is destroyed — this prevents an audible click
+		// from cutting the waveform at a non-zero sample.
+		it->second->setVolume(0.0f);
+		pendingStops.push_back(it->second);
+		// Clear any pending software fade
+		activeFades.erase(name);
 		channels.erase(it);
 	}
 }
 
 void AudioManager::StopAllSounds() {
-	// Stop all channels
-	if (masterGroup)
-		masterGroup->stop();
+	// Silence all tracked channels and defer stop (same as StopSound)
+	for (auto& [name, channel] : channels) {
+		if (channel) {
+			channel->setVolume(0.0f);
+			pendingStops.push_back(channel);
+		}
+	}
 
+	activeFades.clear();
 	channels.clear();
 }
 
@@ -491,4 +553,129 @@ void AudioManager::PlayUIClickSound() {
 	// Play UI click sound with appropriate volume for subtle feedback
 	float clickVolume = GetVfxVolume() * 0.5f; // 50% of VFX volume for subtle UI sounds
 	PlaySound("ui_click", clickVolume, false);
+}
+
+FMOD::Sound* AudioManager::LoadSound3D(std::string const& name, std::string const& filePath, bool loop, bool stream) {
+	if (!system) {
+		std::cerr << "Audio system not initialized!" << std::endl;
+		return nullptr;
+	}
+
+	// Check if already loaded
+	if (auto it = sounds.find(name); it != sounds.end()) {
+		std::cout << "Audio '" << name << "' already loaded, returning existing." << std::endl;
+		return it->second;
+	}
+
+	std::cout << "[AudioManager] Attempting to load 3D sound: " << name << std::endl;
+	std::cout << "  Relative path: " << filePath << std::endl;
+
+	if (!std::filesystem::exists(filePath)) {
+		std::cerr << "[AudioManager] File does not exist at path: " << filePath << std::endl;
+		try {
+			std::filesystem::path absPath = std::filesystem::absolute(filePath);
+			std::cerr << "  Absolute path would be: " << absPath.string() << std::endl;
+			std::cerr << "  Current working directory: " << std::filesystem::current_path().string() << std::endl;
+		}
+		catch (...) {
+			std::cerr << "  Could not determine absolute path" << std::endl;
+		}
+		return nullptr;
+	}
+
+	std::cout << "  File exists, proceeding with FMOD 3D load..." << std::endl;
+
+	// Set FMOD mode flags with FMOD_3D for spatial audio
+	FMOD_MODE mode = FMOD_3D | FMOD_3D_LINEARROLLOFF
+		| (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF)
+		| (stream ? FMOD_CREATESTREAM : FMOD_CREATESAMPLE);
+
+	FMOD::Sound* sound = nullptr;
+	FMOD_RESULT result = system->createSound(filePath.c_str(), mode, nullptr, &sound);
+
+	if (result != FMOD_OK) {
+		std::cerr << "Failed to load 3D audio '" << name << "': " << FMOD_ErrorString(result) << std::endl;
+		return nullptr;
+	}
+
+	// Set default 3D min/max distances
+	sound->set3DMinMaxDistance(1.0f, 50.0f);
+
+	sounds.emplace(name, sound);
+	std::cout << "Loaded 3D audio: " << name << std::endl;
+	return sound;
+}
+
+void AudioManager::PlaySound3D(std::string const& name, float posX, float posY, float posZ,
+	float volume, float minDistance, float maxDistance, bool paused) {
+	if (!system) return;
+
+	FMOD::Sound* sound = GetSound(name);
+	if (!sound) {
+		std::cerr << "[AudioManager] PlaySound3D: Sound '" << name << "' not found in loaded sounds!" << std::endl;
+		return;
+	}
+
+	// Start paused so we can configure 3D attributes before any audio is mixed
+	FMOD::Channel* channel = nullptr;
+	FMOD_RESULT result = system->playSound(sound, nullptr, true, &channel);
+	CheckError(result, "playSound3D: " + name);
+
+	if (result == FMOD_OK && channel) {
+		// Set 3D position
+		FMOD_VECTOR pos = { posX, posY, posZ };
+		FMOD_VECTOR vel = { 0.0f, 0.0f, 0.0f };
+		channel->set3DAttributes(&pos, &vel);
+
+		// Set 3D min/max distance for attenuation
+		channel->set3DMinMaxDistance(minDistance, maxDistance);
+
+		// Set volume with category and master scaling
+		float finalVolume = volume * masterVolume;
+		if (volume >= 0.999f && volume <= 1.001f) {
+			if (name.find("bgm") != std::string::npos) {
+				finalVolume = bgmVolume * masterVolume;
+			}
+			else if (name.find("sfx") != std::string::npos || name.find("vfx") != std::string::npos) {
+				finalVolume = vfxVolume * masterVolume;
+			}
+		}
+
+		channel->setVolume(finalVolume);
+		channels[name] = channel;
+
+		// Unpause now that 3D attributes and volume are set
+		if (!paused) {
+			channel->setPaused(false);
+		}
+
+		std::cout << "[AudioManager] Playing 3D sound '" << name << "' at position ("
+			<< posX << ", " << posY << ", " << posZ << ") volume " << finalVolume << std::endl;
+	}
+}
+
+void AudioManager::SetListenerPosition(float posX, float posY, float posZ) {
+	if (!system) return;
+
+	FMOD_VECTOR listenerPos = { posX, posY, posZ };
+	FMOD_VECTOR listenerVel = { 0.0f, 0.0f, 0.0f };
+	FMOD_VECTOR forward     = { 0.0f, 0.0f, 1.0f };
+	FMOD_VECTOR up          = { 0.0f, 1.0f, 0.0f };
+
+	FMOD_RESULT result = system->set3DListenerAttributes(0, &listenerPos, &listenerVel, &forward, &up);
+	CheckError(result, "set3DListenerAttributes");
+}
+
+void AudioManager::Set3DChannelPosition(std::string const& name, float posX, float posY, float posZ) {
+	auto it = channels.find(name);
+	if (it == channels.end() || !it->second) return;
+
+	FMOD_VECTOR pos = { posX, posY, posZ };
+	FMOD_VECTOR vel = { 0.0f, 0.0f, 0.0f };
+	it->second->set3DAttributes(&pos, &vel);
+}
+
+void AudioManager::EnqueuePlay3D(std::string const& name, float posX, float posY, float posZ,
+	float volume, float minDistance, float maxDistance, bool paused) {
+	pendingPlays3D.push_back({ name, posX, posY, posZ, volume, minDistance, maxDistance, paused });
 }

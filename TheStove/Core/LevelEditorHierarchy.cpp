@@ -91,8 +91,8 @@ namespace LEHIERARCHY {
 		entry.texturePath = texturePath;
 		entry.layer = layer;
 		entry.label = niceName.empty()
-			? ("ID " + std::to_string(objectId) + " [Layer: " + layer + "]")
-			: (niceName + " (ID " + std::to_string(objectId) + ") [Layer: " + layer + "]");
+			? ("id:" + std::to_string(objectId) + "  [L" + layer + "]")
+			: (niceName + "  [id:" + std::to_string(objectId) + "] [L" + layer + "]");
 		entry.searchTokenLower = ToLowerCopy(entry.label);
 
 		return entry.label;

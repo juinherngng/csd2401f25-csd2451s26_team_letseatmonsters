@@ -53,7 +53,7 @@ public:
 
 	// Keyboard Queries
 	bool IsKeyPressed(int key) const;
-	bool IsKeyJustPressed(int key) const;
+	bool IsKeyJustPressed(int key);
 
 	// Mouse Queries
 	bool IsMouseButtonPressed(int button) const;
@@ -67,9 +67,11 @@ public:
 	// Clear all key/mouse state (used when losing/regaining focus)
 	void ClearState();
 
-	// Mouse press consumption (for one frame only)
+	// Edge consumption (for one frame only)
 	void ConsumeNextMousePress(int button);
 	void ClearMouseConsume(int button);
+	void ConsumeNextKeyPress(int key);
+	void ClearKeyConsume(int key);
 
 	void CaptureSnapshot(Snapshot& out) const;
 	void ApplySnapshot(const Snapshot& snapshot);
@@ -97,8 +99,9 @@ private:
 	// Mouse position in window coordinates (pixels)
 	glm::dvec2 mMousePos{ 0.0, 0.0 };
 
-	// Set of mouse buttons whose next press will be consumed
+	// Sets whose next just-pressed edge will be consumed
 	std::unordered_set<int> mConsumeNextMousePress;
+	std::unordered_set<int> mConsumeNextKeyPress;
 
 	bool replayOverride_ = false;
 };

@@ -218,8 +218,12 @@ public:
 	}
 
 	// Secondary render order within the same layer (higher draws later)
-	void SetRenderSortOrder(int order) { renderSortOrder_ = order; }
-	int GetRenderSortOrder() const { return renderSortOrder_; }
+	void SetRenderSortOrder(int order) {
+		renderSortOrder_ = order;
+	}
+	int GetRenderSortOrder() const {
+		return renderSortOrder_;
+	}
 
 private:
 	Mesh* m_Mesh;
@@ -239,7 +243,9 @@ private:
 
 	// Physics-friendly state
 	Math::Vector2D m_Velocity{ 0.f, 0.f };
-	Math::Vector2D m_ColliderSize{ 1.f, 1.f };
+	// Start with no collider so Scene::InitDefaultCollider can correctly initialize
+	// newly spawned objects to their visual sprite size.
+	Math::Vector2D m_ColliderSize{ 0.f, 0.f };
 	Math::Vector2D m_ColliderOffset{ 0.f, 0.f };
 
 	Animator2D* animator = nullptr;

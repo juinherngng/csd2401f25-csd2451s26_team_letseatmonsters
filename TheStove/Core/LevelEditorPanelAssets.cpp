@@ -35,6 +35,7 @@
 #endif
 
 #include <future>
+#include <cctype>
 #include <chrono>
 
 namespace fs = std::filesystem;
@@ -155,8 +156,10 @@ namespace LEPANELASSETS {
 
 		TryConsumeRefreshJobs();
 
-		// Cache to avoid reloading preview textures every frame
-		static std::unordered_map<std::string, Texture*> sTexturePreviewCache;
+		// Stable preview cache key prefix inside ResourceManager.
+		// We intentionally avoid storing raw Texture* pointers in this panel,
+		// because ResourceManager::Clear() can invalidate them between frames.
+		static constexpr const char* kPreviewTextureKeyPrefix = "le_preview_";
 
 		// Audio icon for audio assets
 		static Texture* sAudioIcon = nullptr;
@@ -165,9 +168,28 @@ namespace LEPANELASSETS {
 		static bool sAudioErrorPending = false;
 		static bool sAudioPopupOpen = true;
 		static std::string sAudioErrorMessage;
+		static bool sTextureCompactDensity = false;
+		static bool sAudioCompactDensity = false;
 
-		// Import row
-		if (ImGui::Button("Import Texture...")) {
+		auto ShowTooltip = [](const char* text) {
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+				ImGui::SetTooltip("%s", text);
+			}
+			};
+
+		auto IconButton = [&](const char* id, const char* label, const char* tooltip) {
+			const std::string buttonLabel = std::string(label) + "##" + id;
+			const bool pressed = ImGui::Button(buttonLabel.c_str(), ImVec2(26.0f, 0.0f));
+			ShowTooltip(tooltip);
+			return pressed;
+			};
+
+		// Import row (auto-fit buttons to panel width)
+		const float importSpacing = ImGui::GetStyle().ItemSpacing.x;
+		const float importAvailWidth = ImGui::GetContentRegionAvail().x;
+		const float importButtonWidth = std::max(110.0f, (importAvailWidth - importSpacing) * 0.5f);
+
+		if (ImGui::Button("Import Texture", ImVec2(importButtonWidth, 0.0f))) {
 			const std::string pickedPath =
 				OpenFileDialog("PNG files\0*.png\0All files\0*.*\0");
 
@@ -215,7 +237,7 @@ namespace LEPANELASSETS {
 		ImGui::SameLine();
 
 		// Import Audio (.wav and .mp3 supported)
-		if (ImGui::Button("Import Audio...")) {
+		if (ImGui::Button("Import Audio", ImVec2(importButtonWidth, 0.0f))) {
 			const std::string picked =
 				OpenFileDialog("Audio Files\0*.wav;*.mp3\0WAV Files\0*.wav\0MP3 Files\0*.mp3\0All Files\0*.*\0");
 
@@ -359,6 +381,10 @@ namespace LEPANELASSETS {
 
 		// Textures section
 		if (ImGui::CollapsingHeader("Textures", ImGuiTreeNodeFlags_DefaultOpen)) {
+			static char sTextureFilter[128] = "";
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::InputTextWithHint("##TextureFilter", "Search textures...", sTextureFilter, IM_ARRAYSIZE(sTextureFilter));
+
 			if (ImGui::Button("Refresh##tex")) {
 				QueueTextureRefresh();
 			}
@@ -371,24 +397,31 @@ namespace LEPANELASSETS {
 			bool refreshTextures = false;
 
 			for (const auto& path : sTextures) {
+				const std::string displayName = fs::path(path).filename().string();
+				if (sTextureFilter[0] != '\0') {
+					std::string filterLower = sTextureFilter;
+					std::transform(filterLower.begin(), filterLower.end(), filterLower.begin(),
+						[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+					std::string nameLower = displayName;
+					std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
+						[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+					if (nameLower.find(filterLower) == std::string::npos) {
+						continue;
+					}
+				}
+
 				ImGui::PushID(path.c_str());
 
-				// Fetch or load preview texture for this path
-				Texture* previewTex = nullptr;
-				auto it = sTexturePreviewCache.find(path);
-				if (it != sTexturePreviewCache.end()) {
-					previewTex = it->second;
-				}
-				else {
-					// Use your existing loader
-					previewTex = LoadTextureBypassingCache(path);
-					sTexturePreviewCache[path] = previewTex;
-				}
+				// Fetch or load preview texture by a deterministic key.
+				// This keeps ownership in ResourceManager and avoids stale pointers
+				// when resources are cleared/reloaded.
+				const std::string previewKey = std::string(kPreviewTextureKeyPrefix) + path;
+				Texture* previewTex = ResourceManager::Instance().LoadTexture(previewKey, path);
 
 				const float iconSize = 32.0f;
 
 				// If we have a texture, draw its image first
-				if (previewTex) {
+				if (previewTex && previewTex->GetID() != 0) {
 					ImTextureID texID = (ImTextureID)(intptr_t)previewTex->GetID();
 
 					// Draw the thumbnail (UVs flipped vertically for OpenGL)
@@ -401,7 +434,10 @@ namespace LEPANELASSETS {
 				}
 
 				// Make the selectable at least as tall as the icon so they line up nicely
-				ImGui::Selectable(path.c_str(), false, 0, ImVec2(0.0f, iconSize));
+				ImGui::Selectable(displayName.c_str(), false, 0, ImVec2(0.0f, iconSize));
+				if (ImGui::IsItemHovered()) {
+					ImGui::SetTooltip("%s", path.c_str());
+				}
 
 				// Double-click to apply to current selection
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
@@ -588,6 +624,11 @@ namespace LEPANELASSETS {
 				static std::string editingName = "";
 				static bool editMode = false;
 				static Audio::AudioAsset editBuffer;
+				static bool applyRemove = false;
+				static std::string pendingRemoveName = "";
+				static bool applyEdit = false;
+				static std::string originalEditName = "";
+				static Audio::AudioAsset pendingEditBuffer;
 
 				// State for tracking which audio is currently playing (for UI feedback)
 				static std::string currentlyPlaying = "";
@@ -635,19 +676,10 @@ namespace LEPANELASSETS {
 							ImGui::TextWrapped("File: %s", editBuffer.filepath.c_str());
 
 							if (ImGui::Button("Save##Edit")) {
-								// Apply changes
-								Audio::AudioCatalog::RemoveAudioAsset(editingName);
-								Audio::AudioCatalog::AddAudioAsset(editBuffer);
-
-								// Reload the audio
-								ResourceManager::Instance().UnloadAudio(editingName);
-								ResourceManager::Instance().LoadAudio(
-									editBuffer.name,
-									editBuffer.filepath,
-									editBuffer.loop,
-									editBuffer.stream
-								);
-
+								// Queue catalog mutation until after the UI iteration.
+								originalEditName = editingName;
+								pendingEditBuffer = editBuffer;
+								applyEdit = true;
 								editMode = false;
 								editingName = "";
 							}
@@ -709,6 +741,7 @@ namespace LEPANELASSETS {
 								editingName = asset.name;
 								editBuffer = asset;
 							}
+
 							ImGui::SameLine();
 							if (ImGui::Button("Remove")) {
 								// Stop if currently playing
@@ -716,6 +749,7 @@ namespace LEPANELASSETS {
 									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
 									currentlyPlaying = "";
 								}
+
 								ImGui::OpenPopup("Confirm Remove Audio");
 							}
 
@@ -725,13 +759,16 @@ namespace LEPANELASSETS {
 								ImGui::Separator();
 
 								if (ImGui::Button("Yes", ImVec2(120, 0))) {
-									Audio::AudioCatalog::RemoveAudioAsset(asset.name);
+									pendingRemoveName = asset.name;
+									applyRemove = true;
 									ImGui::CloseCurrentPopup();
 								}
+
 								ImGui::SameLine();
 								if (ImGui::Button("No", ImVec2(120, 0))) {
 									ImGui::CloseCurrentPopup();
 								}
+
 								ImGui::EndPopup();
 							}
 						}
@@ -740,6 +777,38 @@ namespace LEPANELASSETS {
 					}
 
 					ImGui::PopID();
+				}
+
+				if (applyRemove) {
+					Audio::AudioCatalog::RemoveAudioAsset(pendingRemoveName);
+
+					if (currentlyPlaying == pendingRemoveName) {
+						currentlyPlaying.clear();
+					}
+
+					if (editingName == pendingRemoveName) {
+						editMode = false;
+						editingName.clear();
+					}
+
+					pendingRemoveName.clear();
+					applyRemove = false;
+				}
+
+				if (applyEdit) {
+					Audio::AudioCatalog::RemoveAudioAsset(originalEditName);
+					Audio::AudioCatalog::AddAudioAsset(pendingEditBuffer);
+
+					ResourceManager::Instance().UnloadAudio(originalEditName);
+					ResourceManager::Instance().LoadAudio(
+						pendingEditBuffer.name,
+						pendingEditBuffer.filepath,
+						pendingEditBuffer.loop,
+						pendingEditBuffer.stream
+					);
+
+					applyEdit = false;
+					originalEditName.clear();
 				}
 
 				ImGui::Separator();
@@ -756,6 +825,7 @@ namespace LEPANELASSETS {
 			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.9f, 1.0f), "Audio Files (%zu):", sAudio.size());
 
 			for (const auto& path : sAudio) {
+				const std::string displayName = fs::path(path).filename().string();
 				ImGui::PushID(path.c_str());
 
 				// Draw icon, same style as textures/prefabs
@@ -770,7 +840,10 @@ namespace LEPANELASSETS {
 				}
 
 				// Make the selectable at least as tall as the icon
-				ImGui::Selectable(path.c_str(), false, 0, ImVec2(0.0f, iconSize));
+				ImGui::Selectable(displayName.c_str(), false, 0, ImVec2(0.0f, iconSize));
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+					ImGui::SetTooltip("%s", path.c_str());
+				}
 
 				// Double-click to add to catalog if not already there
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&

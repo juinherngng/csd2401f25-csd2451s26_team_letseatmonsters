@@ -10,15 +10,18 @@
 					setup. Provides logic for spawning, clearing, and controlling
 					which ingredient type appears.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
+#include "Core/AudioManager.hpp"
+#include "Core/EngineRng.hpp"
 #include "Core/LogicManager.hpp"
 #include "Graphics/SceneManager.hpp"
 
 #include "IngredientBoxLogic.hpp"
 
 #include <iostream>
+#include <random>
 
 IngredientBoxLogic::IngredientBoxLogic(int ownerID) : TableLogic(ownerID) {
 }
@@ -51,6 +54,16 @@ void IngredientBoxLogic::ConfigureAsShroomBox() {
 
 	// You can tweak these if you have different ingredient types later
 	ingredientTexture_ = "../assets/Mushroom_Ingredient.png";
+	ingredientWidth_ = 64.0f;
+	ingredientHeight_ = 64.0f;
+	ingredientLayer_ = "3";
+}
+
+void IngredientBoxLogic::ConfigureAsCarrotBox() {
+	spawnMode_ = BoxSpawnMode::Ingredient;
+	spawnType_ = IngredientType::Carrot;
+
+	ingredientTexture_ = "../assets/Ingredient_Carrot.png";
 	ingredientWidth_ = 64.0f;
 	ingredientHeight_ = 64.0f;
 	ingredientLayer_ = "3";
@@ -99,6 +112,9 @@ void IngredientBoxLogic::Start(Scene& scene) {
 		}
 		else if (tex.find("ShroomIngredientBox") != std::string::npos) {
 			ConfigureAsShroomBox();
+		}
+		else if (tex.find("CarrotIngredientBox") != std::string::npos) {
+			ConfigureAsCarrotBox();
 		}
 		else {
 			ConfigureAsVegetableBox();
@@ -163,6 +179,16 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene) {
 		std::cout << "[IngredientBoxLogic] Spawned INGREDIENT " << itemID
 			<< " of type=" << static_cast<int>(spawnType_)
 			<< " from box " << ownerID_ << "\n";
+
+		// Play a random cabbage pickup SFX for vegetable boxes
+		if (spawnType_ == IngredientType::Vegetable) {
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				std::uniform_int_distribution<int> dist(1, 4);
+				int variant = dist(EngineRng::Get());
+				std::string sfxName = "sfx_pickup_cabbage_" + std::to_string(variant);
+				audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume() * 0.5f);
+			}
+		}
 	}
 	else // BoxSpawnMode::Plate
 	{

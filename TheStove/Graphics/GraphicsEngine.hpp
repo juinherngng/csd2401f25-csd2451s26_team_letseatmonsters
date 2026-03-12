@@ -55,7 +55,9 @@ public:
 	void EndImGuiFrame();    // Render ImGui
 
 	// Background
+	void SetBackgroundOverlay(const std::string& texturePath); // Create/update fullscreen overlay quad (drawn above background)
 	void SetBackground(const std::string& texturePath); // Create/update fullscreen background quad
+	void ClearBackgroundOverlay();                      // Remove overlay background
 	void ClearBackground();                             // Remove background
 
 	// Viewport and resizing
@@ -138,6 +140,12 @@ public:
 	bool IsTransitionActive() const;
 	bool IsAtBlackout() const;       // true when fade-out finished and overlay is fully opaque
 	void ContinueTransitionFadeIn(); // call once you switched scenes to start fade-in
+	void CancelSceneTransition();    // immediately clear any active transition state
+
+	// Debug text rendering control (used to hide editor text during cutscenes in debug builds)
+	void SetSuppressDebugTextRendering(bool suppress) {
+		suppressDebugTextRendering_ = suppress;
+	}
 
 private:
 	// Internal helper types
@@ -181,6 +189,7 @@ private:
 	Renderer renderer;
 	ResourceManager& resourceManager;
 	std::unique_ptr<GameObject> backgroundObject;
+	std::unique_ptr<GameObject> backgroundOverlayObject;
 	glm::mat4 view{ 1.0f };
 	glm::mat4 projection{ 1.0f };
 
@@ -221,6 +230,7 @@ private:
 	float transitionAlpha_ = 0.0f;
 	float dbgFadeOutSeconds_ = 0.35f;
 	float dbgFadeInSeconds_ = 0.35f;
+	bool suppressDebugTextRendering_ = false;
 
 	// Lifecycle helpers
 	void LoadDefaultResources();
@@ -234,6 +244,7 @@ private:
 	void EndSceneAndPresent();
 	void DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void RenderBackground(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
+	void RenderBackgroundOverlay(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 	void PresentSceneToDefaultFramebuffer();
 
 	// Coordinate conversion helpers

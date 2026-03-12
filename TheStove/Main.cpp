@@ -912,6 +912,8 @@ static void draw(ApplicationState& app) {
 		app.currentScene->RenderLevelTextObjects();
 	}
 #endif
+	// Suppress debug font-panel text while cutscenes are active so HUD values do not bleed over cutscene art.
+	graphicsEngine->SetSuppressDebugTextRendering(app.currentScene->IsAnyCutsceneActive());
 
 	//graphicsEngine->Render(drawList);
 	graphicsEngine->RenderBatched(drawList);

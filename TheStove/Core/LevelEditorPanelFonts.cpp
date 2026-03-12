@@ -399,10 +399,170 @@ namespace LEPANELFONTS {
 			}
 		}
 
+		ImGui::Separator();
+		ImGui::SeparatorText("Loaded Fonts");
 
-		// --- keep the rest of your ImGui text-object UI exactly as you already had ---
-		// (create/delete/list/edit etc.)
-		// IMPORTANT: do NOT re-define the data functions again inside _DEBUG.
+		if (sLoadedFonts.empty()) {
+			ImGui::TextDisabled("No fonts loaded yet.");
+		}
+		else {
+			for (const auto& loadedName : sLoadedFonts) {
+				FontSystem::Font* loadedFont = ResourceManager::Instance().GetFont(loadedName);
+				if (loadedFont) {
+					ImGui::BulletText("%s (size: %u)", loadedName.c_str(), loadedFont->GetFontSize());
+				}
+			}
+		}
+
+		ImGui::Separator();
+		ImGui::SeparatorText("Text Objects");
+
+		if (ImGui::Button("Create Text Object")) {
+			TextObjectData newText;
+			newText.name = "Text " + std::to_string(sTextObjects.size() + 1);
+			newText.fontName = sLoadedFonts.empty() ? "" : sLoadedFonts[0];
+			newText.text = "Sample Text";
+			newText.x = 100.0f;
+			newText.y = 100.0f;
+
+			sTextObjects.push_back(newText);
+			sSelectedTextIndex = static_cast<int>(sTextObjects.size()) - 1;
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("Delete Selected") && sSelectedTextIndex >= 0 && sSelectedTextIndex < static_cast<int>(sTextObjects.size())) {
+			sTextObjects.erase(sTextObjects.begin() + sSelectedTextIndex);
+			sSelectedTextIndex = -1;
+		}
+
+		if (ImGui::BeginListBox("##TextObjects", ImVec2(-FLT_MIN, 150.0f))) {
+			for (int i = 0; i < static_cast<int>(sTextObjects.size()); ++i) {
+				const bool isSelected = (sSelectedTextIndex == i);
+				std::string label = sTextObjects[i].name + " [" + sTextObjects[i].fontName + "]";
+				if (ImGui::Selectable(label.c_str(), isSelected)) {
+					sSelectedTextIndex = i;
+				}
+			}
+			ImGui::EndListBox();
+		}
+
+		if (sSelectedTextIndex >= 0 && sSelectedTextIndex < static_cast<int>(sTextObjects.size())) {
+			ImGui::Separator();
+			ImGui::SeparatorText("Text Properties");
+
+			TextObjectData& textObj = sTextObjects[sSelectedTextIndex];
+
+			ImGui::Columns(2, nullptr, false);
+			ImGui::SetColumnWidth(0, 150.0f);
+
+			ImGui::TextUnformatted("Name");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			char nameBuf[64];
+			std::snprintf(nameBuf, sizeof(nameBuf), "%s", textObj.name.c_str());
+			if (ImGui::InputText("##Name", nameBuf, IM_ARRAYSIZE(nameBuf))) {
+				textObj.name = nameBuf;
+			}
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Font");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			if (ImGui::BeginCombo("##Font", textObj.fontName.c_str())) {
+				for (const auto& loadedName : sLoadedFonts) {
+					const bool isSelected = (textObj.fontName == loadedName);
+					if (ImGui::Selectable(loadedName.c_str(), isSelected)) {
+						textObj.fontName = loadedName;
+					}
+					if (isSelected) {
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Text");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			char textBuf[256];
+			std::snprintf(textBuf, sizeof(textBuf), "%s", textObj.text.c_str());
+			if (ImGui::InputText("##Text", textBuf, IM_ARRAYSIZE(textBuf))) {
+				textObj.text = textBuf;
+			}
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Position X");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::DragFloat("##PosX", &textObj.x, 1.0f);
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Position Y");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::DragFloat("##PosY", &textObj.y, 1.0f);
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Scale");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::DragFloat("##Scale", &textObj.scale, 0.01f, 0.1f, 10.0f);
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Rotation");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::SliderFloat("##Rotation", &textObj.rotation, 0.0f, 360.0f, "%.1f deg");
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Rotation Mode");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			const char* rotModeItems[] = { "Block (Normal)", "Per-Character (Curved)" };
+			int currentMode = textObj.useBlockRotation ? 0 : 1;
+			if (ImGui::Combo("##RotMode", &currentMode, rotModeItems, IM_ARRAYSIZE(rotModeItems))) {
+				textObj.useBlockRotation = (currentMode == 0);
+			}
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Color");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			float color[4] = { textObj.colorR, textObj.colorG, textObj.colorB, textObj.colorA };
+			if (ImGui::ColorEdit4("##Color", color)) {
+				textObj.colorR = color[0];
+				textObj.colorG = color[1];
+				textObj.colorB = color[2];
+				textObj.colorA = color[3];
+			}
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Layer");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			char layerBuf[64];
+			std::snprintf(layerBuf, sizeof(layerBuf), "%s", textObj.layer.c_str());
+			if (ImGui::InputText("##Layer", layerBuf, IM_ARRAYSIZE(layerBuf))) {
+				textObj.layer = layerBuf;
+				scene.AddLayer(textObj.layer);
+			}
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Visible");
+			ImGui::NextColumn();
+			ImGui::Checkbox("##Visible", &textObj.visible);
+			ImGui::NextColumn();
+
+			ImGui::TextUnformatted("Depth");
+			ImGui::NextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::DragFloat("##Depth", &textObj.depth, 0.01f);
+			ImGui::NextColumn();
+
+			ImGui::Columns(1);
+		}
 
 		ImGui::End();
 		(void)editor;

@@ -68,6 +68,9 @@ public:
 	}
 
 private:
+	// Spawns (on first use) and animates the click indicator sprite.
+	void UpdateClickIndicator(float deltaTime, EntityManager& entityManager);
+
 	// Handles up/down key scaling with clamped bounds.
 	void HandleScaleInput(InputManager& inputManager, GameObject* sprite, float deltaTime);
 
@@ -94,4 +97,8 @@ private:
 	bool clickToMoveJustPressed_ = false;
 	bool clickWorldValid_ = false;
 	glm::vec2 clickWorld_{ 0.0f, 0.0f };
+
+	int clickIndicatorID_ = -1;
+	glm::vec2 clickIndicatorWorld_{ 0.0f, 0.0f };
+	float clickIndicatorTimer_ = 0.0f;
 };

@@ -5,20 +5,21 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (95%)
  CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
- DESCRIPTION:		 Implements MenuButtonLogic::Update for release builds only, handling mouse click registering logic
-					 against button AABB, hover texture transitions using ResourceManager, and triggering a cutscene
-					 followed by JSON level load after left-click.
+ DESCRIPTION:		Implements MenuButtonLogic::Update for release builds only, handling mouse click registering logic
+					against button AABB, hover texture transitions using ResourceManager, and triggering a cutscene
+					followed by JSON level load after left-click.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "Graphics/GraphicsEngine.hpp"
-#include "Graphics/ResourceManager.hpp"
-#include "Graphics/SceneManager.hpp"
+#include "../GamePaths.hpp"
 
 #include "AudioManager.hpp"
 #include "FilePaths.hpp"
+#include "Graphics/GraphicsEngine.hpp"
+#include "Graphics/ResourceManager.hpp"
+#include "Graphics/SceneManager.hpp"
 #include "MenuButtonLogic.hpp"
 
 #include <array>
@@ -192,9 +193,14 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		if (audioManager_) {
 			audioManager_->PlayUIClickSound();
 
+			// Play the start button SFX
+			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_START_BUTTON)) {
+				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_START_BUTTON, audioManager_->GetVfxVolume(), false);
+			}
+
 			// Fade out main menu BGM during the fade-to-black transition
 			const float menuBgmFadeDuration = 0.35f; // Match the visual fade-out duration
-			audioManager_->FadeChannel("bgm_MyoonchiDiner_MainMenu", 0.0f, menuBgmFadeDuration);
+			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_MAIN_MENU, 0.0f, menuBgmFadeDuration);
 		}
 		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 
@@ -233,8 +239,8 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		if (audioManager_) {
 			const float cutsceneBgmFadeIn = 1.0f; // Fade in over 1 second
 			// Play at volume 0, then fade up (40% louder than normal BGM volume)
-			audioManager_->PlaySound("bgm_MyoonchiDiner_IntroCutscene", 0.0f, false);
-			audioManager_->FadeChannel("bgm_MyoonchiDiner_IntroCutscene", audioManager_->GetBgmVolume() * 1.6f, cutsceneBgmFadeIn);
+			audioManager_->PlaySound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, false);
+			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, audioManager_->GetBgmVolume() * 1.6f, cutsceneBgmFadeIn);
 		}
 	}
 #endif // _DEBUG

@@ -9,7 +9,7 @@
 					win quota, and remaining time, and synchronizes these values
 					with the game UI and win/lose conditions.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -28,7 +28,7 @@ namespace Economy {
 	inline int gPlayerMoney = 0;
 
 	// Win quota
-	inline constexpr int kQuota = 200;
+	inline int kQuota = 200;
 
 	// How much a correct dish pays (tweak anytime)
 	inline constexpr int kCorrectDishPay = 50;
@@ -37,7 +37,16 @@ namespace Economy {
 	inline bool gQuotaReached = false;
 
 	// Total time allowed (seconds). Adjust as you like.
-	inline constexpr float kTimeLimitSeconds = 180.0f;
+	inline float kTimeLimitSeconds = 180.0f;
+
+
+	inline void SetQuota(int quota) {
+		kQuota = quota;
+	}
+
+	inline void SetTimeLimitSeconds(float seconds) {
+		kTimeLimitSeconds = seconds;
+	}
 
 	// Remaining time (seconds)
 	inline float gTimeRemaining = kTimeLimitSeconds;

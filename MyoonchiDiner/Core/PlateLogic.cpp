@@ -9,7 +9,7 @@
 					dish-recipe matching, storing ingredient types, and determining
 					the final dish output (VegDish, MeatDish, SoupDish, etc.).
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -22,8 +22,10 @@ static const char* GetDishTexturePath(DishType t) {
 	case DishType::VegDish:  return "../assets/Salad.png";
 	case DishType::MeatDish: return "../assets/Meat.png";
 	case DishType::SoupDish: return "../assets/Soup.png";
+	case DishType::SkewerDish: return "../assets/Food_Meat_n_carrot.png";
+	case DishType::CarrotSaladDish: return "../assets/Food_Salad_n_carrot.png";
 	case DishType::PoopDish: return "../assets/PoopDish.png";
-	default:                return "../assets/PoopDish.png";
+	default:                return "../assets/salad.png";
 	}
 }
 
@@ -42,8 +44,6 @@ void PlateLogic::ApplyDishVisual(Scene& scene) {
 	scene.SetDefaults(GetOwnerID(), d);
 }
 
-
-
 PlateLogic::PlateLogic(int ownerID) : GameObjectLogic(ownerID), dishPrepared_(false), dishType_(DishType::PoopDish), firstIngredientObjectID_(-1) // default
 {
 }
@@ -60,21 +60,17 @@ void PlateLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/)
 	// No per-frame logic needed yet.
 }
 
-void PlateLogic::OnDestroy(Scene& scene)
-{
+void PlateLogic::OnDestroy(Scene& scene) {
 	// If this plate had an attached ingredient visual, delete it too.
-	if (firstIngredientObjectID_ >= 0)
-	{
-		if (scene.GetGameObjectByID(firstIngredientObjectID_))
-		{
+	if (firstIngredientObjectID_ >= 0) {
+		if (scene.GetGameObjectByID(firstIngredientObjectID_)) {
 			scene.DespawnByID(firstIngredientObjectID_);
 		}
 		firstIngredientObjectID_ = -1;
 	}
 }
 
-bool PlateLogic::CanAcceptIngredientType(IngredientType type) const
-{
+bool PlateLogic::CanAcceptIngredientType(IngredientType type) const {
 	if (dishPrepared_)
 		return false;
 
@@ -83,6 +79,7 @@ bool PlateLogic::CanAcceptIngredientType(IngredientType type) const
 	case IngredientType::Refined_Veg:
 	case IngredientType::Refined_Meat:
 	case IngredientType::Refined_Shroom:
+	case IngredientType::Refined_Carrot:
 		break;
 	default:
 		return false;
@@ -151,6 +148,8 @@ DishType PlateLogic::ComputeDishFromPair(IngredientType a, IngredientType b) con
 	const bool bVeg = (b == IngredientType::Refined_Veg);
 	const bool aShroom = (a == IngredientType::Refined_Shroom);
 	const bool bShroom = (b == IngredientType::Refined_Shroom);
+	const bool aCarrot = (a == IngredientType::Refined_Carrot);
+	const bool bCarrot = (b == IngredientType::Refined_Carrot);
 
 	// Meat + Veg (any order) => MeatDish
 	if ((aMeat && bVeg) || (aVeg && bMeat)) {
@@ -165,6 +164,16 @@ DishType PlateLogic::ComputeDishFromPair(IngredientType a, IngredientType b) con
 	// Veg + Veg => VegDish
 	if ((aVeg && bVeg)) {
 		return DishType::VegDish;
+	}
+
+	// Meat + Carrot (any order) => SkewerDish
+	if ((aMeat && bCarrot) || (aCarrot && bMeat)) {
+		return DishType::SkewerDish;
+	}
+
+	// Veg + Carrot (any order) => CarrotSaladDish
+	if ((aVeg && bCarrot) || (aCarrot && bVeg)) {
+		return DishType::CarrotSaladDish;
 	}
 
 	// Anything else => PoopDish
@@ -190,4 +199,3 @@ bool PlateLogic::TryAddIngredient(const IngredientLogic& ingredient, bool& outCo
 	// We keep the GameObject alive; visual + destruction are handled elsewhere.
 	return true;
 }
-
