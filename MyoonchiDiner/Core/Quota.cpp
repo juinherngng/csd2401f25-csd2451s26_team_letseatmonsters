@@ -168,10 +168,14 @@ namespace Economy {
 			return;
 		}
 
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
+		const char* nextScenePath = isLevel1 ? FilePaths::Levels::WIN : FilePaths::Levels::KITCHEN_02;
+
 		scene.StartCutsceneTransitionedBounded(
 			frames,
 			boundaries,
-			FilePaths::Levels::KITCHEN_02,   // load next stage after level 1 win cutscene
+			nextScenePath,
 			true,
 			2.0f,   // fadeOutSeconds - 2 second fade out for win cutscene
 			0.35f,  // fadeInSeconds
@@ -209,10 +213,14 @@ namespace Economy {
 			return;
 		}
 
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
+		const char* nextScenePath = isLevel1 ? FilePaths::Levels::LOSE : FilePaths::Levels::MAIN_MENU;
+
 		scene.StartCutsceneTransitionedBounded(
 			frames,
 			boundaries,
-			FilePaths::Levels::MAIN_MENU,
+			nextScenePath,
 			false,              // activateSimulation on main menu load
 			0.35f,
 			0.35f,
