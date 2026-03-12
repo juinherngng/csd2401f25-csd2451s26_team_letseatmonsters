@@ -95,6 +95,15 @@ void AudioManager::Update(float dt) {
 	// Update FMOD system
 	system->update();
 
+	// Stop channels that were silenced last frame — FMOD has now mixed
+	// at least one block of silence so stopping won't produce a click.
+	for (FMOD::Channel* ch : pendingStops) {
+		if (ch) {
+			ch->stop();
+		}
+	}
+	pendingStops.clear();
+
 	// Clean up finished channels
 	for (auto it = channels.begin(); it != channels.end(); ) {
 		bool playing = false;
@@ -107,6 +116,12 @@ void AudioManager::Update(float dt) {
 		else
 			++it;
 	}
+
+	// Perform deferred stop on channels
+	for (auto& channel : pendingStops) {
+		channel->stop();
+	}
+	pendingStops.clear();
 }
 
 void AudioManager::OnToggleDebugInfo(const CoreFramework::Message& msg) {
@@ -172,6 +187,11 @@ bool AudioManager::InitializeSystem() {
 void AudioManager::Shutdown() {
 	// stop all sounds and clear channels
 	StopAllSounds();
+	// Flush any deferred stops immediately since the system is shutting down
+	for (FMOD::Channel* ch : pendingStops) {
+		if (ch) ch->stop();
+	}
+	pendingStops.clear();
 	channels.clear();
 
 	// Release all loaded sounds
@@ -317,8 +337,10 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 		return;
 	}
 
+	// Always start paused so we can set volume before any audio is mixed,
+	// preventing a brief burst at default volume (FMOD best practice).
 	FMOD::Channel* channel = nullptr;
-	FMOD_RESULT result = system->playSound(sound, nullptr, paused, &channel);
+	FMOD_RESULT result = system->playSound(sound, nullptr, true, &channel);
 	CheckError(result, "playSound: " + name);
 
 	// set volume based on type, multiplied by master volume
@@ -341,6 +363,11 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 		channel->setVolume(finalVolume);
 		channels[name] = channel;
 
+		// Unpause now that volume is set, unless caller requested paused start
+		if (!paused) {
+			channel->setPaused(false);
+		}
+
 		std::cout << "[AudioManager] Playing sound '" << name << "' at volume " << finalVolume << std::endl;
 	}
 }
@@ -350,16 +377,28 @@ void AudioManager::StopSound(std::string const& name) {
 	auto it = channels.find(name);
 
 	if (it != channels.end() && it->second) {
-		it->second->stop();
+		// Silence the channel immediately and defer the actual stop to the
+		// next Update() so FMOD's mixer processes at least one silent block
+		// before the channel is destroyed — this prevents an audible click
+		// from cutting the waveform at a non-zero sample.
+		it->second->setVolume(0.0f);
+		pendingStops.push_back(it->second);
+		// Clear any pending software fade
+		activeFades.erase(name);
 		channels.erase(it);
 	}
 }
 
 void AudioManager::StopAllSounds() {
-	// Stop all channels
-	if (masterGroup)
-		masterGroup->stop();
+	// Silence all tracked channels and defer stop (same as StopSound)
+	for (auto& [name, channel] : channels) {
+		if (channel) {
+			channel->setVolume(0.0f);
+			pendingStops.push_back(channel);
+		}
+	}
 
+	activeFades.clear();
 	channels.clear();
 }
 
