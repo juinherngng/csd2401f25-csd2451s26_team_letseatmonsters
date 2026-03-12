@@ -172,7 +172,7 @@ namespace Economy {
 			frames,
 			boundaries,
 			FilePaths::Levels::KITCHEN_02,   // load next stage after level 1 win cutscene
-			false,
+			true,
 			2.0f,   // fadeOutSeconds - 2 second fade out for win cutscene
 			0.35f,  // fadeInSeconds
 			1.0f / fps,
