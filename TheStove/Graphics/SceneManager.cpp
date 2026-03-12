@@ -149,7 +149,7 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 	// Handle pending pause audio (pause channels after fade completes)
 #ifndef _DEBUG
 	if (pauseAudioPending_ && audioManager_) {
-		pauseAudioTimer_ -= frameDt;
+		pauseAudioTimer_ -= deltaTime;
 		if (pauseAudioTimer_ <= 0.0f) {
 			// Fade completed, now pause the channels to stop playback
 			if (!pauseMusicChannel_.empty()) {
