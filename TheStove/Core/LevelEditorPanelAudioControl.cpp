@@ -108,7 +108,8 @@ namespace LEPANELAUDIOCONTROL {
 		ImGui::SameLine();
 
 		// Save master volume to config file
-		if (ImGui::Button("Save to Config", ImVec2(120, 0))) {
+		const float smallButtonWidth = std::max(110.0f, ImGui::GetContentRegionAvail().x);
+		if (ImGui::Button("Save to Config", ImVec2(smallButtonWidth, 0.0f))) {
 			// Load current config, update master volume, and save
 			ConfigManager::Settings settings = ConfigManager::LoadFromAssetsOrDefaults();
 			settings.masterVolume = masterVolume;
@@ -149,9 +150,12 @@ namespace LEPANELAUDIOCONTROL {
 			ImGui::EndPopup();
 		}
 
-		// Save Volume Settings button
+		// Save Volume Settings / Reload Volumes row (auto-fit within panel)
 		ImGui::Spacing();
-		if (ImGui::Button("Save Volume Settings", ImVec2(200, 0))) {
+		const float actionSpacing = ImGui::GetStyle().ItemSpacing.x;
+		const float actionAvailWidth = ImGui::GetContentRegionAvail().x;
+		const float actionButtonWidth = std::max(120.0f, (actionAvailWidth - actionSpacing) * 0.5f);
+		if (ImGui::Button("Save Volume Settings", ImVec2(actionButtonWidth, 0.0f))) {
 			// Save the catalog with updated volume values to SOURCE directory
 			const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
 			if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
@@ -167,7 +171,7 @@ namespace LEPANELAUDIOCONTROL {
 		ImGui::SameLine();
 
 		// Reload Volumes button
-		if (ImGui::Button("Reload Volumes", ImVec2(150, 0))) {
+		if (ImGui::Button("Reload Volumes", ImVec2(actionButtonWidth, 0.0f))) {
 			// Reload catalog from file
 			const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
 			Audio::AudioCatalog::UnloadAllAudio();

@@ -117,7 +117,9 @@ namespace {
 	constexpr float kKeyboardMoveSpeed = 200.0f;
 	constexpr float kTrailJitterEpsilon = 0.25f;
 	constexpr float kFootstepInterval = 0.3f;
-	constexpr float kClickIndicatorLifetime = 0.35f;
+	constexpr float kClickIndicatorLifetime = 0.45f;
+	constexpr float kClickIndicatorBaseSize = 26.0f;
+	constexpr float kClickIndicatorPopSize = 36.0f;
 
 	// Squared distance between two points (avoids sqrt for efficiency when comparing distances)
 	float DistanceSquared(const glm::vec2& a, const glm::vec2& b) {
@@ -1100,7 +1102,7 @@ void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoi
 	}
 
 	marker->SetPosition(markerPos);
-	marker->SetScale(glm::vec3(26.0f, 26.0f, 1.0f));
+	marker->SetScale(glm::vec3(kClickIndicatorBaseSize, kClickIndicatorBaseSize, 1.0f));
 	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	clickIndicatorTimeLeft_ = kClickIndicatorLifetime;
 }
@@ -1126,8 +1128,11 @@ void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
 		return;
 	}
 
-	const float t = std::clamp(clickIndicatorTimeLeft_ / kClickIndicatorLifetime, 0.0f, 1.0f);
-	const float size = 18.0f + (1.0f - t) * 28.0f;
+	const float normalizedTimeLeft = std::clamp(clickIndicatorTimeLeft_ / kClickIndicatorLifetime, 0.0f, 1.0f);
+	const float progress = 1.0f - normalizedTimeLeft;
+
+	const float pulse = std::sin(progress * 3.14159265f); // 0 -> 1 -> 0 over the indicator lifetime
+	const float size = kClickIndicatorBaseSize + pulse * (kClickIndicatorPopSize - kClickIndicatorBaseSize);
 	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 	marker->SetScale(glm::vec3(size, size, 1.0f));
 }

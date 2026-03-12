@@ -15,12 +15,12 @@
  */
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
-#include <cmath>
 #include <unordered_map>
 
 #ifdef _DEBUG
@@ -217,17 +217,31 @@ namespace LEPANELPREFABS {
 
 		// Cache for prefab thumbnails (keyed by prefab JSON path)
 		static std::unordered_map<std::string, Texture*> sPrefabPreviewCache;
+		static bool sPrefabCompactDensity = false;
+
+		auto ShowTooltip = [](const char* text) {
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+				ImGui::SetTooltip("%s", text);
+			}
+			};
+
+		auto IconButton = [&](const char* id, const char* label, const char* tooltip) {
+			const std::string buttonLabel = std::string(label) + "##" + id;
+			const bool pressed = ImGui::Button(buttonLabel.c_str(), ImVec2(26.0f, 0.0f));
+			ShowTooltip(tooltip);
+			return pressed;
+			};
 
 		ImGui::TextUnformatted("Prefab path");
 		ImGui::SameLine();
 
-		if (ImGui::Button("Refresh##pf")) {
+		if (IconButton("refresh_pf_top", "R", "Refresh prefab index")) {
 			sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
 		}
 
 		ImGui::SameLine();
 
-		if (ImGui::Button("Import Prefab...")) {
+		if (ImGui::Button("Import Prefab")) {
 			const std::string picked =
 				OpenFileDialog("JSON files\0*.json\0All files\0*.*\0");
 
@@ -278,19 +292,60 @@ namespace LEPANELPREFABS {
 		ImGui::Spacing();
 		ImGui::SeparatorText("Prefab Library");
 
-		if (ImGui::Button("Refresh##pf_list")) {
+		if (IconButton("refresh_pf_list", "R", "Refresh prefab library")) {
 			sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
 			sPrefabPreviewCache.clear();
 		}
 
+		ImGui::SameLine();
+		if (ImGui::Checkbox("Compact##prefab", &sPrefabCompactDensity)) {
+		}
+
+		ShowTooltip("Toggle compact row density for prefab list");
+
+		static char prefabFilterBuf[128] = {};
+		static bool showOnlyMatchingPrefabs = true;
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+		ImGui::InputTextWithHint("##PrefabFilter", "Filter prefabs...", prefabFilterBuf, IM_ARRAYSIZE(prefabFilterBuf));
+		ImGui::Checkbox("Show only matching names", &showOnlyMatchingPrefabs);
+
+		const std::string prefabFilter = prefabFilterBuf;
+		const bool hasPrefabFilter = !prefabFilter.empty();
+		auto matchesPrefabFilter = [&](const std::string& value) {
+			if (!hasPrefabFilter) {
+				return true;
+			}
+
+			auto it = std::search(
+				value.begin(), value.end(),
+				prefabFilter.begin(), prefabFilter.end(),
+				[](char lhs, char rhs) {
+					return std::tolower(static_cast<unsigned char>(lhs)) ==
+						std::tolower(static_cast<unsigned char>(rhs));
+				});
+			return it != value.end();
+			};
+
 		// Scrollable area for prefab thumbnails + paths
-		ImGui::BeginChild("##PrefabList", ImVec2(0, 200.0f), true);
+		ImGui::BeginChild("##PrefabList", ImVec2(0, sPrefabCompactDensity ? 180.0f : 240.0f), true);
 
 		bool refreshPrefabs = false;
-		const float iconSize = 32.0f;
+		const float iconSize = sPrefabCompactDensity ? 22.0f : 32.0f;
+		int visiblePrefabCount = 0;
 
 		for (const auto& path : sPrefabs) {
+			const std::string displayName = fs::path(path).filename().string();
+			const bool matchesFilter = matchesPrefabFilter(path);
+			if (showOnlyMatchingPrefabs && !matchesFilter) {
+				continue;
+			}
+
+			++visiblePrefabCount;
+
 			ImGui::PushID(path.c_str());
+			if (hasPrefabFilter && !matchesFilter) {
+				ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.45f);
+			}
 
 			// Fetch or build a thumbnail for this prefab
 			Texture* previewTex = nullptr;
@@ -320,7 +375,7 @@ namespace LEPANELPREFABS {
 
 			// Highlight currently selected prefab (the one in prefabPathBuf)
 			bool isSelected = (std::strcmp(prefabPathBuf, path.c_str()) == 0);
-			if (ImGui::Selectable(path.c_str(), isSelected,
+			if (ImGui::Selectable(displayName.c_str(), isSelected,
 				0, ImVec2(0.0f, iconSize))) {
 				// Clicking on list item updates the active prefab path
 				std::snprintf(prefabPathBuf,
@@ -329,6 +384,12 @@ namespace LEPANELPREFABS {
 			}
 
 			// Drag source: other panels can accept "PREFAB_PATH"
+			ImGui::SameLine();
+			ImGui::TextDisabled("[.json]");
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+				ImGui::SetTooltip("%s", path.c_str());
+			}
+
 			if (ImGui::BeginDragDropSource()) {
 				ImGui::SetDragDropPayload("PREFAB_PATH",
 					path.c_str(),
@@ -347,10 +408,19 @@ namespace LEPANELPREFABS {
 						sPrefabPreviewCache.erase(path);
 					}
 				}
+
 				ImGui::EndPopup();
 			}
 
+			if (hasPrefabFilter && !matchesFilter) {
+				ImGui::PopStyleVar();
+			}
+
 			ImGui::PopID();
+		}
+
+		if (visiblePrefabCount == 0) {
+			ImGui::TextDisabled("No prefabs match filter.");
 		}
 
 		if (refreshPrefabs) {
@@ -365,12 +435,22 @@ namespace LEPANELPREFABS {
 		ImGui::Separator();
 		ImGui::Spacing();
 
+		auto ShowButtonTooltip = [](const char* message) {
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+				ImGui::BeginTooltip();
+				ImGui::PushTextWrapPos(ImGui::GetFontSize() * 28.0f);
+				ImGui::TextUnformatted(message);
+				ImGui::PopTextWrapPos();
+				ImGui::EndTooltip();
+			}
+			};
+
 		// Save selected as prefab (disabled during Play)
 		if (editor.IsPlaying()) {
 			ImGui::BeginDisabled();
 		}
 
-		if (ImGui::Button("Save selected as prefab")) {
+		if (ImGui::Button("Save Prefab")) {
 			if (selectedObjectId >= 0) {
 				// Find the selected GameObject
 				GameObject* gSel = scene.GetGameObjectByID(selectedObjectId);
@@ -436,53 +516,15 @@ namespace LEPANELPREFABS {
 			}
 		}
 
+		ShowButtonTooltip("Overwrite/create prefab from selected object.");
+
 		if (editor.IsPlaying()) {
 			ImGui::EndDisabled();
 		}
 
-		GameObject* selectedObj = (selectedObjectId >= 0)
-			? scene.GetGameObjectByID(selectedObjectId)
-			: nullptr;
-		const bool hasSelection = (selectedObj != nullptr);
-
-		LevelObject loadedPrefab{};
-		const bool prefabLoaded = prefabExists && LoadPrefabFromFile(prefabPath, loadedPrefab);
-		const bool canUsePrefabWorkflow = hasSelection && prefabLoaded;
-
-		ImGui::BeginDisabled(!canUsePrefabWorkflow || editor.IsPlaying());
-		if (ImGui::Button("Apply to selected instance")) {
-			ApplyPrefabToObjectKeepPosition(loadedPrefab, scene, selectedObj);
-			PrefabLinkByID[selectedObjectId] = NormalizePrefabPath(prefabPath);
-		}
-
-		ImGui::SameLine();
-		if (ImGui::Button("Revert prefab from selected")) {
-			LevelObject updated = BuildPrefabFromObject(scene, selectedObj);
-			updated.prefabPath = NormalizePrefabPath(prefabPath);
-			if (SavePrefabToFile(prefabPath, updated)) {
-				PrefabLinkByID[selectedObjectId] = NormalizePrefabPath(prefabPath);
-				sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
-			}
-		}
-
-		ImGui::EndDisabled();
-
-		if (canUsePrefabWorkflow) {
-			const LevelObject live = BuildPrefabFromObject(scene, selectedObj);
-			const bool diverged = !IsPrefabEquivalent(live, loadedPrefab);
-			if (diverged) {
-				ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f),
-					"Status: Diverged from prefab defaults");
-			}
-			else {
-				ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f),
-					"Status: In sync with prefab");
-			}
-		}
-
 		// Instantiate from prefab (disabled if path not found)
 		ImGui::BeginDisabled(!prefabExists);
-		if (ImGui::Button("Instantiate from prefab")) {
+		if (ImGui::Button("Instantiate")) {
 			LevelObject data{};
 			if (LoadPrefabFromFile(prefabPath, data)) {
 				GameObject* g = nullptr;
@@ -545,45 +587,86 @@ namespace LEPANELPREFABS {
 			}
 		}
 
+		ShowButtonTooltip("Spawn a new object from selected prefab file.");
+
 		ImGui::EndDisabled(); // !prefabExists
 
-		// Propagate prefab changes to all instances linked to this prefab path
-		if (ImGui::Button("Propagate prefab changes")) {
-			if (prefabExists && selectedObjectId >= 0) {
-				GameObject* src = scene.GetGameObjectByID(selectedObjectId);
-				if (src) {
-					const std::string normalizedPrefabPath = NormalizePrefabPath(prefabPath);
+		const auto propagatePrefabChanges = [&]() {
+			if (!prefabExists || selectedObjectId < 0) {
+				return;
+			}
 
-					// Build prefab based on UPDATED editor values
-					LevelObject updated = BuildPrefabFromObject(scene, src);
-					updated.prefabPath = normalizedPrefabPath;
+			GameObject* src = scene.GetGameObjectByID(selectedObjectId);
+			if (!src) {
+				return;
+			}
 
-					// Save updated prefab JSON
-					SavePrefabToFile(prefabPath, updated);
+			const std::string normalizedPrefabPath = NormalizePrefabPath(prefabPath);
 
-					// Apply to all linked instances in currently open scene
-					std::vector<GameObject*> objs;
-					scene.CollectRenderablePointers(objs);
+			// Build prefab based on UPDATED editor values
+			LevelObject updated = BuildPrefabFromObject(scene, src);
+			updated.prefabPath = normalizedPrefabPath;
 
-					int updatedCurrentScene = 0;
-					for (auto* g : objs) {
-						if (!g) continue;
-						const int gid = g->GetID();
-						auto it = PrefabLinkByID.find(gid);
+			// Save updated prefab JSON
+			SavePrefabToFile(prefabPath, updated);
 
-						if (it != PrefabLinkByID.end() && IsSamePrefabPath(it->second, normalizedPrefabPath)) {
-							ApplyPrefabToObjectKeepPosition(updated, scene, g);
-							it->second = normalizedPrefabPath;
-							++updatedCurrentScene;
-						}
-					}
+			// Apply to all linked instances in currently open scene
+			std::vector<GameObject*> objs;
+			scene.CollectRenderablePointers(objs);
 
-					const int updatedAcrossLevels = PropagatePrefabToAllLevelFiles(normalizedPrefabPath, updated);
-					std::cout << "[Prefab] Propagated '" << normalizedPrefabPath << "' to "
-						<< updatedCurrentScene << " live objects and "
-						<< updatedAcrossLevels << " saved level objects." << std::endl;
+			int updatedCurrentScene = 0;
+			for (auto* g : objs) {
+				if (!g) continue;
+				const int gid = g->GetID();
+				auto it = PrefabLinkByID.find(gid);
+
+				if (it != PrefabLinkByID.end() && IsSamePrefabPath(it->second, normalizedPrefabPath)) {
+					ApplyPrefabToObjectKeepPosition(updated, scene, g);
+					it->second = normalizedPrefabPath;
+					++updatedCurrentScene;
 				}
 			}
+			};
+
+		// Propagate prefab changes to all instances linked to this prefab path
+		if (ImGui::Button("Propagate")) {
+			ImGui::OpenPopup("Confirm Propagate Prefab");
+		}
+
+		ShowButtonTooltip("Update all linked instances in open scene + level files.");
+
+		if (ImGui::BeginPopupModal("Confirm Propagate Prefab", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			ImGui::TextUnformatted("Apply prefab changes to all linked instances?");
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 28.0f);
+			ImGui::Text("Prefab: %s", prefabPath.c_str());
+			ImGui::PopTextWrapPos();
+			ImGui::Spacing();
+
+			GameObject* src = (selectedObjectId >= 0) ? scene.GetGameObjectByID(selectedObjectId) : nullptr;
+			const bool canPropagate = prefabExists && (src != nullptr);
+			if (!canPropagate) {
+				ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.25f, 1.0f),
+					"Select a valid object and prefab path before propagating.");
+				ImGui::Spacing();
+			}
+
+			ImGui::Separator();
+			if (!canPropagate) {
+				ImGui::BeginDisabled();
+			}
+			if (ImGui::Button("Propagate", ImVec2(120.0f, 0.0f))) {
+				propagatePrefabChanges();
+				ImGui::CloseCurrentPopup();
+			}
+			if (!canPropagate) {
+				ImGui::EndDisabled();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f))) {
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::EndPopup();
 		}
 
 		ImGui::End();
