@@ -407,6 +407,11 @@ void GraphicsEngine::LoadDefaultResources() {
 		ResolveShaderPath("../shaders/screenfade.vert"),
 		ResolveShaderPath("../shaders/screenfade.frag"));
 
+	// Outline-only shader (uses sprite alpha, ignores sprite RGB)
+	resourceManager.LoadShader("hover_outline",
+		ResolveShaderPath("../shaders/staticsprite.vert"),
+		ResolveShaderPath("../shaders/hover_outline.frag"));
+
 	// Load triangle mesh
 	std::vector<float> vertices;
 	GLsizei vertexCount, vertexSize;

@@ -24,6 +24,7 @@
 #include "Core/TrashCanLogic.hpp"
 #include "Core/WorkTableLogic.hpp"
 #include "Graphics/SceneManager.hpp"
+#include "Graphics/ResourceManager.hpp"
 
 #include "CustomerOrderUILogic.hpp"
 #include "PlayerLogic.hpp"
@@ -204,6 +205,7 @@ void PlayerLogic::Start(Scene& scene) {
 	hasLastDragWorld_ = false;
 	dragRetargetTimer_ = 0.0f;
 	highlightedInteractableIDs_.clear();
+	hoverOutlineIDs_.clear();
 	clickIndicatorID_ = -1;
 	clickIndicatorTimeLeft_ = 0.0f;
 
@@ -1045,16 +1047,14 @@ void PlayerLogic::UpdateInteractableVisualCues(Scene& scene, InputManager& input
 		}
 
 		nextHighlighted.insert(id);
-		obj->SetColorTint(glm::vec4(1.22f, 1.22f, 0.74f, 1.0f));
+		EnsureHoverOutline(scene, obj, id);
 	}
 
 	for (int id : highlightedInteractableIDs_) {
 		if (nextHighlighted.find(id) != nextHighlighted.end()) {
 			continue;
 		}
-		if (GameObject* obj = scene.GetGameObjectByID(id)) {
-			obj->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-		}
+		RemoveHoverOutline(scene, id);
 	}
 
 	highlightedInteractableIDs_ = std::move(nextHighlighted);
@@ -1141,6 +1141,7 @@ void PlayerLogic::ClearInteractableVisualCues(Scene& scene) {
 	}
 
 	highlightedInteractableIDs_.clear();
+	ClearHoverOutlines(scene);
 }
 
 // Handle interaction logic when clicking on a table-like object
@@ -1640,4 +1641,166 @@ std::string PlayerLogic::GetChildLayerAbove(const std::string& baseLayer) const
 	}
 
 	return std::to_string(value + 1);
+}
+
+namespace {
+	constexpr float kHoverOutlineOffset = 2.5f;
+
+	// Draw above nearby interactables on the same layer
+	constexpr int kHoverOutlineSortOrder = 200;
+	constexpr int kHoverOutlineMaskSortOrder = 201;
+
+	const glm::vec4 kHoverOutlineTint(0.0f, 1.0f, 1.0f, 0.92f);
+}
+
+void PlayerLogic::EnsureHoverOutline(Scene& scene, GameObject* sourceObj, int sourceID) {
+	if (!sourceObj || sourceID < 0) {
+		return;
+	}
+
+	const std::string texturePath = scene.GetObjectTexturePath(sourceID);
+	if (texturePath.empty()) {
+		return;
+	}
+
+	// Put outline on same layer as source, so table contents/VFX can appear over it.
+	const std::string outlineLayer = scene.GetObjectLayer(sourceID);
+
+	auto it = hoverOutlineIDs_.find(sourceID);
+	if (it == hoverOutlineIDs_.end()) {
+		std::array<int, 5> outlineIDs{ -1, -1, -1, -1, -1 };
+		const glm::vec3 srcPos = sourceObj->GetPositionGLM();
+		const glm::vec3 srcScale = sourceObj->GetScaleGLM();
+
+		const std::array<glm::vec2, 4> offsets{
+			glm::vec2(-kHoverOutlineOffset, 0.0f),
+			glm::vec2( kHoverOutlineOffset, 0.0f),
+			glm::vec2(0.0f, -kHoverOutlineOffset),
+			glm::vec2(0.0f,  kHoverOutlineOffset)
+		};
+
+		// Cyan edge copies
+		for (std::size_t i = 0; i < offsets.size(); ++i) {
+			const glm::vec2& offset = offsets[i];
+			const glm::vec3 outlinePos(srcPos.x + offset.x, srcPos.y + offset.y, srcPos.z);
+
+			GameObject* outline = scene.SpawnStaticSprite(
+				texturePath,
+				outlinePos,
+				glm::vec2(std::abs(srcScale.x), std::abs(srcScale.y)),
+				outlineLayer
+			);
+
+			if (!outline) {
+				continue;
+			}
+
+			outline->SetColorTint(kHoverOutlineTint);
+			outline->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+			outline->SetMovableByPhysics(false);
+			outline->EnableShadow(false);
+			outline->SetRenderSortOrder(kHoverOutlineSortOrder);
+			outline->SetRotation(sourceObj->GetRotation(), glm::vec3(0.0f, 0.0f, 1.0f));
+
+			if (Shader* outlineShader = ResourceManager::Instance().GetShader("hover_outline")) {
+				outline->SetShader(outlineShader);
+			}
+
+			outlineIDs[i] = outline->GetID();
+		}
+
+		// Center mask copy (restores interior, leaving only cyan border visible)
+		GameObject* mask = scene.SpawnStaticSprite(
+			texturePath,
+			srcPos,
+			glm::vec2(std::abs(srcScale.x), std::abs(srcScale.y)),
+			outlineLayer
+		);
+
+		if (mask) {
+			mask->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+			mask->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+			mask->SetMovableByPhysics(false);
+			mask->EnableShadow(false);
+			mask->SetRenderSortOrder(kHoverOutlineMaskSortOrder);
+			mask->SetRotation(sourceObj->GetRotation(), glm::vec3(0.0f, 0.0f, 1.0f));
+			outlineIDs[4] = mask->GetID();
+		}
+
+		hoverOutlineIDs_[sourceID] = outlineIDs;
+		it = hoverOutlineIDs_.find(sourceID);
+	}
+
+	// Keep overlay synced with source transform.
+	const glm::vec3 srcPos = sourceObj->GetPositionGLM();
+	const glm::vec3 srcScale = sourceObj->GetScaleGLM();
+	const float srcRot = sourceObj->GetRotation();
+
+	const std::array<glm::vec2, 4> offsets{
+		glm::vec2(-kHoverOutlineOffset, 0.0f),
+		glm::vec2( kHoverOutlineOffset, 0.0f),
+		glm::vec2(0.0f, -kHoverOutlineOffset),
+		glm::vec2(0.0f,  kHoverOutlineOffset)
+	};
+
+	for (std::size_t i = 0; i < 4; ++i) {
+		const int id = it->second[i];
+		if (id < 0) {
+			continue;
+		}
+
+		GameObject* outline = scene.GetGameObjectByID(id);
+		if (!outline) {
+			continue;
+		}
+
+		const glm::vec2& offset = offsets[i];
+		outline->SetPosition(glm::vec3(srcPos.x + offset.x, srcPos.y + offset.y, srcPos.z));
+		outline->SetScale(glm::vec3(std::abs(srcScale.x), std::abs(srcScale.y), 1.0f));
+		outline->SetRotation(srcRot, glm::vec3(0.0f, 0.0f, 1.0f));
+		outline->SetColorTint(kHoverOutlineTint);
+		outline->SetRenderSortOrder(kHoverOutlineSortOrder);
+		scene.AssignObjectToLayer(id, outlineLayer);
+	}
+
+	// Sync mask
+	const int maskID = it->second[4];
+	if (maskID >= 0) {
+		if (GameObject* mask = scene.GetGameObjectByID(maskID)) {
+			mask->SetPosition(srcPos);
+			mask->SetScale(glm::vec3(std::abs(srcScale.x), std::abs(srcScale.y), 1.0f));
+			mask->SetRotation(srcRot, glm::vec3(0.0f, 0.0f, 1.0f));
+			mask->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+			mask->SetRenderSortOrder(kHoverOutlineMaskSortOrder);
+			scene.AssignObjectToLayer(maskID, outlineLayer);
+		}
+	}
+}
+
+void PlayerLogic::RemoveHoverOutline(Scene& scene, int sourceID) {
+	auto it = hoverOutlineIDs_.find(sourceID);
+	if (it == hoverOutlineIDs_.end()) {
+		return;
+	}
+
+	for (int outlineID : it->second) {
+		if (outlineID >= 0 && scene.GetGameObjectByID(outlineID)) {
+			scene.DespawnByID(outlineID);
+		}
+	}
+
+	hoverOutlineIDs_.erase(it);
+}
+
+void PlayerLogic::ClearHoverOutlines(Scene& scene) {
+	for (auto& [sourceID, outlineIDs] : hoverOutlineIDs_) {
+		(void)sourceID;
+		for (int outlineID : outlineIDs) {
+			if (outlineID >= 0 && scene.GetGameObjectByID(outlineID)) {
+				scene.DespawnByID(outlineID);
+			}
+		}
+	}
+
+	hoverOutlineIDs_.clear();
 }

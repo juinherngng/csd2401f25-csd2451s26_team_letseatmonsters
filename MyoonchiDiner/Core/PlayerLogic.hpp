@@ -19,10 +19,12 @@
 
 #include "Math.hpp"
 
+#include <array>
 #include <glm/glm.hpp>
+#include <unordered_map>
 #include <unordered_set>
 
- // Forward declarations to avoid circular dependencies
+// Forward declarations to avoid circular dependencies
 class PlayerLogic : public GameObjectLogic {
 public:
 	// Inherit constructor from GameObjectLogic
@@ -138,6 +140,11 @@ private:
 	bool IsInTableInteractionRange(Scene& scene, int tableObjectID);
 	void CancelQueuedTableMove(Scene& scene);
 
+	// Hover outline helpers
+	void EnsureHoverOutline(Scene& scene, GameObject* sourceObj, int sourceID);
+	void RemoveHoverOutline(Scene& scene, int sourceID);
+	void ClearHoverOutlines(Scene& scene);
+
 	// Particle footsteps
 	float footstepDistanceAcc_ = 0.0f;
 	bool wasMoving_ = false;
@@ -149,6 +156,10 @@ private:
 	bool hasLastDragWorld_ = false;
 	float dragRetargetTimer_ = 0.0f;
 	std::unordered_set<int> highlightedInteractableIDs_;
+
+	// Hover outline state: source object ID -> 5 overlay sprite IDs
+	// [0..3] = cyan offsets (left/right/up/down), [4] = center mask
+	std::unordered_map<int, std::array<int, 5>> hoverOutlineIDs_;
 
 	// Click indicator state
 	int clickIndicatorID_ = -1;
