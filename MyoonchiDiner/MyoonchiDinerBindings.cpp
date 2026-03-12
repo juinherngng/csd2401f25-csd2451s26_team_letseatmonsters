@@ -272,7 +272,7 @@ namespace {
 	/************************************************************************/
 	/*!
 	\brief
-		Cutscene pre-final-load hook. Cleans up all cutscene audio by stopping 
+		Cutscene pre-final-load hook. Cleans up all cutscene audio by stopping
 		or fading them out before the target level is loaded.
 	\param scene       The active Scene.
 	\param outSeconds  Fade-out duration in seconds for lingering channels.
@@ -466,8 +466,7 @@ namespace {
 
 		LogicManager& logicMgr = scene.GetLogicManager();
 
-		for (GameObject* obj : scene.GetAllObjectsRaw())
-		{
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
 			if (!obj) continue;
 			if (obj->GetID() == moverObjectID) continue;
 
@@ -509,12 +508,12 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		};
 	scene.SetCustomerUpdateHook([customerManager](float dt, Scene& s) {
 		customerManager->Update(dt, s);
-	});
+		});
 	scene.SetCustomerResetHook([customerManager, applyLevelGameplayTuning](Scene& s) {
 		customerManager->Reset();
 		applyLevelGameplayTuning(s);
 		Economy::Reset();
-	});
+		});
 	scene.SetRuntimeObjectSetupHook(ApplyRuntimeObjectSetup);
 	scene.SetTagRuleHook(ApplyTagRules);
 
@@ -561,10 +560,10 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		(void)s;
 		(void)outSeconds;
 #endif
-	});
+		});
 
 	// Tag velocity hook: tells engine which tags use authored velocity
 	scene.SetTagUsesVelocityHook([](const std::string& tag) {
 		return (tag == "npc1" || tag == "npc2" || tag == "dino");
-	});
+		});
 }

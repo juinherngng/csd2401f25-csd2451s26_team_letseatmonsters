@@ -9,7 +9,7 @@
 					dish-recipe matching, storing ingredient types, and determining
 					the final dish output (VegDish, MeatDish, SoupDish, etc.).
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -44,8 +44,6 @@ void PlateLogic::ApplyDishVisual(Scene& scene) {
 	scene.SetDefaults(GetOwnerID(), d);
 }
 
-
-
 PlateLogic::PlateLogic(int ownerID) : GameObjectLogic(ownerID), dishPrepared_(false), dishType_(DishType::PoopDish), firstIngredientObjectID_(-1) // default
 {
 }
@@ -62,21 +60,17 @@ void PlateLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/)
 	// No per-frame logic needed yet.
 }
 
-void PlateLogic::OnDestroy(Scene& scene)
-{
+void PlateLogic::OnDestroy(Scene& scene) {
 	// If this plate had an attached ingredient visual, delete it too.
-	if (firstIngredientObjectID_ >= 0)
-	{
-		if (scene.GetGameObjectByID(firstIngredientObjectID_))
-		{
+	if (firstIngredientObjectID_ >= 0) {
+		if (scene.GetGameObjectByID(firstIngredientObjectID_)) {
 			scene.DespawnByID(firstIngredientObjectID_);
 		}
 		firstIngredientObjectID_ = -1;
 	}
 }
 
-bool PlateLogic::CanAcceptIngredientType(IngredientType type) const
-{
+bool PlateLogic::CanAcceptIngredientType(IngredientType type) const {
 	if (dishPrepared_)
 		return false;
 
@@ -205,4 +199,3 @@ bool PlateLogic::TryAddIngredient(const IngredientLogic& ingredient, bool& outCo
 	// We keep the GameObject alive; visual + destruction are handled elsewhere.
 	return true;
 }
-

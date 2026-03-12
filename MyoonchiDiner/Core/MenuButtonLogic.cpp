@@ -5,23 +5,22 @@
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (95%)
  CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
- DESCRIPTION:		 Implements MenuButtonLogic::Update for release builds only, handling mouse click registering logic
-					 against button AABB, hover texture transitions using ResourceManager, and triggering a cutscene
-					 followed by JSON level load after left-click.
+ DESCRIPTION:		Implements MenuButtonLogic::Update for release builds only, handling mouse click registering logic
+					against button AABB, hover texture transitions using ResourceManager, and triggering a cutscene
+					followed by JSON level load after left-click.
 
 		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "Graphics/GraphicsEngine.hpp"
-#include "Graphics/ResourceManager.hpp"
-#include "Graphics/SceneManager.hpp"
+#include "../GamePaths.hpp"
 
 #include "AudioManager.hpp"
 #include "FilePaths.hpp"
+#include "Graphics/GraphicsEngine.hpp"
+#include "Graphics/ResourceManager.hpp"
+#include "Graphics/SceneManager.hpp"
 #include "MenuButtonLogic.hpp"
-
-#include "../GamePaths.hpp"
 
 #include <array>
 #include <cmath>

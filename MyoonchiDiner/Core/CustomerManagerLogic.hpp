@@ -9,7 +9,7 @@
 					seating targets, and maintaining runtime customer�table
 					relationships.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -26,7 +26,6 @@ class Scene;
  *  - Pairs them 1:1 in order, calls SeatCustomer() on the table,
  *    and SetCustomerTableTarget() on the NPC so they walk to the seat.
  */
-
 class Scene;
 
 class CustomerManagerSystem {
@@ -61,9 +60,9 @@ public:
 		spawnCooldown_ = seconds;
 	}
 private:
-    int maxCustomers_ = 4;				// hard cap on simultaneous customers; set by level design or difficulty settings
-    float spawnCooldown_ = 10.0f;       // small delay between spawns
-    float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
+	int maxCustomers_ = 4;				// hard cap on simultaneous customers; set by level design or difficulty settings
+	float spawnCooldown_ = 10.0f;       // small delay between spawns
+	float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
 
 	std::vector<int> activeCustomers_;  // ids of customers alive
 	std::vector<int> customerTableIDs_; // ids of customer tables we discovered
