@@ -552,9 +552,13 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 			// OnCutsceneBeforeFinalLoad hard-stopping the channel mid-fade.
 			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
 
-			// Play skip cutscene SFX
+			// Play skip cutscene SFX at the listener position (screen center)
+			// so the 3D-loaded sound is heard at full volume
 			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE)) {
-				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE, audioManager->GetVfxVolume(), false);
+				float cx = static_cast<float>(GraphicsEngine::kRefW) * 0.5f;
+				float cy = static_cast<float>(GraphicsEngine::kRefH) * 0.5f;
+				audioManager->PlaySound3D(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE,
+					cx, cy, 0.0f, audioManager->GetVfxVolume());
 			}
 		}
 #else
