@@ -67,6 +67,7 @@ InputManager* InputManager::sActive = nullptr;
 InputManager::InputManager() {
 	sActive = this;
 }
+
 InputManager& InputManager::Get() {
 	static InputManager fallback;
 	return sActive ? *sActive : fallback;
@@ -76,6 +77,7 @@ InputManager& InputManager::Get() {
 void InputManager::Initialize() {
 	// Nothing to initialize - window will be set externally
 }
+
 void InputManager::Update(float dt) {
 	(void)dt; // Suppress unused parameter warning	
 
@@ -160,6 +162,7 @@ void InputManager::ClearState() {
 bool InputManager::IsKeyPressed(int key) const {
 	return GetButtonState(mCurrentKeyStates, key);
 }
+
 bool InputManager::IsKeyJustPressed(int key) {
 	const bool curr = GetButtonState(mCurrentKeyStates, key);
 	const bool prev = GetButtonState(mPreviousKeyStates, key);
@@ -176,6 +179,7 @@ bool InputManager::IsKeyJustPressed(int key) {
 bool InputManager::IsMouseButtonPressed(int button) const {
 	return GetButtonState(mMouseButtons, button);
 }
+
 bool InputManager::IsMouseButtonJustPressed(int button) {
 	const bool curr = GetButtonState(mMouseButtons, button);
 	const bool prev = GetButtonState(mPrevMouseButtons, button);
@@ -188,12 +192,14 @@ bool InputManager::IsMouseButtonJustPressed(int button) {
 
 	return justPressed;
 }
+
 bool InputManager::IsMouseButtonJustReleased(int button) const {
 	const bool curr = GetButtonState(mMouseButtons, button);
 	const bool prev = GetButtonState(mPrevMouseButtons, button);
 
 	return !curr && prev;
 }
+
 glm::dvec2 InputManager::GetMousePosition() const {
 	return mMousePos;
 }
@@ -218,14 +224,36 @@ glm::vec3 InputManager::ScreenToWorld(float mouseX, float mouseY) const {
 
 	return glm::vec3(world.x, world.y, world.z);
 }
+
 void InputManager::ConsumeNextMousePress(int button) {
+	const bool curr = GetButtonState(mMouseButtons, button);
+	const bool prev = GetButtonState(mPrevMouseButtons, button);
+
+	// If the edge happened this frame, consume it immediately so later
+	// systems in the same frame do not see the click.
+	if (curr && !prev) {
+		mPrevMouseButtons[button] = true;
+		return;
+	}
+
 	mConsumeNextMousePress.insert(button);
 }
+
 void InputManager::ClearMouseConsume(int button) {
 	mConsumeNextMousePress.erase(button);
 }
 
 void InputManager::ConsumeNextKeyPress(int key) {
+	const bool curr = GetButtonState(mCurrentKeyStates, key);
+	const bool prev = GetButtonState(mPreviousKeyStates, key);
+
+	// If the edge happened this frame, consume it immediately so later
+	// systems in the same frame do not see the key press.
+	if (curr && !prev) {
+		mPreviousKeyStates[key] = true;
+		return;
+	}
+
 	mConsumeNextKeyPress.insert(key);
 }
 
