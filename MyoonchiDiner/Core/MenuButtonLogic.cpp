@@ -192,6 +192,11 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		if (audioManager_) {
 			audioManager_->PlayUIClickSound();
 
+			// Play the start button SFX
+			if (audioManager_->HasSound("sfx_start_button")) {
+				audioManager_->PlaySound("sfx_start_button", audioManager_->GetVfxVolume(), false);
+			}
+
 			// Fade out main menu BGM during the fade-to-black transition
 			const float menuBgmFadeDuration = 0.35f; // Match the visual fade-out duration
 			audioManager_->FadeChannel("bgm_MyoonchiDiner_MainMenu", 0.0f, menuBgmFadeDuration);
