@@ -71,6 +71,7 @@ void CustomerManagerSystem::Reset() {
 	nextEntryIndex_ = 0;
 	cachedEntries_ = false;
 	spawnTimer_ = 180.0f;
+	totalSpawned_ = 0;
 }
 
 void CustomerManagerSystem::CacheTables(Scene& scene) {
@@ -155,6 +156,10 @@ void CustomerManagerSystem::CleanupDeadCustomers(Scene& scene) {
 bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	if (customerTemplateID_ < 0)
 		return false;
+
+	if (totalSpawnLimit_ >= 0 && totalSpawned_ >= totalSpawnLimit_) {
+		return false;
+	}
 
 	LogicManager& logicMgr = scene.GetLogicManager();
 
@@ -271,6 +276,9 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	Math::Vector2D seatWorld = chosenTable->GetCustomerSeatWorld(scene);
 
 	if (auto* npcLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(npcID)) {
+		if (spawnWithInfinitePatience_) {
+			npcLogic->SetInfinitePatience(true);
+		}
 		npcLogic->SetCustomerTableTarget(chosenTableID, seatWorld);
 		npcLogic->SetLeaveTarget(spawn2);
 	}
@@ -278,6 +286,7 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	scene.ClampToWalkArea(npc);
 
 	activeCustomers_.push_back(npcID);
+	++totalSpawned_;
 
 	// Play customer entering sound effect (release mode only)
 #ifndef _DEBUG
@@ -309,11 +318,13 @@ void CustomerManagerSystem::Update(float dt, Scene& scene) {
 
 	spawnTimer_ += dt;
 
-	while ((int)activeCustomers_.size() < targetCount && spawnTimer_ >= spawnCooldown_) {
+	while ((int)activeCustomers_.size() < targetCount &&
+		(totalSpawnLimit_ < 0 || totalSpawned_ < totalSpawnLimit_) &&
+		spawnTimer_ >= spawnCooldown_) {
 		spawnTimer_ = 0.0f;
 
 		if (!TrySpawnOne(scene)) {
-			break; // no empty table or no template
+			break; // no empty table/template or total spawn cap reached
 		}
 	}
 }

@@ -32,6 +32,7 @@ class AudioManager; // forward-declare AudioManager
 
 namespace Framework {
 	enum GameState {
+		GS_Tutorial,
 		GS_Level1,
 		GS_Level2,
 		GS_Quit

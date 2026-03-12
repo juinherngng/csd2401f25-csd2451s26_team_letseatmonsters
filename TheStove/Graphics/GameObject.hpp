@@ -106,6 +106,9 @@ public:
 	Shader* GetShader() const {
 		return m_Shader;
 	}
+	void SetShader(Shader* shader) {
+		m_Shader = shader;
+	}
 	Mesh* GetMesh() const {
 		return m_Mesh;
 	}

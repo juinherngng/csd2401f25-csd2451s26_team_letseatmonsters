@@ -203,6 +203,15 @@ public:
 	};
 	FacingDir facingDir_ = FacingDir::Front;
 
+	void SetInfinitePatience(bool enabled = true) {
+		if (enabled) {
+			patienceMax_ = 1000000.0f;
+			patienceRemaining_ = patienceMax_;
+			patienceExpired_ = false;
+			payZero_ = false;
+		}
+	}
+
 private:
 	// Internal movement state for simple up/down patrol when not doing customer behaviour.
 	enum class State {
