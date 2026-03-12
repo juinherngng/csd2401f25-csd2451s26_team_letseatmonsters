@@ -15,6 +15,7 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "Core/AudioManager.hpp"
 #include "Core/LogicManager.hpp"   
 #include "Core/Quota.hpp"
 #include "Core/SimpleNpcLogic.hpp" 
@@ -139,10 +140,15 @@ void CustomerTableLogic::OnItemTaken(Scene& /*scene*/, GameObject& /*item*/) {
 }
 
 void CustomerTableLogic::OnDishServed(Scene& scene, GameObject& dish) {
-	if (!HasSeatedCustomer()) return;
+if (!HasSeatedCustomer()) return;
 
-	servedFoodLocked_ = true;
-	servedFoodItemID_ = dish.GetID();
+// Play serve dish sound effect
+if (AudioManager* audioMgr = scene.GetAudioManager()) {
+audioMgr->PlaySound("sfx_serve_dish", audioMgr->GetVfxVolume());
+}
+
+servedFoodLocked_ = true;
+servedFoodItemID_ = dish.GetID();
 
 	LogicManager& logicMgr = scene.GetLogicManager();
 
