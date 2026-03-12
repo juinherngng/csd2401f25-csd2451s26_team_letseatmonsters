@@ -375,6 +375,9 @@ void Scene::DrawUI() {
 
 // Render text objects that are part of the level
 void Scene::ClearAll() {
+	// Stop all object-bound audio before tearing down the scene
+	StopAllObjectAudio();
+
 	// Clear scripts first so they no longer reference objects
 	logicManager.Clear(*this);
 	entityManager.Clear();
