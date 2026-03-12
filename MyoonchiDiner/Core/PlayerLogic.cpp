@@ -438,9 +438,13 @@ void PlayerLogic::EnterPauseState(Scene& scene) {
 
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) {
 	if (suppressMouseUntilRelease_) {
-		if (!input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+		const bool lmbHeld = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
+		const bool lmbJustPressed = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
+
+		if (!lmbHeld && !lmbJustPressed) {
 			suppressMouseUntilRelease_ = false;
 		}
+
 		ResetMouseDragState();
 		return;
 	}
@@ -1008,11 +1012,13 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	}
 
 	if (suppressMouseUntilRelease_) {
-		if (input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+		if (input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT) ||
+			input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 			return;
 		}
 
 		suppressMouseUntilRelease_ = false;
+		return;
 	}
 
 	// Debug shortcut: instantly trigger the win condition so we can quickly
