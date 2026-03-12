@@ -22,7 +22,7 @@
 #include "MyoonchiDinerBindings.hpp"
 
 #include "Core/AudioManager.hpp"
-#include "Core/HowToPlayButtonLogic.hpp"
+#include "Core/HowtoPlayButtonLogic.hpp"
 #include "Core/IngredientBoxLogic.hpp"
 #include "Core/MenuButtonLogic.hpp"
 #include "Core/OrderUILogic.hpp"
@@ -37,7 +37,11 @@
 #include "Core/SimpleNpcLogic.hpp"
 #include "Core/Quota.hpp"
 #include "Core/StartGamePromptLogic.hpp"
+#include "Core/IngredientLogic.hpp"
+#include "Core/PlateLogic.hpp"
 #include "Graphics/SceneManager.hpp"
+#include "Graphics/ResourceManager.hpp"
+#include "Core/LevelEditorPanelFonts.hpp"
 
 
 #include "GamePaths.hpp"
@@ -48,12 +52,241 @@
 #include <unordered_map>
 
 namespace {
+
+	static int FindFirstByTagAndTexture(Scene& scene, const std::string& tag, const char* texContains) {
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
+			const int id = obj->GetID();
+			if (scene.GetObjectTag(id) != tag) continue;
+
+			const std::string& tex = scene.GetObjectTexturePath(id);
+			if (texContains && tex.find(texContains) == std::string::npos) continue;
+			return id;
+		}
+		return -1;
+	}
+
+	static std::optional<DishType> TryGetCurrentOrderDish(Scene& scene) {
+		LogicManager& logic = scene.GetLogicManager();
+
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
+
+			auto* table = logic.GetLogicForObject<CustomerTableLogic>(obj->GetID());
+			if (!table || !table->HasSeatedCustomer()) continue;
+
+			const int customerId = table->GetSeatedCustomerID();
+			auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
+			if (!npc) continue;
+
+			if (npc->IsWaitingForFood() && npc->HasOrderBeenTaken() && !npc->HasDishServed()) {
+				return npc->GetDesiredDishType();
+			}
+		}
+		return std::nullopt;
+	}
+
+	static bool IsHeldItemPlate(Scene& scene, LogicManager& logic, int heldItemID) {
+			if (heldItemID < 0) return false;
+
+			// Primary check
+			if (logic.GetLogicForObject<PlateLogic>(heldItemID) != nullptr) {
+				return true;
+			}
+
+			// Fallback by texture path
+			const std::string& tex = scene.GetObjectTexturePath(heldItemID);
+			return (tex.find("plate") != std::string::npos || tex.find("Plate") != std::string::npos);
+		}
+
+	static int FindFirstTableHoldingAnyPlate(Scene& scene) {
+			LogicManager& logic = scene.GetLogicManager();
+
+			for (GameObject* obj : scene.GetAllObjectsRaw()) {
+				if (!obj) continue;
+
+				TableLogic* table = logic.GetLogicForObject<TableLogic>(obj->GetID());
+				if (!table || !table->HasItem()) continue;
+
+				if (IsHeldItemPlate(scene, logic, table->GetHeldItemID())) {
+					return obj->GetID();
+				}
+			}
+
+			return -1;
+	}
+
+	static std::vector<int> FindAllEmptyTables(Scene& scene) {
+		LogicManager& logic = scene.GetLogicManager();
+		std::vector<int> ids;
+
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
+
+			const int id = obj->GetID();
+			if (scene.GetObjectTag(id) != "table") continue;
+
+			TableLogic* table = logic.GetLogicForObject<TableLogic>(id);
+			if (!table) continue;
+			if (table->HasItem()) continue;
+
+			ids.push_back(id);
+		}
+
+		return ids;
+	}
+
+	static bool HasAnySeatedCustomer(Scene& scene) {
+		LogicManager& logic = scene.GetLogicManager();
+
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
+
+			auto* table = logic.GetLogicForObject<CustomerTableLogic>(obj->GetID());
+			if (table && table->HasSeatedCustomer()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	static bool HasActiveOrderUi(Scene& scene) {
+		// Reuse your existing criteria for "customer order is active / visible"
+		return TryGetCurrentOrderDish(scene).has_value();
+	}
+
+	static bool IsTutorialLevelLoaded() {
+		for (const auto& textObj : LEPANELFONTS::GetTextObjects()) {
+			if (textObj.name == "TutorialText") {
+				return true;
+			}
+		}
+		return false;
+	}
+
+
+	static const char* IngredientBoxTokenForDish(DishType d) {
+		switch (d) {
+		case DishType::VegDish:  return "VegIngredientBox";
+		case DishType::MeatDish: return "MeatIngredientBox";
+		case DishType::SoupDish: return "MeatIngredientBox"; // first ingredient in your recipe UI
+		default:                 return "VegIngredientBox";
+		}
+	}
+
+	static const char* StationTokenForDish(DishType d) {
+		switch (d) {
+		case DishType::VegDish:  return "Cutting_Board";
+		case DishType::MeatDish: return "Grills";
+		case DishType::SoupDish: return "Grills"; // first station in your recipe UI
+		default:                 return "Cutting_Board";
+		}
+	}
+
+	static const char* StationTokenForRawIngredient(IngredientType t) {
+		switch (t) {
+		case IngredientType::Vegetable: return "Cutting_Board";
+		case IngredientType::Meat:      return "Grills";
+		case IngredientType::Shroom:    return "Stove";
+		default:                        return nullptr;
+		}
+	}
+
+	static const char* IngredientBoxTokenForDishSecond(DishType d) {
+		switch (d) {
+		case DishType::VegDish:  return "VegIngredientBox";   // veg + veg
+		case DishType::MeatDish: return "VegIngredientBox";   // meat + veg
+		case DishType::SoupDish: return "ShroomIngredientBox"; // meat + shroom
+		default:                 return "VegIngredientBox";
+		}
+	}
+
+	static const char* StationTokenForDishSecond(DishType d) {
+		switch (d) {
+		case DishType::VegDish:  return "Cutting_Board";
+		case DishType::MeatDish: return "Cutting_Board";
+		case DishType::SoupDish: return "Stove";
+		default:                 return "Cutting_Board";
+		}
+	}
+
+	static int FindTableHoldingPlate(Scene& scene, int minIngredients, bool requireUnpreparedDish) {
+		LogicManager& logic = scene.GetLogicManager();
+
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
+
+			TableLogic* table = logic.GetLogicForObject<TableLogic>(obj->GetID());
+			if (!table || !table->HasItem()) continue;
+
+			const int held = table->GetHeldItemID();
+			PlateLogic* plate = logic.GetLogicForObject<PlateLogic>(held);
+			if (!plate) continue;
+
+			if (plate->GetIngredientCount() < minIngredients) continue;
+			if (requireUnpreparedDish && plate->HasPreparedDish()) continue;
+
+			return obj->GetID();
+		}
+
+		return -1;
+	}
+
+	static int FindFirstEmptyTable(Scene& scene) {
+		LogicManager& logic = scene.GetLogicManager();
+
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
+
+			const int id = obj->GetID();
+			if (scene.GetObjectTag(id) != "table") continue;
+
+			TableLogic* table = logic.GetLogicForObject<TableLogic>(id);
+			if (!table) continue;
+			if (table->HasItem()) continue;
+
+			return id;
+		}
+
+		return -1;
+	}
+
+	static int FindCustomerTableReadyForPayment(Scene& scene) {
+		LogicManager& logic = scene.GetLogicManager();
+
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
+
+			auto* table = logic.GetLogicForObject<CustomerTableLogic>(obj->GetID());
+			if (!table || !table->HasSeatedCustomer()) continue;
+
+			const int customerId = table->GetSeatedCustomerID();
+			auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
+			if (!npc) continue;
+
+			if (!npc->HasPaid() && (npc->IsPaying() || npc->HasFinishedEating())) {
+				return obj->GetID();
+			}
+		}
+
+		return -1;
+	}
+}
+
+namespace {
 	enum class TutorialStep {
 		Move = 0,
-		PickIngredient,
-		ProcessIngredient,
-		PlateDish,
+		WaitForFirstCustomerOrder,
+		PickFirstIngredient,
+		ProcessFirstIngredient,
+		PlateFirstIngredient,
+		PickSecondIngredient,
+		ProcessSecondIngredient,
+		GetPlateAndPlaceOnTable,
+		CombineDishOnPlate,
 		ServeDish,
+		WaitForCustomerToFinishFood,
+		CollectMoneyFromCustomer,
 		Done
 	};
 
@@ -64,13 +297,318 @@ namespace {
 		bool moveStartCaptured = false;
 		int lastMoney = 0;
 
+		float blinkAccum_ = 0.0f;
+		bool blinkOn_ = true;
+		static constexpr float kBlinkHalfPeriod_ = 0.18f;
+
+		static constexpr float kOutlineOffset = 2.5f;
+		static constexpr int kOutlineSortOrder = 200;
+		static constexpr int kOutlineMaskSortOrder = 201;
+		const glm::vec4 kOutlineTint{ 0.0f, 1.0f, 1.0f, 0.92f };
+
+		struct OutlineSet {
+			int sourceID = -1;
+			std::array<int, 5> ids{ -1, -1, -1, -1, -1 }; // 4 cyan edges + 1 center mask
+		};
+
+		OutlineSet ingredientOutline_{};
+		OutlineSet stationOutline_{};
+		std::vector<OutlineSet> extraStationOutlines_{};
+
+		void ClearExtraStationOutlines(Scene& scene) {
+			for (auto& set : extraStationOutlines_) {
+				DespawnOutlineSet(scene, set);
+			}
+			extraStationOutlines_.clear();
+		}
+
+		void EnsureExtraStationOutlines(Scene& scene, const std::vector<int>& targetIDs) {
+			if (extraStationOutlines_.size() < targetIDs.size()) {
+				extraStationOutlines_.resize(targetIDs.size());
+			}
+
+			for (size_t i = 0; i < targetIDs.size(); ++i) {
+				EnsureOutlineTarget(scene, extraStationOutlines_[i], targetIDs[i]);
+			}
+
+			for (size_t i = targetIDs.size(); i < extraStationOutlines_.size(); ++i) {
+				DespawnOutlineSet(scene, extraStationOutlines_[i]);
+			}
+		}
+
+
+		void DespawnOutlineSet(Scene& scene, OutlineSet& set) {
+			for (int id : set.ids) {
+				if (id >= 0 && scene.GetGameObjectByID(id)) {
+					scene.DespawnByID(id);
+				}
+			}
+			set.ids = { -1, -1, -1, -1, -1 };
+			set.sourceID = -1;
+		}
+
+		void SetOutlineVisible(Scene& scene, OutlineSet& set, bool visible) {
+			const float a = visible ? kOutlineTint.a : 0.0f;
+			for (int i = 0; i < 4; ++i) {
+				const int id = set.ids[i];
+				if (id < 0) continue;
+				if (GameObject* o = scene.GetGameObjectByID(id)) {
+					o->SetColorTint(glm::vec4(kOutlineTint.r, kOutlineTint.g, kOutlineTint.b, a));
+				}
+			}
+			// mask stays opaque to preserve interior
+			if (set.ids[4] >= 0) {
+				if (GameObject* m = scene.GetGameObjectByID(set.ids[4])) {
+					m->SetColorTint(glm::vec4(1.f, 1.f, 1.f, 1.f));
+				}
+			}
+		}
+
+		void SyncOutlineSet(Scene& scene, OutlineSet& set) {
+			if (set.sourceID < 0) return;
+			GameObject* src = scene.GetGameObjectByID(set.sourceID);
+			if (!src) {
+				DespawnOutlineSet(scene, set);
+				return;
+			}
+
+			const glm::vec3 p = src->GetPositionGLM();
+			const glm::vec3 s = src->GetScaleGLM();
+			const float r = src->GetRotation();
+			const std::string layer = scene.GetObjectLayer(set.sourceID);
+
+			const std::array<glm::vec2, 4> offsets{
+				glm::vec2(-kOutlineOffset, 0.0f),
+				glm::vec2( kOutlineOffset, 0.0f),
+				glm::vec2(0.0f, -kOutlineOffset),
+				glm::vec2(0.0f,  kOutlineOffset)
+			};
+
+			for (int i = 0; i < 4; ++i) {
+				const int id = set.ids[i];
+				if (id < 0) continue;
+				if (GameObject* o = scene.GetGameObjectByID(id)) {
+					o->SetPosition(glm::vec3(p.x + offsets[i].x, p.y + offsets[i].y, p.z));
+					o->SetScale(glm::vec3(std::abs(s.x), std::abs(s.y), 1.0f));
+					o->SetRotation(r, glm::vec3(0, 0, 1));
+					o->SetRenderSortOrder(kOutlineSortOrder);
+					scene.AssignObjectToLayer(id, layer);
+				}
+			}
+
+			const int maskID = set.ids[4];
+			if (maskID >= 0) {
+				if (GameObject* m = scene.GetGameObjectByID(maskID)) {
+					m->SetPosition(p);
+					m->SetScale(glm::vec3(std::abs(s.x), std::abs(s.y), 1.0f));
+					m->SetRotation(r, glm::vec3(0, 0, 1));
+					m->SetRenderSortOrder(kOutlineMaskSortOrder);
+					scene.AssignObjectToLayer(maskID, layer);
+				}
+			}
+		}
+
+		void SpawnOutlineSet(Scene& scene, OutlineSet& set, int sourceID) {
+			DespawnOutlineSet(scene, set);
+
+			GameObject* src = scene.GetGameObjectByID(sourceID);
+			if (!src) return;
+
+			const std::string tex = scene.GetObjectTexturePath(sourceID);
+			if (tex.empty()) return;
+
+			const std::string layer = scene.GetObjectLayer(sourceID);
+			const glm::vec3 p = src->GetPositionGLM();
+			const glm::vec3 s = src->GetScaleGLM();
+			const float r = src->GetRotation();
+
+			const std::array<glm::vec2, 4> offsets{
+				glm::vec2(-kOutlineOffset, 0.0f),
+				glm::vec2( kOutlineOffset, 0.0f),
+				glm::vec2(0.0f, -kOutlineOffset),
+				glm::vec2(0.0f,  kOutlineOffset)
+			};
+
+			for (int i = 0; i < 4; ++i) {
+				GameObject* o = scene.SpawnStaticSprite(
+					tex,
+					glm::vec3(p.x + offsets[i].x, p.y + offsets[i].y, p.z),
+					glm::vec2(std::abs(s.x), std::abs(s.y)),
+					layer
+				);
+				if (!o) continue;
+
+				o->SetColorTint(kOutlineTint);
+				o->SetColliderSize(Math::Vector2D(0.f, 0.f));
+				o->SetMovableByPhysics(false);
+				o->EnableShadow(false);
+				o->SetRotation(r, glm::vec3(0, 0, 1));
+				o->SetRenderSortOrder(kOutlineSortOrder);
+
+				if (Shader* outlineShader = ResourceManager::Instance().GetShader("hover_outline")) {
+					o->SetShader(outlineShader);
+				}
+
+				set.ids[i] = o->GetID();
+			}
+
+			GameObject* m = scene.SpawnStaticSprite(
+				tex,
+				p,
+				glm::vec2(std::abs(s.x), std::abs(s.y)),
+				layer
+			);
+			if (m) {
+				m->SetColorTint(glm::vec4(1.f, 1.f, 1.f, 1.f));
+				m->SetColliderSize(Math::Vector2D(0.f, 0.f));
+				m->SetMovableByPhysics(false);
+				m->EnableShadow(false);
+				m->SetRotation(r, glm::vec3(0, 0, 1));
+				m->SetRenderSortOrder(kOutlineMaskSortOrder);
+				set.ids[4] = m->GetID();
+			}
+
+			set.sourceID = sourceID;
+		}
+
+		void EnsureOutlineTarget(Scene& scene, OutlineSet& set, int targetID) {
+			if (targetID < 0) {
+				DespawnOutlineSet(scene, set);
+				return;
+			}
+			if (set.sourceID != targetID) {
+				SpawnOutlineSet(scene, set, targetID);
+			} else {
+				SyncOutlineSet(scene, set);
+			}
+		}
+
+		void ClearHighlights(Scene& scene) {
+			DespawnOutlineSet(scene, ingredientOutline_);
+			DespawnOutlineSet(scene, stationOutline_);
+			ClearExtraStationOutlines(scene);
+			blinkAccum_ = 0.0f;
+			blinkOn_ = true;
+		}
+
+		void UpdateHighlights(Scene& scene, PlayerLogic* playerLogic, LogicManager& logic, float dt) {
+			int targetIngredientID = -1;
+			int targetStationID = -1;
+			std::vector<int> targetStationIDs;
+
+			const DishType dish = TryGetCurrentOrderDish(scene).value_or(DishType::VegDish);
+
+			if (step == TutorialStep::PickFirstIngredient) {
+				targetIngredientID = FindFirstByTagAndTexture(scene, "ingredient_box", IngredientBoxTokenForDish(dish));
+			}
+			else if (step == TutorialStep::ProcessFirstIngredient) {
+				const char* stationToken = StationTokenForDish(dish);
+				if (playerLogic && playerLogic->IsHolding()) {
+					const int heldID = playerLogic->GetCarriedItemID();
+					if (auto* ing = logic.GetLogicForObject<IngredientLogic>(heldID); ing && ing->IsRaw()) {
+						if (const char* mapped = StationTokenForRawIngredient(ing->GetType())) {
+							stationToken = mapped;
+						}
+					}
+				}
+				targetStationID = FindFirstByTagAndTexture(scene, "work_table", stationToken);
+			}
+			else if (step == TutorialStep::PlateFirstIngredient) {
+	const bool holdingPlate =
+		playerLogic && playerLogic->IsHolding() &&
+		IsHeldItemPlate(scene, logic, playerLogic->GetCarriedItemID());
+
+	if (holdingPlate) {
+		// Only after picking up plate: highlight all empty tables
+		targetIngredientID = -1;
+		targetStationID = -1;
+		targetStationIDs = FindAllEmptyTables(scene);
+	}
+	else {
+		// Before picking up plate: highlight only plate box
+		targetIngredientID = FindFirstByTagAndTexture(scene, "plate_box", nullptr);
+		targetStationID = -1;
+		targetStationIDs.clear();
+	}
+}
+else if (step == TutorialStep::PickSecondIngredient) {
+				targetIngredientID = FindFirstByTagAndTexture(scene, "ingredient_box", IngredientBoxTokenForDishSecond(dish));
+			}
+			else if (step == TutorialStep::ProcessSecondIngredient) {
+				const char* stationToken = StationTokenForDishSecond(dish);
+				if (playerLogic && playerLogic->IsHolding()) {
+					const int heldID = playerLogic->GetCarriedItemID();
+					if (auto* ing = logic.GetLogicForObject<IngredientLogic>(heldID); ing && ing->IsRaw()) {
+						if (const char* mapped = StationTokenForRawIngredient(ing->GetType())) {
+							stationToken = mapped;
+						}
+					}
+				}
+				targetStationID = FindFirstByTagAndTexture(scene, "work_table", stationToken);
+			}
+			else if (step == TutorialStep::GetPlateAndPlaceOnTable) {
+	const bool holdingPlate =
+		playerLogic && playerLogic->IsHolding() &&
+		IsHeldItemPlate(scene, logic, playerLogic->GetCarriedItemID());
+
+	if (holdingPlate) {
+		// Only after picking up plate: highlight all empty tables
+		targetIngredientID = -1;
+		targetStationID = -1;
+		targetStationIDs = FindAllEmptyTables(scene);
+	}
+	else {
+		// Before picking up plate: highlight only plate box
+		targetIngredientID = FindFirstByTagAndTexture(scene, "plate_box", nullptr);
+		targetStationID = -1;
+		targetStationIDs.clear();
+	}
+}
+else if (step == TutorialStep::CombineDishOnPlate) {
+				targetStationID = FindTableHoldingPlate(scene, 1, true); // table holding plate with first ingredient
+			}
+			else if (step == TutorialStep::CollectMoneyFromCustomer) {
+				targetStationID = FindCustomerTableReadyForPayment(scene);
+			}
+
+			EnsureOutlineTarget(scene, ingredientOutline_, targetIngredientID);
+
+			if (!targetStationIDs.empty()) {
+				EnsureOutlineTarget(scene, stationOutline_, targetStationIDs.front());
+
+				if (targetStationIDs.size() > 1) {
+					std::vector<int> extras(targetStationIDs.begin() + 1, targetStationIDs.end());
+					EnsureExtraStationOutlines(scene, extras);
+				}
+				else {
+					ClearExtraStationOutlines(scene);
+				}
+			}
+			else {
+				EnsureOutlineTarget(scene, stationOutline_, targetStationID);
+				ClearExtraStationOutlines(scene);
+			}
+
+			blinkAccum_ += dt;
+			while (blinkAccum_ >= kBlinkHalfPeriod_) {
+				blinkAccum_ -= kBlinkHalfPeriod_;
+				blinkOn_ = !blinkOn_;
+			}
+
+			SetOutlineVisible(scene, ingredientOutline_, blinkOn_);
+			SetOutlineVisible(scene, stationOutline_, blinkOn_);
+			for (auto& set : extraStationOutlines_) {
+				SetOutlineVisible(scene, set, blinkOn_);
+			}
+		}
+
 		void Reset(Scene& scene, bool enable) {
+			ClearHighlights(scene);
 			active = enable;
 			step = TutorialStep::Move;
 			moveStart = { 0.0f, 0.0f };
 			moveStartCaptured = false;
 			lastMoney = Economy::gPlayerMoney;
-
 			LEPANELFONTS::SetTextByName("TutorialText", active ? "Click anywhere to move." : "");
 		}
 
@@ -81,22 +619,19 @@ namespace {
 			LEPANELFONTS::SetTextByName("TutorialText", nextText);
 		}
 
-		void Update(Scene& scene) {
+		void Update(Scene& scene, float dt) {
 			if (!active || !scene.IsSimulationActive()) {
+				ClearHighlights(scene);
 				return;
 			}
 
 			const int playerId = scene.GetPlayerID();
 			GameObject* player = scene.GetGameObjectByID(playerId);
-			if (!player) {
-				return;
-			}
+			if (!player) return;
 
 			LogicManager& logic = scene.GetLogicManager();
 			PlayerLogic* playerLogic = logic.GetLogicForObject<PlayerLogic>(playerId);
-			if (!playerLogic) {
-				return;
-			}
+			if (!playerLogic) return;
 
 			switch (step) {
 			case TutorialStep::Move:
@@ -108,58 +643,207 @@ namespace {
 				}
 				glm::vec2 d = glm::vec2(p.x, p.y) - moveStart;
 				if (glm::dot(d, d) > (40.0f * 40.0f)) {
-					Advance("Click an ingredient box, then pick up the spawned ingredient.");
+					Advance("Wait for a customer to arrive.");
 				}
 				break;
 			}
 
-			case TutorialStep::PickIngredient:
+			case TutorialStep::WaitForFirstCustomerOrder:
+			{
+				if (!HasAnySeatedCustomer(scene)) {
+					LEPANELFONTS::SetTextByName("TutorialText", "Wait for a customer to arrive.");
+				}
+				else if (!HasActiveOrderUi(scene)) {
+					LEPANELFONTS::SetTextByName("TutorialText", "Wait for a customer to arrive.");
+				}
+				else {
+					Advance("Pick the first ingredient from the correct ingredient box as seen in the Order.");
+				}
+				break;
+			}
+
+			case TutorialStep::PickFirstIngredient:
 			{
 				if (playerLogic->IsHolding()) {
-					int heldId = playerLogic->GetCarriedItemID();
-					if (logic.GetLogicForObject<IngredientLogic>(heldId) != nullptr) {
-						Advance("Bring it to a workstation and start processing.");
+					const int heldId = playerLogic->GetCarriedItemID();
+					if (auto* ing = logic.GetLogicForObject<IngredientLogic>(heldId); ing && ing->IsRaw()) {
+						Advance("Bring it to the correct workstation as seen in the Order.");
 					}
 				}
 				break;
 			}
 
-			case TutorialStep::ProcessIngredient:
+			case TutorialStep::ProcessFirstIngredient:
 			{
+				bool startedProcessing = false;
 				for (GameObject* obj : scene.GetAllObjectsRaw()) {
 					if (!obj) continue;
 					if (auto* wt = logic.GetLogicForObject<WorkTableLogic>(obj->GetID()); wt && wt->IsProcessing()) {
-						Advance("Place refined ingredient(s) on a plate to assemble a dish.");
+						startedProcessing = true;
 						break;
+					}
+				}
+
+				bool holdingProcessed = false;
+				if (playerLogic->IsHolding()) {
+					const int heldId = playerLogic->GetCarriedItemID();
+					if (auto* ing = logic.GetLogicForObject<IngredientLogic>(heldId); ing && ing->IsProcessed()) {
+						holdingProcessed = true;
+					}
+				}
+
+				if (startedProcessing || holdingProcessed) {
+					Advance("Take a plate from the plate box, place it on an empty table.");
+				}
+				break;
+			}
+
+			case TutorialStep::PlateFirstIngredient:
+			{
+				bool firstOnPlate = false;
+				for (GameObject* obj : scene.GetAllObjectsRaw()) {
+					if (!obj) continue;
+					if (auto* plate = logic.GetLogicForObject<PlateLogic>(obj->GetID());
+						plate && plate->GetIngredientCount() >= 1 && !plate->HasPreparedDish()) {
+						firstOnPlate = true;
+						break;
+					}
+				}
+				if (FindFirstTableHoldingAnyPlate(scene) >= 0) {
+					Advance("Pick the second ingredient from the correct ingredient box as seen in the Order.");
+				}
+				break;
+			}
+
+			case TutorialStep::PickSecondIngredient:
+			{
+				if (playerLogic->IsHolding()) {
+					const int heldId = playerLogic->GetCarriedItemID();
+					if (auto* ing = logic.GetLogicForObject<IngredientLogic>(heldId); ing && ing->IsRaw()) {
+						Advance("Bring the second ingredient to its workstation.");
 					}
 				}
 				break;
 			}
 
-			case TutorialStep::PlateDish:
+			case TutorialStep::ProcessSecondIngredient:
 			{
+				bool startedProcessing = false;
+				for (GameObject* obj : scene.GetAllObjectsRaw()) {
+					if (!obj) continue;
+					if (auto* wt = logic.GetLogicForObject<WorkTableLogic>(obj->GetID()); wt && wt->IsProcessing()) {
+						startedProcessing = true;
+						break;
+					}
+				}
+
+				bool holdingProcessed = false;
+				if (playerLogic->IsHolding()) {
+					const int heldId = playerLogic->GetCarriedItemID();
+					if (auto* ing = logic.GetLogicForObject<IngredientLogic>(heldId); ing && ing->IsProcessed()) {
+						holdingProcessed = true;
+					}
+				}
+
+				if (startedProcessing || holdingProcessed) {
+					Advance("Collect a plate and place it on any empty table.");
+				}
+				break;
+			}
+
+			case TutorialStep::GetPlateAndPlaceOnTable:
+			{
+				if (FindFirstTableHoldingAnyPlate(scene) >= 0) {
+					Advance("Place both processed ingredients on the same plate to combine and make the dish.");
+				}
+				break;
+			}
+
+			case TutorialStep::CombineDishOnPlate:
+			{
+				bool dishReady = false;
 				for (GameObject* obj : scene.GetAllObjectsRaw()) {
 					if (!obj) continue;
 					if (auto* plate = logic.GetLogicForObject<PlateLogic>(obj->GetID()); plate && plate->HasPreparedDish()) {
-						Advance("Serve the dish to a customer table.");
+						dishReady = true;
 						break;
 					}
+				}
+				if (dishReady) {
+					Advance("Serve the completed dish to a customer table.");
 				}
 				break;
 			}
 
 			case TutorialStep::ServeDish:
 			{
+				bool dishServed = false;
+				for (GameObject* obj : scene.GetAllObjectsRaw()) {
+					if (!obj) continue;
+
+					auto* table = logic.GetLogicForObject<CustomerTableLogic>(obj->GetID());
+					if (!table || !table->HasSeatedCustomer()) continue;
+
+					const int customerId = table->GetSeatedCustomerID();
+					auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
+					if (!npc) continue;
+
+					if (npc->HasDishServed()) {
+						dishServed = true;
+						break;
+					}
+				}
+
+				if (dishServed) {
+					Advance("Wait for customer to finish food.");
+				}
+				break;
+			}
+
+			case TutorialStep::WaitForCustomerToFinishFood:
+			{
+				bool readyForPayment = false;
+				for (GameObject* obj : scene.GetAllObjectsRaw()) {
+					if (!obj) continue;
+
+					auto* table = logic.GetLogicForObject<CustomerTableLogic>(obj->GetID());
+					if (!table || !table->HasSeatedCustomer()) continue;
+
+					const int customerId = table->GetSeatedCustomerID();
+					auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
+					if (!npc) continue;
+
+					if (!npc->HasPaid() && (npc->IsPaying() || npc->HasFinishedEating())) {
+						readyForPayment = true;
+						break;
+					}
+				}
+
+				if (readyForPayment) {
+					Advance("Collect money from customer.");
+				}
+				break;
+			}
+
+			case TutorialStep::CollectMoneyFromCustomer:
+			{
 				if (Economy::gPlayerMoney > lastMoney) {
 					lastMoney = Economy::gPlayerMoney;
 					step = TutorialStep::Done;
-					LEPANELFONTS::SetTextByName("TutorialText", "Tutorial complete. Keep serving!");
+					LEPANELFONTS::SetTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
 				}
 				break;
 			}
 
 			case TutorialStep::Done:
 				break;
+			}
+
+			if (step == TutorialStep::Done) {
+				ClearHighlights(scene);
+			}
+			else {
+				UpdateHighlights(scene, playerLogic, logic, dt);
 			}
 		}
 	};
@@ -247,7 +931,7 @@ namespace {
 	void UpdateSimulationPolicy(float dt, Scene& scene) {
 		float prevTime = Economy::gTimeRemaining;
 		Economy::Update(dt, scene);
-		gTutorialFlow.Update(scene);
+		gTutorialFlow.Update(scene, dt);
 
 #ifndef _DEBUG
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
@@ -316,10 +1000,22 @@ namespace {
 	\param simulationActive True if gameplay is active, false for menus.
 	*/
 	/************************************************************************/
-	void OnPostLevelLoaded(Scene& scene, bool simulationActive) {
-
+	void OnPostLevelLoaded(Scene& scene, bool simulationActive, CustomerManagerSystem& customerManager) {
 		gTutorialFlow.Reset(scene, simulationActive);
+
+		if (simulationActive && IsTutorialLevelLoaded()) {
+			customerManager.SetMaxCustomers(2);
+			customerManager.SetTotalSpawnLimit(2);
+			customerManager.SetSpawnedCustomersInfinitePatience(true);
+		}
+		else {
+			customerManager.SetMaxCustomers(4);
+			customerManager.ClearTotalSpawnLimit();
+			customerManager.SetSpawnedCustomersInfinitePatience(false);
+		}
+
 #ifndef _DEBUG
+		// existing audio/UI logic unchanged...
 		if (!simulationActive) {
 			// Ensure the main-menu UI layer is visible and interactive
 			if (Layer* menuLayer = scene.GetLayer("10")) {
@@ -608,7 +1304,9 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	// Scene lifecycle hooks
 	scene.SetDefaultSceneSetupHook(ApplyDefaultSceneSetup);
-	scene.SetPostLevelLoadHook(OnPostLevelLoaded);
+	scene.SetPostLevelLoadHook([customerManager](Scene& s, bool simulationActive) {
+		OnPostLevelLoaded(s, simulationActive, *customerManager);
+	});
 
 	// Cutscene audio hooks
 	scene.SetCutsceneFadeOutHook(OnCutsceneFadeOut);
@@ -640,3 +1338,10 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		return (tag == "npc1" || tag == "npc2" || tag == "dino");
 	});
 }
+
+
+
+
+
+
+

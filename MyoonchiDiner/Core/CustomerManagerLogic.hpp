@@ -54,10 +54,37 @@ public:
 		maxCustomers_ = n;
 	}
 
+	/**
+	 * @brief Set a hard cap on total customers spawned for this level run.
+	 * @param n Total spawn cap. Use negative value for unlimited.
+	 */
+	void SetTotalSpawnLimit(int n) {
+		totalSpawnLimit_ = n;
+	}
+
+	/**
+	 * @brief Remove total spawn cap (unlimited).
+	 */
+	void ClearTotalSpawnLimit() {
+		totalSpawnLimit_ = -1;
+	}
+
+	/**
+	 * @brief Force newly spawned customers to have effectively infinite patience.
+	 * @param enabled True to force infinite patience on spawn, false to use normal patience.
+	 */
+	void SetSpawnedCustomersInfinitePatience(bool enabled) {
+		spawnWithInfinitePatience_ = enabled;
+	}
+
 private:
     int maxCustomers_ = 4;				// hard cap on simultaneous customers; set by level design or difficulty settings
     float spawnCooldown_ = 15.0f;       // small delay between spawns
     float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
+
+	int totalSpawnLimit_ = -1;           // hard cap on total spawned customers (-1 = unlimited)
+	int totalSpawned_ = 0;               // number of customers spawned this level run
+	bool spawnWithInfinitePatience_ = false; // flag to determine if spawned customers have infinite patience
 
 	std::vector<int> activeCustomers_;  // ids of customers alive
 	std::vector<int> customerTableIDs_; // ids of customer tables we discovered

@@ -20,6 +20,7 @@
 #include "../Graphics/SceneManager.hpp"
 
 #include "AudioManager.hpp"
+#include "EngineRng.hpp"
 #include "GameStateManager.hpp"
 #include "LevelSerializer.hpp"
 #include "RuntimeLevel.hpp"
@@ -30,6 +31,9 @@
 namespace Framework {
 
 	namespace {
+		// Fixed seed for tutorial levels to ensure consistent RNG behavior 
+		constexpr std::uint32_t kTutorialFixedSeed = 0x00C0FFEEu;
+
 		void AppendLevelTextures(const std::string& levelPath, std::vector<std::string>& inOutPaths, std::unordered_set<std::string>& seen) {
 			LevelData levelData;
 			if (!LevelSerializer::Load(levelPath, levelData)) {
@@ -192,6 +196,12 @@ namespace Framework {
 		if (!scene) {
 			std::cerr << "[GameStateManager] Scene not set; cannot load JSON level for state " << state << std::endl;
 			return false;
+		}
+
+		// Force deterministic RNG only for tutorial state.
+		if (state == Framework::GS_Tutorial) {
+			EngineRng::SetSeed(kTutorialFixedSeed);
+			std::cout << "[GameStateManager] Tutorial fixed seed set to " << kTutorialFixedSeed << std::endl;
 		}
 
 		const std::string& path = it->second;
