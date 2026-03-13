@@ -28,31 +28,9 @@
 
 namespace Economy {
 	namespace {
-		static void BuildLoseFramesAndBoundaries(std::vector<std::string>& outFrames,
-			std::vector<bool>& outFlags,
-			const std::string& baseFolder) {
-			namespace fs = std::filesystem;
-
-			outFrames.clear();
-			outFlags.clear();
-
-			for (int ch = 1; ch <= 6; ++ch) {
-				std::string path = baseFolder + "/Cutscene_gameover" + std::to_string(ch) + ".png";
-				if (fs::exists(path)) {
-					outFrames.push_back(path);
-					outFlags.push_back(true); // each chapter is a boundary (fade between chapters)
-				}
-			}
-		}
-
-
 		// Supports BOTH patterns:
 		//   A) baseFolder/prefix + chapter + "." + frame + ".png"   (e.g. Cutscene_gameover1.1.png)
-		//   B) baseFolder/prefix + chapter + ".png"               (e.g. Cutscene_gameover1.png)
-		//
-		// Example inputs:
-		//   baseFolder = "../assets/Lose"
-		//   prefix     = "Cutscene_gameover"   -> Cutscene_gameover1.1.png or Cutscene_gameover1.png
+		//   B) baseFolder/prefix + chapter + ".png"                  (e.g. Cutscene_gameover1.png)
 		static std::array<std::vector<std::string>, 6>
 			CollectChapterFrames(const std::string& baseFolder, const std::string& prefix) {
 			namespace fs = std::filesystem;
@@ -86,32 +64,21 @@ namespace Economy {
 			return chapters;
 		}
 
-		static void BuildTimedFramesAndBoundaries(std::vector<std::string>& outFrames,
+		// Use only the first frame of each chapter (no subchapter looping) and mark each as a boundary.
+		static void BuildChapterFirstFramesAndBoundaries(std::vector<std::string>& outFrames,
 			std::vector<bool>& outFlags,
-			float chapterHoldSeconds,
-			float fps,
 			const std::string& baseFolder,
 			const std::string& prefix) {
 			outFrames.clear();
 			outFlags.clear();
 
 			const auto chapters = CollectChapterFrames(baseFolder, prefix);
-			const int targetFramesPerChapter =
-				std::max(1, static_cast<int>(std::round(chapterHoldSeconds * fps)));
-
 			for (int ch = 1; ch <= 6; ++ch) {
 				const auto& raw = chapters[ch - 1];
 				if (raw.empty()) continue;
 
-				int produced = 0;
-				while (produced < targetFramesPerChapter) {
-					for (const auto& frame : raw) {
-						outFrames.push_back(frame);
-						outFlags.push_back(produced == 0); // boundary at first frame of the chapter
-						++produced;
-						if (produced >= targetFramesPerChapter) break;
-					}
-				}
+				outFrames.push_back(raw.front()); // lock to chapter first frame only
+				outFlags.push_back(true);         // chapter boundary
 			}
 		}
 
@@ -153,12 +120,9 @@ namespace Economy {
 		std::vector<std::string> frames;
 		std::vector<bool> boundaries;
 
-		const float fps = 4.0f;
-		const float chapterHoldSeconds = 1.5f;
-
-		BuildTimedFramesAndBoundaries(
+		// No looping subchapters: first frame per chapter only.
+		BuildChapterFirstFramesAndBoundaries(
 			frames, boundaries,
-			chapterHoldSeconds, fps,
 			"../assets/Win",
 			"Cutscene_daychange_"
 		);
@@ -180,7 +144,7 @@ namespace Economy {
 			true,
 			2.0f,   // fadeOutSeconds - 2 second fade out for win cutscene
 			0.35f,  // fadeInSeconds
-			1.0f / fps,
+			1.5f, // hold each chapter image steadily (no per-subframe cadence)
 			-1,
 			0.0f
 		);
@@ -206,8 +170,12 @@ namespace Economy {
 		std::vector<std::string> frames;
 		std::vector<bool> boundaries;
 
-		BuildLoseFramesAndBoundaries(frames, boundaries, "../assets/Lose");
-		boundaries.assign(frames.size(), false); // no fade between images
+		// Same behavior as win: first frame per chapter only, no subchapter loop.
+		BuildChapterFirstFramesAndBoundaries(
+			frames, boundaries,
+			"../assets/Lose",
+			"Cutscene_gameover"
+		);
 
 		if (frames.empty()) {
 			scene.RequestStateChange(0); // GS_Level1 = main menu
@@ -222,10 +190,10 @@ namespace Economy {
 			frames,
 			boundaries,
 			nextScenePath,
-			false,              // activateSimulation on main menu load
+			false,
 			0.35f,
 			0.35f,
-			1.0f, // IMPORTANT: hold whole chapter image, not 1/fps
+			1.0f,
 			-1,
 			0.0f
 		);
