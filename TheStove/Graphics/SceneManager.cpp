@@ -182,14 +182,16 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 	// While any cutscene is active, discard input so UI/buttons cannot be pressed (this might need tweaking later, for future cutscenes that need input)
 	if (IsAnyCutsceneActive()) {
 		const bool spaceHeld = inputManager.IsKeyPressed(GLFW_KEY_SPACE);
-		if (spaceHeld && !cutsceneSkipSpaceHeld_) {
+		if (spaceHeld && !cutsceneSkipSpaceHeld_ && !cutsceneSkipConsumed_) {
 			SkipActiveCutscene();
+			cutsceneSkipConsumed_ = true;
 		}
 		cutsceneSkipSpaceHeld_ = spaceHeld;
 		inputManager.ClearState();
 	}
 	else {
 		cutsceneSkipSpaceHeld_ = false;
+		cutsceneSkipConsumed_ = false;
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 		inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager, spriteID, useForces_, showAuxDebug_);
 #endif
@@ -1396,6 +1398,7 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 	}
 
 	SetSimulationActive(false);
+	cutsceneSkipConsumed_ = false;
 
 	// Clear any existing UI or pause overlays to avoid conflicts
 	HidePauseOverlay();
@@ -1548,6 +1551,7 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 	}
 
 	SetSimulationActive(false);
+	cutsceneSkipConsumed_ = false;
 	HidePauseOverlay();
 
 	if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);

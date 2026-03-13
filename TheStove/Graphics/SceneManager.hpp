@@ -670,6 +670,8 @@ private:
 
 	// Prevent repeated skip-trigger while space is held during cutscenes.
 	bool cutsceneSkipSpaceHeld_ = false;
+	// Ensure skip only runs once for the currently active cutscene sequence.
+	bool cutsceneSkipConsumed_ = false;
 
 	// Basic cutscene runner with simple fade-out, image swap, fade-in sequence. No cross-fade or separate hold time.
 	struct CutsceneState {
