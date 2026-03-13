@@ -192,6 +192,7 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	if (over && input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		if (audioManager_) {
 			audioManager_->PlayUIClickSound();
+			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_MAIN_MENU, 0.0f, 0.35f);
 		}
 
 		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);

@@ -203,11 +203,18 @@ namespace {
 	}
 
 	static bool IsTutorialLevelLoaded(Scene& scene) {
-	const std::string levelPath = scene.GetCurrentLevelPath();
-	return levelPath == MyoonchiPaths::Levels::TUTORIAL ||
-		levelPath.find("tutorial") != std::string::npos;
-}
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		return levelPath == MyoonchiPaths::Levels::TUTORIAL ||
+			levelPath.find("tutorial") != std::string::npos;
+	}
 
+	static bool IsDayClearLevelLoaded(Scene& scene) {
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		return levelPath == FilePaths::Levels::WIN ||
+			levelPath.find("win") != std::string::npos ||
+			levelPath.find("dayclear") != std::string::npos ||
+			levelPath.find("day_clear") != std::string::npos;
+	}
 
 	static const char* IngredientBoxTokenForDish(DishType d) {
 		switch (d) {
@@ -1255,7 +1262,8 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 	}
 
 	if (AudioManager* audioManager = scene.GetAudioManager()) {
-		if (!simulationActive) {
+		const bool useMenuBgm = !simulationActive || IsDayClearLevelLoaded(scene);
+		if (useMenuBgm) {
 			audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
 			audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
 			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
@@ -1623,14 +1631,23 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	scene.SetPauseOverlayButtonBinder(AttachPauseOverlayButton);
 	scene.SetNavigationBlockerCollector(CollectNavigationBlockersForGame);
 
-	// Skip-cutscene audio: stop intro BGM and play skip SFX when player skips
+	// Skip-cutscene audio: stop cutscene BGMs and play skip SFX when player skips
 	scene.SetSkipCutsceneAudioHook([](Scene& s, float outSeconds) {
 #ifndef _DEBUG
-		(void)outSeconds;
 		if (AudioManager* audioManager = s.GetAudioManager()) {
-			// Stop intro BGM immediately to avoid an audio pop caused by
-			// OnCutsceneBeforeFinalLoad hard-stopping the channel mid-fade.
-			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
+			// Fade bgm
+			if (audioManager->HasSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE)) {
+				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, outSeconds);
+			}
+
+			if (audioManager->HasSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE)) {
+				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE, 0.0f, outSeconds);
+			}
+
+			// Fade out game-over SFX if it is active.
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_GAMEOVER)) {
+				audioManager->FadeChannel(MyoonchiPaths::Audio::SFX_GAMEOVER, 0.0f, outSeconds);
+			}
 
 			// Play skip cutscene SFX as 2D UI sound to preserve its initial transient.
 			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE)) {

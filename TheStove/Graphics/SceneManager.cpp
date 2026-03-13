@@ -1044,7 +1044,7 @@ void Scene::HidePauseOverlay() {
 	pauseOverlayObjectIds_.clear();
 	pauseOverlayActive_ = false;
 
-	// Cancel any pending pause if we're resuming before fade completed
+	// Cancel any pending pause if we're resuming before fade completes
 	pauseAudioPending_ = false;
 
 	// Resume and fade in level BGM and ambience when leaving pause menu
@@ -1937,7 +1937,7 @@ void Scene::UpdateLevelTransition() {
 
 	// Once we're fully black, queue the load.
 	if (levelTrans_.awaitingBlackout && gfx.IsAtBlackout()) {
-		levelTrans_.awaitingBlackout = false;
+	 levelTrans_.awaitingBlackout = false;
 
 		QueueLevelLoad(levelTrans_.targetJson, levelTrans_.targetActivateSim);
 
@@ -1952,9 +1952,14 @@ void Scene::UpdateLevelTransition() {
 void Scene::SkipActiveCutscene() {
 	if (cutTrans_.active) {
 		auto& gfx = GetGraphicsEngine();
-		if (!gfx.IsTransitionActive()) {
-			gfx.StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+		const float skipFadeOutSeconds = cutTrans_.outSeconds * 2.0f;
+
+		// Force restart so skip timing applies even if a transition is already active.
+		if (gfx.IsTransitionActive()) {
+			gfx.CancelSceneTransition();
 		}
+		gfx.StartSceneTransition(skipFadeOutSeconds, cutTrans_.inSeconds);
+		cutTrans_.outSeconds = skipFadeOutSeconds;
 
 		cutTrans_.awaitingBlackout = true;
 		cutTrans_.holding = false;
@@ -1967,7 +1972,7 @@ void Scene::SkipActiveCutscene() {
 
 #ifndef _DEBUG
 		if (skipCutsceneAudioHook_) {
-			skipCutsceneAudioHook_(*this, cutTrans_.outSeconds);
+			skipCutsceneAudioHook_(*this, skipFadeOutSeconds);
 		}
 #endif
 	}
