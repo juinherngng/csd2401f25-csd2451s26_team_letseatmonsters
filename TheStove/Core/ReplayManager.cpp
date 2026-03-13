@@ -1,3 +1,33 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			ReplayManager.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+
+ DESCRIPTION:		Implements recording/playback flow for `ReplayManager`.
+
+	Runtime behavior:
+	  - StartRecording() resets frame buffer, captures startup metadata, and seeds RNG.
+	  - RecordFrame() appends {dt + input snapshot} while recording is active.
+	  - StopRecording() serializes replay metadata and frames to JSON.
+	  - StartPlayback() loads replay JSON, restores RNG seed, and prepares frame cursor.
+	  - GetNextPlaybackFrame() streams one frame at a time in recorded order.
+
+	File format summary (JSON):
+	  {
+		"version": 1,
+		"seed": <uint>,
+		"levelPath": "<string>",
+		"simulationActive": <bool>,
+		"frames": [
+		  { "dt": <float>, "mouseX": <double>, "mouseY": <double>, "keys": [...], "mouseButtons": [...] }
+		]
+	  }
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include "ReplayManager.hpp"
 
 #include "EngineRng.hpp"
@@ -10,6 +40,7 @@
 using nlohmann::json;
 
 void ReplayManager::StartRecording(const std::string& levelPath, bool simulationActive) {
+	// Enter record mode and clear any previous replay data.
 	recording_ = true;
 	playback_ = false;
 	frames_.clear();
@@ -17,6 +48,7 @@ void ReplayManager::StartRecording(const std::string& levelPath, bool simulation
 	recordedLevelPath_ = levelPath;
 	recordedSimulationActive_ = simulationActive;
 
+	// Use a fresh deterministic seed for this recording session.
 	seed_ = EngineRng::CreateSeed();
 	EngineRng::SetSeed(seed_);
 
@@ -31,11 +63,13 @@ bool ReplayManager::StopRecording(const std::string& path) {
 
 	recording_ = false;
 
+	// Ensure destination directory exists.
 	const std::filesystem::path replayPath(path);
 	if (replayPath.has_parent_path()) {
 		std::filesystem::create_directories(replayPath.parent_path());
 	}
 
+	// Build replay JSON payload.
 	json root;
 	root["version"] = 1;
 	root["seed"] = seed_;
@@ -77,14 +111,17 @@ bool ReplayManager::StartPlayback(const std::string& path) {
 	json root;
 	file >> root;
 
+	// Reset frame buffer and playback cursor before populating.
 	frames_.clear();
 	playbackIndex_ = 0;
 
+	// Load replay startup metadata + deterministic seed.
 	seed_ = root.value("seed", 0u);
 	recordedLevelPath_ = root.value("levelPath", std::string{});
 	recordedSimulationActive_ = root.value("simulationActive", false);
 	EngineRng::SetSeed(seed_);
 
+	// Load frame stream.
 	const auto& frames = root["frames"];
 	for (const auto& entry : frames) {
 		Frame frame;
@@ -98,6 +135,7 @@ bool ReplayManager::StartPlayback(const std::string& path) {
 		frames_.push_back(std::move(frame));
 	}
 
+	// Playback takes ownership of mode state.
 	recording_ = false;
 	playback_ = !frames_.empty();
 
