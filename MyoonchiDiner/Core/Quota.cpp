@@ -28,57 +28,34 @@
 
 namespace Economy {
 	namespace {
-		// Supports BOTH patterns:
-		//   A) baseFolder/prefix + chapter + "." + frame + ".png"   (e.g. Cutscene_gameover1.1.png)
-		//   B) baseFolder/prefix + chapter + ".png"                  (e.g. Cutscene_gameover1.png)
-		static std::array<std::vector<std::string>, 6>
-			CollectChapterFrames(const std::string& baseFolder, const std::string& prefix) {
-			namespace fs = std::filesystem;
-
-			std::array<std::vector<std::string>, 6> chapters{};
-			for (int ch = 1; ch <= 6; ++ch) {
-				auto& list = chapters[ch - 1];
-				bool any = false;
-
-				// Try multi-frame: prefix + chapter + "." + frame
-				for (int f = 1; f <= 300; ++f) {
-					std::string path =
-						baseFolder + "/" + prefix + std::to_string(ch) + "." + std::to_string(f) + ".png";
-
-					if (fs::exists(path)) {
-						list.push_back(path);
-						any = true;
-					}
-					else {
-						break;
-					}
-				}
-
-				// Fallback single image: prefix + chapter
-				if (!any) {
-					std::string fallback =
-						baseFolder + "/" + prefix + std::to_string(ch) + ".png";
-					if (fs::exists(fallback)) list.push_back(fallback);
-				}
-			}
-			return chapters;
-		}
-
-		// Use only the first frame of each chapter (no subchapter looping) and mark each as a boundary.
-		static void BuildChapterFirstFramesAndBoundaries(std::vector<std::string>& outFrames,
+		// Collect one frame per sequential index:
+		// tries .../prefix1.png then .../prefix1.1.png, then 2, 3, ...
+		static void BuildSequentialFramesAndBoundaries(std::vector<std::string>& outFrames,
 			std::vector<bool>& outFlags,
 			const std::string& baseFolder,
 			const std::string& prefix) {
+			namespace fs = std::filesystem;
+
 			outFrames.clear();
 			outFlags.clear();
 
-			const auto chapters = CollectChapterFrames(baseFolder, prefix);
-			for (int ch = 1; ch <= 6; ++ch) {
-				const auto& raw = chapters[ch - 1];
-				if (raw.empty()) continue;
+			for (int i = 1; i <= 3; ++i) {
+				const std::string pDirect = baseFolder + "/" + prefix + std::to_string(i) + ".png";
+				const std::string pDotOne = baseFolder + "/" + prefix + std::to_string(i) + ".1.png";
 
-				outFrames.push_back(raw.front()); // lock to chapter first frame only
-				outFlags.push_back(true);         // chapter boundary
+				if (fs::exists(pDirect)) {
+					outFrames.push_back(pDirect);
+					outFlags.push_back(true);
+					continue;
+				}
+
+				if (fs::exists(pDotOne)) {
+					outFrames.push_back(pDotOne);
+					outFlags.push_back(true);
+					continue;
+				}
+
+				break;
 			}
 		}
 
@@ -106,6 +83,26 @@ namespace Economy {
 			(void)bgmFadeSeconds;
 #endif
 		}
+
+		static void BuildLoseFramesExact3(std::vector<std::string>& outFrames,
+			std::vector<bool>& outFlags,
+			const std::string& baseFolder,
+			const std::string& prefix) {
+			namespace fs = std::filesystem;
+
+			outFrames.clear();
+			outFlags.clear();
+
+			for (int i = 1; i <= 3; ++i) {
+				const std::string p = baseFolder + "/" + prefix + std::to_string(i) + ".png";
+				if (!fs::exists(p)) {
+					break;
+				}
+
+				outFrames.push_back(p);
+				outFlags.push_back(true); // fade between frames
+			}
+		}
 	}
 
 	void OnQuotaReached(Scene& scene) {
@@ -119,13 +116,6 @@ namespace Economy {
 
 		std::vector<std::string> frames;
 		std::vector<bool> boundaries;
-
-		// No looping subchapters: first frame per chapter only.
-		BuildChapterFirstFramesAndBoundaries(
-			frames, boundaries,
-			"../assets/Win",
-			"Cutscene_daychange_"
-		);
 
 		// If no frames, go straight to MAIN MENU
 		if (frames.empty()) {
@@ -183,8 +173,8 @@ namespace Economy {
 		std::vector<std::string> frames;
 		std::vector<bool> boundaries;
 
-		// Same behavior as win: first frame per chapter only, no subchapter loop.
-		BuildChapterFirstFramesAndBoundaries(
+		// One visual frame per step (no chapter triplication)
+		BuildLoseFramesExact3(
 			frames, boundaries,
 			"../assets/Lose",
 			"Cutscene_gameover"
@@ -206,7 +196,7 @@ namespace Economy {
 			false,
 			0.35f,
 			0.35f,
-			1.0f,
+			1.5f,
 			-1,
 			0.0f
 		);
