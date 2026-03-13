@@ -107,13 +107,44 @@ echo "--------------------------------------------------------------------------
 
 git log --author="$AUTHOR" --since="$SINCE_DATE" -p --no-color \
 | LC_ALL=C awk '
-function is_code_line(s) {
-    if (s ~ /^[ \t]*$/) return 0;          # blank
-    if (s ~ /^[ \t]*\/\//) return 0;       # //
-    if (s ~ /^[ \t]*\/\*/) return 0;       # /*
-    if (s ~ /^[ \t]*\*/)  return 0;        #  *
-    if (s ~ /^[ \t]*\*\/[ \t]*$/) return 0;
-    return 1;                               # everything else counts (including { } )
+function strip_comments(s,    out, pos, next2, closePos) {
+    out = "";
+    pos = 1;
+
+    while (pos <= length(s)) {
+        if (in_block_comment) {
+            closePos = index(substr(s, pos), "*/");
+            if (closePos == 0) {
+                return out;
+            }
+
+            pos += closePos + 1;
+            in_block_comment = 0;
+            continue;
+        }
+
+        next2 = substr(s, pos, 2);
+
+        if (next2 == "//") {
+            break;
+        }
+
+        if (next2 == "/*") {
+            in_block_comment = 1;
+            pos += 2;
+            continue;
+        }
+
+        out = out substr(s, pos, 1);
+        pos++;
+    }
+
+    return out;
+}
+
+function is_code_line(s, cleaned) {
+    cleaned = strip_comments(s);
+    return cleaned ~ /[^ \t]/;
 }
 
 # start of a new file diff
@@ -134,6 +165,7 @@ function is_code_line(s) {
 /^Binary files / { next }
 /^\+\+\+/ { next }
 /^\-\-\-/ { next }
+/^@@/ { in_block_comment = 0; next }
 
 # if this diff is for a non-code file, skip everything
 currentFile == "" { next }

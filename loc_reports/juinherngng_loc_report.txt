@@ -3,7 +3,7 @@ Lines of Code Report (Diff-based)
 ==========================================
 Author: juinherngng
 Since: 2026-02-16
-Generated: Fri Mar 13 13:26:43 +08 2026
+Generated: Fri Mar 13 13:40:00 +08 2026
 ==========================================
 
 ==========================================
@@ -34,20 +34,20 @@ MyoonchiDiner/Core/SimpleNpcLogic.cpp                                          2
 MyoonchiDiner/Core/TableLogic.cpp                                               2          2          0
 MyoonchiDiner/Core/TrashCanLogic.cpp                                            2          2          0
 MyoonchiDiner/Core/WorkTableLogic.cpp                                           3          3          0
-MyoonchiDiner/GameBootstrap.cpp                                                98         11         87
-MyoonchiDiner/GamePaths.hpp                                                    39          7         32
-MyoonchiDiner/MyoonchiDinerBindings.cpp                                       470         83        387
-MyoonchiDiner/MyoonchiDinerBindings.hpp                                        20          0         20
+MyoonchiDiner/GameBootstrap.cpp                                                82         11         71
+MyoonchiDiner/GamePaths.hpp                                                    25          7         18
+MyoonchiDiner/MyoonchiDinerBindings.cpp                                       368         83        285
+MyoonchiDiner/MyoonchiDinerBindings.hpp                                         3          0          3
 TheStove/Core/AudioLoading.cpp                                                  5          1          4
 TheStove/Core/AudioManager.cpp                                                110          1        109
-TheStove/Core/AudioManager.hpp                                                 84          0         84
-TheStove/Core/GameBootstrap.hpp                                                36          0         36
+TheStove/Core/AudioManager.hpp                                                 18          0         18
+TheStove/Core/GameBootstrap.hpp                                                 8          0          8
 TheStove/Core/GameStateManager.cpp                                              4         41        -37
 TheStove/Core/GameStateManager.hpp                                             10          3          7
 TheStove/Core/LevelEditorPanelFonts.cpp                                       141          0        141
 TheStove/Core/LevelEditorPanelPrefabs.cpp                                       1         12        -11
 TheStove/Core/MenuButtonLogic.hpp                                               2         10         -8
-TheStove/Core/Message.hpp                                                      27          1         26
+TheStove/Core/Message.hpp                                                      24          1         23
 TheStove/Core/PlayerLogic.cpp                                                   3          0          3
 TheStove/Core/RuntimeLevel.cpp                                                  2         23        -21
 TheStove/Core/SimpleNpcLogic.cpp                                                2          0          2
@@ -62,9 +62,9 @@ TheStove/Main.cpp                                                               
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    1375
+Lines Added:    1129
 Lines Deleted:  484
-Net Change:     891
+Net Change:     645
 Total Commits:  19
 
 ==========================================

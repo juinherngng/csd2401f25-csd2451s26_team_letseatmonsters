@@ -3,7 +3,7 @@ Lines of Code Report (Diff-based)
 ==========================================
 Author: chuuniby
 Since: 2026-02-16
-Generated: Fri Mar 13 13:26:40 +08 2026
+Generated: Fri Mar 13 13:39:58 +08 2026
 ==========================================
 
 ==========================================
@@ -15,16 +15,16 @@ File                                                                        Adde
 --------------------------------------------------------------------------------------------
 MyoonchiDiner/Core/CustomerManagerLogic.cpp                                    20          4         16
 MyoonchiDiner/Core/CustomerManagerLogic.hpp                                     5          2          3
-MyoonchiDiner/Core/CustomerTableLogic.cpp                                     159         55        104
+MyoonchiDiner/Core/CustomerTableLogic.cpp                                     161         55        106
 MyoonchiDiner/Core/CustomerTableLogic.hpp                                      43         13         30
 MyoonchiDiner/Core/MenuButtonLogic.cpp                                          2         32        -30
 MyoonchiDiner/Core/OrderUILogic.cpp                                            16          8          8
 MyoonchiDiner/Core/OrderUILogic.hpp                                             2          0          2
-MyoonchiDiner/Core/PlayerLogic.cpp                                             45         16         29
+MyoonchiDiner/Core/PlayerLogic.cpp                                             39         13         26
 MyoonchiDiner/Core/Quota.cpp                                                   11          5          6
 MyoonchiDiner/Core/Quota.hpp                                                    8          2          6
 MyoonchiDiner/Core/SimpleNpcLogic.cpp                                           7          3          4
-MyoonchiDiner/MyoonchiDinerBindings.cpp                                       101         37         64
+MyoonchiDiner/MyoonchiDinerBindings.cpp                                        93         37         56
 TheStove/Core/Collision.cpp                                                    11          1         10
 TheStove/Core/Collision.hpp                                                     1          0          1
 TheStove/Core/CustomerManagerLogic.cpp                                        119         22         97
@@ -34,8 +34,8 @@ TheStove/Core/CustomerOrderUILogic.hpp                                          
 TheStove/Core/CustomerTableLogic.cpp                                           20         18          2
 TheStove/Core/FilePaths.hpp                                                     1          0          1
 TheStove/Core/FoodTypes.hpp                                                     5          1          4
-TheStove/Core/GridPathfinder.cpp                                              180          0        180
-TheStove/Core/GridPathfinder.hpp                                              100          0        100
+TheStove/Core/GridPathfinder.cpp                                              173          0        173
+TheStove/Core/GridPathfinder.hpp                                               93          0         93
 TheStove/Core/IngredientBoxLogic.cpp                                           11          0         11
 TheStove/Core/IngredientBoxLogic.hpp                                            1          0          1
 TheStove/Core/IngredientLogic.cpp                                               3          0          3
@@ -70,9 +70,9 @@ TheStove/Graphics/SceneManager.hpp                                             3
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    3146
-Lines Deleted:  975
-Net Change:     2171
+Lines Added:    3120
+Lines Deleted:  972
+Net Change:     2148
 Total Commits:  52
 
 ==========================================
