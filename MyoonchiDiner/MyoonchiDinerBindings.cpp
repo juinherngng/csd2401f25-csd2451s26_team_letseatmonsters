@@ -423,6 +423,12 @@ namespace {
 
 			if (IsPointInObject(scene, completionMenuButtonID_, mouseWorld)) {
 				ClearCompletionPopup(scene);
+				if (AudioManager* audioManager = scene.GetAudioManager()) {
+					audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
+					audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+					audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
+					audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
+				}
 				scene.StartLevelTransition(MyoonchiPaths::Levels::MAIN_MENU, false);
 			}
 		}
@@ -1195,7 +1201,7 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 	*/
 	/************************************************************************/
 	void OnPostLevelLoaded(Scene& scene, bool simulationActive, CustomerManagerSystem& customerManager) {
-	const bool isTutorial = simulationActive && IsTutorialLevelLoaded(scene);
+		const bool isTutorial = simulationActive && IsTutorialLevelLoaded(scene);
 	gTutorialFlow.Reset(scene, isTutorial);
 
 	if (isTutorial) {
@@ -1213,6 +1219,16 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 		customerManager.SetSpawnedCustomersInfinitePatience(false);
 	}
 
+	if (AudioManager* audioManager = scene.GetAudioManager()) {
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
+			if (scene.GetObjectTag(obj->GetID()) != "btn_play") continue;
+			if (auto* logic = scene.GetLogicManager().GetLogicForObject<StartGamePromptLogic>(obj->GetID())) {
+				logic->SetAudioManager(audioManager);
+			}
+		}
+	}
+
 #ifndef _DEBUG
 	// existing audio/UI logic unchanged...
 	if (!simulationActive) {
@@ -1224,6 +1240,10 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 
 	if (AudioManager* audioManager = scene.GetAudioManager()) {
 		if (!simulationActive) {
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
 			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
 		}
 		else {
@@ -1598,10 +1618,3 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		return (tag == "npc1" || tag == "npc2" || tag == "dino");
 		});
 }
-
-
-
-
-
-
-

@@ -1,5 +1,7 @@
 #include "Core/StartGamePromptLogic.hpp"
 
+#include "../GamePaths.hpp"
+
 #include "Graphics/GameObject.hpp"
 #include "Graphics/GraphicsEngine.hpp"
 #include "Graphics/ResourceManager.hpp"
@@ -37,7 +39,7 @@ namespace {
 		if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheName, texPath)) {
 			owner->SetTexture(tex);
 		}
-	}
+		}
 }
 
 bool StartGamePromptLogic::GetMouseWorld(Scene& /*scene*/, InputManager& input, glm::vec2& outWorld) const {
@@ -155,10 +157,24 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 
 	if (IsPointInRect(mouseWorld, yesMin, yesMax)) {
 		ClosePrompt(scene);
+		if (audioManager_) {
+			audioManager_->PlayUIClickSound();
+			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_START_BUTTON)) {
+				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_START_BUTTON, audioManager_->GetVfxVolume(), false);
+			}
+			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_MAIN_MENU, 0.0f, 0.35f);
+		}
 		scene.StartLevelTransition(tutorialJson_, activateSimulation_);
 	}
 	else if (IsPointInRect(mouseWorld, skipMin, skipMax)) {
 		ClosePrompt(scene);
+		if (audioManager_) {
+			audioManager_->PlayUIClickSound();
+			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_START_BUTTON)) {
+				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_START_BUTTON, audioManager_->GetVfxVolume(), false);
+			}
+			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_MAIN_MENU, 0.0f, 0.35f);
+		}
 
 		scene.StartCutsceneTransitionedBounded(
 			kIntroCutsceneFrames,
@@ -178,5 +194,15 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			5,     // crossfade to frame index 5 (6.1)
 			1.5f
 		);
-	}
+
+		if (audioManager_) {
+			const float cutsceneBgmFadeIn = 1.0f;
+			audioManager_->PlaySound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, false);
+			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, audioManager_->GetBgmVolume() * 1.6f, cutsceneBgmFadeIn);
+		}
+		}
+
+
+
+
 }
