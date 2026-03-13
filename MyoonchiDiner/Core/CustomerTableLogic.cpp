@@ -149,11 +149,20 @@ bool CustomerTableLogic::ClearCustomer(int customerID) {
 	}
 
 	seatedCustomerIDs_[seat] = kInvalidID;
+
+	// Safety: if nobody is seated anymore, never keep the table food-locked.
+	if (!HasSeatedCustomer()) {
+		servedFoodLocked_ = false;
+		servedFoodItemID_ = kInvalidID;
+	}
+
 	return true;
 }
 
 void CustomerTableLogic::ClearAllCustomers() {
 	seatedCustomerIDs_.fill(kInvalidID);
+	servedFoodLocked_ = false;
+	servedFoodItemID_ = kInvalidID;
 }
 
 Math::Vector2D CustomerTableLogic::GetCustomerSeatWorldByIndex(Scene& scene, int seatIndex) const {
@@ -184,11 +193,13 @@ bool CustomerTableLogic::CanAcceptItem(Scene& scene, int itemID) const {
 	if (!HasSeatedCustomer())
 		return false;
 
-	GameObject* item = scene.GetGameObjectByID(itemID);
-	if (!item)
+	LogicManager& logicMgr = scene.GetLogicManager();
+	auto* plate = logicMgr.GetLogicForObject<PlateLogic>(itemID);
+	if (!plate || !plate->HasPreparedDish())
 		return false;
 
-	return IsCompletedDish(scene, *item);
+	// Do not allow placing food if nobody at this table can still receive it.
+	return FindBestCustomerForDish(scene, plate->GetDishType()) != kInvalidID;
 }
 
 bool CustomerTableLogic::IsCompletedDish(Scene& scene, const GameObject& item) const {
@@ -252,19 +263,16 @@ void CustomerTableLogic::OnItemTaken(Scene& scene, GameObject& item) {
 }
 
 void CustomerTableLogic::OnDishServed(Scene& scene, GameObject& dish) {
-	if (!HasSeatedCustomer()) return;
-
-	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		audioMgr->PlaySound("sfx_serve_dish", audioMgr->GetVfxVolume());
+	if (!HasSeatedCustomer()) {
+		return;
 	}
-
-	servedFoodLocked_ = true;
-	servedFoodItemID_ = dish.GetID();
 
 	LogicManager& logicMgr = scene.GetLogicManager();
 
 	auto* plate = logicMgr.GetLogicForObject<PlateLogic>(dish.GetID());
-	if (!plate || !plate->HasPreparedDish()) return;
+	if (!plate || !plate->HasPreparedDish()) {
+		return;
+	}
 
 	const DishType servedType = plate->GetDishType();
 	const int targetCustomerID = FindBestCustomerForDish(scene, servedType);
@@ -273,9 +281,27 @@ void CustomerTableLogic::OnDishServed(Scene& scene, GameObject& dish) {
 	}
 
 	auto* customerLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(targetCustomerID);
-	if (!customerLogic) return;
+	if (!customerLogic || !customerLogic->IsWaitingForFood()) {
+		return;
+	}
+
+	if (AudioManager* audioMgr = scene.GetAudioManager()) {
+		audioMgr->PlaySound("sfx_serve_dish", audioMgr->GetVfxVolume());
+	}
+
+	// Lock only after we know this table has a valid receiver.
+	servedFoodLocked_ = true;
+	servedFoodItemID_ = dish.GetID();
 
 	customerLogic->OnDishServed(scene, servedType);
+
+	// Safety: if for any reason the customer did not actually accept the dish,
+	// do not leave the table locked forever.
+	if (!customerLogic->HasDishServed()) {
+		servedFoodLocked_ = false;
+		servedFoodItemID_ = kInvalidID;
+		return;
+	}
 
 	if (customerLogic->IsEating()) {
 		plate->ClearPreparedDish();
