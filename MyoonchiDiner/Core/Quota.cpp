@@ -30,7 +30,7 @@ namespace Economy {
 	namespace {
 		// Collect one frame per sequential index:
 		// tries .../prefix1.png then .../prefix1.1.png, then 2, 3, ...
-		static void BuildSequentialFramesAndBoundaries(std::vector<std::string>& outFrames,
+		/*static void BuildSequentialFramesAndBoundaries(std::vector<std::string>& outFrames,
 			std::vector<bool>& outFlags,
 			const std::string& baseFolder,
 			const std::string& prefix) {
@@ -57,7 +57,7 @@ namespace Economy {
 
 				break;
 			}
-		}
+		}*/
 
 		// Helper to stop/fade gameplay audio before cutscene
 		static void StopAllGameplayAudio(Scene& scene, float bgmFadeSeconds) {
