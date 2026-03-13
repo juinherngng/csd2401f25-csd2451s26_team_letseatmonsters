@@ -1486,10 +1486,10 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
 
 		if (isLevel2) {
-			customerManager.SetSpawnCooldown(1.0f);
+			customerManager.SetSpawnCooldown(8.0f);
 			customerManager.SetMaxCustomers(24);
 			Economy::SetTimeLimitSeconds(240.0f);
-			Economy::SetQuota(310);
+			Economy::SetQuota(430);
 		}
 		else if (isLevel1) {
 			customerManager.SetSpawnCooldown(10.0f);
