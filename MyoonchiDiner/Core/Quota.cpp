@@ -115,13 +115,13 @@ namespace Economy {
 			}
 		}
 
-		// Helper to stop all gameplay audio before cutscene
-		static void StopAllGameplayAudio(Scene& scene) {
+		// Helper to stop/fade gameplay audio before cutscene
+		static void StopAllGameplayAudio(Scene& scene, float bgmFadeSeconds) {
 #ifndef _DEBUG
 			if (AudioManager* audioMgr = scene.GetAudioManager()) {
-				// Stop level BGM and ambience
-				audioMgr->StopSound("bgm_MyoonchiDiner_LevelTheme");
-				audioMgr->StopSound("bgm_KitchenAmbience");
+				// Fade level BGM and ambience instead of hard stop.
+				audioMgr->FadeChannel("bgm_MyoonchiDiner_LevelTheme", 0.0f, bgmFadeSeconds);
+				audioMgr->FadeChannel("bgm_KitchenAmbience", 0.0f, bgmFadeSeconds);
 
 				// Stop all processing sounds (work table sounds)
 				audioMgr->StopSound("sfx_chopping");
@@ -131,11 +131,12 @@ namespace Economy {
 				// Stop any other looping gameplay sounds
 				scene.StopAllObjectAudio();
 
-				std::cout << "[Economy] Stopped all gameplay audio for win/lose cutscene" << std::endl;
+				std::cout << "[Economy] Fading gameplay BGM for win/lose cutscene" << std::endl;
 			}
 #endif
 #ifdef _DEBUG
 			(void)scene;
+			(void)bgmFadeSeconds;
 #endif
 		}
 	}
@@ -145,7 +146,7 @@ namespace Economy {
 		gTimerPaused = true;
 
 		// Stop all gameplay audio immediately
-		StopAllGameplayAudio(scene);
+		StopAllGameplayAudio(scene, 2.0f);
 
 		// Note: bgm_win_cutscene will be started by Scene after the initial fade-in completes
 
@@ -190,7 +191,7 @@ namespace Economy {
 		gTimerPaused = true;
 
 		// Stop all gameplay audio immediately
-		StopAllGameplayAudio(scene);
+		StopAllGameplayAudio(scene, 0.35f);
 
 #ifndef _DEBUG
 		// Play game over sound effect at 50% volume
