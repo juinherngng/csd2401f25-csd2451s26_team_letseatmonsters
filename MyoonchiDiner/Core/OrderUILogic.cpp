@@ -205,20 +205,23 @@ void OrderUILogic::CollectWaitingOrders(Scene& scene, std::vector<WaitingOrder>&
 			if (!npc) continue;
 
 			if (npc->IsWaitingForFood() && npc->HasOrderBeenTaken() && !npc->HasDishServed()) {
-				outOrders.push_back({ tableId, custId, npc->GetDesiredDishType() });
+				outOrders.push_back({ tableId, custId, npc->GetDesiredDishType(),npc->GetPatienceRemaining(),npc->GetPatienceRatio01() });
 			}
 		}
 	}
 
 	std::sort(outOrders.begin(), outOrders.end(),
 		[](const WaitingOrder& a, const WaitingOrder& b) {
-			if (a.tableId != b.tableId) return a.tableId < b.tableId;
+			if (a.patienceRemaining != b.patienceRemaining)
+				return a.patienceRemaining < b.patienceRemaining; // lowest time first
+			if (a.tableId != b.tableId)
+				return a.tableId < b.tableId;
 			return a.customerId < b.customerId;
 		});
 }
 
 // ------------------------------------------------------------
-// Recipe Mapping (EDIT THESE PATHS TO YOUR REAL ASSETS)
+// Recipe Mapping
 // ------------------------------------------------------------
 void OrderUILogic::GetRecipeIconPaths(DishType dish,
 	std::vector<const char*>& outIngredientTex,

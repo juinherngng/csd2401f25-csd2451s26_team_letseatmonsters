@@ -347,7 +347,7 @@
       "animated": false,
       "approach2_offx": 0.0,
       "approach2_offy": 0.0,
-      "approach_offx": -80.0,
+      "approach_offx": 80.0,
       "approach_offy": -10.0,
       "audio_loop": false,
       "audio_on_destroy": "",
@@ -372,8 +372,8 @@
       "texture": "../assets/Cutting_Board.png",
       "visible": true,
       "w": 90.0,
-      "x": 1017.0,
-      "y": 363.0,
+      "x": 597.0,
+      "y": 541.6,
       "z": 0.0
     },
     {
@@ -619,7 +619,7 @@
       "animated": false,
       "approach2_offx": 0.0,
       "approach2_offy": 0.0,
-      "approach_offx": 90.0,
+      "approach_offx": -90.0,
       "approach_offy": 0.0,
       "audio_loop": false,
       "audio_on_destroy": "",
@@ -644,8 +644,8 @@
       "texture": "../assets/PlateBox.png",
       "visible": true,
       "w": 90.0,
-      "x": 597.0,
-      "y": 541.5827026367188,
+      "x": 1017.0,
+      "y": 363.0,
       "z": 0.0
     },
     {
