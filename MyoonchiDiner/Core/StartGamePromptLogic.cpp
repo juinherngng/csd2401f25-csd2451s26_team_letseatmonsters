@@ -7,9 +7,20 @@
  DESCRIPTION:		Implements the StartGamePromptLogic class, which manages the tutorial prompt that appears
 					when the player clicks the "Play" button on the main menu. This logic handles mouse input
 					to detect clicks on the button, opens a tutorial popup, and manages hover states for visual feedback.
+ DESCRIPTION:		Implements hover/click interaction flow for the main menu Play button and the
+					tutorial decision popup.
+
+		    Flow:
+				  1) While popup is closed:
+					 - hover swaps Play texture (_s <-> _h),
+					 - click opens tutorial decision popup.
+				  2) While popup is open:
+					 - hover swaps Yes/No textures,
+					 - click Yes starts tutorial level,
+					 - click No starts intro cutscene path.
 
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content ï¿½ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -26,8 +37,14 @@
 #include <vector>
 
 namespace {
+	// Popup + decision button textures.
 	constexpr const char* kTutorialPopupTexture = "../assets/tutorial_popup.png";
+	constexpr const char* kTutorialYesNormalTexture = "../assets/yes_s.png";
+	constexpr const char* kTutorialYesHoverTexture = "../assets/yes_h.png";
+	constexpr const char* kTutorialNoNormalTexture = "../assets/no_s.png";
+	constexpr const char* kTutorialNoHoverTexture = "../assets/no_h.png";
 
+	// Intro cutscene frames used by the "No" path.
 	const std::vector<std::string> kIntroCutsceneFrames = {
 		"../assets/Cutscenes/Cutscene_starting_1.1.png",
 		"../assets/Cutscenes/Cutscene_starting_2.1.png",
@@ -37,7 +54,7 @@ namespace {
 		"../assets/Cutscenes/Cutscene_starting_6.1.png",
 	};
 
-	// Given a texture path, generate the corresponding hover texture path by applying the following rules:
+	// Converts texture name variants between normal/hover naming convention.
 	static std::string MakeHoverPath(const std::string& path) {
 		if (path.empty()) return path;
 		const size_t dot = path.find_last_of('.');
@@ -49,12 +66,25 @@ namespace {
 		return base + "_h" + ext;
 	}
 
-	// Helper to set the owner's texture from a file path, using ResourceManager caching. The cache name is prefixed with "staticsprite_" to match EntityManager conventions for static sprites.
+	// Sets texture directly on an object if path is valid/loadable.
 	static void TrySetTexture(GameObject* owner, const std::string& texPath) {
 		if (!owner || texPath.empty()) return;
 		std::string cacheName = "staticsprite_" + texPath;
 		if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheName, texPath)) {
 			owner->SetTexture(tex);
+		}
+	}
+
+	// Sets texture on a scene object and updates scene texture metadata.
+	static void TrySetObjectTexture(Scene& scene, int objectID, const std::string& texPath) {
+		if (objectID < 0 || texPath.empty()) return;
+		GameObject* obj = scene.GetGameObjectByID(objectID);
+		if (!obj) return;
+
+		std::string cacheName = "staticsprite_" + texPath;
+		if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheName, texPath)) {
+			obj->SetTexture(tex);
+			scene.SetObjectTexturePath(objectID, texPath);
 		}
 	}
 }
@@ -84,6 +114,7 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 		return;
 	}
 
+	// Center popup on reference canvas.
 	popupCenter_ = glm::vec2(
 		static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
 		static_cast<float>(GraphicsEngine::kRefH) * 0.5f);
@@ -100,6 +131,42 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 
 	popupId_ = popup->GetID();
 	promptOpen_ = true;
+
+	// Convert popup-local normalized coordinates into world-space.
+	auto ToWorld = [&](float nx, float ny) -> glm::vec2 {
+		return popupCenter_ + glm::vec2(
+			(nx - 0.5f) * popupSize_.x,
+			(ny - 0.5f) * popupSize_.y
+		);
+	};
+
+	// Authored top/bottom button positions inside popup.
+	const glm::vec2 yesCenter = ToWorld(0.50f, 0.71f);
+	const glm::vec2 noCenter = ToWorld(0.50f, 0.84f);
+
+	// Button sizing
+	const glm::vec2 buttonSize(300.0f, 80.0f);
+
+	if (GameObject* yesBtn = scene.SpawnStaticSprite(
+		kTutorialYesNormalTexture,
+		glm::vec3(yesCenter.x, yesCenter.y, 0.0f),
+		buttonSize,
+		"999999")) {
+		yesButtonId_ = yesBtn->GetID();
+		scene.SetObjectTexturePath(yesButtonId_, kTutorialYesNormalTexture);
+	}
+
+	if (GameObject* noBtn = scene.SpawnStaticSprite(
+		kTutorialNoNormalTexture,
+		glm::vec3(noCenter.x, noCenter.y, 0.0f),
+		buttonSize,
+		"999999")) {
+		noButtonId_ = noBtn->GetID();
+		scene.SetObjectTexturePath(noButtonId_, kTutorialNoNormalTexture);
+	}
+
+	yesHovered_ = false;
+	noHovered_ = false;
 }
 
 // Closes the tutorial prompt by despawning the popup GameObject using its stored ID. Sets promptOpen_ to false and resets popupId_.
@@ -108,6 +175,17 @@ void StartGamePromptLogic::ClosePrompt(Scene& scene) {
 		scene.DespawnByID(popupId_);
 		popupId_ = -1;
 	}
+	if (yesButtonId_ >= 0) {
+		scene.DespawnByID(yesButtonId_);
+		yesButtonId_ = -1;
+	}
+	if (noButtonId_ >= 0) {
+		scene.DespawnByID(noButtonId_);
+		noButtonId_ = -1;
+	}
+
+	yesHovered_ = false;
+	noHovered_ = false;
 	promptOpen_ = false;
 }
 
@@ -120,7 +198,7 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		return;
 	}
 
-	// lazy init hover textures
+	// Lazy-init normal/hover texture paths for main Play button.
 	if (!initialized_) {
 		normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
 		hoverTexturePath_ = MakeHoverPath(normalTexturePath_);
@@ -130,7 +208,10 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	glm::vec2 mouseWorld{};
 	GetMouseWorld(scene, input, mouseWorld);
 
-	// Step 1: normal Play button click opens prompt
+
+	// ---------------------------------------------------------------------
+	// Stage 1: popup closed -> interact with main Play button.
+	// ---------------------------------------------------------------------
 	if (!promptOpen_) {
 		const glm::vec3 pos = owner->GetPositionGLM();
 		const glm::vec3 sz = owner->GetScaleGLM();
@@ -149,6 +230,7 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			TrySetTexture(owner, normalTexturePath_);
 		}
 
+		// Click opens popup.
 		if (input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT) && over) {
 			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 			OpenPrompt(scene);
@@ -156,30 +238,50 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		return;
 	}
 
-	// Step 2: prompt open -> click YES / SKIP zones
+	// ---------------------------------------------------------------------
+	// Stage 2: popup open -> interact with Yes/No decision buttons.
+	// ---------------------------------------------------------------------
+	auto IsPointInObject = [&](int id) -> bool {
+		GameObject* obj = scene.GetGameObjectByID(id);
+		if (!obj) return false;
+
+		const glm::vec3 pos = obj->GetPositionGLM();
+		const glm::vec3 sz = obj->GetScaleGLM();
+		const glm::vec2 min(pos.x - sz.x * 0.5f, pos.y - sz.y * 0.5f);
+		const glm::vec2 max(pos.x + sz.x * 0.5f, pos.y + sz.y * 0.5f);
+		return IsPointInRect(mouseWorld, min, max);
+	};
+
+	const bool yesOver = IsPointInObject(yesButtonId_);
+	const bool noOver = IsPointInObject(noButtonId_);
+
+	// Hover swaps for decision buttons.
+	if (yesOver && !yesHovered_) {
+		yesHovered_ = true;
+		TrySetObjectTexture(scene, yesButtonId_, kTutorialYesHoverTexture);
+	}
+	else if (!yesOver && yesHovered_) {
+		yesHovered_ = false;
+		TrySetObjectTexture(scene, yesButtonId_, kTutorialYesNormalTexture);
+	}
+
+	if (noOver && !noHovered_) {
+		noHovered_ = true;
+		TrySetObjectTexture(scene, noButtonId_, kTutorialNoHoverTexture);
+	}
+	else if (!noOver && noHovered_) {
+		noHovered_ = false;
+		TrySetObjectTexture(scene, noButtonId_, kTutorialNoNormalTexture);
+	}
+
+	// Click handling for Yes/No actions.
 	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		return;
 	}
 	input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 
-	// Convert normalized UV-space (0..1 on popup image) to world-space
-	auto ToWorld = [&](float nx, float ny) -> glm::vec2 {
-		return popupCenter_ + glm::vec2(
-			(nx - 0.5f) * popupSize_.x,
-			(ny - 0.5f) * popupSize_.y
-		);
-		};
-
-	// Button Hitboxes:
-	// Top button ("Yes")
-	const glm::vec2 yesMin = ToWorld(0.21f, 0.67f);
-	const glm::vec2 yesMax = ToWorld(0.79f, 0.75f);
-
-	// Bottom button ("Skip tutorial")
-	const glm::vec2 skipMin = ToWorld(0.21f, 0.80f);
-	const glm::vec2 skipMax = ToWorld(0.79f, 0.88f);
-
-	if (IsPointInRect(mouseWorld, yesMin, yesMax)) {
+	if (yesOver) {
+		// Yes -> enter tutorial directly.
 		ClosePrompt(scene);
 		if (audioManager_) {
 			audioManager_->PlayUIClickSound();
@@ -190,7 +292,8 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		}
 		scene.StartLevelTransition(tutorialJson_, activateSimulation_);
 	}
-	else if (IsPointInRect(mouseWorld, skipMin, skipMax)) {
+	else if (noOver) {
+		// No -> play intro cutscene flow, then continue.
 		ClosePrompt(scene);
 		if (audioManager_) {
 			audioManager_->PlayUIClickSound();

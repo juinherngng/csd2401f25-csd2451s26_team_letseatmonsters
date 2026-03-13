@@ -70,6 +70,7 @@ namespace FilePaths {
 		constexpr const char* BTN_RESUME = "../assets/resume_s.png";
 		constexpr const char* BTN_HOW = "../assets/how_s.png";
 		constexpr const char* BTN_QUIT = "../assets/quit_s.png";
+		constexpr const char* BTN_RETURN = "../assets/return_s.png";
 
 		// UI - How To Play
 		constexpr const char* HOW_TO_PLAY = "../assets/HowToPlay.png";

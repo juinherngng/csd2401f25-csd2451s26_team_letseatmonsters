@@ -285,25 +285,6 @@ namespace {
 		return -1;
 	}
 
-	static int FindFirstEmptyTable(Scene& scene) {
-		LogicManager& logic = scene.GetLogicManager();
-
-		for (GameObject* obj : scene.GetAllObjectsRaw()) {
-			if (!obj) continue;
-
-			const int id = obj->GetID();
-			if (scene.GetObjectTag(id) != "table") continue;
-
-			TableLogic* table = logic.GetLogicForObject<TableLogic>(id);
-			if (!table) continue;
-			if (table->HasItem()) continue;
-
-			return id;
-		}
-
-		return -1;
-	}
-
 	static int FindCustomerTableReadyForPayment(Scene& scene) {
 		LogicManager& logic = scene.GetLogicManager();
 
@@ -388,6 +369,8 @@ namespace {
 
 		int completionMenuButtonID_ = -1;
 		bool popupMouseHeld_ = false;
+		bool completionMenuHovered_ = false;
+		static constexpr const char* kCompletionMenuHoverTex_ = "../assets/return_h.png";
 
 		bool GetMouseWorld(InputManager& input, glm::vec2& outWorld) {
 			if (GraphicsEngine::Instance().GetMouseWorldInScene(outWorld)) {
@@ -412,17 +395,33 @@ namespace {
 			return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y;
 		}
 
-		void HandleCompletionPopupInput(Scene& scene) {
-			GLFWwindow* window = glfwGetCurrentContext();
-			if (!window) {
+		void UpdateCompletionButtonHoverVisual(Scene& scene, const glm::vec2& mouseWorld) {
+			if (completionMenuButtonID_ < 0) {
 				return;
 			}
 
-			const bool mouseDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
-			const bool clickEdge = mouseDown && !popupMouseHeld_;
-			popupMouseHeld_ = mouseDown;
+			const bool isHoveredNow = IsPointInObject(scene, completionMenuButtonID_, mouseWorld);
+			if (isHoveredNow == completionMenuHovered_) {
+				return;
+			}
+			completionMenuHovered_ = isHoveredNow;
 
-			if (!clickEdge) {
+			GameObject* button = scene.GetGameObjectByID(completionMenuButtonID_);
+			if (!button) {
+				return;
+			}
+
+			const char* targetPath = completionMenuHovered_ ? kCompletionMenuHoverTex_ : FilePaths::Textures::BTN_RETURN;
+			const std::string cacheKey = completionMenuHovered_ ? "tutorial_completion_return_h" : "tutorial_completion_return_s";
+			if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheKey, targetPath)) {
+				button->SetTexture(tex);
+				scene.SetObjectTexturePath(completionMenuButtonID_, targetPath);
+			}
+		}
+
+		void HandleCompletionPopupInput(Scene& scene) {
+			GLFWwindow* window = glfwGetCurrentContext();
+			if (!window) {
 				return;
 			}
 
@@ -435,6 +434,16 @@ namespace {
 				InputManager& input = InputManager::Get();
 				glm::vec3 w = input.ScreenToWorld(static_cast<float>(mx), static_cast<float>(my));
 				mouseWorld = glm::vec2(w.x, w.y);
+			}
+
+			UpdateCompletionButtonHoverVisual(scene, mouseWorld);
+
+			const bool mouseDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+			const bool clickEdge = mouseDown && !popupMouseHeld_;
+			popupMouseHeld_ = mouseDown;
+
+			if (!clickEdge) {
+				return;
 			}
 
 			if (IsPointInObject(scene, completionMenuButtonID_, mouseWorld)) {
@@ -1032,29 +1041,30 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 			}
 		}
 
-		void ClearCompletionPopup(Scene& scene) {
-	for (int id : completionPopupIDs_) {
-		if (id >= 0 && scene.GetGameObjectByID(id)) {
-			scene.DespawnByID(id);
+	void ClearCompletionPopup(Scene& scene) {
+		for (int id : completionPopupIDs_) {
+			if (id >= 0 && scene.GetGameObjectByID(id)) {
+				scene.DespawnByID(id);
+			}
 		}
-	}
-	completionPopupIDs_.clear();
-	completionPopupShown_ = false;
-	completionMenuButtonID_ = -1;
-	popupMouseHeld_ = false;
-}
+		completionPopupIDs_.clear();
+		completionPopupShown_ = false;
+		completionMenuButtonID_ = -1;
+		popupMouseHeld_ = false;
+		completionMenuHovered_ = false;
+    }
 
-		void ShowCompletionPopup(Scene& scene) {
-	if (completionPopupShown_) return;
-	completionPopupShown_ = true;
+	void ShowCompletionPopup(Scene& scene) {
+		if (completionPopupShown_) return;
+		completionPopupShown_ = true;
 
-	// Freeze gameplay while popup is shown.
-	scene.SetSimulationActive(false);
+		// Freeze gameplay while popup is shown.
+		scene.SetSimulationActive(false);
 
-	const glm::vec3 center{
-		static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
-		static_cast<float>(GraphicsEngine::kRefH) * 0.5f,
-		0.0f
+		const glm::vec3 center{
+			static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
+			static_cast<float>(GraphicsEngine::kRefH) * 0.5f,
+			0.0f
 	};
 	const std::string uiLayer = "999999";
 
@@ -1067,13 +1077,14 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 	}
 
 	if (GameObject* menu = scene.SpawnStaticSprite(
-		FilePaths::Textures::BTN_QUIT,
+		FilePaths::Textures::BTN_RETURN,
 		glm::vec3(center.x, center.y + 160.0f, 0.0f),
 		glm::vec2(350.0f, 100.0f),
 		uiLayer)) {
 		completionMenuButtonID_ = menu->GetID();
 		completionPopupIDs_.push_back(completionMenuButtonID_);
-		scene.SetObjectTexturePath(completionMenuButtonID_, FilePaths::Textures::BTN_QUIT);
+		scene.SetObjectTexturePath(completionMenuButtonID_, FilePaths::Textures::BTN_RETURN);
+		completionMenuHovered_ = false;
 		// Do NOT attach MenuButtonLogic here.
 	}
 }
