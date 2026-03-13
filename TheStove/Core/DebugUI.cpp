@@ -854,7 +854,7 @@ namespace Debug {
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Blackout", ImVec2(buttonWidth, 0.0f))) {
-			// Simulate blackout: start transition with zero fade-out then immediately continue
+			// Simulate blackout by jumping directly to hold (fade-out ~instant).
 			gfx->StartSceneTransition(0.0f, mFadeInSec);
 		}
 		ImGui::SameLine();
@@ -863,8 +863,8 @@ namespace Debug {
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0.0f))) {
-			// Simple cancel: start transition with zero durations to clear state
-			gfx->StartSceneTransition(0.0f, 0.0f);
+			// Immediately clear transition state, regardless of current phase
+			gfx->CancelSceneTransition();
 		}
 
 		ImGui::End();

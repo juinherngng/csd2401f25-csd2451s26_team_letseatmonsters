@@ -16,6 +16,7 @@
 #pragma once
 
 #include "GameObjectLogic.hpp"
+
 #include <string>
 
 class AudioManager;
@@ -27,7 +28,8 @@ public:
 	explicit MenuButtonLogic(int ownerID, std::string targetJson, bool activateSimulation)
 		: GameObjectLogic(ownerID),
 		targetJson_(std::move(targetJson)),
-		activateSimulation_(activateSimulation) {}
+		activateSimulation_(activateSimulation) {
+	}
 
 	// Override Update to handle hover state and click interactions
 	void Update(float dt, Scene& scene, InputManager& input) override;

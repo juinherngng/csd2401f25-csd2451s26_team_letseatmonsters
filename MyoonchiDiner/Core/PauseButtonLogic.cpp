@@ -18,6 +18,7 @@
 #include "Graphics/SceneManager.hpp"
 
 #include "PauseButtonLogic.hpp"
+#include "PlayerLogic.hpp"
 
 #include <string>
 
@@ -103,9 +104,14 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 
 	switch (action_) {
 	case PauseAction::Resume:
-		scene.SetSimulationActive(true);
+		if (PlayerLogic* playerLogic = scene.GetLogicManager().GetLogicForObject<PlayerLogic>(scene.GetPlayerID())) {
+			playerLogic->EnterPauseState(scene);
+		}
+
 		scene.HidePauseOverlay();
-		// Also clear input so no stray edges remain
+		scene.RequestResumeFromPauseOverlay();
+		// Fully clear transient input after clicking Resume so gameplay
+		// does not receive stale mouse/key edges from the pause UI frame.
 		input.ClearState();
 		break;
 

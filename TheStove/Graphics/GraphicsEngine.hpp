@@ -140,6 +140,12 @@ public:
 	bool IsTransitionActive() const;
 	bool IsAtBlackout() const;       // true when fade-out finished and overlay is fully opaque
 	void ContinueTransitionFadeIn(); // call once you switched scenes to start fade-in
+	void CancelSceneTransition();    // immediately clear any active transition state
+
+	// Debug text rendering control (used to hide editor text during cutscenes in debug builds)
+	void SetSuppressDebugTextRendering(bool suppress) {
+		suppressDebugTextRendering_ = suppress;
+	}
 
 private:
 	// Internal helper types
@@ -224,6 +230,7 @@ private:
 	float transitionAlpha_ = 0.0f;
 	float dbgFadeOutSeconds_ = 0.35f;
 	float dbgFadeInSeconds_ = 0.35f;
+	bool suppressDebugTextRendering_ = false;
 
 	// Lifecycle helpers
 	void LoadDefaultResources();

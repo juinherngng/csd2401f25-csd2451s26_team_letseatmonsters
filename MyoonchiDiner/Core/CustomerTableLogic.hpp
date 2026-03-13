@@ -34,7 +34,6 @@ public:
 	void Start(Scene& scene) override;
 	void OnDestroy(Scene& scene) override;
 
-
 	// Block taking served food
 	int TakeItem(Scene& scene) override;
 

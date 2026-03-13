@@ -8,7 +8,7 @@
 					and updating customer order UI elements such as the order bubble,
 					patience bar, and payment result feedback attached to a customer.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -27,10 +27,10 @@ class CustomerOrderUILogic : public GameObjectLogic {
 public:
 	using GameObjectLogic::GameObjectLogic;
 
-    void Start(Scene& scene) override;
-    void Update(float dt, Scene& scene, InputManager& input) override;
-    void OnDestroy(Scene& scene) override;
-    bool HitTestBubble(Scene& scene, const glm::vec2& worldPos) const;
+	void Start(Scene& scene) override;
+	void Update(float dt, Scene& scene, InputManager& input) override;
+	void OnDestroy(Scene& scene) override;
+	bool HitTestBubble(Scene& scene, const glm::vec2& worldPos) const;
 
 	std::string GetName() const override {
 		return "CustomerOrderUILogic";
@@ -51,9 +51,9 @@ private:
 	glm::vec2 dishOffset_ = { -54.f, -100.f }; // relative to customer (sits in bubble)
 	glm::vec2 barOffset_ = { 0.f,  55.f };  // below customer
 
-    glm::vec2 bubbleSize_ = { 120.f, 90.f };
-    glm::vec2 dishIconSize_ = { 70.f, 70.f };   // dish wants bigger
-    glm::vec2 coinIconSize_ = { 60.f, 60.f };   // coin wants smaller
+	glm::vec2 bubbleSize_ = { 120.f, 90.f };
+	glm::vec2 dishIconSize_ = { 70.f, 70.f };   // dish wants bigger
+	glm::vec2 coinIconSize_ = { 60.f, 60.f };   // coin wants smaller
 
 	glm::vec2 barBGSize_ = { 120.f, 14.f };
 	glm::vec2 barFillSize_ = { 112.f, 10.f };  // slightly inset from BG
@@ -61,15 +61,15 @@ private:
 	// Track what icon texture is currently on the bubble
 	std::string lastIconPath_;
 
-    // Your coin icon path
-    const char* coinIconPath_ = "../assets/Reaction_Money.png";
+	// Your coin icon path
+	const char* coinIconPath_ = "../assets/Reaction_Money.png";
 
 	// --- asset paths ---
 	const char* bubbleBGPath_ = "../assets/Customer_Order.png";
 	const char* patienceBGPath_ = "../assets/Customer_Timer_Red.png";	  // red
 	const char* patienceFillPath_ = "../assets/Customer_Timer_Green.png"; // green
 
-    // helpers
+	// helpers
 	// Ensures patience bar background/fill widgets are created
 	void EnsurePatienceBar(Scene& scene);
 
@@ -91,8 +91,8 @@ private:
 	// Rescales patience fill width from a normalized [0,1] ratio
 	void UpdatePatienceFill(Scene& scene, float ratio01);
 
-    const char* happyFacePath_ = "../assets/Reaction_Happy_Face.png";
-    const char* sadFacePath_ = "../assets/Reaction_Angry_Face.png";
+	const char* happyFacePath_ = "../assets/Reaction_Happy_Face.png";
+	const char* sadFacePath_ = "../assets/Reaction_Angry_Face.png";
 
 	// Spawns temporary payment reaction VFX (happy/sad face)
 	void SpawnPaymentVFX(Scene& scene, const char* path);

@@ -15,13 +15,13 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "Core/AudioManager.hpp"
 #include "Core/LogicManager.hpp"   
 #include "Core/Quota.hpp"
 #include "Core/SimpleNpcLogic.hpp" 
+#include "CustomerTableLogic.hpp"
 #include "Graphics/GameObject.hpp"
 #include "Graphics/SceneManager.hpp"
-
-#include "CustomerTableLogic.hpp"
 
 #include <cmath>
 
@@ -139,10 +139,15 @@ void CustomerTableLogic::OnItemTaken(Scene& /*scene*/, GameObject& /*item*/) {
 }
 
 void CustomerTableLogic::OnDishServed(Scene& scene, GameObject& dish) {
-	if (!HasSeatedCustomer()) return;
+if (!HasSeatedCustomer()) return;
 
-	servedFoodLocked_ = true;
-	servedFoodItemID_ = dish.GetID();
+// Play serve dish sound effect
+if (AudioManager* audioMgr = scene.GetAudioManager()) {
+audioMgr->PlaySound("sfx_serve_dish", audioMgr->GetVfxVolume());
+}
+
+servedFoodLocked_ = true;
+servedFoodItemID_ = dish.GetID();
 
 	LogicManager& logicMgr = scene.GetLogicManager();
 
@@ -167,7 +172,6 @@ void CustomerTableLogic::OnDishServed(Scene& scene, GameObject& dish) {
 		// scene.SetObjectTexturePath(dish.GetID(), "../assets/Plate.png");
 	}
 }
-
 
 bool CustomerTableLogic::CanServeFromPlate(const PlateLogic& plate) const {
 	// Must have a seated customer.

@@ -303,7 +303,7 @@ namespace {
 				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, obj.z }, { obj.w, obj.h },
 					fullFrame, 0.25f, true, layerName);
 
-				if (obj.texture.find("dino") != std::string::npos) {
+				if (g && obj.texture.find("dino") != std::string::npos) {
 					scene.AttachDinoAnimations(g->GetID());
 
 					const std::string clip = obj.animName.empty() ? "IDLE" : obj.animName;
@@ -533,7 +533,7 @@ namespace {
 		ImGui::InputText("##NewLayerName", newLayerBuf, IM_ARRAYSIZE(newLayerBuf));
 		ImGui::SameLine();
 
-		if (ImGui::Button("Add", ImVec2(56.0f, 0.0f)) && newLayerBuf[0] != '\0') {
+		if (ImGui::Button("Add##LayerAdd", ImVec2(56.0f, 0.0f)) && newLayerBuf[0] != '\0') {
 			scene.AddLayer(newLayerBuf);
 			newLayerBuf[0] = '\0';
 		}
@@ -583,7 +583,16 @@ namespace {
 			ImGui::SameLine();
 			if (ImGui::Checkbox("V", &visible)) {
 				layer->SetVisible(visible);
+
+				// Keep editor text objects in sync with layer visibility toggles.
+				auto& textObjects = LEPANELFONTS::GetMutableTextObjects();
+				for (auto& textObject : textObjects) {
+					if (textObject.layer == layerName) {
+						textObject.visible = visible;
+					}
+				}
 			}
+
 			if (ImGui::IsItemHovered()) {
 				ImGui::SetTooltip("Layer visibility");
 			}
@@ -745,6 +754,7 @@ namespace LEPANELLEVEL {
 			});
 
 		static std::size_t sLastSavedHash = 0;
+		static std::string sLastSavedPath;
 
 		LEACTIONS::DrawActionGrid(editor, scene, {
 			[&]() {
@@ -767,6 +777,7 @@ namespace LEPANELLEVEL {
 					selectedObjectId = -1;
 					LEHIERARCHY::InvalidateCache();
 					sLastSavedHash = HashLevelData(work);
+					sLastSavedPath = editor.levelPath;
 					ClearUndoHistory();
 				}
 			},
@@ -786,6 +797,7 @@ namespace LEPANELLEVEL {
 				fresh.background.clear();
 				LEHIERARCHY::InvalidateCache();
 				sLastSavedHash = HashLevelData(fresh);
+				sLastSavedPath.clear();
 				ClearUndoHistory();
 			},
 			[&]() {
@@ -793,9 +805,11 @@ namespace LEPANELLEVEL {
 				SyncSceneToLevel(scene, dst);
 				SyncTextObjectsToLevel(dst);
 				const std::size_t currentHash = HashLevelData(dst);
+				const bool savePathChanged = (editor.levelPath != sLastSavedPath);
 
-				if (currentHash != sLastSavedHash && LevelSerializer::Save(editor.levelPath, dst)) {
+				if ((currentHash != sLastSavedHash || savePathChanged) && LevelSerializer::Save(editor.levelPath, dst)) {
 					sLastSavedHash = currentHash;
+					sLastSavedPath = editor.levelPath;
 				}
 			},
 			[&]() { return PerformUndo(editor, scene); },
@@ -1022,7 +1036,7 @@ namespace LEPANELLEVEL {
 		}
 
 		// Add
-		if (ImGui::Button("Add")) {
+		if (ImGui::Button("Add##ObjectAdd")) {
 			// Snapshot BEFORE adding
 			PushUndoSnapshot(editor, scene);
 

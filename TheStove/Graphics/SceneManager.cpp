@@ -63,7 +63,15 @@ void Scene::SetSimulationActive(bool active) {
 		animationManager.Play();
 	}
 	else {
-		animationManager.Stop();
+		const std::string levelPath = GetCurrentLevelPath();
+		const bool isMainMenu = levelPath.find("main_menu") != std::string::npos;
+
+		if (isMainMenu) {
+			animationManager.Play();
+		}
+		else {
+			animationManager.Stop();
+		}
 	}
 }
 
@@ -173,12 +181,15 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 
 	// While any cutscene is active, discard input so UI/buttons cannot be pressed (this might need tweaking later, for future cutscenes that need input)
 	if (IsAnyCutsceneActive()) {
-		if (inputManager.IsKeyJustPressed(GLFW_KEY_SPACE)) {
+		const bool spaceHeld = inputManager.IsKeyPressed(GLFW_KEY_SPACE);
+		if (spaceHeld && !cutsceneSkipSpaceHeld_) {
 			SkipActiveCutscene();
 		}
+		cutsceneSkipSpaceHeld_ = spaceHeld;
 		inputManager.ClearState();
 	}
 	else {
+		cutsceneSkipSpaceHeld_ = false;
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 		inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager, spriteID, useForces_, showAuxDebug_);
 #endif
@@ -251,6 +262,13 @@ void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 		npcSystem.Update(physicsDt, entityManager, collisionManager, walk);
 		HandlePlayerCollisions(physicsDt, entityManager);
 		ApplyFinalConstraints(entityManager);
+
+		// Update 3D audio listener position to the center of the reference canvas
+		if (audioManager_) {
+			float listenerX = static_cast<float>(GraphicsEngine::kRefW) * 0.5f;
+			float listenerY = static_cast<float>(GraphicsEngine::kRefH) * 0.5f;
+			audioManager_->SetListenerPosition(listenerX, listenerY, 0.0f);
+		}
 	}
 }
 
@@ -353,10 +371,23 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 	// Handle ESC to toggle pause overlay in Release
 #ifndef _DEBUG
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
-		if (IsSimulationActive()) {
+		if (IsPauseOverlayActive()) {
+			HidePauseOverlay();
+			RequestResumeFromPauseOverlay();
+			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
+		}
+		else if (IsSimulationActive()) {
 			// Only allow pause during gameplay (not in main menu)
 			ShowPauseOverlay();
+			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
 		}
+	}
+#endif
+
+#ifndef _DEBUG
+	if (resumeFromPausePending_ && !pauseOverlayActive_) {
+		SetSimulationActive(true);
+		resumeFromPausePending_ = false;
 	}
 #endif
 
@@ -533,9 +564,24 @@ void Scene::DespawnByID(int targetID) {
 	// Play destroy audio before removing the object
 	PlayDestroyAudio(targetID);
 
+	// Remove stale layer membership and metadata before despawning.
+	auto defaultsIt = defaults_.find(targetID);
+	if (defaultsIt != defaults_.end()) {
+		const std::string& layerName = defaultsIt->second.layer;
+		if (!layerName.empty()) {
+			auto layerIt = layers.find(layerName);
+			if (layerIt != layers.end()) {
+				layerIt->second.RemoveObject(targetID);
+			}
+		}
+
+		defaults_.erase(defaultsIt);
+	}
+
 	logicManager.RemoveAllFor(targetID, *this);
 
 	objectTags_.erase(targetID);
+	mTexturePathByID.erase(targetID);
 
 	animationManager.RemoveAnimator(targetID);
 
@@ -546,6 +592,7 @@ void Scene::DespawnByID(int targetID) {
 // Collects pointers to all GameObjects that should be rendered, sorted by layer and Y position for correct draw order. Applies visibility rules based on per-object defaults and layer settings.
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	out.clear();
+	const bool cutsceneActive = IsAnyCutsceneActive();
 
 	const auto& all = entityManager.GetObjectStorage();
 	out.reserve(all.size());
@@ -565,6 +612,14 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 			}
 		}
 
+		const std::string layerName = (defIt != defaults_.end()) ? defIt->second.layer : "";
+
+		// While cutscenes are active, render only cutscene/pause overlay layers.
+		// This prevents gameplay objects/HUD strips from bleeding through in debug builds.
+		if (cutsceneActive && layerName != cutTrans_.uiLayer && layerName != cutscene_.uiLayer && layerName != "999999") {
+			continue;
+		}
+
 		// Check the layer's visibility flag
 		Layer* layer = GetObjectLayerPtr(objId);
 		if (layer) {
@@ -576,8 +631,6 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 				continue;
 			}
 		}
-
-		const std::string layerName = (defIt != defaults_.end()) ? defIt->second.layer : "";
 
 		// Set the render layer on the object for use in GraphicsEngine
 		const std::string& texturePath = GetObjectTexturePath(objId);
@@ -974,7 +1027,13 @@ void Scene::ShowPauseOverlay() {
 #endif
 }
 
-
+void Scene::RequestResumeFromPauseOverlay() {
+#ifndef _DEBUG
+	// Defer simulation re-enable until end-of-frame to avoid
+	// running physics/collision in the same frame the pause UI click is handled.
+	resumeFromPausePending_ = true;
+#endif
+}
 
 void Scene::HidePauseOverlay() {
 #ifndef _DEBUG
@@ -1222,11 +1281,9 @@ void Scene::PlaySpawnAudio(int objectId) {
 	const Defaults& defs = it->second;
 	if (defs.audioOnSpawn.empty()) return;
 
-	// Check if sound exists and play it
+	// Check if sound exists and play it at the object's position
 	if (audioManager_->HasSound(defs.audioOnSpawn)) {
-		// For looping audio, we need to handle it specially
-		// The sound should have been loaded with loop flag from AudioCatalog
-		audioManager_->PlaySound(defs.audioOnSpawn, 1.0f, false);
+		audioManager_->PlaySound3D(defs.audioOnSpawn, defs.pos.x, defs.pos.y, defs.pos.z);
 		std::cout << "[Scene] Playing spawn audio '" << defs.audioOnSpawn << "' for object " << objectId << std::endl;
 	}
 	else {
@@ -1244,7 +1301,7 @@ void Scene::PlayInteractAudio(int objectId) {
 	if (defs.audioOnInteract.empty()) return;
 
 	if (audioManager_->HasSound(defs.audioOnInteract)) {
-		audioManager_->PlaySound(defs.audioOnInteract, 1.0f, false);
+		audioManager_->PlaySound3D(defs.audioOnInteract, defs.pos.x, defs.pos.y, defs.pos.z);
 		std::cout << "[Scene] Playing interact audio '" << defs.audioOnInteract << "' for object " << objectId << std::endl;
 	}
 	else {
@@ -1262,7 +1319,7 @@ void Scene::PlayDestroyAudio(int objectId) {
 	if (defs.audioOnDestroy.empty()) return;
 
 	if (audioManager_->HasSound(defs.audioOnDestroy)) {
-		audioManager_->PlaySound(defs.audioOnDestroy, 1.0f, false);
+		audioManager_->PlaySound3D(defs.audioOnDestroy, defs.pos.x, defs.pos.y, defs.pos.z);
 		std::cout << "[Scene] Playing destroy audio '" << defs.audioOnDestroy << "' for object " << objectId << std::endl;
 	}
 	else {
@@ -1280,7 +1337,7 @@ void Scene::PlayProcessingAudio(int objectId) {
 	if (defs.audioOnProcessing.empty()) return;
 
 	if (audioManager_->HasSound(defs.audioOnProcessing)) {
-		audioManager_->PlaySound(defs.audioOnProcessing, 1.0f, false);
+		audioManager_->PlaySound3D(defs.audioOnProcessing, defs.pos.x, defs.pos.y, defs.pos.z);
 		std::cout << "[Scene] Playing processing audio '" << defs.audioOnProcessing << "' for object " << objectId << std::endl;
 	}
 	else {
@@ -1337,6 +1394,8 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 		QueueLevelLoad(levelJsonPath, activateSimulation);
 		return;
 	}
+
+	SetSimulationActive(false);
 
 	// Clear any existing UI or pause overlays to avoid conflicts
 	HidePauseOverlay();
@@ -1488,9 +1547,7 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 		return;
 	}
 
-#ifndef _DEBUG
 	SetSimulationActive(false);
-#endif
 	HidePauseOverlay();
 
 	if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
@@ -1787,6 +1844,8 @@ void Scene::RenderLevelTextObjects() {
 	if (objs.empty()) return;
 
 	const bool cutsceneActive = IsAnyCutsceneActive();
+	if (cutsceneActive) return;
+
 	const bool pauseActive = IsPauseOverlayActive();
 	static const std::unordered_set<std::string> kHudTextNames = {
 		"MoneyText", "QuotaText", "TimerText"

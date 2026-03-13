@@ -10,7 +10,7 @@
 					per-table interaction logic. Specialized tables (worktable,
 					customer table, ingredient box, etc.) inherit and override this.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -115,28 +115,25 @@ bool TableLogic::PlaceItem(Scene& scene, int itemID) {
 	// Record that this table now holds this item.
 	heldItemID_ = itemID;
 
-    // Optionally snap the item onto the table top.
-    // For now we just align the item's X/Y to the table's position.
-    Math::Vector3D tablePos = owner->GetPosition();
-    Math::Vector3D newPos(tablePos.x, tablePos.y, tablePos.z);
-    item->SetPosition(newPos);
-    // If this item is a plate with an attached ingredient visual, move it too.
-    if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(itemID))
-    {
-        const int child = plate->GetFirstIngredientObjectID();
+	// Optionally snap the item onto the table top.
+	// For now we just align the item's X/Y to the table's position.
+	Math::Vector3D tablePos = owner->GetPosition();
+	Math::Vector3D newPos(tablePos.x, tablePos.y, tablePos.z);
+	item->SetPosition(newPos);
+	// If this item is a plate with an attached ingredient visual, move it too.
+	if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(itemID)) {
+		const int child = plate->GetFirstIngredientObjectID();
 
-        // Only relevant for "partial plate" visuals (not after dish assembled)
-        if (child >= 0 && !plate->HasPreparedDish())
-        {
-            if (GameObject* ingObj = scene.GetGameObjectByID(child))
-            {
-                ingObj->SetPosition(newPos);
-            }
-        }
-    }
-    //std::cout << "[TableLogic] PlaceItem OK: ownerID=" << GetOwnerID()
-    //    << " now holds itemID=" << itemID
-    //    << " at pos=(" << tablePos.x << ", " << tablePos.y << ")\n";
+		// Only relevant for "partial plate" visuals (not after dish assembled)
+		if (child >= 0 && !plate->HasPreparedDish()) {
+			if (GameObject* ingObj = scene.GetGameObjectByID(child)) {
+				ingObj->SetPosition(newPos);
+			}
+		}
+	}
+	//std::cout << "[TableLogic] PlaceItem OK: ownerID=" << GetOwnerID()
+	//    << " now holds itemID=" << itemID
+	//    << " at pos=(" << tablePos.x << ", " << tablePos.y << ")\n";
 
 	OnItemPlaced(scene, *item);
 	return true;

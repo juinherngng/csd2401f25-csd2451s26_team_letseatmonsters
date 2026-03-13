@@ -91,6 +91,9 @@ namespace LEPANELPREFABS {
 		return lhs.texture == rhs.texture &&
 			lhs.tag == rhs.tag &&
 			lhs.layer == rhs.layer &&
+			NearlyEqual(lhs.x, rhs.x) &&
+			NearlyEqual(lhs.y, rhs.y) &&
+			NearlyEqual(lhs.z, rhs.z) &&
 			NearlyEqual(lhs.w, rhs.w) &&
 			NearlyEqual(lhs.h, rhs.h) &&
 			NearlyEqual(lhs.rotation, rhs.rotation) &&
@@ -108,6 +111,18 @@ namespace LEPANELPREFABS {
 		if (fs::path(path).extension().empty()) {
 			path += ".json";
 		}
+	}
+
+	static std::string ResolvePrefabPathFromInput(const std::string& inputPath) {
+		fs::path resolved(inputPath);
+
+		if (!resolved.has_parent_path()) {
+			resolved = fs::path(FilePaths::Dirs::PREFABS_EDITOR) / resolved;
+		}
+
+		std::string out = resolved.generic_string();
+		EnsureJsonExt(out);
+		return out;
 	}
 
 	static std::string NormalizePrefabPath(const std::string& path) {
@@ -214,6 +229,10 @@ namespace LEPANELPREFABS {
 			prefabPathInitialized = true;
 		}
 		static std::vector<std::string> sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+		auto GetPrefabDisplayName = [](const std::string& prefabPath) {
+			const std::string filename = fs::path(prefabPath).filename().string();
+			return filename.empty() ? prefabPath : filename;
+			};
 
 		// Cache for prefab thumbnails (keyed by prefab JSON path)
 		static std::unordered_map<std::string, Texture*> sPrefabPreviewCache;
@@ -223,6 +242,7 @@ namespace LEPANELPREFABS {
 
 		if (ImGui::Button("Refresh##pf")) {
 			sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+			sPrefabPreviewCache.clear();
 		}
 
 		ImGui::SameLine();
@@ -239,6 +259,7 @@ namespace LEPANELPREFABS {
 				if (!projPath.empty()) {
 					// Rebuild list in this panel
 					sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+					sPrefabPreviewCache.clear();
 
 					// Optional: auto-select the imported prefab in the combo
 					fs::path filename = fs::path(projPath).filename();
@@ -251,12 +272,19 @@ namespace LEPANELPREFABS {
 			}
 		}
 
+		std::string selectedPrefabLabel = GetPrefabDisplayName(prefabPathBuf);
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-		if (ImGui::BeginCombo("##PrefabCombo", prefabPathBuf)) {
+		if (ImGui::BeginCombo("##PrefabCombo", selectedPrefabLabel.c_str())) {
 			for (size_t i = 0; i < sPrefabs.size(); ++i) {
+				const std::string displayName = GetPrefabDisplayName(sPrefabs[i]);
 				bool selected = (sPrefabs[i] == prefabPathBuf);
-				if (ImGui::Selectable(sPrefabs[i].c_str(), selected)) {
+				const std::string comboLabel = displayName + "##combo_prefab_" + std::to_string(i);
+				if (ImGui::Selectable(comboLabel.c_str(), selected)) {
 					std::snprintf(prefabPathBuf, sizeof(prefabPathBuf), "%s", sPrefabs[i].c_str());
+				}
+
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+					ImGui::SetTooltip("%s", sPrefabs[i].c_str());
 				}
 
 				if (selected) {
@@ -270,8 +298,7 @@ namespace LEPANELPREFABS {
 		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 		ImGui::InputText("##PrefabPathEdit", prefabPathBuf, IM_ARRAYSIZE(prefabPathBuf));
 
-		std::string prefabPath = prefabPathBuf;
-		EnsureJsonExt(prefabPath);
+		std::string prefabPath = ResolvePrefabPathFromInput(prefabPathBuf);
 		const bool prefabExists = fs::exists(prefabPath);
 
 		// Prefab list
@@ -296,14 +323,16 @@ namespace LEPANELPREFABS {
 				return true;
 			}
 
+			const std::string filterTarget = GetPrefabDisplayName(value);
+
 			auto it = std::search(
-				value.begin(), value.end(),
+				filterTarget.begin(), filterTarget.end(),
 				prefabFilter.begin(), prefabFilter.end(),
 				[](char lhs, char rhs) {
 					return std::tolower(static_cast<unsigned char>(lhs)) ==
 						std::tolower(static_cast<unsigned char>(rhs));
 				});
-			return it != value.end();
+			return it != filterTarget.end();
 			};
 
 		// Scrollable area for prefab thumbnails + paths
@@ -354,12 +383,17 @@ namespace LEPANELPREFABS {
 
 			// Highlight currently selected prefab (the one in prefabPathBuf)
 			bool isSelected = (std::strcmp(prefabPathBuf, path.c_str()) == 0);
-			if (ImGui::Selectable(path.c_str(), isSelected,
+			const std::string displayName = GetPrefabDisplayName(path);
+			if (ImGui::Selectable(displayName.c_str(), isSelected,
 				0, ImVec2(0.0f, iconSize))) {
 				// Clicking on list item updates the active prefab path
 				std::snprintf(prefabPathBuf,
 					sizeof(prefabPathBuf),
 					"%s", path.c_str());
+			}
+
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+				ImGui::SetTooltip("%s", path.c_str());
 			}
 
 			// Drag source: other panels can accept "PREFAB_PATH"
@@ -481,6 +515,7 @@ namespace LEPANELPREFABS {
 					if (SavePrefabToFile(savePath, out)) {
 						std::snprintf(prefabPathBuf, sizeof(prefabPathBuf), "%s", savePath.c_str());
 						sPrefabs = ListJsonFiles(FilePaths::Dirs::PREFABS_EDITOR);
+						sPrefabPreviewCache.erase(savePath);
 
 						// Link this instance to the prefab we just saved
 						PrefabLinkByID[selectedObjectId] = NormalizePrefabPath(savePath);
@@ -516,7 +551,7 @@ namespace LEPANELPREFABS {
 					);
 
 					// Optional: project-specific animation attach
-					if (data.texture.find("dino") != std::string::npos) {
+					if (g && data.texture.find("dino") != std::string::npos) {
 						scene.AttachDinoAnimations(g->GetID());
 						scene.SetAnimation(g->GetID(), "IDLE");
 					}

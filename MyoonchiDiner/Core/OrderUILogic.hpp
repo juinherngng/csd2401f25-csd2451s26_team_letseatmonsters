@@ -49,7 +49,7 @@ private:
 		int customerId = -1;
 		DishType dish = DishType::PoopDish;
 	};
-	
+
 	// UI state for each order slot
 	struct OrderSlot {
 		int customerId = -1;

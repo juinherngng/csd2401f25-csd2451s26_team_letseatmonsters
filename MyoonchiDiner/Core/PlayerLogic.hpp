@@ -19,10 +19,12 @@
 
 #include "Math.hpp"
 
+#include <array>
 #include <glm/glm.hpp>
+#include <unordered_map>
 #include <unordered_set>
 
- // Forward declarations to avoid circular dependencies
+// Forward declarations to avoid circular dependencies
 class PlayerLogic : public GameObjectLogic {
 public:
 	// Inherit constructor from GameObjectLogic
@@ -67,6 +69,9 @@ public:
 
 	// Unity: Drop()
 	void Drop(Scene& scene);
+
+	// Force-clear movement/click state while pause overlay is active or before resume.
+	void EnterPauseState(Scene& scene);
 
 private:
 	enum class MoveMode {
@@ -129,6 +134,7 @@ private:
 	bool IsPointInsideObjectCollider(const GameObject* obj, const glm::vec2& worldPoint) const;
 	void ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint);
 	void UpdateClickMoveIndicator(Scene& scene, float dt);
+	void ClearClickMoveIndicator(Scene& scene);
 	void ClearInteractableVisualCues(Scene& scene);
 	void ResetMouseDragState();
 	bool TryGetMouseWorld(Scene& scene, InputManager& input, glm::vec2& mouseWorld) const;
@@ -137,6 +143,11 @@ private:
 	void ClearMovementTarget(Scene& scene);
 	bool IsInTableInteractionRange(Scene& scene, int tableObjectID);
 	void CancelQueuedTableMove(Scene& scene);
+
+	// Hover outline helpers
+	void EnsureHoverOutline(Scene& scene, GameObject* sourceObj, int sourceID);
+	void RemoveHoverOutline(Scene& scene, int sourceID);
+	void ClearHoverOutlines(Scene& scene);
 
 	// Particle footsteps
 	float footstepDistanceAcc_ = 0.0f;
@@ -150,9 +161,14 @@ private:
 	float dragRetargetTimer_ = 0.0f;
 	std::unordered_set<int> highlightedInteractableIDs_;
 
+	// Hover outline state: source object ID -> 5 overlay sprite IDs
+	// [0..3] = cyan offsets (left/right/up/down), [4] = center mask
+	std::unordered_map<int, std::array<int, 5>> hoverOutlineIDs_;
+
 	// Click indicator state
 	int clickIndicatorID_ = -1;
 	float clickIndicatorTimeLeft_ = 0.0f;
+	bool suppressMouseUntilRelease_ = false;
 
 	// Trail effect state
 	glm::vec3 lastTrailPos_{ 0.0f, 0.0f, 0.0f };

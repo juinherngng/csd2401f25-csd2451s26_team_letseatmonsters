@@ -235,7 +235,13 @@ namespace Audio {
 				<< ", category=" << asset.category
 				<< ", volume=" << asset.volume << std::endl;
 
-			if (resMgr.LoadAudio(asset.name, asset.filepath, asset.loop, asset.stream)) {
+			// Load SFX/VFX sounds as 3D for spatial audio; BGM and UI stay 2D
+			bool isSpatial = (asset.category == "sfx" || asset.category == "vfx");
+			bool loaded = isSpatial
+				? resMgr.LoadAudio3D(asset.name, asset.filepath, asset.loop, asset.stream)
+				: resMgr.LoadAudio(asset.name, asset.filepath, asset.loop, asset.stream);
+
+			if (loaded) {
 				// Get and display audio info
 				unsigned int lenMs = 0;
 				int channels = 0, bits = 0;

@@ -191,7 +191,223 @@
       "name": "bgm_win_cutscene",
       "stream": false,
       "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_start_button.wav",
+      "loop": false,
+      "name": "sfx_start_button",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_serve_dish.wav",
+      "loop": false,
+      "name": "sfx_serve_dish",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_skip_intro_cutscene.wav",
+      "loop": false,
+      "name": "sfx_skip_intro_cutscene",
+      "stream": false,
+      "volume": 0.5
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_pickup_cabbage_1.wav",
+      "loop": false,
+      "name": "sfx_pickup_cabbage_1",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_pickup_cabbage_2.wav",
+      "loop": false,
+      "name": "sfx_pickup_cabbage_2",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_pickup_cabbage_3.wav",
+      "loop": false,
+      "name": "sfx_pickup_cabbage_3",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_pickup_cabbage_4.wav",
+      "loop": false,
+      "name": "sfx_pickup_cabbage_4",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_new_order_v2.wav",
+      "loop": false,
+      "name": "sfx_new_order_v2",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_clock_ticking_10secs.wav",
+      "loop": false,
+      "name": "sfx_clock_ticking_10secs",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_timer_run_out.wav",
+      "loop": false,
+      "name": "sfx_timer_run_out",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_angry_01.wav",
+      "loop": false,
+      "name": "vo_customer_angry_01",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_angry_02.wav",
+      "loop": false,
+      "name": "vo_customer_angry_02",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_angry_03.wav",
+      "loop": false,
+      "name": "vo_customer_angry_03",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_angry_04.wav",
+      "loop": false,
+      "name": "vo_customer_angry_04",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_angry_05.wav",
+      "loop": false,
+      "name": "vo_customer_angry_05",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_angry_06.wav",
+      "loop": false,
+      "name": "vo_customer_angry_06",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_angry_07.wav",
+      "loop": false,
+      "name": "vo_customer_angry_07",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_angry_08.wav",
+      "loop": false,
+      "name": "vo_customer_angry_08",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_happy_01.wav",
+      "loop": false,
+      "name": "vo_customer_happy_01",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_happy_02.wav",
+      "loop": false,
+      "name": "vo_customer_happy_02",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_happy_03.wav",
+      "loop": false,
+      "name": "vo_customer_happy_03",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_happy_04.wav",
+      "loop": false,
+      "name": "vo_customer_happy_04",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_happy_05.wav",
+      "loop": false,
+      "name": "vo_customer_happy_05",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_happy_06.wav",
+      "loop": false,
+      "name": "vo_customer_happy_06",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_happy_07.wav",
+      "loop": false,
+      "name": "vo_customer_happy_07",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_happy_08.wav",
+      "loop": false,
+      "name": "vo_customer_happy_08",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/vo_customer_happy_09.wav",
+      "loop": false,
+      "name": "vo_customer_happy_09",
+      "stream": false,
+      "volume": 1.0
     }
   ],
-  "version": "1.0"
+  "version": "5.1"
 }

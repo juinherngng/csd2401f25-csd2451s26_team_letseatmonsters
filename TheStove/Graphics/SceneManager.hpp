@@ -454,6 +454,7 @@ public:
 	// Pause overlay methods
 	void ShowPauseOverlay();
 	void HidePauseOverlay();
+	void RequestResumeFromPauseOverlay();
 	bool IsPauseOverlayActive() const {
 		return pauseOverlayActive_;
 	}
@@ -614,6 +615,7 @@ private:
 
 	// Pause overlay state
 	bool pauseOverlayActive_ = false;
+	bool resumeFromPausePending_ = false;
 	std::vector<int> pauseOverlayObjectIds_;
 
 	// Pause audio fade state
@@ -662,6 +664,9 @@ private:
 	bool howToPlayOverlayActive_ = false;
 
 	std::vector<int> pendingDespawns_;
+
+	// Prevent repeated skip-trigger while space is held during cutscenes.
+	bool cutsceneSkipSpaceHeld_ = false;
 
 	// Basic cutscene runner with simple fade-out, image swap, fade-in sequence. No cross-fade or separate hold time.
 	struct CutsceneState {

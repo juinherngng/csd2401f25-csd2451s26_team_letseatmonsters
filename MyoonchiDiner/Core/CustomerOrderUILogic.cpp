@@ -14,10 +14,9 @@
 
 #include "Core/LogicManager.hpp"
 #include "Core/SimpleNpcLogic.hpp"
+#include "CustomerOrderUILogic.hpp"
 #include "Graphics/GameObject.hpp"
 #include "Graphics/SceneManager.hpp"
-
-#include "CustomerOrderUILogic.hpp"
 
  // small utility
 static void DespawnIfAlive(Scene& scene, int& id) {
@@ -175,30 +174,27 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 	auto state = npcLogic->GetBehaviourState();
 	const int curStateInt = (int)state;
 
-    const int leavingInt = (int)SimpleNpcLogic::BehaviourState::Leaving;
-    const int payingInt = (int)SimpleNpcLogic::BehaviourState::Paying;
+	const int leavingInt = (int)SimpleNpcLogic::BehaviourState::Leaving;
+	const int payingInt = (int)SimpleNpcLogic::BehaviourState::Paying;
 
-    const bool enteredLeaving = (prevBehaviourState_ != leavingInt && curStateInt == leavingInt);
+	const bool enteredLeaving = (prevBehaviourState_ != leavingInt && curStateInt == leavingInt);
 
-    if (enteredLeaving)
-    {
-        // Case A: normal flow (player took payment)
-        if (prevBehaviourState_ == payingInt)
-        {
-            const char* face = npcLogic->WillPayZero() ? sadFacePath_ : happyFacePath_;
-            SpawnPaymentVFX(scene, face);
-        }
-        // Case B: unhappy auto-leave (wrong dish / patience expired)
-        else if (npcLogic->WillPayZero())
-        {
-            SpawnPaymentVFX(scene, sadFacePath_);
-        }
-    }
+	if (enteredLeaving) {
+		// Case A: normal flow (player took payment)
+		if (prevBehaviourState_ == payingInt) {
+			const char* face = npcLogic->WillPayZero() ? sadFacePath_ : happyFacePath_;
+			SpawnPaymentVFX(scene, face);
+		}
+		// Case B: unhappy auto-leave (wrong dish / patience expired)
+		else if (npcLogic->WillPayZero()) {
+			SpawnPaymentVFX(scene, sadFacePath_);
+		}
+	}
 
-    // Bubble shown only in WaitingForFood or Paying
-    const bool showBubble =
-        (state == SimpleNpcLogic::BehaviourState::WaitingForFood) ||
-        (state == SimpleNpcLogic::BehaviourState::Paying && !npcLogic->WillPayZero());
+	// Bubble shown only in WaitingForFood or Paying
+	const bool showBubble =
+		(state == SimpleNpcLogic::BehaviourState::WaitingForFood) ||
+		(state == SimpleNpcLogic::BehaviourState::Paying && !npcLogic->WillPayZero());
 
 	const bool showBar =
 		(state == SimpleNpcLogic::BehaviourState::WaitingForFood);
@@ -236,7 +232,6 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 	// store previous state for transition detection
 	prevBehaviourState_ = curStateInt;
 }
-
 
 void CustomerOrderUILogic::EnsureBubbleIcon(Scene& scene, const char* iconPath) {
 	GameObject* me = scene.GetGameObjectByID(GetOwnerID());
@@ -279,7 +274,6 @@ void CustomerOrderUILogic::EnsureBubbleIcon(Scene& scene, const char* iconPath) 
 		UpdateIconTexture(scene, iconPath);
 	}
 }
-
 
 void CustomerOrderUILogic::DestroyPaymentVFX(Scene& scene) {
 	DespawnIfAlive(scene, payVFX_ID_);
@@ -327,7 +321,6 @@ void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
 		DestroyPaymentVFX(scene);
 	}
 }
-
 
 const char* CustomerOrderUILogic::DishToIconPath(DishType dish) const {
 	switch (dish) {

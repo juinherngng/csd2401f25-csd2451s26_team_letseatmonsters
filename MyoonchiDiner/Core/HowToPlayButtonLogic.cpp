@@ -82,7 +82,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	// If overlay is active but THIS instance did not spawn it,
 	// ignore input – let the owner instance handle closing.
 	if (overlayActive && overlayId_ < 0) {
-	//	std::cout << "  [HowToPlayButtonLogic] overlayActive && overlayId_ < 0, ignoring input.\n";
+		//	std::cout << "  [HowToPlayButtonLogic] overlayActive && overlayId_ < 0, ignoring input.\n";
 		return;
 	}
 

@@ -412,6 +412,11 @@ void GraphicsEngine::LoadDefaultResources() {
 		ResolveShaderPath("../shaders/screenfade.vert"),
 		ResolveShaderPath("../shaders/screenfade.frag"));
 
+	// Outline-only shader (uses sprite alpha, ignores sprite RGB)
+	resourceManager.LoadShader("hover_outline",
+		ResolveShaderPath("../shaders/staticsprite.vert"),
+		ResolveShaderPath("../shaders/hover_outline.frag"));
+
 	// Load triangle mesh
 	std::vector<float> vertices;
 	GLsizei vertexCount, vertexSize;
@@ -968,31 +973,34 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 #ifdef _DEBUG
 	// Get text objects and sort by layer for deterministic top-level text rendering
 	const auto& textObjects = LEPANELFONTS::GetTextObjects();
+	const bool renderDebugText = !suppressDebugTextRendering_;
 	struct SortedTextEntry {
 		const LEPANELFONTS::TextObjectData* data;
 		int layer;
 	};
 	std::vector<SortedTextEntry> sortedTextObjects;
 	sortedTextObjects.reserve(textObjects.size());
-	for (const auto& data : textObjects) {
-		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
+	if (renderDebugText) {
+		for (const auto& data : textObjects) {
+			sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
+		}
+
+		std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
+			[](const SortedTextEntry& a, const SortedTextEntry& b) {
+				// Lower layer number = rendered first (behind)
+				// Higher layer number = rendered later (on top)
+				if (a.layer != b.layer) {
+					return a.layer < b.layer;
+				}
+
+				// Same layer: use depth first, then Y position for sorting
+				if (a.data->depth != b.data->depth) {
+					return a.data->depth < b.data->depth;
+				}
+
+				return a.data->y < b.data->y;
+			});
 	}
-
-	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
-		[](const SortedTextEntry& a, const SortedTextEntry& b) {
-			// Lower layer number = rendered first (behind)
-			// Higher layer number = rendered later (on top)
-			if (a.layer != b.layer) {
-				return a.layer < b.layer;
-			}
-
-			// Same layer: use depth first, then Y position for sorting
-			if (a.data->depth != b.data->depth) {
-				return a.data->depth < b.data->depth;
-			}
-
-			return a.data->y < b.data->y;
-		});
 
 #endif
 
@@ -1002,8 +1010,10 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		RenderBackgroundOverlay(view, projection);
 #ifdef _DEBUG
 		// Render all text objects after overlay to keep text above it.
-		for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
-			RenderSingleTextObject(*sortedTextObjects[i].data);
+		if (renderDebugText) {
+			for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
+				RenderSingleTextObject(*sortedTextObjects[i].data);
+			}
 		}
 #endif
 		// Draw transition overlay even if empty scene
@@ -1128,8 +1138,10 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 #ifdef _DEBUG
 	// Render all text after the overlay so text remains readable and always on top of it.
-	for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
-		RenderSingleTextObject(*sortedTextObjects[i].data);
+	if (renderDebugText) {
+		for (size_t i = 0; i < sortedTextObjects.size(); ++i) {
+			RenderSingleTextObject(*sortedTextObjects[i].data);
+		}
 	}
 #endif
 
@@ -1159,6 +1171,10 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 // Render a single text object (for layered rendering)
 void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& data) {
+	if (!data.visible || data.text.empty()) {
+		return;
+	}
+
 	// Get the font from ResourceManager
 	FontSystem::Font* font = ResourceManager::Instance().GetFont(data.fontName);
 	if (!font) {
@@ -1190,6 +1206,10 @@ void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& 
 // Render text objects
 void GraphicsEngine::RenderTextObjects() {
 #ifdef _DEBUG
+	if (suppressDebugTextRendering_) {
+		return;
+	}
+
 	// In debug builds, get text from the editor panel
 	const auto& textObjects = LEPANELFONTS::GetTextObjects();
 
@@ -1331,6 +1351,13 @@ void GraphicsEngine::ContinueTransitionFadeIn() {
 		transitionTimer_ = 0.0f;
 		transitionAlpha_ = 1.0f;
 	}
+}
+
+// Immediately cancel any active transition and reset state
+void GraphicsEngine::CancelSceneTransition() {
+	transitionPhase_ = TransitionPhase::None;
+	transitionTimer_ = 0.0f;
+	transitionAlpha_ = 0.0f;
 }
 
 // Update transition state; should be called every frame with delta time
