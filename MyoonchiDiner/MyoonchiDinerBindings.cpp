@@ -75,12 +75,284 @@
 #include "Core/InputManager.hpp"
 #include "Graphics/GraphicsEngine.hpp"
 #include "GamePaths.hpp"
+#include "EngineRng.hpp"
 
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <optional>
+
+namespace {
+	constexpr int kAmbientVfxRows = 6;
+	constexpr int kAmbientVfxCols = 6;
+
+	constexpr const char* kShinePointTag = "bg_vfx_shine_point";
+	constexpr const char* kLeafLaneTag = "bg_vfx_leaf_lane";
+
+	static std::vector<glm::vec4> CreateVfxFramesFromTopRow(int topRowOneBased, int startCol, int endCol) {
+		std::vector<glm::vec4> frames;
+
+		const int engineRow = kAmbientVfxRows - topRowOneBased; // row 0 = bottom
+		const float frameW = 1.0f / static_cast<float>(kAmbientVfxCols);
+		const float frameH = 1.0f / static_cast<float>(kAmbientVfxRows);
+		const float v = static_cast<float>(engineRow) * frameH;
+
+		for (int col = startCol; col <= endCol; ++col) {
+			const float u = static_cast<float>(col) * frameW;
+			frames.emplace_back(u, v, frameW, frameH);
+		}
+
+		return frames;
+	}
+
+	static float RandomRange(float minValue, float maxValue) {
+		std::uniform_real_distribution<float> dist(minValue, maxValue);
+		return dist(EngineRng::Get());
+	}
+
+	static int RandomIndex(int maxExclusive) {
+		std::uniform_int_distribution<int> dist(0, maxExclusive - 1);
+		return dist(EngineRng::Get());
+	}
+
+	struct AmbientPoint {
+		glm::vec2 pos{ 0.0f, 0.0f };
+		glm::vec2 size{ 96.0f, 96.0f };
+		std::string layer{ "0" };
+	};
+
+	struct AmbientVfxInstance {
+		int objectID = -1;
+		glm::vec2 velocity{ 0.0f, 0.0f };
+		float lifetime = 0.0f;
+		bool killWhenOffscreen = false;
+	};
+
+	struct AmbientVfxController {
+		std::vector<AmbientPoint> shinePoints_;
+		std::vector<float> leafLaneYs_;
+		std::vector<AmbientVfxInstance> active_;
+		bool cached_ = false;
+
+		float shineCooldown_ = 0.0f;
+		float leafCooldown_ = 0.0f;
+
+		void Reset(Scene& scene) {
+			for (auto& inst : active_) {
+				if (inst.objectID >= 0 && scene.GetGameObjectByID(inst.objectID)) {
+					scene.RequestDespawn(inst.objectID);
+				}
+			}
+
+			active_.clear();
+			shinePoints_.clear();
+			leafLaneYs_.clear();
+			cached_ = false;
+
+			shineCooldown_ = 0.0f;
+			leafCooldown_ = 0.0f;
+		}
+
+		void CachePoints(Scene& scene) {
+			shinePoints_.clear();
+			leafLaneYs_.clear();
+
+			for (GameObject* obj : scene.GetAllObjectsRaw()) {
+				if (!obj) continue;
+
+				const int id = obj->GetID();
+				const Scene::Defaults d = scene.GetDefaults(id);
+
+				if (d.tag == kShinePointTag) {
+					AmbientPoint p;
+					const glm::vec3 pos = obj->GetPositionGLM();
+					p.pos = glm::vec2(pos.x, pos.y);
+					p.size = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(96.0f, 96.0f);
+					p.layer = d.layer.empty() ? "0" : d.layer;
+					shinePoints_.push_back(p);
+				}
+				else if (d.tag == kLeafLaneTag) {
+					const glm::vec3 pos = obj->GetPositionGLM();
+					leafLaneYs_.push_back(pos.y);
+				}
+			}
+
+			cached_ = true;
+		}
+
+		void UpdateInstances(float dt, Scene& scene) {
+			for (auto& inst : active_) {
+				if (inst.objectID < 0) {
+					continue;
+				}
+
+				GameObject* obj = scene.GetGameObjectByID(inst.objectID);
+				if (!obj) {
+					inst.objectID = -1;
+					continue;
+				}
+
+				if (inst.velocity.x != 0.0f || inst.velocity.y != 0.0f) {
+					glm::vec3 pos = obj->GetPositionGLM();
+					pos.x += inst.velocity.x * dt;
+					pos.y += inst.velocity.y * dt;
+					obj->SetPosition(pos);
+				}
+
+				inst.lifetime -= dt;
+
+				bool shouldKill = (inst.lifetime <= 0.0f);
+
+				if (!shouldKill && inst.killWhenOffscreen) {
+					const glm::vec3 pos = obj->GetPositionGLM();
+					if (pos.x < -220.0f || pos.x > static_cast<float>(GraphicsEngine::kRefW) + 220.0f) {
+						shouldKill = true;
+					}
+				}
+
+				if (shouldKill) {
+					scene.RequestDespawn(inst.objectID);
+					inst.objectID = -1;
+				}
+			}
+
+			active_.erase(
+				std::remove_if(active_.begin(), active_.end(),
+					[](const AmbientVfxInstance& inst) {
+						return inst.objectID < 0;
+					}),
+				active_.end()
+			);
+		}
+
+		void SpawnShine(Scene& scene) {
+			if (shinePoints_.empty()) {
+				return;
+			}
+
+			const AmbientPoint& point = shinePoints_[RandomIndex(static_cast<int>(shinePoints_.size()))];
+
+			// Shine = row 4 from top -> engine row 2, 3 frames: 0..2
+			const std::vector<glm::vec4> frames = CreateVfxFramesFromTopRow(4, 0, 2);
+			const float frameDuration = 0.15f;
+
+			GameObject* fx = scene.SpawnAnimatedSprite(
+				MyoonchiPaths::Textures::AMBIENT_VFX_SHEET,
+				glm::vec3(point.pos.x, point.pos.y, 0.0f),
+				point.size,
+				frames,
+				frameDuration,
+				false,
+				point.layer
+			);
+
+			if (!fx) {
+				return;
+			}
+
+			fx->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+			fx->SetColliderOffset(Math::Vector2D(0.0f, 0.0f));
+			fx->SetMovableByPhysics(false);
+			fx->EnableShadow(false);
+			fx->SetRenderSortOrder(0);
+
+			scene.SetObjectTag(fx->GetID(), "ambient_vfx_shine");
+
+			AmbientVfxInstance inst;
+			inst.objectID = fx->GetID();
+			inst.velocity = glm::vec2(0.0f, 0.0f);
+			inst.lifetime = static_cast<float>(frames.size()) * frameDuration + 0.05f;
+			inst.killWhenOffscreen = false;
+			active_.push_back(inst);
+		}
+
+		void SpawnLeaf(Scene& scene) {
+			// Leaves = row 3 from top -> engine row 3, 6 frames: 0..5
+			const std::vector<glm::vec4> frames = CreateVfxFramesFromTopRow(3, 0, 5);
+
+			const bool leftToRight = RandomRange(0.0f, 1.0f) < 0.5f;
+			const float y = !leafLaneYs_.empty()
+				? leafLaneYs_[RandomIndex(static_cast<int>(leafLaneYs_.size()))]
+				: RandomRange(180.0f, 700.0f);
+
+			const float speed = RandomRange(70.0f, 120.0f);
+			const glm::vec2 velocity = leftToRight
+				? glm::vec2(speed, 0.0f)
+				: glm::vec2(-speed, 0.0f);
+
+			const float startX = leftToRight
+				? -140.0f
+				: static_cast<float>(GraphicsEngine::kRefW) + 140.0f;
+
+			const glm::vec2 size(128.0f, 128.0f);
+			GameObject* fx = scene.SpawnAnimatedSprite(
+				MyoonchiPaths::Textures::AMBIENT_VFX_SHEET,
+				glm::vec3(startX, y, 0.0f),
+				size,
+				frames,
+				0.08f,
+				true,
+				"10"
+			);
+
+			if (!fx) {
+				return;
+			}
+
+			fx->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+			fx->SetColliderOffset(Math::Vector2D(0.0f, 0.0f));
+			fx->SetMovableByPhysics(false);
+			fx->EnableShadow(false);
+			fx->SetRenderSortOrder(10);
+
+			// Optional: mirror the sprite if travelling right -> left
+			if (!leftToRight) {
+				fx->SetScale(glm::vec3(-size.x, size.y, 1.0f));
+			}
+
+			scene.SetObjectTag(fx->GetID(), "ambient_vfx_leaf");
+
+			AmbientVfxInstance inst;
+			inst.objectID = fx->GetID();
+			inst.velocity = velocity;
+			inst.lifetime = (static_cast<float>(GraphicsEngine::kRefW) + 320.0f) / speed + 0.5f;
+			inst.killWhenOffscreen = true;
+			active_.push_back(inst);
+		}
+
+		void Update(float dt, Scene& scene) {
+			if (!scene.IsSimulationActive()) {
+				return;
+			}
+
+			if (!cached_) {
+				CachePoints(scene);
+			}
+
+			UpdateInstances(dt, scene);
+
+			const std::string levelPath = scene.GetCurrentLevelPath();
+			const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
+			const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
+
+			if (isLevel1) {
+				shineCooldown_ -= dt;
+				if (shineCooldown_ <= 0.0f && !shinePoints_.empty()) {
+					SpawnShine(scene);
+					shineCooldown_ = RandomRange(7.0f, 10.0f);
+				}
+			}
+			else if (isLevel2) {
+				leafCooldown_ -= dt;
+				if (leafCooldown_ <= 0.0f) {
+					SpawnLeaf(scene);
+					leafCooldown_ = RandomRange(7.0f, 10.0f);
+				}
+			}
+		}
+	};
+}
 
 namespace {
 	/************************************************************************/
@@ -1604,22 +1876,26 @@ namespace {
 void RegisterMyoonchiDinerBindings(Scene& scene) {
 	// Customer management system (shared across hooks)
 	auto customerManager = std::make_shared<CustomerManagerSystem>();
+	auto ambientVfx = std::make_shared<AmbientVfxController>();
 	auto applyLevelGameplayTuning = [customerManager](Scene& s) {
 		ConfigureLevelGameplayTuning(s, *customerManager);
 		};
 
-	scene.SetCustomerUpdateHook([customerManager](float dt, Scene& s) {
+	scene.SetCustomerUpdateHook([customerManager, ambientVfx](float dt, Scene& s) {
 		customerManager->Update(dt, s);
+		ambientVfx->Update(dt, s);
 
 		// Always tick tutorial flow so completion popup input still works
-		// even when simulation is disabled.
 		gTutorialFlow.Update(s, dt);
 		});
-	scene.SetCustomerResetHook([customerManager, applyLevelGameplayTuning](Scene& s) {
+
+	scene.SetCustomerResetHook([customerManager, ambientVfx, applyLevelGameplayTuning](Scene& s) {
 		customerManager->Reset();
+		ambientVfx->Reset(s);
 		applyLevelGameplayTuning(s);
 		Economy::Reset();
 		});
+
 	scene.SetRuntimeObjectSetupHook(ApplyRuntimeObjectSetup);
 	scene.SetTagRuleHook(ApplyTagRules);
 
@@ -1628,7 +1904,8 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	// Scene lifecycle hooks
 	scene.SetDefaultSceneSetupHook(ApplyDefaultSceneSetup);
-	scene.SetPostLevelLoadHook([customerManager, applyLevelGameplayTuning](Scene& s, bool simulationActive) {
+	scene.SetPostLevelLoadHook([customerManager, ambientVfx, applyLevelGameplayTuning](Scene& s, bool simulationActive) {
+		ambientVfx->Reset(s);
 		OnPostLevelLoaded(s, simulationActive, *customerManager);
 		if (simulationActive) {
 			applyLevelGameplayTuning(s);
