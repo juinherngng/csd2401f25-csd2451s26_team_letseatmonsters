@@ -53,6 +53,12 @@ namespace {
 		obj->SetColliderSize(Math::Vector2D{ s.x, s.y });
 		obj->SetColliderOffset(Math::Vector2D{ 0.0f, 0.0f });
 	}
+
+	constexpr const char* kCutsceneSkipTexture = "../assets/cutscene_skip.png";
+	constexpr glm::vec2 kCutsceneSkipSize{ 320.0f, 156.0f };
+	constexpr float kCutsceneSkipMarginRight = 24.0f;
+	constexpr float kCutsceneSkipMarginTop = 20.0f;
+	constexpr int kCutsceneSkipSortOrder = 5000;
 }
 
 // Simulation control
@@ -1402,10 +1408,8 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 	}
 
 	SetSimulationActive(false);
-	cutsceneSkipConsumed_ = false;
-
-	// Clear any existing UI or pause overlays to avoid conflicts
 	HidePauseOverlay();
+	SpawnCutsceneSkipPrompt();
 
 	// Reset state
 	CleanupCutsceneObjects();
@@ -1426,16 +1430,43 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 
 	if (GameObject* s = SpawnStaticSprite(cutscene_.images[0], center, fullSize, cutscene_.uiLayer)) {
 		cutscene_.spriteA = s->GetID();
-		// Detect alpha support by attempting to set alpha=0 then alpha=1
-		// If shader ignores it, visuals won't change; we still run without fade.
-		// Bring it in with fade-in
 		SetSpriteAlpha(s, 0.0f);
 	}
 	else {
-		// If spawn failed, abort cutscene and load level
 		cutscene_.active = false;
+		DespawnCutsceneSkipPrompt();
 		QueueLevelLoad(levelJsonPath, activateSimulation);
 	}
+}
+
+void Scene::SpawnCutsceneSkipPrompt() {
+	if (cutsceneSkipPromptId_ >= 0 && GetGameObjectByID(cutsceneSkipPromptId_)) {
+		return;
+	}
+
+	const float x = static_cast<float>(GraphicsEngine::kRefW) - (kCutsceneSkipSize.x * 0.5f) - kCutsceneSkipMarginRight;
+	const float y = (kCutsceneSkipSize.y * 0.5f) + kCutsceneSkipMarginTop;
+
+	if (GameObject* prompt = SpawnStaticSprite(
+		kCutsceneSkipTexture,
+		glm::vec3(x, y, 0.0f),
+		kCutsceneSkipSize,
+		"999999")) {
+		cutsceneSkipPromptId_ = prompt->GetID();
+		SetObjectTexturePath(cutsceneSkipPromptId_, kCutsceneSkipTexture);
+		prompt->SetRenderSortOrder(kCutsceneSkipSortOrder);
+	}
+}
+
+void Scene::DespawnCutsceneSkipPrompt() {
+	if (cutsceneSkipPromptId_ < 0) {
+		return;
+	}
+
+	if (GetGameObjectByID(cutsceneSkipPromptId_)) {
+		DespawnByID(cutsceneSkipPromptId_);
+	}
+	cutsceneSkipPromptId_ = -1;
 }
 
 void Scene::UpdateCutscene(float dt) {
@@ -1486,6 +1517,7 @@ void Scene::UpdateCutscene(float dt) {
 			else {
 				// Last image finished holding -> end cutscene and load level
 				CleanupCutsceneObjects();
+				DespawnCutsceneSkipPrompt();
 				cutscene_.active = false;
 				if (!cutscene_.queuedFinalLoad) {
 					cutscene_.queuedFinalLoad = true;
@@ -1555,8 +1587,8 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 	}
 
 	SetSimulationActive(false);
-	cutsceneSkipConsumed_ = false;
 	HidePauseOverlay();
+	SpawnCutsceneSkipPrompt();
 
 	if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
 	cutTrans_ = {};
@@ -1762,7 +1794,7 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 				cutsceneBeforeFinalLoadHook_(*this, cutTrans_.outSeconds);
 			}
 #endif
-
+			DespawnCutsceneSkipPrompt();
 			cutTrans_.active = false;
 			QueueLevelLoad(cutTrans_.targetLevelJson, cutTrans_.targetActivateSim);
 			cutTrans_.fadeInAfterLoad = true; // handled in Scene::Update after LoadAndBuild
@@ -1987,6 +2019,7 @@ void Scene::SkipActiveCutscene() {
 
 	if (cutscene_.active) {
 		CleanupCutsceneObjects();
+		DespawnCutsceneSkipPrompt();
 		cutscene_.active = false;
 
 		if (!cutscene_.queuedFinalLoad) {
