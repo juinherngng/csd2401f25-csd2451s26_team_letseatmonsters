@@ -229,7 +229,7 @@ public:
 		pauseOverlayButtonBinder_ = std::move(binder);
 	}
 	void SetTagRuleHook(TagRuleHook hook) {
-		tagRuleHook_ = std::move(hook);
+	 tagRuleHook_ = std::move(hook);
 	}
 	void SetCustomerUpdateHook(CustomerUpdateHook hook) {
 		customerUpdateHook_ = std::move(hook);
@@ -738,6 +738,9 @@ private:
 		bool awaitingInitialFadeIn = false;
 	} cutTrans_;
 
+	// Runtime ID for top-right "press space to skip" cutscene sprite
+	int cutsceneSkipPromptId_ = -1;
+
 	// Order UI slide-in state
 	struct UiSlide {
 		int objectId = -1;
@@ -754,6 +757,10 @@ private:
 	void UpdateCutsceneTransitioned(float dt);
 	void CleanupCutsceneObjects();
 	void SetSpriteAlpha(GameObject* obj, float alpha); // no-op if shader lacks alpha tint
+
+	// Cutscene "Press Space to Skip" prompt
+	void SpawnCutsceneSkipPrompt();
+	void DespawnCutsceneSkipPrompt();
 
 	// Update all active UI slides
 	void UpdateUiSlides(float dt);
