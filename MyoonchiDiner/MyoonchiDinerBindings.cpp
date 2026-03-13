@@ -272,25 +272,6 @@ namespace {
 		return -1;
 	}
 
-	static int FindFirstEmptyTable(Scene& scene) {
-		LogicManager& logic = scene.GetLogicManager();
-
-		for (GameObject* obj : scene.GetAllObjectsRaw()) {
-			if (!obj) continue;
-
-			const int id = obj->GetID();
-			if (scene.GetObjectTag(id) != "table") continue;
-
-			TableLogic* table = logic.GetLogicForObject<TableLogic>(id);
-			if (!table) continue;
-			if (table->HasItem()) continue;
-
-			return id;
-		}
-
-		return -1;
-	}
-
 	static int FindCustomerTableReadyForPayment(Scene& scene) {
 		LogicManager& logic = scene.GetLogicManager();
 
