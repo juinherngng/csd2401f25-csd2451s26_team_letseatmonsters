@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         PlateLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (75%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu   (25%)
 
  DESCRIPTION:       Implements PlateLogic, which manages the assembly of processed
 					ingredients into completed dishes. Handles ingredient validation,
@@ -137,8 +138,8 @@ protected:
 	bool dishPrepared_;
 	DishType dishType_;
 
-	// NEW: visual tracking of the first ingredient object on this plate
-	int         firstIngredientObjectID_ = -1;
+	// Visual tracking of the first ingredient object on this plate
+	int firstIngredientObjectID_ = -1;
 
 	std::string GetName() const override {
 		return "PlateLogic";

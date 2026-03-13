@@ -2,8 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			PlayerLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (60%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu	  (20%)
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (50%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu	  (30%)
 					Seah Wang Hua, wanghua.seah@digipen.edu (20%)
 
  DESCRIPTION:		Implements player control logic, including movement, sprite updates,
@@ -13,6 +13,7 @@
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
+
 #include "Core/AudioManager.hpp"
 #include "Core/CustomerTableLogic.hpp"
 #include "Core/DebugUI.hpp"

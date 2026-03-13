@@ -2,8 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GraphicsEngine.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (30%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(50%)
 					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
 
  DESCRIPTION:		Implements initialization, default resource loading, background handling, draw calls
