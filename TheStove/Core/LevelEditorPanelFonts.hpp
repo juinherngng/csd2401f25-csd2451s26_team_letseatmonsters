@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorPanelFonts.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu (70%)
+ CO-AUTHORS:		Vu Phan Hung, phanhung.vu@digipen.edu   (30%)
 
  DESCRIPTION:       Font management panel for the Level Editor.
 					Allows loading and managing multiple fonts.

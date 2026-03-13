@@ -2,8 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			ResourceManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
- CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (50%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (30%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(30%)
 
  DESCRIPTION:		Singleton cache for loading and retrieving Shaders, Textures, and Meshes by name.
 

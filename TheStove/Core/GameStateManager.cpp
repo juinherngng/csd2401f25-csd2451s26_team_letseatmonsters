@@ -3,8 +3,9 @@
  FILE NAME:			GameStateManager.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Darren Toh, darren.toh@digipen.edu		(20%)
- CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu (40%)
-					Ng Juin Herng, juinherng.ng@digipen.edu (40%)
+ CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu (30%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(30%)
 
  DESCRIPTION:		This file implements the logic for first-time initialization, per-frame updates, and transitions
 					between states, preferring JSON-driven runtime level loading when mappings are registered, with a
