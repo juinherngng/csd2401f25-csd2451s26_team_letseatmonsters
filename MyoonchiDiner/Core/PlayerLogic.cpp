@@ -2,11 +2,13 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			PlayerLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (80%)
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (60%)
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu	  (20%)
+					Seah Wang Hua, wanghua.seah@digipen.edu (20%)
 
  DESCRIPTION:		Implements player control logic, including movement, sprite updates,
-					mouse click handling, item pickup/drop, and scene clamping behavior.
+					mouse click handling, item pickup/drop, and scene clamping behavior as well
+					hover logic (outlining interactables on mouse hover).
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
