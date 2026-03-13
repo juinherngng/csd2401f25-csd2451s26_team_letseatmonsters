@@ -208,6 +208,7 @@ namespace {
 			levelPath.find("tutorial") != std::string::npos;
 	}
 
+#ifndef _DEBUG
 	static bool IsDayClearLevelLoaded(Scene& scene) {
 		const std::string levelPath = scene.GetCurrentLevelPath();
 		return levelPath == FilePaths::Levels::WIN ||
@@ -215,6 +216,7 @@ namespace {
 			levelPath.find("dayclear") != std::string::npos ||
 			levelPath.find("day_clear") != std::string::npos;
 	}
+#endif
 
 	static const char* IngredientBoxTokenForDish(DishType d) {
 		switch (d) {

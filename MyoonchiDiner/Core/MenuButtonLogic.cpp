@@ -16,17 +16,12 @@
 #include "../GamePaths.hpp"
 
 #include "AudioManager.hpp"
-#include "FilePaths.hpp"
 #include "Graphics/GraphicsEngine.hpp"
 #include "Graphics/ResourceManager.hpp"
 #include "Graphics/SceneManager.hpp"
 #include "MenuButtonLogic.hpp"
 
-#include <array>
-#include <cmath>
-#include <filesystem>
 #include <string>
-#include <vector>
 
 #ifndef _DEBUG
 namespace {
@@ -49,89 +44,6 @@ namespace {
 		std::string cacheName = "staticsprite_" + texPath;
 		if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheName, texPath)) {
 			owner->SetTexture(tex);
-		}
-	}
-
-	// Discover per-chapter frames; fallback to a single frame if none found
-	static std::array<std::vector<std::string>, 6> CollectChapterFrames() {
-		namespace fs = std::filesystem;
-		std::array<std::vector<std::string>, 6> chapters{};
-		for (int ch = 1; ch <= 6; ++ch) {
-			auto& list = chapters[ch - 1];
-			bool any = false;
-			for (int f = 1; f <= 300; ++f) {
-				std::string filename = "Cutscene_starting_" + std::to_string(ch) + "." + std::to_string(f) + ".png";
-				std::string path = FilePaths::CutscenePath(filename);
-				if (fs::exists(path)) {
-					list.push_back(path);
-					any = true;
-				}
-				else {
-					break;
-				}
-			}
-			if (!any) {
-				std::string filename = "Cutscene_starting_" + std::to_string(ch) + ".png";
-				list.push_back(FilePaths::CutscenePath(filename));
-			}
-		}
-		return chapters;
-	}
-
-	// Build frames so each chapter lasts exactly chapterHoldSeconds at fps.
-	// - Repeats (or truncates) per-chapter frames to exactly targetFrames (round(chapterHoldSeconds * fps)).
-	// - Marks only the first frame of each chapter as a boundary.
-	// - Computes the zero-based flattened index of the first frame of chapter 6.
-	static void BuildChapterTimedFramesAndBoundaries(std::vector<std::string>& outFrames,
-		std::vector<bool>& outFlags,
-		int& firstFrameIndexChapter6,
-		float chapterHoldSeconds,
-		float fps) {
-		outFrames.clear();
-		outFlags.clear();
-
-		const auto chapters = CollectChapterFrames();
-		const int targetFramesPerChapter = std::max(1, static_cast<int>(std::round(chapterHoldSeconds * fps)));
-
-		firstFrameIndexChapter6 = -1;
-		int runningIndex = 0;
-
-		for (int ch = 1; ch <= 6; ++ch) {
-			const auto& raw = chapters[ch - 1];
-			if (raw.empty()) continue;
-
-			// Build timed sequence for this chapter
-			std::vector<std::string> timed;
-			timed.reserve(targetFramesPerChapter);
-
-			if (raw.size() == 1) {
-				// Only one frame: repeat to fill duration
-				for (int i = 0; i < targetFramesPerChapter; ++i) {
-					timed.push_back(raw[0]);
-				}
-			}
-			else {
-				// Repeat the raw sequence until reaching targetFramesPerChapter
-				int produced = 0;
-				while (produced < targetFramesPerChapter) {
-					for (const auto& frame : raw) {
-						timed.push_back(frame);
-						++produced;
-						if (produced >= targetFramesPerChapter) break;
-					}
-				}
-			}
-
-			// Append to flattened timeline; boundary true only on the first frame of this chapter
-			for (size_t i = 0; i < timed.size(); ++i) {
-				outFrames.push_back(timed[i]);
-				outFlags.push_back(i == 0);
-
-				if (ch == 6 && i == 0) {
-					firstFrameIndexChapter6 = runningIndex; // first frame of chapter 6 in the flattened timeline
-				}
-				++runningIndex;
-			}
 		}
 	}
 }
