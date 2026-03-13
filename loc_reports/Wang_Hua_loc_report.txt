@@ -3,7 +3,7 @@ Lines of Code Report (Diff-based)
 ==========================================
 Author: Wang Hua
 Since: 2026-02-16
-Generated: Fri Mar 13 02:24:57 +08 2026
+Generated: Fri Mar 13 13:26:38 +08 2026
 ==========================================
 
 ==========================================
@@ -13,12 +13,23 @@ Tracked extensions: .cpp .hpp .h .c
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-MyoonchiDiner/Core/PlayerLogic.cpp                                              2          5         -3
+MyoonchiDiner/Core/CustomerManagerLogic.cpp                                    12          2         10
+MyoonchiDiner/Core/CustomerManagerLogic.hpp                                    12          0         12
+MyoonchiDiner/Core/PlayerLogic.cpp                                            135          9        126
+MyoonchiDiner/Core/PlayerLogic.hpp                                              6          0          6
+MyoonchiDiner/Core/SimpleNpcLogic.hpp                                           8          0          8
+MyoonchiDiner/Core/StartGamePromptLogic.cpp                                   163         18        145
+MyoonchiDiner/Core/StartGamePromptLogic.hpp                                    37          0         37
+MyoonchiDiner/GameBootstrap.cpp                                                 2          1          1
+MyoonchiDiner/GamePaths.hpp                                                     1          0          1
+MyoonchiDiner/MyoonchiDinerBindings.cpp                                       974        126        848
 TheStove/Core/Core.cpp                                                         13          0         13
 TheStove/Core/Core.hpp                                                          1          0          1
 TheStove/Core/CustomerManagerLogic.cpp                                          6          0          6
 TheStove/Core/EngineRng.cpp                                                    37          0         37
 TheStove/Core/EngineRng.hpp                                                     9          0          9
+TheStove/Core/GameStateManager.cpp                                              6          0          6
+TheStove/Core/GameStateManager.hpp                                              1          0          1
 TheStove/Core/HowToPlayButtonLogic.cpp                                          0         29        -29
 TheStove/Core/InputManager.cpp                                                 54         15         39
 TheStove/Core/InputManager.hpp                                                 14          0         14
@@ -32,33 +43,44 @@ TheStove/Core/ReplayManager.hpp                                                3
 TheStove/Core/SimpleNpcLogic.cpp                                                2          1          1
 TheStove/Graphics/AnimationManager.cpp                                         43         15         28
 TheStove/Graphics/AnimationManager.hpp                                          1          0          1
-TheStove/Graphics/GameObject.hpp                                                3          0          3
-TheStove/Graphics/GraphicsEngine.cpp                                           58          9         49
+TheStove/Graphics/GameObject.hpp                                                6          0          6
+TheStove/Graphics/GraphicsEngine.cpp                                           61          9         52
 TheStove/Graphics/GraphicsEngine.hpp                                            1          1          0
-TheStove/Graphics/SceneManager.cpp                                            101         14         87
+TheStove/Graphics/SceneManager.cpp                                            110         16         94
 TheStove/Graphics/SceneManager.hpp                                             13          0         13
 TheStove/Graphics/SceneViewportPresenter.cpp                                    8          0          8
-TheStove/Main.cpp                                                              21          7         14
+TheStove/Main.cpp                                                              30          8         22
 --------------------------------------------------------------------------------------------
 
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    760
-Lines Deleted:  131
-Net Change:     629
-Total Commits:  11
+Lines Added:    2139
+Lines Deleted:  285
+Net Change:     1854
+Total Commits:  19
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
 ==========================================
 
+MyoonchiDiner/Core/CustomerManagerLogic.cpp
+MyoonchiDiner/Core/CustomerManagerLogic.hpp
 MyoonchiDiner/Core/PlayerLogic.cpp
+MyoonchiDiner/Core/PlayerLogic.hpp
+MyoonchiDiner/Core/SimpleNpcLogic.hpp
+MyoonchiDiner/Core/StartGamePromptLogic.cpp
+MyoonchiDiner/Core/StartGamePromptLogic.hpp
+MyoonchiDiner/GameBootstrap.cpp
+MyoonchiDiner/GamePaths.hpp
+MyoonchiDiner/MyoonchiDinerBindings.cpp
 TheStove/Core/Core.cpp
 TheStove/Core/Core.hpp
 TheStove/Core/CustomerManagerLogic.cpp
 TheStove/Core/EngineRng.cpp
 TheStove/Core/EngineRng.hpp
+TheStove/Core/GameStateManager.cpp
+TheStove/Core/GameStateManager.hpp
 TheStove/Core/HowToPlayButtonLogic.cpp
 TheStove/Core/InputManager.cpp
 TheStove/Core/InputManager.hpp
@@ -78,7 +100,11 @@ TheStove/Graphics/GraphicsEngine.hpp
 TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
 TheStove/Graphics/SceneViewportPresenter.cpp
+TheStove/Graphics/shaders/hover_outline.frag
 TheStove/Main.cpp
 assets/mc_sprite.png
+assets/tutorial_complete.png
+assets/tutorial_popup.png
 imgui.ini
 levels/kitchen01.json
+levels/tutorial.json

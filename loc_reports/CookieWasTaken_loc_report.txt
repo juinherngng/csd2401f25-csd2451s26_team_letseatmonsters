@@ -3,7 +3,7 @@ Lines of Code Report (Diff-based)
 ==========================================
 Author: CookieWasTaken
 Since: 2026-02-16
-Generated: Fri Mar 13 02:24:55 +08 2026
+Generated: Fri Mar 13 13:26:36 +08 2026
 ==========================================
 
 ==========================================
@@ -13,27 +13,29 @@ Tracked extensions: .cpp .hpp .h .c
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-MyoonchiDiner/Core/MenuButtonLogic.cpp                                          9          5          4
+MyoonchiDiner/Core/MenuButtonLogic.cpp                                         13          5          8
 MyoonchiDiner/Core/PlayerLogic.cpp                                              5          1          4
+MyoonchiDiner/Core/Quota.cpp                                                    7          6          1
 MyoonchiDiner/Core/SimpleNpcLogic.cpp                                           1          0          1
+MyoonchiDiner/Core/StartGamePromptLogic.cpp                                    23          3         20
 MyoonchiDiner/Core/TableLogic.cpp                                               1          0          1
 MyoonchiDiner/GamePaths.hpp                                                     2          0          2
-MyoonchiDiner/MyoonchiDinerBindings.cpp                                        28          1         27
+MyoonchiDiner/MyoonchiDinerBindings.cpp                                        94         34         60
 TheStove/Core/AudioManager.cpp                                                 28          4         24
 TheStove/Core/AudioManager.hpp                                                  1          0          1
 TheStove/Core/GameStateManager.hpp                                              3          0          3
 TheStove/Graphics/SceneCollisionLayout.cpp                                      9         40        -31
-TheStove/Graphics/SceneManager.cpp                                              4          1          3
+TheStove/Graphics/SceneManager.cpp                                             11          5          6
 TheStove/Graphics/SceneManager.hpp                                              9          0          9
 --------------------------------------------------------------------------------------------
 
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    100
-Lines Deleted:  52
-Net Change:     48
-Total Commits:  13
+Lines Added:    207
+Lines Deleted:  98
+Net Change:     109
+Total Commits:  19
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
@@ -41,7 +43,9 @@ FILES MODIFIED (RAW - ANY TYPE)
 
 MyoonchiDiner/Core/MenuButtonLogic.cpp
 MyoonchiDiner/Core/PlayerLogic.cpp
+MyoonchiDiner/Core/Quota.cpp
 MyoonchiDiner/Core/SimpleNpcLogic.cpp
+MyoonchiDiner/Core/StartGamePromptLogic.cpp
 MyoonchiDiner/Core/TableLogic.cpp
 MyoonchiDiner/GamePaths.hpp
 MyoonchiDiner/MyoonchiDinerBindings.cpp

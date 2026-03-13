@@ -3,7 +3,7 @@ Lines of Code Report (Diff-based)
 ==========================================
 Author: Chun Wee
 Since: 2026-02-16
-Generated: Fri Mar 13 02:24:42 +08 2026
+Generated: Fri Mar 13 13:26:23 +08 2026
 ==========================================
 
 ==========================================
@@ -18,22 +18,24 @@ MyoonchiDiner/Core/CustomerManagerLogic.hpp                                     
 MyoonchiDiner/Core/CustomerOrderUILogic.cpp                                    16         19         -3
 MyoonchiDiner/Core/CustomerOrderUILogic.hpp                                    11         11          0
 MyoonchiDiner/Core/CustomerTableLogic.cpp                                       1          1          0
-MyoonchiDiner/Core/MenuButtonLogic.cpp                                          7          7          0
+MyoonchiDiner/Core/MenuButtonLogic.cpp                                          7         77        -70
 MyoonchiDiner/Core/MenuButtonLogic.hpp                                          2          1          1
 MyoonchiDiner/Core/PauseButtonLogic.cpp                                         8          4          4
 MyoonchiDiner/Core/PlateLogic.cpp                                               5          9         -4
 MyoonchiDiner/Core/PlateLogic.hpp                                               6          6          0
-MyoonchiDiner/Core/PlayerLogic.cpp                                            467        445         22
+MyoonchiDiner/Core/PlayerLogic.cpp                                            468        446         22
 MyoonchiDiner/Core/PlayerLogic.hpp                                             27         24          3
 MyoonchiDiner/Core/Quota.hpp                                                    1          1          0
 MyoonchiDiner/Core/SimpleNpcLogic.cpp                                         404        438        -34
 MyoonchiDiner/Core/SimpleNpcLogic.hpp                                          36         30          6
+MyoonchiDiner/Core/StartGamePromptLogic.cpp                                    14          5          9
+MyoonchiDiner/Core/StartGamePromptLogic.hpp                                    15          4         11
 MyoonchiDiner/Core/TableLogic.cpp                                              12         15         -3
 MyoonchiDiner/Core/WorkTableLogic.cpp                                          69         82        -13
 MyoonchiDiner/Core/WorkTableLogic.hpp                                          15          9          6
 MyoonchiDiner/GameBootstrap.cpp                                                12         12          0
 MyoonchiDiner/GamePaths.hpp                                                     8          8          0
-MyoonchiDiner/MyoonchiDinerBindings.cpp                                         6          7         -1
+MyoonchiDiner/MyoonchiDinerBindings.cpp                                         8          7          1
 TheStove/Core/AudioLoading.cpp                                                 19         21         -2
 TheStove/Core/AudioManager.cpp                                                 13         22         -9
 TheStove/Core/AudioManager.hpp                                                 55         55          0
@@ -84,7 +86,7 @@ TheStove/Core/IngredientLogic.cpp                                              2
 TheStove/Core/IngredientLogic.hpp                                              24         17          7
 TheStove/Core/InputCommandHandler.cpp                                          13         13          0
 TheStove/Core/InputCommandHandler.hpp                                           9          9          0
-TheStove/Core/InputManager.cpp                                                104         68         36
+TheStove/Core/InputManager.cpp                                                106         69         37
 TheStove/Core/InputManager.hpp                                                  8          8          0
 TheStove/Core/LevelEditor.cpp                                                   8          7          1
 TheStove/Core/LevelEditor.hpp                                                   4          5         -1
@@ -193,15 +195,17 @@ TheStove/Main.cpp                                                              5
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    12302
-Lines Deleted:  9989
-Net Change:     2313
-Total Commits:  118
+Lines Added:    12336
+Lines Deleted:  10070
+Net Change:     2266
+Total Commits:  125
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
 ==========================================
 
+LetsEatMonsters_ReadMe.txt
+Level_Editor_Guide.docx
 MyoonchiDiner/Core/CustomerManagerLogic.cpp
 MyoonchiDiner/Core/CustomerManagerLogic.hpp
 MyoonchiDiner/Core/CustomerOrderUILogic.cpp
@@ -221,6 +225,8 @@ MyoonchiDiner/Core/PlayerLogic.hpp
 MyoonchiDiner/Core/Quota.hpp
 MyoonchiDiner/Core/SimpleNpcLogic.cpp
 MyoonchiDiner/Core/SimpleNpcLogic.hpp
+MyoonchiDiner/Core/StartGamePromptLogic.cpp
+MyoonchiDiner/Core/StartGamePromptLogic.hpp
 MyoonchiDiner/Core/TableLogic.cpp
 MyoonchiDiner/Core/WorkTableLogic.cpp
 MyoonchiDiner/Core/WorkTableLogic.hpp
@@ -394,12 +400,19 @@ assets/mc_sideleft.png
 assets/mc_sideright.png
 count_loc.sh
 count_loc_all_authors.sh
+editorGuide(old).docx
+editorGuide(old).pdf
+editorGuide.docx
+editorGuide.pdf
 imgui.ini
 levels/kitchen01.autosave.json
 levels/kitchen01.json
+levels/lose.json
+levels/win.json
 loc_reports/00_SUMMARY.txt
 loc_reports/Chun_Wee_loc_report.txt
 loc_reports/CookieWasTaken_loc_report.txt
 loc_reports/Wang_Hua_loc_report.txt
 loc_reports/chuuniby_loc_report.txt
 loc_reports/juinherngng_loc_report.txt
+projectGuide.pdf
