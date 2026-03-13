@@ -194,6 +194,7 @@ public:
 	void AttachPlayerAnimations(int objID);
 	void AttachDinoAnimations(int objID);
 	void AttachCustomersAnimations(int objID);
+	void AttachCustomersAnimations(int objID, const std::string& texturePath);
 	void AttachWorkVfxCutAnimations(int objID);
 	void AttachWorkVfxGrillAnimations(int objID);
 	void AttachWorkVfxStoveAnimations(int objID);

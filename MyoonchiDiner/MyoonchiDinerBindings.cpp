@@ -1152,7 +1152,7 @@ namespace {
 			scene.SetAnimation(id, animName.empty() ? "FULL" : animName);
 		}
 		else if (tag == "customer_template") {
-			scene.AttachCustomersAnimations(id);
+			scene.AttachCustomersAnimations(id, texturePath);
 			scene.SetAnimation(id, animName.empty() ? "IDLE_FRONT" : animName);
 		}
 		else if (texturePath.find("dino") != std::string::npos || tag == "dino") {

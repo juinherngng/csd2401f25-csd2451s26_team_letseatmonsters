@@ -59,7 +59,7 @@ public:
 	void AttachDinoAnimations(int objectID);
 	void AttachPlayerAnimations(int objectID);
 	void AttachNPCAnimations(int objectID);
-	void AttachCustomersAnimations(int objectID);
+	void AttachCustomersAnimations(int objectID, const std::string& texturePath);
 	void AttachWorkVfxGrillAnimations(int objectID);
 	void AttachWorkVfxCutAnimations(int objectID);
 	void AttachWorkVfxStoveAnimations(int objectID);

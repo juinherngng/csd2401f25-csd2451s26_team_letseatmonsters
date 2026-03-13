@@ -35,6 +35,10 @@ namespace MyoonchiPaths {
 	// Texture assets referenced at runtime
 	namespace Textures {
 		constexpr const char* BACKGROUND = "../assets/Background.png";
+
+		constexpr const char* CUSTOMER_GOAT = "../assets/goat-Sheet.png";
+		constexpr const char* CUSTOMER_TIGER = "../assets/tiger-Sheet.png";
+		constexpr const char* CUSTOMER_ANTEATER = "../assets/anteater spritesheet.png";
 	}
 
 	// Audio catalog keys (must match entries in AudioCatalog.json)

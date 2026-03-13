@@ -23,12 +23,27 @@
 #include "Core/SimpleNpcLogic.hpp"
 #include "Graphics/GameObject.hpp"
 #include "Graphics/SceneManager.hpp"
+#include "GamePaths.hpp"
+#include "EngineRng.hpp"
 
 #include <algorithm>
 #include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace {
+	std::string PickRandomCustomerTexture() {
+		static const std::array<const char*, 3> kCustomerSkins = {
+			MyoonchiPaths::Textures::CUSTOMER_GOAT,
+			MyoonchiPaths::Textures::CUSTOMER_TIGER,
+			MyoonchiPaths::Textures::CUSTOMER_ANTEATER
+		};
+
+		std::uniform_int_distribution<int> dist(0, static_cast<int>(kCustomerSkins.size()) - 1);
+		return kCustomerSkins[dist(EngineRng::Get())];
+	}
+}
 
 namespace {
 	bool PointInsideObjectVisualRect(const glm::vec2& point, GameObject* obj) {
@@ -243,12 +258,14 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	// Spawn an ANIMATED sprite so UVRect animation actually works
 	std::vector<glm::vec4> dummyFrames = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 
+	const std::string chosenTexture = PickRandomCustomerTexture();
+
 	GameObject* npc = scene.SpawnAnimatedSprite(
-		prof.texture,
+		chosenTexture,
 		spawnPos,
 		prof.size,
 		dummyFrames,
-		0.1f,   // doesn't matter much; AnimationManager will drive frames
+		0.1f,
 		true,
 		prof.layer
 	);
@@ -267,14 +284,14 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	// Tag + attach logic/animations the same way JSON spawning does
 	scene.SetObjectTag(npcID, "customer_template");
 	scene.AttachLogicForTag(npcID, "customer_template");
-	scene.AttachCustomersAnimations(npcID);
+	scene.SetObjectTexturePath(npcID, chosenTexture);
+	scene.AttachCustomersAnimations(npcID, chosenTexture);
 	scene.SetAnimation(npcID, "IDLE_FRONT");
 
 	// Apply collider/profile settings
 	npc->SetColliderSize(Math::Vector2D(prof.colSize.x, prof.colSize.y));
 	npc->SetColliderOffset(Math::Vector2D(prof.colOff.x, prof.colOff.y));
 	scene.SetNPCVelocity(npcID, prof.vel.x, prof.vel.y);
-	scene.SetObjectTexturePath(npcID, prof.texture);
 
 	//attach UI logic to the customer
 	if (auto* ui = logicMgr.AddLogic<CustomerOrderUILogic>(npcID)) {

@@ -191,66 +191,220 @@ void AnimationManager::AttachNPCAnimations(int objectID) {
 	anim.Play();
 }
 
-void AnimationManager::AttachCustomersAnimations(int objectID) {
+namespace {
+	struct CustomerAnimProfile {
+		int totalRows = 9;
+		int totalCols = 8;
+
+		// inclusive end column
+		int locomotionEndCol = 7; // idle/walk clips
+		int eatEndCol = 4;        // eat clips
+
+		int idleFrontRow = -1;
+		int idleBackRow = -1;
+		int idleLeftRow = -1;
+		int idleRightRow = -1;
+
+		int walkFrontRow = -1;
+		int walkBackRow = -1;
+		int walkLeftRow = -1;
+		int walkRightRow = -1;
+
+		int eatLeftRow = -1;
+		int eatRightRow = -1;
+	};
+	CustomerAnimProfile GetCustomerAnimProfile(const std::string& texturePath) {
+		CustomerAnimProfile p{};
+
+		// IMPORTANT:
+		// CreateFrameSequenceRow() uses row 0 as the BOTTOM row of the sheet.
+		// So if you describe rows from TOP to BOTTOM, we must convert them.
+
+		if (texturePath.find("goat-Sheet") != std::string::npos) {
+			// Goat sheet: 9 rows, 8 columns
+			p.totalRows = 9;
+			p.totalCols = 8;
+			p.locomotionEndCol = 7; // 8 frames: 0..7
+			p.eatEndCol = 4;        // 5 frames: 0..4
+
+			// Existing goat mapping already appears correct for your engine
+			p.idleFrontRow = 8;
+			p.idleBackRow = -1; // fallback to front
+			p.idleLeftRow = 5;
+			p.idleRightRow = 3;
+
+			p.walkFrontRow = 7;
+			p.walkBackRow = 6;
+			p.walkLeftRow = 1;
+			p.walkRightRow = 0;
+
+			p.eatLeftRow = 4;
+			p.eatRightRow = 2;
+			return p;
+		}
+
+		if (texturePath.find("anteater") != std::string::npos) {
+			// Anteater:
+			// Top-to-bottom order given by you:
+			// 1 idle front
+			// 2 walk front
+			// 3 walk back
+			// 4 walk left
+			// 5 walk right
+			// 6 eat left
+			// 7 eat right
+			//
+			// Engine row 0 = bottom, so convert:
+			// top row 1 -> engine row 6
+			// top row 2 -> engine row 5
+			// ...
+			// top row 7 -> engine row 0
+
+			p.totalRows = 7;
+			p.totalCols = 8;        // use 7 only if the sheet really has 7 columns
+			p.locomotionEndCol = 6; // 7 frames: 0..6
+			p.eatEndCol = 4;        // 5 frames: 0..4
+
+			p.idleFrontRow = 6;
+			p.idleBackRow = 6;   // use idle front
+			p.idleLeftRow = 6;   // use idle front
+			p.idleRightRow = 6;  // use idle front
+
+			p.walkFrontRow = 5;
+			p.walkBackRow = 4;
+			p.walkLeftRow = 3;
+			p.walkRightRow = 2;
+
+			p.eatLeftRow = 1;
+			p.eatRightRow = 0;
+			return p;
+		}
+
+		if (texturePath.find("tiger-Sheet") != std::string::npos) {
+			// Tiger:
+			// Top-to-bottom order given by you:
+			// 1 idle front
+			// 2 walk front
+			// 3 walk back
+			// 4 walk left
+			// 5 eat left
+			// 6 walk right
+			// 7 eat right
+
+			p.totalRows = 7;
+			p.totalCols = 8;        // use 7 only if the sheet really has 7 columns
+			p.locomotionEndCol = 6; // 7 frames: 0..6
+			p.eatEndCol = 4;        // 5 frames: 0..4
+
+			p.idleFrontRow = 6;
+			p.idleBackRow = 6;   // use idle front
+			p.idleLeftRow = 6;   // use idle front
+			p.idleRightRow = 6;  // use idle front
+
+			p.walkFrontRow = 5;
+			p.walkBackRow = 4;
+			p.walkLeftRow = 3;
+			p.walkRightRow = 1;
+
+			p.eatLeftRow = 2;
+			p.eatRightRow = 0;
+			return p;
+		}
+
+		// default fallback
+		return GetCustomerAnimProfile("../assets/goat-Sheet.png");
+	}
+}
+
+void AnimationManager::AttachCustomersAnimations(int objectID, const std::string& texturePath) {
 	Animator2D& anim = animators_[objectID];
-	constexpr int kTotalRows = 9;
-	constexpr int kTotalCols = 8;
+	const CustomerAnimProfile profile = GetCustomerAnimProfile(texturePath);
 
-	// ----- Choose rows for each animation -----
-	//idle
-	const int idleFrontRow = 8;
-	const int idleLeftRow = 5;
-	const int idleRightRow = 3;
+	auto makeRow = [&](int row, int startCol, int endCol) -> std::vector<glm::vec4> {
+		if (row < 0) {
+			return {};
+		}
+		return CreateFrameSequenceRow(row, startCol, endCol, profile.totalRows, profile.totalCols);
+		};
 
-	//walk
-	const int walkFrontRow = 7;
-	const int walkBackRow = 6;
-	const int walkLeftRow = 1;
-	const int walkRightRow = 0;
+	auto firstNonEmpty = [](const std::vector<glm::vec4>& a,
+		const std::vector<glm::vec4>& b,
+		const std::vector<glm::vec4>& c = {},
+		const std::vector<glm::vec4>& d = {}) -> std::vector<glm::vec4> {
+			if (!a.empty()) return a;
+			if (!b.empty()) return b;
+			if (!c.empty()) return c;
+			return d;
+		};
 
-	//eat
-	const int eatLeftRow = 4;
-	const int eatRightRow = 2;
+	auto idleFrontRaw = makeRow(profile.idleFrontRow, 0, profile.locomotionEndCol);
+	auto idleBackRaw = makeRow(profile.idleBackRow, 0, profile.locomotionEndCol);
+	auto idleLeftRaw = makeRow(profile.idleLeftRow, 0, profile.locomotionEndCol);
+	auto idleRightRaw = makeRow(profile.idleRightRow, 0, profile.locomotionEndCol);
 
-	// ----- Build frame lists -----
-	auto idleFront = CreateFrameSequenceRow(idleFrontRow, 0, 7, kTotalRows, kTotalCols);
-	auto idleLeft = CreateFrameSequenceRow(idleLeftRow, 0, 7, kTotalRows, kTotalCols);
-	auto idleRight = CreateFrameSequenceRow(idleRightRow, 0, 7, kTotalRows, kTotalCols);
-	auto idleBack = CreateFrameSequenceRow(idleFrontRow, 0, 7, kTotalRows, kTotalCols);
+	auto walkFrontRaw = makeRow(profile.walkFrontRow, 0, profile.locomotionEndCol);
+	auto walkBackRaw = makeRow(profile.walkBackRow, 0, profile.locomotionEndCol);
+	auto walkLeftRaw = makeRow(profile.walkLeftRow, 0, profile.locomotionEndCol);
+	auto walkRightRaw = makeRow(profile.walkRightRow, 0, profile.locomotionEndCol);
 
-	auto walkFront = CreateFrameSequenceRow(walkFrontRow, 0, 7, kTotalRows, kTotalCols);
-	auto walkBack = CreateFrameSequenceRow(walkBackRow, 0, 7, kTotalRows, kTotalCols);
-	auto walkLeft = CreateFrameSequenceRow(walkLeftRow, 0, 7, kTotalRows, kTotalCols);
-	auto walkRight = CreateFrameSequenceRow(walkRightRow, 0, 7, kTotalRows, kTotalCols);
+	auto eatLeftRaw = makeRow(profile.eatLeftRow, 0, profile.eatEndCol);
+	auto eatRightRaw = makeRow(profile.eatRightRow, 0, profile.eatEndCol);
 
-	auto eatLeft = CreateFrameSequenceRow(eatLeftRow, 0, 4, kTotalRows, kTotalCols);
-	auto eatRight = CreateFrameSequenceRow(eatRightRow, 0, 4, kTotalRows, kTotalCols);
+	// Back idle fallback
+	auto idleBack = firstNonEmpty(idleBackRaw, idleFrontRaw);
 
-	// ----- Register animation sets -----
-	// Tune durations to taste
+	// Left/right fallbacks
+	auto idleLeft = firstNonEmpty(idleLeftRaw,
+		!idleRightRaw.empty() ? CreateFlippedFramesX(idleRightRaw) : std::vector<glm::vec4>{},
+		idleFrontRaw,
+		idleBack);
+
+	auto idleRight = firstNonEmpty(idleRightRaw,
+		!idleLeftRaw.empty() ? CreateFlippedFramesX(idleLeftRaw) : std::vector<glm::vec4>{},
+		idleFrontRaw,
+		idleBack);
+
+	auto walkLeft = firstNonEmpty(walkLeftRaw,
+		!walkRightRaw.empty() ? CreateFlippedFramesX(walkRightRaw) : std::vector<glm::vec4>{},
+		walkFrontRaw,
+		walkBackRaw);
+
+	auto walkRight = firstNonEmpty(walkRightRaw,
+		!walkLeftRaw.empty() ? CreateFlippedFramesX(walkLeftRaw) : std::vector<glm::vec4>{},
+		walkFrontRaw,
+		walkBackRaw);
+
+	auto eatLeft = firstNonEmpty(eatLeftRaw,
+		!eatRightRaw.empty() ? CreateFlippedFramesX(eatRightRaw) : std::vector<glm::vec4>{},
+		idleLeft,
+		idleFrontRaw);
+
+	auto eatRight = firstNonEmpty(eatRightRaw,
+		!eatLeftRaw.empty() ? CreateFlippedFramesX(eatLeftRaw) : std::vector<glm::vec4>{},
+		idleRight,
+		idleFrontRaw);
+
 	const float idleDur = 0.15f;
 	const float walkDur = 0.12f;
 	const float eatDur = 0.15f;
 
-	animationSets_[objectID]["IDLE_FRONT"] = { idleFront, idleDur, true };
-	animationSets_[objectID]["IDLE_LEFT"] = { idleLeft,  idleDur, true };
-	animationSets_[objectID]["IDLE_RIGHT"] = { idleRight, idleDur, true };
+	animationSets_[objectID]["IDLE_FRONT"] = { idleFrontRaw, idleDur, true };
+	animationSets_[objectID]["IDLE_BACK"] = { idleBack,     idleDur, true };
+	animationSets_[objectID]["IDLE_LEFT"] = { idleLeft,     idleDur, true };
+	animationSets_[objectID]["IDLE_RIGHT"] = { idleRight,    idleDur, true };
 
-	animationSets_[objectID]["WALK_FRONT"] = { walkFront, walkDur, true };
-	animationSets_[objectID]["WALK_BACK"] = { walkBack, walkDur, true };
-	animationSets_[objectID]["WALK_LEFT"] = { walkLeft,  walkDur, true };
-	animationSets_[objectID]["WALK_RIGHT"] = { walkRight, walkDur, true };
+	animationSets_[objectID]["WALK_FRONT"] = { walkFrontRaw, walkDur, true };
+	animationSets_[objectID]["WALK_BACK"] = { walkBackRaw,  walkDur, true };
+	animationSets_[objectID]["WALK_LEFT"] = { walkLeft,     walkDur, true };
+	animationSets_[objectID]["WALK_RIGHT"] = { walkRight,    walkDur, true };
 
-	animationSets_[objectID]["EAT_LEFT"] = { eatLeft,   eatDur,  true };
-	animationSets_[objectID]["EAT_RIGHT"] = { eatRight,  eatDur,  true };
+	animationSets_[objectID]["EAT_LEFT"] = { eatLeft,      eatDur,  true };
+	animationSets_[objectID]["EAT_RIGHT"] = { eatRight,     eatDur,  true };
 
-	// Set default animation
 	const auto& clip = animationSets_[objectID]["IDLE_FRONT"];
 	anim.SetFrames(clip.frames, clip.frameDuration, clip.loop);
 	currentAnimations_[objectID] = "IDLE_FRONT";
 	anim.Play();
-
-	std::cout << "[AnimationManager] Attached NPC animations to object " << objectID << std::endl;
 }
 
 void AnimationManager::AttachWorkVfxCutAnimations(int objectID) {

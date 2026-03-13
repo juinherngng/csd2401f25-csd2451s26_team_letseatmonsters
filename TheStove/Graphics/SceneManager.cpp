@@ -733,7 +733,11 @@ void Scene::AttachDinoAnimations(int objID) {
 }
 
 void Scene::AttachCustomersAnimations(int objID) {
-	animationManager.AttachCustomersAnimations(objID);
+	animationManager.AttachCustomersAnimations(objID, GetObjectTexturePath(objID));
+}
+
+void Scene::AttachCustomersAnimations(int objID, const std::string& texturePath) {
+	animationManager.AttachCustomersAnimations(objID, texturePath);
 }
 
 void Scene::AttachWorkVfxCutAnimations(int objID) {
