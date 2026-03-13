@@ -171,7 +171,20 @@ namespace Economy {
 
 		const std::string levelPath = scene.GetCurrentLevelPath();
 		const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
-		const char* nextScenePath = isLevel1 ? FilePaths::Levels::WIN : FilePaths::Levels::KITCHEN_02;
+		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
+
+		if (isLevel2) {
+			gWinScreenNextGoesToMainMenu = true;
+		}
+		else if (isLevel1) {
+			gWinScreenNextGoesToMainMenu = false;
+		}
+		else {
+			// Default: keep existing day-clear button flow pointing at level 2.
+			gWinScreenNextGoesToMainMenu = false;
+		}
+
+		const char* nextScenePath = FilePaths::Levels::WIN;
 
 		scene.StartCutsceneTransitionedBounded(
 			frames,

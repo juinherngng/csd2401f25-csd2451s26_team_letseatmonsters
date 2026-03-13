@@ -57,6 +57,10 @@ namespace Economy {
 	// Optional: pause timer (e.g., in win/lose screen)
 	inline bool gTimerPaused = false;
 
+	// Determines what "Next" on the win screen should do.
+	// false: continue to level 2, true: return to main menu.
+	inline bool gWinScreenNextGoesToMainMenu = false;
+
 	// Track which time-based sounds have been played
 	inline bool gPlayed10SecWarning = false;
 	inline bool gPlayed3SecBeep = false;

@@ -1444,7 +1444,10 @@ namespace {
 				scene.GetLogicManager().AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
 			}},
 			{ "btn_next_level", [](Scene& scene, int id) {
-				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::KITCHEN_02, true);
+				const bool goMainMenu = Economy::gWinScreenNextGoesToMainMenu;
+				const char* targetLevel = goMainMenu ? FilePaths::Levels::MAIN_MENU : FilePaths::Levels::KITCHEN_02;
+				const bool activateSimulation = !goMainMenu;
+				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, targetLevel, activateSimulation);
 				if (logic && scene.GetAudioManager()) {
 					logic->SetAudioManager(scene.GetAudioManager());
 				}
