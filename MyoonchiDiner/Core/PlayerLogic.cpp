@@ -1032,9 +1032,10 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
-	// Debug shortcut: instantly trigger the win condition so we can quickly
-	// validate transition/cutscene flow without playing a full round.
-	if (input.IsKeyJustPressed(GLFW_KEY_F10) && !Economy::gQuotaReached) {
+	// Debug shortcuts: instantly trigger the win condition so we can quickly
+	// F10 keeps the original behavior (commonly used for kitchen01 testing).
+	// F9 is added so kitchen02 can be completed with a dedicated hotkey too.
+	if ((input.IsKeyJustPressed(GLFW_KEY_F10) || input.IsKeyJustPressed(GLFW_KEY_F9)) && !Economy::gQuotaReached) {
 		Economy::gPlayerMoney = Economy::kQuota;
 		Economy::SyncUI();
 		Economy::gQuotaReached = true;

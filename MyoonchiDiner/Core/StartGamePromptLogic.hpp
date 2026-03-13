@@ -1,11 +1,11 @@
 #pragma once
 
+#include <glm/vec2.hpp>
 #include <string>
 #include <utility>
-#include <glm/vec2.hpp>
 
-#include "Core/GameObjectLogic.hpp"
 #include "Core/AudioManager.hpp"
+#include "Core/GameObjectLogic.hpp"
 
 class StartGamePromptLogic final : public GameObjectLogic {
 public:
@@ -21,7 +21,9 @@ public:
 
 	void Update(float dt, Scene& scene, InputManager& input) override;
 
-	void SetAudioManager(AudioManager* mgr) { audioManager_ = mgr; }
+	void SetAudioManager(AudioManager* mgr) {
+		audioManager_ = mgr;
+	}
 
 private:
 	bool GetMouseWorld(Scene& scene, InputManager& input, glm::vec2& outWorld) const;
@@ -44,7 +46,7 @@ private:
 	std::string hoverTexturePath_;
 
 	glm::vec2 popupCenter_{ 0.0f, 0.0f };
-	glm::vec2 popupSize_{ 1152.0f, 648.0f }; 
+	glm::vec2 popupSize_{ 1152.0f, 648.0f };
 
 	AudioManager* audioManager_ = nullptr;
 };

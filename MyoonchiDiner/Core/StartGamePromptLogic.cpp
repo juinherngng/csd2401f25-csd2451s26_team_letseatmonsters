@@ -7,8 +7,8 @@
 #include "Graphics/ResourceManager.hpp"
 #include "Graphics/SceneManager.hpp"
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace {
 	constexpr const char* kTutorialPopupTexture = "../assets/tutorial_popup.png";
@@ -39,7 +39,7 @@ namespace {
 		if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheName, texPath)) {
 			owner->SetTexture(tex);
 		}
-		}
+	}
 }
 
 bool StartGamePromptLogic::GetMouseWorld(Scene& /*scene*/, InputManager& input, glm::vec2& outWorld) const {
@@ -144,7 +144,7 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			(nx - 0.5f) * popupSize_.x,
 			(ny - 0.5f) * popupSize_.y
 		);
-	};
+		};
 
 	// Button Hitboxes:
 	// Top button ("Yes")
@@ -193,14 +193,14 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			1.50f, // per-frame hold (animation cadence)
 			5,     // crossfade to frame index 5 (6.1)
 			1.5f
-		);
+			);
 
 		if (audioManager_) {
 			const float cutsceneBgmFadeIn = 1.0f;
 			audioManager_->PlaySound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, false);
 			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, audioManager_->GetBgmVolume() * 1.6f, cutsceneBgmFadeIn);
 		}
-		}
+	}
 
 
 
