@@ -75,6 +75,14 @@ public:
 	// Query
 	bool HasAnimator(int objectID) const;
 
+	void AttachRuntimeAnimation(int objectID,
+		const std::vector<glm::vec4>& frames,
+		float frameDuration,
+		bool loop,
+		const std::string& animName = "RUNTIME");
+
+	void RemoveAnimator(int objectID);
+
 private:
 	// Reference to EntityManager (set externally)
 	EntityManager* entityManager_ = nullptr;

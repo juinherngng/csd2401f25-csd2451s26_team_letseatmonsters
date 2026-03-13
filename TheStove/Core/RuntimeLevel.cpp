@@ -149,6 +149,9 @@ namespace RuntimeLevel {
 			defs.approachOffset2 = { obj.approachOffset2X, obj.approachOffset2Y };
 			defs.hasCustomerSeatOffset = obj.hasCustomerSeatOffset;
 			defs.customerSeatOffset = { obj.customerSeatOffsetX, obj.customerSeatOffsetY };
+			defs.customerSeatCapacity = obj.customerSeatCapacity;
+			defs.hasCustomerSeatOffset2 = obj.hasCustomerSeatOffset2;
+			defs.customerSeatOffset2 = { obj.customerSeatOffset2X, obj.customerSeatOffset2Y };
 			defs.visible = obj.visible;
 
 			scene.SetDefaults(g->GetID(), defs);

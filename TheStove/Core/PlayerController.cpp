@@ -19,6 +19,7 @@
 #include "PlayerController.hpp"
 
 #include <algorithm>
+#include <vector>
 
 void PlayerController::HandleInput(float deltaTime,
 	InputManager& inputManager,
@@ -127,9 +128,10 @@ void PlayerController::HandleClickToMove(InputManager& inputManager,
 	const glm::vec2 toTarget = mouseWorld - glm::vec2(pos.x, pos.y);
 	UpdateSpriteDirection(toTarget, sprite);
 
-	// Trigger click indicator using the new arrow artwork.
+	// Trigger click indicator using animated arrow sprite-sheet artwork.
 	clickIndicatorWorld_ = mouseWorld;
 	clickIndicatorTimer_ = 0.5f;
+	clickIndicatorAnimTime_ = 0.0f;
 }
 
 void PlayerController::UpdateClickIndicator(float deltaTime, EntityManager& entityManager) {
@@ -139,10 +141,20 @@ void PlayerController::UpdateClickIndicator(float deltaTime, EntityManager& enti
 
 	if (clickIndicatorID_ < 0 || entityManager.GetByID(clickIndicatorID_) == nullptr) {
 		constexpr float kIndicatorSize = 96.0f;
-		GameObject* indicator = entityManager.SpawnStaticSprite(
-			"../assets/Arrow_Merged.png",
+		std::vector<glm::vec4> arrowFrames;
+		arrowFrames.reserve(8);
+		constexpr float kFrameWidth = 1.0f / 8.0f;
+		for (int i = 0; i < 8; ++i) {
+			arrowFrames.emplace_back(i * kFrameWidth, 0.0f, kFrameWidth, 1.0f);
+		}
+
+		GameObject* indicator = entityManager.SpawnAnimatedSprite(
+			"../assets/arrow-Sheet.png",
 			glm::vec3(clickIndicatorWorld_.x, clickIndicatorWorld_.y, 0.0f),
-			glm::vec2(kIndicatorSize, kIndicatorSize));
+			glm::vec2(kIndicatorSize, kIndicatorSize),
+			arrowFrames,
+			0.06f,
+			true);
 
 		if (!indicator) {
 			return;
@@ -160,13 +172,22 @@ void PlayerController::UpdateClickIndicator(float deltaTime, EntityManager& enti
 	}
 
 	clickIndicatorTimer_ = std::max(0.0f, clickIndicatorTimer_ - deltaTime);
+	clickIndicatorAnimTime_ += deltaTime;
 
 	const float normalized = clickIndicatorTimer_ / 0.5f;
 	const float pulse = 1.0f + 0.08f * std::sin((1.0f - normalized) * 14.0f);
 
+	constexpr int kArrowFrameCount = 8;
+	constexpr float kFrameWidth = 1.0f / static_cast<float>(kArrowFrameCount);
+	constexpr float kArrowFrameDuration = 0.06f;
+	const float animLength = kArrowFrameDuration * static_cast<float>(kArrowFrameCount);
+	const float wrappedTime = std::fmod(clickIndicatorAnimTime_, animLength);
+	const int frameIndex = std::min(kArrowFrameCount - 1, static_cast<int>(wrappedTime / kArrowFrameDuration));
+
 	indicator->SetPosition(glm::vec3(clickIndicatorWorld_.x, clickIndicatorWorld_.y, 0.0f));
 	indicator->SetScale(glm::vec3(96.0f * pulse));
 	indicator->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, normalized));
+	indicator->SetUVRect(glm::vec4(frameIndex * kFrameWidth, 0.0f, kFrameWidth, 1.0f));
 }
 
 void PlayerController::UpdateSpriteDirection(const glm::vec2& direction, GameObject* sprite) {

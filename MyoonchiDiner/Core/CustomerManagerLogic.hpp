@@ -84,7 +84,7 @@ public:
 		spawnCooldown_ = seconds;
 	}
 private:
-	int maxCustomers_ = 4;				// hard cap on simultaneous customers; set by level design or difficulty settings
+	int maxCustomers_ = 16;				// hard cap on simultaneous customers; set by level design or difficulty settings
 	float spawnCooldown_ = 10.0f;       // small delay between spawns
 	float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
 

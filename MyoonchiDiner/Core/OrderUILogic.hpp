@@ -48,6 +48,8 @@ private:
 		int tableId = -1;
 		int customerId = -1;
 		DishType dish = DishType::PoopDish;
+		float patienceRemaining = 0.0f;
+		float patienceRatio = 0.0f;
 	};
 
 	// UI state for each order slot

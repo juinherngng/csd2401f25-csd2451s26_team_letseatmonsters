@@ -13,11 +13,6 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#pragma once
-
-#include "PlateLogic.hpp"
-#include "TableLogic.hpp"
-
  // CustomerTableLogic
  //  - Table where customers can sit and be served dishes.
  //  - Holds exactly one item (via TableLogic).
@@ -27,6 +22,13 @@
  // Customer AI later can:
  //   - Call SeatCustomer / ClearCustomer.
  //   - React to OnDishServed via overriding or querying the table state.
+#pragma once
+
+#include "PlateLogic.hpp"
+#include "TableLogic.hpp"
+#include <array>
+#include <algorithm>
+
 class CustomerTableLogic : public TableLogic {
 public:
 	explicit CustomerTableLogic(int ownerID);
@@ -40,28 +42,51 @@ public:
 	// ---- Seating control ----
 
 	bool HasSeatedCustomer() const {
-		return seatedCustomerID_ != kInvalidID;
+		return GetSeatedCustomerCount() > 0;
 	}
-	int  GetSeatedCustomerID() const {
-		return seatedCustomerID_;
+	int GetSeatedCustomerCount() const;
+
+	int GetSeatCapacity() const {
+		return seatCapacity_;
 	}
 
 	bool IsAvailableForSeating() const {
-		return !HasSeatedCustomer();
+		return GetSeatedCustomerCount() < seatCapacity_;
+	}
+
+	int GetSeatedCustomerID() const {
+		for (int i = 0; i < seatCapacity_; ++i) {
+			if (seatedCustomerIDs_[i] != kInvalidID) {
+				return seatedCustomerIDs_[i];
+			}
+		}
+		return kInvalidID;
+	}
+
+	const std::array<int, 2>& GetSeatedCustomerIDs() const {
+		return seatedCustomerIDs_;
 	}
 
 	// Seat a customer at this table. Returns false if already occupied.
-	bool SeatCustomer(int customerID);
+	bool SeatCustomer(Scene& scene, int customerID, Math::Vector2D* outSeatWorld = nullptr);
 
 	// Clear the currently seated customer (if any).
-	void ClearCustomer();
+	bool ClearCustomer(int customerID);
+	void ClearAllCustomers();
 
 	// Local offset from table position where the customer should stand/sit
 	void SetCustomerSeatOffset(const Math::Vector2D& localOffset) {
-		customerSeatOffset_ = localOffset;
+		customerSeatOffsets_[0] = localOffset;
+	}
+	void SetCustomerSeatOffset2(const Math::Vector2D& localOffset) {
+		customerSeatOffsets_[1] = localOffset;
+	}
+	void SetSeatCapacity(int capacity) {
+		seatCapacity_ = std::clamp(capacity, 1, 2);
 	}
 
-	Math::Vector2D GetCustomerSeatWorld(Scene& scene) const;
+	Math::Vector2D GetCustomerSeatWorld(Scene& scene, int customerID) const;
+	Math::Vector2D GetCustomerSeatWorldByIndex(Scene& scene, int seatIndex) const;
 
 	// ---- TableLogic overrides ----
 
@@ -96,9 +121,17 @@ protected:
 	//Only Completed Dish can be put on the customer table
 	virtual bool IsCompletedDish(Scene& scene, const GameObject& item) const;
 
-	int seatedCustomerID_;
+	int FindSeatIndexByCustomerID(int customerID) const;
+	int FindFirstFreeSeatIndex() const;
+	int FindBestCustomerForDish(Scene& scene, DishType dishType) const;
+	int FindFirstPayingCustomer(Scene& scene) const;
 
-	Math::Vector2D customerSeatOffset_{ 0.0f, 16.0f }; // e.g. in front of table
+	int seatCapacity_ = 1;
+	std::array<int, 2> seatedCustomerIDs_{ { kInvalidID, kInvalidID } };
+	std::array<Math::Vector2D, 2> customerSeatOffsets_{ {
+		Math::Vector2D(0.0f, -90.0f),
+		Math::Vector2D(40.0f, -90.0f)
+	} };
 
 	std::string GetName() const override {
 		return "CustomerTableLogic";

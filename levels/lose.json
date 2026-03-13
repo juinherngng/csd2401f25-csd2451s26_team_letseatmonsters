@@ -1,10 +1,48 @@
 {
-  "background": "../assets/Cabbage_Ingredient.png",
+  "background": "../assets/gameover_new.png",
   "objects": [
-        {
+    {
+      "animated": false,
+      "texture": "../assets/start_s.png",
+      "tag": "btn_retry_level",
+      "layer": "10",
+      "x": 1300.0,
+      "y": 454.0,
+      "z": 0.0,
+      "w": 350.0,
+      "h": 100.0,
+      "rotation": 0.0,
+      "has_collider": false,
+      "col_w": 256.0,
+      "col_h": 96.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0
+    },
+    {
+      "animated": false,
+      "texture": "../assets/how_s.png",
+      "tag": "btn_howtoplay",
+      "layer": "10",
+      "x": 1300.0,
+      "y": 584.0,
+      "z": 0.0,
+      "w": 350.0,
+      "h": 100.0,
+      "rotation": 0.0,
+      "has_collider": false,
+      "col_w": 256.0,
+      "col_h": 96.0,
+      "col_offx": 0.0,
+      "col_offy": 0.0,
+      "speed_x": 0.0,
+      "speed_y": 0.0
+    },
+    {
       "animated": false,
       "texture": "../assets/quit_s.png",
-      "tag": "btn_quit",
+      "tag": "btn_main_menu",
       "layer": "10",
       "x": 1300.0,
       "y": 714.0,
@@ -19,6 +57,6 @@
       "col_offy": 0.0,
       "speed_x": 0.0,
       "speed_y": 0.0
-    } 
+    }
   ]
 }

@@ -51,6 +51,13 @@ struct LevelObject {
 	float approachOffset2X{ 0.0f };
 	float approachOffset2Y{ 0.0f };
 
+	// Customer table seating
+	int customerSeatCapacity{ 1 };   // 1 = single-seat, 2 = double-seat
+
+	bool hasCustomerSeatOffset2{ false };
+	float customerSeatOffset2X{ 0.0f };
+	float customerSeatOffset2Y{ 0.0f };
+
 	// Customer table seat offset (relative to object center)
 	bool hasCustomerSeatOffset{ false };
 	float customerSeatOffsetX{ 0.0f };

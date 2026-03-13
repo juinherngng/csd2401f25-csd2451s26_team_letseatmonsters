@@ -141,7 +141,7 @@ public:
 	GameObject* SpawnAnimatedSprite(const std::string& texturePath,
 		const glm::vec3 position,
 		const glm::vec2 size,
-		const std::vector<glm::vec4> frames,
+		const std::vector<glm::vec4>& frames,
 		float frameDuration, bool loop,
 		const std::string& layer);
 
@@ -358,6 +358,9 @@ public:
 		glm::vec2 approachOffset2{ 0,0 }; // Optional secondary approach point
 		bool hasCustomerSeatOffset{ false };
 		glm::vec2 customerSeatOffset{ 0,0 }; // Optional explicit customer seat point
+		int customerSeatCapacity{ 1 };
+		bool hasCustomerSeatOffset2{ false };
+		glm::vec2 customerSeatOffset2{ 0,0 };
 		std::string texture;
 		std::string tag;
 		std::string layer;

@@ -745,7 +745,9 @@ void SimpleNpcLogic::OnReachedExit(Scene& scene) {
 	if (customerTableID_ != kInvalidID) {
 		LogicManager& logicMgr = scene.GetLogicManager();
 		if (CustomerTableLogic* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_)) {
-			table->ClearCustomer();
+			if (GameObject* npc = GetOwner(scene)) {
+				table->ClearCustomer(npc->GetID());
+			}
 		}
 	}
 
@@ -923,7 +925,9 @@ void SimpleNpcLogic::BeginLeaveToExit(Scene& scene, bool freeTableImmediately) {
 	if (freeTableImmediately && customerTableID_ != kInvalidID) {
 		LogicManager& logicMgr = scene.GetLogicManager();
 		if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(customerTableID_)) {
-			table->ClearCustomer();
+			if (GameObject* npc = GetOwner(scene)) {
+				table->ClearCustomer(npc->GetID());
+			}
 		}
 
 		// IMPORTANT:

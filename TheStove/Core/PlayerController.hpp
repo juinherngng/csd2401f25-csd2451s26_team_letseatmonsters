@@ -101,4 +101,5 @@ private:
 	int clickIndicatorID_ = -1;
 	glm::vec2 clickIndicatorWorld_{ 0.0f, 0.0f };
 	float clickIndicatorTimer_ = 0.0f;
+	float clickIndicatorAnimTime_ = 0.0f;
 };

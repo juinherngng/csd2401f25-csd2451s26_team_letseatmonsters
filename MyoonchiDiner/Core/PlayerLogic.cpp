@@ -117,7 +117,7 @@ namespace {
 	constexpr float kFootstepInterval = 0.3f;
 	constexpr float kClickIndicatorLifetime = 0.45f;
 	constexpr float kClickIndicatorBaseSize = 26.0f;
-	constexpr float kClickIndicatorPopSize = 36.0f;
+	//constexpr float kClickIndicatorPopSize = 36.0f;
 
 	// Clamp large frame spikes (for example right after pause/resume)
 	// so movement cannot jump/teleport in a single update.
@@ -1145,23 +1145,57 @@ bool PlayerLogic::IsPointInsideObjectCollider(const GameObject* obj, const glm::
 void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint) {
 	const glm::vec3 markerPos(worldPoint.x, worldPoint.y, 0.0f);
 
-	GameObject* marker = scene.GetGameObjectByID(clickIndicatorID_);
-	if (!marker) {
-		marker = scene.SpawnStaticSprite("../assets/Arrow_Merged.png", markerPos, glm::vec2(26.0f, 26.0f));
-		if (!marker) {
-			clickIndicatorID_ = -1;
-			clickIndicatorTimeLeft_ = 0.0f;
-			return;
-		}
-
-		clickIndicatorID_ = marker->GetID();
-		marker->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+	// Despawn old indicator so each click restarts the animation cleanly
+	if (clickIndicatorID_ >= 0) {
+		scene.DespawnByID(clickIndicatorID_);
+		clickIndicatorID_ = -1;
 	}
 
-	marker->SetPosition(markerPos);
+	static const std::vector<glm::vec4> kArrowFrames = []() {
+		std::vector<glm::vec4> frames;
+		frames.reserve(8);
+
+		constexpr int kFrameCount = 8;
+		constexpr float kFrameWidth = 1.0f / static_cast<float>(kFrameCount);
+
+		for (int i = 0; i < kFrameCount; ++i) {
+			frames.emplace_back(i * kFrameWidth, 0.0f, kFrameWidth, 1.0f);
+		}
+
+		return frames;
+		}();
+
+	std::string markerLayer = "1";
+	if (GameObject* player = GetOwner(scene)) {
+		const std::string playerLayer = scene.GetObjectLayer(player->GetID());
+		if (!playerLayer.empty()) {
+			markerLayer = playerLayer;
+		}
+	}
+
+	GameObject* marker = scene.SpawnAnimatedSprite(
+		"../assets/arrow-Sheet.png",
+		markerPos,
+		glm::vec2(kClickIndicatorBaseSize, kClickIndicatorBaseSize),
+		kArrowFrames,
+		0.06f,
+		true,
+		markerLayer
+	);
+
+	if (!marker) {
+		clickIndicatorID_ = -1;
+		clickIndicatorTimeLeft_ = 0.0f;
+		return;
+	}
+
+	clickIndicatorID_ = marker->GetID();
+	clickIndicatorTimeLeft_ = kClickIndicatorLifetime;
+
+	marker->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+	marker->SetRenderSortOrder(1000);
 	marker->SetScale(glm::vec3(kClickIndicatorBaseSize, kClickIndicatorBaseSize, 1.0f));
 	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-	clickIndicatorTimeLeft_ = kClickIndicatorLifetime;
 }
 
 // Update the click move indicator (scaling and fading) and despawn when time is up
@@ -1185,13 +1219,26 @@ void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
 		return;
 	}
 
-	const float normalizedTimeLeft = std::clamp(clickIndicatorTimeLeft_ / kClickIndicatorLifetime, 0.0f, 1.0f);
+	// Temporarily disabled while testing whether the arrow animation is playing correctly.
+	// Keep the indicator at a fixed size and fixed color.
+	/*
+	const float normalizedTimeLeft =
+		std::clamp(clickIndicatorTimeLeft_ / kClickIndicatorLifetime, 0.0f, 1.0f);
 	const float progress = 1.0f - normalizedTimeLeft;
 
-	const float pulse = std::sin(progress * 3.14159265f); // 0 -> 1 -> 0 over the indicator lifetime
-	const float size = kClickIndicatorBaseSize + pulse * (kClickIndicatorPopSize - kClickIndicatorBaseSize);
-	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+	// Optional pulse
+	const float pulse = std::sin(progress * 3.14159265f);
+	const float size =
+		kClickIndicatorBaseSize + pulse * (kClickIndicatorPopSize - kClickIndicatorBaseSize);
+
 	marker->SetScale(glm::vec3(size, size, 1.0f));
+
+	// Optional fade
+	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, normalizedTimeLeft));
+	*/
+
+	marker->SetScale(glm::vec3(kClickIndicatorBaseSize, kClickIndicatorBaseSize, 1.0f));
+	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
 void PlayerLogic::ClearClickMoveIndicator(Scene& scene) {

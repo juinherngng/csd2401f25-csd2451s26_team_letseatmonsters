@@ -102,6 +102,15 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.hasApproachOffset2 = jsonObj.contains("approach2_offx") || jsonObj.contains("approach2_offy");
 	obj.approachOffset2X = jsonObj.value("approach2_offx", 0.0f);
 	obj.approachOffset2Y = jsonObj.value("approach2_offy", 0.0f);
+	obj.customerSeatCapacity = jsonObj.value("customer_seat_capacity", 1);
+
+	obj.hasCustomerSeatOffset2 =
+		jsonObj.value("has_customer_seat2", false) ||
+		jsonObj.contains("customer_seat2_offx") ||
+		jsonObj.contains("customer_seat2_offy");
+
+	obj.customerSeatOffset2X = jsonObj.value("customer_seat2_offx", 0.0f);
+	obj.customerSeatOffset2Y = jsonObj.value("customer_seat2_offy", 0.0f);
 
 	// Optional explicit customer seating offset
 	obj.hasCustomerSeatOffset = jsonObj.contains("customer_seat_offx") || jsonObj.contains("customer_seat_offy");
@@ -179,6 +188,10 @@ static json WriteLevelObject(const LevelObject& obj) {
 		// Optional customer seating offset
 		{ "customer_seat_offx", obj.customerSeatOffsetX },
 		{ "customer_seat_offy", obj.customerSeatOffsetY },
+		{ "customer_seat_capacity", obj.customerSeatCapacity },
+		{ "has_customer_seat2", obj.hasCustomerSeatOffset2 },
+		{ "customer_seat2_offx", obj.customerSeatOffset2X },
+		{ "customer_seat2_offy", obj.customerSeatOffset2Y },
 		// Audio bindings
 		{ "audio_on_spawn", obj.audioOnSpawn },
 		{ "audio_on_interact", obj.audioOnInteract },

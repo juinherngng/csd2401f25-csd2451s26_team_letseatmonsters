@@ -192,56 +192,12 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	if (over && input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		if (audioManager_) {
 			audioManager_->PlayUIClickSound();
-
-			// Play the start button SFX
-			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_START_BUTTON)) {
-				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_START_BUTTON, audioManager_->GetVfxVolume(), false);
-			}
-
-			// Fade out main menu BGM during the fade-to-black transition
-			const float menuBgmFadeDuration = 0.35f; // Match the visual fade-out duration
-			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_MAIN_MENU, 0.0f, menuBgmFadeDuration);
 		}
+
 		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 
-		// Build full timeline where each chapter lasts exactly 1.5 seconds at set fps
-		std::vector<std::string> frames;
-		std::vector<bool> boundaries;
-		int firstFrameIndexChapter6 = -1;
-		const float fps = 4.0f;                 // set fps here
-		const float chapterHoldSeconds = 1.5f;  // set seconds to hold each cutscene here
-		BuildChapterTimedFramesAndBoundaries(frames, boundaries, firstFrameIndexChapter6, chapterHoldSeconds, fps);
-
-		// Each frame displays for 1/fps seconds
-		const float holdSeconds = 1.0f / fps;
-
-		// Chapter boundary fades; single crossfade when entering chapter 6
-		const float fadeOutSeconds = 0.35f;
-		const float fadeInSeconds = 0.35f;
-		const int crossfadeToIndex = firstFrameIndexChapter6; // zero-based index in flattened frames
-		const float crossfadeSeconds = 2.0f;
-
-		// Start cutscene BGM with fade-in after the initial fade-to-black completes
-		// The cutscene will handle playing and fading the intro cutscene music
-		scene.StartCutsceneTransitionedBounded(
-			frames,
-			boundaries,
-			targetJson_,
-			activateSimulation_,
-			fadeOutSeconds,
-			fadeInSeconds,
-			holdSeconds,
-			crossfadeToIndex,
-			crossfadeSeconds);
-
-		// Start the intro cutscene BGM with fade-in
-		// This plays after the fade-to-black, syncing with the cutscene start
-		if (audioManager_) {
-			const float cutsceneBgmFadeIn = 1.0f; // Fade in over 1 second
-			// Play at volume 0, then fade up (40% louder than normal BGM volume)
-			audioManager_->PlaySound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, false);
-			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, audioManager_->GetBgmVolume() * 1.6f, cutsceneBgmFadeIn);
-		}
+		// Direct transition only. No intro cutscene here.
+		scene.StartLevelTransition(targetJson_, activateSimulation_, 0.35f, 0.35f);
 	}
 #endif // _DEBUG
 }
