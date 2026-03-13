@@ -2,11 +2,13 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			PlayerLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (80%)
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (60%)
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu	  (20%)
+					Seah Wang Hua, wanghua.seah@digipen.edu (20%)
 
  DESCRIPTION:		Implements player control logic, including movement, sprite updates,
-					mouse click handling, item pickup/drop, and scene clamping behavior.
+					mouse click handling, item pickup/drop, and scene clamping behavior as well
+					hover logic (outlining interactables on mouse hover).
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -1032,10 +1034,13 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
-	// Debug shortcuts: instantly trigger the win condition so we can quickly
-	// F10 keeps the original behavior (commonly used for kitchen01 testing).
-	// F9 is added so kitchen02 can be completed with a dedicated hotkey too.
-	if ((input.IsKeyJustPressed(GLFW_KEY_F10) || input.IsKeyJustPressed(GLFW_KEY_F9)) && !Economy::gQuotaReached) {
+	// Debug shortcuts: instantly trigger quota clear for the active kitchen level.
+	// F10 clears kitchen01 (then cutscene -> kitchen02), F9 clears kitchen02 (then win).
+	const std::string levelPath = scene.GetCurrentLevelPath();
+	const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
+	const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
+	const bool forceClearShortcut = (isLevel1 && input.IsKeyJustPressed(GLFW_KEY_F10)) || (isLevel2 && input.IsKeyJustPressed(GLFW_KEY_F9));
+	if (forceClearShortcut && !Economy::gQuotaReached) {
 		Economy::gPlayerMoney = Economy::kQuota;
 		Economy::SyncUI();
 		Economy::gQuotaReached = true;
