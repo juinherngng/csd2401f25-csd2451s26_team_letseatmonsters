@@ -327,7 +327,7 @@ const char* CustomerOrderUILogic::DishToIconPath(DishType dish) const {
 	case DishType::VegDish:  return "../assets/Salad.png";
 	case DishType::MeatDish: return "../assets/Meat.png";
 	case DishType::SoupDish: return "../assets/Soup.png";
-	case DishType::SkewerDish: return "../assets/Meat.png";
+	case DishType::SkewerDish: return "../assets/Food_Meat_n_carrot.png";
 	case DishType::CarrotSaladDish: return "../assets/Food_Salad_n_carrot.png";
 	case DishType::PoopDish:
 	default: return "../assets/PoopDish.png";
