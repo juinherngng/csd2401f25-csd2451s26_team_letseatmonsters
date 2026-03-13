@@ -10,7 +10,7 @@
  DESCRIPTION:		Implements hover/click interaction flow for the main menu Play button and the
 					tutorial decision popup.
 
-		    Flow:
+			Flow:
 				  1) While popup is closed:
 					 - hover swaps Play texture (_s <-> _h),
 					 - click opens tutorial decision popup.
@@ -20,7 +20,7 @@
 					 - click No starts intro cutscene path.
 
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -138,7 +138,7 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 			(nx - 0.5f) * popupSize_.x,
 			(ny - 0.5f) * popupSize_.y
 		);
-	};
+		};
 
 	// Authored top/bottom button positions inside popup.
 	const glm::vec2 yesCenter = ToWorld(0.50f, 0.71f);
@@ -250,7 +250,7 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		const glm::vec2 min(pos.x - sz.x * 0.5f, pos.y - sz.y * 0.5f);
 		const glm::vec2 max(pos.x + sz.x * 0.5f, pos.y + sz.y * 0.5f);
 		return IsPointInRect(mouseWorld, min, max);
-	};
+		};
 
 	const bool yesOver = IsPointInObject(yesButtonId_);
 	const bool noOver = IsPointInObject(noButtonId_);

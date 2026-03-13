@@ -8,7 +8,7 @@
 					and updating customer order UI elements such as the order bubble,
 					patience bar, and payment result feedback attached to a customer.
 
-		 All content � 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

@@ -15,16 +15,16 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "SceneManager.hpp"
 #include "../Core/JSONInclude.hpp"
+#include "SceneManager.hpp"
 
 #include <array>
 #include <cmath>
-#include <vector>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <filesystem>
+#include <vector>
 
  // Level constants (reference resolution + tile size)
 static constexpr float kRefW = static_cast<float>(GraphicsEngine::kRefW);

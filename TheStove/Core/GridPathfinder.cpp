@@ -3,7 +3,9 @@
  FILE NAME:			GridPathfinder.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
- DESCRIPTION:
+ DESCRIPTION:		Implements the NavGrid and GridPathfinder classes, which provide grid-based pathfinding
+					functionality using A* search. NavGrid represents a 2D grid of walkable/blocked cells,
+					while GridPathfinder contains the A* algorithm to find a path between two points on the grid.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
@@ -17,6 +19,7 @@
 #include <queue>
 #include <vector>
 
+// Finds the nearest walkable cell to the given grid coordinates, searching in a spiral pattern. Returns true if a walkable cell is found and sets outCell to its coordinates.
 bool NavGrid::FindNearestWalkable(const GridCoord& from, GridCoord& outCell) const {
 	if (!IsValid()) return false;
 
@@ -65,6 +68,7 @@ bool NavGrid::FindNearestWalkable(const GridCoord& from, GridCoord& outCell) con
 	return false;
 }
 
+// Finds a path from start to goal on the given NavGrid using A* search. Returns true if a path is found and sets outPath to the sequence of grid coordinates from start to goal.
 bool GridPathfinder::FindPath(const NavGrid& grid, const GridCoord& start, const GridCoord& goal, std::vector<GridCoord>& outPath) {
 	outPath.clear();
 
