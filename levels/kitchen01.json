@@ -854,8 +854,8 @@
     {
       "anim_name": "",
       "animated": false,
-      "approach2_offx": 0.0,
-      "approach2_offy": 0.0,
+      "approach2_offx": -90.0,
+      "approach2_offy": -10.0,
       "approach_offx": -90.0,
       "approach_offy": -10.0,
       "audio_loop": false,
@@ -881,8 +881,8 @@
       "texture": "../assets/PlateBox.png",
       "visible": true,
       "w": 90.0,
-      "x": 704.7467041015625,
-      "y": 610.1397705078125,
+      "x": 704,
+      "y": 610,
       "z": 0.0
     },
     {
