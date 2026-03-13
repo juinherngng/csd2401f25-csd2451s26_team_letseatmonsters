@@ -134,33 +134,33 @@ namespace {
 	}
 
 	static bool IsHeldItemPlate(Scene& scene, LogicManager& logic, int heldItemID) {
-			if (heldItemID < 0) return false;
+		if (heldItemID < 0) return false;
 
-			// Primary check
-			if (logic.GetLogicForObject<PlateLogic>(heldItemID) != nullptr) {
-				return true;
-			}
-
-			// Fallback by texture path
-			const std::string& tex = scene.GetObjectTexturePath(heldItemID);
-			return (tex.find("plate") != std::string::npos || tex.find("Plate") != std::string::npos);
+		// Primary check
+		if (logic.GetLogicForObject<PlateLogic>(heldItemID) != nullptr) {
+			return true;
 		}
 
+		// Fallback by texture path
+		const std::string& tex = scene.GetObjectTexturePath(heldItemID);
+		return (tex.find("plate") != std::string::npos || tex.find("Plate") != std::string::npos);
+	}
+
 	static int FindFirstTableHoldingAnyPlate(Scene& scene) {
-			LogicManager& logic = scene.GetLogicManager();
+		LogicManager& logic = scene.GetLogicManager();
 
-			for (GameObject* obj : scene.GetAllObjectsRaw()) {
-				if (!obj) continue;
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
 
-				TableLogic* table = logic.GetLogicForObject<TableLogic>(obj->GetID());
-				if (!table || !table->HasItem()) continue;
+			TableLogic* table = logic.GetLogicForObject<TableLogic>(obj->GetID());
+			if (!table || !table->HasItem()) continue;
 
-				if (IsHeldItemPlate(scene, logic, table->GetHeldItemID())) {
-					return obj->GetID();
-				}
+			if (IsHeldItemPlate(scene, logic, table->GetHeldItemID())) {
+				return obj->GetID();
 			}
+		}
 
-			return -1;
+		return -1;
 	}
 
 	static std::vector<int> FindAllEmptyTables(Scene& scene) {
@@ -522,7 +522,7 @@ namespace {
 
 			const std::array<glm::vec2, 4> offsets{
 				glm::vec2(-kOutlineOffset, 0.0f),
-				glm::vec2( kOutlineOffset, 0.0f),
+				glm::vec2(kOutlineOffset, 0.0f),
 				glm::vec2(0.0f, -kOutlineOffset),
 				glm::vec2(0.0f,  kOutlineOffset)
 			};
@@ -567,7 +567,7 @@ namespace {
 
 			const std::array<glm::vec2, 4> offsets{
 				glm::vec2(-kOutlineOffset, 0.0f),
-				glm::vec2( kOutlineOffset, 0.0f),
+				glm::vec2(kOutlineOffset, 0.0f),
 				glm::vec2(0.0f, -kOutlineOffset),
 				glm::vec2(0.0f,  kOutlineOffset)
 			};
@@ -621,7 +621,8 @@ namespace {
 			}
 			if (set.sourceID != targetID) {
 				SpawnOutlineSet(scene, set, targetID);
-			} else {
+			}
+			else {
 				SyncOutlineSet(scene, set);
 			}
 		}
@@ -657,24 +658,24 @@ namespace {
 				targetStationID = FindFirstByTagAndTexture(scene, "work_table", stationToken);
 			}
 			else if (step == TutorialStep::PlateFirstIngredient) {
-	const bool holdingPlate =
-		playerLogic && playerLogic->IsHolding() &&
-		IsHeldItemPlate(scene, logic, playerLogic->GetCarriedItemID());
+				const bool holdingPlate =
+					playerLogic && playerLogic->IsHolding() &&
+					IsHeldItemPlate(scene, logic, playerLogic->GetCarriedItemID());
 
-	if (holdingPlate) {
-		// Only after picking up plate: highlight all empty tables
-		targetIngredientID = -1;
-		targetStationID = -1;
-		targetStationIDs = FindAllEmptyTables(scene);
-	}
-	else {
-		// Before picking up plate: highlight only plate box
-		targetIngredientID = FindFirstByTagAndTexture(scene, "plate_box", nullptr);
-		targetStationID = -1;
-		targetStationIDs.clear();
-	}
-}
-else if (step == TutorialStep::PickSecondIngredient) {
+				if (holdingPlate) {
+					// Only after picking up plate: highlight all empty tables
+					targetIngredientID = -1;
+					targetStationID = -1;
+					targetStationIDs = FindAllEmptyTables(scene);
+				}
+				else {
+					// Before picking up plate: highlight only plate box
+					targetIngredientID = FindFirstByTagAndTexture(scene, "plate_box", nullptr);
+					targetStationID = -1;
+					targetStationIDs.clear();
+				}
+			}
+			else if (step == TutorialStep::PickSecondIngredient) {
 				targetIngredientID = FindFirstByTagAndTexture(scene, "ingredient_box", IngredientBoxTokenForDishSecond(dish));
 			}
 			else if (step == TutorialStep::ProcessSecondIngredient) {
@@ -682,7 +683,7 @@ else if (step == TutorialStep::PickSecondIngredient) {
 				if (playerLogic && playerLogic->IsHolding()) {
 					const int heldID = playerLogic->GetCarriedItemID();
 					if (auto* ing = logic.GetLogicForObject<IngredientLogic>(heldID); ing && ing->IsRaw()) {
-						if (const char* mapped = StationTokenForRawIngredient( ing->GetType())) {
+						if (const char* mapped = StationTokenForRawIngredient(ing->GetType())) {
 							stationToken = mapped;
 						}
 					}
@@ -690,24 +691,24 @@ else if (step == TutorialStep::PickSecondIngredient) {
 				targetStationID = FindFirstByTagAndTexture(scene, "work_table", stationToken);
 			}
 			else if (step == TutorialStep::GetPlateAndPlaceOnTable) {
-	const bool holdingPlate =
-		playerLogic && playerLogic->IsHolding() &&
-		IsHeldItemPlate(scene, logic, playerLogic->GetCarriedItemID());
+				const bool holdingPlate =
+					playerLogic && playerLogic->IsHolding() &&
+					IsHeldItemPlate(scene, logic, playerLogic->GetCarriedItemID());
 
-	if (holdingPlate) {
-		// Only after picking up plate: highlight all empty tables
-		targetIngredientID = -1;
-		targetStationID = -1;
-		targetStationIDs = FindAllEmptyTables(scene);
-	}
-	else {
-		// Before picking up plate: highlight only plate box
-		targetIngredientID = FindFirstByTagAndTexture(scene, "plate_box", nullptr);
-		targetStationID = -1;
-		targetStationIDs.clear();
-	}
-}
-else if (step == TutorialStep::CombineDishOnPlate) {
+				if (holdingPlate) {
+					// Only after picking up plate: highlight all empty tables
+					targetIngredientID = -1;
+					targetStationID = -1;
+					targetStationIDs = FindAllEmptyTables(scene);
+				}
+				else {
+					// Before picking up plate: highlight only plate box
+					targetIngredientID = FindFirstByTagAndTexture(scene, "plate_box", nullptr);
+					targetStationID = -1;
+					targetStationIDs.clear();
+				}
+			}
+			else if (step == TutorialStep::CombineDishOnPlate) {
 				targetStationID = FindTableHoldingPlate(scene, 1, true); // table holding plate with first ingredient
 			}
 			else if (step == TutorialStep::CollectMoneyFromCustomer) {
@@ -765,24 +766,24 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 		}
 
 		void Update(Scene& scene, float dt) {
-	const bool isTutorial = IsTutorialLevelLoaded(scene);
-	if (!isTutorial) {
-		ClearHighlights(scene);
-		ClearCompletionPopup(scene);
-		active = false;
-		return;
-	}
+			const bool isTutorial = IsTutorialLevelLoaded(scene);
+			if (!isTutorial) {
+				ClearHighlights(scene);
+				ClearCompletionPopup(scene);
+				active = false;
+				return;
+			}
 
-	if (completionPopupShown_) {
-		ClearHighlights(scene);
-		HandleCompletionPopupInput(scene);
-		return;
-	}
+			if (completionPopupShown_) {
+				ClearHighlights(scene);
+				HandleCompletionPopupInput(scene);
+				return;
+			}
 
-	if (!active || !scene.IsSimulationActive()) {
-		ClearHighlights(scene);
-		return;
-	}
+			if (!active || !scene.IsSimulationActive()) {
+				ClearHighlights(scene);
+				return;
+			}
 
 			const int playerId = scene.GetPlayerID();
 			GameObject* player = scene.GetGameObjectByID(playerId);
@@ -1041,53 +1042,53 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 			}
 		}
 
-	void ClearCompletionPopup(Scene& scene) {
-		for (int id : completionPopupIDs_) {
-			if (id >= 0 && scene.GetGameObjectByID(id)) {
-				scene.DespawnByID(id);
+		void ClearCompletionPopup(Scene& scene) {
+			for (int id : completionPopupIDs_) {
+				if (id >= 0 && scene.GetGameObjectByID(id)) {
+					scene.DespawnByID(id);
+				}
+			}
+			completionPopupIDs_.clear();
+			completionPopupShown_ = false;
+			completionMenuButtonID_ = -1;
+			popupMouseHeld_ = false;
+			completionMenuHovered_ = false;
+		}
+
+		void ShowCompletionPopup(Scene& scene) {
+			if (completionPopupShown_) return;
+			completionPopupShown_ = true;
+
+			// Freeze gameplay while popup is shown.
+			scene.SetSimulationActive(false);
+
+			const glm::vec3 center{
+				static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
+				static_cast<float>(GraphicsEngine::kRefH) * 0.5f,
+				0.0f
+			};
+			const std::string uiLayer = "999999";
+
+			if (GameObject* popup = scene.SpawnStaticSprite(
+				"../assets/tutorial_complete.png",
+				center,
+				glm::vec2(1152.0f, 648.0f),
+				uiLayer)) {
+				completionPopupIDs_.push_back(popup->GetID());
+			}
+
+			if (GameObject* menu = scene.SpawnStaticSprite(
+				FilePaths::Textures::BTN_RETURN,
+				glm::vec3(center.x, center.y + 160.0f, 0.0f),
+				glm::vec2(350.0f, 100.0f),
+				uiLayer)) {
+				completionMenuButtonID_ = menu->GetID();
+				completionPopupIDs_.push_back(completionMenuButtonID_);
+				scene.SetObjectTexturePath(completionMenuButtonID_, FilePaths::Textures::BTN_RETURN);
+				completionMenuHovered_ = false;
+				// Do NOT attach MenuButtonLogic here.
 			}
 		}
-		completionPopupIDs_.clear();
-		completionPopupShown_ = false;
-		completionMenuButtonID_ = -1;
-		popupMouseHeld_ = false;
-		completionMenuHovered_ = false;
-    }
-
-	void ShowCompletionPopup(Scene& scene) {
-		if (completionPopupShown_) return;
-		completionPopupShown_ = true;
-
-		// Freeze gameplay while popup is shown.
-		scene.SetSimulationActive(false);
-
-		const glm::vec3 center{
-			static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
-			static_cast<float>(GraphicsEngine::kRefH) * 0.5f,
-			0.0f
-	};
-	const std::string uiLayer = "999999";
-
-	if (GameObject* popup = scene.SpawnStaticSprite(
-		"../assets/tutorial_complete.png",
-		center,
-		glm::vec2(1152.0f, 648.0f),
-		uiLayer)) {
-		completionPopupIDs_.push_back(popup->GetID());
-	}
-
-	if (GameObject* menu = scene.SpawnStaticSprite(
-		FilePaths::Textures::BTN_RETURN,
-		glm::vec3(center.x, center.y + 160.0f, 0.0f),
-		glm::vec2(350.0f, 100.0f),
-		uiLayer)) {
-		completionMenuButtonID_ = menu->GetID();
-		completionPopupIDs_.push_back(completionMenuButtonID_);
-		scene.SetObjectTexturePath(completionMenuButtonID_, FilePaths::Textures::BTN_RETURN);
-		completionMenuHovered_ = false;
-		// Do NOT attach MenuButtonLogic here.
-	}
-}
 	};
 
 	static TutorialFlow gTutorialFlow;
@@ -1238,63 +1239,63 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 	/************************************************************************/
 	void OnPostLevelLoaded(Scene& scene, bool simulationActive, CustomerManagerSystem& customerManager) {
 		const bool isTutorial = simulationActive && IsTutorialLevelLoaded(scene);
-	gTutorialFlow.Reset(scene, isTutorial);
+		gTutorialFlow.Reset(scene, isTutorial);
 
-	if (isTutorial) {
-		customerManager.SetMaxCustomers(2);
-		customerManager.SetTotalSpawnLimit(2);
-		customerManager.SetSpawnedCustomersInfinitePatience(true);
+		if (isTutorial) {
+			customerManager.SetMaxCustomers(2);
+			customerManager.SetTotalSpawnLimit(2);
+			customerManager.SetSpawnedCustomersInfinitePatience(true);
 
-		// Prevent normal quota win cutscene during tutorial.
-		Economy::SetQuota(999);
-		Economy::gQuotaReached = false;
-	}
-	else {
-		customerManager.SetMaxCustomers(4);
-		customerManager.ClearTotalSpawnLimit();
-		customerManager.SetSpawnedCustomersInfinitePatience(false);
-	}
-
-	if (AudioManager* audioManager = scene.GetAudioManager()) {
-		for (GameObject* obj : scene.GetAllObjectsRaw()) {
-			if (!obj) continue;
-			if (scene.GetObjectTag(obj->GetID()) != "btn_play") continue;
-			if (auto* logic = scene.GetLogicManager().GetLogicForObject<StartGamePromptLogic>(obj->GetID())) {
-				logic->SetAudioManager(audioManager);
-			}
-		}
-	}
-
-#ifndef _DEBUG
-	// existing audio/UI logic unchanged...
-	if (!simulationActive) {
-		if (Layer* menuLayer = scene.GetLayer("10")) {
-			menuLayer->SetVisible(true);
-			menuLayer->SetEnabled(true);
-		}
-	}
-
-	if (AudioManager* audioManager = scene.GetAudioManager()) {
-		const bool useMenuBgm = !simulationActive || IsDayClearLevelLoaded(scene);
-		if (useMenuBgm) {
-			audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
-			audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
-			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
-			audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
-			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
+			// Prevent normal quota win cutscene during tutorial.
+			Economy::SetQuota(999);
+			Economy::gQuotaReached = false;
 		}
 		else {
-			const float fadeIn = 1.0f;
-			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
-			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
-
-			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
-			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
+			customerManager.SetMaxCustomers(4);
+			customerManager.ClearTotalSpawnLimit();
+			customerManager.SetSpawnedCustomersInfinitePatience(false);
 		}
-	}
+
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			for (GameObject* obj : scene.GetAllObjectsRaw()) {
+				if (!obj) continue;
+				if (scene.GetObjectTag(obj->GetID()) != "btn_play") continue;
+				if (auto* logic = scene.GetLogicManager().GetLogicForObject<StartGamePromptLogic>(obj->GetID())) {
+					logic->SetAudioManager(audioManager);
+				}
+			}
+		}
+
+#ifndef _DEBUG
+		// existing audio/UI logic unchanged...
+		if (!simulationActive) {
+			if (Layer* menuLayer = scene.GetLayer("10")) {
+				menuLayer->SetVisible(true);
+				menuLayer->SetEnabled(true);
+			}
+		}
+
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			const bool useMenuBgm = !simulationActive || IsDayClearLevelLoaded(scene);
+			if (useMenuBgm) {
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
+				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
+			}
+			else {
+				const float fadeIn = 1.0f;
+				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
+				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
+
+				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
+				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
+			}
+		}
 #else
-	(void)scene;
-	(void)simulationActive;
+		(void)scene;
+		(void)simulationActive;
 #endif
 	}
 
@@ -1602,7 +1603,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	auto customerManager = std::make_shared<CustomerManagerSystem>();
 	auto applyLevelGameplayTuning = [customerManager](Scene& s) {
 		ConfigureLevelGameplayTuning(s, *customerManager);
-	};
+		};
 
 	scene.SetCustomerUpdateHook([customerManager](float dt, Scene& s) {
 		customerManager->Update(dt, s);
@@ -1610,7 +1611,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		// Always tick tutorial flow so completion popup input still works
 		// even when simulation is disabled.
 		gTutorialFlow.Update(s, dt);
-	});
+		});
 	scene.SetCustomerResetHook([customerManager, applyLevelGameplayTuning](Scene& s) {
 		customerManager->Reset();
 		applyLevelGameplayTuning(s);

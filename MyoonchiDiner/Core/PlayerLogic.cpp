@@ -24,8 +24,8 @@
 #include "Core/TableLogic.hpp"
 #include "Core/TrashCanLogic.hpp"
 #include "Core/WorkTableLogic.hpp"
-#include "Graphics/SceneManager.hpp"
 #include "Graphics/ResourceManager.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include "CustomerOrderUILogic.hpp"
 #include "PlayerLogic.hpp"
@@ -1780,7 +1780,7 @@ void PlayerLogic::EnsureHoverOutline(Scene& scene, GameObject* sourceObj, int so
 
 		const std::array<glm::vec2, 4> offsets{
 			glm::vec2(-kHoverOutlineOffset, 0.0f),
-			glm::vec2( kHoverOutlineOffset, 0.0f),
+			glm::vec2(kHoverOutlineOffset, 0.0f),
 			glm::vec2(0.0f, -kHoverOutlineOffset),
 			glm::vec2(0.0f,  kHoverOutlineOffset)
 		};
@@ -1844,7 +1844,7 @@ void PlayerLogic::EnsureHoverOutline(Scene& scene, GameObject* sourceObj, int so
 
 	const std::array<glm::vec2, 4> offsets{
 		glm::vec2(-kHoverOutlineOffset, 0.0f),
-		glm::vec2( kHoverOutlineOffset, 0.0f),
+		glm::vec2(kHoverOutlineOffset, 0.0f),
 		glm::vec2(0.0f, -kHoverOutlineOffset),
 		glm::vec2(0.0f,  kHoverOutlineOffset)
 	};

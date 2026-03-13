@@ -1941,7 +1941,7 @@ void Scene::UpdateLevelTransition() {
 
 	// Once we're fully black, queue the load.
 	if (levelTrans_.awaitingBlackout && gfx.IsAtBlackout()) {
-	 levelTrans_.awaitingBlackout = false;
+		levelTrans_.awaitingBlackout = false;
 
 		QueueLevelLoad(levelTrans_.targetJson, levelTrans_.targetActivateSim);
 

@@ -1,3 +1,17 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			EngineRng.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+
+ DESCRIPTION:		Implements the EngineRng namespace, which provides a globally accessible random number generator
+					and seed management for the game. This allows for consistent random behavior across different systems
+					and the ability to set a specific seed for reproducibility.
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include "EngineRng.hpp"
 
 #include <atomic>

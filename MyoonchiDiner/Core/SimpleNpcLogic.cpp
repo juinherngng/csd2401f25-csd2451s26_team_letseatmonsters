@@ -642,16 +642,16 @@ void SimpleNpcLogic::TakePayment(Scene& scene) {
 		}
 	}
 
-    if (hasLeaveTarget_) {
-        hasCustomerTarget_ = true;
-        customerSeatTarget_ = leaveTargetWorldPos_;
-    }
-    else {
-        Math::Vector2D gate = scene.GetExitGateWorldPos();
-        hasCustomerTarget_ = true;
-        customerSeatTarget_ = gate;
-    }
-    ClearNavigationMove();
+	if (hasLeaveTarget_) {
+		hasCustomerTarget_ = true;
+		customerSeatTarget_ = leaveTargetWorldPos_;
+	}
+	else {
+		Math::Vector2D gate = scene.GetExitGateWorldPos();
+		hasCustomerTarget_ = true;
+		customerSeatTarget_ = gate;
+	}
+	ClearNavigationMove();
 
 	// NOTE: do NOT change customerTableID_ here — you still want to know which table to free.
 }
@@ -889,37 +889,37 @@ void SimpleNpcLogic::BeginLeaveToExit(Scene& scene, bool freeTableImmediately) {
 	if (behaviourState_ == BehaviourState::Leaving)
 		return;
 
-    // Play "wrong order" sound immediately when leaving unhappy
-    if (payZero_) {
-        if (AudioManager* audioMgr = scene.GetAudioManager()) {
-            audioMgr->PlaySound("sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f, false);
-        }
-    }
+	// Play "wrong order" sound immediately when leaving unhappy
+	if (payZero_) {
+		if (AudioManager* audioMgr = scene.GetAudioManager()) {
+			audioMgr->PlaySound("sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f, false);
+		}
+	}
 
 	hasPaid_ = true; // "payment processed" (even if $0)
 	behaviourState_ = BehaviourState::Leaving;
 
-    // Play a random angry customer voice line when leaving unhappy
-    if (payZero_) {
-        if (AudioManager* audioMgr = scene.GetAudioManager()) {
-            std::uniform_int_distribution<int> dist(1, 8);
-            int variant = dist(EngineRng::Get());
-            std::string sfxName = "vo_customer_angry_0" + std::to_string(variant);
-            audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume());
-        }
-    }
+	// Play a random angry customer voice line when leaving unhappy
+	if (payZero_) {
+		if (AudioManager* audioMgr = scene.GetAudioManager()) {
+			std::uniform_int_distribution<int> dist(1, 8);
+			int variant = dist(EngineRng::Get());
+			std::string sfxName = "vo_customer_angry_0" + std::to_string(variant);
+			audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume());
+		}
+	}
 
-    // Walk to the authored leave target (defaults to exit gate when unavailable)
-    if (hasLeaveTarget_) {
-        hasCustomerTarget_ = true;
-        customerSeatTarget_ = leaveTargetWorldPos_;
-    }
-    else {
-        Math::Vector2D gate = scene.GetExitGateWorldPos();
-        hasCustomerTarget_ = true;
-        customerSeatTarget_ = gate;
-    }
-    ClearNavigationMove();
+	// Walk to the authored leave target (defaults to exit gate when unavailable)
+	if (hasLeaveTarget_) {
+		hasCustomerTarget_ = true;
+		customerSeatTarget_ = leaveTargetWorldPos_;
+	}
+	else {
+		Math::Vector2D gate = scene.GetExitGateWorldPos();
+		hasCustomerTarget_ = true;
+		customerSeatTarget_ = gate;
+	}
+	ClearNavigationMove();
 
 	// Free the table RIGHT NOW so another customer can take it
 	if (freeTableImmediately && customerTableID_ != kInvalidID) {

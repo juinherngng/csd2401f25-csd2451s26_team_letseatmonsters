@@ -24,7 +24,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-// Forward declarations to avoid circular dependencies
+ // Forward declarations to avoid circular dependencies
 class PlayerLogic : public GameObjectLogic {
 public:
 	// Inherit constructor from GameObjectLogic
