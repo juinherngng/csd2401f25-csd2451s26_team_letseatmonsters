@@ -12,13 +12,13 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
-
 #include "../Core/Collision.hpp"
 
 #include "GameObject.hpp"
 #include "ResourceManager.hpp"
+
+#include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
 
 GameObject::GameObject(Mesh* mesh, Shader* shader)
 	: m_Mesh(mesh), m_Shader(shader), m_Position(0.0f), m_Scale(1.0f), m_Rotation(1.0f), m_RotationAngle(0.0f) {
@@ -47,6 +47,8 @@ int GameObject::GetID() const {
 void GameObject::SetPosition(const glm::vec3& position) {
 	m_Position = position;
 	UpdateModelMatrix();
+	m_TransformDirty = true;
+	m_BroadphaseDirty = true;
 }
 
 glm::vec3 GameObject::GetPositionGLM() const {
@@ -64,12 +66,15 @@ Math::Vector3D GameObject::GetPosition() const {
 void GameObject::SetScale(const glm::vec3& scale) {
 	m_Scale = scale;
 	UpdateModelMatrix();
+	m_TransformDirty = true;
+	m_BroadphaseDirty = true;
 }
 
 void GameObject::SetRotation(float angleRadians, const glm::vec3& axis) {
 	m_RotationAngle = angleRadians;
 	m_Rotation = glm::rotate(glm::mat4(1.0f), m_RotationAngle, axis);
 	UpdateModelMatrix();
+	m_TransformDirty = true;
 }
 
 void GameObject::SetVelocity(const Math::Vector2D& velocity) {
@@ -82,6 +87,7 @@ Math::Vector2D GameObject::GetVelocity() const {
 
 void GameObject::SetColliderSize(const Math::Vector2D& size) {
 	m_ColliderSize = size;
+	m_BroadphaseDirty = true;
 }
 
 Math::Vector2D GameObject::GetColliderSize() const {
@@ -90,6 +96,7 @@ Math::Vector2D GameObject::GetColliderSize() const {
 
 void GameObject::SetColliderOffset(const Math::Vector2D& offset) {
 	m_ColliderOffset = offset;
+	m_BroadphaseDirty = true;
 }
 
 Math::Vector2D GameObject::GetColliderOffset() const {

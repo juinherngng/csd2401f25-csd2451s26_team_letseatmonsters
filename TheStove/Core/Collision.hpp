@@ -13,10 +13,10 @@
 
 #pragma once
 
+#include "Math.hpp"
+
 #include <cfloat>
 #include <vector>
-
-#include "Math.hpp"
 
 namespace collision {
 	// Primitives
@@ -31,6 +31,7 @@ namespace collision {
 		float edgeThick;  // boundary wall thickness
 	};
 
+	// Vertical slabs with a gap in the middle, used for wood and end gate obstacles.
 	struct WoodVertical {
 		float x0, x1;			// slab x-range
 		float topMinY, topMaxY; // top solid segment
@@ -38,6 +39,7 @@ namespace collision {
 		float botMinY, botMaxY; // bottom solid segment
 	};
 
+	// Similar to WoodVertical but with different dimensions, used for the stage end gate.
 	struct StageEndGateVertical {
 		float x0, x1;			// slab x-range
 		float topMinY, topMaxY; // top solid segment
@@ -59,6 +61,7 @@ namespace collision {
 	// World (static walls + resolve)
 	class World {
 	public:
+		// Public interface methods
 		// Walls management
 		void clear();
 		void addWall(const AABB& aabb);
@@ -72,7 +75,10 @@ namespace collision {
 		// Utility: construct AABB from 2D center & 2D size (z ignored).
 		static AABB makeAABBFromCenter(const Math::Vector3D& center, const Math::Vector3D& scale);
 
+		bool overlapsAnyWall(const AABB& box) const;
+
 	private:
+		// Internal helper methods and state
 		std::vector<AABB> mWalls;
 	};
 }

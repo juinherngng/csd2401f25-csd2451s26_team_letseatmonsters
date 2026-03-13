@@ -14,17 +14,18 @@
 
 #pragma once
 
+#include "../Graphics/GraphicsEngine.hpp"
+
+#include "AudioManager.hpp"
+#include "FontSystem.hpp"
+#include "Precompiled.hpp"
+
 #include <fstream>
 #include <iostream>
 #include <ostream>
 #include <streambuf>
 #include <string>
 #include <vector>
-
-#include "AudioManager.hpp"
-#include "Precompiled.hpp"
-#include "FontSystem.hpp"
-#include "../Graphics/GraphicsEngine.hpp"
 
 namespace CoreFramework {
 	class CoreEngine;
@@ -102,7 +103,7 @@ namespace Debug {
 		// Font System integration
 		void InitializeFontSystem();
 		void RenderTextOverlays();
-		
+
 		void SetupDefaultLayout();
 
 		// draws transition preview panel
@@ -120,7 +121,7 @@ namespace Debug {
 		bool openedDebugger; // Shows Whether debugger window is visible
 
 		std::vector<std::string> debuglines;
-		
+
 	private:
 		GLFWwindow* debugWindow; // The host window
 		CoreFramework::CoreEngine* coreEngine; // Pointer to CoreEngine (not owned)
@@ -146,7 +147,7 @@ namespace Debug {
 
 		// Transition panel state
 		float mFadeOutSec = 0.35f;
-		float mFadeInSec  = 0.35f;
+		float mFadeInSec = 0.35f;
 	};
 	extern DebuggerApp gDebugger;
 
@@ -154,23 +155,41 @@ namespace Debug {
 
 	class DebuggerApp {
 	public:
-		DebuggerApp() noexcept : fps(0), msperFrame(0), fpsMode(FPSMode::VSYNC), openedDebugger(false) {}
+		DebuggerApp() noexcept : fps(0), msperFrame(0), fpsMode(FPSMode::VSYNC), openedDebugger(false) {
+		}
 		~DebuggerApp() noexcept = default;
 
-		void Shutdown() noexcept {}
-		bool InitializeDebuggerApp(GLFWwindow* /*externalWindow*/, CoreFramework::CoreEngine* /*coreEnginePtr*/) noexcept { return false; }
-		void UpdateDebuggerApp() noexcept {}
-		void RenderDebuggerApp() noexcept {}
-		void RunDebuggerApp() noexcept {}
-		void LogError(const std::string& /*errorMessage*/) noexcept {}
-		void UpdateSystemTimes(float /*loopTime*/) noexcept {}
-		bool IsActive() const noexcept { return false; }
-		void AddDebugLine(const std::string& /*txt*/) noexcept {}
-		void ClearDebugLog() noexcept { debuglines.clear(); }
-		void ShowDebugLog() noexcept {}
-		void SetRenderStats(int /*objects*/, int /*batches*/, int /*instanced*/, int /*draws*/) noexcept {}
-		void SetScene(Scene* /*scenePtr*/) noexcept {}
-		void SetupDefaultLayout() noexcept {}
+		void Shutdown() noexcept {
+		}
+		bool InitializeDebuggerApp(GLFWwindow* /*externalWindow*/, CoreFramework::CoreEngine* /*coreEnginePtr*/) noexcept {
+			return false;
+		}
+		void UpdateDebuggerApp() noexcept {
+		}
+		void RenderDebuggerApp() noexcept {
+		}
+		void RunDebuggerApp() noexcept {
+		}
+		void LogError(const std::string& /*errorMessage*/) noexcept {
+		}
+		void UpdateSystemTimes(float /*loopTime*/) noexcept {
+		}
+		bool IsActive() const noexcept {
+			return false;
+		}
+		void AddDebugLine(const std::string& /*txt*/) noexcept {
+		}
+		void ClearDebugLog() noexcept {
+			debuglines.clear();
+		}
+		void ShowDebugLog() noexcept {
+		}
+		void SetRenderStats(int /*objects*/, int /*batches*/, int /*instanced*/, int /*draws*/) noexcept {
+		}
+		void SetScene(Scene* /*scenePtr*/) noexcept {
+		}
+		void SetupDefaultLayout() noexcept {
+		}
 
 	public:
 		float fps = 0; // FPS

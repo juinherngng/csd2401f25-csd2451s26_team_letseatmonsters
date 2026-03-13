@@ -14,19 +14,17 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <imgui.h>
-
-#include "../Graphics/ResourceManager.hpp"
-#include "../Graphics/SceneManager.hpp"
-
 #include "InputManager.hpp"
 #include "LevelEditor.hpp"
 #include "LevelEditorPanelAssets.hpp"
+#include "LevelEditorPanelAudioControl.hpp"
+#include "LevelEditorPanelConfig.hpp"
+#include "LevelEditorPanelFonts.hpp"
 #include "LevelEditorPanelLevel.hpp"
 #include "LevelEditorPanelPrefabs.hpp"
-#include "LevelEditorPanelAudioControl.hpp"
-#include "LevelEditorPanelFonts.hpp"
 #include "LevelEditorPickDrag.hpp"
+
+#include <imgui.h>
 
  // DrawUI
 void LevelEditor::DrawUI(Scene& scene) {
@@ -45,9 +43,10 @@ void LevelEditor::DrawUI(Scene& scene) {
 	// Now safe to call ImGui APIs
 	ImGuiStyle& st = ImGui::GetStyle();
 	st.FrameRounding = 3;
-	st.FramePadding = ImVec2(5, 3);
-	st.ItemSpacing = ImVec2(6, 4);
+	st.FramePadding = ImVec2(6, 4);
+	st.ItemSpacing = ImVec2(8, 6);
 	st.WindowPadding = ImVec2(10, 10);
+	st.CellPadding = ImVec2(6, 4);
 
 	// Panels maintain these between frames; static matches your existing behavior
 	static int selectedIndex = -1;    // index in hierarchy list
@@ -56,11 +55,12 @@ void LevelEditor::DrawUI(Scene& scene) {
 	// The scene viewport should not capture game mouse by default while drawing editor UI
 	InputManager::Get().SetSceneViewportWantsGameMouse(false);
 
-	// ----- Panels -----
+	// Panels
 	LEPANELLEVEL::DrawLevelPanel(*this, scene, selectedIndex, selectedObjectId);
 	LEPANELPREFABS::DrawPrefabsPanel(*this, scene, selectedObjectId);
 	LEPANELASSETS::DrawAssetsPanel(*this, scene, selectedIndex, selectedObjectId);
 	LEPANELAUDIOCONTROL::DrawAudioControlPanel(*this, scene);
+	LEPANELCONFIG::DrawConfigPanel(*this, scene);
 	LEPANELFONTS::DrawFontsPanel(*this, scene);
 
 	// Disable editor picking/dragging while the game is running

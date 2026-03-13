@@ -2,7 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			RuntimeLevel.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (20%)
 
  DESCRIPTION:		Implements RuntimeLevel utilities to parse LevelData JSON, spawn animated/static GameObjects with
 					proper layers/tags/colliders/animations, set scene backgrounds, rebuild colliders, and store object
@@ -12,31 +14,68 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <iostream>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include "../Graphics/SceneManager.hpp"
+#include "../Core/LevelEditorPanelFonts.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/ResourceManager.hpp"
-#include "../Core/LevelEditorPanelFonts.hpp"
+#include "../Graphics/SceneManager.hpp"
 
 #include "LevelSerializer.hpp"
 #include "RuntimeLevel.hpp"
 
+#include <chrono>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
+#include <unordered_set>
+#include <vector>
+
 namespace RuntimeLevel {
+
+	struct LevelManifest {
+		std::vector<std::string> textures;
+	};
+
+	LevelManifest BuildLevelManifest(const LevelData& data) {
+		LevelManifest manifest;
+		manifest.textures.reserve(data.objects.size() + 2);
+
+		std::unordered_set<std::string> seenTexturePaths;
+		seenTexturePaths.reserve(data.objects.size() + 2);
+
+		if (!data.background.empty() && seenTexturePaths.insert(data.background).second) {
+			manifest.textures.push_back(data.background);
+		}
+
+		if (!data.backgroundOverlay.empty() && seenTexturePaths.insert(data.backgroundOverlay).second) {
+			manifest.textures.push_back(data.backgroundOverlay);
+		}
+
+		for (const auto& obj : data.objects) {
+			if (obj.texture.empty()) {
+				continue;
+			}
+
+			if (seenTexturePaths.insert(obj.texture).second) {
+				manifest.textures.push_back(obj.texture);
+			}
+		}
+
+		return manifest;
+	}
+
 	void BuildSceneFromLevel(const LevelData& levelIn, Scene& scene) {
+		static const std::string kDefaultLayer = "1";
+		static const std::vector<glm::vec4> kFullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
-			std::string layerName = obj.layer.empty() ? "1" : obj.layer;
+			const std::string& layerName = obj.layer.empty() ? kDefaultLayer : obj.layer;
 
 			if (obj.animated) {
-				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 				g = scene.SpawnAnimatedSprite(
 					obj.texture,
 					{ obj.x, obj.y, 0.0f },
 					{ obj.w, obj.h },
-					fullFrame,
+					kFullFrame,
 					0.25f, // initial frame duration; real duration comes from SetFrames
 					true,
 					layerName
@@ -47,19 +86,8 @@ namespace RuntimeLevel {
 					continue;
 				}
 
-				// Menu animation: 6x5 sheet, separate from dino/goat
-				if (obj.tag == "menu_anim") {
-					// Use AnimationManager via Scene helper APIs
-					scene.AttachMenuAnimations(g->GetID());
-					// Choose the full-sheet looping clip (or allow obj.animName to override)
-					scene.SetAnimation(g->GetID(), obj.animName.empty() ? "FULL" : obj.animName);
-				}
-				// Existing cases (unchanged)
-				else if (obj.texture.find("dino") != std::string::npos || obj.tag == "dino") {
-					scene.AttachDinoAnimations(g->GetID());
-					scene.SetAnimation(g->GetID(), obj.animName.empty() ? "IDLE" : obj.animName);
-				}
-			} else {
+			}
+			else {
 				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
 				if (!g) {
 					std::cerr << "[RuntimeLevel] Spawn failed: " << obj.texture << std::endl;
@@ -81,7 +109,8 @@ namespace RuntimeLevel {
 					g->SetColliderSize({ s.x, s.y });
 					g->SetColliderOffset({ 0.f, 0.f });
 				}
-			} else {
+			}
+			else {
 				// Explicitly clear collider when disabled
 				g->SetColliderSize({ 0.f, 0.f });
 				g->SetColliderOffset({ 0.f, 0.f });
@@ -90,22 +119,8 @@ namespace RuntimeLevel {
 			// Track texture path for editor/runtime
 			scene.SetObjectTexturePath(g->GetID(), obj.texture);
 
-			// Tag setup + optional velocity
-			if (obj.tag == "player") {
-				scene.SetPlayerID(g->GetID());
-			}
-			else if (obj.tag == "npc1") {
-				scene.SetNPC1ID(g->GetID());
-				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
-			}
-			else if (obj.tag == "npc2") {
-				scene.SetNPC2ID(g->GetID());
-				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
-			}
-			else if (obj.tag == "dino") {
-				scene.SetDinoID(g->GetID());
-				scene.SetNPCVelocity(g->GetID(), obj.speedX, obj.speedY);
-			}
+			scene.ApplyTagRules(g->GetID(), obj.tag, obj.speedX, obj.speedY);
+			scene.ApplyRuntimeObjectSetup(g->GetID(), obj.tag, obj.texture, obj.animated, obj.animName, obj.speedX, obj.speedY);
 
 			if (g) {
 				// Default shadow off unless specified
@@ -132,6 +147,13 @@ namespace RuntimeLevel {
 			defs.tag = obj.tag;
 			defs.layer = obj.layer;
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+			defs.hasApproachOffset2 = obj.hasApproachOffset2;
+			defs.approachOffset2 = { obj.approachOffset2X, obj.approachOffset2Y };
+			defs.hasCustomerSeatOffset = obj.hasCustomerSeatOffset;
+			defs.customerSeatOffset = { obj.customerSeatOffsetX, obj.customerSeatOffsetY };
+			defs.customerSeatCapacity = obj.customerSeatCapacity;
+			defs.hasCustomerSeatOffset2 = obj.hasCustomerSeatOffset2;
+			defs.customerSeatOffset2 = { obj.customerSeatOffset2X, obj.customerSeatOffset2Y };
 			defs.visible = obj.visible;
 
 			scene.SetDefaults(g->GetID(), defs);
@@ -152,6 +174,7 @@ namespace RuntimeLevel {
 	}
 
 	bool LoadAndBuild(const std::string& path, Scene& scene) {
+		const auto loadStart = std::chrono::steady_clock::now();
 		LevelData data{};
 		if (!LevelSerializer::Load(path, data)) {
 			std::cerr << "[RuntimeLevel] Failed to load level JSON: " << path << std::endl;
@@ -166,6 +189,24 @@ namespace RuntimeLevel {
 			scene.SetSceneBackground(data.background);
 		}
 
+		if (!data.backgroundOverlay.empty()) {
+			std::cout << "[RuntimeLevel] Background overlay set: " << data.backgroundOverlay << std::endl;
+			scene.SetSceneBackgroundOverlay(data.backgroundOverlay);
+		}
+		else {
+			scene.ClearSceneBackgroundOverlay();
+		}
+
+		const LevelManifest manifest = BuildLevelManifest(data);
+
+		const auto preloadStart = std::chrono::steady_clock::now();
+		ResourceManager::Instance().PreloadTextures(manifest.textures);
+		const double preloadMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - preloadStart).count();
+#ifdef NDEBUG
+		(void)preloadMs;
+#endif
+
+		const auto buildStart = std::chrono::steady_clock::now();
 		BuildSceneFromLevel(data, scene);
 		scene.RebuildColliders();
 
@@ -173,7 +214,7 @@ namespace RuntimeLevel {
 		parsedTexts.reserve(data.textObjects.size());
 
 		for (const auto& t : data.textObjects) {
-			LEPANELFONTS::TextObjectData d;
+			auto& d = parsedTexts.emplace_back();
 			d.name = t.name;
 			d.fontName = t.fontName;
 			d.text = t.text;
@@ -191,13 +232,16 @@ namespace RuntimeLevel {
 			d.colorA = t.colorA;
 
 			d.layer = t.layer;
-
-			parsedTexts.push_back(std::move(d));
-	}
+		}
 
 		LEPANELFONTS::SetTextObjectsWithScene(parsedTexts, scene);
 
-
+#ifndef NDEBUG
+		const double buildMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - buildStart).count();
+		const double totalMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - loadStart).count();
+		std::cout << "[RuntimeLevel] LoadAndBuild '" << path << "': textures=" << manifest.textures.size()
+			<< ", preload=" << preloadMs << " ms, build=" << buildMs << " ms, total=" << totalMs << " ms" << std::endl;
+#endif
 
 #if 0
 		// Create text for menu buttons if this is a menu level

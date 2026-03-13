@@ -9,19 +9,19 @@
 					updating frame UVs based on Animator2D components. Supports play/pause control
 					and registering animation sets for different entity types.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
 #pragma once
 
+#include "../Core/System.hpp"  // For SystemInterface
+#include "Animator.hpp"		   // This includes Animator2D
+
 #include <glm/glm.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include "../Core/System.hpp"  // For SystemInterface
-#include "Animator.hpp"		   // This includes Animator2D
 
 class EntityManager;  // Forward declaration
 
@@ -59,6 +59,10 @@ public:
 	void AttachDinoAnimations(int objectID);
 	void AttachPlayerAnimations(int objectID);
 	void AttachNPCAnimations(int objectID);
+	void AttachCustomersAnimations(int objectID, const std::string& texturePath);
+	void AttachWorkVfxGrillAnimations(int objectID);
+	void AttachWorkVfxCutAnimations(int objectID);
+	void AttachWorkVfxStoveAnimations(int objectID);
 
 	// for menu-specific grid animations (6x5 sprite sheet)
 	void AttachMenuAnimations(int objectID);
@@ -70,6 +74,14 @@ public:
 
 	// Query
 	bool HasAnimator(int objectID) const;
+
+	void AttachRuntimeAnimation(int objectID,
+		const std::vector<glm::vec4>& frames,
+		float frameDuration,
+		bool loop,
+		const std::string& animName = "RUNTIME");
+
+	void RemoveAnimator(int objectID);
 
 private:
 	// Reference to EntityManager (set externally)
@@ -97,4 +109,7 @@ private:
 
 	// build entire grid sequence (row-major)
 	std::vector<glm::vec4> CreateFullGridSequence(int totalRows, int totalCols);
+
+	// Flip existing frames horizontally (for mirrored animations)
+	std::vector<glm::vec4> CreateFlippedFramesX(const std::vector<glm::vec4>& frames);
 };

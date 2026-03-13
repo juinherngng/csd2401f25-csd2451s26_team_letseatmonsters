@@ -19,16 +19,13 @@
 
 #include <glm/glm.hpp>
 #include <unordered_map>
+
 #include "../Graphics/EntityManager.hpp"
 
 #include "CollisionManager.hpp"
 #include "Physics.hpp"
 
- /**
-  * @class NPCSystem
-  * @brief Orchestrates lane-bound and generic NPC updates, including
-  *        movement, simple collision response, and walk-area clamping.
-  */
+ // Forward declare Scene to avoid circular dependency.
 class NPCSystem {
 public:
 	NPCSystem() = default;
@@ -36,9 +33,9 @@ public:
 
 	// Per-frame update for all NPCs.
 	void Update(float deltaTime,
-				EntityManager& entityManager,
-				CollisionManager& collisionManager,
-				const collision::WalkArea& walkArea);
+		EntityManager& entityManager,
+		CollisionManager& collisionManager,
+		const collision::WalkArea& walkArea);
 
 	// Set or update an NPC's current velocity.
 	void SetNPCVelocity(int npcID, const glm::vec2& velocity);
@@ -59,17 +56,17 @@ public:
 private:
 	// Update Y-lane NPCs with bounce, clamp inside walk area, and write back state.
 	void UpdateLaneNPCs(float deltaTime,
-						EntityManager& entityManager,
-						CollisionManager& collisionManagerWorld,
-						const collision::WalkArea& walkArea);
+		EntityManager& entityManager,
+		CollisionManager& collisionManagerWorld,
+		const collision::WalkArea& walkArea);
 
 	// Pairwise elastic collisions within lane group and within generic group.
 	void HandleNPCCollisions(EntityManager& entityManager);
 
 	// Euler-integrate generic (non-lane) NPCs and clamp to walk area.
 	void UpdateGenericNPCs(float deltaTime,
-						   EntityManager& entityManager,
-						   const collision::WalkArea& walkArea);
+		EntityManager& entityManager,
+		const collision::WalkArea& walkArea);
 
 private:
 	// Per-NPC velocity (both lane and non-lane).

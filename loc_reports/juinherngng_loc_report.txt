@@ -2,8 +2,8 @@
 Lines of Code Report (Diff-based)
 ==========================================
 Author: juinherngng
-Since: 2025-12-06
-Generated: Thu Feb  5 18:56:36 +08 2026
+Since: 2026-02-16
+Generated: Fri Mar 13 13:47:35 +08 2026
 ==========================================
 
 ==========================================
@@ -13,66 +13,124 @@ Tracked extensions: .cpp .hpp .h .c
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-TheStove/Core/LevelEditorPanelLevel.cpp                                       173         21        152
-TheStove/Core/FilePaths.hpp                                                    88          0         88
-TheStove/Graphics/SceneManager.cpp                                             69         18         51
-TheStove/Core/LevelEditorPanelFonts.cpp                                        49          3         46
-TheStove/Core/WorkTableLogic.cpp                                               38          3         35
-TheStove/Core/PlayerLogic.cpp                                                  27          0         27
-TheStove/Core/SimpleNpcLogic.cpp                                               21          2         19
-TheStove/Core/Quota.cpp                                                        21          4         17
-TheStove/Core/Quota.hpp                                                        13          2         11
-TheStove/Core/MenuButtonLogic.cpp                                               7          0          7
-TheStove/Core/CustomerManagerLogic.cpp                                          6          0          6
-TheStove/Core/LevelEditorPanelFonts.hpp                                         5          0          5
-TheStove/Main.cpp                                                               4          3          1
-TheStove/Core/WorkTableLogic.hpp                                               11         10          1
-TheStove/Core/LevelEditorPanelPrefabs.cpp                                       9          8          1
-TheStove/Core/LevelEditorPanelAssets.cpp                                       17         16          1
-TheStove/Core/DebugUI.cpp                                                       3          2          1
+MyoonchiDiner/Core/CustomerManagerLogic.cpp                                    11         10          1
+MyoonchiDiner/Core/CustomerOrderUILogic.cpp                                     4          4          0
+MyoonchiDiner/Core/CustomerTableLogic.cpp                                      12          8          4
+MyoonchiDiner/Core/ExitGateLogic.cpp                                            3          3          0
+MyoonchiDiner/Core/ExitGateLogic.hpp                                            1          1          0
+MyoonchiDiner/Core/HowToPlayButtonLogic.cpp                                     3          3          0
+MyoonchiDiner/Core/IngredientBoxLogic.cpp                                      13          2         11
+MyoonchiDiner/Core/IngredientLogic.cpp                                          1          1          0
+MyoonchiDiner/Core/MenuButtonLogic.cpp                                          3          3          0
+MyoonchiDiner/Core/OrderUILogic.cpp                                             7          7          0
+MyoonchiDiner/Core/OrderUILogic.hpp                                             3          3          0
+MyoonchiDiner/Core/PauseButtonLogic.cpp                                         3          3          0
+MyoonchiDiner/Core/PlateLogic.cpp                                               1          1          0
+MyoonchiDiner/Core/PlateLogic.hpp                                               3          3          0
+MyoonchiDiner/Core/PlayerLogic.cpp                                             29         16         13
+MyoonchiDiner/Core/PlayerLogic.hpp                                              1          1          0
+MyoonchiDiner/Core/Quota.cpp                                                    3          3          0
+MyoonchiDiner/Core/SimpleNpcLogic.cpp                                          23         11         12
+MyoonchiDiner/Core/TableLogic.cpp                                               2          2          0
+MyoonchiDiner/Core/TrashCanLogic.cpp                                            2          2          0
+MyoonchiDiner/Core/WorkTableLogic.cpp                                           3          3          0
+MyoonchiDiner/GameBootstrap.cpp                                                82         11         71
+MyoonchiDiner/GamePaths.hpp                                                    25          7         18
+MyoonchiDiner/MyoonchiDinerBindings.cpp                                       368         83        285
+MyoonchiDiner/MyoonchiDinerBindings.hpp                                         3          0          3
+TheStove/Core/AudioLoading.cpp                                                  5          1          4
+TheStove/Core/AudioManager.cpp                                                110          1        109
+TheStove/Core/AudioManager.hpp                                                 18          0         18
+TheStove/Core/GameBootstrap.hpp                                                 8          0          8
+TheStove/Core/GameStateManager.cpp                                              4         41        -37
+TheStove/Core/GameStateManager.hpp                                             10          3          7
+TheStove/Core/LevelEditorPanelFonts.cpp                                       141          0        141
+TheStove/Core/LevelEditorPanelPrefabs.cpp                                       1         12        -11
+TheStove/Core/MenuButtonLogic.hpp                                               2         10         -8
+TheStove/Core/Message.hpp                                                      24          1         23
+TheStove/Core/PlayerLogic.cpp                                                   3          0          3
+TheStove/Core/RuntimeLevel.cpp                                                  2         23        -21
+TheStove/Core/SimpleNpcLogic.cpp                                                2          0          2
+TheStove/Graphics/GraphicsEngine.cpp                                            1          1          0
+TheStove/Graphics/ResourceManager.cpp                                           8          0          8
+TheStove/Graphics/ResourceManager.hpp                                           1          0          1
+TheStove/Graphics/SceneManager.cpp                                             88        185        -97
+TheStove/Graphics/SceneManager.hpp                                             88         13         75
+TheStove/Main.cpp                                                               4          2          2
 --------------------------------------------------------------------------------------------
 
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    561
-Lines Deleted:  92
-Net Change:     469
-Total Commits:  15
+Lines Added:    1129
+Lines Deleted:  484
+Net Change:     645
+Total Commits:  19
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
 ==========================================
 
 CMakeLists.txt
-TheStove/Core/CustomerManagerLogic.cpp
-TheStove/Core/DebugUI.cpp
-TheStove/Core/FilePaths.hpp
-TheStove/Core/LevelEditorPanelAssets.cpp
+MyoonchiDiner/Core/CustomerManagerLogic.cpp
+MyoonchiDiner/Core/CustomerManagerLogic.hpp
+MyoonchiDiner/Core/CustomerOrderUILogic.cpp
+MyoonchiDiner/Core/CustomerOrderUILogic.hpp
+MyoonchiDiner/Core/CustomerTableLogic.cpp
+MyoonchiDiner/Core/CustomerTableLogic.hpp
+MyoonchiDiner/Core/DishLogic.cpp
+MyoonchiDiner/Core/DishLogic.hpp
+MyoonchiDiner/Core/ExitGateLogic.cpp
+MyoonchiDiner/Core/ExitGateLogic.hpp
+MyoonchiDiner/Core/FoodTypes.hpp
+MyoonchiDiner/Core/HowToPlayButtonLogic.cpp
+MyoonchiDiner/Core/HowToPlayButtonLogic.hpp
+MyoonchiDiner/Core/IngredientBoxLogic.cpp
+MyoonchiDiner/Core/IngredientBoxLogic.hpp
+MyoonchiDiner/Core/IngredientLogic.cpp
+MyoonchiDiner/Core/IngredientLogic.hpp
+MyoonchiDiner/Core/MenuButtonLogic.cpp
+MyoonchiDiner/Core/MenuButtonLogic.hpp
+MyoonchiDiner/Core/OrderUILogic.cpp
+MyoonchiDiner/Core/OrderUILogic.hpp
+MyoonchiDiner/Core/PauseButtonLogic.cpp
+MyoonchiDiner/Core/PauseButtonLogic.hpp
+MyoonchiDiner/Core/PlateLogic.cpp
+MyoonchiDiner/Core/PlateLogic.hpp
+MyoonchiDiner/Core/PlayerLogic.cpp
+MyoonchiDiner/Core/PlayerLogic.hpp
+MyoonchiDiner/Core/Quota.cpp
+MyoonchiDiner/Core/Quota.hpp
+MyoonchiDiner/Core/SimpleNpcLogic.cpp
+MyoonchiDiner/Core/SimpleNpcLogic.hpp
+MyoonchiDiner/Core/TableLogic.cpp
+MyoonchiDiner/Core/TableLogic.hpp
+MyoonchiDiner/Core/TrashCanLogic.cpp
+MyoonchiDiner/Core/TrashCanLogic.hpp
+MyoonchiDiner/Core/WorkTableLogic.cpp
+MyoonchiDiner/Core/WorkTableLogic.hpp
+MyoonchiDiner/GameBootstrap.cpp
+MyoonchiDiner/GamePaths.hpp
+MyoonchiDiner/MyoonchiDinerBindings.cpp
+MyoonchiDiner/MyoonchiDinerBindings.hpp
+TheStove/Core/AudioLoading.cpp
+TheStove/Core/AudioManager.cpp
+TheStove/Core/AudioManager.hpp
+TheStove/Core/GameBootstrap.hpp
+TheStove/Core/GameStateManager.cpp
+TheStove/Core/GameStateManager.hpp
 TheStove/Core/LevelEditorPanelFonts.cpp
-TheStove/Core/LevelEditorPanelFonts.hpp
-TheStove/Core/LevelEditorPanelLevel.cpp
 TheStove/Core/LevelEditorPanelPrefabs.cpp
-TheStove/Core/MenuButtonLogic.cpp
+TheStove/Core/MenuButtonLogic.hpp
+TheStove/Core/Message.hpp
 TheStove/Core/PlayerLogic.cpp
-TheStove/Core/Quota.cpp
-TheStove/Core/Quota.hpp
+TheStove/Core/RuntimeLevel.cpp
 TheStove/Core/SimpleNpcLogic.cpp
-TheStove/Core/WorkTableLogic.cpp
-TheStove/Core/WorkTableLogic.hpp
+TheStove/Graphics/GraphicsEngine.cpp
+TheStove/Graphics/ResourceManager.cpp
+TheStove/Graphics/ResourceManager.hpp
 TheStove/Graphics/SceneManager.cpp
+TheStove/Graphics/SceneManager.hpp
 TheStove/Main.cpp
 assets/Audio/AudioCatalog.json
-assets/Audio/Wrong order.wav
-assets/Audio/bgm_MyoonchiDiner_IntroCutscene.mp3
-assets/Audio/sfx_chopping.wav
-assets/Audio/sfx_customer_entering.wav
-assets/Audio/sfx_customer_leaving.wav
-assets/Audio/sfx_grill.wav
-assets/Audio/sfx_new_order.wav
-assets/Audio/sfx_payment.wav
-assets/Audio/sfx_put_down.wav
-assets/Audio/sfx_remaining_time.wav
-assets/Audio/sfx_step_1.wav
-assets/Audio/sfx_time_up.wav
 imgui.ini

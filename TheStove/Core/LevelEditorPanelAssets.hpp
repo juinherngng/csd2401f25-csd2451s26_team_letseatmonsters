@@ -19,14 +19,11 @@
 class LevelEditor;
 class Scene;
 
-/**
- * @namespace LEPANELASSETS
- * @brief ImGui panel for importing/browsing textures and prefabs.
- */
+// Forward declare GameObject to avoid circular dependency.
 namespace LEPANELASSETS {
 	// Draw the Assets panel window.
 	void DrawAssetsPanel(LevelEditor& editor,
-						 Scene& scene,
-						 int& selectedIndex,
-						 int selectedObjectId);
+		Scene& scene,
+		int& selectedIndex,
+		int selectedObjectId);
 }

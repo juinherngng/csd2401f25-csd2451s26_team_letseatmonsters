@@ -15,14 +15,6 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <algorithm>
-#include <cctype>
-#include <csignal>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <filesystem>
-
 #include "Core/AudioLoading.hpp"
 #include "Core/AudioManager.hpp"
 #include "Core/ConfigManager.hpp"
@@ -30,6 +22,7 @@
 #include "Core/DebugUI.hpp"
 #include "Core/FileDropHandler.hpp"
 #include "Core/FilePaths.hpp"
+#include "Core/GameBootstrap.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/LevelEditorFileIO.hpp"
 #include "Core/MovementManager.hpp"
@@ -38,6 +31,14 @@
 #include "Graphics/GraphicsEngine.hpp"
 #include "Graphics/ResourceManager.hpp"
 #include "Graphics/SceneManager.hpp"
+
+#include <algorithm>
+#include <cctype>
+#include <csignal>
+#include <filesystem>
+#include <iostream>
+#include <sstream>
+#include <string>
 
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
@@ -79,7 +80,7 @@ struct ApplicationState {
 	int windowedHeight = 800;
 	bool f11WasDown = false;
 
-	// pending state switch to perform at transition blackout
+	// Pending state switch to perform at transition blackout
 	int pendingStateAfterFade = -1;
 };
 
@@ -116,6 +117,7 @@ static void signalHandler(int signal) {
 	}
 }
 
+// GLFW framebuffer resize callback - updates viewport and informs graphics engine
 static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	(void)window;
 
@@ -136,11 +138,13 @@ static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	}
 }
 
+// GLFW window focus callback - pause on focus loss, resume on focus gain
 static void HandlePauseResume(bool pause) {
 	if (!g_AppState || !g_AppState->coreEngine) {
 		return;
 	}
 
+	// Get relevant systems and current scene for pause/resume actions
 	auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>();
 	auto* inputMgr = g_AppState->coreEngine->GetSystem<InputManager>();
 	auto* animMgr = g_AppState->coreEngine->GetSystem<AnimationManager>();
@@ -201,6 +205,7 @@ static void HandlePauseResume(bool pause) {
 	}
 }
 
+// Fullscreen toggle helper - handles saving/restoring windowed position and size, switching modes, and updating viewport/graphics engine
 static void ToggleFullscreen(ApplicationState& app) {
 	if (!app.window) {
 		return;
@@ -260,11 +265,11 @@ static void ToggleFullscreen(ApplicationState& app) {
 // Windows console event handler
 BOOL WINAPI ConsoleHandler(DWORD signal) {
 	switch (signal) {
-		case CTRL_C_EVENT:
-		case CTRL_BREAK_EVENT:
-		case CTRL_CLOSE_EVENT:
-		case CTRL_LOGOFF_EVENT:
-		case CTRL_SHUTDOWN_EVENT:
+	case CTRL_C_EVENT:
+	case CTRL_BREAK_EVENT:
+	case CTRL_CLOSE_EVENT:
+	case CTRL_LOGOFF_EVENT:
+	case CTRL_SHUTDOWN_EVENT:
 		std::cout << "Console event detected, cleaning up..." << std::endl;
 		if (g_AppState) {
 			g_AppState->shouldExit = true;
@@ -273,7 +278,7 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 			}
 		}
 		return TRUE;
-		default:
+	default:
 		return FALSE;
 	}
 }
@@ -297,7 +302,7 @@ int main() {
 	// Get the executable path and set working directory to its location
 	char exePath[MAX_PATH];
 	GetModuleFileNameA(NULL, exePath, MAX_PATH);
-	
+
 	// Extract directory from full path
 	std::string exePathStr(exePath);
 	size_t lastSlash = exePathStr.find_last_of("\\/");
@@ -351,7 +356,7 @@ int main() {
 		std::cerr << "AudioManager system not found in CoreEngine\n";
 	}
 
-	// test tile map
+	// Load the initial scene (can be a menu or the first level)
 	std::cout << "Testing TileMap class" << std::endl;
 	MapData testMap(6, 6);
 
@@ -396,7 +401,7 @@ int main() {
 #ifdef _DEBUG
 			if (app.debugApp) app.debugApp->LogError("Unknown crash occurred");
 #endif
-			std::cerr << "Crash: Unknown exception\n";				
+			std::cerr << "Crash: Unknown exception\n";
 			cleanup(app);
 			return -1;
 		}
@@ -433,7 +438,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Set GLFW error callback
 	glfwSetErrorCallback([](int error, const char* description) {
 		std::cerr << "GLFW Error " << error << ": " << description << std::endl;
-	});
+		});
 
 	// Initialize GLFW
 	if (!glfwInit()) {
@@ -482,14 +487,14 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		if (g_AppState) {
 			g_AppState->shouldExit = true;
 		}
-	});
+		});
 
 	// Message callbacks to post input events to CoreEngine
 	glfwSetCharCallback(app.window, [](GLFWwindow* win, unsigned int c) {
 		(void)win;   // suppress unused parameter warning
 		if (g_AppState && g_AppState->coreEngine)
 			g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::CharacterKeyMessage>(static_cast<char>(c), true);
-	});
+		});
 
 	// Mouse button to message bus
 	glfwSetMouseButtonCallback(app.window, [](GLFWwindow* win, int button, int action, int mods) {
@@ -499,7 +504,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			glfwGetCursorPos(g_AppState->window, &x, &y);
 			g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::MouseButtonMessage>(button, action == GLFW_PRESS, x, y);
 		}
-	});
+		});
 
 	// Mouse move to message bus (with delta)
 	glfwSetCursorPosCallback(app.window, [](GLFWwindow* win, double xpos, double ypos) {
@@ -522,7 +527,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 			g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::MouseMoveMessage>(xpos, ypos, dx, dy);
 		}
-	});
+		});
 
 	// Ensure we don't have any other callbacks set
 	glfwSetKeyCallback(app.window, nullptr);
@@ -536,12 +541,12 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 				dropHandler->HandleGLFWDrop(count, paths);
 			}
 		}
-	});
+		});
 
 	// enable focus callback only in release mode
-	#ifndef _DEBUG
-	// When we lose focus (ALT-TAB, CTRL-ALT-DEL, clicking another window),
-	// explicitly minimize our game window
+#ifndef _DEBUG
+// When we lose focus (ALT-TAB, CTRL-ALT-DEL, clicking another window),
+// explicitly minimize our game window
 	glfwSetWindowFocusCallback(app.window, [](GLFWwindow* win, int focused) {
 
 		if (focused == GLFW_FALSE) {
@@ -560,14 +565,14 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			// We regained focus (coming back from taskbar / ALT-TAB)
 			HandlePauseResume(false);
 		}
-	});
-	#endif	
+		});
+#endif	
 
 	// Iconify callback is kept just to keep pause/resume in sync
 	glfwSetWindowIconifyCallback(app.window, [](GLFWwindow* win, int iconified) {
 		(void)win;
 		HandlePauseResume(iconified == GLFW_TRUE);
-	});
+		});
 
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -608,16 +613,15 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		ResourceManager::Instance().SetAudioManager(audioMgr);
 		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
 
-	// Load audio catalog - use appropriate path based on build type
-	#ifdef _DEBUG
-		// Debug builds run from build/Debug, need to go up two levels to find source assets
+		// Load audio catalog - use appropriate path based on build type
+#ifdef _DEBUG
+	// Debug builds run from build/Debug, need to go up two levels to find source assets
 		const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
-	#else
-		// Release builds use runtime path (one level up from exe to assets folder)
+#else
+	// Release builds use runtime path (one level up from exe to assets folder)
 		const std::string catalogPath = FilePaths::Audio::CATALOG;
-	#endif
-		if (!Audio::AudioCatalog::LoadCatalogFromFile(catalogPath))
-		{
+#endif
+		if (!Audio::AudioCatalog::LoadCatalogFromFile(catalogPath)) {
 			std::cerr << "Warning: Failed to load audio catalog from " << catalogPath << std::endl;
 			std::cerr << "Creating default catalog..." << std::endl;
 			// If catalog doesn't exist, it will be empty but won't crash
@@ -685,7 +689,8 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 	// Create Scene with smart pointer, passing all manager references
 	app.currentScene = std::make_unique<Scene>(*graphicsEngine, *inputMgr, *animMgr,
-											   *movementMgr, *physicsMgr, *collisionMgr);
+		*movementMgr, *physicsMgr, *collisionMgr);
+	RegisterGameBindings(*app.currentScene);
 
 	// Get AudioManager and set it on Scene for UI sounds
 	AudioManager* audioMgr = app.coreEngine->GetSystem<AudioManager>();
@@ -722,30 +727,29 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	std::cout << "Scene connected to MovementManager system.\n";
 
 	{
-	auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>();
-	auto* audioMgrGsm = app.coreEngine->GetSystem<AudioManager>();
+		auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>();
+		auto* audioMgrGsm = app.coreEngine->GetSystem<AudioManager>();
 
-	if (gsm) {
-		gsm->SetScene(app.currentScene.get());
+		if (gsm) {
+			gsm->SetScene(app.currentScene.get());
 
-		// Inject AudioManager for state-based audio control
-		if (audioMgrGsm) {
-			gsm->SetAudioManager(audioMgrGsm);
-		}
+			// Inject AudioManager for state-based audio control
+			if (audioMgrGsm) {
+				gsm->SetAudioManager(audioMgrGsm);
+			}
 
-	// Map states to JSON files
-		gsm->RegisterJsonState(Framework::GS_Level1, FilePaths::Levels::MAIN_MENU);	// state 0 = menu
-		gsm->RegisterJsonState(Framework::GS_Level2, FilePaths::Levels::KITCHEN_01);	// state 1 = gameplay
-		
-		// Initialize to main menu state
-		gsm->InitializeGameState(Framework::GS_Level1, 0.0f);
-		// Ensure menu animations advance even with simulation disabled
-		if (auto* animMgrForcePlay = app.coreEngine->GetSystem<AnimationManager>()) {
-			std::cout << "[Main] Forcing AnimationManager.Play() for main menu animations\n";
-			animMgrForcePlay->Play();
+			ConfigureGameStates(*gsm);
+			ConfigureGameStateAudioPolicy(*gsm);
+
+			// Initialize to main menu state
+			gsm->InitializeGameState(Framework::GS_Level1, 0.0f);
+			// Ensure menu animations advance even with simulation disabled
+			if (auto* animMgrForcePlay = app.coreEngine->GetSystem<AnimationManager>()) {
+				std::cout << "[Main] Forcing AnimationManager.Play() for main menu animations\n";
+				animMgrForcePlay->Play();
+			}
 		}
 	}
-}
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	// Create DebuggerApp with smart pointer (debug-only)
@@ -768,8 +772,10 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 static void update(ApplicationState& app) {
 	// Calculate delta time
 	float currentFrame = static_cast<float>(glfwGetTime());
-	float deltaTime = currentFrame - app.lastFrame;
+	float rawDeltaTime = currentFrame - app.lastFrame;
 	app.lastFrame = currentFrame;
+
+	float frameDt = rawDeltaTime;
 
 	glfwPollEvents();
 
@@ -787,8 +793,8 @@ static void update(ApplicationState& app) {
 	if (app.pausedByOSFocus) {
 		// You can still keep FPS stats if you like, or set them to 0
 		app.smoothedDt = (app.smoothedDt == 0.0f)
-			?deltaTime
-			:(0.96f * app.smoothedDt) + (0.04f * deltaTime);
+			? frameDt
+			: (0.96f * app.smoothedDt) + (0.04f * frameDt);
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 		if (app.debugApp) {
@@ -804,7 +810,12 @@ static void update(ApplicationState& app) {
 	// engine.BeginImGuiFrame();
 
 	// Update scene with delta time and window pointer
-	app.currentScene->Update(deltaTime, app.window);
+	app.currentScene->Update(frameDt, app.window);
+
+	const float replayDt = app.currentScene->GetReplayFrameDt();
+	const bool replayActive = app.currentScene->IsReplayPlaybackActive();
+	const bool hasReplayDt = app.currentScene->HasReplayFrameDt();
+	frameDt = (replayActive && hasReplayDt) ? replayDt : frameDt;
 
 	// Get GraphicsEngine for transitions
 	auto* graphicsEngine = app.coreEngine->GetSystem<GraphicsEngine>();
@@ -820,7 +831,8 @@ static void update(ApplicationState& app) {
 			graphicsEngine->StartSceneTransition(0.35f, 0.35f);
 			app.pendingStateAfterFade = newState;
 			std::cout << "[Main] Queued state change " << newState << " to run at blackout\n";
-		} else {
+		}
+		else {
 			// If a transition is already active, just overwrite pending
 			app.pendingStateAfterFade = newState;
 		}
@@ -830,8 +842,9 @@ static void update(ApplicationState& app) {
 	if (graphicsEngine && graphicsEngine->IsAtBlackout() && app.pendingStateAfterFade >= 0) {
 		if (auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>()) {
 			std::cout << "[Main] Blackout reached; switching to state " << app.pendingStateAfterFade << std::endl;
-			gsm->UpdateGameState(app.pendingStateAfterFade, deltaTime);
-		} else {
+			gsm->UpdateGameState(app.pendingStateAfterFade, frameDt);
+		}
+		else {
 			std::cerr << "[Main] ERROR: GameStateManager not found!" << std::endl;
 		}
 
@@ -849,22 +862,22 @@ static void update(ApplicationState& app) {
 	// This controls how fast the fps counter reacts to changes
 	// (higher value = smoother fps) else 
 	// (lower value = faster fps change response but more jittery)
-	app.smoothedDt = (app.smoothedDt == 0.0f)?deltaTime:(0.96f * app.smoothedDt) + (0.04f * deltaTime);
+	app.smoothedDt = (app.smoothedDt == 0.0f) ? frameDt : (0.96f * app.smoothedDt) + (0.04f * frameDt);
 
 	// Update FPS display variables for DebuggerApp
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (app.debugApp) {
-		app.debugApp->fps = (app.smoothedDt > 0.f)?(1.f / app.smoothedDt + 0.5f):0.f;
+		app.debugApp->fps = (app.smoothedDt > 0.f) ? (1.f / app.smoothedDt + 0.5f) : 0.f;
 		app.debugApp->msperFrame = (app.smoothedDt * 1000.0f);
 	}
 #endif
 
-	app.coreEngine->GameLoop();
-
-	// if (app.debugApp->IsActive())
-	// {
-	//     app.debugApp->UpdateDebuggerApp();
-	// }
+	if (replayActive && hasReplayDt) {
+		app.coreEngine->GameLoop(frameDt);
+	}
+	else {
+		app.coreEngine->GameLoop();
+	}
 }
 
 static void draw(ApplicationState& app) {
@@ -891,17 +904,31 @@ static void draw(ApplicationState& app) {
 	}
 #endif
 
+#ifndef _DEBUG
+	const bool pauseOverlayActive = app.currentScene->IsPauseOverlayActive();
+
+	// When paused: draw level text first so pause overlay renders above it.
+	if (pauseOverlayActive) {
+		app.currentScene->RenderLevelTextObjects();
+	}
+#endif
+	// Suppress debug font-panel text while cutscenes are active so HUD values do not bleed over cutscene art.
+	graphicsEngine->SetSuppressDebugTextRendering(app.currentScene->IsAnyCutsceneActive());
+
 	//graphicsEngine->Render(drawList);
 	graphicsEngine->RenderBatched(drawList);
 
 	// Render menu button texts on top (in both debug and release)
 	//app.currentScene->RenderMenuButtonTexts();
-	
+
 	// Render FPS text on top (release only)
 	app.currentScene->RenderFPSText();
 
 #ifndef _DEBUG
-	app.currentScene->RenderLevelTextObjects();
+	// Normal case only: keep text on top when pause overlay is not active.
+	if (!pauseOverlayActive) {
+		app.currentScene->RenderLevelTextObjects();
+	}
 #endif
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
@@ -918,6 +945,7 @@ static void draw(ApplicationState& app) {
 	glfwSwapBuffers(app.window);
 }
 
+// Comprehensive cleanup function to gracefully shut down the application and all subsystems
 void cleanup(ApplicationState& app) {
 	static bool cleanupCalled = false;
 
@@ -966,7 +994,7 @@ void cleanup(ApplicationState& app) {
 			audioMgr->Shutdown();
 		}
 	}
-				
+
 	// Unload all audio assets
 	std::cout << "Unloading audio assets..." << std::endl;
 	Audio::AudioCatalog::UnloadAllAudio();

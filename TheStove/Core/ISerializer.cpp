@@ -10,10 +10,11 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include "Core/ISerializer.hpp"
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include "Core/ISerializer.hpp"
 
 bool ISerializer::Load(const std::string& filename) {
 	components.clear();

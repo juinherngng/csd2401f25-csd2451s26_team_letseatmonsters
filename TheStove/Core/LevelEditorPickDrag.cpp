@@ -127,7 +127,7 @@ namespace LEPICKDRAG {
 
 	static inline bool IsPointInRect(ImVec2 p, ImVec2 mn, ImVec2 mx) {
 		return (p.x >= mn.x && p.x <= mx.x &&
-				p.y >= mn.y && p.y <= mx.y);
+			p.y >= mn.y && p.y <= mx.y);
 	}
 
 	static inline bool IsPointNearLineEnd(ImVec2 p, ImVec2 end, float radius) {
@@ -137,14 +137,14 @@ namespace LEPICKDRAG {
 	}
 
 	static void ComputeWorldCorners(const glm::vec3& pos,
-									const glm::vec3& scale,
-									float rotDeg,
-									glm::vec2& outTL,
-									glm::vec2& outTR,
-									glm::vec2& outBL,
-									glm::vec2& outBR) {
-		const float hx = 0.5f * scale.x;
-		const float hy = 0.5f * scale.y;
+		const glm::vec3& scale,
+		float rotDeg,
+		glm::vec2& outTL,
+		glm::vec2& outTR,
+		glm::vec2& outBL,
+		glm::vec2& outBR) {
+		const float hx = 0.5f * std::abs(scale.x);
+		const float hy = 0.5f * std::abs(scale.y);
 
 		const float rotRad = glm::radians(rotDeg);
 		const float c = std::cos(rotRad);
@@ -154,7 +154,7 @@ namespace LEPICKDRAG {
 			const float rx = lx * c - ly * s;
 			const float ry = lx * s + ly * c;
 			return glm::vec2{ pos.x + rx, pos.y + ry };
-		};
+			};
 
 		// y+ is downwards in your world, so top = -hy, bottom = +hy
 		outTL = TransformLocal(-hx, -hy);
@@ -163,9 +163,29 @@ namespace LEPICKDRAG {
 		outBR = TransformLocal(hx, hy);
 	}
 
+	static bool IsPointInsideObjectBounds(const glm::vec2& pointWorld,
+		const glm::vec3& objPos,
+		const glm::vec3& objScale,
+		float objRotDeg) {
+		const float halfX = 0.5f * std::abs(objScale.x);
+		const float halfY = 0.5f * std::abs(objScale.y);
+
+		glm::vec2 local = pointWorld - glm::vec2{ objPos.x, objPos.y };
+
+		const float rotRad = glm::radians(objRotDeg);
+		const float c = std::cos(-rotRad);
+		const float s = std::sin(-rotRad);
+
+		const float localX = local.x * c - local.y * s;
+		const float localY = local.x * s + local.y * c;
+
+		return (localX >= -halfX && localX <= halfX) &&
+			(localY >= -halfY && localY <= halfY);
+	}
+
 	static bool GetColliderBoxWorld(GameObject* obj,
-									glm::vec3& outCenter,
-									glm::vec3& outSize) {
+		glm::vec3& outCenter,
+		glm::vec3& outSize) {
 		// Collider size & offset are stored in Math::Vector2D on GameObject
 		Math::Vector2D sizeM = obj->GetColliderSize();
 		Math::Vector2D offsetM = obj->GetColliderOffset();
@@ -196,10 +216,10 @@ namespace LEPICKDRAG {
 
 	// Exact collider AABB in world space, using the same math as GameObject::DrawBoundingBox
 	static bool GetColliderAABBWorld(GameObject* obj,
-									 glm::vec2& outTL,
-									 glm::vec2& outTR,
-									 glm::vec2& outBL,
-									 glm::vec2& outBR) {
+		glm::vec2& outTL,
+		glm::vec2& outTR,
+		glm::vec2& outBL,
+		glm::vec2& outBR) {
 		// Read collider data
 		Math::Vector2D sizeM = obj->GetColliderSize();
 		Math::Vector2D offsetM = obj->GetColliderOffset();
@@ -234,9 +254,9 @@ namespace LEPICKDRAG {
 
 	// Basis for TRANSFORM gizmo: use sprite transform only
 	static void GetTransformBasis(GameObject* obj,
-								  glm::vec3& outPos,
-								  glm::vec3& outScale,
-								  float& outRotDeg) {
+		glm::vec3& outPos,
+		glm::vec3& outScale,
+		float& outRotDeg) {
 		// Use the object's actual transform
 		outPos = obj->GetPositionGLM();
 		outScale = obj->GetScaleGLM();
@@ -249,9 +269,9 @@ namespace LEPICKDRAG {
 
 	// Basis for COLLIDER gizmo: use collider AABB (no rotation)
 	static bool GetColliderBasis(GameObject* obj,
-								 glm::vec3& outPos,
-								 glm::vec3& outScale,
-								 float& outRotDeg) {
+		glm::vec3& outPos,
+		glm::vec3& outScale,
+		float& outRotDeg) {
 		glm::vec3 center{};
 		glm::vec3 size{};
 		if (!GetColliderBoxWorld(obj, center, size)) {
@@ -265,9 +285,9 @@ namespace LEPICKDRAG {
 	}
 
 	void HandleScenePickDrag(LevelEditor& editor,
-							 Scene& scene,
-							 int& selectedIndex,
-							 int& selectedObjectId) {
+		Scene& scene,
+		int& selectedIndex,
+		int& selectedObjectId) {
 		// Convert mouse coordinates into world space inside the Scene image
 		glm::vec2 mouseWorld{};
 		if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {
@@ -303,8 +323,8 @@ namespace LEPICKDRAG {
 			// C = toggle between Transform vs Collider gizmo type
 			if (ImGui::IsKeyPressed(ImGuiKey_C)) {
 				sGizmoMode = (sGizmoMode == GizmoMode::Transform)
-					?GizmoMode::Collider
-					:GizmoMode::Transform;
+					? GizmoMode::Collider
+					: GizmoMode::Transform;
 			}
 		}
 
@@ -378,8 +398,8 @@ namespace LEPICKDRAG {
 					ImVec2 tl = gfx.WorldToSceneImage(worldTL);
 					ImVec2 tr = gfx.WorldToSceneImage(worldTR);
 
-					const float hx = 0.5f * sz.x;
-					const float hy = 0.5f * sz.y;
+					const float hx = 0.5f * std::abs(sz.x);
+					const float hy = 0.5f * std::abs(sz.y);
 
 					// Screen-space AABB that matches the yellow rect
 					ImVec2 rectMin{
@@ -442,9 +462,9 @@ namespace LEPICKDRAG {
 						const float circleHitThickness = 16.0f;
 
 						bool onOuter = IsPointInCircle(mouseScreen, centerScreen,
-													   radiusScreen + circleHitThickness);
+							radiusScreen + circleHitThickness);
 						bool onInner = IsPointInCircle(mouseScreen, centerScreen,
-													   radiusScreen - circleHitThickness);
+							radiusScreen - circleHitThickness);
 
 						// Ring is only valid when outside yellow rect but within the annulus
 						if (onOuter && !onInner) {
@@ -482,7 +502,7 @@ namespace LEPICKDRAG {
 							ImVec2 mn{ c.x - hitSize, c.y - hitSize };
 							ImVec2 mx{ c.x + hitSize, c.y + hitSize };
 							return std::pair<ImVec2, ImVec2>(mn, mx);
-						};
+							};
 
 						auto [tlMin, tlMax] = MakeBox(tl);
 						auto [trMin, trMax] = MakeBox(tr);
@@ -648,13 +668,9 @@ namespace LEPICKDRAG {
 
 					const glm::vec3 pos = g->GetPositionGLM();
 					const glm::vec3 sz = g->GetScaleGLM();
+					const float rotDeg = glm::degrees(g->GetRotationAngleZ());
 
-					const float hx = 0.5f * sz.x;
-					const float hy = 0.5f * sz.y;
-
-					const bool inside =
-						(mouseWorld.x >= pos.x - hx && mouseWorld.x <= pos.x + hx) &&
-						(mouseWorld.y >= pos.y - hy && mouseWorld.y <= pos.y + hy);
+					const bool inside = IsPointInsideObjectBounds(mouseWorld, pos, sz, rotDeg);
 
 					if (inside) {
 						pickedIndex = i;
@@ -713,150 +729,150 @@ namespace LEPICKDRAG {
 				constexpr float kMinSize = 4.0f;
 
 				switch (sDragMode) {
-					case DragMode::Move:
-					{
-						if (sGizmoMode == GizmoMode::Transform) {
-							// Move the object itself
-							if (sActiveAxis == ActiveAxis::X) {
-								newPos.x = sDragStartPos.x + delta.x;
-							}
-							else if (sActiveAxis == ActiveAxis::Y) {
-								newPos.y = sDragStartPos.y + delta.y;
-							}
-							else {
-								newPos.x = mouseWorld.x - grabOffset.x;
-								newPos.y = mouseWorld.y - grabOffset.y;
-							}
+				case DragMode::Move:
+				{
+					if (sGizmoMode == GizmoMode::Transform) {
+						// Move the object itself
+						if (sActiveAxis == ActiveAxis::X) {
+							newPos.x = sDragStartPos.x + delta.x;
 						}
-						else { // Collider gizmo: move collider offset only
-							if (sActiveAxis == ActiveAxis::X) {
-								colOffset.x = sDragStartColOffset.x + delta.x;
-							}
-							else if (sActiveAxis == ActiveAxis::Y) {
-								colOffset.y = sDragStartColOffset.y + delta.y;
-							}
-							else { // XY
-								colOffset.x = sDragStartColOffset.x + delta.x;
-								colOffset.y = sDragStartColOffset.y + delta.y;
-							}
-							colliderChanged = true;
+						else if (sActiveAxis == ActiveAxis::Y) {
+							newPos.y = sDragStartPos.y + delta.y;
+						}
+						else {
+							newPos.x = mouseWorld.x - grabOffset.x;
+							newPos.y = mouseWorld.y - grabOffset.y;
+						}
+					}
+					else { // Collider gizmo: move collider offset only
+						if (sActiveAxis == ActiveAxis::X) {
+							colOffset.x = sDragStartColOffset.x + delta.x;
+						}
+						else if (sActiveAxis == ActiveAxis::Y) {
+							colOffset.y = sDragStartColOffset.y + delta.y;
+						}
+						else { // XY
+							colOffset.x = sDragStartColOffset.x + delta.x;
+							colOffset.y = sDragStartColOffset.y + delta.y;
+						}
+						colliderChanged = true;
 
-							// Keep object where it was
-							newPos = sDragStartPos;
-							newScale = sDragStartScale;
-							newRotDeg = sDragStartRotDeg;
+						// Keep object where it was
+						newPos = sDragStartPos;
+						newScale = sDragStartScale;
+						newRotDeg = sDragStartRotDeg;
+					}
+					break;
+				}
+
+				case DragMode::Scale:
+				{
+					if (sGizmoMode == GizmoMode::Transform) {
+						// Scale sprite transform (Unity-style transform tool)
+						if (sActiveAxis == ActiveAxis::X) {
+							newScale.x = std::max(kMinSize,
+								sDragStartScale.x + sScaleSignX * delta.x * 2.0f);
 						}
-						break;
+						else if (sActiveAxis == ActiveAxis::Y) {
+							newScale.y = std::max(kMinSize,
+								sDragStartScale.y + sScaleSignY * delta.y * 2.0f);
+						}
+						else { // XY
+							newScale.x = std::max(kMinSize,
+								sDragStartScale.x + sScaleSignX * delta.x * 2.0f);
+							newScale.y = std::max(kMinSize,
+								sDragStartScale.y + sScaleSignY * delta.y * 2.0f);
+						}
+
+						const float kScaleDeadZone = 1.0f; // world units
+						if (std::abs(newScale.x - sDragStartScale.x) < kScaleDeadZone &&
+							std::abs(newScale.y - sDragStartScale.y) < kScaleDeadZone) {
+							newScale = sDragStartScale;    // treat as no-scale
+						}
+					}
+					else { // Collider gizmo: resize collider, keep transform
+						if (sActiveAxis == ActiveAxis::X) {
+							colSize.x = std::max(kMinSize,
+								sDragStartColSize.x + sScaleSignX * delta.x * 2.0f);
+							colSize.y = sDragStartColSize.y;
+						}
+						else if (sActiveAxis == ActiveAxis::Y) {
+							colSize.y = std::max(kMinSize,
+								sDragStartColSize.y + sScaleSignY * delta.y * 2.0f);
+							colSize.x = sDragStartColSize.x;
+						}
+						else { // XY
+							colSize.x = std::max(kMinSize,
+								sDragStartColSize.x + sScaleSignX * delta.x * 2.0f);
+							colSize.y = std::max(kMinSize,
+								sDragStartColSize.y + sScaleSignY * delta.y * 2.0f);
+						}
+
+						colliderChanged = true;
+
+						// Do NOT change object transform
+						newPos = sDragStartPos;
+						newScale = sDragStartScale;
+						newRotDeg = sDragStartRotDeg;
 					}
 
-					case DragMode::Scale:
-					{
-						if (sGizmoMode == GizmoMode::Transform) {
-							// Scale sprite transform (Unity-style transform tool)
-							if (sActiveAxis == ActiveAxis::X) {
-								newScale.x = std::max(kMinSize,
-													  sDragStartScale.x + sScaleSignX * delta.x * 2.0f);
-							}
-							else if (sActiveAxis == ActiveAxis::Y) {
-								newScale.y = std::max(kMinSize,
-													  sDragStartScale.y + sScaleSignY * delta.y * 2.0f);
-							}
-							else { // XY
-								newScale.x = std::max(kMinSize,
-													  sDragStartScale.x + sScaleSignX * delta.x * 2.0f);
-								newScale.y = std::max(kMinSize,
-													  sDragStartScale.y + sScaleSignY * delta.y * 2.0f);
+					break;
+				}
+
+				case DragMode::Rotate:
+				{
+					if (sCurrentTool == TransformTool::Rotate) {
+						// Only start actual rotation after moving a little (pixel threshold)
+						const float pixelThreshold = 4.0f;
+						float dx = mouseScreen.x - sDragStartMouseScreen.x;
+						float dy = mouseScreen.y - sDragStartMouseScreen.y;
+						float distSq = dx * dx + dy * dy;
+
+						if (!sRotateDragging) {
+							if (distSq < pixelThreshold * pixelThreshold) {
+								// treat as click so far (no rotation yet)
+								break;
 							}
 
-							const float kScaleDeadZone = 1.0f; // world units
-							if (std::abs(newScale.x - sDragStartScale.x) < kScaleDeadZone &&
-								std::abs(newScale.y - sDragStartScale.y) < kScaleDeadZone) {
-								newScale = sDragStartScale;    // treat as no-scale
-							}
-						}
-						else { // Collider gizmo: resize collider, keep transform
-							if (sActiveAxis == ActiveAxis::X) {
-								colSize.x = std::max(kMinSize,
-													 sDragStartColSize.x + sScaleSignX * delta.x * 2.0f);
-								colSize.y = sDragStartColSize.y;
-							}
-							else if (sActiveAxis == ActiveAxis::Y) {
-								colSize.y = std::max(kMinSize,
-													 sDragStartColSize.y + sScaleSignY * delta.y * 2.0f);
-								colSize.x = sDragStartColSize.x;
-							}
-							else { // XY
-								colSize.x = std::max(kMinSize,
-													 sDragStartColSize.x + sScaleSignX * delta.x * 2.0f);
-								colSize.y = std::max(kMinSize,
-													 sDragStartColSize.y + sScaleSignY * delta.y * 2.0f);
-							}
-
-							colliderChanged = true;
-
-							// Do NOT change object transform
-							newPos = sDragStartPos;
-							newScale = sDragStartScale;
-							newRotDeg = sDragStartRotDeg;
+							// exceeded threshold, start rotating
+							sRotateDragging = true;
 						}
 
-						break;
+						glm::vec2 center{ sDragStartPos.x, sDragStartPos.y };
+
+						// angle of current mouse position around pivot
+						float currentAngle = std::atan2(
+							mouseWorld.y - center.y,
+							mouseWorld.x - center.x);
+
+						// incremental angle step since last frame, wrapped to [-pi, pi]
+						float deltaStep = currentAngle - sLastMouseAngleRad;
+						const float pi = 3.14159265358979323846f;
+						if (deltaStep > pi) {
+							deltaStep -= 2.0f * pi;
+						}
+						else if (deltaStep < -pi) {
+							deltaStep += 2.0f * pi;
+						}
+
+						float deltaStepDeg = glm::degrees(deltaStep);
+
+						// Rotation sensitivity (tweak as desired)
+						constexpr float sensitivity = 0.8f;
+						deltaStepDeg *= sensitivity;
+
+						// Accumulate rotation in degrees
+						sCurrentRotDegDrag += deltaStepDeg;
+						newRotDeg = sCurrentRotDegDrag;
+
+						// Store for next frame
+						sLastMouseAngleRad = currentAngle;
 					}
+					break;
+				}
 
-					case DragMode::Rotate:
-					{
-						if (sCurrentTool == TransformTool::Rotate) {
-							// Only start actual rotation after moving a little (pixel threshold)
-							const float pixelThreshold = 4.0f;
-							float dx = mouseScreen.x - sDragStartMouseScreen.x;
-							float dy = mouseScreen.y - sDragStartMouseScreen.y;
-							float distSq = dx * dx + dy * dy;
-
-							if (!sRotateDragging) {
-								if (distSq < pixelThreshold * pixelThreshold) {
-									// treat as click so far (no rotation yet)
-									break;
-								}
-
-								// exceeded threshold, start rotating
-								sRotateDragging = true;
-							}
-
-							glm::vec2 center{ sDragStartPos.x, sDragStartPos.y };
-
-							// angle of current mouse position around pivot
-							float currentAngle = std::atan2(
-								mouseWorld.y - center.y,
-								mouseWorld.x - center.x);
-
-							// incremental angle step since last frame, wrapped to [-pi, pi]
-							float deltaStep = currentAngle - sLastMouseAngleRad;
-							const float pi = 3.14159265358979323846f;
-							if (deltaStep > pi) {
-								deltaStep -= 2.0f * pi;
-							}
-							else if (deltaStep < -pi) {
-								deltaStep += 2.0f * pi;
-							}
-
-							float deltaStepDeg = glm::degrees(deltaStep);
-
-							// Rotation sensitivity (tweak as desired)
-							constexpr float sensitivity = 0.8f;
-							deltaStepDeg *= sensitivity;
-
-							// Accumulate rotation in degrees
-							sCurrentRotDegDrag += deltaStepDeg;
-							newRotDeg = sCurrentRotDegDrag;
-
-							// Store for next frame
-							sLastMouseAngleRad = currentAngle;
-						}
-						break;
-					}
-
-					case DragMode::None:
-					default:
+				case DragMode::None:
+				default:
 					break;
 				}
 
@@ -870,6 +886,9 @@ namespace LEPICKDRAG {
 					defs.colSize = glm::vec2(colSize.x, colSize.y);
 					defs.colOff = glm::vec2(colOffset.x, colOffset.y);
 					scene.SetDefaults(draggingId, defs);
+
+					// Ensure movement/collision systems immediately use the edited collider.
+					scene.RebuildColliders();
 				}
 
 				scene.SetTransformFromLevel(
@@ -969,7 +988,7 @@ namespace LEPICKDRAG {
 						ImVec2 a{ p.x - handleSize, p.y - handleSize };
 						ImVec2 b{ p.x + handleSize, p.y + handleSize };
 						dl->AddRectFilled(a, b, handleCol);
-					};
+						};
 
 					DrawHandle(tl);
 					DrawHandle(tr);
@@ -1007,11 +1026,11 @@ namespace LEPICKDRAG {
 				const ImU32 pivotCol = IM_COL32(0, 255, 255, 255);
 
 				dl->AddLine(ImVec2(centerScreen.x - pivotSize, centerScreen.y),
-							ImVec2(centerScreen.x + pivotSize, centerScreen.y),
-							pivotCol, 2.0f);
+					ImVec2(centerScreen.x + pivotSize, centerScreen.y),
+					pivotCol, 2.0f);
 				dl->AddLine(ImVec2(centerScreen.x, centerScreen.y - pivotSize),
-							ImVec2(centerScreen.x, centerScreen.y + pivotSize),
-							pivotCol, 2.0f);
+					ImVec2(centerScreen.x, centerScreen.y + pivotSize),
+					pivotCol, 2.0f);
 
 				// Move arrows (Rect tool only)
 				if (sGizmoMode == GizmoMode::Transform &&
@@ -1041,8 +1060,8 @@ namespace LEPICKDRAG {
 				// Rotation circle (Rotate tool only)
 				if (sGizmoMode == GizmoMode::Transform &&
 					sCurrentTool == TransformTool::Rotate) {
-					const float hxLocal = 0.5f * sz.x;
-					const float hyLocal = 0.5f * sz.y;
+					const float hxLocal = 0.5f * std::abs(sz.x);
+					const float hyLocal = 0.5f * std::abs(sz.y);
 
 					const float radiusWorld = std::max(hxLocal, hyLocal) * 1.3f;
 					glm::vec2  worldCirclePoint{ pos.x + radiusWorld, pos.y };
@@ -1061,9 +1080,9 @@ namespace LEPICKDRAG {
 #else
 	// Release build: no-op stub so code can link but no ImGui is referenced.
 	void HandleScenePickDrag(LevelEditor& /*editor*/,
-							 Scene& /*scene*/,
-							 int& /*selectedIndex*/,
-							 int& /*selectedObjectId*/) {
+		Scene& /*scene*/,
+		int& /*selectedIndex*/,
+		int& /*selectedObjectId*/) {
 		// Intentionally empty in Release builds (editor UI disabled).
 	}
 #endif

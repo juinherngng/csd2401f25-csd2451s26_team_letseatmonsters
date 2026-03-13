@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			FontSystem.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (80%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(20%)
 
  DESCRIPTION:		Implementation of font system using FreeType for loading fonts
 					and OpenGL for rendering text.
@@ -13,43 +14,38 @@
 
 #include "FontSystem.hpp"
 #include "Math.hpp"
-#include <iostream>
+
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 
-namespace FontSystem
-{
+namespace FontSystem {
 	// ===========================
 	// Font Implementation
 	// ===========================
 
-	Font::~Font()
-	{
+	Font::~Font() {
 		// Cleanup all character textures
-		for (auto& pair : m_characters)
-		{
+		for (auto& pair : m_characters) {
 			glDeleteTextures(1, &pair.second.textureID);
 		}
 		m_characters.clear();
 	}
 
-	bool Font::Load(const std::string& fontPath, unsigned int fontSize)
-	{
+	bool Font::Load(const std::string& fontPath, unsigned int fontSize) {
 		m_fontPath = fontPath;
 		m_fontSize = fontSize;
 
 		FT_Library library = FontManager::Instance().GetLibrary();
-		if (!library)
-		{
+		if (!library) {
 			std::cerr << "FontSystem::Font - FreeType library not initialized!" << std::endl;
 			return false;
 		}
 
 		// Load font face
 		FT_Face face;
-		if (FT_New_Face(library, fontPath.c_str(), 0, &face))
-		{
+		if (FT_New_Face(library, fontPath.c_str(), 0, &face)) {
 			std::cerr << "FontSystem::Font - Failed to load font: " << fontPath << std::endl;
 			return false;
 		}
@@ -61,11 +57,9 @@ namespace FontSystem
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 		// Load first 128 ASCII characters
-		for (unsigned char c = 0; c < 128; c++)
-		{
+		for (unsigned char c = 0; c < 128; c++) {
 			// Load character glyph
-			if (FT_Load_Char(face, c, FT_LOAD_RENDER))
-			{
+			if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
 				std::cerr << "FontSystem::Font - Failed to load glyph for character: " << c << std::endl;
 				continue;
 			}
@@ -111,11 +105,9 @@ namespace FontSystem
 		return true;
 	}
 
-	const Character* Font::GetCharacter(char c) const
-	{
+	const Character* Font::GetCharacter(char c) const {
 		auto it = m_characters.find(c);
-		if (it != m_characters.end())
-		{
+		if (it != m_characters.end()) {
 			return &it->second;
 		}
 		return nullptr;
@@ -125,28 +117,23 @@ namespace FontSystem
 	// FontManager Implementation
 	// ===========================
 
-	FontManager& FontManager::Instance()
-	{
+	FontManager& FontManager::Instance() {
 		static FontManager instance;
 		return instance;
 	}
 
-	FontManager::~FontManager()
-	{
+	FontManager::~FontManager() {
 		Shutdown();
 	}
 
-	bool FontManager::Initialize()
-	{
-		if (m_initialized)
-		{
+	bool FontManager::Initialize() {
+		if (m_initialized) {
 			std::cout << "FontSystem::FontManager - Already initialized." << std::endl;
 			return true;
 		}
 
 		// Initialize FreeType library
-		if (FT_Init_FreeType(&m_library))
-		{
+		if (FT_Init_FreeType(&m_library)) {
 			std::cerr << "FontSystem::FontManager - Failed to initialize FreeType library!" << std::endl;
 			return false;
 		}
@@ -156,8 +143,7 @@ namespace FontSystem
 		return true;
 	}
 
-	void FontManager::Shutdown()
-	{
+	void FontManager::Shutdown() {
 		if (!m_initialized)
 			return;
 
@@ -165,8 +151,7 @@ namespace FontSystem
 		m_fonts.clear();
 
 		// Done with FreeType
-		if (m_library)
-		{
+		if (m_library) {
 			FT_Done_FreeType(m_library);
 			m_library = nullptr;
 		}
@@ -175,26 +160,22 @@ namespace FontSystem
 		std::cout << "FontSystem::FontManager - Shutdown complete." << std::endl;
 	}
 
-	Font* FontManager::LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize)
-	{
-		if (!m_initialized)
-		{
+	Font* FontManager::LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize) {
+		if (!m_initialized) {
 			std::cerr << "FontSystem::FontManager - Cannot load font, not initialized!" << std::endl;
 			return nullptr;
 		}
 
 		// Check if font already loaded
 		auto it = m_fonts.find(name);
-		if (it != m_fonts.end())
-		{
+		if (it != m_fonts.end()) {
 			std::cout << "FontSystem::FontManager - Font '" << name << "' already loaded." << std::endl;
 			return it->second.get();
 		}
 
 		// Create new font
 		auto font = std::make_unique<Font>();
-		if (!font->Load(fontPath, fontSize))
-		{
+		if (!font->Load(fontPath, fontSize)) {
 			std::cerr << "FontSystem::FontManager - Failed to load font '" << name << "' from: " << fontPath << std::endl;
 			return nullptr;
 		}
@@ -205,11 +186,9 @@ namespace FontSystem
 		return fontPtr;
 	}
 
-	Font* FontManager::GetFont(const std::string& name)
-	{
+	Font* FontManager::GetFont(const std::string& name) {
 		auto it = m_fonts.find(name);
-		if (it != m_fonts.end())
-		{
+		if (it != m_fonts.end()) {
 			return it->second.get();
 		}
 		return nullptr;
@@ -219,54 +198,44 @@ namespace FontSystem
 	// Text Implementation
 	// ===========================
 
-	Text::Text()
-	{
+	Text::Text() {
 		// Don't call SetupRendering() here - OpenGL may not be initialized yet
 		// SetupRendering will be called lazily in Render() when needed
 	}
 
-	Text::~Text()
-	{
+	Text::~Text() {
 		CleanupRendering();
 	}
 
-	void Text::SetFont(Font* font)
-	{
+	void Text::SetFont(Font* font) {
 		m_font = font;
 	}
 
-	void Text::SetText(const std::string& text)
-	{
+	void Text::SetText(const std::string& text) {
 		m_text = text;
 	}
 
-	void Text::SetPosition(const glm::vec2& position)
-	{
+	void Text::SetPosition(const glm::vec2& position) {
 		m_position = position;
 	}
 
-	void Text::SetColor(const glm::vec4& color)
-	{
+	void Text::SetColor(const glm::vec4& color) {
 		m_color = color;
 	}
 
-	void Text::SetScale(float scale)
-	{
+	void Text::SetScale(float scale) {
 		m_scale = scale;
 	}
 
-	void Text::SetRotation(float degrees)
-	{
+	void Text::SetRotation(float degrees) {
 		m_rotation = degrees;
 	}
 
-	void Text::SetRotationMode(RotationMode mode)
-	{
+	void Text::SetRotationMode(RotationMode mode) {
 		m_rotationMode = mode;
 	}
 
-	void Text::SetupRendering()
-	{
+	void Text::SetupRendering() {
 		if (m_renderingSetup)
 			return;
 
@@ -276,21 +245,20 @@ namespace FontSystem
 
 		glBindVertexArray(m_VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-		
+
 		// Allocate memory for quad (6 vertices * 4 floats per vertex)
 		glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
-		
+
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-		
+
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glBindVertexArray(0);
 
 		m_renderingSetup = true;
 	}
 
-	void Text::CleanupRendering()
-	{
+	void Text::CleanupRendering() {
 		if (!m_renderingSetup)
 			return;
 
@@ -304,8 +272,7 @@ namespace FontSystem
 		m_renderingSetup = false;
 	}
 
-	void Text::Render(GLuint shaderProgram, const glm::mat4& projection)
-	{
+	void Text::Render(GLuint shaderProgram, const glm::mat4& projection) {
 		// Lazy initialization - setup rendering on first render call when OpenGL is ready
 		if (!m_renderingSetup)
 			SetupRendering();
@@ -321,11 +288,11 @@ namespace FontSystem
 
 		// Use shader
 		glUseProgram(shaderProgram);
-		
+
 		// Set uniforms
 		GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
 		GLint colorLoc = glGetUniformLocation(shaderProgram, "textColor");
-		
+
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniform4fv(colorLoc, 1, glm::value_ptr(m_color));
 
@@ -350,8 +317,7 @@ namespace FontSystem
 		float cursorY = 0.0f;
 
 		// Iterate through all characters
-		for (char c : m_text)
-		{
+		for (char c : m_text) {
 			const Character* ch = m_font->GetCharacter(c);
 			if (!ch)
 				continue;
@@ -369,7 +335,7 @@ namespace FontSystem
 			struct Vertex {
 				float x, y;
 			};
-			
+
 			Vertex vertices[6] = {
 				{ xpos,     ypos },      // top-left
 				{ xpos,     ypos + h },  // bottom-left
@@ -382,31 +348,37 @@ namespace FontSystem
 
 			// Apply rotation and translation based on rotation mode
 			float finalVertices[6][4];
-			
-			if (m_rotationMode == RotationMode::PerCharacter)
-			{
+
+			if (m_rotationMode == RotationMode::PerCharacter) {
 				// Per-character rotation: rotate each character individually
-				for (int i = 0; i < 6; i++)
-				{
+				for (int i = 0; i < 6; i++) {
 					// Rotate around origin
 					float rx = vertices[i].x * cosR - vertices[i].y * sinR;
 					float ry = vertices[i].x * sinR + vertices[i].y * cosR;
-					
+
 					// Translate to world position
 					finalVertices[i][0] = rx + m_position.x;
 					finalVertices[i][1] = ry + m_position.y;
-					
+
 					// UV coordinates
 					if (i == 0 || i == 3)      // top-left
-						{ finalVertices[i][2] = 0.0f; finalVertices[i][3] = 0.0f; }
+					{
+						finalVertices[i][2] = 0.0f; finalVertices[i][3] = 0.0f;
+					}
 					else if (i == 1)           // bottom-left
-						{ finalVertices[i][2] = 0.0f; finalVertices[i][3] = 1.0f; }
+					{
+						finalVertices[i][2] = 0.0f; finalVertices[i][3] = 1.0f;
+					}
 					else if (i == 2 || i == 4) // bottom-right
-						{ finalVertices[i][2] = 1.0f; finalVertices[i][3] = 1.0f; }
-				else                       // top-right
-					{ finalVertices[i][2] = 1.0f; finalVertices[i][3] = 0.0f; }
+					{
+						finalVertices[i][2] = 1.0f; finalVertices[i][3] = 1.0f;
+					}
+					else                       // top-right
+					{
+						finalVertices[i][2] = 1.0f; finalVertices[i][3] = 0.0f;
+					}
 				}
-				
+
 				// Advance cursor with rotation (curved text effect)
 				float advanceX = (ch->advance >> 6) * m_scale;
 				cursorX += advanceX * cosR;
@@ -415,27 +387,34 @@ namespace FontSystem
 			else // RotationMode::Block
 			{
 				// Block rotation: rotate entire text as one unit
-				for (int i = 0; i < 6; i++)
-				{
+				for (int i = 0; i < 6; i++) {
 					// First rotate the vertices around origin
 					float rx = vertices[i].x * cosR - vertices[i].y * sinR;
 					float ry = vertices[i].x * sinR + vertices[i].y * cosR;
-					
+
 					// Then translate to world position
 					finalVertices[i][0] = rx + m_position.x;
 					finalVertices[i][1] = ry + m_position.y;
-					
+
 					// UV coordinates
 					if (i == 0 || i == 3)      // top-left
-						{ finalVertices[i][2] = 0.0f; finalVertices[i][3] = 0.0f; }
+					{
+						finalVertices[i][2] = 0.0f; finalVertices[i][3] = 0.0f;
+					}
 					else if (i == 1)           // bottom-left
-						{ finalVertices[i][2] = 0.0f; finalVertices[i][3] = 1.0f; }
+					{
+						finalVertices[i][2] = 0.0f; finalVertices[i][3] = 1.0f;
+					}
 					else if (i == 2 || i == 4) // bottom-right
-						{ finalVertices[i][2] = 1.0f; finalVertices[i][3] = 1.0f; }
+					{
+						finalVertices[i][2] = 1.0f; finalVertices[i][3] = 1.0f;
+					}
 					else                       // top-right
-						{ finalVertices[i][2] = 1.0f; finalVertices[i][3] = 0.0f; }
+					{
+						finalVertices[i][2] = 1.0f; finalVertices[i][3] = 0.0f;
+					}
 				}
-				
+
 				// Advance cursor WITHOUT rotation (straight line, then rotate entire block)
 				float advanceX = (ch->advance >> 6) * m_scale;
 				cursorX += advanceX;
@@ -444,28 +423,29 @@ namespace FontSystem
 
 			// Render glyph texture over quad
 			glBindTexture(GL_TEXTURE_2D, ch->textureID);
-			
+
 			// Update content of VBO memory
 			glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
 			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(finalVertices), finalVertices);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
-			
+
 			// Render quad
 			glDrawArrays(GL_TRIANGLES, 0, 6);
 		}
 
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		
+
 		// Restore depth state
 		if (depthWasEnabled) {
 			glEnable(GL_DEPTH_TEST);
 		}
-		
+
 		// Restore blend state
 		if (!blendWasEnabled) {
 			glDisable(GL_BLEND);
-		} else {
+		}
+		else {
 			glBlendFunc(prevBlendSrc, prevBlendDst);
 		}
 	}
@@ -474,27 +454,22 @@ namespace FontSystem
 	// TextRenderer Implementation
 	// ===========================
 
-	TextRenderer& TextRenderer::Instance()
-	{
+	TextRenderer& TextRenderer::Instance() {
 		static TextRenderer instance;
 		return instance;
 	}
 
-	TextRenderer::~TextRenderer()
-	{
+	TextRenderer::~TextRenderer() {
 		Shutdown();
 	}
 
-	bool TextRenderer::Initialize()
-	{
-		if (m_initialized)
-		{
+	bool TextRenderer::Initialize() {
+		if (m_initialized) {
 			std::cout << "FontSystem::TextRenderer - Already initialized." << std::endl;
 			return true;
 		}
 
-		if (!LoadShaders())
-		{
+		if (!LoadShaders()) {
 			std::cerr << "FontSystem::TextRenderer - Failed to load shaders!" << std::endl;
 			return false;
 		}
@@ -504,13 +479,11 @@ namespace FontSystem
 		return true;
 	}
 
-	void TextRenderer::Shutdown()
-	{
+	void TextRenderer::Shutdown() {
 		if (!m_initialized)
 			return;
 
-		if (m_shaderProgram)
-		{
+		if (m_shaderProgram) {
 			glDeleteProgram(m_shaderProgram);
 			m_shaderProgram = 0;
 		}
@@ -519,30 +492,25 @@ namespace FontSystem
 		std::cout << "FontSystem::TextRenderer - Shutdown complete." << std::endl;
 	}
 
-	void TextRenderer::RenderText(Text& text, const glm::mat4& projection)
-	{
+	void TextRenderer::RenderText(Text& text, const glm::mat4& projection) {
 		if (!m_initialized || !m_shaderProgram)
 			return;
 
 		text.Render(m_shaderProgram, projection);
 	}
 
-	void TextRenderer::RenderTexts(const std::vector<Text*>& texts, const glm::mat4& projection)
-	{
+	void TextRenderer::RenderTexts(const std::vector<Text*>& texts, const glm::mat4& projection) {
 		if (!m_initialized || !m_shaderProgram)
 			return;
 
-		for (Text* text : texts)
-		{
-			if (text)
-			{
+		for (Text* text : texts) {
+			if (text) {
 				text->Render(m_shaderProgram, projection);
 			}
 		}
 	}
 
-	bool TextRenderer::LoadShaders()
-	{
+	bool TextRenderer::LoadShaders() {
 		// Vertex shader source
 		const char* vertexShaderSource = R"(
 			#version 330 core
@@ -579,8 +547,7 @@ namespace FontSystem
 			return false;
 
 		GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
-		if (!fragmentShader)
-		{
+		if (!fragmentShader) {
 			glDeleteShader(vertexShader);
 			return false;
 		}
@@ -593,8 +560,7 @@ namespace FontSystem
 		return m_shaderProgram != 0;
 	}
 
-	GLuint TextRenderer::CompileShader(GLenum type, const std::string& source)
-	{
+	GLuint TextRenderer::CompileShader(GLenum type, const std::string& source) {
 		GLuint shader = glCreateShader(type);
 		const char* src = source.c_str();
 		glShaderSource(shader, 1, &src, nullptr);
@@ -602,8 +568,7 @@ namespace FontSystem
 
 		GLint success;
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-		if (!success)
-		{
+		if (!success) {
 			char infoLog[512];
 			glGetShaderInfoLog(shader, 512, nullptr, infoLog);
 			std::cerr << "FontSystem::TextRenderer - Shader compilation failed: " << infoLog << std::endl;
@@ -613,8 +578,7 @@ namespace FontSystem
 		return shader;
 	}
 
-	GLuint TextRenderer::LinkProgram(GLuint vertexShader, GLuint fragmentShader)
-	{
+	GLuint TextRenderer::LinkProgram(GLuint vertexShader, GLuint fragmentShader) {
 		GLuint program = glCreateProgram();
 		glAttachShader(program, vertexShader);
 		glAttachShader(program, fragmentShader);
@@ -622,8 +586,7 @@ namespace FontSystem
 
 		GLint success;
 		glGetProgramiv(program, GL_LINK_STATUS, &success);
-		if (!success)
-		{
+		if (!success) {
 			char infoLog[512];
 			glGetProgramInfoLog(program, 512, nullptr, infoLog);
 			std::cerr << "FontSystem::TextRenderer - Program linking failed: " << infoLog << std::endl;

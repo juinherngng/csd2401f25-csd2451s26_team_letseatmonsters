@@ -1,20 +1,19 @@
 /*
 ----------------------------------------------------------------------------------------------------
-FILE NAME:			LevelEditorPanelLevel.cpp
-PROJECT NAME:		Project GAM200
-AUTHOR:				Yat Chun Wee, y.chunwee@digipen.edu		(70%)
-CO-AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (5%)
+ FILE NAME:			LevelEditorPanelLevel.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(70%)
+ CO-AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (5%)
 					Vu Phan Hung, phanhung.vu@digipen.edu	(25%)
 
-DESCRIPTION:       Implementation of the Level panel.
-					- Load/Save levels to JSON
-					- Play/Stop scene simulation
-					- Hierarchy list and object inspector
-					- Add/Remove objects
-					- Drag-drop prefab/texture instantiation
-					- Keeps LevelData synchronized with Scene state
+ DESCRIPTION:       Implements the Level panel for the Level Editor, which manages the overall level state, including:
+					- Loading/saving level JSON files
+					- Managing play/stop state
+					- Displaying scene hierarchy and object properties
+					- Handling prefab/texture drag-drop instantiation
+					- Synchronizing LevelData with the Scene
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -27,13 +26,18 @@ DESCRIPTION:       Implementation of the Level panel.
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cctype>
+#include <unordered_set>
+#include <unordered_map>
+#include <sstream>
 #include <iostream>
 #include <cstdio>
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <filesystem>
+#ifdef _DEBUG
 #include <windows.h>
+#endif
 
 #include "../Graphics/SceneManager.hpp"
 #include "../Graphics/ResourceManager.hpp"
@@ -46,9 +50,11 @@ DESCRIPTION:       Implementation of the Level panel.
 #include "LevelEditorFileIO.hpp"
 #include "LevelEditorPrefabLinks.hpp"
 #include "LevelEditorPanelFonts.hpp"  // Include for text object sync
+#include "LevelEditorActions.hpp"
+#include "LevelEditorCommandSystem.hpp"
+#include "LevelEditorHierarchy.hpp"
 #include "InputManager.hpp"
 #include "AudioLoading.hpp"
-
 
 namespace fs = std::filesystem;
 
@@ -61,6 +67,7 @@ static std::filesystem::path GetExeDir() {
 	return std::filesystem::path(buf).parent_path();
 }
 
+// Utility function to find the repository root by looking for specific subdirectories.
 static std::filesystem::path FindRepoRoot() {
 	namespace fs = std::filesystem;
 	fs::path p = GetExeDir();
@@ -84,15 +91,81 @@ static std::filesystem::path FindRepoRoot() {
 #endif
 
 namespace {
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	// Hashing function for LevelData to optimize change detection.
+	static std::size_t HashLevelData(const LevelData& level) {
+		std::size_t seed = std::hash<std::string>{}(level.background);
+		seed ^= std::hash<std::string>{}(level.backgroundOverlay) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		seed ^= std::hash<std::size_t>{}(level.objects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		seed ^= std::hash<std::size_t>{}(level.textObjects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+		for (const auto& o : level.objects) {
+			seed ^= std::hash<std::string>{}(o.texture + o.tag + o.layer + o.prefabPath) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= std::hash<int>{}(static_cast<int>(o.x + o.y + o.w + o.h + o.rotation + o.colWidth + o.colHeight + o.colOffsetX + o.colOffsetY));
+		}
+
+		for (const auto& t : level.textObjects) {
+			seed ^= std::hash<std::string>{}(t.name + t.fontName + t.text + t.layer) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= std::hash<int>{}(static_cast<int>(t.x + t.y + t.scale + t.rotation));
+		}
+
+		return seed;
+	}
+
 	// Internal helpers for Level <-> Scene synchronization
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
+
+	// Caches a sorted list of unique layer names from the scene for UI dropdowns, with change detection based on hashing.
+	static std::vector<std::string> BuildLayerNameList(const Scene& scene) {
+		struct LayerCache {
+			std::size_t keyHash = 0;
+			std::vector<std::string> names;
+		};
+		static LayerCache cache;
+
+		const auto& allLayers = scene.GetAllLayers();
+		std::size_t keyHash = allLayers.size();
+		for (const auto& pair : allLayers) {
+			keyHash ^= std::hash<std::string>{}(pair.first) + 0x9e3779b9 + (keyHash << 6) + (keyHash >> 2);
+		}
+
+		if (!cache.names.empty() && cache.keyHash == keyHash) {
+			return cache.names;
+		}
+
+		std::vector<std::string> layerNames;
+		layerNames.reserve(allLayers.size() + 1);
+
+		std::unordered_set<std::string> uniqueLayers;
+		uniqueLayers.reserve(allLayers.size() + 1);
+
+		uniqueLayers.insert("1");
+		layerNames.push_back("1");
+
+		for (const auto& pair : allLayers) {
+			const std::string& name = pair.first;
+			if (name.empty()) {
+				continue;
+			}
+
+			if (uniqueLayers.insert(name).second) {
+				layerNames.push_back(name);
+			}
+		}
+
+		std::sort(layerNames.begin(), layerNames.end());
+		cache.keyHash = keyHash;
+		cache.names = layerNames;
+		return layerNames;
+	}
+#endif
 
 	// Helper to sync text objects from LevelData to editor state
 	void SyncTextObjectsToEditor(const LevelData& levelIn) {
 		std::vector<LEPANELFONTS::TextObjectData> textObjects;
 		textObjects.reserve(levelIn.textObjects.size());
-		
+
 		for (const auto& levelText : levelIn.textObjects) {
 			LEPANELFONTS::TextObjectData textData;
 			textData.name = levelText.name;
@@ -108,7 +181,8 @@ namespace {
 			textData.colorB = levelText.colorB;
 			textData.colorA = levelText.colorA;
 			textData.layer = levelText.layer;
-			
+			textData.visible = levelText.visible;
+
 			// Try to load the font if not already loaded
 			if (!levelText.fontName.empty()) {
 				FontSystem::Font* font = ResourceManager::Instance().GetFont(levelText.fontName);
@@ -118,19 +192,19 @@ namespace {
 					std::cout << "[SyncTextObjects] Font '" << levelText.fontName << "' not loaded, text may not render\n";
 				}
 			}
-			
+
 			textObjects.push_back(textData);
 		}
-		
+
 		LEPANELFONTS::SetTextObjects(textObjects);
 	}
-	
-	// NEW: Helper to sync text objects from editor state to LevelData
+
+	// Helper to sync text objects from editor state to LevelData
 	void SyncTextObjectsToLevel(LevelData& levelOut) {
 		const auto& textObjects = LEPANELFONTS::GetTextObjects();
 		levelOut.textObjects.clear();
 		levelOut.textObjects.reserve(textObjects.size());
-		
+
 		for (const auto& textData : textObjects) {
 			LevelTextObject levelText;
 			levelText.name = textData.name;
@@ -146,58 +220,77 @@ namespace {
 			levelText.colorB = textData.colorB;
 			levelText.colorA = textData.colorA;
 			levelText.layer = textData.layer;
-			
+			levelText.visible = textData.visible;
+
 			// Get font size from loaded font if available
 			FontSystem::Font* font = ResourceManager::Instance().GetFont(textData.fontName);
 			if (font) {
 				levelText.fontSize = font->GetFontSize();
 			}
-			
+
 			levelOut.textObjects.push_back(levelText);
 		}
 	}
 
-#ifdef _DEBUG
-	static constexpr int MAX_UNDO = 50;
-	static std::vector<LevelData> sUndoStack;
-
-	// Take a snapshot of the current Scene into LevelData and push onto the stack.
-	static void PushUndoSnapshot(LevelEditor& editor, Scene& scene) {
-		LevelData snap{};
-		SyncSceneToLevel(scene, snap);
-
-		sUndoStack.push_back(snap);
-		if (sUndoStack.size() > MAX_UNDO) {
-			sUndoStack.erase(sUndoStack.begin());
-		}
-
-		// Keep the editor's working LevelData in sync with the scene
-		editor.MutableLevel() = snap;
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	// Undo/redo system using LevelData snapshots.
+	static void CaptureEditorState(Scene& scene, LevelData& outState) {
+		SyncSceneToLevel(scene, outState);
+		SyncTextObjectsToLevel(outState);
+		outState.background = scene.GetSceneBackground();
+		outState.backgroundOverlay = scene.GetSceneBackgroundOverlay();
 	}
 
-	// Pop last snapshot and restore it into the Scene.
-	static bool PerformUndo(LevelEditor& editor, Scene& scene) {
-		if (sUndoStack.empty()) {
-			return false;
-		}
-
-		LevelData snap = sUndoStack.back();
-		sUndoStack.pop_back();
-
+	// Restore the editor state from a LevelData snapshot, rebuilding the scene and syncing text objects.
+	static void RestoreEditorState(LevelEditor& editor, Scene& scene, const LevelData& state) {
 		scene.ClearAll();
-		SyncLevelToScene(snap, scene);
+		SyncLevelToScene(state, scene);
 		scene.RebuildColliders();
 		scene.SetSimulationActive(false);
 
 		editor.SetPlaying(false);
-		editor.MutableLevel() = snap;
+		SyncTextObjectsToEditor(state);
+	}
 
-		return true;
+	// Push a snapshot of the current editor state onto the undo stack before a mutation occurs.
+	static void PushUndoSnapshot(LevelEditor& editor, Scene& scene) {
+		LECOMMAND::RecordPreMutationSnapshot(editor, [&](LevelData& outState) { CaptureEditorState(scene, outState); });
+	}
+
+	// Perform an undo operation, restoring the previous state if available.
+	static bool PerformUndo(LevelEditor& editor, Scene& scene) {
+		return LECOMMAND::Undo(editor,
+			[&](LevelData& outState) { CaptureEditorState(scene, outState); },
+			[&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
+	}
+
+	// Perform a redo operation, restoring the next state if available.
+	static bool PerformRedo(LevelEditor& editor, Scene& scene) {
+		return LECOMMAND::Redo(editor,
+			[&](LevelData& outState) { CaptureEditorState(scene, outState); },
+			[&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
+	}
+
+	// Clear the undo/redo history, typically called when loading a new level or starting a new one.
+	static void ClearUndoHistory() {
+		LECOMMAND::ClearHistory();
 	}
 #endif // _DEBUG
-
 	// Build the current scene from loaded LevelData.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
+		LELINKS::PrefabLinkByID.clear();
+
+		if (!levelIn.background.empty()) {
+			scene.SetSceneBackground(levelIn.background);
+		}
+
+		if (!levelIn.backgroundOverlay.empty()) {
+			scene.SetSceneBackgroundOverlay(levelIn.backgroundOverlay);
+		}
+		else {
+			scene.ClearSceneBackgroundOverlay();
+		}
+
 		for (const auto& obj : levelIn.objects) {
 			GameObject* g = nullptr;
 
@@ -207,10 +300,10 @@ namespace {
 			// Spawn animated or static
 			if (obj.animated) {
 				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
-				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h },
+				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, obj.z }, { obj.w, obj.h },
 					fullFrame, 0.25f, true, layerName);
 
-				if (obj.texture.find("dino") != std::string::npos) {
+				if (g && obj.texture.find("dino") != std::string::npos) {
 					scene.AttachDinoAnimations(g->GetID());
 
 					const std::string clip = obj.animName.empty() ? "IDLE" : obj.animName;
@@ -218,7 +311,7 @@ namespace {
 				}
 			}
 			else {
-				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
+				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, obj.z }, { obj.w, obj.h }, layerName);
 			}
 
 			if (!g) {
@@ -239,6 +332,7 @@ namespace {
 
 			// Apply to object
 			g->SetRotation(glm::radians(rotDeg), { 0, 0, 1 });
+			g->EnableShadow(obj.shadow);
 
 			// Collider data
 			if (!obj.hasCollider) {
@@ -265,10 +359,11 @@ namespace {
 			scene.ApplyTagRules(g->GetID(), obj.tag, obj.speedX, obj.speedY);
 
 			// Store transform and defaults
-			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, 0.0f }, { obj.w, obj.h, 1.0f }, obj.rotation);
+			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, obj.z }, { obj.w, obj.h, 1.0f }, obj.rotation);
 
+			// Store defaults for saving later
 			Scene::Defaults defs{};
-			defs.pos = { obj.x, obj.y, 0.0f };
+			defs.pos = { obj.x, obj.y, obj.z };
 			defs.size = { obj.w, obj.h };
 			defs.rot = obj.rotation;
 			defs.colSize = { obj.colWidth, obj.colHeight };
@@ -277,8 +372,14 @@ namespace {
 			defs.texture = obj.texture;
 			defs.tag = obj.tag;
 			defs.layer = obj.layer;
-			// NEW: approach offset
+
+			// Approach offset
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
+			defs.hasApproachOffset2 = obj.hasApproachOffset2;
+			defs.approachOffset2 = { obj.approachOffset2X, obj.approachOffset2Y };
+			defs.hasCustomerSeatOffset = obj.hasCustomerSeatOffset;
+			defs.customerSeatOffset = { obj.customerSeatOffsetX, obj.customerSeatOffsetY };
+
 			// Audio bindings
 			defs.audioOnSpawn = obj.audioOnSpawn;
 			defs.audioOnInteract = obj.audioOnInteract;
@@ -286,9 +387,16 @@ namespace {
 			defs.audioOnProcessing = obj.audioOnProcessing;
 			defs.audioLoop = obj.audioLoop;
 
+			defs.visible = obj.visible;
+
 			scene.SetDefaults(g->GetID(), defs);
+			scene.SetObjectVisible(g->GetID(), obj.visible);
 			scene.AttachLogicForTag(g->GetID(), obj.tag);
 			scene.ClampToWalkArea(g);
+
+			if (!obj.prefabPath.empty()) {
+				LELINKS::PrefabLinkByID[g->GetID()] = obj.prefabPath;
+			}
 
 			// Play spawn audio if configured (only during simulation/play mode)
 			if (scene.IsSimulationActive() && !obj.audioOnSpawn.empty()) {
@@ -315,7 +423,7 @@ namespace {
 			out.animated = scene.HasAnimations(id);
 			out.animName = scene.GetCurrentAnimationName(id);
 
-			// Layer — use the layering system, fall back to "1"
+			// Layer ï¿½ use the layering system, fall back to "1"
 			out.layer = scene.GetObjectLayer(id);
 			if (out.layer.empty()) {
 				out.layer = "1";
@@ -328,6 +436,7 @@ namespace {
 
 			out.x = pos.x;
 			out.y = pos.y;
+			out.z = pos.z;
 			out.w = size.x;
 			out.h = size.y;
 			out.rotation = rotDeg;
@@ -354,6 +463,12 @@ namespace {
 
 			out.approachOffsetX = defs.approachOffset.x;
 			out.approachOffsetY = defs.approachOffset.y;
+			out.hasApproachOffset2 = defs.hasApproachOffset2;
+			out.approachOffset2X = defs.approachOffset2.x;
+			out.approachOffset2Y = defs.approachOffset2.y;
+			out.hasCustomerSeatOffset = defs.hasCustomerSeatOffset;
+			out.customerSeatOffsetX = defs.customerSeatOffset.x;
+			out.customerSeatOffsetY = defs.customerSeatOffset.y;
 
 			// Audio bindings from defaults
 			out.audioOnSpawn = defs.audioOnSpawn;
@@ -362,10 +477,18 @@ namespace {
 			out.audioOnProcessing = defs.audioOnProcessing;
 			out.audioLoop = defs.audioLoop;
 
+			out.shadow = g->HasShadow();
+			out.visible = scene.IsObjectVisible(id);
+
 			// Velocity
 			const glm::vec2 v = scene.GetNPCVelocity(id);
 			out.speedX = v.x;
 			out.speedY = v.y;
+
+			auto prefabIt = LELINKS::PrefabLinkByID.find(id);
+			if (prefabIt != LELINKS::PrefabLinkByID.end()) {
+				out.prefabPath = prefabIt->second;
+			}
 
 			levelOut.objects.push_back(out);
 		}
@@ -396,28 +519,31 @@ namespace {
 		scene.SetDefaults(bID, defB);
 	}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	// Draws the advanced Layering System UI (debug-only)
 	static void DrawLayerManager(Scene& scene, int selectedObjectId) {
-		if (!ImGui::CollapsingHeader("Layering System", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (!ImGui::CollapsingHeader("Layers")) {
 			return;
 		}
 
 		// New layer creation
-		ImGui::TextUnformatted("Create a new layer:");
+		ImGui::TextUnformatted("New Layer");
 		static char newLayerBuf[64] = "";
-		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5f);
+		ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 88.0f);
 		ImGui::InputText("##NewLayerName", newLayerBuf, IM_ARRAYSIZE(newLayerBuf));
 		ImGui::SameLine();
 
-		if (ImGui::Button("Add Layer") && newLayerBuf[0] != '\0') {
+		if (ImGui::Button("Add##LayerAdd", ImVec2(56.0f, 0.0f)) && newLayerBuf[0] != '\0') {
 			scene.AddLayer(newLayerBuf);
 			newLayerBuf[0] = '\0';
 		}
 
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("Add layer");
+		}
+
 		ImGui::Separator();
-		ImGui::TextUnformatted("Existing layers:");
-		ImGui::Separator();
+		ImGui::TextUnformatted("Layers");
 
 		const auto& layerMap = scene.GetAllLayers();
 		if (layerMap.empty()) {
@@ -431,6 +557,11 @@ namespace {
 		for (const auto& pair : layerMap) {
 			sorted.emplace_back(pair.first, &pair.second);
 		}
+
+		std::sort(sorted.begin(), sorted.end(),
+			[](const auto& lhs, const auto& rhs) {
+				return lhs.first < rhs.first;
+			});
 
 		for (const auto& entry : sorted) {
 			const std::string& layerName = entry.first;
@@ -447,53 +578,80 @@ namespace {
 
 			// Layer name
 			ImGui::TextUnformatted(layerName.c_str());
-			ImGui::SameLine(180.0f);
-
-			// Visible checkbox
-			if (ImGui::Checkbox("Visible", &visible)) {
+			ImGui::SameLine();
+			ImGui::TextDisabled("(%d)", count);
+			ImGui::SameLine();
+			if (ImGui::Checkbox("V", &visible)) {
 				layer->SetVisible(visible);
+
+				// Keep editor text objects in sync with layer visibility toggles.
+				auto& textObjects = LEPANELFONTS::GetMutableTextObjects();
+				for (auto& textObject : textObjects) {
+					if (textObject.layer == layerName) {
+						textObject.visible = visible;
+					}
+				}
+			}
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Layer visibility");
 			}
 
 			ImGui::SameLine();
 
 			// Collisions checkbox
-			if (ImGui::Checkbox("Collisions", &collidable)) {
+			if (ImGui::Checkbox("C", &collidable)) {
 				layer->SetCollidable(collidable);
 			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Layer collisions");
+			}
 
-			ImGui::SameLine();
-			ImGui::TextDisabled("(%d objects)", count);
-
-			// Assign + Delete buttons
 			if (selectedObjectId != -1) {
-				ImGui::SameLine();
-				if (ImGui::Button("Assign selected")) {
+				if (ImGui::SmallButton("Assign")) {
 					scene.AssignObjectToLayer(selectedObjectId, layerName);
 				}
 			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("Delete")) {
-				// Optional: don't allow deleting base layer "1"
-				if (layerName != "1") {
-					// Move all objects on this layer back to layer 1
-					for (int objID : layer->GetObjects()) {
-						scene.AssignObjectToLayer(objID, "1");
-					}
-
-					scene.RemoveLayer(layerName);
-				}
+			else {
+				ImGui::BeginDisabled();
+				ImGui::SmallButton("Assign");
+				ImGui::EndDisabled();
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Assign selected object to this layer");
 			}
 
+			ImGui::SameLine();
+			if (layerName == "1") {
+				ImGui::BeginDisabled();
+				ImGui::SmallButton("Del");
+				ImGui::EndDisabled();
+			}
+			else if (ImGui::SmallButton("Del")) {
+				for (int objID : layer->GetObjects()) {
+					scene.AssignObjectToLayer(objID, "1");
+				}
+				scene.RemoveLayer(layerName);
+			}
+
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Delete layer (moves objects to layer 1)");
+			}
+
+			ImGui::Separator();
 			ImGui::PopID();
 		}
+
+		if (selectedObjectId == -1) {
+			ImGui::TextDisabled("Select an object to enable Assign.");
+		}
 	}
-#endif // _DEBUG
+#endif
 }
 
 // Public ImGui Level Panel Implementation
 namespace LEPANELLEVEL {
-#ifdef _DEBUG
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	void DrawLevelPanel(LevelEditor& editor, Scene& scene,
 		int& selectedIndex, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
@@ -575,77 +733,91 @@ namespace LEPANELLEVEL {
 			editor.levelPath = (fs::path(sLevelsDir) / (stem + ".json")).generic_string();
 		}
 
-		// Load
-		if (ImGui::Button("Load Level")) {
-			LevelData& work = editor.MutableLevel();
-			if (LevelSerializer::Load(editor.levelPath, work)) {
-				scene.ClearAll();
-				LEPANELFONTS::ClearTextObjects();  // Clear text objects before loading
-				SyncLevelToScene(work, scene);
-				SyncTextObjectsToEditor(work);     // Load text objects
-				scene.RebuildColliders();
-				scene.SetSimulationActive(false);
-				scene.ResetResizeBaseline();
-
-				if (!work.background.empty()) {
-					scene.SetSceneBackground(work.background);
+		LEACTIONS::HandleUndoRedoShortcuts(editor,
+			[&]() {
+				if (PerformUndo(editor, scene)) {
+					selectedIndex = -1;
+					selectedObjectId = -1;
+					return true;
 				}
 
+				return false;
+			},
+			[&]() {
+				if (PerformRedo(editor, scene)) {
+					selectedIndex = -1;
+					selectedObjectId = -1;
+					return true;
+				}
+
+				return false;
+			});
+
+		static std::size_t sLastSavedHash = 0;
+		static std::string sLastSavedPath;
+
+		LEACTIONS::DrawActionGrid(editor, scene, {
+			[&]() {
+				scene.StopAllObjectAudio();
+				scene.SetSimulationActive(false);
 				editor.SetPlaying(false);
-				selectedIndex = -1;
-				selectedObjectId = -1;
-			}
-		}
 
-		ImGui::SameLine();
+				LevelData& work = editor.MutableLevel();
+				if (LevelSerializer::Load(editor.levelPath, work)) {
+					scene.SetCurrentLevelPath(editor.levelPath);
+					scene.ClearAll();
+					LEPANELFONTS::ClearTextObjects();
+					SyncLevelToScene(work, scene);
+					SyncTextObjectsToEditor(work);
+					scene.RebuildColliders();
+					scene.SetSimulationActive(false);
+					scene.ResetResizeBaseline();
 
-		// Save
-		if (ImGui::Button("Save Level")) {
-			LevelData& dst = editor.MutableLevel();
-			SyncSceneToLevel(scene, dst);
-			SyncTextObjectsToLevel(dst);  // Save text objects
-			
-			std::cout << "[LevelPanel] Saving level to: " << editor.levelPath << std::endl;
-			std::cout << "[LevelPanel] Game objects: " << dst.objects.size() << std::endl;
-			std::cout << "[LevelPanel] Text objects: " << dst.textObjects.size() << std::endl;
-			
-			if (LevelSerializer::Save(editor.levelPath, dst)) {
-				std::cout << "[LevelPanel] Level saved successfully!" << std::endl;
-			} else {
-				std::cerr << "[LevelPanel] ERROR: Failed to save level!" << std::endl;
-			}
-		}
+					selectedIndex = -1;
+					selectedObjectId = -1;
+					LEHIERARCHY::InvalidateCache();
+					sLastSavedHash = HashLevelData(work);
+					sLastSavedPath = editor.levelPath;
+					ClearUndoHistory();
+				}
+			},
+			[&]() {
+				scene.StopAllObjectAudio();
+				scene.SetSimulationActive(false);
+				scene.ClearAll();
+				scene.RebuildColliders();
+				scene.ResetResizeBaseline();
 
-		ImGui::SameLine();
+				editor.SetPlaying(false);
+				LEPANELFONTS::ClearTextObjects();
 
-		// Undo
-		if (ImGui::Button("Undo")) {
-			if (PerformUndo(editor, scene)) {
-				// visually reset selection
-				selectedIndex = -1;
-				selectedObjectId = -1;
-			}
-		}
+				LevelData& fresh = editor.MutableLevel();
+				fresh.objects.clear();
+				fresh.textObjects.clear();
+				fresh.background.clear();
+				LEHIERARCHY::InvalidateCache();
+				sLastSavedHash = HashLevelData(fresh);
+				sLastSavedPath.clear();
+				ClearUndoHistory();
+			},
+			[&]() {
+				LevelData& dst = editor.MutableLevel();
+				SyncSceneToLevel(scene, dst);
+				SyncTextObjectsToLevel(dst);
+				const std::size_t currentHash = HashLevelData(dst);
+				const bool savePathChanged = (editor.levelPath != sLastSavedPath);
 
-		// Ctrl+Z keyboard shortcut for Undo (same as button)
-		ImGuiIO& io = ImGui::GetIO();
-		if (!editor.IsPlaying() &&
-			!io.WantCaptureKeyboard &&
-			(io.KeyCtrl || io.KeySuper) &&
-			ImGui::IsKeyPressed(ImGuiKey_Z)) {
-			if (PerformUndo(editor, scene)) {
-				selectedIndex = -1;
-				selectedObjectId = -1;
-			}
-		}
-
-		ImGui::SameLine();
-
-		// Play
-		if (ImGui::Button(editor.IsPlaying() ? "Playing..." : "Play")) {
-			if (!editor.IsPlaying()) {
+				if ((currentHash != sLastSavedHash || savePathChanged) && LevelSerializer::Save(editor.levelPath, dst)) {
+					sLastSavedHash = currentHash;
+					sLastSavedPath = editor.levelPath;
+				}
+			},
+			[&]() { return PerformUndo(editor, scene); },
+			[&]() { return PerformRedo(editor, scene); },
+			[&]() {
 				LevelData& snap = editor.MutablePlaySnapshot();
 				SyncSceneToLevel(scene, snap);
+				SyncTextObjectsToLevel(snap);
 
 				editor.SetPlaying(true);
 				selectedIndex = -1;
@@ -656,160 +828,207 @@ namespace LEPANELLEVEL {
 				SyncLevelToScene(snap, scene);
 				scene.RebuildColliders();
 				scene.ResolveInitialStaticOverlaps();
-			}
-		}
-
-		ImGui::SameLine();
-
-		// Stop
-		if (ImGui::Button("Stop")) {
-			if (editor.IsPlaying()) {
-				// Stop all object-bound audio before clearing the scene
+			},
+			[&]() {
 				scene.StopAllObjectAudio();
-				
-				// IMPORTANT: Set simulation inactive BEFORE restoring the scene
-				// to prevent spawn audio from playing during restoration
 				scene.SetSimulationActive(false);
-				
+
 				scene.ClearAll();
 				SyncLevelToScene(editor.MutablePlaySnapshot(), scene);
+				SyncTextObjectsToEditor(editor.MutablePlaySnapshot());
 				scene.RebuildColliders();
 				editor.SetPlaying(false);
 			}
-		}
+			});
 
 		DrawLayerManager(scene, selectedObjectId);
 
-		ImGui::SeparatorText("Hierarchy");
-
-		// Object Hierarchy – stable order independent of movement
+		// Object Hierarchy ï¿½ stable order independent of movement
 		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
+		if (ImGui::CollapsingHeader("Hierarchy", ImGuiTreeNodeFlags_DefaultOpen)) {
+			static char sHierarchyFilter[128] = "";
+			static bool sHierarchyCompactDensity = false;
+			enum class HierarchyQuickFilter {
+				All = 0, LayerCurrent, HasCollider, HasAudio
+			};
+			static HierarchyQuickFilter sQuickFilter = HierarchyQuickFilter::All;
 
-		// Remove objects whose layer is currently hidden
-		objectList.erase(
-			std::remove_if(objectList.begin(), objectList.end(),
-				[&](GameObject* g) {
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::InputTextWithHint("##HierarchyFilter", "Filter by name, ID, or layer", sHierarchyFilter, IM_ARRAYSIZE(sHierarchyFilter));
+			ImGui::Checkbox("Compact##Hierarchy", &sHierarchyCompactDensity);
+			const std::string filterLower = LEHIERARCHY::ToLowerCopy(std::string(sHierarchyFilter));
+
+			if (ImGui::RadioButton("All", sQuickFilter == HierarchyQuickFilter::All)) {
+				sQuickFilter = HierarchyQuickFilter::All;
+			}
+			ImGui::SameLine();
+			if (ImGui::RadioButton("Layer", sQuickFilter == HierarchyQuickFilter::LayerCurrent)) {
+				sQuickFilter = HierarchyQuickFilter::LayerCurrent;
+			}
+			ImGui::SameLine();
+			if (ImGui::RadioButton("Collider", sQuickFilter == HierarchyQuickFilter::HasCollider)) {
+				sQuickFilter = HierarchyQuickFilter::HasCollider;
+			}
+			ImGui::SameLine();
+			if (ImGui::RadioButton("Audio", sQuickFilter == HierarchyQuickFilter::HasAudio)) {
+				sQuickFilter = HierarchyQuickFilter::HasAudio;
+			}
+
+			const std::string activeLayer = (selectedObjectId != -1) ? scene.GetObjectLayer(selectedObjectId) : "";
+
+			auto PassesQuickFilter = [&](GameObject* gameObject) {
+				if (!gameObject) {
+					return false;
+				}
+
+				const int gameObjectId = gameObject->GetID();
+				const Scene::Defaults objDefaults = scene.GetDefaults(gameObjectId);
+				auto collider = gameObject->GetColliderSize();
+
+				switch (sQuickFilter) {
+				case HierarchyQuickFilter::LayerCurrent:
+					return !activeLayer.empty() && scene.GetObjectLayer(gameObjectId) == activeLayer;
+				case HierarchyQuickFilter::HasCollider:
+					return collider.x > 0.0f && collider.y > 0.0f;
+				case HierarchyQuickFilter::HasAudio:
+					return !objDefaults.audioOnSpawn.empty() || !objDefaults.audioOnInteract.empty() || !objDefaults.audioOnDestroy.empty() || !objDefaults.audioOnProcessing.empty();
+				case HierarchyQuickFilter::All:
+				default:
+					return true;
+				}
+				};
+
+			// Remove objects whose layer is currently hidden
+			objectList.erase(
+				std::remove_if(objectList.begin(), objectList.end(),
+					[&](GameObject* g) {
+						if (!g) {
+							return true;
+						}
+						std::string layerName = scene.GetObjectLayer(g->GetID());
+						Layer* layer = scene.GetLayer(layerName);
+						return (layer && !layer->IsVisible());
+					}),
+				objectList.end());
+
+			// Sort by ID so list doesnï¿½t reshuffle when objects move
+			std::sort(objectList.begin(), objectList.end(),
+				[](GameObject* a, GameObject* b) {
+					return a->GetID() < b->GetID();
+				});
+
+			// Keep hierarchy cache bounded to live objects
+			LEHIERARCHY::PruneDeadObjects(scene);
+			ImGui::TextDisabled("%d objects", static_cast<int>(objectList.size()));
+
+			// Keep hierarchy row in sync with selection by ID (click in Scene)
+			if (selectedObjectId != -1) {
+				int foundIndex = -1;
+				for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
+					GameObject* g = objectList[i];
+					if (g && g->GetID() == selectedObjectId) {
+						foundIndex = i;
+						break;
+					}
+				}
+
+				selectedIndex = foundIndex;
+
+				// If the object was deleted or is on a hidden layer, clear selection
+				if (selectedIndex == -1) {
+					selectedObjectId = -1;
+				}
+			}
+
+			// Hierarchy
+			if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, sHierarchyCompactDensity ? 180.0f : 240.0f))) {
+				// Game Objects
+				int visibleGameObjectRows = 0;
+				for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
+					GameObject* g = objectList[i];
 					if (!g) {
-						return true;
-					}
-					std::string layerName = scene.GetObjectLayer(g->GetID());
-					Layer* layer = scene.GetLayer(layerName);
-					return (layer && !layer->IsVisible());
-				}),
-			objectList.end());
-
-		// Sort by ID so list doesn’t reshuffle when objects move
-		std::sort(objectList.begin(), objectList.end(),
-			[](GameObject* a, GameObject* b) {
-				return a->GetID() < b->GetID();
-			});
-
-		// Keep hierarchy row in sync with selection by ID (click in Scene)
-		if (selectedObjectId != -1) {
-			int foundIndex = -1;
-			for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
-				GameObject* g = objectList[i];
-				if (g && g->GetID() == selectedObjectId) {
-					foundIndex = i;
-					break;
-				}
-			}
-
-			selectedIndex = foundIndex;
-
-			// If the object was deleted or is on a hidden layer, clear selection
-			if (selectedIndex == -1) {
-				selectedObjectId = -1;
-			}
-		}
-
-		// Hierarchy
-		if (ImGui::BeginListBox("Objects", ImVec2(-FLT_MIN, 200.0f))) {
-			// Game Objects
-			for (int i = 0; i < static_cast<int>(objectList.size()); ++i) {
-				GameObject* g = objectList[i];
-				if (!g) {
-					continue;
-				}
-
-				const int gid = g->GetID();
-				std::string niceName;
-
-				// Prefer tag; fall back to texture stem
-				Scene::Defaults defs = scene.GetDefaults(gid);
-				if (!defs.tag.empty()) {
-					niceName = defs.tag;
-				}
-				else {
-					std::string texPath = scene.GetObjectTexturePath(gid);
-					if (!texPath.empty()) {
-						try {
-							niceName = fs::path(texPath).stem().string();
-						}
-						catch (...) {
-						}
-					}
-				}
-
-				std::string layer = scene.GetObjectLayer(gid);
-				std::string label = niceName.empty()
-					? ("ID " + std::to_string(gid) + " [Layer: " + layer + "]")
-					: (niceName + " (ID " + std::to_string(gid) + ") [Layer: " + layer + "]");
-
-				ImGui::PushID(gid);
-				bool isSelected = (selectedObjectId == gid);
-
-				// When playing, draw items but DO NOT allow selection to change
-				if (editor.IsPlaying()) {
-					ImGui::Selectable(label.c_str(), isSelected, ImGuiSelectableFlags_Disabled);
-				}
-				else {
-					if (ImGui::Selectable(label.c_str(), isSelected)) {
-						selectedIndex = i;
-						selectedObjectId = gid;
-						// Deselect any text object when selecting a game object
-						LEPANELFONTS::SetSelectedTextIndex(-1);
-					}
-				}
-
-				ImGui::PopID();
-			}
-
-			// Text Objects in Hierarchy (inside the same listbox)
-			{
-				const auto& textObjs = LEPANELFONTS::GetTextObjects();
-				int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
-
-				for (size_t i = 0; i < textObjs.size(); ++i) {
-					const auto& t = textObjs[i];
-
-					// Check if layer is visible
-					Layer* layer = scene.GetLayer(t.layer);
-					if (layer && !layer->IsVisible()) {
 						continue;
 					}
 
-					std::string lbl = "[Text] " + t.name + " (" + t.fontName + ") [Layer: " + t.layer + "]";
+					const int gid = g->GetID();
+					const std::string& label = LEHIERARCHY::GetCachedLabel(scene, gid);
+					if (!LEHIERARCHY::PassesFilterCached(gid, filterLower) || !PassesQuickFilter(g)) {
+						continue;
+					}
 
-					ImGui::PushID(static_cast<int>(i) + 100000);
-					bool isSelected = (selectedObjectId == -1 && selectedTextIdx == static_cast<int>(i));
+					++visibleGameObjectRows;
+					ImGui::PushID(gid);
+					bool isSelected = (selectedObjectId == gid);
 
+					// When playing, draw items but DO NOT allow selection to change
 					if (editor.IsPlaying()) {
-						ImGui::Selectable(lbl.c_str(), isSelected, ImGuiSelectableFlags_Disabled);
+						ImGui::Selectable(label.c_str(), isSelected, ImGuiSelectableFlags_Disabled);
 					}
 					else {
-						if (ImGui::Selectable(lbl.c_str(), isSelected)) {
-							selectedIndex = -1;
-							selectedObjectId = -1;
-							LEPANELFONTS::SetSelectedTextIndex(static_cast<int>(i));
+						if (ImGui::Selectable(label.c_str(), isSelected)) {
+							selectedIndex = i;
+							selectedObjectId = gid;
+							// Deselect any text object when selecting a game object
+							LEPANELFONTS::SetSelectedTextIndex(-1);
 						}
 					}
 
 					ImGui::PopID();
 				}
-			}
 
-			ImGui::EndListBox();
+				// Text Objects in Hierarchy (inside the same listbox)
+				{
+					const auto& textObjs = LEPANELFONTS::GetTextObjects();
+					int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
+					int visibleTextRows = 0;
+
+					for (size_t i = 0; i < textObjs.size(); ++i) {
+						const auto& t = textObjs[i];
+
+						// Check if layer is visible
+						Layer* layer = scene.GetLayer(t.layer);
+						if (layer && !layer->IsVisible()) {
+							continue;
+						}
+
+						if (sQuickFilter == HierarchyQuickFilter::HasCollider || sQuickFilter == HierarchyQuickFilter::HasAudio) {
+							continue;
+						}
+						if (sQuickFilter == HierarchyQuickFilter::LayerCurrent && (!activeLayer.empty() && t.layer != activeLayer)) {
+							continue;
+						}
+
+						std::string lbl = "[Text] " + t.name + " [L" + t.layer + "]";
+						if (!LEHIERARCHY::PassesFilter(lbl, filterLower)) {
+							continue;
+						}
+
+						++visibleTextRows;
+
+						ImGui::PushID(static_cast<int>(i) + 100000);
+						bool isSelected = (selectedObjectId == -1 && selectedTextIdx == static_cast<int>(i));
+
+						if (editor.IsPlaying()) {
+							ImGui::Selectable(lbl.c_str(), isSelected, ImGuiSelectableFlags_Disabled);
+						}
+						else {
+							if (ImGui::Selectable(lbl.c_str(), isSelected)) {
+								selectedIndex = -1;
+								selectedObjectId = -1;
+								LEPANELFONTS::SetSelectedTextIndex(static_cast<int>(i));
+							}
+						}
+
+						ImGui::PopID();
+					}
+
+					if (visibleGameObjectRows == 0 && visibleTextRows == 0) {
+						ImGui::TextDisabled("No objects match the active filter.");
+					}
+				}
+
+				ImGui::EndListBox();
+			}
 		}
 
 		if (editor.IsPlaying()) {
@@ -817,7 +1036,7 @@ namespace LEPANELLEVEL {
 		}
 
 		// Add
-		if (ImGui::Button("Add Object")) {
+		if (ImGui::Button("Add##ObjectAdd")) {
 			// Snapshot BEFORE adding
 			PushUndoSnapshot(editor, scene);
 
@@ -861,7 +1080,7 @@ namespace LEPANELLEVEL {
 		ImGui::SameLine();
 
 		// Remove
-		if (ImGui::Button("Remove Selected") &&
+		if (ImGui::Button("Remove") &&
 			selectedIndex >= 0 && selectedIndex < static_cast<int>(objectList.size()) && objectList[selectedIndex]) {
 			// Snapshot BEFORE removing
 			PushUndoSnapshot(editor, scene);
@@ -885,6 +1104,12 @@ namespace LEPANELLEVEL {
 			const int id = obj->GetID();
 
 			Scene::Defaults defaults = scene.GetDefaults(id);
+
+			auto SyncColliderDefaults = [&](const Math::Vector2D& colSize, const Math::Vector2D& colOff) {
+				defaults.colSize = { colSize.x, colSize.y };
+				defaults.colOff = { colOff.x, colOff.y };
+				scene.SetDefaults(id, defaults);
+				};
 
 			ImGui::SeparatorText("Properties Inspector");
 			ImGui::TextDisabled("Selected ID: %d", id);
@@ -911,7 +1136,7 @@ namespace LEPANELLEVEL {
 
 			if (!std::isfinite(rotationDeg)) {
 				rotationDeg = 0.0f;
-				// Also push this clean value into the object so it doesn’t stay corrupted
+				// Also push this clean value into the object so it doesnï¿½t stay corrupted
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 			}
 
@@ -1031,6 +1256,7 @@ namespace LEPANELLEVEL {
 					colliderSize.y = size.y;
 					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
 					obj->SetColliderOffset({ 0.f, 0.f });
+					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, { 0.f, 0.f });
 					scene.RebuildColliders();
 				}
 			}
@@ -1059,21 +1285,8 @@ namespace LEPANELLEVEL {
 				currentLayer = "1";
 			}
 
-			// Build a sorted list of layer names (always include "Default")
-			std::vector<std::string> layerNames;
-			layerNames.reserve(scene.GetAllLayers().size() + 1);
-			layerNames.push_back("1");
-
-			const auto& allLayers = scene.GetAllLayers();
-			for (const auto& pair : allLayers) {
-				const std::string& name = pair.first;
-				if (name.empty()) {
-					continue;
-				}
-				if (std::find(layerNames.begin(), layerNames.end(), name) == layerNames.end()) {
-					layerNames.push_back(name);
-				}
-			}
+			// Build a sorted list of unique layer names (always includes "1")
+			std::vector<std::string> layerNames = BuildLayerNameList(scene);
 
 			std::sort(layerNames.begin(), layerNames.end());
 
@@ -1125,145 +1338,169 @@ namespace LEPANELLEVEL {
 					colliderSize.x = size.x;
 					colliderSize.y = size.y;
 					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, colliderOff);
 					scene.RebuildColliders();
 				}
 
 				});
-			ImGui::NextColumn();
-
-			// Animation
-			ImGui::Separator();
-			ImGui::Text("Animation");
-			ImGui::NextColumn();
-			FullWidthNext();
-
-			if (id != -1) {
-				bool hasAnimator = scene.HasAnimations(id); // auto-detected from scene
-				ImGui::BeginDisabled();                     // make the checkbox read-only
-				ImGui::Checkbox("Animated", &hasAnimator);
-				ImGui::EndDisabled();
-				ImGui::SameLine();
-				ImGui::TextDisabled("(auto-detected)");
-
-				if (hasAnimator) {
-					std::vector<std::string> animList = scene.GetAnimationList(id);
-					std::string current = scene.GetCurrentAnimationName(id);
-
-					if (animList.empty()) {
-						ImGui::TextDisabled("No clips found");
-					}
-					else {
-						const char* preview = current.c_str();
-						if (ImGui::BeginCombo("Current", preview)) {
-							for (const std::string& name : animList) {
-								bool selected = (current == name);
-								if (ImGui::Selectable(name.c_str(), selected)) {
-									scene.SetAnimation(id, name.c_str());
-								}
-
-								if (selected) {
-									ImGui::SetItemDefaultFocus();
-								}
-							}
-
-							ImGui::EndCombo();
-						}
-					}
-				}
-			}
-
-			ImGui::NextColumn();
-
-			// Rotation
-			ImGui::Text("Rotation (deg)"); ImGui::NextColumn();
-			FullWidthNext();
-			DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.8f, [&](bool) {
-				// Clamp to [0, 360) before applying so it never stores huge angles
-				rotationDeg = std::fmod(rotationDeg, 360.0f);
-				if (rotationDeg < 0.0f) {
-					rotationDeg += 360.0f;
-				}
-
-				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
-				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
-				});
-			ImGui::NextColumn();
-
-			// Collider
-			ImGui::Text("Collider");
-			ImGui::NextColumn();
-			FullWidthNext();
-
-			if (ImGui::Checkbox("Enable Collider", &colliderEnabled)) {
-				PushUndoSnapshot(editor, scene);
-
-				if (!colliderEnabled) {
-					colliderSize = { 0.f, 0.f };
-					colliderOff = { 0.f, 0.f };
-					obj->SetColliderSize({ 0.f, 0.f });
-					obj->SetColliderOffset({ 0.f, 0.f });
-				}
-				else {
-					// default collider when adding
-					colliderSize = { size.x, size.y };
-					colliderOff = { 0.f, 0.f };
-					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
-					obj->SetColliderOffset({ 0.f, 0.f });
-				}
-
-				scene.RebuildColliders();
-			}
-
-			if (colliderEnabled) {
-				float avail = ImGui::GetContentRegionAvail().x;
-				float gap = ImGui::GetStyle().ItemInnerSpacing.x;
-				float fieldW = (avail - gap) * 0.5f;
-
-				// Size
-				ImGui::TextUnformatted("Size");
-				// row of 2 fields (x, y)
-				ImGui::PushItemWidth(fieldW);
-				bool sizeChangedX = ImGui::DragFloat("x##col_size_x", &colliderSize.x, 1.0f, 0.0f, 99999.0f);
-				ImGui::SameLine(0.0f, gap);
-				bool sizeChangedY = ImGui::DragFloat("y##col_size_y", &colliderSize.y, 1.0f, 0.0f, 99999.0f);
-				ImGui::PopItemWidth();
-
-				if (sizeChangedX || sizeChangedY) {
-					obj->SetColliderSize({ colliderSize.x, colliderSize.y });
-					scene.RebuildColliders();
-				}
-
-				ImGui::Spacing();
-
-				// Offset
-				ImGui::TextUnformatted("Offset");
-				ImGui::PushItemWidth(fieldW);
-				bool offChangedX = ImGui::DragFloat("x##col_off_x", &colliderOff.x, 1.0f, -99999.0f, 99999.0f);
-				ImGui::SameLine(0.0f, gap);
-				bool offChangedY = ImGui::DragFloat("y##col_off_y", &colliderOff.y, 1.0f, -99999.0f, 99999.0f);
-				ImGui::PopItemWidth();
-
-				if (offChangedX || offChangedY) {
-					obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
-					scene.RebuildColliders();
-				}
-			}
-			else {
-				ImGui::TextDisabled("Collider disabled");
-			}
-
 			ImGui::NextColumn();
 
 			ImGui::Columns(1);
+			const bool showAdvancedInspector = ImGui::CollapsingHeader("Advanced Transform & Collider");
+			if (showAdvancedInspector) {
+				ImGui::Columns(2, nullptr, false);
+				ImGui::SetColumnWidth(0, labelColWidth);
 
+				// Animation
+				ImGui::Separator();
+				ImGui::Text("Animation");
+				ImGui::NextColumn();
+				FullWidthNext();
+
+				if (id != -1) {
+					bool hasAnimator = scene.HasAnimations(id); // auto-detected from scene
+					ImGui::BeginDisabled();                     // make the checkbox read-only
+					ImGui::Checkbox("Animated", &hasAnimator);
+					ImGui::EndDisabled();
+					ImGui::SameLine();
+					ImGui::TextDisabled("(auto-detected)");
+
+					if (hasAnimator) {
+						std::vector<std::string> animList = scene.GetAnimationList(id);
+						std::string current = scene.GetCurrentAnimationName(id);
+
+						if (animList.empty()) {
+							ImGui::TextDisabled("No clips found");
+						}
+						else {
+							const char* preview = current.c_str();
+							if (ImGui::BeginCombo("Current", preview)) {
+								for (const std::string& name : animList) {
+									bool selected = (current == name);
+									if (ImGui::Selectable(name.c_str(), selected)) {
+										PushUndoSnapshot(editor, scene);
+										scene.SetAnimation(id, name.c_str());
+									}
+
+									if (selected) {
+										ImGui::SetItemDefaultFocus();
+									}
+								}
+
+								ImGui::EndCombo();
+							}
+						}
+					}
+				}
+
+				ImGui::NextColumn();
+
+				// Rotation
+				ImGui::Text("Rotation (deg)"); ImGui::NextColumn();
+				FullWidthNext();
+				DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.8f, [&](bool) {
+					// Clamp to [0, 360) before applying so it never stores huge angles
+					rotationDeg = std::fmod(rotationDeg, 360.0f);
+					if (rotationDeg < 0.0f) {
+						rotationDeg += 360.0f;
+					}
+
+					obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
+					scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
+					});
+				ImGui::NextColumn();
+
+				// Collider
+				ImGui::Text("Collider");
+				ImGui::NextColumn();
+				FullWidthNext();
+
+				if (ImGui::Checkbox("Enable Collider", &colliderEnabled)) {
+					PushUndoSnapshot(editor, scene);
+
+					if (!colliderEnabled) {
+						colliderSize = { 0.f, 0.f };
+						colliderOff = { 0.f, 0.f };
+						obj->SetColliderSize({ 0.f, 0.f });
+						obj->SetColliderOffset({ 0.f, 0.f });
+						SyncColliderDefaults({ 0.f, 0.f }, { 0.f, 0.f });
+					}
+					else {
+						// default collider when adding
+						colliderSize = { size.x, size.y };
+						colliderOff = { 0.f, 0.f };
+						obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+						obj->SetColliderOffset({ 0.f, 0.f });
+						SyncColliderDefaults({ colliderSize.x, colliderSize.y }, { 0.f, 0.f });
+					}
+
+					scene.RebuildColliders();
+				}
+
+				if (colliderEnabled) {
+					float avail = ImGui::GetContentRegionAvail().x;
+					float gap = ImGui::GetStyle().ItemInnerSpacing.x;
+					float fieldW = (avail - gap) * 0.5f;
+
+					// Size
+					ImGui::TextUnformatted("Size");
+					// row of 2 fields (x, y)
+					ImGui::PushItemWidth(fieldW);
+					bool sizeChangedX = ImGui::DragFloat("x##col_size_x", &colliderSize.x, 1.0f, 0.0f, 99999.0f);
+					bool sizeActivatedX = ImGui::IsItemActivated();
+					ImGui::SameLine(0.0f, gap);
+					bool sizeChangedY = ImGui::DragFloat("y##col_size_y", &colliderSize.y, 1.0f, 0.0f, 99999.0f);
+					bool sizeActivatedY = ImGui::IsItemActivated();
+					ImGui::PopItemWidth();
+
+					if (sizeActivatedX || sizeActivatedY) {
+						PushUndoSnapshot(editor, scene);
+					}
+
+					if (sizeChangedX || sizeChangedY) {
+						obj->SetColliderSize({ colliderSize.x, colliderSize.y });
+						scene.RebuildColliders();
+						SyncColliderDefaults({ colliderSize.x, colliderSize.y }, colliderOff);
+					}
+
+					ImGui::Spacing();
+
+					// Offset
+					ImGui::TextUnformatted("Offset");
+					ImGui::PushItemWidth(fieldW);
+					bool offChangedX = ImGui::DragFloat("x##col_off_x", &colliderOff.x, 1.0f, -99999.0f, 99999.0f);
+					bool offActivatedX = ImGui::IsItemActivated();
+					ImGui::SameLine(0.0f, gap);
+					bool offChangedY = ImGui::DragFloat("y##col_off_y", &colliderOff.y, 1.0f, -99999.0f, 99999.0f);
+					bool offActivatedY = ImGui::IsItemActivated();
+					ImGui::PopItemWidth();
+
+					if (offActivatedX || offActivatedY) {
+						PushUndoSnapshot(editor, scene);
+					}
+
+					if (offChangedX || offChangedY) {
+						obj->SetColliderOffset({ colliderOff.x, colliderOff.y });
+						SyncColliderDefaults(colliderSize, { colliderOff.x, colliderOff.y });
+						scene.RebuildColliders();
+					}
+				}
+				else {
+					ImGui::TextDisabled("Collider disabled");
+				}
+
+				ImGui::NextColumn();
+
+				ImGui::Columns(1);
+			}
 			// ========== Audio Bindings Section ==========
 			ImGui::Spacing();
-			if (ImGui::CollapsingHeader("Audio Bindings", ImGuiTreeNodeFlags_DefaultOpen)) {
+			if (ImGui::CollapsingHeader("Audio Bindings")) {
 				ImGui::Indent(8.0f);
 
 				// Get available audio assets from catalog
 				const auto& audioAssets = Audio::AudioCatalog::GetAllAssets();
-				
+
 				// Build list of audio names for combo boxes
 				std::vector<const char*> audioNames;
 				audioNames.push_back("(None)");  // First option to clear binding
@@ -1275,7 +1512,7 @@ namespace LEPANELLEVEL {
 				auto DrawAudioSlot = [&](const char* label, std::string& audioBinding, const char* tooltipText) {
 					ImGui::Text("%s", label);
 					ImGui::SameLine(120.0f);
-					
+
 					// Find current selection index
 					int currentIdx = 0;
 					for (size_t i = 1; i < audioNames.size(); ++i) {
@@ -1357,7 +1594,7 @@ namespace LEPANELLEVEL {
 					if (ImGui::IsItemHovered() && tooltipText) {
 						ImGui::SetTooltip("%s", tooltipText);
 					}
-				};
+					};
 
 				// Get current audio bindings from defaults
 				std::string audioOnSpawn = defaults.audioOnSpawn;
@@ -1406,179 +1643,196 @@ namespace LEPANELLEVEL {
 				ImGui::EndDisabled();
 			}
 		}
-			// Text Object Inspector - when a text object is selected
-			else {
-				int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
-				auto& textObjs = LEPANELFONTS::GetMutableTextObjects();
-			
-				if (selectedTextIdx >= 0 && selectedTextIdx < static_cast<int>(textObjs.size())) {
-					if (editor.IsPlaying()) {
-						ImGui::BeginDisabled();
-					}
-				
-					LEPANELFONTS::TextObjectData& textObj = textObjs[selectedTextIdx];
-				
-					ImGui::SeparatorText("Text Object Properties");
-					ImGui::TextDisabled("Selected Text: %s", textObj.name.c_str());
-				
-					ImGui::Columns(2, nullptr, false);
-					ImGuiStyle& style = ImGui::GetStyle();
-				
-					float longestLabel = 0.0f;
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Name").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Font").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Text").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Layer").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position X").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position Y").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Scale").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation Mode").x);
-					longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Color").x);
-					float labelColWidth = longestLabel + style.ItemInnerSpacing.x * 2.0f + 12.0f;
-					ImGui::SetColumnWidth(0, labelColWidth);
-				
-					auto FullWidthNext = []() {
+		// Text Object Inspector - when a text object is selected
+		else {
+			int selectedTextIdx = LEPANELFONTS::GetSelectedTextIndex();
+			auto& textObjs = LEPANELFONTS::GetMutableTextObjects();
+
+			if (selectedTextIdx >= 0 && selectedTextIdx < static_cast<int>(textObjs.size())) {
+				if (editor.IsPlaying()) {
+					ImGui::BeginDisabled();
+				}
+
+				LEPANELFONTS::TextObjectData& textObj = textObjs[selectedTextIdx];
+
+				ImGui::SeparatorText("Text Object Properties");
+				ImGui::TextDisabled("Selected Text: %s", textObj.name.c_str());
+
+				ImGui::Columns(2, nullptr, false);
+				ImGuiStyle& style = ImGui::GetStyle();
+
+				float longestLabel = 0.0f;
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Name").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Font").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Text").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Layer").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position X").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Position Y").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Scale").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Rotation Mode").x);
+				longestLabel = ImMax(longestLabel, ImGui::CalcTextSize("Color").x);
+				float labelColWidth = longestLabel + style.ItemInnerSpacing.x * 2.0f + 12.0f;
+				ImGui::SetColumnWidth(0, labelColWidth);
+
+				auto FullWidthNext = []() {
 					ImGui::SetNextItemWidth(-FLT_MIN);
 					};
-				
-					// Name
-					ImGui::TextUnformatted("Name");
-					ImGui::NextColumn();
-					FullWidthNext();
-					char nameBuf[64];
-					std::snprintf(nameBuf, sizeof(nameBuf), "%s", textObj.name.c_str());
-					if (ImGui::InputText("##TextName", nameBuf, IM_ARRAYSIZE(nameBuf))) {
-						textObj.name = nameBuf;
-					}
-					ImGui::NextColumn();
-				
-					// Font selection
-					ImGui::TextUnformatted("Font");
-					ImGui::NextColumn();
-					FullWidthNext();
-					{
-						// Get list of loaded fonts from LEPANELFONTS
-						const auto& fontNames = LEPANELFONTS::GetLoadedFontNames();
-						if (ImGui::BeginCombo("##TextFont", textObj.fontName.c_str())) {
-							for (const auto& fontName : fontNames) {
-								const bool isSelected = (textObj.fontName == fontName);
-								if (ImGui::Selectable(fontName.c_str(), isSelected)) {
-									textObj.fontName = fontName;
-								}
-								if (isSelected) {
-									ImGui::SetItemDefaultFocus();
-								}
-							}
-							ImGui::EndCombo();
-						}
-					}
-					ImGui::NextColumn();
-				
-					// Text content
-					ImGui::TextUnformatted("Text");
-					ImGui::NextColumn();
-					FullWidthNext();
-					char textBuf[256];
-					std::snprintf(textBuf, sizeof(textBuf), "%s", textObj.text.c_str());
-					if (ImGui::InputText("##TextContent", textBuf, IM_ARRAYSIZE(textBuf))) {
-						textObj.text = textBuf;
-					}
+
+				// Name
+				ImGui::TextUnformatted("Name");
 				ImGui::NextColumn();
-				
-					// Layer selection
-					ImGui::TextUnformatted("Layer");
-					ImGui::NextColumn();
-					FullWidthNext();
-					{
-						std::vector<std::string> layerNames;
-						layerNames.push_back("1");
-					
-						const auto& allLayers = scene.GetAllLayers();
-						for (const auto& pair : allLayers) {
-							const std::string& name = pair.first;
-							if (name.empty()) continue;
-							if (std::find(layerNames.begin(), layerNames.end(), name) == layerNames.end()) {
-							layerNames.push_back(name);
+				FullWidthNext();
+				char nameBuf[64];
+				std::snprintf(nameBuf, sizeof(nameBuf), "%s", textObj.name.c_str());
+				if (ImGui::InputText("##TextName", nameBuf, IM_ARRAYSIZE(nameBuf))) {
+					textObj.name = nameBuf;
+				}
+
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+
+				ImGui::NextColumn();
+
+				// Font selection
+				ImGui::TextUnformatted("Font");
+				ImGui::NextColumn();
+				FullWidthNext();
+				{
+					// Get list of loaded fonts from LEPANELFONTS
+					const auto& fontNames = LEPANELFONTS::GetLoadedFontNames();
+					if (ImGui::BeginCombo("##TextFont", textObj.fontName.c_str())) {
+						for (const auto& fontName : fontNames) {
+							const bool isSelected = (textObj.fontName == fontName);
+							if (ImGui::Selectable(fontName.c_str(), isSelected)) {
+								PushUndoSnapshot(editor, scene);
+								textObj.fontName = fontName;
+							}
+							if (isSelected) {
+								ImGui::SetItemDefaultFocus();
 							}
 						}
-						std::sort(layerNames.begin(), layerNames.end());
-					
-							if (ImGui::BeginCombo("##TextLayer", textObj.layer.c_str())) {
-								for (const std::string& name : layerNames) {
-									bool isSelected = (textObj.layer == name);
-									if (ImGui::Selectable(name.c_str(), isSelected)) {
-										textObj.layer = name;
-										scene.AddLayer(name);
-									}
-									if (isSelected) {
-										ImGui::SetItemDefaultFocus();
-									}
-								}
-								ImGui::EndCombo();
-							}
-					}
-					ImGui::NextColumn();
-				
-					// Position X
-					ImGui::TextUnformatted("Position X");
-					ImGui::NextColumn();
-					FullWidthNext();
-					ImGui::DragFloat("##TextPosX", &textObj.x, 1.0f);
-					ImGui::NextColumn();
-				
-					// Position Y
-					ImGui::TextUnformatted("Position Y");
-					ImGui::NextColumn();
-					FullWidthNext();
-					ImGui::DragFloat("##TextPosY", &textObj.y, 1.0f);
-					ImGui::NextColumn();
-				
-					// Scale
-					ImGui::TextUnformatted("Scale");
-					ImGui::NextColumn();
-					FullWidthNext();
-					ImGui::DragFloat("##TextScale", &textObj.scale, 0.01f, 0.1f, 10.0f);
-					ImGui::NextColumn();
-				
-					// Rotation
-					ImGui::TextUnformatted("Rotation");
-					ImGui::NextColumn();
-					FullWidthNext();
-					ImGui::SliderFloat("##TextRotation", &textObj.rotation, 0.0f, 360.0f, "%.1f deg");
-					ImGui::NextColumn();
-				
-					// Rotation Mode
-					ImGui::TextUnformatted("Rotation Mode");
-					ImGui::NextColumn();
-					FullWidthNext();
-					const char* rotModeItems[] = { "Block (Normal)", "Per-Character (Curved)" };
-					int currentMode = textObj.useBlockRotation ? 0 : 1;
-					if (ImGui::Combo("##TextRotMode", &currentMode, rotModeItems, IM_ARRAYSIZE(rotModeItems))) {
-						textObj.useBlockRotation = (currentMode == 0);
-					}
-					ImGui::NextColumn();
-				
-					// Color
-					ImGui::TextUnformatted("Color");
-					ImGui::NextColumn();
-					FullWidthNext();
-					float color[4] = { textObj.colorR, textObj.colorG, textObj.colorB, textObj.colorA };
-					if (ImGui::ColorEdit4("##TextColor", color)) {
-						textObj.colorR = color[0];
-						textObj.colorG = color[1];
-						textObj.colorB = color[2];
-						textObj.colorA = color[3];
-					}
-					ImGui::NextColumn();
-				
-					ImGui::Columns(1);
-				
-					if (editor.IsPlaying()) {
-						ImGui::EndDisabled();
+						ImGui::EndCombo();
 					}
 				}
+				ImGui::NextColumn();
+
+				// Text content
+				ImGui::TextUnformatted("Text");
+				ImGui::NextColumn();
+				FullWidthNext();
+				char textBuf[256];
+				std::snprintf(textBuf, sizeof(textBuf), "%s", textObj.text.c_str());
+				if (ImGui::InputText("##TextContent", textBuf, IM_ARRAYSIZE(textBuf))) {
+					textObj.text = textBuf;
+				}
+
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+
+				ImGui::NextColumn();
+
+				// Layer selection
+				ImGui::TextUnformatted("Layer");
+				ImGui::NextColumn();
+				FullWidthNext();
+				{
+					std::vector<std::string> layerNames = BuildLayerNameList(scene);
+
+					if (ImGui::BeginCombo("##TextLayer", textObj.layer.c_str())) {
+						for (const std::string& name : layerNames) {
+							bool isSelected = (textObj.layer == name);
+							if (ImGui::Selectable(name.c_str(), isSelected)) {
+								PushUndoSnapshot(editor, scene);
+								textObj.layer = name;
+								scene.AddLayer(name);
+							}
+							if (isSelected) {
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+						ImGui::EndCombo();
+					}
+				}
+				ImGui::NextColumn();
+
+				// Position X
+				ImGui::TextUnformatted("Position X");
+				ImGui::NextColumn();
+				FullWidthNext();
+				ImGui::DragFloat("##TextPosX", &textObj.x, 1.0f);
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+				ImGui::NextColumn();
+
+				// Position Y
+				ImGui::TextUnformatted("Position Y");
+				ImGui::NextColumn();
+				FullWidthNext();
+				ImGui::DragFloat("##TextPosY", &textObj.y, 1.0f);
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+				ImGui::NextColumn();
+
+				// Scale
+				ImGui::TextUnformatted("Scale");
+				ImGui::NextColumn();
+				FullWidthNext();
+				ImGui::DragFloat("##TextScale", &textObj.scale, 0.01f, 0.1f, 10.0f);
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+				ImGui::NextColumn();
+
+				// Rotation
+				ImGui::TextUnformatted("Rotation");
+				ImGui::NextColumn();
+				FullWidthNext();
+				ImGui::SliderFloat("##TextRotation", &textObj.rotation, 0.0f, 360.0f, "%.1f deg");
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+				ImGui::NextColumn();
+
+				// Rotation Mode
+				ImGui::TextUnformatted("Rotation Mode");
+				ImGui::NextColumn();
+				FullWidthNext();
+				const char* rotModeItems[] = { "Block (Normal)", "Per-Character (Curved)" };
+				int currentMode = textObj.useBlockRotation ? 0 : 1;
+				if (ImGui::Combo("##TextRotMode", &currentMode, rotModeItems, IM_ARRAYSIZE(rotModeItems))) {
+					PushUndoSnapshot(editor, scene);
+					textObj.useBlockRotation = (currentMode == 0);
+				}
+				ImGui::NextColumn();
+
+				// Color
+				ImGui::TextUnformatted("Color");
+				ImGui::NextColumn();
+				FullWidthNext();
+				float color[4] = { textObj.colorR, textObj.colorG, textObj.colorB, textObj.colorA };
+				if (ImGui::ColorEdit4("##TextColor", color)) {
+					textObj.colorR = color[0];
+					textObj.colorG = color[1];
+					textObj.colorB = color[2];
+					textObj.colorA = color[3];
+				}
+				if (ImGui::IsItemActivated()) {
+					PushUndoSnapshot(editor, scene);
+				}
+				ImGui::NextColumn();
+
+				ImGui::Columns(1);
+
+				if (editor.IsPlaying()) {
+					ImGui::EndDisabled();
+				}
 			}
+		}
 
 		// Scene viewport area: DROP-ZONE ONLY (picking/dragging happens on the Scene tab)
 		ImGui::Spacing();

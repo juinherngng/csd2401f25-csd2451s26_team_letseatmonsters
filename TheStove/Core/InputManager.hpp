@@ -16,26 +16,28 @@
 
 #pragma once
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <unordered_map>
-#include <unordered_set>
-
 #include "../Graphics/GraphicsEngine.hpp"
 
 #include "imgui.h"
 #include "System.hpp"
 
- /**
-  * @class InputManager
-  * @brief Manages input polling for keyboard and mouse using GLFW.
-  *
-  * Provides per-frame input update, state tracking, and query functions
-  * for detecting presses, releases, and edge transitions.
-  */
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+ // Forward declare Scene to avoid circular dependency
 class InputManager : public CoreFramework::SystemInterface {
 public:
+
+	struct Snapshot {
+		std::vector<int> pressedKeys;
+		std::vector<int> pressedMouseButtons;
+		glm::dvec2 mousePos{ 0.0, 0.0 };
+	};
+
 	// Lifetime / Access
 	InputManager();
 	static InputManager& Get();
@@ -51,11 +53,11 @@ public:
 
 	// Keyboard Queries
 	bool IsKeyPressed(int key) const;
-	bool IsKeyJustPressed(int key) const;
+	bool IsKeyJustPressed(int key);
 
 	// Mouse Queries
 	bool IsMouseButtonPressed(int button) const;
-	bool IsMouseButtonJustPressed(int button) const;
+	bool IsMouseButtonJustPressed(int button);
 	bool IsMouseButtonJustReleased(int button) const;
 	glm::dvec2 GetMousePosition() const;
 
@@ -65,11 +67,17 @@ public:
 	// Clear all key/mouse state (used when losing/regaining focus)
 	void ClearState();
 
-	// Consume next mouse press event
+	// Edge consumption (for one frame only)
 	void ConsumeNextMousePress(int button);
-
-	// Helper to clear all pending consumes
 	void ClearMouseConsume(int button);
+	void ConsumeNextKeyPress(int key);
+	void ClearKeyConsume(int key);
+
+	void CaptureSnapshot(Snapshot& out) const;
+	void ApplySnapshot(const Snapshot& snapshot);
+
+	void SetReplayOverride(bool enable);
+	bool IsReplayOverride() const;
 
 private:
 	// Internal update method that takes window
@@ -91,6 +99,9 @@ private:
 	// Mouse position in window coordinates (pixels)
 	glm::dvec2 mMousePos{ 0.0, 0.0 };
 
-	// Set of mouse buttons whose next press will be consumed
+	// Sets whose next just-pressed edge will be consumed
 	std::unordered_set<int> mConsumeNextMousePress;
+	std::unordered_set<int> mConsumeNextKeyPress;
+
+	bool replayOverride_ = false;
 };

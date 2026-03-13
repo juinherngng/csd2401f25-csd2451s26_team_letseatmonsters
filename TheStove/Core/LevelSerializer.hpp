@@ -23,6 +23,7 @@ struct LevelObject {
 	std::string texture;
 	std::string tag;
 	std::string layer;
+	std::string prefabPath;
 
 	// Transform (z used for sort/layering if applicable)
 	float x{ 0.0f };
@@ -43,9 +44,24 @@ struct LevelObject {
 	float speedX{ 0.0f };
 	float speedY{ 0.0f };
 
-	// Approach offset (relative to object center)
+	// Approach offsets (relative to object center)
 	float approachOffsetX{ 0.0f };
 	float approachOffsetY{ 0.0f };
+	bool hasApproachOffset2{ false };
+	float approachOffset2X{ 0.0f };
+	float approachOffset2Y{ 0.0f };
+
+	// Customer table seating
+	int customerSeatCapacity{ 1 };   // 1 = single-seat, 2 = double-seat
+
+	bool hasCustomerSeatOffset2{ false };
+	float customerSeatOffset2X{ 0.0f };
+	float customerSeatOffset2Y{ 0.0f };
+
+	// Customer table seat offset (relative to object center)
+	bool hasCustomerSeatOffset{ false };
+	float customerSeatOffsetX{ 0.0f };
+	float customerSeatOffsetY{ 0.0f };
 
 	// Animation flag
 	bool animated{ false };
@@ -69,25 +85,25 @@ struct LevelObject {
 struct LevelTextObject {
 	// Identification
 	std::string name;            // Display name in editor
-	
+
 	// Text content
 	std::string text;            // The text to render
 	std::string fontName;		 // Name of the loaded font to use
 	unsigned int fontSize{ 48 }; // Font size (for reloading font if needed)
-	
+
 	// Transform
 	float x{ 0.0f };
 	float y{ 0.0f };
 	float scale{ 1.0f };
 	float rotation{ 0.0f };		   // Rotation in degrees
 	bool useBlockRotation{ true }; // true = block rotation, false = per-character
-	
+
 	// Appearance
 	float colorR{ 1.0f };
 	float colorG{ 1.0f };
 	float colorB{ 1.0f };
 	float colorA{ 1.0f };
-	
+
 	// Layer for rendering order
 	std::string layer{ "1" };
 
@@ -95,6 +111,7 @@ struct LevelTextObject {
 	bool visible{ true };
 };
 
+// Separate struct for editor use (no need to store font size in JSON or runtime)
 struct TextObjectData {
 	std::string name;
 	std::string fontName;
@@ -104,10 +121,13 @@ struct TextObjectData {
 	float scale = 1.0f;
 };
 
+// Top-level level data structure for JSON (de)serialization
 struct LevelData {
+	int schemaVersion{ 2 };
 	std::vector<LevelObject> objects{};
 	std::vector<LevelTextObject> textObjects{};  // text objects in the level
 	std::string background; // optional background texture path
+	std::string backgroundOverlay; // optional overlay texture path drawn above background
 };
 
 // Public Interface

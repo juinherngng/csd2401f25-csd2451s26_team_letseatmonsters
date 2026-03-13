@@ -13,12 +13,12 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <cmath>
-
 #include "Forces.hpp"
 #include "GOC.hpp"
 #include "RigidBody2D.hpp"
 #include "Transform.hpp"
+
+#include <cmath>
 
 // Lifecycle
 void RigidBody2D::Initialize() {
@@ -102,7 +102,7 @@ Math::Vector2D RigidBody2D::GetPosition() const {
 }
 
 float RigidBody2D::GetMass() const {
-	return (invMass > 0.0f)?(1.0f / invMass):0.0f;
+	return (invMass > 0.0f) ? (1.0f / invMass) : 0.0f;
 }
 
 float RigidBody2D::GetInverseMass() const {
@@ -127,7 +127,7 @@ void RigidBody2D::Stop() {
 }
 
 void RigidBody2D::SetMass(float mass) {
-	invMass = (mass > 0.0f)?(1.0f / mass):0.0f;
+	invMass = (mass > 0.0f) ? (1.0f / mass) : 0.0f;
 }
 
 void RigidBody2D::SetLinearDamping(float value) {

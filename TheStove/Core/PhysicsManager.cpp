@@ -16,12 +16,12 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <cmath>
-#include <iostream>
-
 #include "../Graphics/SceneManager.hpp"
 
 #include "PhysicsManager.hpp"
+
+#include <cmath>
+#include <iostream>
 
  // SystemInterface implementation
 

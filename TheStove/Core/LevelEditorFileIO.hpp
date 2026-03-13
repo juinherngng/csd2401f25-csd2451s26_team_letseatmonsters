@@ -27,15 +27,12 @@ class Scene;
 class GameObject;
 class Texture;
 
-/**
- * @namespace LEFILEIO
- * @brief Provides file management and prefab serialization helpers for the Level Editor.
- */
+// Forward declaration of ResourceManager for texture loading
 namespace LEFILEIO {
 	// Opens a native file selection dialog.
 	std::string OpenFileDialog(const char* filter);
 
-	// ----- File Operations -----
+	// File Operations
 
 	// Copies an external file into a project folder (e.g., ../assets).
 	// Automatically adds a numeric suffix if a file with the same name exists.
@@ -44,15 +41,15 @@ namespace LEFILEIO {
 	// Moves a file into a sibling "trash" folder instead of deleting.
 	bool MoveToTrash(const std::string& filePath);
 
-	// ----- Listing -----
+	// Listing
 
-	// Lists all .json files in a directory (non-recursive). Returns relative paths.
-	std::vector<std::string> ListJsonFiles(const std::string& dir);
+	// Lists all .json files in a directory. Returns paths relative to 'dir'.
+	std::vector<std::string> ListJsonFiles(const std::string& dir, bool recursive = false);
 
-	// Lists all files with matching lowercase extensions. Returns relative paths.
-	std::vector<std::string> ListAssetsWithExt(const std::string& dir, const std::vector<std::string>& exts);
+	// Lists all files with matching lowercase extensions. Returns paths relative to 'dir'.
+	std::vector<std::string> ListAssetsWithExt(const std::string& dir, const std::vector<std::string>& exts, bool recursive = false);
 
-	// ----- Prefab Helpers -----
+	// Prefab Helpers
 
 	// Saves a LevelObject prefab to a JSON file (creates directories if needed).
 	bool SavePrefabToFile(std::string prefabPath, const LevelObject& src);
@@ -63,7 +60,7 @@ namespace LEFILEIO {
 	// Applies prefab data (scale, collider, texture) to an existing GameObject while keeping its current position unchanged.
 	void ApplyPrefabToObjectKeepPosition(const LevelObject& prefab, Scene& scene, GameObject* obj);
 
-	// ----- Texture -----
+	// Texture
 
 	// Loads a texture using a unique cache key, bypassing ResourceManager's cache. Useful for reloading modified textures at runtime.
 	Texture* LoadTextureBypassingCache(const std::string& path);

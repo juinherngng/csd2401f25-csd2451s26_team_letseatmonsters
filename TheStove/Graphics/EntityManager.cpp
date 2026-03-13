@@ -11,11 +11,11 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include <algorithm>
-#include <iostream>
-
 #include "EntityManager.hpp"
 #include "ResourceManager.hpp"
+
+#include <algorithm>
+#include <iostream>
 
 int EntityManager::AcquireID() {
 	if (!freeIDs_.empty()) {
@@ -33,8 +33,8 @@ void EntityManager::ReleaseID(int id) {
 }
 
 GameObject* EntityManager::SpawnStaticSprite(const std::string& texturePath,
-											 const glm::vec3& pos,
-											 const glm::vec2& size) {
+	const glm::vec3& pos,
+	const glm::vec2& size) {
 	int id = AcquireID();
 	//std::cout << "  Acquired ID: " << id << std::endl;  
 
@@ -69,11 +69,11 @@ GameObject* EntityManager::SpawnStaticSprite(const std::string& texturePath,
 }
 
 GameObject* EntityManager::SpawnAnimatedSprite(const std::string& texturePath,
-											   const glm::vec3& pos,
-											   const glm::vec2& size,
-											   const std::vector<glm::vec4>& frames,
-											   float frameDuration,
-											   bool loop) {
+	const glm::vec3& pos,
+	const glm::vec2& size,
+	const std::vector<glm::vec4>& frames,
+	float frameDuration,
+	bool loop) {
 	int id = AcquireID();
 
 	Mesh* quadMesh = ResourceManager::Instance().GetMesh("sprite");
@@ -119,10 +119,10 @@ GameObject* EntityManager::SpawnAnimatedSprite(const std::string& texturePath,
 
 GameObject* EntityManager::GetByID(int id) {
 	auto it = std::find_if(sceneObjects_.begin(), sceneObjects_.end(),
-						   [id](const std::unique_ptr<GameObject>& obj) {
-		return obj && obj->GetID() == id;
-	});
-	return (it != sceneObjects_.end())?it->get():nullptr;
+		[id](const std::unique_ptr<GameObject>& obj) {
+			return obj && obj->GetID() == id;
+		});
+	return (it != sceneObjects_.end()) ? it->get() : nullptr;
 }
 
 std::vector<GameObject*> EntityManager::GetAllObjects() {
@@ -136,20 +136,38 @@ std::vector<GameObject*> EntityManager::GetAllObjects() {
 
 void EntityManager::DespawnByID(int id) {
 	auto it = std::find_if(sceneObjects_.begin(), sceneObjects_.end(),
-						   [id](const std::unique_ptr<GameObject>& obj) {
-		return obj && obj->GetID() == id;
-	});
+		[id](const std::unique_ptr<GameObject>& obj) {
+			return obj && obj->GetID() == id;
+		});
 	if (it != sceneObjects_.end()) {
 		sceneObjects_.erase(it);
 		spritePositions_.erase(id);
 		spriteScales_.erase(id);
 		spriteRotations_.erase(id);
 		texturePathByID_.erase(id);
+		// Notify listeners
+		for (const auto& cb : despawnCbs_) {
+			if (cb) {
+				cb(id);
+			}
+		}
 		ReleaseID(id);
 	}
 }
 
 void EntityManager::Clear() {
+	// Notify callbacks for each existing ID before clearing
+	for (const auto& obj : sceneObjects_) {
+		if (obj) {
+			int id = obj->GetID();
+			for (const auto& cb : despawnCbs_) {
+				if (cb) {
+					cb(id);
+				}
+			}
+		}
+	}
+
 	sceneObjects_.clear();
 	spritePositions_.clear();
 	spriteScales_.clear();
@@ -159,23 +177,27 @@ void EntityManager::Clear() {
 	nextID_ = 0;
 }
 
+void EntityManager::RegisterDespawnCallback(const std::function<void(int)>& cb) {
+	despawnCbs_.push_back(cb);
+}
+
 glm::vec3 EntityManager::GetPosition(int id) const {
 	auto it = spritePositions_.find(id);
-	return (it != spritePositions_.end())?it->second:glm::vec3(0.0f);
+	return (it != spritePositions_.end()) ? it->second : glm::vec3(0.0f);
 }
 
 glm::vec3 EntityManager::GetScale(int id) const {
 	auto it = spriteScales_.find(id);
-	return (it != spriteScales_.end())?it->second:glm::vec3(1.0f);
+	return (it != spriteScales_.end()) ? it->second : glm::vec3(1.0f);
 }
 
 float EntityManager::GetRotation(int id) const {
 	auto it = spriteRotations_.find(id);
-	return (it != spriteRotations_.end())?it->second:0.0f;
+	return (it != spriteRotations_.end()) ? it->second : 0.0f;
 }
 
 const std::string& EntityManager::GetTexturePath(int id) const {
 	auto it = texturePathByID_.find(id);
 	static const std::string empty;
-	return (it != texturePathByID_.end())?it->second:empty;
+	return (it != texturePathByID_.end()) ? it->second : empty;
 }

@@ -7,8 +7,8 @@
 					Ng Juin Herng, juinherng.ng@digipen.edu (33.33%)
 
  DESCRIPTION:		This file defines the GameState enumeration and the GameStateManager system responsible for
-  					controlling the game’s high-level state machine (e.g. main menu, gameplay, quit). It declares
-					the public API for initializing and updating game states, registering JSON-backed levels, and 
+					controlling the game’s high-level state machine (e.g. main menu, gameplay, quit). It declares
+					the public API for initializing and updating game states, registering JSON-backed levels, and
 					injecting engine services such as the Scene and AudioManager used during state transitions.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
@@ -32,6 +32,7 @@ class AudioManager; // forward-declare AudioManager
 
 namespace Framework {
 	enum GameState {
+		GS_Tutorial,
 		GS_Level1,
 		GS_Level2,
 		GS_Quit
@@ -54,6 +55,8 @@ namespace Framework {
 		std::string GetName() override;
 		void InitializeGameState(int GS, float dt);
 		void UpdateGameState(int newState, float dt);
+		using StateAudioPolicy = std::function<void(int, Scene&, AudioManager*)>;
+		using PauseAudioPolicy = std::function<void(bool, bool, int, Scene&, AudioManager*)>;
 
 		// Inject Scene used for runtime level loading
 		void SetScene(Scene* s) {
@@ -70,11 +73,21 @@ namespace Framework {
 			audioManager = mgr;
 		}
 
+		// Inject game-specific state/audio policies
+		void SetStateAudioPolicy(StateAudioPolicy policy) {
+			stateAudioPolicy = std::move(policy);
+		}
+		void SetPauseAudioPolicy(PauseAudioPolicy policy) {
+			pauseAudioPolicy = std::move(policy);
+		}
+
 	private:
 		void OnQuit(const CoreFramework::Message& msg);
 
 		// Switch to a JSON-backed state if mapping exists; returns true if handled
 		bool TrySwitchJsonState(int state, float dt);
+		void PreloadJsonStateAssets(int activeState);
+		void StopCurrentAudio();
 
 	private:
 		CoreFramework::MessageBus& messageBus;
@@ -84,12 +97,12 @@ namespace Framework {
 		std::unordered_map<int, std::string> jsonStatePaths;
 		bool pendingSimActivation = false; // NEW
 
-		// Audio management
+		// Audio service
 		AudioManager* audioManager = nullptr;
-		std::string currentAudio; // Track currently playing background music
-		std::string currentAmbience; // Track currently playing ambient sound
 		bool wasPaused = false;    // Track pause state for audio
-
-		void StopCurrentAudio();
+		StateAudioPolicy stateAudioPolicy;
+		PauseAudioPolicy pauseAudioPolicy;
+		std::string currentAudio;
+		std::string currentAmbience;
 	};
 }

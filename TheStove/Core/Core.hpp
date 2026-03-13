@@ -12,13 +12,13 @@
 
 #pragma once
 
+#include "MessageBus.hpp"
+#include "System.hpp"
+
 #include <chrono>
 #include <memory>
 #include <utility>
 #include <vector>
-
-#include "MessageBus.hpp"
-#include "System.hpp"
 
 namespace CoreFramework {
 	class CoreEngine {
@@ -46,6 +46,8 @@ namespace CoreFramework {
 		*/
 		/************************************************************************/
 		void GameLoop();
+
+		void GameLoop(float dtOverride);
 
 		/************************************************************************/
 		/*!

@@ -5,10 +5,10 @@
  AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
  DESCRIPTION:		Declares the base GameObjectLogic class which defines the common
-                    interface for all gameplay logic components attached to GameObjects,
-                    including lifecycle methods and owner access utilities.
+					interface for all gameplay logic components attached to GameObjects,
+					including lifecycle methods and owner access utilities.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 #pragma once

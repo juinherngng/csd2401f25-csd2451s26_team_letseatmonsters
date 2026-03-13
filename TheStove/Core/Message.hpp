@@ -35,7 +35,8 @@ namespace CoreFramework {
 		MOUSE_BUTTON,
 		MOUSE_MOVE,
 		PLAY_AUDIO,
-		STOP_AUDIO
+		STOP_AUDIO,
+		PLAY_AUDIO_3D
 	};
 
 	// Legacy support - can be removed after full migration
@@ -51,6 +52,7 @@ namespace CoreFramework {
 		constexpr MessageType MOUSE_MOVE = MessageType::MOUSE_MOVE;
 		constexpr MessageType PLAY_AUDIO = MessageType::PLAY_AUDIO;
 		constexpr MessageType STOP_AUDIO = MessageType::STOP_AUDIO;
+		constexpr MessageType PLAY_AUDIO_3D = MessageType::PLAY_AUDIO_3D;
 	}
 
 	/************************************************************************/
@@ -226,6 +228,35 @@ namespace CoreFramework {
 	/************************************************************************/
 	/*!
 	\brief
+		Message for requesting 3D/spatial audio playback.
+		Contains the sound name, position, and playback parameters.
+	*/
+	/************************************************************************/
+	struct PlayAudio3DMessage final : public Message {
+		PlayAudio3DMessage(std::string soundName, float posX, float posY, float posZ = 0.0f,
+			float volume = 1.0f, float minDistance = 1.0f, float maxDistance = 50.0f, bool paused = false) noexcept
+			: Message(MessageType::PLAY_AUDIO_3D)
+			, soundName(std::move(soundName))
+			, posX(posX)
+			, posY(posY)
+			, posZ(posZ)
+			, volume(volume)
+			, minDistance(minDistance)
+			, maxDistance(maxDistance)
+			, paused(paused) {
+		}
+
+		std::string soundName;	// name of the sound to play
+		float posX, posY, posZ;	// 3D world position of the sound source
+		float volume;			// playback volume (0.0 to 1.0)
+		float minDistance;		// distance at which sound starts to attenuate
+		float maxDistance;		// distance at which sound is fully attenuated
+		bool paused;			// whether to start paused
+	};
+
+	/************************************************************************/
+	/*!
+	\brief
 		Converts a MessageType to a human-readable string.
 	\param type
 		The message type to convert.
@@ -235,16 +266,17 @@ namespace CoreFramework {
 	/************************************************************************/
 	inline const char* MessageTypeToString(MessageType type) noexcept {
 		switch (type) {
-			case MessageType::NONE:					return "NONE";
-			case MessageType::QUIT:					return "QUIT";
-			case MessageType::COLLIDE:				return "COLLIDE";
-			case MessageType::TOGGLE_DEBUG_INFO:	return "TOGGLE_DEBUG_INFO";
-			case MessageType::CHARACTER_KEY:		return "CHARACTER_KEY";
-			case MessageType::MOUSE_BUTTON:			return "MOUSE_BUTTON";
-			case MessageType::MOUSE_MOVE:			return "MOUSE_MOVE";
-			case MessageType::PLAY_AUDIO:			return "PLAY_AUDIO";
-			case MessageType::STOP_AUDIO:			return "STOP_AUDIO";
-			default:								return "UNKNOWN";
+		case MessageType::NONE:					return "NONE";
+		case MessageType::QUIT:					return "QUIT";
+		case MessageType::COLLIDE:				return "COLLIDE";
+		case MessageType::TOGGLE_DEBUG_INFO:	return "TOGGLE_DEBUG_INFO";
+		case MessageType::CHARACTER_KEY:		return "CHARACTER_KEY";
+		case MessageType::MOUSE_BUTTON:			return "MOUSE_BUTTON";
+		case MessageType::MOUSE_MOVE:			return "MOUSE_MOVE";
+		case MessageType::PLAY_AUDIO:			return "PLAY_AUDIO";
+		case MessageType::STOP_AUDIO:			return "STOP_AUDIO";
+		case MessageType::PLAY_AUDIO_3D:		return "PLAY_AUDIO_3D";
+		default:								return "UNKNOWN";
 		}
 	}
 

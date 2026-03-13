@@ -12,27 +12,29 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include <iostream>
-
 #include "InputCommandHandler.hpp"
 
+#include <iostream>
+
+ // Processes per-frame command inputs, including debug toggles and physics mode switching.
 void InputCommandHandler::ProcessCommands(InputManager& inputManager,
-										  PhysicsManager& physicsManager,
-										  MovementManager& movementManager,
-										  int playerID,
-										  bool& useForces,
-										  bool& showAuxDebug) {
+	PhysicsManager& physicsManager,
+	MovementManager& movementManager,
+	int playerID,
+	bool& useForces,
+	bool& showAuxDebug) {
 	HandleDebugToggles(inputManager, showAuxDebug);
 	HandleForceToggle(inputManager, physicsManager, movementManager, playerID, useForces);
 }
 
+// Handles debug visualization toggles (G for colliders, H for auxiliary visuals).
 void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& showAuxDebug) {
 	// Toggle collider visualization
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_G)) {
 		DebugRenderer::SetEnabled(!DebugRenderer::IsEnabled());
 
 		std::cout << "[DebugRenderer] Collider visibility: "
-			<< (DebugRenderer::IsEnabled()?"ON":"OFF")
+			<< (DebugRenderer::IsEnabled() ? "ON" : "OFF")
 			<< std::endl;
 	}
 
@@ -41,20 +43,21 @@ void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& s
 		showAuxDebug = !showAuxDebug;
 
 		std::cout << "[Debug] Auxiliary visuals: "
-			<< (showAuxDebug?"ON":"OFF")
+			<< (showAuxDebug ? "ON" : "OFF")
 			<< std::endl;
 	}
 }
 
+// Handles the physics mode toggle (F key) and updates the player's physics component accordingly, as well as the click-to-move path line visibility.
 void InputCommandHandler::HandleForceToggle(InputManager& inputManager,
-											PhysicsManager& physicsManager,
-											MovementManager& movementManager,
-											int playerID,
-											bool& useForces) {
+	PhysicsManager& physicsManager,
+	MovementManager& movementManager,
+	int playerID,
+	bool& useForces) {
 	// Toggle physics forces vs. kinematic
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_F)) {
 		useForces = !useForces;
-		std::cout << "[Forces] " << (useForces?"ON":"OFF") << std::endl;
+		std::cout << "[Forces] " << (useForces ? "ON" : "OFF") << std::endl;
 
 		// Hide click-to-move path line while force mode is ON
 		DebugVisualizer::SetDrawPathLine(!useForces);
@@ -63,7 +66,7 @@ void InputCommandHandler::HandleForceToggle(InputManager& inputManager,
 			if (useForces) {
 				physicsManager.EnablePhysics(playerID, 1.0f);
 
-				// >>> NEW: cancel click-to-move so the line disappears immediately
+				// Cancel click-to-move so the line disappears immediately
 				movementManager.ClearMoveTarget(playerID);
 			}
 			else {

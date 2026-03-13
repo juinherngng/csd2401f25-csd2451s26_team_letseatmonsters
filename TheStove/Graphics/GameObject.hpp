@@ -16,8 +16,6 @@
 
 #pragma once
 
-#include <glm/glm.hpp>
-
 #include "../Core/Math.hpp"
 
 #include "Animator.hpp"
@@ -25,6 +23,8 @@
 #include "Mesh.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
+
+#include <glm/glm.hpp>
 
  /**
   * @class GameObject
@@ -106,6 +106,9 @@ public:
 	Shader* GetShader() const {
 		return m_Shader;
 	}
+	void SetShader(Shader* shader) {
+		m_Shader = shader;
+	}
 	Mesh* GetMesh() const {
 		return m_Mesh;
 	}
@@ -122,6 +125,17 @@ public:
 
 	/** @brief Set the colliders positional offset relative to object center. */
 	void SetColliderOffset(const Math::Vector2D& offset);
+
+	// Dirty-flag helpers used by physics/collision sync paths.
+	bool IsTransformDirty() const {
+		return m_TransformDirty;
+	}
+	bool IsBroadphaseDirty() const {
+		return m_BroadphaseDirty;
+	}
+	void MarkBroadphaseClean() {
+		m_BroadphaseDirty = false;
+	}
 
 	/** @brief Get the collider size. */
 	Math::Vector2D GetColliderSize() const;
@@ -188,12 +202,28 @@ public:
 	}
 
 	// For cross blending / tinting
-	void SetColorTint(const glm::vec4& tint) { colorTint_ = tint; }
-	const glm::vec4& GetColorTint() const { return colorTint_; }
+	void SetColorTint(const glm::vec4& tint) {
+		colorTint_ = tint;
+	}
+	const glm::vec4& GetColorTint() const {
+		return colorTint_;
+	}
 
 	// Layer number for rendering order (set by Scene during collection)
-	void SetRenderLayer(int layer) { renderLayer_ = layer; }
-	int GetRenderLayer() const { return renderLayer_; }
+	void SetRenderLayer(int layer) {
+		renderLayer_ = layer;
+	}
+	int GetRenderLayer() const {
+		return renderLayer_;
+	}
+
+	// Secondary render order within the same layer (higher draws later)
+	void SetRenderSortOrder(int order) {
+		renderSortOrder_ = order;
+	}
+	int GetRenderSortOrder() const {
+		return renderSortOrder_;
+	}
 
 private:
 	Mesh* m_Mesh;
@@ -213,7 +243,9 @@ private:
 
 	// Physics-friendly state
 	Math::Vector2D m_Velocity{ 0.f, 0.f };
-	Math::Vector2D m_ColliderSize{ 1.f, 1.f };
+	// Start with no collider so Scene::InitDefaultCollider can correctly initialize
+	// newly spawned objects to their visual sprite size.
+	Math::Vector2D m_ColliderSize{ 0.f, 0.f };
 	Math::Vector2D m_ColliderOffset{ 0.f, 0.f };
 
 	Animator2D* animator = nullptr;
@@ -226,7 +258,11 @@ private:
 	glm::vec2 m_ShadowOffset{ 0.0f, 0.0f };   // local offset in world units
 	float m_ShadowOpacity = 0.45f;            // 0..1
 
-	glm::vec4 colorTint_{1.0f, 1.0f, 1.0f, 1.0f}; // RGBA tint, 1=opaque
+	glm::vec4 colorTint_{ 1.0f, 1.0f, 1.0f, 1.0f }; // RGBA tint, 1=opaque
 
 	int renderLayer_ = 1; // Layer number for render ordering
+
+	bool m_TransformDirty = true;
+	bool m_BroadphaseDirty = true;
+	int renderSortOrder_ = 0; // Tie-breaker for render ordering within a layer
 };

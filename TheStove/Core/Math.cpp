@@ -10,10 +10,10 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include "Math.hpp"
+
 #include <algorithm>
 #include <cmath>
-
-#include "Math.hpp"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
@@ -33,7 +33,7 @@ namespace Math {
 
 	Vector2D Vector2D::Normalized() const {
 		float length = Length();
-		return (length > 0.0f)?Vector2D(x / length, y / length):Vector2D::ZERO;
+		return (length > 0.0f) ? Vector2D(x / length, y / length) : Vector2D::ZERO;
 	}
 
 	float Vector2D::Dot(Vector2D const& other) const {
@@ -201,7 +201,7 @@ namespace Math {
 	Vector3D Vector3D::Normalized() const {
 		float len = Length();
 
-		return (len > 0.0f)?Vector3D(x / len, y / len, z / len):Vector3D::ZERO;
+		return (len > 0.0f) ? Vector3D(x / len, y / len, z / len) : Vector3D::ZERO;
 	}
 
 	float Vector3D::Dot(Vector3D const& other) const {

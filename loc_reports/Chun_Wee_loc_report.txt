@@ -2,8 +2,8 @@
 Lines of Code Report (Diff-based)
 ==========================================
 Author: Chun Wee
-Since: 2025-12-06
-Generated: Thu Feb  5 18:56:30 +08 2026
+Since: 2026-02-16
+Generated: Fri Mar 13 13:47:21 +08 2026
 ==========================================
 
 ==========================================
@@ -13,85 +13,406 @@ Tracked extensions: .cpp .hpp .h .c
 
 File                                                                        Added    Deleted        Net
 --------------------------------------------------------------------------------------------
-TheStove/Core/LevelEditorPickDrag.cpp                                        1112        403        709
-TheStove/Graphics/ParticleSystem.cpp                                          341         85        256
-TheStove/Core/LevelEditorPanelPrefabs.cpp                                     130         19        111
-TheStove/Graphics/SceneManager.cpp                                            161         84         77
-TheStove/Graphics/ParticleSystem.hpp                                          140         67         73
-TheStove/Core/LevelEditorPanelLevel.cpp                                       268        195         73
-TheStove/Graphics/GraphicsEngine.cpp                                           66         18         48
-TheStove/Core/PlayerLogic.cpp                                                 132         97         35
-TheStove/Graphics/SceneManager.hpp                                             70         44         26
-TheStove/Graphics/Layer.hpp                                                    11          0         11
-TheStove/Core/CollisionManager.cpp                                             15          4         11
-TheStove/Core/PlayerLogic.hpp                                                  27         17         10
-TheStove/Core/LevelSerializer.cpp                                               8          0          8
-TheStove/Graphics/GameObject.hpp                                                8          3          5
-TheStove/Core/PhysicsManager.hpp                                                5          0          5
-TheStove/Core/CollisionManager.hpp                                              5          0          5
-TheStove/Core/PhysicsManager.cpp                                                9          5          4
-TheStove/Graphics/GraphicsEngine.hpp                                            2          0          2
-TheStove/Core/NpcSystem.cpp                                                     2          0          2
-TheStove/Graphics/GameObject.cpp                                                5          4          1
-TheStove/Core/LevelSerializer.hpp                                               1          0          1
-TheStove/Core/InputManager.cpp                                                  2          2          0
-TheStove/Core/InputCommandHandler.cpp                                           2          2          0
-TheStove/Graphics/SceneCollisionLayout.cpp                                     20         58        -38
-TheStove/Core/LevelEditorPanelAssets.cpp                                       11         78        -67
+MyoonchiDiner/Core/CustomerManagerLogic.cpp                                    75         81         -6
+MyoonchiDiner/Core/CustomerManagerLogic.hpp                                     4          4          0
+MyoonchiDiner/Core/CustomerOrderUILogic.cpp                                    16         19         -3
+MyoonchiDiner/Core/CustomerOrderUILogic.hpp                                    11         11          0
+MyoonchiDiner/Core/CustomerTableLogic.cpp                                       1          1          0
+MyoonchiDiner/Core/MenuButtonLogic.cpp                                          7         77        -70
+MyoonchiDiner/Core/MenuButtonLogic.hpp                                          2          1          1
+MyoonchiDiner/Core/PauseButtonLogic.cpp                                         8          4          4
+MyoonchiDiner/Core/PlateLogic.cpp                                               5          9         -4
+MyoonchiDiner/Core/PlateLogic.hpp                                               6          6          0
+MyoonchiDiner/Core/PlayerLogic.cpp                                            468        446         22
+MyoonchiDiner/Core/PlayerLogic.hpp                                             27         24          3
+MyoonchiDiner/Core/Quota.hpp                                                    1          1          0
+MyoonchiDiner/Core/SimpleNpcLogic.cpp                                         404        438        -34
+MyoonchiDiner/Core/SimpleNpcLogic.hpp                                          36         30          6
+MyoonchiDiner/Core/StartGamePromptLogic.cpp                                     5          5          0
+MyoonchiDiner/Core/StartGamePromptLogic.hpp                                     6          4          2
+MyoonchiDiner/Core/TableLogic.cpp                                              12         15         -3
+MyoonchiDiner/Core/WorkTableLogic.cpp                                          69         82        -13
+MyoonchiDiner/Core/WorkTableLogic.hpp                                          15          9          6
+MyoonchiDiner/GameBootstrap.cpp                                                 7          7          0
+MyoonchiDiner/GamePaths.hpp                                                     8          8          0
+MyoonchiDiner/MyoonchiDinerBindings.cpp                                         8          7          1
+TheStove/Core/AudioLoading.cpp                                                 19         21         -2
+TheStove/Core/AudioManager.cpp                                                 13         22         -9
+TheStove/Core/AudioManager.hpp                                                 17         17          0
+TheStove/Core/Collision.cpp                                                     5          6         -1
+TheStove/Core/Collision.hpp                                                     1          1          0
+TheStove/Core/CollisionManager.cpp                                            149         15        134
+TheStove/Core/CollisionManager.hpp                                             44          4         40
+TheStove/Core/ConfigManager.cpp                                               249        199         50
+TheStove/Core/ConfigManager.hpp                                                21         17          4
+TheStove/Core/Core.cpp                                                         22         22          0
+TheStove/Core/Core.hpp                                                          2          2          0
+TheStove/Core/CustomerManagerLogic.cpp                                        118        122         -4
+TheStove/Core/CustomerManagerLogic.hpp                                         25         23          2
+TheStove/Core/CustomerOrderUILogic.cpp                                        220        245        -25
+TheStove/Core/CustomerOrderUILogic.hpp                                         56         55          1
+TheStove/Core/CustomerTableLogic.cpp                                          138        160        -22
+TheStove/Core/CustomerTableLogic.hpp                                           41         34          7
+TheStove/Core/DebugUI.cpp                                                      91         96         -5
+TheStove/Core/DebugUI.hpp                                                      38         20         18
+TheStove/Core/DebugVisualizer.cpp                                              24         24          0
+TheStove/Core/DebugVisualizer.hpp                                               6          6          0
+TheStove/Core/DishLogic.cpp                                                     8         11         -3
+TheStove/Core/DishLogic.hpp                                                    22         15          7
+TheStove/Core/ExitGateLogic.cpp                                                 8          9         -1
+TheStove/Core/ExitGateLogic.hpp                                                12          9          3
+TheStove/Core/Factory.hpp                                                       1          1          0
+TheStove/Core/FileDropHandler.cpp                                               4          4          0
+TheStove/Core/FileDropHandler.hpp                                               3          1          2
+TheStove/Core/FilePaths.hpp                                                    72         69          3
+TheStove/Core/FontSystem.cpp                                                   84        123        -39
+TheStove/Core/FontSystem.hpp                                                   34         23         11
+TheStove/Core/FoodTypes.hpp                                                    16         18         -2
+TheStove/Core/Forces.cpp                                                        9         14         -5
+TheStove/Core/Forces.hpp                                                        3          3          0
+TheStove/Core/GameBootstrap.hpp                                                 2          2          0
+TheStove/Core/GameObjectLogic.cpp                                               0          1         -1
+TheStove/Core/GameObjectLogic.hpp                                              15         15          0
+TheStove/Core/GameStateManager.cpp                                             57          6         51
+TheStove/Core/GameStateManager.hpp                                              3          2          1
+TheStove/Core/GridPathfinder.cpp                                              156        167        -11
+TheStove/Core/GridPathfinder.hpp                                               78         86         -8
+TheStove/Core/HowToPlayButtonLogic.cpp                                        128        128          0
+TheStove/Core/HowToPlayButtonLogic.hpp                                         13         12          1
+TheStove/Core/ISerializer.cpp                                                   1          1          0
+TheStove/Core/IngredientBoxLogic.cpp                                          131        150        -19
+TheStove/Core/IngredientBoxLogic.hpp                                           33         33          0
+TheStove/Core/IngredientLogic.cpp                                              27         32         -5
+TheStove/Core/IngredientLogic.hpp                                              24         17          7
+TheStove/Core/InputCommandHandler.cpp                                          13         13          0
+TheStove/Core/InputCommandHandler.hpp                                          11         11          0
+TheStove/Core/InputManager.cpp                                                106         69         37
+TheStove/Core/InputManager.hpp                                                  8          8          0
+TheStove/Core/LevelEditor.cpp                                                   8          7          1
+TheStove/Core/LevelEditor.hpp                                                   4          5         -1
+TheStove/Core/LevelEditorActions.cpp                                          135         48         87
+TheStove/Core/LevelEditorActions.hpp                                           18          0         18
+TheStove/Core/LevelEditorAutoSave.cpp                                          58          1         57
+TheStove/Core/LevelEditorAutoSave.hpp                                          10          0         10
+TheStove/Core/LevelEditorCommandSystem.cpp                                    116         33         83
+TheStove/Core/LevelEditorCommandSystem.hpp                                     13          1         12
+TheStove/Core/LevelEditorFileIO.cpp                                           124         57         67
+TheStove/Core/LevelEditorFileIO.hpp                                             2          2          0
+TheStove/Core/LevelEditorHierarchy.cpp                                         88          2         86
+TheStove/Core/LevelEditorHierarchy.hpp                                         11          0         11
+TheStove/Core/LevelEditorPanelAssets.cpp                                      359        272         87
+TheStove/Core/LevelEditorPanelAssets.hpp                                        3          3          0
+TheStove/Core/LevelEditorPanelAudioControl.cpp                                256        245         11
+TheStove/Core/LevelEditorPanelAudioControl.hpp                                  3          3          0
+TheStove/Core/LevelEditorPanelConfig.cpp                                      303        108        195
+TheStove/Core/LevelEditorPanelConfig.hpp                                       11          5          6
+TheStove/Core/LevelEditorPanelFonts.cpp                                       265        285        -20
+TheStove/Core/LevelEditorPanelFonts.hpp                                        36         35          1
+TheStove/Core/LevelEditorPanelLevel.cpp                                      1015        811        204
+TheStove/Core/LevelEditorPanelLevel.hpp                                         4          9         -5
+TheStove/Core/LevelEditorPanelPrefabs.cpp                                     720        519        201
+TheStove/Core/LevelEditorPanelPrefabs.hpp                                       2          5         -3
+TheStove/Core/LevelEditorPickDrag.cpp                                         167        155         12
+TheStove/Core/LevelEditorPickDrag.hpp                                           5          8         -3
+TheStove/Core/LevelSerializer.cpp                                              71         10         61
+TheStove/Core/LevelSerializer.hpp                                               2          0          2
+TheStove/Core/LogicManager.hpp                                                 38         42         -4
+TheStove/Core/Math.cpp                                                          3          3          0
+TheStove/Core/MenuButtonLogic.cpp                                             160        158          2
+TheStove/Core/MenuButtonLogic.hpp                                               7          5          2
+TheStove/Core/Message.hpp                                                      10         10          0
+TheStove/Core/MessageBus.hpp                                                    2          2          0
+TheStove/Core/MovementManager.cpp                                               9          8          1
+TheStove/Core/MovementManager.hpp                                               3          3          0
+TheStove/Core/NpcSystem.cpp                                                    10         10          0
+TheStove/Core/NpcSystem.hpp                                                     8          8          0
+TheStove/Core/OrderUILogic.cpp                                                227        259        -32
+TheStove/Core/OrderUILogic.hpp                                                 64         65         -1
+TheStove/Core/PauseButtonLogic.cpp                                             54         53          1
+TheStove/Core/PauseButtonLogic.hpp                                              1          1          0
+TheStove/Core/Physics.cpp                                                       6          6          0
+TheStove/Core/PhysicsManager.cpp                                                2          2          0
+TheStove/Core/PhysicsManager.hpp                                                2          2          0
+TheStove/Core/PlateLogic.cpp                                                   19         37        -18
+TheStove/Core/PlateLogic.hpp                                                   50         33         17
+TheStove/Core/PlayerController.cpp                                             82         50         32
+TheStove/Core/PlayerController.hpp                                             34         24         10
+TheStove/Core/PlayerLogic.cpp                                                 519        353        166
+TheStove/Core/PlayerLogic.hpp                                                  23          4         19
+TheStove/Core/Precompiled.hpp                                                   2          2          0
+TheStove/Core/Quota.cpp                                                       148        158        -10
+TheStove/Core/Quota.hpp                                                       135        140         -5
+TheStove/Core/ReplayManager.cpp                                                 3          3          0
+TheStove/Core/ReplayManager.hpp                                                 1          1          0
+TheStove/Core/RigidBody2D.cpp                                                   3          3          0
+TheStove/Core/RigidBody2D.hpp                                                   2          2          0
+TheStove/Core/RuntimeLevel.cpp                                                 70         29         41
+TheStove/Core/RuntimeLevel.hpp                                                  1          1          0
+TheStove/Core/SimpleNpcLogic.cpp                                              270        296        -26
+TheStove/Core/SimpleNpcLogic.hpp                                              131         92         39
+TheStove/Core/SpatialGrid.cpp                                                 181         59        122
+TheStove/Core/SpatialGrid.hpp                                                  25         13         12
+TheStove/Core/TableLogic.cpp                                                  103        126        -23
+TheStove/Core/TableLogic.hpp                                                   43         38          5
+TheStove/Core/TrashCanLogic.cpp                                                24         29         -5
+TheStove/Core/TrashCanLogic.hpp                                                13         12          1
+TheStove/Core/WorkTableLogic.cpp                                              150        178        -28
+TheStove/Core/WorkTableLogic.hpp                                               44         38          6
+TheStove/Graphics/AnimationManager.cpp                                         44         46         -2
+TheStove/Graphics/AnimationManager.hpp                                          3          3          0
+TheStove/Graphics/Animator.hpp                                                  3          3          0
+TheStove/Graphics/DebugRenderer.cpp                                             5          5          0
+TheStove/Graphics/DebugRenderer.hpp                                             2          2          0
+TheStove/Graphics/EntityManager.cpp                                           158        140         18
+TheStove/Graphics/EntityManager.hpp                                            33         27          6
+TheStove/Graphics/GameObject.cpp                                                9          2          7
+TheStove/Graphics/GameObject.hpp                                               31          8         23
+TheStove/Graphics/GraphicsEngine.cpp                                          530        589        -59
+TheStove/Graphics/GraphicsEngine.hpp                                           57         41         16
+TheStove/Graphics/Mesh.cpp                                                      3          3          0
+TheStove/Graphics/Mesh.hpp                                                      2          2          0
+TheStove/Graphics/MeshLoader.hpp                                                1          1          0
+TheStove/Graphics/ParticleSystem.cpp                                          103         36         67
+TheStove/Graphics/ParticleSystem.hpp                                           15          2         13
+TheStove/Graphics/Renderer.cpp                                                  1          1          0
+TheStove/Graphics/ResourceManager.cpp                                         185         37        148
+TheStove/Graphics/ResourceManager.hpp                                          10          3          7
+TheStove/Graphics/SceneCollisionLayout.cpp                                     23         38        -15
+TheStove/Graphics/SceneDebug.cpp                                                3          3          0
+TheStove/Graphics/SceneManager.cpp                                            497        392        105
+TheStove/Graphics/SceneManager.hpp                                             96         77         19
+TheStove/Graphics/SceneViewportPresenter.cpp                                  104         11         93
+TheStove/Graphics/SceneViewportPresenter.hpp                                   21          1         20
+TheStove/Graphics/Shader.cpp                                                   11         11          0
+TheStove/Graphics/Shader.hpp                                                    4          2          2
+TheStove/Graphics/Texture.cpp                                                  50          9         41
+TheStove/Graphics/Texture.hpp                                                   7          0          7
+TheStove/Graphics/VertexArray.cpp                                               1          1          0
+TheStove/Graphics/VertexArray.hpp                                               1          1          0
+TheStove/Main.cpp                                                              52         54         -2
 --------------------------------------------------------------------------------------------
 
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    2553
-Lines Deleted:  1185
-Net Change:     1368
-Total Commits:  29
+Lines Added:    12138
+Lines Deleted:  9991
+Net Change:     2147
+Total Commits:  127
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
 ==========================================
 
+LetsEatMonsters_ReadMe.txt
+Level_Editor_Guide.docx
+MyoonchiDiner/Core/CustomerManagerLogic.cpp
+MyoonchiDiner/Core/CustomerManagerLogic.hpp
+MyoonchiDiner/Core/CustomerOrderUILogic.cpp
+MyoonchiDiner/Core/CustomerOrderUILogic.hpp
+MyoonchiDiner/Core/CustomerTableLogic.cpp
+MyoonchiDiner/Core/CustomerTableLogic.hpp
+MyoonchiDiner/Core/HowToPlayButtonLogic.cpp
+MyoonchiDiner/Core/IngredientBoxLogic.cpp
+MyoonchiDiner/Core/MenuButtonLogic.cpp
+MyoonchiDiner/Core/MenuButtonLogic.hpp
+MyoonchiDiner/Core/OrderUILogic.hpp
+MyoonchiDiner/Core/PauseButtonLogic.cpp
+MyoonchiDiner/Core/PlateLogic.cpp
+MyoonchiDiner/Core/PlateLogic.hpp
+MyoonchiDiner/Core/PlayerLogic.cpp
+MyoonchiDiner/Core/PlayerLogic.hpp
+MyoonchiDiner/Core/Quota.hpp
+MyoonchiDiner/Core/SimpleNpcLogic.cpp
+MyoonchiDiner/Core/SimpleNpcLogic.hpp
+MyoonchiDiner/Core/StartGamePromptLogic.cpp
+MyoonchiDiner/Core/StartGamePromptLogic.hpp
+MyoonchiDiner/Core/TableLogic.cpp
+MyoonchiDiner/Core/WorkTableLogic.cpp
+MyoonchiDiner/Core/WorkTableLogic.hpp
+MyoonchiDiner/GameBootstrap.cpp
+MyoonchiDiner/GamePaths.hpp
+MyoonchiDiner/MyoonchiDinerBindings.cpp
+TheStove/Core/AudioLoading.cpp
+TheStove/Core/AudioManager.cpp
+TheStove/Core/AudioManager.hpp
+TheStove/Core/Collision.cpp
+TheStove/Core/Collision.hpp
 TheStove/Core/CollisionManager.cpp
 TheStove/Core/CollisionManager.hpp
+TheStove/Core/ConfigManager.cpp
+TheStove/Core/ConfigManager.hpp
+TheStove/Core/Core.cpp
+TheStove/Core/Core.hpp
+TheStove/Core/CustomerManagerLogic.cpp
+TheStove/Core/CustomerManagerLogic.hpp
+TheStove/Core/CustomerOrderUILogic.cpp
+TheStove/Core/CustomerOrderUILogic.hpp
+TheStove/Core/CustomerTableLogic.cpp
+TheStove/Core/CustomerTableLogic.hpp
+TheStove/Core/DebugUI.cpp
+TheStove/Core/DebugUI.hpp
+TheStove/Core/DebugVisualizer.cpp
+TheStove/Core/DebugVisualizer.hpp
+TheStove/Core/DishLogic.cpp
+TheStove/Core/DishLogic.hpp
+TheStove/Core/ExitGateLogic.cpp
+TheStove/Core/ExitGateLogic.hpp
+TheStove/Core/Factory.hpp
+TheStove/Core/FileDropHandler.cpp
+TheStove/Core/FileDropHandler.hpp
+TheStove/Core/FilePaths.hpp
+TheStove/Core/FontSystem.cpp
+TheStove/Core/FontSystem.hpp
+TheStove/Core/FoodTypes.hpp
+TheStove/Core/Forces.cpp
+TheStove/Core/Forces.hpp
+TheStove/Core/GameBootstrap.hpp
+TheStove/Core/GameObjectLogic.cpp
+TheStove/Core/GameObjectLogic.hpp
+TheStove/Core/GameStateManager.cpp
+TheStove/Core/GameStateManager.hpp
+TheStove/Core/GridPathfinder.cpp
+TheStove/Core/GridPathfinder.hpp
+TheStove/Core/HowToPlayButtonLogic.cpp
+TheStove/Core/HowToPlayButtonLogic.hpp
+TheStove/Core/ISerializer.cpp
+TheStove/Core/IngredientBoxLogic.cpp
+TheStove/Core/IngredientBoxLogic.hpp
+TheStove/Core/IngredientLogic.cpp
+TheStove/Core/IngredientLogic.hpp
 TheStove/Core/InputCommandHandler.cpp
+TheStove/Core/InputCommandHandler.hpp
 TheStove/Core/InputManager.cpp
+TheStove/Core/InputManager.hpp
+TheStove/Core/LevelEditor.cpp
+TheStove/Core/LevelEditor.hpp
+TheStove/Core/LevelEditorActions.cpp
+TheStove/Core/LevelEditorActions.hpp
+TheStove/Core/LevelEditorAutoSave.cpp
+TheStove/Core/LevelEditorAutoSave.hpp
+TheStove/Core/LevelEditorCommandSystem.cpp
+TheStove/Core/LevelEditorCommandSystem.hpp
+TheStove/Core/LevelEditorFileIO.cpp
+TheStove/Core/LevelEditorFileIO.hpp
+TheStove/Core/LevelEditorHierarchy.cpp
+TheStove/Core/LevelEditorHierarchy.hpp
 TheStove/Core/LevelEditorPanelAssets.cpp
+TheStove/Core/LevelEditorPanelAssets.hpp
+TheStove/Core/LevelEditorPanelAudioControl.cpp
+TheStove/Core/LevelEditorPanelAudioControl.hpp
+TheStove/Core/LevelEditorPanelConfig.cpp
+TheStove/Core/LevelEditorPanelConfig.hpp
+TheStove/Core/LevelEditorPanelFonts.cpp
+TheStove/Core/LevelEditorPanelFonts.hpp
 TheStove/Core/LevelEditorPanelLevel.cpp
+TheStove/Core/LevelEditorPanelLevel.hpp
 TheStove/Core/LevelEditorPanelPrefabs.cpp
+TheStove/Core/LevelEditorPanelPrefabs.hpp
 TheStove/Core/LevelEditorPickDrag.cpp
+TheStove/Core/LevelEditorPickDrag.hpp
 TheStove/Core/LevelSerializer.cpp
 TheStove/Core/LevelSerializer.hpp
+TheStove/Core/LogicManager.hpp
+TheStove/Core/Math.cpp
+TheStove/Core/MenuButtonLogic.cpp
+TheStove/Core/MenuButtonLogic.hpp
+TheStove/Core/Message.hpp
+TheStove/Core/MessageBus.hpp
+TheStove/Core/MovementManager.cpp
+TheStove/Core/MovementManager.hpp
 TheStove/Core/NpcSystem.cpp
+TheStove/Core/NpcSystem.hpp
+TheStove/Core/OrderUILogic.cpp
+TheStove/Core/OrderUILogic.hpp
+TheStove/Core/PauseButtonLogic.cpp
+TheStove/Core/PauseButtonLogic.hpp
+TheStove/Core/Physics.cpp
+TheStove/Core/Physics.hpp
 TheStove/Core/PhysicsManager.cpp
 TheStove/Core/PhysicsManager.hpp
+TheStove/Core/PlateLogic.cpp
+TheStove/Core/PlateLogic.hpp
+TheStove/Core/PlayerController.cpp
+TheStove/Core/PlayerController.hpp
 TheStove/Core/PlayerLogic.cpp
 TheStove/Core/PlayerLogic.hpp
+TheStove/Core/Precompiled.hpp
+TheStove/Core/Quota.cpp
+TheStove/Core/Quota.hpp
+TheStove/Core/ReplayManager.cpp
+TheStove/Core/ReplayManager.hpp
+TheStove/Core/RigidBody2D.cpp
+TheStove/Core/RigidBody2D.hpp
+TheStove/Core/RuntimeLevel.cpp
+TheStove/Core/RuntimeLevel.hpp
+TheStove/Core/SimpleNpcLogic.cpp
+TheStove/Core/SimpleNpcLogic.hpp
+TheStove/Core/SpatialGrid.cpp
+TheStove/Core/SpatialGrid.hpp
+TheStove/Core/TableLogic.cpp
+TheStove/Core/TableLogic.hpp
+TheStove/Core/TrashCanLogic.cpp
+TheStove/Core/TrashCanLogic.hpp
+TheStove/Core/WorkTableLogic.cpp
+TheStove/Core/WorkTableLogic.hpp
+TheStove/Graphics/AnimationManager.cpp
+TheStove/Graphics/AnimationManager.hpp
+TheStove/Graphics/Animator.hpp
+TheStove/Graphics/DebugRenderer.cpp
+TheStove/Graphics/DebugRenderer.hpp
+TheStove/Graphics/EntityManager.cpp
+TheStove/Graphics/EntityManager.hpp
 TheStove/Graphics/GameObject.cpp
 TheStove/Graphics/GameObject.hpp
 TheStove/Graphics/GraphicsEngine.cpp
 TheStove/Graphics/GraphicsEngine.hpp
 TheStove/Graphics/Layer.hpp
+TheStove/Graphics/Mesh.cpp
+TheStove/Graphics/Mesh.hpp
+TheStove/Graphics/MeshLoader.hpp
 TheStove/Graphics/ParticleSystem.cpp
 TheStove/Graphics/ParticleSystem.hpp
+TheStove/Graphics/Renderer.cpp
+TheStove/Graphics/Renderer.hpp
+TheStove/Graphics/ResourceManager.cpp
+TheStove/Graphics/ResourceManager.hpp
 TheStove/Graphics/SceneCollisionLayout.cpp
+TheStove/Graphics/SceneDebug.cpp
 TheStove/Graphics/SceneManager.cpp
 TheStove/Graphics/SceneManager.hpp
-TheStove/count_loc.sh
-TheStove/count_loc_v2.sh
-assets/VFX SpriteSheet.png
+TheStove/Graphics/SceneViewportPresenter.cpp
+TheStove/Graphics/SceneViewportPresenter.hpp
+TheStove/Graphics/Shader.cpp
+TheStove/Graphics/Shader.hpp
+TheStove/Graphics/Texture.cpp
+TheStove/Graphics/Texture.hpp
+TheStove/Graphics/VertexArray.cpp
+TheStove/Graphics/VertexArray.hpp
+TheStove/Graphics/VertexBuffer.hpp
+TheStove/Main.cpp
+assets/Arrow_Merged.png
+assets/Audio/AudioCatalog.json
+assets/arrow-Sheet.png
 assets/config.txt
-assets/run_vfx.png
+assets/mc_back.png
+assets/mc_sideleft.png
+assets/mc_sideright.png
 count_loc.sh
 count_loc_all_authors.sh
+editorGuide(old).docx
+editorGuide(old).pdf
+editorGuide.docx
+editorGuide.pdf
 imgui.ini
+levels/kitchen01.autosave.json
 levels/kitchen01.json
+levels/lose.json
+levels/win.json
 loc_reports/00_SUMMARY.txt
 loc_reports/Chun_Wee_loc_report.txt
 loc_reports/CookieWasTaken_loc_report.txt
 loc_reports/Wang_Hua_loc_report.txt
-loc_reports/Yat_Chun_Wee_loc_report.txt
+loc_reports/chuuniby_loc_report.txt
 loc_reports/juinherngng_loc_report.txt
-loc_reports/y_chunwee_loc_report.txt
-prefabs/trash/my_goat.json
-prefabs/trash/my_goat3.json
+projectGuide.pdf

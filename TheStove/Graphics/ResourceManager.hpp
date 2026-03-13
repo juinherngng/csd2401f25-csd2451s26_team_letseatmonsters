@@ -2,8 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			ResourceManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
- CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (50%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (30%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(30%)
 
  DESCRIPTION:		Singleton cache for loading and retrieving Shaders, Textures, and Meshes by name.
 
@@ -13,14 +14,15 @@
 
 #pragma once
 
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 #include "Mesh.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
+
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 // Forward declarations
 class AudioManager;
@@ -49,6 +51,7 @@ public:
 	// Texture management
 	Texture* LoadTexture(const std::string& name, const std::string& filePath);
 	Texture* GetTexture(const std::string& name);
+	void PreloadTextures(const std::vector<std::string>& filePaths);
 
 	// Font management
 	FontSystem::Font* LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize);
@@ -56,12 +59,15 @@ public:
 
 	// Audio management (delegates to AudioManager)
 	bool LoadAudio(const std::string& name, const std::string& filePath, bool loop = false, bool stream = false);
+	bool LoadAudio3D(const std::string& name, const std::string& filePath, bool loop = false, bool stream = false);
 	bool HasAudio(const std::string& name) const;
 	void UnloadAudio(const std::string& name);
 	bool GetAudioInfo(const std::string& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const;
 
 	// Cleanup
 	void Clear();
+
+	std::string NormalizePathCached(const std::string& path);
 
 private:
 	ResourceManager() : isCleared(false), audioManager(nullptr) {
@@ -74,11 +80,15 @@ private:
 	ResourceManager(const ResourceManager&) = delete;
 	ResourceManager& operator=(const ResourceManager&) = delete;
 
+	// Resource storage
 	std::unordered_map<std::string, std::unique_ptr<Shader>> shaders;
 	std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes;
 	std::unordered_map<std::string, std::unique_ptr<Texture>> textures;
+	std::unordered_map<std::string, Texture*> textureAliases;
+	std::unordered_map<std::string, Texture*> texturePaths;
+	std::unordered_map<std::string, std::string> normalizedPathCache;
+	std::unordered_set<std::string> failedTexturePaths;
 
 	AudioManager* audioManager; // Non-owning pointer to AudioManager
 	bool isCleared;
-
 };

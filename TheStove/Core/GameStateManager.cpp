@@ -3,11 +3,12 @@
  FILE NAME:			GameStateManager.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Darren Toh, darren.toh@digipen.edu		(20%)
- CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu (40%)
-					Ng Juin Herng, juinherng.ng@digipen.edu (40%)
+ CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu (30%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(30%)
 
  DESCRIPTION:		This file implements the logic for first-time initialization, per-frame updates, and transitions
- 					between states, preferring JSON-driven runtime level loading when mappings are registered, with a 
+					between states, preferring JSON-driven runtime level loading when mappings are registered, with a
 					fallback to legacy function-pointer-based level init/update/exit routines. Manages scene simulation
 					activation timing, tracks pause state to pause/resume audio in gameplay, and controls state-based
 					playback and cleanup of background music and ambience through the injected AudioManager instance.
@@ -16,12 +17,41 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include "GameStateManager.hpp"
+#include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
-#include "RuntimeLevel.hpp"
+
 #include "AudioManager.hpp"
+#include "EngineRng.hpp"
+#include "GameStateManager.hpp"
+#include "LevelSerializer.hpp"
+#include "RuntimeLevel.hpp"
+
+#include <unordered_set>
+#include <vector>
 
 namespace Framework {
+
+	namespace {
+		// Fixed seed for tutorial levels to ensure consistent RNG behavior 
+		constexpr std::uint32_t kTutorialFixedSeed = 0x00C0FFEEu;
+
+		void AppendLevelTextures(const std::string& levelPath, std::vector<std::string>& inOutPaths, std::unordered_set<std::string>& seen) {
+			LevelData levelData;
+			if (!LevelSerializer::Load(levelPath, levelData)) {
+				return;
+			}
+
+			if (!levelData.background.empty() && seen.insert(levelData.background).second) {
+				inOutPaths.push_back(levelData.background);
+			}
+
+			for (const LevelObject& object : levelData.objects) {
+				if (!object.texture.empty() && seen.insert(object.texture).second) {
+					inOutPaths.push_back(object.texture);
+				}
+			}
+		}
+	}
 
 	extern int currentGS = 0, nextGS = 0;
 	extern bool init = false;
@@ -61,13 +91,8 @@ namespace Framework {
 		// Handle audio pause/resume based on simulation state
 		if (audioManager && scene) {
 			bool isPaused = !scene->IsSimulationActive();
-			// Check if we just entered pause (level 2 only - gameplay level)
-			if (currentGS == GS_Level2 && isPaused && !wasPaused && !currentAudio.empty()) {
-				audioManager->PauseAll();
-			}
-			// Check if we just exited pause
-			else if (currentGS == GS_Level2 && !isPaused && wasPaused && !currentAudio.empty()) {
-				audioManager->ResumeAll();
+			if (pauseAudioPolicy) {
+				pauseAudioPolicy(isPaused, wasPaused, currentGS, *scene, audioManager);
 			}
 			wasPaused = isPaused;
 		}
@@ -88,6 +113,16 @@ namespace Framework {
 
 	void GameStateManager::InitializeGameState(int GS, float dt) {
 		nextGS = currentGS = GS;
+
+		// Warm up target-state textures before switching (menu->level, level->cutscene).
+		if (jsonStatePaths.find(GS) != jsonStatePaths.end()) {
+			std::vector<std::string> targetTextures;
+			std::unordered_set<std::string> seen;
+			AppendLevelTextures(jsonStatePaths[GS], targetTextures, seen);
+			if (!targetTextures.empty()) {
+				ResourceManager::Instance().PreloadTextures(targetTextures);
+			}
+		}
 
 		// Prefer JSON mapping if available
 		if (TrySwitchJsonState(GS, dt)) {
@@ -115,6 +150,16 @@ namespace Framework {
 		}
 
 		currentGS = newState;
+
+		// Warm up textures for the destination state before scene build.
+		if (jsonStatePaths.find(currentGS) != jsonStatePaths.end()) {
+			std::vector<std::string> targetTextures;
+			std::unordered_set<std::string> seen;
+			AppendLevelTextures(jsonStatePaths[currentGS], targetTextures, seen);
+			if (!targetTextures.empty()) {
+				ResourceManager::Instance().PreloadTextures(targetTextures);
+			}
+		}
 
 		// Prefer JSON mapping if available
 		if (TrySwitchJsonState(currentGS, dt)) {
@@ -154,6 +199,12 @@ namespace Framework {
 			return false;
 		}
 
+		// Force deterministic RNG only for tutorial state.
+		if (state == Framework::GS_Tutorial) {
+			EngineRng::SetSeed(kTutorialFixedSeed);
+			std::cout << "[GameStateManager] Tutorial fixed seed set to " << kTutorialFixedSeed << std::endl;
+		}
+
 		const std::string& path = it->second;
 		if (!RuntimeLevel::LoadAndBuild(path, *scene)) {
 			std::cerr << "[GameStateManager] Failed to build level from JSON: " << path << std::endl;
@@ -164,49 +215,38 @@ namespace Framework {
 		if (state == Framework::GS_Level1) {
 			scene->SetSimulationActive(false);  // main menu stays paused
 			pendingSimActivation = false;
-		} else {
+		}
+		else {
 			pendingSimActivation = true;        // other states (e.g., gameplay)
 		}
 
-		#ifndef _DEBUG
-		// Handle state-based audio
-		if (audioManager) {
-			// Stop current audio before switching
-			StopCurrentAudio();
-
-			// Play appropriate audio for the new state
-			if (state == Framework::GS_Level1) {
-				// Main menu state - play menu music
-				currentAudio = "bgm_MyoonchiDiner_MainMenu";
-				audioManager->PlaySound(currentAudio, audioManager->GetBgmVolume(), false);
-				std::cout << "[GameStateManager] Playing main menu music" << std::endl;
-			}
-			else if (state == Framework::GS_Level2) {
-				// Gameplay level state - play level music with fade-in (synced with visual transition)
-				currentAudio = "bgm_MyoonchiDiner_LevelTheme";
-				// Start at volume 0 and fade in over 1 second to sync with visual fade-in
-				audioManager->PlaySound(currentAudio, 0.0f, false);
-				const float levelBgmFadeIn = 1.0f;
-				audioManager->FadeChannel(currentAudio, audioManager->GetBgmVolume(), levelBgmFadeIn);
-				std::cout << "[GameStateManager] Playing level theme music with fade-in" << std::endl;
-
-				// Play kitchen ambience at 50% of BGM volume, also with fade-in
-				currentAmbience = "bgm_KitchenAmbience";
-				audioManager->PlaySound(currentAmbience, 0.0f, false);
-				audioManager->FadeChannel(currentAmbience, audioManager->GetBgmVolume() * 0.5f, levelBgmFadeIn);
-				std::cout << "[GameStateManager] Playing kitchen ambience with fade-in" << std::endl;
-			}
-			else {
-				currentAudio.clear();
-				currentAmbience.clear();
-			}
+		if (stateAudioPolicy && scene) {
+			stateAudioPolicy(state, *scene, audioManager);
 		}
-		#endif
+
+		PreloadJsonStateAssets(state);
 
 		fpInit = nullptr;
 		fpUpdate = nullptr;
 		fpExit = nullptr;
 		return true;
+	}
+
+	void GameStateManager::PreloadJsonStateAssets(int activeState) {
+		std::vector<std::string> texturePaths;
+		std::unordered_set<std::string> seen;
+
+		for (const auto& [state, levelPath] : jsonStatePaths) {
+			if (state == activeState) {
+				continue;
+			}
+
+			AppendLevelTextures(levelPath, texturePaths, seen);
+		}
+
+		if (!texturePaths.empty()) {
+			ResourceManager::Instance().PreloadTextures(texturePaths);
+		}
 	}
 
 	void GameStateManager::StopCurrentAudio() {

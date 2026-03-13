@@ -10,14 +10,15 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "Collision.hpp"
+
 #include <algorithm>
 #include <cmath>
-
-#include "Collision.hpp"
 
 namespace collision {
 	static constexpr float kEPS = 1e-4f;
 
+	// Helper functions
 	static inline float clampf(float v, float lo, float hi) {
 		return std::max(lo, std::min(v, hi));
 	}
@@ -38,7 +39,7 @@ namespace collision {
 		return overlapExists;
 	}
 
-	// Primitives 
+	// Internal method to compute the Minimum Translation Vector (MTV) to resolve an overlap between two AABBs.
 	bool overlapMTV(const AABB& a, const AABB& b, Math::Vector2D& mtvOut) {
 		// Signed gaps (A relative to B)
 		float left = b.min.x - a.max.x;
@@ -53,8 +54,8 @@ namespace collision {
 		}
 
 		// Smallest correction wins
-		float penX = std::abs(left) < std::abs(right)?left:right;
-		float penY = std::abs(top) < std::abs(bottom)?top:bottom;
+		float penX = std::abs(left) < std::abs(right) ? left : right;
+		float penY = std::abs(top) < std::abs(bottom) ? top : bottom;
 
 		if (std::abs(penX) < std::abs(penY)) {
 			mtvOut = Math::Vector2D(penX, 0.f);
@@ -85,7 +86,7 @@ namespace collision {
 		const float hx = scale.x * 0.5f;
 		const float hy = scale.y * 0.5f;
 		return (point.x >= center.x - hx && point.x <= center.x + hx &&
-				point.y >= center.y - hy && point.y <= center.y + hy);
+			point.y >= center.y - hy && point.y <= center.y + hy);
 	}
 
 	// World methods
@@ -250,5 +251,15 @@ namespace collision {
 		box.min = Math::Vector2D(center.x - halfW, center.y - halfH);
 		box.max = Math::Vector2D(center.x + halfW, center.y + halfH);
 		return box;
+	}
+
+	bool World::overlapsAnyWall(const AABB& box) const {
+		Math::Vector2D mtv;
+		for (const auto& wall : mWalls) {
+			if (overlapMTV(box, wall, mtv)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

@@ -15,10 +15,15 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "../Core/JSONInclude.hpp"
 #include "SceneManager.hpp"
 
 #include <array>
 #include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <string>
 #include <vector>
 
  // Level constants (reference resolution + tile size)
@@ -54,7 +59,7 @@ static constexpr float kEndVX0_T = (1080.0f * kScaleX) / kTile;
 static constexpr float kEndVX1_T = (1200.0f * kScaleX) / kTile;
 static constexpr float kEndVTopMinY_T = 100.0f / kTile;
 static constexpr float kEndVTopMaxY_T = 320.0f / kTile;
-static constexpr float kEndVGapMinY_T = 320.0f / kTile; 
+static constexpr float kEndVGapMinY_T = 320.0f / kTile;
 static constexpr float kEndVGapMaxY_T = 570.0f / kTile;
 static constexpr float kEndVBotMinY_T = 570.0f / kTile;
 static constexpr float kEndVBotMaxY_T = 825.0f / kTile;
@@ -105,6 +110,140 @@ namespace {
 		return glm::vec3(v.x, v.y, v.z);
 	}
 
+	struct CollisionLayoutData {
+		collision::WalkArea walkArea{};
+		std::vector<collision::AABB> walls;
+	};
+
+	constexpr const char* kCollisionLevel1File = "collision_level1.json";
+	constexpr const char* kCollisionLevel2File = "collision_level2.json";
+
+	bool IsLevel2Path(const std::string& levelPath) {
+		return levelPath.find("kitchen02") != std::string::npos;
+	}
+
+	std::string ResolveCollisionLayoutPathFromFile(const char* filename) {
+		namespace fs = std::filesystem;
+		const std::array<fs::path, 5> candidates = {
+			fs::path("levels") / filename,
+			fs::path("../levels") / filename,
+			fs::path("../../levels") / filename,
+			fs::path("../../../levels") / filename,
+			fs::path("../../../../levels") / filename
+		};
+
+		for (const fs::path& candidate : candidates) {
+			if (fs::exists(candidate)) {
+				return candidate.lexically_normal().string();
+			}
+		}
+
+		return candidates.front().lexically_normal().string();
+	}
+
+	std::string ResolveCollisionLayoutPath(const std::string& levelPath) {
+		if (IsLevel2Path(levelPath)) {
+			return ResolveCollisionLayoutPathFromFile(kCollisionLevel2File);
+		}
+		return ResolveCollisionLayoutPathFromFile(kCollisionLevel1File);
+	}
+
+	CollisionLayoutData BuildFallbackLayout(bool isLevel2) {
+		CollisionLayoutData data;
+		data.walkArea = collision::WalkArea{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+
+		collision::WoodVertical wood{
+			kWoodX0, kWoodX1,
+			kWoodTopMinY, kWoodTopMaxY,
+			kWoodGapMinY, kWoodGapMaxY,
+			kWoodBotMinY, kWoodBotMaxY
+		};
+
+		collision::StageEndGateVertical gate{
+			kEndVX0, kEndVX1,
+			kEndVTopMinY, kEndVTopMaxY,
+			kEndVGapMinY, kEndVGapMaxY,
+			kEndVBotMinY, kEndVBotMaxY
+		};
+
+		auto pushRect = [&data](float x0, float y0, float x1, float y1) {
+			collision::AABB r{};
+			r.min = Math::Vector2D(x0, y0);
+			r.max = Math::Vector2D(x1, y1);
+			data.walls.push_back(r);
+			};
+
+		pushRect(data.walkArea.L - data.walkArea.edgeThick, data.walkArea.T, data.walkArea.L, data.walkArea.B);
+		if (isLevel2) {
+			pushRect(data.walkArea.R, data.walkArea.T, data.walkArea.R + data.walkArea.edgeThick, data.walkArea.B);
+		}
+		else {
+			pushRect(data.walkArea.R, data.walkArea.T, data.walkArea.R + data.walkArea.edgeThick, gate.gapMinY);
+			pushRect(data.walkArea.R, gate.gapMaxY, data.walkArea.R + data.walkArea.edgeThick, data.walkArea.B);
+		}
+		pushRect(data.walkArea.L, data.walkArea.T - data.walkArea.edgeThick, data.walkArea.R, data.walkArea.T);
+		pushRect(data.walkArea.L, data.walkArea.B, data.walkArea.R, data.walkArea.B + data.walkArea.edgeThick);
+		if (!isLevel2) {
+			pushRect(wood.x0, wood.topMinY, wood.x1, wood.topMaxY);
+			pushRect(wood.x0, wood.botMinY, wood.x1, wood.botMaxY);
+			pushRect(gate.x0, gate.topMinY, gate.x1, gate.topMaxY);
+			pushRect(gate.x0, gate.botMinY, gate.x1, gate.botMaxY);
+		}
+
+		return data;
+	}
+
+	bool LoadCollisionLayout(const std::string& path, CollisionLayoutData& out) {
+		std::ifstream input(path);
+		if (!input.is_open()) {
+			return false;
+		}
+
+		nlohmann::json root;
+		input >> root;
+
+		const auto& walk = root.at("walk_area");
+		out.walkArea = collision::WalkArea{
+			walk.at("left").get<float>(),
+			walk.at("right").get<float>(),
+			walk.at("top").get<float>(),
+			walk.at("bottom").get<float>(),
+			walk.at("edge_thickness").get<float>()
+		};
+
+		out.walls.clear();
+		for (const auto& wall : root.at("walls")) {
+			const auto& min = wall.at("min");
+			const auto& max = wall.at("max");
+
+			collision::AABB box{};
+			box.min = Math::Vector2D(min.at(0).get<float>(), min.at(1).get<float>());
+			box.max = Math::Vector2D(max.at(0).get<float>(), max.at(1).get<float>());
+			out.walls.push_back(box);
+		}
+
+		return !out.walls.empty();
+	}
+
+	CollisionLayoutData GetCollisionLayoutForScene(const Scene& scene) {
+		CollisionLayoutData data;
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		const std::string path = ResolveCollisionLayoutPath(levelPath);
+		const bool isLevel2 = IsLevel2Path(levelPath);
+
+		try {
+			if (LoadCollisionLayout(path, data)) {
+				return data;
+			}
+		}
+		catch (const std::exception& ex) {
+			std::cerr << "[SceneCollisionLayout] Failed to parse collision layout '" << path << "': " << ex.what() << std::endl;
+		}
+
+		std::cerr << "[SceneCollisionLayout] Using fallback collision layout for: " << path << std::endl;
+		return BuildFallbackLayout(isLevel2);
+	}
+
 	// Build an AABB in world/reference space from tile coordinates.
 	collision::AABB MakeTileRect(float tx0, float ty0, float tx1, float ty1) {
 		collision::AABB r{};
@@ -116,7 +255,7 @@ namespace {
 	// Returns true if AABB "box" overlaps the axis-aligned rectangle [x0,x1]x[y0,y1].
 	bool OverlapsRect(const collision::AABB& box, float x0, float x1, float y0, float y1) {
 		return (box.min.x < x1 && box.max.x > x0 &&
-				box.min.y < y1 && box.max.y > y0);
+			box.min.y < y1 && box.max.y > y0);
 	}
 
 	// Snap a dynamic object horizontally out of the vertical wood segment it overlaps (minimal move).
@@ -189,7 +328,10 @@ void Scene::ClampToWalkArea(GameObject* obj) {
 	Math::Vector3D pos(obj->GetPosition().x, obj->GetPosition().y, obj->GetPosition().z);
 	const collision::WalkArea w = GetWalkArea();
 	physics::ClampInsideWalk(w, obj, pos);
-	obj->SetPosition(glm::vec3(pos.x, pos.y, pos.z));
+
+	const glm::vec3 clampedPos(pos.x, pos.y, pos.z);
+	obj->SetPosition(clampedPos);
+	entityManager.SetPosition(obj->GetID(), clampedPos);
 }
 
 glm::vec2 Scene::ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta) {
@@ -214,30 +356,15 @@ glm::vec2 Scene::ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta
 }
 
 collision::WalkArea Scene::GetWalkArea() const {
-	// Uses the internal level constants defined at top of this file
-	return collision::WalkArea{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	return GetCollisionLayoutForScene(*this).walkArea;
 }
 
 // Collision world construction for this level
 void Scene::BuildLevelColliders() {
-	collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	const CollisionLayoutData layout = GetCollisionLayoutForScene(*this);
 
-	collision::WoodVertical wood{
-		kWoodX0, kWoodX1,
-		kWoodTopMinY, kWoodTopMaxY,
-		kWoodGapMinY, kWoodGapMaxY,
-		kWoodBotMinY, kWoodBotMaxY
-	};
-
-	collision::StageEndGateVertical gate{
-		kEndVX0, kEndVX1,
-		kEndVTopMinY, kEndVTopMaxY,
-		kEndVGapMinY, kEndVGapMaxY,
-		kEndVBotMinY, kEndVBotMaxY
-	};
-
-	// Build all static walls (outer frame + wood + gate)
-	collisionManager.BuildWalls(walk, wood, gate);
+	collisionManager.Clear();
+	collisionManager.AddStaticRects(layout.walls);
 
 	// Get a pointer to the shared collision world
 	collision::World* world = &collisionManager.GetCollisionWorld();
@@ -263,18 +390,21 @@ void Scene::ApplyFinalConstraints(EntityManager& entityMgr) {
 
 	glm::vec3 position = sprite->GetPositionGLM();
 
-	// Gate clamp (stage end)
-	const collision::StageEndGateVertical gate{
-		kEndVX0, kEndVX1,
-		kEndVTopMinY, kEndVTopMaxY,
-		kEndVGapMinY, kEndVGapMaxY,
-		kEndVBotMinY, kEndVBotMaxY
-	};
-
-	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	const collision::WalkArea walk = GetWalkArea();
 
 	Math::Vector3D posM = toM(position);
-	physics::ClampInsideWalkWithGate(walk, gate, sprite, posM);
+	if (IsLevel2Path(GetCurrentLevelPath())) {
+		physics::ClampInsideWalk(walk, sprite, posM);
+	}
+	else {
+		const collision::StageEndGateVertical gate{
+			kEndVX0, kEndVX1,
+			kEndVTopMinY, kEndVTopMaxY,
+			kEndVGapMinY, kEndVGapMaxY,
+			kEndVBotMinY, kEndVBotMaxY
+		};
+		physics::ClampInsideWalkWithGate(walk, gate, sprite, posM);
+	}
 	position = toG(posM);
 
 	// Final world boundary clamps
@@ -290,80 +420,75 @@ void Scene::ApplyFinalConstraints(EntityManager& entityMgr) {
 
 // Resolve initial static overlaps vs benches / dividers
 void Scene::ResolveInitialStaticOverlaps() {
+	const bool isLevel2 = IsLevel2Path(GetCurrentLevelPath());
+
 	// Wood (middle divider) in pixels
 	const float woodX0 = kWoodX0;
 	const float woodX1 = kWoodX1;
 	const float woodTopY0 = kWoodTopMinY, woodTopY1 = kWoodTopMaxY;
 	const float woodBotY0 = kWoodBotMinY, woodBotY1 = kWoodBotMaxY;
 
-	// End-of-stage gate in pixels (same shape used by BuildWalls)
+	// End-of-stage gate in pixels
 	const float gateX0 = kEndVX0;
 	const float gateX1 = kEndVX1;
 	const float gateTopY0 = kEndVTopMinY, gateTopY1 = kEndVTopMaxY;
 	const float gateBotY0 = kEndVBotMinY, gateBotY1 = kEndVBotMaxY;
 
-	// Walkable outer frame – clamp into this first.
-	const collision::WalkArea walk{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
+	const collision::WalkArea walk = GetWalkArea();
 
 	std::vector<GameObject*> objs = entityManager.GetAllObjects();
 
 	for (GameObject* g : objs) {
-		if (!g) {
-			continue;
-		}
+		if (!g) continue;
 
 		// Skip UI / non-collidable layers
 		const std::string layerName = GetObjectLayer(g->GetID());
 		Layer* layer = GetLayer(layerName);
-		if (layer && !layer->IsCollidable()) {
-			continue;
-		}
+		if (layer && !layer->IsCollidable()) continue;
 
-		// (Optional but consistent) also skip empty-tag objects like ClampToWalkArea does
+		// Skip empty-tag objects
 		const std::string tag = GetObjectTag(g->GetID());
-		if (tag == "") {
-			continue;
-		}
+		if (tag == "") continue;
 
-		// Work in M-space (your math structs)
 		Math::Vector3D pM(g->GetPositionGLM().x, g->GetPositionGLM().y, g->GetPositionGLM().z);
 
-		// Keep inside big walk rect (outer boundary)
+		// Keep inside big walk rect
 		physics::ClampInsideWalk(walk, g, pM);
 
-		// Build the object's collider AABB at this tentative position
+		// Build collider AABB at tentative position
 		collision::AABB box = physics::MakeColliderBox(g, pM);
 
-		// Wood divider: snap horizontally out of the top/bottom vertical planks
-		if (OverlapsRect(box, woodX0, woodX1, woodTopY0, woodTopY1)) {
-			SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
-			box = physics::MakeColliderBox(g, pM);
-		}
-		if (OverlapsRect(box, woodX0, woodX1, woodBotY0, woodBotY1)) {
-			SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
-			box = physics::MakeColliderBox(g, pM);
+		if (!isLevel2) {
+			// Wood divider
+			if (OverlapsRect(box, woodX0, woodX1, woodTopY0, woodTopY1)) {
+				SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
+				box = physics::MakeColliderBox(g, pM);
+			}
+			if (OverlapsRect(box, woodX0, woodX1, woodBotY0, woodBotY1)) {
+				SnapHorizontallyOutOfBand(box, woodX0, woodX1, pM);
+				box = physics::MakeColliderBox(g, pM);
+			}
+
+			// Gate
+			if (OverlapsRect(box, gateX0, gateX1, gateTopY0, gateTopY1)) {
+				SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
+				box = physics::MakeColliderBox(g, pM);
+			}
+			if (OverlapsRect(box, gateX0, gateX1, gateBotY0, gateBotY1)) {
+				SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
+				box = physics::MakeColliderBox(g, pM);
+			}
 		}
 
-		// Gate: same idea as wood (vertical band, top/bottom solid segments)
-		if (OverlapsRect(box, gateX0, gateX1, gateTopY0, gateTopY1)) {
-			SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
-			box = physics::MakeColliderBox(g, pM);
-		}
-		if (OverlapsRect(box, gateX0, gateX1, gateBotY0, gateBotY1)) {
-			SnapHorizontallyOutOfBand(box, gateX0, gateX1, pM);
-			box = physics::MakeColliderBox(g, pM);
-		}
-
-		// Commit corrected position
+		// Commit corrected position (ALWAYS, not only level1)
 		g->SetPosition(glm::vec3(pM.x, pM.y, pM.z));
 	}
 
-	// Rebuild collision world once with the final positions.
+	// Rebuild collision world once with final positions.
 	RebuildColliders();
 }
 
 void Scene::RebuildColliders() {
-	collisionManager.Clear();
 	BuildLevelColliders();
 }
 
@@ -439,8 +564,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 		// NEW: respect "movable by physics" flag on the other object (tables, walls, etc.)
 		const bool otherMovable = other->IsMovableByPhysics();
 
-		if (!otherMovable)
-		{
+		if (!otherMovable) {
 			// For immovable objects (e.g. tables), only move the player out of overlap.
 
 			// Make the player's correction world-safe (don't push them through walls).
@@ -544,4 +668,257 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 		sprite->SetPosition(toG(playerPosM));
 		other->SetPosition(toG(otherPosM));
 	}
+}
+
+void Scene::CollectNavigationBlockerBoxes(int moverObjectID, std::vector<collision::AABB>& outBoxes) {
+	outBoxes.clear();
+	if (navigationBlockerCollector_) {
+		navigationBlockerCollector_(*this, moverObjectID, outBoxes);
+	}
+}
+
+namespace {
+	void CompressCellPathToWaypoints(const NavGrid& grid,
+		const std::vector<GridCoord>& cells,
+		const glm::vec2& /*goalWorld*/,
+		std::vector<glm::vec2>& outWaypoints) {
+		outWaypoints.clear();
+		if (cells.empty()) return;
+
+		// Same cell -> go to that cell center only
+		if (cells.size() == 1) {
+			outWaypoints.push_back(grid.CellCenter(cells[0]));
+			return;
+		}
+
+		GridCoord prevDir{
+			cells[1].x - cells[0].x,
+			cells[1].y - cells[0].y
+		};
+
+		for (std::size_t i = 2; i < cells.size(); ++i) {
+			GridCoord curDir{
+				cells[i].x - cells[i - 1].x,
+				cells[i].y - cells[i - 1].y
+			};
+
+			if (curDir.x != prevDir.x || curDir.y != prevDir.y) {
+				outWaypoints.push_back(grid.CellCenter(cells[i - 1]));
+				prevDir = curDir;
+			}
+		}
+
+		// End exactly at the center of the final cell
+		outWaypoints.push_back(grid.CellCenter(cells.back()));
+	}
+
+	void CollectNavigationBlockers(Scene& scene,
+		int moverObjectID,
+		std::vector<collision::AABB>& outBoxes) {
+		scene.CollectNavigationBlockerBoxes(moverObjectID, outBoxes);
+	}
+
+	bool BoxHitsAnyNavigationBlocker(const collision::AABB& box,
+		const collision::World& world,
+		const std::vector<collision::AABB>& blockers) {
+		if (world.overlapsAnyWall(box)) {
+			return true;
+		}
+
+		Math::Vector2D mtv;
+		for (const collision::AABB& b : blockers) {
+			if (collision::overlapMTV(box, b, mtv)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	void SmoothWaypointPath(Scene& scene,
+		int moverObjectID,
+		const glm::vec2& startWorld,
+		std::vector<glm::vec2>& path) {
+		if (path.size() <= 1) {
+			return;
+		}
+
+		std::vector<glm::vec2> smoothed;
+		glm::vec2 anchor = startWorld;
+
+		std::size_t i = 0;
+		while (i < path.size()) {
+			std::size_t furthestVisible = i;
+
+			for (std::size_t j = i; j < path.size(); ++j) {
+				if (scene.HasDirectPathForObject(moverObjectID, anchor, path[j])) {
+					furthestVisible = j;
+				}
+				else {
+					break;
+				}
+			}
+
+			smoothed.push_back(path[furthestVisible]);
+			anchor = path[furthestVisible];
+			i = furthestVisible + 1;
+		}
+
+		path.swap(smoothed);
+	}
+}
+
+bool Scene::BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid) {
+	outGrid = NavGrid();
+
+	GameObject* mover = GetGameObjectByID(moverObjectID);
+	if (!mover) {
+		return false;
+	}
+
+	const collision::WalkArea walk = GetWalkArea();
+
+	// Use the same tile size as your kitchen layout grid
+	constexpr float kNavCellSize = kTile;
+
+	const int width = std::max(1, static_cast<int>(std::ceil((walk.R - walk.L) / kNavCellSize)));
+	const int height = std::max(1, static_cast<int>(std::ceil((walk.B - walk.T) / kNavCellSize)));
+
+	outGrid.Reset(walk.L, walk.T, kNavCellSize, width, height);
+
+	// Cache all navigation blocker AABBs via the game-layer hook
+	std::vector<collision::AABB> tableBoxes;
+	CollectNavigationBlockerBoxes(moverObjectID, tableBoxes);
+
+	// For each cell, test whether THIS mover can stand there
+	const Math::Vector2D moverOffset = mover->GetColliderOffset();
+
+	for (int y = 0; y < height; ++y) {
+		for (int x = 0; x < width; ++x) {
+			GridCoord c{ x, y };
+			const glm::vec2 cellCenter = outGrid.CellCenter(c);
+
+			// Convert desired collider-center back into object position
+			const Math::Vector3D probePos(
+				cellCenter.x - moverOffset.x,
+				cellCenter.y - moverOffset.y,
+				0.0f
+			);
+
+			const collision::AABB probeBox = physics::MakeColliderBox(mover, probePos);
+
+			bool blocked = false;
+
+			// Static walls / divider / gate
+			if (GetCollisionWorld().overlapsAnyWall(probeBox)) {
+				blocked = true;
+			}
+
+			// Dynamic table blockers
+			if (!blocked) {
+				Math::Vector2D mtv;
+				for (const collision::AABB& tableBox : tableBoxes) {
+					if (collision::overlapMTV(probeBox, tableBox, mtv)) {
+						blocked = true;
+						break;
+					}
+				}
+			}
+
+			outGrid.SetBlocked(x, y, blocked);
+		}
+	}
+
+	return true;
+}
+
+bool Scene::FindPathForObject(int moverObjectID, const glm::vec2& startWorld, const glm::vec2& goalWorld, std::vector<glm::vec2>& outPath) {
+	outPath.clear();
+
+	NavGrid grid;
+	if (!BuildNavigationGridForObject(moverObjectID, grid)) {
+		return false;
+	}
+
+	GridCoord startCell = grid.WorldToCell(startWorld);
+	GridCoord goalCell = grid.WorldToCell(goalWorld);
+
+	if (!grid.FindNearestWalkable(startCell, startCell)) {
+		return false;
+	}
+
+	if (!grid.FindNearestWalkable(goalCell, goalCell)) {
+		return false;
+	}
+
+	std::vector<GridCoord> rawCells;
+	if (!GridPathfinder::FindPath(grid, startCell, goalCell, rawCells)) {
+		return false;
+	}
+
+	CompressCellPathToWaypoints(grid, rawCells, goalWorld, outPath);
+	SmoothWaypointPath(*this, moverObjectID, startWorld, outPath);
+	return !outPath.empty();
+}
+
+bool Scene::GetNearestNavigationCellCenterForObject(int moverObjectID,
+	const glm::vec2& worldPos,
+	glm::vec2& outCenter) {
+	NavGrid grid;
+	if (!BuildNavigationGridForObject(moverObjectID, grid)) {
+		return false;
+	}
+
+	GridCoord cell = grid.WorldToCell(worldPos);
+
+	if (!grid.FindNearestWalkable(cell, cell)) {
+		return false;
+	}
+
+	outCenter = grid.CellCenter(cell);
+	return true;
+}
+
+bool Scene::HasDirectPathForObject(int moverObjectID,
+	const glm::vec2& startWorld,
+	const glm::vec2& goalWorld) {
+	GameObject* mover = GetGameObjectByID(moverObjectID);
+	if (!mover) {
+		return false;
+	}
+
+	std::vector<collision::AABB> blockers;
+	CollectNavigationBlockers(*this, moverObjectID, blockers);
+
+	glm::vec2 delta = goalWorld - startWorld;
+	float distance = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+
+	if (distance <= 0.001f) {
+		return true;
+	}
+
+	const Math::Vector2D moverSize = mover->GetColliderSize();
+
+	// smaller step = safer, but more checks
+	const float sampleStep = std::max(8.0f, std::min(moverSize.x, moverSize.y) * 0.25f);
+	const int sampleCount = std::max(1, static_cast<int>(std::ceil(distance / sampleStep)));
+
+	const float z = mover->GetPositionGLM().z;
+
+	// skip t=0 so we don't fail just because the player is already very close to something
+	for (int i = 1; i <= sampleCount; ++i) {
+		float t = static_cast<float>(i) / static_cast<float>(sampleCount);
+		glm::vec2 probeWorld = startWorld + delta * t;
+
+		collision::AABB probeBox = physics::MakeColliderBox(
+			mover,
+			Math::Vector3D(probeWorld.x, probeWorld.y, z)
+		);
+
+		if (BoxHitsAnyNavigationBlocker(probeBox, GetCollisionWorld(), blockers)) {
+			return false;
+		}
+	}
+
+	return true;
 }

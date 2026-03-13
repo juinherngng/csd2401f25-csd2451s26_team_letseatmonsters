@@ -13,14 +13,14 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include "../Graphics/ResourceManager.hpp"
+
+#include "AudioLoading.hpp"
 #include "FileDropHandler.hpp"
+#include "LevelEditorFileIO.hpp"
 
 #include <algorithm>
 #include <iostream>
-
-#include "AudioLoading.hpp"
-#include "LevelEditorFileIO.hpp"
-#include "../Graphics/ResourceManager.hpp"
 
 
 FileDropHandler::FileDropHandler(CoreFramework::MessageBus& bus)
@@ -59,7 +59,7 @@ void FileDropHandler::HandleGLFWDrop(int count, const char** paths) {
 bool FileDropHandler::ProcessDroppedFile(const std::string& droppedPath) {
 	// Extract file extension
 	std::string ext = GetFileExtension(droppedPath);
-	
+
 	// Reject files without extensions
 	if (ext.empty()) {
 		std::cerr << "[FileDropHandler] Skipping file without extension: " << droppedPath << std::endl;
@@ -68,7 +68,7 @@ bool FileDropHandler::ProcessDroppedFile(const std::string& droppedPath) {
 
 	// Convert extension to lowercase for case-insensitive comparison
 	std::transform(ext.begin(), ext.end(), ext.begin(),
-				   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
 	// Route to appropriate handler based on file type
 	if (ext == ".wav" || ext == ".mp3") {

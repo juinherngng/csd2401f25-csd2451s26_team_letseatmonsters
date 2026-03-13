@@ -4,11 +4,8 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
- DESCRIPTION:       Prefabs panel for the Level Editor.
-					- Choose prefab path (combo + input)
-					- Save selected object as prefab
-					- Instantiate from prefab
-					- Propagate prefab changes to linked instances
+ DESCRIPTION:       Header for the Level Editor Prefabs panel, which allows users to save scene
+					objects as prefabs (JSON files) and instantiate them in the scene.
 
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

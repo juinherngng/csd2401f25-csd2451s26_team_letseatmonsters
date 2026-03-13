@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			PlayerController.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
-					Vu Phan Hung, phanhung.vu@digipen.edu	(20%)
+					Vu Phan Hung, phanhung.vu@digipen.edu	(30%)
 
  DESCRIPTION:		Implements PlayerController. Reads input, adjusts scale/rotation,
 					sets click-to-move targets (either physics-based or direct), and
@@ -14,17 +14,21 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "PlayerController.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 
+#include "PlayerController.hpp"
+
+#include <algorithm>
+#include <vector>
+
 void PlayerController::HandleInput(float deltaTime,
-								   InputManager& inputManager,
-								   EntityManager& entityManager,
-								   MovementManager& movementManager,
-								   PhysicsManager& physicsManager,
-								   GraphicsEngine& graphicsEngine,
-								   int playerID,
-								   bool useForces) {
+	InputManager& inputManager,
+	EntityManager& entityManager,
+	MovementManager& movementManager,
+	PhysicsManager& physicsManager,
+	GraphicsEngine& graphicsEngine,
+	int playerID,
+	bool useForces) {
 	if (playerID < 0) {
 		return;
 	}
@@ -43,7 +47,9 @@ void PlayerController::HandleInput(float deltaTime,
 
 	// Handle click-to-move (Left mouse)
 	HandleClickToMove(inputManager, entityManager, movementManager,
-					  physicsManager, graphicsEngine, playerID, useForces);
+		physicsManager, graphicsEngine, playerID, useForces);
+
+	UpdateClickIndicator(deltaTime, entityManager);
 }
 
 void PlayerController::HandleScaleInput(InputManager& inputManager, GameObject* sprite, float deltaTime) {
@@ -88,12 +94,12 @@ void PlayerController::HandleRotationInput(InputManager& inputManager, float del
 }
 
 void PlayerController::HandleClickToMove(InputManager& inputManager,
-										 EntityManager& entityManager,
-										 MovementManager& movementManager,
-										 PhysicsManager& physicsManager,
-										 GraphicsEngine& graphicsEngine,
-										 int playerID,
-										 bool useForces) {
+	EntityManager& entityManager,
+	MovementManager& movementManager,
+	PhysicsManager& physicsManager,
+	GraphicsEngine& graphicsEngine,
+	int playerID,
+	bool useForces) {
 	// Only act on the initial press to set a target once.
 	if (!inputManager.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		return;
@@ -121,6 +127,67 @@ void PlayerController::HandleClickToMove(InputManager& inputManager,
 	const glm::vec3 pos = sprite->GetPositionGLM();
 	const glm::vec2 toTarget = mouseWorld - glm::vec2(pos.x, pos.y);
 	UpdateSpriteDirection(toTarget, sprite);
+
+	// Trigger click indicator using animated arrow sprite-sheet artwork.
+	clickIndicatorWorld_ = mouseWorld;
+	clickIndicatorTimer_ = 0.5f;
+	clickIndicatorAnimTime_ = 0.0f;
+}
+
+void PlayerController::UpdateClickIndicator(float deltaTime, EntityManager& entityManager) {
+	if (clickIndicatorTimer_ <= 0.0f) {
+		return;
+	}
+
+	if (clickIndicatorID_ < 0 || entityManager.GetByID(clickIndicatorID_) == nullptr) {
+		constexpr float kIndicatorSize = 96.0f;
+		std::vector<glm::vec4> arrowFrames;
+		arrowFrames.reserve(8);
+		constexpr float kFrameWidth = 1.0f / 8.0f;
+		for (int i = 0; i < 8; ++i) {
+			arrowFrames.emplace_back(i * kFrameWidth, 0.0f, kFrameWidth, 1.0f);
+		}
+
+		GameObject* indicator = entityManager.SpawnAnimatedSprite(
+			"../assets/arrow-Sheet.png",
+			glm::vec3(clickIndicatorWorld_.x, clickIndicatorWorld_.y, 0.0f),
+			glm::vec2(kIndicatorSize, kIndicatorSize),
+			arrowFrames,
+			0.06f,
+			true);
+
+		if (!indicator) {
+			return;
+		}
+
+		clickIndicatorID_ = indicator->GetID();
+		indicator->SetRenderLayer(99);
+		indicator->SetRenderSortOrder(1000);
+	}
+
+	GameObject* indicator = entityManager.GetByID(clickIndicatorID_);
+	if (!indicator) {
+		clickIndicatorID_ = -1;
+		return;
+	}
+
+	clickIndicatorTimer_ = std::max(0.0f, clickIndicatorTimer_ - deltaTime);
+	clickIndicatorAnimTime_ += deltaTime;
+
+	const float normalized = clickIndicatorTimer_ / 0.5f;
+	const float pulse = 1.0f + 0.08f * std::sin((1.0f - normalized) * 14.0f);
+
+	constexpr int kArrowFrameCount = 8;
+	constexpr float kFrameWidth = 1.0f / static_cast<float>(kArrowFrameCount);
+	constexpr float kArrowFrameDuration = 0.06f;
+	const float animLength = kArrowFrameDuration * static_cast<float>(kArrowFrameCount);
+	const float wrappedTime = std::fmod(clickIndicatorAnimTime_, animLength);
+	const int frameIndex = std::min(kArrowFrameCount - 1, static_cast<int>(wrappedTime / kArrowFrameDuration));
+
+	indicator->SetPosition(glm::vec3(clickIndicatorWorld_.x, clickIndicatorWorld_.y, 0.0f));
+	indicator->SetScale(glm::vec3(96.0f * pulse));
+	indicator->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, normalized));
+	indicator->SetUVRect(glm::vec4(frameIndex * kFrameWidth, 0.0f, kFrameWidth, 1.0f));
 }
 
 void PlayerController::UpdateSpriteDirection(const glm::vec2& direction, GameObject* sprite) {
@@ -159,8 +226,7 @@ void PlayerController::UpdateSpriteDirection(const glm::vec2& direction, GameObj
 
 void PlayerController::SampleInput(float deltaTime,
 	InputManager& inputManager,
-	GraphicsEngine& graphicsEngine)
-{
+	GraphicsEngine& graphicsEngine) {
 	(void)deltaTime;
 
 	// --- Movement axis (WASD) ---

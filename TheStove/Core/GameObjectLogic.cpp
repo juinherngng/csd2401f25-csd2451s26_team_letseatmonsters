@@ -11,7 +11,6 @@
 		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
-#include "GameObjectLogic.hpp"
 
 #include "../Graphics/SceneManager.hpp" // for Scene::GetGameObjectByID
 

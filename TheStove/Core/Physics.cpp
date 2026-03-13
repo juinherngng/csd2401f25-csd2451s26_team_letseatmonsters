@@ -16,11 +16,11 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "Physics.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-
-#include "Physics.hpp"
 
 namespace {
 	// Safe normalize (returns 0,0 if tiny)
@@ -54,8 +54,8 @@ namespace physics {
 	}
 
 	void ClampInsideWalkWithGate(const collision::WalkArea& walk,
-								 const collision::StageEndGateVertical& gate,
-								 GameObject* obj, Math::Vector3D& pos) {
+		const collision::StageEndGateVertical& gate,
+		GameObject* obj, Math::Vector3D& pos) {
 		const Math::Vector2D half = obj->GetColliderSize() * 0.5f;
 		const Math::Vector2D off = obj->GetColliderOffset();
 
@@ -77,7 +77,7 @@ namespace physics {
 		// Toggle step mode with P (edge)
 		if (input.IsKeyJustPressed(GLFW_KEY_P)) {
 			enabled = !enabled;
-			std::cout << "[Physics] Step mode " << (enabled?"ON":"OFF") << "\n";
+			std::cout << "[Physics] Step mode " << (enabled ? "ON" : "OFF") << "\n";
 		}
 
 		// While in step mode, queue steps on input edges
@@ -169,7 +169,7 @@ namespace physics {
 		// Tiny nudge if still overlapping (robustness for coincident edges).
 		Math::Vector2D mtv{};
 		if (collision::overlapMTV(MakeColliderBox(player, playerPos),
-								  MakeColliderBox(other, otherPos), mtv)) {
+			MakeColliderBox(other, otherPos), mtv)) {
 			playerPos.x += mtv.x * 1.001f;
 			playerPos.y += mtv.y * 1.001f;
 			player->SetPosition(playerPos);
@@ -223,7 +223,7 @@ namespace physics {
 		Math::Vector2D colNormal = SafeNormalize(mtv);
 		if (colNormal.Length() < 1e-6f) {
 			Math::Vector2D rel(firstPos.x - secondPos.x,
-							   firstPos.y - secondPos.y);
+				firstPos.y - secondPos.y);
 			colNormal = SafeNormalize(rel);
 			if (colNormal.Length() < 1e-6f) colNormal = Math::Vector2D(1.f, 0.f);
 		}
