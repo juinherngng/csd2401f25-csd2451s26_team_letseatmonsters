@@ -74,13 +74,13 @@
 #include "Core/FilePaths.hpp"
 #include "Core/InputManager.hpp"
 #include "Graphics/GraphicsEngine.hpp"
-
 #include "GamePaths.hpp"
 
 #include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <optional>
 
 namespace {
 	/************************************************************************/
@@ -118,12 +118,15 @@ namespace {
 			auto* table = logic.GetLogicForObject<CustomerTableLogic>(obj->GetID());
 			if (!table || !table->HasSeatedCustomer()) continue;
 
-			const int customerId = table->GetSeatedCustomerID();
-			auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
-			if (!npc) continue;
+			for (int customerId : table->GetSeatedCustomerIDs()) {
+				if (customerId < 0) continue;
 
-			if (npc->IsWaitingForFood() && npc->HasOrderBeenTaken() && !npc->HasDishServed()) {
-				return npc->GetDesiredDishType();
+				auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
+				if (!npc) continue;
+
+				if (npc->IsWaitingForFood() && npc->HasOrderBeenTaken() && !npc->HasDishServed()) {
+					return npc->GetDesiredDishType();
+				}
 			}
 		}
 
@@ -301,12 +304,15 @@ namespace {
 			auto* table = logic.GetLogicForObject<CustomerTableLogic>(obj->GetID());
 			if (!table || !table->HasSeatedCustomer()) continue;
 
-			const int customerId = table->GetSeatedCustomerID();
-			auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
-			if (!npc) continue;
+			for (int customerId : table->GetSeatedCustomerIDs()) {
+				if (customerId < 0) continue;
 
-			if (!npc->HasPaid() && (npc->IsPaying() || npc->HasFinishedEating())) {
-				return obj->GetID();
+				auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
+				if (!npc) continue;
+
+				if (!npc->HasPaid() && (npc->IsPaying() || npc->HasFinishedEating())) {
+					return obj->GetID();
+				}
 			}
 		}
 
@@ -913,18 +919,22 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 					auto* table = logic.GetLogicForObject<CustomerTableLogic>(obj->GetID());
 					if (!table || !table->HasSeatedCustomer()) continue;
 
-					const int customerId = table->GetSeatedCustomerID();
-					auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
-					if (!npc) continue;
+					for (int customerId : table->GetSeatedCustomerIDs()) {
+						if (customerId < 0) continue;
 
-					if (npc->HasDishServed()) {
-						dishServed = true;
-						break;
+						auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
+						if (!npc) continue;
+
+						if (npc->HasDishServed()) {
+							dishServed = true;
+							break;
+						}
 					}
-				}
 
-				if (dishServed) {
-					Advance("Wait for customer to finish food.");
+					if (dishServed) {
+						Advance("Wait for customer to finish food.");
+					}
+					break;
 				}
 				break;
 			}
@@ -938,19 +948,24 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 					auto* table = logic.GetLogicForObject<CustomerTableLogic>(obj->GetID());
 					if (!table || !table->HasSeatedCustomer()) continue;
 
-					const int customerId = table->GetSeatedCustomerID();
-					auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
-					if (!npc) continue;
+					for (int customerId : table->GetSeatedCustomerIDs()) {
+						if (customerId < 0) continue;
 
-					if (!npc->HasPaid() && (npc->IsPaying() || npc->HasFinishedEating())) {
-						readyForPayment = true;
-						break;
+						auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
+						if (!npc) continue;
+
+						if (!npc->HasPaid() && (npc->IsPaying() || npc->HasFinishedEating())) {
+							readyForPayment = true;
+							break;
+						}
 					}
+
+					if (readyForPayment) {
+						Advance("Collect money from customer.");
+					}
+					break;
 				}
 
-				if (readyForPayment) {
-					Advance("Collect money from customer.");
-				}
 				break;
 			}
 
@@ -1471,8 +1486,8 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
 
 		if (isLevel2) {
-			customerManager.SetSpawnCooldown(6.0f);
-			customerManager.SetMaxCustomers(12);
+			customerManager.SetSpawnCooldown(1.0f);
+			customerManager.SetMaxCustomers(24);
 			Economy::SetTimeLimitSeconds(240.0f);
 			Economy::SetQuota(310);
 		}
@@ -1617,10 +1632,3 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		return (tag == "npc1" || tag == "npc2" || tag == "dino");
 		});
 }
-
-
-
-
-
-
-

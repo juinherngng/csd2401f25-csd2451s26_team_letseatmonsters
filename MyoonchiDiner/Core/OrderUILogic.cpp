@@ -198,17 +198,23 @@ void OrderUILogic::CollectWaitingOrders(Scene& scene, std::vector<WaitingOrder>&
 		if (!table) continue;
 		if (!table->HasSeatedCustomer()) continue;
 
-		const int custId = table->GetSeatedCustomerID();
-		auto* npc = logicMgr.GetLogicForObject<SimpleNpcLogic>(custId);
-		if (!npc) continue;
+		for (int custId : table->GetSeatedCustomerIDs()) {
+			if (custId < 0) continue;
 
-		if (npc->IsWaitingForFood() && npc->HasOrderBeenTaken() && !npc->HasDishServed()) {
-			outOrders.push_back({ tableId, custId, npc->GetDesiredDishType() });
+			auto* npc = logicMgr.GetLogicForObject<SimpleNpcLogic>(custId);
+			if (!npc) continue;
+
+			if (npc->IsWaitingForFood() && npc->HasOrderBeenTaken() && !npc->HasDishServed()) {
+				outOrders.push_back({ tableId, custId, npc->GetDesiredDishType() });
+			}
 		}
 	}
 
 	std::sort(outOrders.begin(), outOrders.end(),
-		[](const WaitingOrder& a, const WaitingOrder& b) { return a.tableId < b.tableId; });
+		[](const WaitingOrder& a, const WaitingOrder& b) {
+			if (a.tableId != b.tableId) return a.tableId < b.tableId;
+			return a.customerId < b.customerId;
+		});
 }
 
 // ------------------------------------------------------------

@@ -282,8 +282,11 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	}
 
 	// Seat + assign target
-	chosenTable->SeatCustomer(npcID);
-	Math::Vector2D seatWorld = chosenTable->GetCustomerSeatWorld(scene);
+	Math::Vector2D seatWorld;
+	if (!chosenTable->SeatCustomer(scene, npcID, &seatWorld)) {
+		scene.RequestDespawn(npcID);
+		return false;
+	}
 
 	if (auto* npcLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(npcID)) {
 		if (spawnWithInfinitePatience_) {
@@ -322,9 +325,17 @@ void CustomerManagerSystem::Update(float dt, Scene& scene) {
 
 	CleanupDeadCustomers(scene);
 
-	// Hard cap by number of tables
-	const int tableCap = static_cast<int>(customerTableIDs_.size());
-	const int targetCount = std::min(maxCustomers_, tableCap);
+	// Hard cap by number of seats
+	int totalSeatCap = 0;
+	LogicManager& logicMgr = scene.GetLogicManager();
+
+	for (int tableID : customerTableIDs_) {
+		if (auto* table = logicMgr.GetLogicForObject<CustomerTableLogic>(tableID)) {
+			totalSeatCap += table->GetSeatCapacity();
+		}
+	}
+
+	const int targetCount = std::min(maxCustomers_, totalSeatCap);
 
 	spawnTimer_ += dt;
 
