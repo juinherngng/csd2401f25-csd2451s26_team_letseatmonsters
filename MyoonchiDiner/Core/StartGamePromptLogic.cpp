@@ -1,3 +1,18 @@
+/*
+ ----------------------------------------------------------------------------------------------------
+ FILE NAME:			StartGamePromptLogic.cpp
+ PROJECT NAME:		Project GAM200
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+
+ DESCRIPTION:		Implements the StartGamePromptLogic class, which manages the tutorial prompt that appears
+					when the player clicks the "Play" button on the main menu. This logic handles mouse input
+					to detect clicks on the button, opens a tutorial popup, and manages hover states for visual feedback.
+
+
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+ ----------------------------------------------------------------------------------------------------
+ */
+
 #include "Core/StartGamePromptLogic.hpp"
 
 #include "../GamePaths.hpp"
@@ -22,6 +37,7 @@ namespace {
 		"../assets/Cutscenes/Cutscene_starting_6.1.png",
 	};
 
+	// Given a texture path, generate the corresponding hover texture path by applying the following rules:
 	static std::string MakeHoverPath(const std::string& path) {
 		if (path.empty()) return path;
 		const size_t dot = path.find_last_of('.');
@@ -33,6 +49,7 @@ namespace {
 		return base + "_h" + ext;
 	}
 
+	// Helper to set the owner's texture from a file path, using ResourceManager caching. The cache name is prefixed with "staticsprite_" to match EntityManager conventions for static sprites.
 	static void TrySetTexture(GameObject* owner, const std::string& texPath) {
 		if (!owner || texPath.empty()) return;
 		std::string cacheName = "staticsprite_" + texPath;
@@ -42,6 +59,7 @@ namespace {
 	}
 }
 
+// Get the mouse world position, trying GraphicsEngine first and falling back to InputManager conversion if necessary. Returns true if a valid world position was obtained.
 bool StartGamePromptLogic::GetMouseWorld(Scene& /*scene*/, InputManager& input, glm::vec2& outWorld) const {
 	if (GraphicsEngine::Instance().GetMouseWorldInScene(outWorld)) {
 		return true;
@@ -54,11 +72,13 @@ bool StartGamePromptLogic::GetMouseWorld(Scene& /*scene*/, InputManager& input, 
 	return true;
 }
 
+// Simple AABB point-in-rect test
 bool StartGamePromptLogic::IsPointInRect(const glm::vec2& p, const glm::vec2& min, const glm::vec2& max) const {
 	return p.x >= min.x && p.x <= max.x &&
 		p.y >= min.y && p.y <= max.y;
 }
 
+// Opens the tutorial prompt by spawning a new GameObject with the tutorial popup texture at the center of the screen. Sets promptOpen_ to true and stores the popup's GameObject ID for later despawning.
 void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 	if (promptOpen_) {
 		return;
@@ -82,6 +102,7 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 	promptOpen_ = true;
 }
 
+// Closes the tutorial prompt by despawning the popup GameObject using its stored ID. Sets promptOpen_ to false and resets popupId_.
 void StartGamePromptLogic::ClosePrompt(Scene& scene) {
 	if (popupId_ >= 0) {
 		scene.DespawnByID(popupId_);
@@ -90,6 +111,9 @@ void StartGamePromptLogic::ClosePrompt(Scene& scene) {
 	promptOpen_ = false;
 }
 
+// Update handles both the hover state for the "Play" button and the click interactions when the prompt is open. 
+// When the prompt is closed, it checks if the mouse is over the button and updates the hover texture accordingly.
+// If the button is clicked, it opens the prompt. When the prompt is open, it checks for clicks on the "Yes" and "Skip tutorial" zones and triggers the appropriate transitions and audio.
 void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	GameObject* owner = GetOwner(scene);
 	if (!owner) {
@@ -201,8 +225,4 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, audioManager_->GetBgmVolume() * 1.6f, cutsceneBgmFadeIn);
 		}
 	}
-
-
-
-
 }
