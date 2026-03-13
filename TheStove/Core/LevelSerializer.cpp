@@ -18,6 +18,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <optional>
+#include <unordered_set>
 
 namespace fs = std::filesystem;
 
@@ -25,6 +27,48 @@ using nlohmann::json;
 
 namespace {
 	constexpr int LEVEL_SCHEMA_VERSION = 2;
+
+	std::optional<fs::path> ResolveFreshestLevelPath(const std::string& path) {
+		std::vector<fs::path> candidates;
+		candidates.emplace_back(path);
+
+		const fs::path inputPath(path);
+		const fs::path fileName = inputPath.filename();
+		if (!fileName.empty()) {
+			candidates.emplace_back(fs::path("../levels") / fileName);
+			candidates.emplace_back(fs::path("../../levels") / fileName);
+			candidates.emplace_back(fs::path("levels") / fileName);
+		}
+
+		std::unordered_set<std::string> seen;
+		std::optional<fs::path> freshest;
+		fs::file_time_type freshestTime{};
+
+		for (const fs::path& candidate : candidates) {
+			std::error_code ec;
+			const fs::path normalized = candidate.lexically_normal();
+			const std::string key = normalized.string();
+			if (!seen.insert(key).second) {
+				continue;
+			}
+
+			if (!fs::exists(normalized, ec) || ec) {
+				continue;
+			}
+
+			const fs::file_time_type modified = fs::last_write_time(normalized, ec);
+			if (ec) {
+				continue;
+			}
+
+			if (!freshest || modified >= freshestTime) {
+				freshest = normalized;
+				freshestTime = modified;
+			}
+		}
+
+		return freshest;
+	}
 
 	// Applies necessary transformations to jsonData to ensure compatibility with the current schema version.
 	void ApplyLegacyMigrations(json& jsonData, int schemaVersion) {
@@ -232,7 +276,12 @@ static json WriteTextObject(const LevelTextObject& obj) {
 
 // Load the level data from a JSON file, populating outLevel. Returns false if file open or JSON parse fails.
 bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
-	std::ifstream file(path);
+	const std::optional<fs::path> resolvedPath = ResolveFreshestLevelPath(path);
+	if (!resolvedPath) {
+		return false;
+	}
+
+	std::ifstream file(*resolvedPath);
 	if (!file) {
 		return false;
 	}
