@@ -1421,24 +1421,6 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 			{ "btn_quit", [](Scene& scene, int id) {
 				scene.GetLogicManager().AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
 			}},
-			{ "btn_next_level", [](Scene& scene, int id) {
-				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::KITCHEN_02, true);
-				if (logic && scene.GetAudioManager()) {
-					logic->SetAudioManager(scene.GetAudioManager());
-				}
-			}},
-			{ "btn_retry_level", [](Scene& scene, int id) {
-				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, scene.GetCurrentLevelPath(), true);
-				if (logic && scene.GetAudioManager()) {
-					logic->SetAudioManager(scene.GetAudioManager());
-				}
-			}},
-			{ "btn_main_menu", [](Scene& scene, int id) {
-				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::MAIN_MENU, false);
-				if (logic && scene.GetAudioManager()) {
-					logic->SetAudioManager(scene.GetAudioManager());
-				}
-			}},
 		};
 		return table;
 	}
@@ -1506,10 +1488,10 @@ else if (step == TutorialStep::CombineDishOnPlate) {
 		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
 
 		if (isLevel2) {
-			customerManager.SetSpawnCooldown(8.0f);
-			customerManager.SetMaxCustomers(24);
+			customerManager.SetSpawnCooldown(6.0f);
+			customerManager.SetMaxCustomers(12);
 			Economy::SetTimeLimitSeconds(240.0f);
-			Economy::SetQuota(430);
+			Economy::SetQuota(310);
 		}
 		else if (isLevel1) {
 			customerManager.SetSpawnCooldown(10.0f);
@@ -1632,13 +1614,11 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 			// OnCutsceneBeforeFinalLoad hard-stopping the channel mid-fade.
 			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
 
-			// Play skip cutscene SFX at the listener position (screen center)
-			// so the 3D-loaded sound is heard at full volume
+			// Play skip cutscene SFX as 2D UI sound to preserve its initial transient.
 			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE)) {
-				float cx = static_cast<float>(GraphicsEngine::kRefW) * 0.5f;
-				float cy = static_cast<float>(GraphicsEngine::kRefH) * 0.5f;
-				audioManager->PlaySound3D(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE,
-					cx, cy, 0.0f, audioManager->GetVfxVolume());
+				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_SKIP_INTRO_CUTSCENE,
+					audioManager->GetVfxVolume(),
+					false);
 			}
 		}
 #else
