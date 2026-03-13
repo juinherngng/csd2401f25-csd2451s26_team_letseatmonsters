@@ -118,8 +118,8 @@ namespace {
 	constexpr float kTrailJitterEpsilon = 0.25f;
 	constexpr float kFootstepInterval = 0.3f;
 	constexpr float kClickIndicatorLifetime = 0.45f;
-	constexpr float kClickIndicatorBaseSize = 26.0f;
-	//constexpr float kClickIndicatorPopSize = 36.0f;
+	constexpr float kClickIndicatorBaseSize = 37.0f;
+	// constexpr float kClickIndicatorPopSize = 36.0f;
 
 	// Clamp large frame spikes (for example right after pause/resume)
 	// so movement cannot jump/teleport in a single update.

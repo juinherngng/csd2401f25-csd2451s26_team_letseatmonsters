@@ -1510,66 +1510,71 @@ namespace {
 	*/
 	/************************************************************************/
 	void OnPostLevelLoaded(Scene& scene, bool simulationActive, CustomerManagerSystem& customerManager) {
-		const bool isTutorial = simulationActive && IsTutorialLevelLoaded(scene);
-		gTutorialFlow.Reset(scene, isTutorial);
+	const bool isTutorial = simulationActive && IsTutorialLevelLoaded(scene);
+	gTutorialFlow.Reset(scene, isTutorial);
 
-		if (isTutorial) {
-			customerManager.SetMaxCustomers(2);
-			customerManager.SetTotalSpawnLimit(2);
-			customerManager.SetSpawnedCustomersInfinitePatience(true);
+	if (isTutorial) {
+		customerManager.SetMaxCustomers(2);
+		customerManager.SetTotalSpawnLimit(2);
+		customerManager.SetSpawnedCustomersInfinitePatience(true);
 
-			// Prevent normal quota win cutscene during tutorial.
-			Economy::SetQuota(999);
-			Economy::gQuotaReached = false;
-		}
-		else {
-			customerManager.SetMaxCustomers(4);
-			customerManager.ClearTotalSpawnLimit();
-			customerManager.SetSpawnedCustomersInfinitePatience(false);
-		}
+		// Tutorial timer: 20 minutes
+		Economy::SetTimeLimitSeconds(20.0f * 60.0f);
+		Economy::gTimeRemaining = Economy::kTimeLimitSeconds;
 
-		if (AudioManager* audioManager = scene.GetAudioManager()) {
-			for (GameObject* obj : scene.GetAllObjectsRaw()) {
-				if (!obj) continue;
-				if (scene.GetObjectTag(obj->GetID()) != "btn_play") continue;
-				if (auto* logic = scene.GetLogicManager().GetLogicForObject<StartGamePromptLogic>(obj->GetID())) {
-					logic->SetAudioManager(audioManager);
-				}
+		// Prevent normal quota win cutscene during tutorial.
+		Economy::SetQuota(999);
+		Economy::gQuotaReached = false;
+		Economy::SyncUI();
+	}
+	else {
+		customerManager.SetMaxCustomers(4);
+		customerManager.ClearTotalSpawnLimit();
+		customerManager.SetSpawnedCustomersInfinitePatience(false);
+	}
+
+	if (AudioManager* audioManager = scene.GetAudioManager()) {
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
+			if (scene.GetObjectTag(obj->GetID()) != "btn_play") continue;
+			if (auto* logic = scene.GetLogicManager().GetLogicForObject<StartGamePromptLogic>(obj->GetID())) {
+				logic->SetAudioManager(audioManager);
 			}
 		}
+	}
 
 #ifndef _DEBUG
-		// existing audio/UI logic unchanged...
-		if (!simulationActive) {
-			if (Layer* menuLayer = scene.GetLayer("10")) {
-				menuLayer->SetVisible(true);
-				menuLayer->SetEnabled(true);
-			}
+	// existing audio/UI logic unchanged...
+	if (!simulationActive) {
+		if (Layer* menuLayer = scene.GetLayer("10")) {
+			menuLayer->SetVisible(true);
+			menuLayer->SetEnabled(true);
 		}
-
-		if (AudioManager* audioManager = scene.GetAudioManager()) {
-			const bool useMenuBgm = !simulationActive || IsDayClearLevelLoaded(scene);
-			if (useMenuBgm) {
-				audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
-				audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
-				audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
-				audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
-				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
-			}
-			else {
-				const float fadeIn = 1.0f;
-				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
-				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
-
-				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
-				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
-			}
-		}
-#else
-		(void)scene;
-		(void)simulationActive;
-#endif
 	}
+
+	if (AudioManager* audioManager = scene.GetAudioManager()) {
+		const bool useMenuBgm = !simulationActive || IsDayClearLevelLoaded(scene);
+		if (useMenuBgm) {
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
+			audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
+			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
+		}
+		else {
+			const float fadeIn = 1.0f;
+			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
+			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
+
+			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
+			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
+		}
+	}
+#else
+	(void)scene;
+	(void)simulationActive;
+#endif
+}
 
 	/************************************************************************/
 	/*!
