@@ -25,7 +25,7 @@ static const char* GetDishTexturePath(DishType t) {
 	case DishType::SkewerDish: return "../assets/Food_Meat_n_carrot.png";
 	case DishType::CarrotSaladDish: return "../assets/Food_Salad_n_carrot.png";
 	case DishType::PoopDish: return "../assets/PoopDish.png";
-	default:                return "../assets/salad.png";
+	default:                return "../assets/Salad.png";
 	}
 }
 

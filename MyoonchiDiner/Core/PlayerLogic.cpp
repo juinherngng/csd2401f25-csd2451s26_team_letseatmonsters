@@ -1408,41 +1408,114 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 	}
 
 	// CASE 3: Player holding something, table already has an item
-	//   -> typical case: table has a Plate, player has an Ingredient
+	// Supports BOTH directions:
+	//   A) player holds PLATE, table has processed INGREDIENT
+	//   B) player holds processed INGREDIENT, table has PLATE
 	if (playerHolding && tableHasItem) {
-		//std::cout << "  [PlayerLogic] CASE3: both player & table have items -> try plate+ingredient combo\n";
-
 		const int tableItemID = table->GetHeldItemID();
 
-		PlateLogic* plate = logicMgr.GetLogicForObject<PlateLogic>(tableItemID);
-		IngredientLogic* ingr = logicMgr.GetLogicForObject<IngredientLogic>(carriedItemID);
+		PlateLogic* heldPlate = logicMgr.GetLogicForObject<PlateLogic>(carriedItemID);
+		IngredientLogic* heldIngredient = logicMgr.GetLogicForObject<IngredientLogic>(carriedItemID);
 
-		if (plate && ingr) {
-			// GameObject ID of the ingredient we are currently carrying
-			const int ingredientObjID = ingr->GetOwnerID();
+		PlateLogic* tablePlate = logicMgr.GetLogicForObject<PlateLogic>(tableItemID);
+		IngredientLogic* tableIngredient = logicMgr.GetLogicForObject<IngredientLogic>(tableItemID);
 
-			// How many logical ingredients were on the plate BEFORE we add this one?
-			const int ingredientCountBefore = plate->GetIngredientCount();
+		// ------------------------------------------------------------
+		// CASE 3A: player is holding a PLATE, table has an INGREDIENT
+		// Overcooked-style:
+		// - blank plate + processed ingredient on table -> plate with 1 ingredient
+		// - plate with 1 ingredient + processed ingredient on table -> complete dish
+		// ------------------------------------------------------------
+		if (heldPlate && tableIngredient) {
+			// Only allow processed ingredients to be taken onto a plate
+			if (!tableIngredient->IsProcessed()) {
+				return;
+			}
+
+			if (!heldPlate->CanAcceptIngredientType(tableIngredient->GetType())) {
+				return;
+			}
+
+			const int ingredientObjID = tableItemID;
+			const int ingredientCountBefore = heldPlate->GetIngredientCount();
+
+			// Remove ingredient from the table first
+			const int removedID = table->TakeItem(scene);
+			if (removedID < 0) {
+				return;
+			}
 
 			bool consumedNow = false;
-			if (plate->TryAddIngredient(*ingr, consumedNow)) {
-				//std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient type\n";
+			if (!heldPlate->TryAddIngredient(*tableIngredient, consumedNow)) {
+				// Safety revert if something failed unexpectedly
+				table->PlaceItem(scene, removedID);
+				return;
+			}
 
-				// VISUAL: first ingredient goes onto the plate.
-				if (ingredientCountBefore == 0) // this is the first ingredient on this plate
-				{
+			// First ingredient on held plate -> keep ingredient object as visual child
+			if (ingredientCountBefore == 0) {
+				GameObject* plateObj = scene.GetGameObjectByID(carriedItemID);
+				GameObject* ingredientObj = scene.GetGameObjectByID(ingredientObjID);
+
+				if (plateObj && ingredientObj) {
+					const glm::vec3 platePos = plateObj->GetPositionGLM();
+					ingredientObj->SetPosition(platePos);
+
+					heldPlate->SetFirstIngredientObjectID(ingredientObjID);
+					ingredientObj->SetColliderSize(Math::Vector2D(0.f, 0.f));
+					ingredientObj->SetMovableByPhysics(false);
+				}
+			}
+
+			// Try to assemble if this becomes the second ingredient
+			DishType dishType;
+			std::vector<IngredientType> consumedTypes;
+			if (heldPlate->TryAssembleDish(dishType, consumedTypes)) {
+				heldPlate->ApplyDishVisual(scene);
+
+				// Remove old first-ingredient visual if any
+				const int firstObjID = heldPlate->GetFirstIngredientObjectID();
+				if (firstObjID >= 0) {
+					scene.DespawnByID(firstObjID);
+					heldPlate->SetFirstIngredientObjectID(-1);
+				}
+
+				// Remove the second ingredient object taken from the table
+				if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
+					scene.DespawnByID(ingredientObjID);
+				}
+			}
+
+#ifndef _DEBUG
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				glm::vec3 playerPos = player->GetPositionGLM();
+				audioMgr->PlaySound3D("sfx_put_down", playerPos.x, playerPos.y, playerPos.z,
+					audioMgr->GetVfxVolume() * 0.8f);
+			}
+#endif
+			return;
+		}
+
+		// ------------------------------------------------------------
+		// CASE 3B: player is holding an INGREDIENT, table has a PLATE
+		// (your original behaviour, kept here)
+		// ------------------------------------------------------------
+		if (tablePlate && heldIngredient) {
+			const int ingredientObjID = heldIngredient->GetOwnerID();
+			const int ingredientCountBefore = tablePlate->GetIngredientCount();
+
+			bool consumedNow = false;
+			if (tablePlate->TryAddIngredient(*heldIngredient, consumedNow)) {
+				// First ingredient placed onto the plate -> keep ingredient object as visual child
+				if (ingredientCountBefore == 0) {
 					GameObject* plateObj = scene.GetGameObjectByID(tableItemID);
 					GameObject* ingredientObj = scene.GetGameObjectByID(ingredientObjID);
 
 					if (plateObj && ingredientObj) {
 						glm::vec3 platePos = plateObj->GetPositionGLM();
-
-						// Snap the ingredient sprite onto the plate.
-						// If you want a small offset, tweak this, e.g. platePos.y + 8.f.
 						ingredientObj->SetPosition(platePos);
 
-						// Remember which GameObject is now visually sitting on this plate
-						plate->SetFirstIngredientObjectID(ingredientObjID);
+						tablePlate->SetFirstIngredientObjectID(ingredientObjID);
 						ingredientObj->SetColliderSize(Math::Vector2D(0.f, 0.f));
 						ingredientObj->SetMovableByPhysics(false);
 					}
@@ -1450,46 +1523,26 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 
 				RestoreCarriedItemLayer(scene, carriedItemID);
 
-				//// If at some point TryAddIngredient decides to consume immediately,
-				//// we still support that (currently outConsumedNow is always false).
-				//bool carriedDespawned = false;
-				//if (consumedNow)
-				//{
-				//	scene.DespawnByID(ingredientObjID);
-				//	hasCarriedItemOriginalColliderSize = false;
-				//	carriedDespawned = true;
-				//}
-
-				// --- Try to assemble a dish once we have enough ingredients ---
 				DishType dishType;
 				std::vector<IngredientType> consumedTypes;
-				if (plate->TryAssembleDish(dishType, consumedTypes)) {
-					//std::cout << "  [PlayerLogic] CASE3: Dish assembled on plate\n";
-						// Update visuals based on computed dish type
-					plate->ApplyDishVisual(scene);
+				if (tablePlate->TryAssembleDish(dishType, consumedTypes)) {
+					tablePlate->ApplyDishVisual(scene);
 
-					// Destroy the first ingredient that was sitting on the plate (if any)
-					int firstObjID = plate->GetFirstIngredientObjectID();
+					int firstObjID = tablePlate->GetFirstIngredientObjectID();
 					if (firstObjID >= 0) {
 						scene.DespawnByID(firstObjID);
-						plate->SetFirstIngredientObjectID(-1);
+						tablePlate->SetFirstIngredientObjectID(-1);
 					}
 
-					// Destroy the ingredient we just added (the one we were carrying)
 					if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
 						scene.DespawnByID(ingredientObjID);
 					}
 
-					// We won't restore its collider size because the object is gone.
 					hasCarriedItemOriginalColliderSize = false;
 				}
 
-
-				// Either way, we are no longer carrying this item
 				carriedItemID = -1;
-				//std::cout << "  [PlayerLogic] CASE3: plate accepted ingredient; carriedItem cleared\n";
 
-				// Play put down sound effect (release mode only)
 #ifndef _DEBUG
 				if (AudioManager* audioMgr = scene.GetAudioManager()) {
 					glm::vec3 playerPos = player->GetPositionGLM();
@@ -1498,13 +1551,10 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 				}
 #endif
 			}
-			else {
-				//std::cout << "  [PlayerLogic] CASE3: plate REJECTED ingredient\n";
-			}
+
 			return;
 		}
 
-		//std::cout << "  [PlayerLogic] CASE3: no (plate,ingredient) combo found\n";
 		return;
 	}
 
