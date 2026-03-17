@@ -1766,34 +1766,24 @@ namespace {
 	}
 }
 
-std::string PlayerLogic::GetCarryLayerForFacing(const std::string& baseLayer) const {
-	int value = 0;
-	if (!TryParseLayerNumber(baseLayer, value)) {
-		return baseLayer;
+std::string PlayerLogic::GetCarryLayerForFacing(const std::string& /*baseLayer*/) const {
+	switch (facingDir) {
+	case FacingDir::Front: return "6";
+	case FacingDir::Back:  return "6";
+	case FacingDir::Left:  return "6";
+	case FacingDir::Right: return "6";
+	default:               return "6";
 	}
-
-	const int offset = (facingDir == FacingDir::Front) ? 1 : -2;
-	int target = value + offset;
-	if (target < 0) {
-		target = 0;
-	}
-
-	return std::to_string(target);
 }
 
-std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& baseLayer) const {
-	int value = 0;
-	if (!TryParseLayerNumber(baseLayer, value)) {
-		return baseLayer;
+std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& /*baseLayer*/) const {
+	switch (facingDir) {
+	case FacingDir::Front: return "6";
+	case FacingDir::Back:  return "6";
+	case FacingDir::Left:  return "6";
+	case FacingDir::Right: return "6";
+	default:               return "6";
 	}
-
-	const int offset = (facingDir == FacingDir::Front) ? 2 : -1;
-	int target = value + offset;
-	if (target < 0) {
-		target = 0;
-	}
-
-	return std::to_string(target);
 }
 
 std::string PlayerLogic::GetChildLayerAbove(const std::string& baseLayer) const {

@@ -101,8 +101,8 @@ private:
 	// X: positive = right, negative = left.
 	// Y: smaller = up(since W subtracts from y), larger = down.
 	glm::vec2 carryOffset{ 0.f, -32.f };
-	glm::vec2 carryOffsetFront_{ 1.f, 26.f };
-	glm::vec2 carryOffsetBack_{ 1.f, 13.f };
+	glm::vec2 carryOffsetFront_{ 0.f, 26.f };
+	glm::vec2 carryOffsetBack_{ 0.f, -42.f };
 	glm::vec2 carryOffsetLeft_{ -24.f, 25.f };
 	glm::vec2 carryOffsetRight_{ 24.f, 25.f };
 
