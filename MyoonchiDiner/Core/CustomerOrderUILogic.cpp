@@ -14,7 +14,8 @@
 
 #include "Core/LogicManager.hpp"
 #include "Core/SimpleNpcLogic.hpp"
-#include "CustomerOrderUILogic.hpp"
+#include "Core/CustomerOrderUILogic.hpp"
+#include "Core/OrderUILogic.hpp"
 #include "Graphics/GameObject.hpp"
 #include "Graphics/SceneManager.hpp"
 
@@ -32,12 +33,22 @@ static float Clamp01(float v) {
 	return v;
 }
 
+static float EaseOutCubic01(float x) {
+	x = Clamp01(x);
+	float inv = 1.0f - x;
+	return 1.0f - inv * inv * inv;
+}
+
 void CustomerOrderUILogic::Start(Scene& /*scene*/) {
 	lastIconPath_.clear();
 	prevBehaviourState_ = -1;
 
 	payVFX_ID_ = -1;
 	payVFXTimer_ = 0.0f;
+	payVFXMode_ = PayVfxMode::FloatUp;
+	payVFXStartPos_ = { 0.f, 0.f };
+	payVFXTargetPos_ = { 0.f, 0.f };
+	payVFXQueueStamp_ = false;
 }
 
 void CustomerOrderUILogic::OnDestroy(Scene& scene) {
@@ -176,19 +187,19 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 
 	const int leavingInt = (int)SimpleNpcLogic::BehaviourState::Leaving;
 	const int payingInt = (int)SimpleNpcLogic::BehaviourState::Paying;
+	const int eatingInt = (int)SimpleNpcLogic::BehaviourState::Eating;
 
 	const bool enteredLeaving = (prevBehaviourState_ != leavingInt && curStateInt == leavingInt);
+	const bool enteredEating = (prevBehaviourState_ != eatingInt && curStateInt == eatingInt);
 
-	if (enteredLeaving) {
-		// Case A: normal flow (player took payment)
-		if (prevBehaviourState_ == payingInt) {
-			const char* face = npcLogic->WillPayZero() ? sadFacePath_ : happyFacePath_;
-			SpawnPaymentVFX(scene, face);
-		}
-		// Case B: unhappy auto-leave (wrong dish / patience expired)
-		else if (npcLogic->WillPayZero()) {
-			SpawnPaymentVFX(scene, sadFacePath_);
-		}
+	// correct dish just got completed -> launch happy face from customer to order card
+	if (enteredEating && !npcLogic->WillPayZero() && npcLogic->HasDishServed()) {
+		TriggerOrderCompleteSuccess(scene);
+	}
+
+	// only keep sad face for failure cases
+	if (enteredLeaving && npcLogic->WillPayZero()) {
+		SpawnPaymentVFX(scene, sadFacePath_);
 	}
 
 	// Bubble shown only in WaitingForFood or Paying
@@ -278,10 +289,13 @@ void CustomerOrderUILogic::EnsureBubbleIcon(Scene& scene, const char* iconPath) 
 void CustomerOrderUILogic::DestroyPaymentVFX(Scene& scene) {
 	DespawnIfAlive(scene, payVFX_ID_);
 	payVFXTimer_ = 0.0f;
+	payVFXMode_ = PayVfxMode::FloatUp;
+	payVFXStartPos_ = { 0.f, 0.f };
+	payVFXTargetPos_ = { 0.f, 0.f };
+	payVFXQueueStamp_ = false;
 }
 
 void CustomerOrderUILogic::SpawnPaymentVFX(Scene& scene, const char* path) {
-	// If one is still alive, replace it
 	DestroyPaymentVFX(scene);
 
 	GameObject* me = scene.GetGameObjectByID(GetOwnerID());
@@ -298,7 +312,35 @@ void CustomerOrderUILogic::SpawnPaymentVFX(Scene& scene, const char* path) {
 		vfx->SetColliderSize(Math::Vector2D(0.f, 0.f));
 		scene.SetObjectTexturePath(payVFX_ID_, path);
 		payVFXTimer_ = 0.0f;
+
+		payVFXMode_ = PayVfxMode::FloatUp;
+		payVFXQueueStamp_ = false;
+
+		glm::vec3 start = vfx->GetPositionGLM();
+		payVFXStartPos_ = { start.x, start.y };
+		payVFXTargetPos_ = payVFXStartPos_;
 	}
+}
+
+void CustomerOrderUILogic::TriggerOrderCompleteSuccess(Scene& scene) {
+	glm::vec2 targetPanelPos{};
+	if (!OrderUILogic::TryGetPanelCenterForCustomer(GetOwnerID(), targetPanelPos)) {
+		return;
+	}
+
+	SpawnPaymentVFX(scene, happyFacePath_);
+
+	GameObject* vfx = scene.GetGameObjectByID(payVFX_ID_);
+	if (!vfx) {
+		return;
+	}
+
+	glm::vec3 start = vfx->GetPositionGLM();
+	payVFXStartPos_ = { start.x, start.y };
+	payVFXTargetPos_ = targetPanelPos;
+	payVFXTimer_ = 0.0f;
+	payVFXMode_ = PayVfxMode::FlyToOrder;
+	payVFXQueueStamp_ = true;
 }
 
 void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
@@ -312,9 +354,35 @@ void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
 
 	payVFXTimer_ += dt;
 
-	// float upward a bit
+	if (payVFXMode_ == PayVfxMode::FlyToOrder) {
+		const float t = Clamp01(payVFXTimer_ / std::max(0.001f, payVFXFlyDuration_));
+		const float eased = EaseOutCubic01(t);
+
+		glm::vec2 pos = payVFXStartPos_ + (payVFXTargetPos_ - payVFXStartPos_) * eased;
+
+		// little arc upward during flight
+		pos.y -= std::sin(t * 3.14159265f) * 26.0f;
+
+		vfx->SetPosition(Math::Vector3D(pos.x, pos.y, vfx->GetPositionGLM().z));
+
+		const float scaleMul = 0.90f + 0.10f * std::sin(t * 3.14159265f * 0.5f);
+		vfx->SetScale(glm::vec3(
+			payVFXSize_.x * scaleMul,
+			payVFXSize_.y * scaleMul,
+			1.0f));
+
+		if (t >= 1.0f) {
+			if (payVFXQueueStamp_) {
+				OrderUILogic::RequestCompletionStampForCustomer(GetOwnerID());
+			}
+			DestroyPaymentVFX(scene);
+		}
+		return;
+	}
+
+	// old float-up behavior
 	glm::vec3 pos = vfx->GetPositionGLM();
-	pos.y -= payVFXRiseSpeed_ * dt; // y negative = up in your project
+	pos.y -= payVFXRiseSpeed_ * dt;
 	vfx->SetPosition(Math::Vector3D(pos.x, pos.y, pos.z));
 
 	if (payVFXTimer_ >= payVFXDuration_) {

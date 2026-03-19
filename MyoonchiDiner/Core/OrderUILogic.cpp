@@ -22,6 +22,49 @@
 
 #include <algorithm>
 
+std::unordered_map<int, glm::vec2> OrderUILogic::sCustomerPanelCenters_{};
+std::unordered_set<int> OrderUILogic::sPendingStampCustomers_{};
+
+bool OrderUILogic::TryGetPanelCenterForCustomer(int customerId, glm::vec2& outPos) {
+	auto it = sCustomerPanelCenters_.find(customerId);
+	if (it == sCustomerPanelCenters_.end()) {
+		return false;
+	}
+	outPos = it->second;
+	return true;
+}
+
+void OrderUILogic::RequestCompletionStampForCustomer(int customerId) {
+	if (customerId >= 0) {
+		sPendingStampCustomers_.insert(customerId);
+	}
+}
+
+static float Clamp01(float v) {
+	if (v < 0.f) return 0.f;
+	if (v > 1.f) return 1.f;
+	return v;
+}
+
+static float EaseOutCubic(float x) {
+	x = Clamp01(x);
+	float inv = 1.0f - x;
+	return 1.0f - inv * inv * inv;
+}
+
+static float EaseInCubic(float x) {
+	x = Clamp01(x);
+	return x * x * x;
+}
+
+static float EaseOutBack(float x) {
+	x = Clamp01(x);
+	constexpr float c1 = 1.70158f;
+	constexpr float c3 = c1 + 1.0f;
+	float y = x - 1.0f;
+	return 1.0f + c3 * y * y * y + c1 * y * y;
+}
+
 static void DespawnIfAlive(Scene& scene, int& id) {
 	if (id >= 0) {
 		scene.DespawnByID(id); id = -1;
@@ -44,9 +87,19 @@ void OrderUILogic::Start(Scene& /*scene*/) {
 	slots_.clear();
 	slots_.resize(kMaxOrders);
 
+	sCustomerPanelCenters_.clear();
+	sPendingStampCustomers_.clear();
+
 	for (auto& slot : slots_) {
 		slot.ingredientIconIds.assign(kRecipeCols, -1);
 		slot.stationIconIds.assign(kRecipeCols, -1);
+		slot.completing = false;
+		slot.completionTimer = 0.0f;
+		slot.completionStartPanelPos = { 0.0f, 0.0f };
+
+		slot.stampId = -1;
+		slot.stampActive = false;
+		slot.stampTimer = 0.0f;
 	}
 }
 
@@ -71,17 +124,235 @@ void OrderUILogic::ClearSlot(Scene& scene, OrderSlot& slot) {
 	for (int& id : slot.stationIconIds)    DespawnIfAlive(scene, id);
 
 	DespawnIfAlive(scene, slot.panelId);
+	DespawnIfAlive(scene, slot.stampId);
 
 	slot.customerId = -1;
 	slot.panelSpawned = false;
 	slot.lastDish = DishType::PoopDish;
 	slot.hasLastDish = false;
 
-	// Keep vectors sized correctly
+	slot.completing = false;
+	slot.completionTimer = 0.0f;
+	slot.completionStartPanelPos = { 0.0f, 0.0f };
+
+	slot.stampActive = false;
+	slot.stampTimer = 0.0f;
+
 	if ((int)slot.ingredientIconIds.size() != kRecipeCols)
 		slot.ingredientIconIds.assign(kRecipeCols, -1);
 	if ((int)slot.stationIconIds.size() != kRecipeCols)
 		slot.stationIconIds.assign(kRecipeCols, -1);
+}
+
+void OrderUILogic::CompactSlotsLeft() {
+	for (int i = 0; i < (int)slots_.size(); ++i) {
+		if (slots_[i].customerId >= 0 || slots_[i].completing) {
+			continue;
+		}
+
+		for (int j = i + 1; j < (int)slots_.size(); ++j) {
+			if (slots_[j].customerId >= 0 && !slots_[j].completing) {
+				std::swap(slots_[i], slots_[j]);
+				break;
+			}
+		}
+	}
+}
+
+void OrderUILogic::UpdateLivePanelLayout(Scene& scene, int slotIndex, OrderSlot& slot, float dt) {
+	if (slot.panelId < 0) {
+		return;
+	}
+
+	GameObject* panel = scene.GetGameObjectByID(slot.panelId);
+	if (!panel) {
+		return;
+	}
+
+	const glm::vec2 target = SlotTargetPos(slotIndex);
+	glm::vec3 cur = panel->GetPositionGLM();
+
+	const float lerpT = std::clamp(dt * livePanelMoveSpeed_, 0.0f, 1.0f);
+	cur.x = cur.x + (target.x - cur.x) * lerpT;
+	cur.y = cur.y + (target.y - cur.y) * lerpT;
+
+	panel->SetPosition(glm::vec3(cur.x, cur.y, cur.z));
+	FollowPanel(scene, slot);
+
+	if (slot.customerId >= 0) {
+		sCustomerPanelCenters_[slot.customerId] = glm::vec2(cur.x, cur.y);
+	}
+
+	UpdateCompletionStamp(scene, slot, dt, glm::vec2(cur.x, cur.y), 1.0f);
+}
+
+void OrderUILogic::StartCompletionStamp(Scene& scene, OrderSlot& slot) {
+	if (slot.stampActive) {
+		return;
+	}
+
+	glm::vec2 panelPos = slot.completionStartPanelPos;
+	if (GameObject* panel = scene.GetGameObjectByID(slot.panelId)) {
+		glm::vec3 p = panel->GetPositionGLM();
+		panelPos = { p.x, p.y };
+	}
+
+	if (slot.stampId < 0) {
+		if (GameObject* stamp = scene.SpawnStaticSprite(
+			completionStampTex_,
+			{ panelPos.x + completionStampOffset_.x, panelPos.y + completionStampOffset_.y, 0.0f },
+			completionStampSize_,
+			stampLayer_)) {
+			slot.stampId = stamp->GetID();
+			stamp->SetColliderSize(Math::Vector2D(0.f, 0.f));
+			stamp->SetRenderSortOrder(25);
+			scene.SetObjectTexturePath(slot.stampId, completionStampTex_);
+		}
+	}
+
+	slot.stampActive = (slot.stampId >= 0);
+	slot.stampTimer = 0.0f;
+}
+
+void OrderUILogic::UpdateCompletionStamp(Scene& scene, OrderSlot& slot,
+	float dt, const glm::vec2& panelPos, float parentAlpha) {
+	if (!slot.stampActive || slot.stampId < 0) {
+		return;
+	}
+
+	GameObject* stamp = scene.GetGameObjectByID(slot.stampId);
+	if (!stamp) {
+		slot.stampId = -1;
+		slot.stampActive = false;
+		slot.stampTimer = 0.0f;
+		return;
+	}
+
+	slot.stampTimer += dt;
+	const float t = Clamp01(slot.stampTimer / std::max(0.001f, completionStampDuration_));
+
+	float scaleMul = 1.0f;
+	if (t < 0.42f) {
+		const float local = t / 0.42f;
+		scaleMul = 0.55f + (completionStampImpactScale_ - 0.55f) * EaseOutBack(local);
+	}
+	else {
+		const float local = (t - 0.42f) / 0.58f;
+		scaleMul = completionStampImpactScale_ + (1.0f - completionStampImpactScale_) * EaseOutCubic(local);
+	}
+
+	float alpha = parentAlpha;
+	if (t > 0.72f) {
+		const float fadeT = (t - 0.72f) / 0.28f;
+		alpha *= (1.0f - EaseInCubic(fadeT));
+	}
+
+	stamp->SetPosition(glm::vec3(
+		panelPos.x + completionStampOffset_.x,
+		panelPos.y + completionStampOffset_.y,
+		stamp->GetPositionGLM().z));
+
+	stamp->SetScale(glm::vec3(
+		completionStampSize_.x * scaleMul,
+		completionStampSize_.y * scaleMul,
+		1.0f));
+
+	stamp->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, Clamp01(alpha)));
+
+	if (slot.stampTimer >= completionStampDuration_) {
+		DespawnIfAlive(scene, slot.stampId);
+		slot.stampActive = false;
+		slot.stampTimer = 0.0f;
+	}
+}
+
+void OrderUILogic::BeginCompleteAnimation(Scene& scene, int slotIndex, OrderSlot& slot) {
+	if (slot.completing) {
+		return;
+	}
+
+	slot.completing = true;
+	slot.completionTimer = 0.0f;
+	slot.completionStartPanelPos = SlotTargetPos(slotIndex);
+
+	if (GameObject* panel = scene.GetGameObjectByID(slot.panelId)) {
+		glm::vec3 p = panel->GetPositionGLM();
+		slot.completionStartPanelPos = { p.x, p.y };
+	}
+}
+
+void OrderUILogic::ApplySlotVisualState(Scene& scene, OrderSlot& slot,
+	const glm::vec2& panelPos, float scaleMul, float alpha) {
+	alpha = Clamp01(alpha);
+
+	auto applySprite = [&](int id, const glm::vec2& localOffset, const glm::vec2& baseSize) {
+		if (id < 0) return;
+
+		GameObject* obj = scene.GetGameObjectByID(id);
+		if (!obj) return;
+
+		glm::vec3 current = obj->GetPositionGLM();
+		obj->SetPosition(glm::vec3(panelPos.x + localOffset.x, panelPos.y + localOffset.y, current.z));
+		obj->SetScale(glm::vec3(baseSize.x * scaleMul, baseSize.y * scaleMul, 1.0f));
+		obj->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, alpha));
+		};
+
+	applySprite(slot.panelId, glm::vec2(0.0f, 0.0f), panelSize_);
+	applySprite(slot.dishIconId, dishOffset_, dishSize_);
+
+	for (int i = 0; i < kRecipeCols; ++i) {
+		if (i < (int)ingredientOffsets_.size()) {
+			applySprite(slot.ingredientIconIds[i], ingredientOffsets_[i], ingredientSize_);
+		}
+		if (i < (int)stationOffsets_.size()) {
+			applySprite(slot.stationIconIds[i], stationOffsets_[i], stationSize_);
+		}
+	}
+}
+
+bool OrderUILogic::UpdateCompleteAnimation(Scene& scene, OrderSlot& slot, float dt) {
+	if (!slot.completing) {
+		return false;
+	}
+
+	slot.completionTimer += dt;
+
+	const float total = std::max(0.001f, completionDuration_);
+	const float popPhase = std::clamp(completionPopDuration_ / total, 0.05f, 0.95f);
+	const float t = Clamp01(slot.completionTimer / total);
+
+	glm::vec2 panelPos = slot.completionStartPanelPos;
+	float scaleMul = 1.0f;
+	float alpha = 1.0f;
+
+	if (t < popPhase) {
+		const float local = t / popPhase;
+
+		// faster rise to 1.5x, slower shrink back down
+		if (local < 0.35f) {
+			const float upT = local / 0.35f;
+			scaleMul = 1.0f + (completionPopScale_ - 1.0f) * EaseOutBack(upT);
+		}
+		else {
+			const float downT = (local - 0.35f) / 0.65f;
+			scaleMul = completionPopScale_ + (1.0f - completionPopScale_) * EaseOutCubic(downT);
+		}
+	}
+	else {
+		const float local = (t - popPhase) / (1.0f - popPhase);
+		panelPos.y = slot.completionStartPanelPos.y - completionRiseDistance_ * EaseOutCubic(local);
+		alpha = 1.0f - EaseInCubic(local);
+		scaleMul = 1.0f;
+	}
+
+	ApplySlotVisualState(scene, slot, panelPos, scaleMul, alpha);
+	UpdateCompletionStamp(scene, slot, dt, panelPos, alpha);
+
+	if (slot.customerId >= 0) {
+		sCustomerPanelCenters_[slot.customerId] = panelPos;
+	}
+
+	return slot.completionTimer >= total;
 }
 
 void OrderUILogic::EnsurePanel(Scene& scene, int slotIndex, OrderSlot& slot) {
@@ -289,21 +560,50 @@ void OrderUILogic::UpdateRecipeIcons(Scene& scene, OrderSlot& slot, DishType dis
 	}
 }
 
-void OrderUILogic::Update(float /*dt*/, Scene& scene, InputManager& /*input*/) {
+void OrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*/) {
 	std::vector<WaitingOrder> orders;
 	orders.reserve(kMaxOrders);
 	CollectWaitingOrders(scene, orders);
 
 	std::vector<bool> used(orders.size(), false);
+	sCustomerPanelCenters_.clear();
 
-	// 1) Keep existing customers in their slots if they’re still waiting
+	// consume pending stamp requests
+	if (!sPendingStampCustomers_.empty()) {
+		for (auto& slot : slots_) {
+			if (slot.customerId >= 0 &&
+				sPendingStampCustomers_.find(slot.customerId) != sPendingStampCustomers_.end()) {
+				StartCompletionStamp(scene, slot);
+			}
+		}
+		sPendingStampCustomers_.clear();
+	}
+
+	bool anySlotCleared = false;
+
+	// keep/update existing slots
 	for (int s = 0; s < (int)slots_.size(); ++s) {
 		OrderSlot& slot = slots_[s];
-		if (slot.customerId < 0) continue;
+
+		if (slot.completing) {
+			if (UpdateCompleteAnimation(scene, slot, dt)) {
+				ClearSlot(scene, slot);
+				anySlotCleared = true;
+			}
+			continue;
+		}
+
+		if (slot.customerId < 0) {
+			continue;
+		}
 
 		const int idx = FindOrderIndexByCustomer(orders, slot.customerId);
 		if (idx < 0) {
-			ClearSlot(scene, slot);
+			BeginCompleteAnimation(scene, s, slot);
+			if (UpdateCompleteAnimation(scene, slot, dt)) {
+				ClearSlot(scene, slot);
+				anySlotCleared = true;
+			}
 			continue;
 		}
 
@@ -321,23 +621,29 @@ void OrderUILogic::Update(float /*dt*/, Scene& scene, InputManager& /*input*/) {
 			slot.hasLastDish = true;
 		}
 
-		FollowPanel(scene, slot);
+		UpdateLivePanelLayout(scene, s, slot, dt);
 	}
 
-	// 2) Fill empty slots with new waiting customers (up to 4 total)
+	// only compact after a completed card is fully gone
+	if (anySlotCleared) {
+		CompactSlotsLeft();
+	}
+
+	// fill empty slots with new waiting customers
 	for (int i = 0; i < (int)orders.size(); ++i) {
 		if (used[i]) continue;
 
 		int emptySlot = -1;
 		for (int s = 0; s < (int)slots_.size(); ++s) {
-			if (slots_[s].customerId < 0) {
+			if (!slots_[s].completing && slots_[s].customerId < 0) {
 				emptySlot = s;
 				break;
 			}
 		}
 
-		if (emptySlot < 0)
+		if (emptySlot < 0) {
 			break;
+		}
 
 		OrderSlot& slot = slots_[emptySlot];
 
@@ -346,7 +652,14 @@ void OrderUILogic::Update(float /*dt*/, Scene& scene, InputManager& /*input*/) {
 		slot.hasLastDish = false;
 		slot.panelSpawned = false;
 
-		// reset ids to force respawn (optional but safe)
+		slot.completing = false;
+		slot.completionTimer = 0.0f;
+		slot.completionStartPanelPos = { 0.0f, 0.0f };
+
+		DespawnIfAlive(scene, slot.stampId);
+		slot.stampActive = false;
+		slot.stampTimer = 0.0f;
+
 		slot.panelId = -1;
 		slot.dishIconId = -1;
 		slot.ingredientIconIds.assign(kRecipeCols, -1);
@@ -362,6 +675,6 @@ void OrderUILogic::Update(float /*dt*/, Scene& scene, InputManager& /*input*/) {
 		slot.lastDish = orders[i].dish;
 		slot.hasLastDish = true;
 
-		FollowPanel(scene, slot);
+		UpdateLivePanelLayout(scene, emptySlot, slot, dt);
 	}
 }

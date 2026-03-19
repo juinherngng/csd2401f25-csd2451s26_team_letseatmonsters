@@ -109,6 +109,8 @@ private:
 	// Maps dish enum to the icon texture shown in the thought bubble
 	const char* DishToIconPath(DishType dish) const;
 
+	void TriggerOrderCompleteSuccess(Scene& scene);
+
 	// --- payment result VFX ---
 	int   payVFX_ID_ = -1;
 	float payVFXTimer_ = 0.0f;
@@ -119,5 +121,16 @@ private:
 
 	// Track previous BehaviourState as int (avoid including SimpleNpcLogic in header)
 	int prevBehaviourState_ = -1;
+
+	enum class PayVfxMode {
+		FloatUp,
+		FlyToOrder
+	};
+
+	PayVfxMode payVFXMode_ = PayVfxMode::FloatUp;
+	glm::vec2 payVFXStartPos_ = { 0.f, 0.f };
+	glm::vec2 payVFXTargetPos_ = { 0.f, 0.f };
+	float payVFXFlyDuration_ = 0.24f;
+	bool payVFXQueueStamp_ = false;
 
 };

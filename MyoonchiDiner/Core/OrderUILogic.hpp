@@ -20,29 +20,58 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <unordered_set>
 
 class Scene;
 class InputManager;
 
-// Component attached to a persistent GameObject that manages the Order UI display.
 class OrderUILogic : public GameObjectLogic {
 public:
-	// Inherit constructor
+	// lets customer UI find where its order card currently is
+	static bool TryGetPanelCenterForCustomer(int customerId, glm::vec2& outPos);
+
+	// lets customer UI ask the order UI to play the stamp on arrival
+	static void RequestCompletionStampForCustomer(int customerId);
+
+	// UI state for each order slot
+	struct OrderSlot {
+		int customerId = -1;
+
+		int panelId = -1;
+		int dishIconId = -1;
+
+		std::vector<int> ingredientIconIds;
+		std::vector<int> stationIconIds;
+
+		bool panelSpawned = false;
+		DishType lastDish = DishType::PoopDish;
+		bool hasLastDish = false;
+
+		// completion animation
+		bool completing = false;
+		float completionTimer = 0.0f;
+		glm::vec2 completionStartPanelPos = { 0.0f, 0.0f };
+
+		// stamp overlay
+		int stampId = -1;
+		bool stampActive = false;
+		float stampTimer = 0.0f;
+	};
+
 	using GameObjectLogic::GameObjectLogic;
 
-	// Lifecycle
 	void Start(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
 	void OnDestroy(Scene& scene) override;
 
-	// Debug
 	std::string GetName() const override {
 		return "OrderUILogic";
 	}
 
 private:
 	static constexpr int kMaxOrders = 4;
-	static constexpr int kRecipeCols = 2; // 2 ingredients + 2 stations
+	static constexpr int kRecipeCols = 2;
 
 	struct WaitingOrder {
 		int tableId = -1;
@@ -52,89 +81,85 @@ private:
 		float patienceRatio = 0.0f;
 	};
 
-	// UI state for each order slot
-	struct OrderSlot {
-		int customerId = -1;
-
-		int panelId = -1;
-
-		// Dish icon (top)
-		int dishIconId = -1;
-
-		// Recipe icons
-		std::vector<int> ingredientIconIds; // size = kRecipeCols
-		std::vector<int> stationIconIds;    // size = kRecipeCols
-
-		bool panelSpawned = false;
-		DishType lastDish = DishType::PoopDish;
-		bool hasLastDish = false;
-	};
-
 	std::vector<OrderSlot> slots_;
 
-	// --------------------
-	// UI Config
-	// --------------------
 	const char* panelTex_ = "../assets/Order_UI.png";
 	const char* invisTex_ = "../assets/invis.png";
 
-	// Render layers (TWEAK THESE to control draw order of UI elements)
 	std::string panelLayer_ = "3";
 	std::string dishLayer_ = "4";
 	std::string ingredientLayer_ = "4";
 	std::string stationLayer_ = "4";
+	std::string stampLayer_ = "5";
 
-	// Panel slide-in config
 	glm::vec2 panelTargetPos_ = { 460.f, 64.f };
 	glm::vec2 panelSize_ = { 168.f, 124.f };
 	float slideDuration_ = 0.45f;
 
-	// Layout offsets relative to panel position (TWEAK THESE to match your panel art)
 	glm::vec2 dishOffset_ = { 0.f, -44.f };
 	glm::vec2 dishSize_ = { 75.f, 75.f };
 
-	// Ingredient and station icons are arranged in a 2-column grid below the dish icon, with these offsets from the panel position as the center of each icon
 	std::vector<glm::vec2> ingredientOffsets_ = { { -20.f, 4.f }, { 20.f, 4.f } };
 	glm::vec2 ingredientSize_ = { 40.f, 40.f };
 
-	// Station icons are arranged in a 2-column grid below the ingredient icons, with these offsets from the panel position as the center of each icon
 	std::vector<glm::vec2> stationOffsets_ = { { -20.f, 40.f }, { 20.f, 40.f } };
 	glm::vec2 stationSize_ = { 35.f, 35.f };
 
-	// Animation config
-	float ticketGapY_ = 120.f; // space between tickets (used in SlotTargetPos)
+	float ticketGapY_ = 120.f;
 
-private:
-	// --------------------
-	// Order Collection
-	// --------------------
+	// bigger pop + slower shrink/fade
+	float completionDuration_ = 0.82f;
+	float completionPopDuration_ = 0.46f;
+	float completionPopScale_ = 1.50f;
+	float completionRiseDistance_ = 38.0f;
+
+	// left-compaction movement
+	float livePanelMoveSpeed_ = 14.0f;
+
+	// green-face stamp on ticket
+	const char* completionStampTex_ = "../assets/Reaction_Happy_Face.png";
+	glm::vec2 completionStampOffset_ = { 0.f, -8.f };
+	glm::vec2 completionStampSize_ = { 86.f, 86.f };
+	float completionStampDuration_ = 0.34f;
+	float completionStampImpactScale_ = 1.30f;
+
+	void BeginCompleteAnimation(Scene& scene, int slotIndex, OrderSlot& slot);
+	bool UpdateCompleteAnimation(Scene& scene, OrderSlot& slot, float dt);
+
+	void ApplySlotVisualState(Scene& scene, OrderSlot& slot,
+		const glm::vec2& panelPos, float scaleMul, float alpha);
+
+	void UpdateLivePanelLayout(Scene& scene, int slotIndex, OrderSlot& slot, float dt);
+	void CompactSlotsLeft();
+
+	void StartCompletionStamp(Scene& scene, OrderSlot& slot);
+	void UpdateCompletionStamp(Scene& scene, OrderSlot& slot,
+		float dt, const glm::vec2& panelPos, float parentAlpha);
+
 	void CollectWaitingOrders(Scene& scene, std::vector<WaitingOrder>& outOrders);
 
-	// Slot helpers
 	glm::vec2 SlotTargetPos(int slotIndex) const;
 	void ClearSlot(Scene& scene, OrderSlot& slot);
 
-	// Spawn/maintain UI
 	void EnsurePanel(Scene& scene, int slotIndex, OrderSlot& slot);
 	void EnsureDishIcon(Scene& scene, OrderSlot& slot);
 	void EnsureRecipeIcons(Scene& scene, OrderSlot& slot);
 	void FollowPanel(Scene& scene, OrderSlot& slot);
 
-	// Texture updates
 	const char* DishToIconPath(DishType t) const;
 	void SetIconTexture(Scene& scene, int iconId, const char* texPath);
 
-	// Update the dish icon and recipe icons for a slot based on the given dish type
 	void UpdateRecipeIcons(Scene& scene, OrderSlot& slot, DishType dish);
 	void GetRecipeIconPaths(DishType dish,
 		std::vector<const char*>& outIngredientTex,
 		std::vector<const char*>& outStationTex) const;
 
-	// Generic spawn helper
 	void EnsureSubSprite(Scene& scene, int panelId, int& spriteId,
 		const glm::vec2& offset, const glm::vec2& size,
 		const std::string& layer);
 
-	// Utility
 	int FindOrderIndexByCustomer(const std::vector<WaitingOrder>& orders, int customerId) const;
+
+	static std::unordered_map<int, glm::vec2> sCustomerPanelCenters_;
+	static std::unordered_set<int> sPendingStampCustomers_;
 };
