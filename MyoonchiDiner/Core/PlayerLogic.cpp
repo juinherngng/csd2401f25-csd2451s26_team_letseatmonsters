@@ -222,6 +222,158 @@ void PlayerLogic::Start(Scene& scene) {
 	directPathCheckTimer_ = 0.0f;
 }
 
+bool PlayerLogic::TryResolveClickedTableTarget(Scene& scene,
+	const glm::vec2& mouseWorld,
+	int& outTableID,
+	TableLogic*& outTableLogic) {
+	outTableID = -1;
+	outTableLogic = nullptr;
+
+	LogicManager& logicMgr = scene.GetLogicManager();
+	float bestDistSq = std::numeric_limits<float>::max();
+
+	auto considerTableTarget = [&](int tableID, GameObject* hitObject) {
+		if (tableID < 0 || !hitObject) return;
+
+		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableID);
+		if (!tableLogic) return;
+
+		const float distSq = DistanceSqToObjectCenter(mouseWorld, hitObject);
+		if (distSq < bestDistSq) {
+			bestDistSq = distSq;
+			outTableID = tableID;
+			outTableLogic = tableLogic;
+		}
+		};
+
+	// Direct table hit
+	for (GameObject* obj : scene.GetAllObjectsRaw()) {
+		if (!obj) continue;
+
+		const int id = obj->GetID();
+		if (!logicMgr.GetLogicForObject<TableLogic>(id)) continue;
+		if (!PointInsideObjectVisualRect(mouseWorld, obj)) continue;
+
+		considerTableTarget(id, obj);
+	}
+
+	// Customer / customer bubble hit -> redirect to customer table
+	for (GameObject* obj : scene.GetAllObjectsRaw()) {
+		if (!obj) continue;
+
+		const int id = obj->GetID();
+		SimpleNpcLogic* npcLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(id);
+		if (!npcLogic) continue;
+
+		const int customerTableID = npcLogic->GetCustomerTableID();
+		if (customerTableID < 0) continue;
+
+		const bool hitCustomer = PointInsideObjectVisualRect(mouseWorld, obj);
+
+		bool hitBubble = false;
+		if (CustomerOrderUILogic* uiLogic = logicMgr.GetLogicForObject<CustomerOrderUILogic>(id)) {
+			hitBubble = uiLogic->HitTestBubble(scene, mouseWorld);
+		}
+
+		if (!hitCustomer && !hitBubble) continue;
+
+		considerTableTarget(customerTableID, obj);
+	}
+
+	return outTableID >= 0 && outTableLogic != nullptr;
+}
+
+bool PlayerLogic::IsInTableCommitRange(Scene& scene, int tableObjectID) {
+	GameObject* player = GetOwner(scene);
+	if (!player) {
+		return false;
+	}
+
+	LogicManager& logicMgr = scene.GetLogicManager();
+	TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableObjectID);
+	if (!tableLogic) {
+		return false;
+	}
+
+	// If no authored approach point exists, fall back to normal interaction range.
+	if (tableLogic->GetLocalApproachOffsets().empty()) {
+		return IsInTableInteractionRange(scene, tableObjectID);
+	}
+
+	const glm::vec2 playerPos = ToVec2(player->GetPositionGLM());
+	Math::Vector2D from(playerPos.x, playerPos.y);
+	Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
+
+	const float dx = playerPos.x - approach.x;
+	const float dy = playerPos.y - approach.y;
+	const float distSq = dx * dx + dy * dy;
+
+	return distSq <= kInteractionCommitRadius * kInteractionCommitRadius;
+}
+
+void PlayerLogic::QueueMoveAction(const glm::vec2& worldPos) {
+	queuedAction_.type = QueuedActionType::MoveWorld;
+	queuedAction_.worldPos = worldPos;
+	queuedAction_.tableID = -1;
+}
+
+void PlayerLogic::QueueTableAction(int tableObjectID) {
+	queuedAction_.type = QueuedActionType::InteractTable;
+	queuedAction_.tableID = tableObjectID;
+}
+
+void PlayerLogic::ClearQueuedAction() {
+	queuedAction_ = QueuedAction{};
+}
+
+void PlayerLogic::ExecuteQueuedAction(Scene& scene) {
+	if (movementLocked_) {
+		return;
+	}
+
+	const QueuedAction action = queuedAction_;
+	ClearQueuedAction();
+
+	if (action.type == QueuedActionType::None) {
+		return;
+	}
+
+	if (action.type == QueuedActionType::MoveWorld) {
+		pendingTableID = -1;
+		MoveTo(scene, action.worldPos);
+		ShowClickMoveIndicator(scene, action.worldPos);
+		return;
+	}
+
+	if (action.type == QueuedActionType::InteractTable) {
+		LogicManager& logicMgr = scene.GetLogicManager();
+		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(action.tableID);
+		if (!tableLogic) {
+			return;
+		}
+
+		if (IsInTableInteractionRange(scene, action.tableID)) {
+			CancelQueuedTableMove(scene);
+			InteractWithTable(scene, action.tableID);
+			return;
+		}
+
+		GameObject* player = GetOwner(scene);
+		if (!player) {
+			return;
+		}
+
+		const glm::vec2 playerPos = ToVec2(player->GetPositionGLM());
+		Math::Vector2D from(playerPos.x, playerPos.y);
+		Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
+		const glm::vec2 target(approach.x, approach.y);
+
+		pendingTableID = action.tableID;
+		MoveTo(scene, target);
+		ShowClickMoveIndicator(scene, target);
+	}
+}
+
 // Handle input and movement each frame
 void PlayerLogic::ResetMouseDragState() {
 	mouseDragActive_ = false;
@@ -441,6 +593,7 @@ void PlayerLogic::EnterPauseState(Scene& scene) {
 	ClearInteractableVisualCues(scene);
 	ClearClickMoveIndicator(scene);
 	CancelQueuedTableMove(scene);
+	ClearQueuedAction();
 	ResetMouseDragState();
 	suppressMouseUntilRelease_ = true;
 }
@@ -454,11 +607,6 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 			suppressMouseUntilRelease_ = false;
 		}
 
-		ResetMouseDragState();
-		return;
-	}
-
-	if (movementLocked_) {
 		ResetMouseDragState();
 		return;
 	}
@@ -484,6 +632,22 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 		return;
 	}
 
+	// ------------------------------------------------------------
+	// If player is currently locked (e.g. chopping), allow ONLY one
+	// queued next action. No drag-retarget spam while locked.
+	// ------------------------------------------------------------
+	if (movementLocked_) {
+		ResetMouseDragState();
+		return;
+	}
+
+	// If we're extremely close to finishing the currently pending table interaction,
+	// do NOT let drag/click cancel it at the last moment.
+	if (lmbHeld && !lmbJustPressed && pendingTableID >= 0 && IsInTableCommitRange(scene, pendingTableID)) {
+		return;
+	}
+
+	// Normal drag-to-move behaviour
 	if (lmbHeld && !lmbJustPressed) {
 		if (!mouseDragActive_) {
 			mouseDragActive_ = true;
@@ -494,9 +658,11 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 		dragRetargetTimer_ -= dt;
 		const float minDragRetargetDistSq = kDragRetargetDistance * kDragRetargetDistance;
 		const glm::vec2 delta = mouseWorld - lastDragWorld_;
-		const bool movedEnough = !hasLastDragWorld_ || DistanceSquared(delta, glm::vec2(0.0f, 0.0f)) >= minDragRetargetDistSq;
+		const bool movedEnough = !hasLastDragWorld_ ||
+			DistanceSquared(delta, glm::vec2(0.0f, 0.0f)) >= minDragRetargetDistSq;
 
 		if (movedEnough && dragRetargetTimer_ <= 0.0f) {
+			ClearQueuedAction();
 			pendingTableID = -1;
 			MoveTo(scene, mouseWorld);
 			ShowClickMoveIndicator(scene, mouseWorld);
@@ -512,48 +678,52 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	hasLastDragWorld_ = true;
 	dragRetargetTimer_ = 0.0f;
 
-	LogicManager& logicMgr = scene.GetLogicManager();
 	int clickedTableID = -1;
 	TableLogic* clickedTableLogic = nullptr;
-	float bestDistSq = std::numeric_limits<float>::max();
+	const bool clickedTable =
+		TryResolveClickedTableTarget(scene, mouseWorld, clickedTableID, clickedTableLogic);
 
-	auto considerTableTarget = [&](int tableID, GameObject* hitObject) {
-		if (tableID < 0 || !hitObject) return;
-		TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableID);
-		if (!tableLogic) return;
-		const float distSq = DistanceSqToObjectCenter(mouseWorld, hitObject);
-		if (distSq < bestDistSq) {
-			bestDistSq = distSq;
-			clickedTableID = tableID;
-			clickedTableLogic = tableLogic;
+	// ------------------------------------------------------------
+	// COMMIT RULE:
+	// If the player is already very close to completing the currently
+	// pending interaction, finish THAT first, then do one queued action.
+	// ------------------------------------------------------------
+	if (pendingTableID >= 0 && IsInTableCommitRange(scene, pendingTableID)) {
+		const int committedTableID = pendingTableID;
+
+		if (clickedTable) {
+			if (clickedTableID != committedTableID) {
+				QueueTableAction(clickedTableID);
+
+				const glm::vec2 playerPos = ToVec2(player->GetPositionGLM());
+				Math::Vector2D from(playerPos.x, playerPos.y);
+				Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
+				ShowClickMoveIndicator(scene, glm::vec2(approach.x, approach.y));
+			}
+			else {
+				ClearQueuedAction();
+			}
 		}
-		};
+		else {
+			QueueMoveAction(mouseWorld);
+			ShowClickMoveIndicator(scene, mouseWorld);
+		}
 
-	for (GameObject* obj : scene.GetAllObjectsRaw()) {
-		if (!obj) continue;
-		const int id = obj->GetID();
-		if (!logicMgr.GetLogicForObject<TableLogic>(id)) continue;
-		if (!PointInsideObjectVisualRect(mouseWorld, obj)) continue;
-		considerTableTarget(id, obj);
+		CancelQueuedTableMove(scene);
+		InteractWithTable(scene, committedTableID);
+
+		if (!movementLocked_) {
+			ExecuteQueuedAction(scene);
+		}
+		return;
 	}
 
-	for (GameObject* obj : scene.GetAllObjectsRaw()) {
-		if (!obj) continue;
-		const int id = obj->GetID();
-		SimpleNpcLogic* npcLogic = logicMgr.GetLogicForObject<SimpleNpcLogic>(id);
-		if (!npcLogic) continue;
-		const int customerTableID = npcLogic->GetCustomerTableID();
-		if (customerTableID < 0) continue;
-		const bool hitCustomer = PointInsideObjectVisualRect(mouseWorld, obj);
-		bool hitBubble = false;
-		if (CustomerOrderUILogic* uiLogic = logicMgr.GetLogicForObject<CustomerOrderUILogic>(id)) {
-			hitBubble = uiLogic->HitTestBubble(scene, mouseWorld);
-		}
-		if (!hitCustomer && !hitBubble) continue;
-		considerTableTarget(customerTableID, obj);
-	}
+	// ------------------------------------------------------------
+	// Normal click handling
+	// ------------------------------------------------------------
+	if (clickedTable && clickedTableLogic) {
+		ClearQueuedAction();
 
-	if (clickedTableID >= 0 && clickedTableLogic) {
 		if (IsInTableInteractionRange(scene, clickedTableID)) {
 			CancelQueuedTableMove(scene);
 			InteractWithTable(scene, clickedTableID);
@@ -561,15 +731,18 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 		}
 
 		pendingTableID = clickedTableID;
+
 		const glm::vec2 playerPos = ToVec2(player->GetPositionGLM());
 		Math::Vector2D from(playerPos.x, playerPos.y);
 		Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
 		const glm::vec2 target(approach.x, approach.y);
+
 		MoveTo(scene, target);
 		ShowClickMoveIndicator(scene, target);
 		return;
 	}
 
+	ClearQueuedAction();
 	pendingTableID = -1;
 	MoveTo(scene, mouseWorld);
 	ShowClickMoveIndicator(scene, mouseWorld);
@@ -918,6 +1091,7 @@ void PlayerLogic::HandleKeyboardMovement(float dt, Scene& scene, InputManager& i
 		pathPoints_.clear();
 		pathIndex_ = 0;
 		pendingTableID = -1;
+		ClearQueuedAction();
 
 		const glm::vec2 normalizedInput = NormalizeOrZero(inputDir);
 		glm::vec2 desiredDelta(normalizedInput.x * moveSpeed * dt,
@@ -1035,12 +1209,13 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
-	// Debug shortcuts: instantly trigger quota clear for the active kitchen level.
-	// F10 clears kitchen01 (then cutscene -> kitchen02), F9 clears kitchen02 (then win).
 	const std::string levelPath = scene.GetCurrentLevelPath();
 	const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
 	const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
-	const bool forceClearShortcut = (isLevel1 && input.IsKeyJustPressed(GLFW_KEY_F10)) || (isLevel2 && input.IsKeyJustPressed(GLFW_KEY_F9));
+	const bool forceClearShortcut =
+		(isLevel1 && input.IsKeyJustPressed(GLFW_KEY_F10)) ||
+		(isLevel2 && input.IsKeyJustPressed(GLFW_KEY_F9));
+
 	if (forceClearShortcut && !Economy::gQuotaReached) {
 		Economy::gPlayerMoney = Economy::kQuota;
 		Economy::SyncUI();
@@ -1054,9 +1229,24 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
+	const bool wasLockedBefore = movementLocked_;
 	UpdateStationLock(scene);
 
+	if (wasLockedBefore && !movementLocked_) {
+		ExecuteQueuedAction(scene);
+	}
+
 	UpdateInteractableVisualCues(scene, input, safeDt);
+	UpdateClickMoveIndicator(scene, safeDt);
+
+	// IMPORTANT: if chopping is active, do nothing else this frame
+	if (movementLocked_ && ShouldPlayChopAnimation(scene)) {
+		ResetMouseDragState();
+		EnsureChopAnimation(scene, player);
+		UpdateCarriedItemTransform(scene);
+		return;
+	}
+
 	const glm::vec3 beforePos = player->GetPositionGLM();
 
 	const float physicsDt = scene.GetLastPhysicsDt();
@@ -1066,17 +1256,8 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
-	UpdateStationLock(scene);
-
-	if (movementLocked_ && ShouldPlayChopAnimation(scene)) {
-		EnsureChopAnimation(scene, player);
-		UpdateCarriedItemTransform(scene);
-		return;
-	}
-
 	HandleKeyboardMovement(safeDt, scene, input, player, beforePos);
 	HandleClickInput(scene, input, safeDt);
-	UpdateClickMoveIndicator(scene, safeDt);
 	UpdateMovement(safeDt, scene);
 
 	const glm::vec3 afterPos = player->GetPositionGLM();
@@ -1625,14 +1806,13 @@ void PlayerLogic::BeginStationLock(Scene& scene, int tableID) {
 	movementLocked_ = true;
 	lockedTableID_ = tableID;
 
-	// Stop any click-to-move immediately
+	ClearQueuedAction();
+
 	hasMoveTarget = false;
 	moveMode_ = MoveMode::None;
 
-	// Also clear any existing move target from the movement manager to be safe
 	if (GameObject* p = GetOwner(scene)) {
 		scene.GetMovementManager().ClearMoveTarget(p->GetID());
-		// Check if we should be playing the chopping animation right away (in case the table is already processing)	
 		if (ShouldPlayChopAnimation(scene)) {
 			EnsureChopAnimation(scene, p);
 		}

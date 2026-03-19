@@ -1808,13 +1808,13 @@ namespace {
 		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
 
 		if (isLevel2) {
-			customerManager.SetSpawnCooldown(6.0f);
+			customerManager.SetSpawnCooldown(8.0f);
 			customerManager.SetMaxCustomers(12);
 			Economy::SetTimeLimitSeconds(240.0f);
 			Economy::SetQuota(310);
 		}
 		else if (isLevel1) {
-			customerManager.SetSpawnCooldown(10.0f);
+			customerManager.SetSpawnCooldown(25.0f);
 			customerManager.SetMaxCustomers(4);
 			Economy::SetTimeLimitSeconds(180.0f);
 			Economy::SetQuota(200);

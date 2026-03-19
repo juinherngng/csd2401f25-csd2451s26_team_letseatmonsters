@@ -25,6 +25,7 @@
 #include <unordered_set>
 
  // Forward declarations to avoid circular dependencies
+	class TableLogic;
 class PlayerLogic : public GameObjectLogic {
 public:
 	// Inherit constructor from GameObjectLogic
@@ -192,4 +193,32 @@ private:
 	float directPathCheckTimer_ = 0.0f;
 	static constexpr float kDirectPathCheckInterval = 0.05f; // 20 times/sec
 	int blockedMoveFrames_ = 0;
+
+	enum class QueuedActionType {
+		None,
+		MoveWorld,
+		InteractTable
+	};
+
+	struct QueuedAction {
+		QueuedActionType type = QueuedActionType::None;
+		glm::vec2 worldPos{ 0.0f, 0.0f };
+		int tableID = -1;
+	};
+
+	static constexpr float kInteractionCommitRadius = 30.0f;
+
+	QueuedAction queuedAction_{};
+
+	bool TryResolveClickedTableTarget(Scene& scene,
+		const glm::vec2& mouseWorld,
+		int& outTableID,
+		TableLogic*& outTableLogic);
+
+	bool IsInTableCommitRange(Scene& scene, int tableObjectID);
+
+	void QueueMoveAction(const glm::vec2& worldPos);
+	void QueueTableAction(int tableObjectID);
+	void ClearQueuedAction();
+	void ExecuteQueuedAction(Scene& scene);
 };
