@@ -791,6 +791,8 @@ public:
 		const glm::vec2& startWorld,
 		const glm::vec2& goalWorld);
 
+	void TriggerCustomerPaymentFeedback(int tableObjectID, int amount);
+
 private:
 	// Simpler version of cutscene transition for level changes without per-frame images. Reuses some cutTrans_ state for convenience.
 	struct LevelTrans {
@@ -801,6 +803,31 @@ private:
 		float outSec = 0.35f;
 		float inSec = 0.35f;
 	} levelTrans_;
+
+	struct RuntimeAnimatedFx {
+		int objectId = -1;
+		glm::vec3 baseScale{ 1.0f, 1.0f, 1.0f };
+		float elapsed = 0.0f;
+		float lifetime = 0.0f;
+	};
+
+	struct FloatingWorldTextFx {
+		std::string text;
+		glm::vec2 pos{ 0.0f, 0.0f };
+		glm::vec2 velocity{ 0.0f, -55.0f }; // negative Y = move up in your game
+		glm::vec4 color{ 1.0f, 0.92f, 0.30f, 1.0f };
+		float baseScale = 1.0f;
+		float elapsed = 0.0f;
+		float lifetime = 0.9f;
+		std::string layer = "6";
+	};
+
+	std::vector<RuntimeAnimatedFx> runtimeAnimatedFx_;
+	std::vector<FloatingWorldTextFx> floatingWorldTextFx_;
+
+	void UpdateRuntimeAnimatedFx(float dt);
+	void UpdateFloatingWorldTextFx(float dt);
+	void RenderFloatingWorldTextFx(const glm::mat4& projection, bool pauseActive, bool cutsceneActive);
 
 	void UpdateLevelTransition();
 

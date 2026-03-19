@@ -352,6 +352,11 @@ bool CustomerTableLogic::TryTakePayment(Scene& scene) {
 	}
 
 	Economy::AddMoney(scene, payment);
+
+	if (GameObject* tableObj = GetOwner(scene)) {
+		scene.TriggerCustomerPaymentFeedback(tableObj->GetID(), payment);
+	}
+
 	customerLogic->TakePayment(scene);
 	return true;
 }
