@@ -1814,7 +1814,7 @@ namespace {
 			Economy::SetQuota(310);
 		}
 		else if (isLevel1) {
-			customerManager.SetSpawnCooldown(25.0f);
+			customerManager.SetSpawnCooldown(20.0f);
 			customerManager.SetMaxCustomers(4);
 			Economy::SetTimeLimitSeconds(180.0f);
 			Economy::SetQuota(200);
