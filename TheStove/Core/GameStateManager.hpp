@@ -47,36 +47,78 @@ namespace Framework {
 
 	class GameStateManager : public CoreFramework::SystemInterface {
 	public:
+		/**
+		 * @brief Constructs the game-state manager and subscribes to quit messages.
+		 * @param bus Shared message bus used for system communication.
+		 */
 		GameStateManager(CoreFramework::MessageBus& bus);
+		/** @brief Unsubscribes from message bus events and releases owned state. */
 		~GameStateManager();
 
+		/** @brief Initializes the state manager system. */
 		void Initialize() override;
+		/**
+		 * @brief Updates state logic, deferred simulation activation, and pause audio policy.
+		 * @param dt Frame delta time in seconds.
+		 */
 		void Update(float dt) override;
+		/** @brief Return the system name used by the engine registry and debugger. */
 		std::string GetName() override;
+		/**
+		 * @brief Initializes the first game state at application startup.
+		 * @param GS State identifier to initialize.
+		 * @param dt Frame delta time available during startup.
+		 */
 		void InitializeGameState(int GS, float dt);
+		/**
+		 * @brief Switches from the current state to a new state.
+		 * @param newState Destination state identifier.
+		 * @param dt Frame delta time used during the transition.
+		 */
 		void UpdateGameState(int newState, float dt);
 		using StateAudioPolicy = std::function<void(int, Scene&, AudioManager*)>;
 		using PauseAudioPolicy = std::function<void(bool, bool, int, Scene&, AudioManager*)>;
 
 		// Inject Scene used for runtime level loading
+		/**
+		 * @brief Supplies the scene instance used for state-driven level loading.
+		 * @param s Scene that should receive future state loads.
+		 */
 		void SetScene(Scene* s) {
 			scene = s;
 		}
 
 		// Map a GameState to a JSON level path
+		/**
+		 * @brief Registers a JSON level file for a specific game state.
+		 * @param state Game-state identifier.
+		 * @param levelPath Path to the JSON level file.
+		 */
 		void RegisterJsonState(int state, const std::string& levelPath) {
 			jsonStatePaths[state] = levelPath;
 		}
 
 		// Inject AudioManager for state-based audio control
+		/**
+		 * @brief Supplies the audio manager used by state transition policies.
+		 * @param mgr Audio manager service owned by the engine.
+		 */
 		void SetAudioManager(AudioManager* mgr) {
 			audioManager = mgr;
 		}
 
 		// Inject game-specific state/audio policies
+		/**
+		 * @brief Installs a callback that applies audio behavior whenever a state is entered.
+		 * @param policy State-entry audio policy callback.
+		 */
 		void SetStateAudioPolicy(StateAudioPolicy policy) {
 			stateAudioPolicy = std::move(policy);
 		}
+		/**
+		 * @brief Installs a callback that applies audio behavior when gameplay is paused or resumed.
+		 * @param policy Pause/resume audio policy callback.
+		 */
 		void SetPauseAudioPolicy(PauseAudioPolicy policy) {
 			pauseAudioPolicy = std::move(policy);
 		}

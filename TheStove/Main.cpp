@@ -88,22 +88,68 @@ struct ApplicationState {
 ApplicationState* g_AppState = nullptr;
 
 // Forward Declarations
+/**
+ * @brief Renders the current frame.
+ * @param app Global application state containing the window, scene, and systems.
+ */
 static void draw(ApplicationState& app);
+
+/**
+ * @brief Advances one application frame of input, gameplay, and engine systems.
+ * @param app Global application state containing the window, scene, and systems.
+ */
 static void update(ApplicationState& app);
+
+/**
+ * @brief Initializes the window, engine systems, scene, and debug tools.
+ * @param app Global application state to populate.
+ * @param width Requested window width in pixels.
+ * @param height Requested window height in pixels.
+ * @param title Window title string.
+ * @param fullscreen True to start in fullscreen mode.
+ * @return True when initialization succeeds and the main loop can begin.
+ */
 static bool init(ApplicationState& app, GLint width, GLint height, std::string title, bool fullscreen);
+
+/**
+ * @brief Shuts down the scene, engine systems, window, and external resources.
+ * @param app Global application state to tear down.
+ */
 static void cleanup(ApplicationState& app);
+
+/**
+ * @brief Handles process signals and requests a graceful application exit.
+ * @param signal Platform signal identifier received by the process.
+ */
 static void signalHandler(int signal);
+
+/**
+ * @brief Applies pause or resume behavior in response to focus/minimize changes.
+ * @param pause True to pause simulation and audio, false to resume them.
+ */
 static void HandlePauseResume(bool pause);
+
+/**
+ * @brief Switches the main window between fullscreen and windowed modes.
+ * @param app Global application state containing window sizing information.
+ */
 static void ToggleFullscreen(ApplicationState& app);
 
 // Exposed for file-dialog code
+/**
+ * @brief Updates whether a modal dialog is currently open.
+ * @param open True when a native modal dialog is active.
+ */
 void SetModalDialogOpen(bool open) {
 	if (g_AppState) {
 		g_AppState->modalDialogOpen = open;
 	}
 }
 
-// Signal handler for Ctrl+C, Ctrl+Break, and console close
+/**
+ * @brief Handles Ctrl+C-style termination requests by marking the app for shutdown.
+ * @param signal Platform signal identifier received by the runtime.
+ */
 static void signalHandler(int signal) {
 	std::cout << "\nReceived signal " << signal << ", cleaning up..." << std::endl;
 
@@ -117,7 +163,12 @@ static void signalHandler(int signal) {
 	}
 }
 
-// GLFW framebuffer resize callback - updates viewport and informs graphics engine
+/**
+ * @brief Responds to framebuffer size changes and resizes the rendering systems.
+ * @param window GLFW window that triggered the callback.
+ * @param width New framebuffer width in pixels.
+ * @param height New framebuffer height in pixels.
+ */
 static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	(void)window;
 
@@ -138,7 +189,10 @@ static void FramebufferSizeCallback(GLFWwindow* window, int width, int height) {
 	}
 }
 
-// GLFW window focus callback - pause on focus loss, resume on focus gain
+/**
+ * @brief Pauses or resumes runtime systems when the application loses or gains focus.
+ * @param pause True to pause simulation, audio, and input; false to restore them.
+ */
 static void HandlePauseResume(bool pause) {
 	if (!g_AppState || !g_AppState->coreEngine) {
 		return;
@@ -207,7 +261,10 @@ static void HandlePauseResume(bool pause) {
 	}
 }
 
-// Fullscreen toggle helper - handles saving/restoring windowed position and size, switching modes, and updating viewport/graphics engine
+/**
+ * @brief Toggles the primary GLFW window between fullscreen and windowed presentation.
+ * @param app Global application state containing cached windowed size and position.
+ */
 static void ToggleFullscreen(ApplicationState& app) {
 	if (!app.window) {
 		return;
@@ -264,7 +321,11 @@ static void ToggleFullscreen(ApplicationState& app) {
 #ifdef _WIN32
 #include <windows.h>
 
-// Windows console event handler
+/**
+ * @brief Handles Windows console close and interrupt events.
+ * @param signal Windows console control code.
+ * @return TRUE when the signal was handled by the application.
+ */
 BOOL WINAPI ConsoleHandler(DWORD signal) {
 	switch (signal) {
 	case CTRL_C_EVENT:
@@ -286,7 +347,10 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 }
 #endif
 
-// Main
+/**
+ * @brief Entry point for the desktop application.
+ * @return Zero on success, or a negative value when startup fails.
+ */
 int main() {
 
 #ifdef _DEBUG
@@ -410,7 +474,15 @@ int main() {
 	}
 }
 
-// Initialization / Shutdown
+/**
+ * @brief Initializes the application window, engine systems, scene, and optional debug UI.
+ * @param app Global application state to populate.
+ * @param width Requested window width in pixels.
+ * @param height Requested window height in pixels.
+ * @param title Window title string.
+ * @param fullscreen True to start in fullscreen mode.
+ * @return True when initialization completes successfully.
+ */
 static bool init(ApplicationState& app, GLint width, GLint height, std::string title, bool fullscreen) {
 	// Save desired windowed size from config (used when toggling out of fullscreen)
 	app.windowedWidth = width;
@@ -755,7 +827,10 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	return true;
 }
 
-// Update / Draw
+/**
+ * @brief Processes one frame of input, simulation, transitions, and engine updates.
+ * @param app Global application state containing timing, scene, and systems.
+ */
 static void update(ApplicationState& app) {
 	// Calculate delta time
 	float currentFrame = static_cast<float>(glfwGetTime());
@@ -867,6 +942,10 @@ static void update(ApplicationState& app) {
 	}
 }
 
+/**
+ * @brief Renders the current scene, UI, debug overlay, and presentation buffers.
+ * @param app Global application state containing the active scene and graphics system.
+ */
 static void draw(ApplicationState& app) {
 	std::vector<GameObject*> drawList;
 
@@ -932,7 +1011,10 @@ static void draw(ApplicationState& app) {
 	glfwSwapBuffers(app.window);
 }
 
-// Comprehensive cleanup function to gracefully shut down the application and all subsystems
+/**
+ * @brief Performs one-time shutdown of the scene, engine systems, resources, and window.
+ * @param app Global application state to tear down.
+ */
 void cleanup(ApplicationState& app) {
 	static bool cleanupCalled = false;
 

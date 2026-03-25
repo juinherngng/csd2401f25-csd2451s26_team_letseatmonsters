@@ -32,16 +32,38 @@ public:
 	using GameObjectLogic::GameObjectLogic; // inherit constructor
 
 	// Lifecycle overrides
+	/**
+	 * @brief Initializes cached player state once the owning scene is ready.
+	 * @param scene Active scene containing the player object and related systems.
+	 */
 	void Start(Scene& scene) override;
+	/**
+	 * @brief Updates movement, interaction, carried items, and player VFX for one frame.
+	 * @param dt Frame delta time in seconds.
+	 * @param scene Active scene containing the player and interactables.
+	 * @param input Centralized input snapshot for the current frame.
+	 */
 	void Update(float dt, Scene& scene, InputManager& input) override;
+	/**
+	 * @brief Returns the runtime logic name used by the logic system and debugger.
+	 * @return Stable script name for this logic component.
+	 */
 	std::string GetName() const override {
 		return "PlayerLogic";
 	}
 
 	// Carry state helpers
+	/**
+	 * @brief Returns whether the player is currently carrying an item.
+	 * @return True when a carried item ID is assigned.
+	 */
 	bool IsHolding() const {
 		return carriedItemID >= 0;
 	}
+	/**
+	 * @brief Returns the object ID of the currently carried item.
+	 * @return Carried object ID, or `-1` when empty-handed.
+	 */
 	int  GetCarriedItemID() const {
 		return carriedItemID;
 	}
@@ -49,29 +71,64 @@ public:
 	// High-level interaction
 	// Called when we want the player to interact with a particular table GameObject.
 	// (For example: you can call this when the player presses a key near a table.)
+	/**
+	 * @brief Queues or performs interaction with a specific table object.
+	 * @param scene Active scene containing the table.
+	 * @param tableObjectID Object ID of the target table.
+	 */
 	void InteractWithTable(Scene& scene, int tableObjectID);
 
 	// Unity: Move(Vector3 dest)
+	/**
+	 * @brief Sends the player toward a world-space destination using pathfinding when needed.
+	 * @param scene Active scene used for path queries and collision checks.
+	 * @param dest Target world position on the walkable plane.
+	 */
 	void MoveTo(Scene& scene, const glm::vec2& dest);
 
 	// Direct free movement (use this for plain floor clicks)
+	/**
+	 * @brief Starts direct movement toward a world-space destination without table interaction.
+	 * @param dest Target world position.
+	 */
 	void MoveDirect(const glm::vec2& dest);
 
 	// Unity: bool ReachedDestination()
+	/**
+	 * @brief Returns whether the player currently has an active movement target.
+	 * @return True when a destination is pending.
+	 */
 	bool HasDestination() const {
 		return hasMoveTarget;
 	}
+	/**
+	 * @brief Returns whether the player is currently idle at its destination.
+	 * @return True when no movement target remains.
+	 */
 	bool HasArrived()   const {
 		return !hasMoveTarget;
 	}
 
 	// Unity: PickUp(GameObject item)
+	/**
+	 * @brief Attaches a world item to the player as the carried object.
+	 * @param scene Active scene containing the item.
+	 * @param itemID Object ID of the item to pick up.
+	 */
 	void PickUp(Scene& scene, int itemID);
 
 	// Unity: Drop()
+	/**
+	 * @brief Drops the currently carried item back into the scene.
+	 * @param scene Active scene receiving the dropped item.
+	 */
 	void Drop(Scene& scene);
 
 	// Force-clear movement/click state while pause overlay is active or before resume.
+	/**
+	 * @brief Clears movement and interaction state while gameplay is paused.
+	 * @param scene Active scene used to clear indicators and queued actions.
+	 */
 	void EnterPauseState(Scene& scene);
 
 private:
