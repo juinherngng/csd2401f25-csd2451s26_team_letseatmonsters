@@ -332,7 +332,9 @@ namespace LEPANELBUILDSIZEANALYZER {
 
 		if (!sStatusMessage.empty()) {
 			const ImVec4 color = sStatusIsError ? ImVec4(1.0f, 0.35f, 0.35f, 1.0f) : ImVec4(0.45f, 0.9f, 0.45f, 1.0f);
-			ImGui::TextColored(color, "%s", sStatusMessage.c_str());
+			ImGui::PushStyleColor(ImGuiCol_Text, color);
+			ImGui::TextWrapped("%s", sStatusMessage.c_str());
+			ImGui::PopStyleColor();
 		}
 
 		ImGui::Separator();
@@ -394,8 +396,7 @@ namespace LEPANELBUILDSIZEANALYZER {
 				}
 			}
 		}
-		ImGui::SameLine();
-		ImGui::TextDisabled("Selections are remembered when the window is reopened.");
+		ImGui::TextWrapped("Selections are remembered when the window is reopened during this editor session.");
 
 		ImGui::End();
 	}
