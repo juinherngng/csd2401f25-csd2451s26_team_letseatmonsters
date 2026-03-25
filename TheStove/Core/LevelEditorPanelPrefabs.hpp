@@ -7,7 +7,7 @@
  DESCRIPTION:       Header for the Level Editor Prefabs panel, which allows users to save scene
 					objects as prefabs (JSON files) and instantiate them in the scene.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

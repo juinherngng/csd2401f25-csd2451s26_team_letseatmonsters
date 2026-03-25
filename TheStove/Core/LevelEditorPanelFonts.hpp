@@ -8,7 +8,7 @@
  DESCRIPTION:       Font management panel for the Level Editor.
 					Allows loading and managing multiple fonts.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

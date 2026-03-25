@@ -6,7 +6,7 @@
 
  DESCRIPTION:       Definition of the prefab link registry used by the Level Editor.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

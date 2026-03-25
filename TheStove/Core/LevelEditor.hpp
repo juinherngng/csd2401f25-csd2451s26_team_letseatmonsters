@@ -5,13 +5,12 @@
  AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		In-engine Level Editor controller.
-					Responsibilities:
 					- Show editor UI (toolbar + panels)
 					- Maintain edit-state vs play-state (snapshot/restore)
 					- Expose shared state (level path, LevelData) to panels
 					- Delegate scene picking/dragging to helper module
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -20,49 +19,75 @@
 #include <filesystem>
 #include <string>
 
-#include "LevelSerializer.hpp"
 #include "LevelEditorFileIO.hpp"
+#include "LevelSerializer.hpp"
 
 struct LevelData;
 class Scene;
 
-// Controller for the in-engine level editor. Manages the editor UI, maintains edit/play state, and exposes shared state to panels.
+/**
+ * @brief Controller for the in-engine level editor.
+ *
+ * The editor owns shared state that multiple panels depend on, including the
+ * active level path, editable snapshots, and tool visibility flags.
+ */
 class LevelEditor {
 public:
-	// Visibility
+	/// @brief Returns whether the editor UI is currently enabled.
 	bool IsEnabled() const {
 		return isEnabled;
 	}
+
+	/// @brief Toggles the overall editor visibility.
 	void Toggle() {
 		isEnabled = !isEnabled;
 	}
 
-	// Level path control (kept public for existing panel code)
+	/// @brief Stores the active level path used by the editor.
 	void SetPath(const std::string& path) {
 		levelPath = path;
 	}
+
+	/// @brief Returns the active level path.
 	const std::string& GetPath() const {
 		return levelPath;
 	}
 	std::string levelPath{}; // public on purpose to preserve existing panel access
 
-	// Runtime / Playback
+	/// @brief Returns whether the editor is currently in play mode.
 	bool IsPlaying() const {
 		return isPlaying;
 	}
+
+	/// @brief Updates the play-state flag tracked by the editor.
 	void SetPlaying(bool on) {
 		isPlaying = on;
 	}
 
-	// Expose working LevelData and Play snapshot for panels
+	/// @brief Returns whether the Build Size Analyzer panel should be shown.
+	bool IsBuildSizeAnalyzerOpen() const {
+		return buildSizeAnalyzerOpen;
+	}
+
+	/// @brief Updates the Build Size Analyzer panel visibility.
+	void SetBuildSizeAnalyzerOpen(bool open) {
+		buildSizeAnalyzerOpen = open;
+	}
+
+	/// @brief Returns the working LevelData snapshot being edited.
 	LevelData& MutableLevel() {
 		return level;
 	}
+
+	/// @brief Returns the snapshot captured when play mode begins.
 	LevelData& MutablePlaySnapshot() {
 		return playStartSnapshot;
 	}
 
-	// UI Entrypoint
+	/**
+	 * @brief Draws the editor UI for the current frame.
+	 * @param scene Scene currently being edited.
+	 */
 	void DrawUI(Scene& scene);
 
 private:
@@ -73,6 +98,7 @@ private:
 	bool isEnabled = false;
 #endif
 	bool isPlaying = false;
+	bool buildSizeAnalyzerOpen = true;
 
 	// Data Models
 	LevelData level{};             // Working copy while editing

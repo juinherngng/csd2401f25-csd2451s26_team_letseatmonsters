@@ -8,7 +8,7 @@
 
  DESCRIPTION:		JSON-based (de)serialization for level data used by the editor/runtime.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

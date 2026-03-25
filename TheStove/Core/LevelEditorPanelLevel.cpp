@@ -652,6 +652,13 @@ namespace {
 // Public ImGui Level Panel Implementation
 namespace LEPANELLEVEL {
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	/**
+	 * @brief Draws the main Level editor panel.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 * @param selectedIndex Currently selected hierarchy index.
+	 * @param selectedObjectId Currently selected scene object ID.
+	 */
 	void DrawLevelPanel(LevelEditor& editor, Scene& scene,
 		int& selectedIndex, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
@@ -663,9 +670,21 @@ namespace LEPANELLEVEL {
 			sClearedDefaultOnce = true;
 		}
 
-		if (!ImGui::Begin("Level###LE_Level")) {
+		if (!ImGui::Begin("Level###LE_Level", nullptr, ImGuiWindowFlags_MenuBar)) {
 			ImGui::End();
 			return;
+		}
+
+		if (ImGui::BeginMenuBar()) {
+			// Expose editor tools through an in-panel menu so the analyzer remains reachable without a global top bar.
+			if (ImGui::BeginMenu("Tools")) {
+				bool openBuildSizeAnalyzer = editor.IsBuildSizeAnalyzerOpen();
+				if (ImGui::MenuItem("Build Size Analyzer", nullptr, &openBuildSizeAnalyzer)) {
+					editor.SetBuildSizeAnalyzerOpen(openBuildSizeAnalyzer);
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenuBar();
 		}
 
 		ImGui::SeparatorText("Level Management");

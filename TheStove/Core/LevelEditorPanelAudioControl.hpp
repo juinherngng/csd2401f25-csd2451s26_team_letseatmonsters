@@ -7,7 +7,7 @@
  DESCRIPTION:       Header for Level Editor Audio Control panel.
 					Provides real-time volume control for playing audio.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

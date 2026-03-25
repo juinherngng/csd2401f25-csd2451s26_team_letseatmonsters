@@ -10,7 +10,7 @@
 					- Drag & drop sources for other panels
 					- Double-click texture to apply to the current selection
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

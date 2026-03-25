@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorFileIO.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu		(90%)
- CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu        (90%)
+ CO-AUTHORS:        Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:       File I/O helpers used by the Level Editor:
 					- Native file open dialog (Windows)
@@ -14,7 +14,7 @@
 					- Apply prefab data to an object (preserve position)
 					- Force-bypass texture cache reload
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -41,14 +41,22 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <commdlg.h>
+#include <shlobj.h>
+#pragma comment(lib, "Shell32.lib")
+#pragma comment(lib, "Ole32.lib")
 #endif
 
 namespace fs = std::filesystem;
 
-// Helper functions for path normalization, relative path construction, extension filtering, and unique path generation
 namespace {
-	// Checks if the given path contains a specific component (e.g., "assets" or "prefabs")
+	/**
+	 * @brief Returns whether a path contains a specific component.
+	 * @param path Path to inspect.
+	 * @param componentName Folder name to search for.
+	 * @return True when the component exists in the path.
+	 */
 	bool PathContainsComponent(const fs::path& path, const std::string& componentName) {
+		// Compare per component so only exact folder names match.
 		for (const auto& part : path) {
 			if (part == componentName) {
 				return true;
@@ -58,6 +66,11 @@ namespace {
 		return false;
 	}
 
+	/**
+	 * @brief Normalizes a directory string to use forward slashes and a trailing slash.
+	 * @param dir Directory string to normalize.
+	 * @return Normalized directory string.
+	 */
 	std::string NormalizeDirectoryPath(std::string dir) {
 		std::replace(dir.begin(), dir.end(), '\\', '/');
 		if (!dir.empty() && dir.back() != '/') {
@@ -67,10 +80,23 @@ namespace {
 		return dir;
 	}
 
+	/**
+	 * @brief Appends a child filename to a normalized directory path.
+	 * @param normalizedDir Parent directory string.
+	 * @param child Child path whose filename should be appended.
+	 * @return Relative path built from the directory and filename.
+	 */
 	std::string BuildRelativeChildPath(const std::string& normalizedDir, const fs::path& child) {
 		return normalizedDir + child.filename().string();
 	}
 
+	/**
+	 * @brief Builds a relative path from a root directory and child path.
+	 * @param normalizedDir Normalized root directory string.
+	 * @param root Root path used for the relative conversion.
+	 * @param child Child path to convert.
+	 * @return Relative child path, or a filename fallback if conversion fails.
+	 */
 	std::string BuildRelativePathFromRoot(const std::string& normalizedDir, const fs::path& root, const fs::path& child) {
 		std::error_code ec;
 		const fs::path relative = fs::relative(child, root, ec);
@@ -81,7 +107,14 @@ namespace {
 		return normalizedDir + relative.generic_string();
 	}
 
+	/**
+	 * @brief Returns whether a path's extension is in the allowed list.
+	 * @param path Path to inspect.
+	 * @param normalizedExts Lowercase extensions accepted by the caller.
+	 * @return True when the extension matches.
+	 */
 	bool ExtensionAllowed(const fs::path& path, const std::vector<std::string>& normalizedExts) {
+		// Lowercase the extension first so matching remains case-insensitive.
 		std::string ext = path.extension().string();
 		std::transform(ext.begin(), ext.end(), ext.begin(),
 			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
@@ -89,6 +122,12 @@ namespace {
 		return std::find(normalizedExts.begin(), normalizedExts.end(), ext) != normalizedExts.end();
 	}
 
+	/**
+	 * @brief Generates a unique destination path by appending numeric suffixes.
+	 * @param destinationDir Directory that should contain the file.
+	 * @param baseName Desired filename.
+	 * @return A unique path inside the destination directory.
+	 */
 	fs::path MakeUniquePath(const fs::path& destinationDir, const fs::path& baseName) {
 		std::error_code ec;
 		fs::path candidate = destinationDir / baseName;
@@ -104,7 +143,11 @@ namespace {
 }
 
 namespace LEFILEIO {
-	// Open a native file dialog (Windows). Returns empty string if canceled.
+	/**
+	 * @brief Opens a native Windows file dialog.
+	 * @param filter Windows dialog filter string.
+	 * @return Selected file path, or an empty string when canceled.
+	 */
 	std::string OpenFileDialog(const char* filter) {
 #ifdef _WIN32
 		// Save the current working directory before opening the dialog
@@ -133,8 +176,45 @@ namespace LEFILEIO {
 		return {};
 	}
 
-	// Copy a file into the project directory, ensuring unique name by suffixing
-	// " (n)" if a collision occurs. Returns project-relative path or empty on fail.
+	/**
+	 * @brief Opens a native Windows folder picker.
+	 * @param title Title shown by the dialog.
+	 * @return Selected folder path, or an empty string when canceled.
+	 */
+	std::string OpenFolderDialog(const char* title) {
+#ifdef _WIN32
+		// Preserve the working directory so the dialog does not disturb relative asset paths.
+		char originalCwd[MAX_PATH];
+		GetCurrentDirectoryA(MAX_PATH, originalCwd);
+
+		BROWSEINFOA browseInfo{};
+		browseInfo.lpszTitle = title;
+		browseInfo.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_USENEWUI;
+
+		PIDLIST_ABSOLUTE pidList = SHBrowseForFolderA(&browseInfo);
+		if (pidList == nullptr) {
+			SetCurrentDirectoryA(originalCwd);
+			return {};
+		}
+
+		char folderPath[MAX_PATH] = { 0 };
+		const BOOL ok = SHGetPathFromIDListA(pidList, folderPath);
+		CoTaskMemFree(pidList);
+		SetCurrentDirectoryA(originalCwd);
+
+		if (ok) {
+			return std::string(folderPath);
+		}
+#endif
+		return {};
+	}
+
+	/**
+	 * @brief Copies an imported file into a project directory with a collision-safe name.
+	 * @param sourcePath Source file selected by the user.
+	 * @param destinationDir Project-relative destination directory.
+	 * @return Project-relative copied path, or an empty string on failure.
+	 */
 	std::string CopyFileIntoProjectUnique(const std::string& sourcePath, const std::string& destinationDir) {
 		if (sourcePath.empty()) {
 			return {};
@@ -163,8 +243,7 @@ namespace LEFILEIO {
 			return {};
 		}
 
-		// IMPORTANT: Don't use dst.generic_string() - it may resolve to absolute path
-		// Instead, manually construct the relative path string from the original destinationDir
+		// Return a project-relative path so serialized editor data stays portable across machines.
 		const std::string normalizedDir = NormalizeDirectoryPath(destinationDir);
 		const std::string relativePath = BuildRelativeChildPath(normalizedDir, dst);
 
@@ -172,7 +251,11 @@ namespace LEFILEIO {
 		return relativePath;
 	}
 
-	// Move to trash
+	/**
+	 * @brief Moves a file into a sibling trash folder.
+	 * @param filePath File to move.
+	 * @return True when the file is moved successfully.
+	 */
 	bool MoveToTrash(const std::string& filePath) {
 		if (filePath.empty()) {
 			return false;
@@ -207,7 +290,7 @@ namespace LEFILEIO {
 			return true;
 		}
 
-		// Fallback when rename fails (e.g., crossing filesystems).
+		// Fall back to copy+delete when rename fails across filesystem boundaries.
 		ec.clear();
 		fs::copy_file(src, dst, fs::copy_options::overwrite_existing, ec);
 		if (ec) {
@@ -225,14 +308,23 @@ namespace LEFILEIO {
 		return true;
 	}
 
-	// List all .json files in a directory.
-	// Returns relative paths.
+	/**
+	 * @brief Lists JSON files inside a directory.
+	 * @param dir Directory to scan.
+	 * @param recursive True to include subdirectories.
+	 * @return Relative JSON paths rooted at the provided directory.
+	 */
 	std::vector<std::string> ListJsonFiles(const std::string& dir, bool recursive) {
 		return ListAssetsWithExt(dir, { ".json" }, recursive);
 	}
 
-	// List files with specific lowercase extensions (e.g., {".png",".jpg"}).
-	// Returns sorted list of relative paths (relative to the provided directory).
+	/**
+	 * @brief Lists files with the requested extensions.
+	 * @param dir Directory to scan.
+	 * @param extensions Allowed lowercase extensions.
+	 * @param recursive True to include subdirectories.
+	 * @return Sorted relative asset paths.
+	 */
 	std::vector<std::string> ListAssetsWithExt(const std::string& dir, const std::vector<std::string>& extensions, bool recursive) {
 		std::vector<std::string> out;
 		std::error_code ec;
@@ -256,7 +348,7 @@ namespace LEFILEIO {
 				return;
 			}
 
-			// Exclude any files in "trash" subdirectories at any level
+			// Ignore soft-deleted files so editor lists only show active content.
 			const fs::path relativePath = fs::relative(entry.path(), rootPath, ec);
 			if (!ec && PathContainsComponent(relativePath, "trash")) {
 				return;
@@ -299,8 +391,12 @@ namespace LEFILEIO {
 		return out;
 	}
 
-	// Save a single-object prefab to JSON file. Ensures parent directory exists.
-	// Adds ".json" if path has no extension. Returns success.
+	/**
+	 * @brief Saves a single LevelObject as a prefab JSON file.
+	 * @param prefabPath Output path.
+	 * @param src Source object to serialize.
+	 * @return True when the prefab save succeeds.
+	 */
 	bool SavePrefabToFile(std::string prefabPath, const LevelObject& src) {
 		if (fs::path(prefabPath).extension().empty()) {
 			prefabPath += ".json";
@@ -323,7 +419,12 @@ namespace LEFILEIO {
 		return LevelSerializer::Save(prefabPath, one);
 	}
 
-	// Load a single-object prefab from JSON file into 'out'. Returns success.
+	/**
+	 * @brief Loads a single LevelObject prefab from disk.
+	 * @param prefabPath Prefab file path.
+	 * @param out Receives the loaded data.
+	 * @return True when loading succeeds.
+	 */
 	bool LoadPrefabFromFile(const std::string& prefabPath, LevelObject& out) {
 		LevelData one;
 
@@ -335,8 +436,12 @@ namespace LEFILEIO {
 		return true;
 	}
 
-	// Apply prefab dimensions/collider/texture to an object but keep its position.
-	// Also clamps to the scene's walk area after applying changes.
+	/**
+	 * @brief Applies prefab dimensions, collider data, and texture while preserving position.
+	 * @param prefab Prefab data to apply.
+	 * @param scene Scene containing the object.
+	 * @param obj Target object to update.
+	 */
 	void ApplyPrefabToObjectKeepPosition(const LevelObject& prefab, Scene& scene, GameObject* obj) {
 		if (obj == nullptr) {
 			return;
@@ -352,7 +457,7 @@ namespace LEFILEIO {
 		obj->SetColliderSize({ prefab.colWidth, prefab.colHeight });
 		obj->SetColliderOffset({ prefab.colOffsetX, prefab.colOffsetY });
 
-		// Rotation is presumed to be in DEGREES from JSON/editor.
+		// Reapply the transform using editor rotation units so runtime state matches serialized data.
 		scene.SetTransformFromLevel(id, obj->GetPositionGLM(), { w, h, 1.0f }, prefab.rotation);
 		scene.SetObjectTexturePath(id, prefab.texture);
 
@@ -364,9 +469,13 @@ namespace LEFILEIO {
 		scene.ClampToWalkArea(obj);
 	}
 
-	// Load a texture with a unique cache key to bypass ResourceManager cache.
-	// Useful for forcing a re-import of modified assets at runtime.
+	/**
+	 * @brief Loads a texture with a unique cache key to bypass cached entries.
+	 * @param path Texture path to load.
+	 * @return Loaded texture pointer, or null on failure.
+	 */
 	Texture* LoadTextureBypassingCache(const std::string& path) {
+		// Add a time-based suffix so repeated imports always request a fresh texture from the manager.
 		const std::uint64_t tick = static_cast<std::uint64_t>(ImGui::GetTime() * 1'000'000.0);
 		const std::string key = "sprite_" + path + "#v" + std::to_string(tick);
 

@@ -10,7 +10,7 @@
 					- Delegates to Level/Prefabs/Assets panels
 					- Disables pick/drag while playing
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -18,6 +18,7 @@
 #include "LevelEditor.hpp"
 #include "LevelEditorPanelAssets.hpp"
 #include "LevelEditorPanelAudioControl.hpp"
+#include "LevelEditorPanelBuildSizeAnalyzer.hpp"
 #include "LevelEditorPanelConfig.hpp"
 #include "LevelEditorPanelFonts.hpp"
 #include "LevelEditorPanelLevel.hpp"
@@ -26,7 +27,10 @@
 
 #include <imgui.h>
 
- // DrawUI
+ /**
+  * @brief Draws all top-level editor panels for the current ImGui frame.
+  * @param scene Scene currently being edited.
+  */
 void LevelEditor::DrawUI(Scene& scene) {
 	// Fast path: editor disabled
 	if (!isEnabled) {
@@ -48,20 +52,21 @@ void LevelEditor::DrawUI(Scene& scene) {
 	st.WindowPadding = ImVec2(10, 10);
 	st.CellPadding = ImVec2(6, 4);
 
-	// Panels maintain these between frames; static matches your existing behavior
+	// Keep the current selection stable across frames so all editor panels stay synchronized.
 	static int selectedIndex = -1;    // index in hierarchy list
 	static int selectedObjectId = -1; // engine object ID
 
 	// The scene viewport should not capture game mouse by default while drawing editor UI
 	InputManager::Get().SetSceneViewportWantsGameMouse(false);
 
-	// Panels
+	// Draw each dockable editor panel using the shared editor state above.
 	LEPANELLEVEL::DrawLevelPanel(*this, scene, selectedIndex, selectedObjectId);
 	LEPANELPREFABS::DrawPrefabsPanel(*this, scene, selectedObjectId);
 	LEPANELASSETS::DrawAssetsPanel(*this, scene, selectedIndex, selectedObjectId);
 	LEPANELAUDIOCONTROL::DrawAudioControlPanel(*this, scene);
 	LEPANELCONFIG::DrawConfigPanel(*this, scene);
 	LEPANELFONTS::DrawFontsPanel(*this, scene);
+	LEPANELBUILDSIZEANALYZER::DrawBuildSizeAnalyzerPanel(*this, scene);
 
 	// Disable editor picking/dragging while the game is running
 	if (!isPlaying) {

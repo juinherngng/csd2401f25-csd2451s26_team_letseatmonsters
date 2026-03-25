@@ -173,6 +173,12 @@ void CustomerOrderUILogic::UpdatePatienceFill(Scene& scene, float ratio01) {
 	fill->SetPosition(Math::Vector3D(centerX, bgPos.y, bgPos.z));
 }
 
+/**
+ * @brief Updates the order bubble, patience bar, and reaction VFX for the owning customer.
+ * @param dt Delta time for the frame.
+ * @param scene Active scene containing the customer and UI objects.
+ * @param input Unused input manager reference.
+ */
 void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*/) {
 	if (!scene.IsSimulationActive())
 		return;
@@ -186,9 +192,9 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 	const int curStateInt = (int)state;
 
 	const int leavingInt = (int)SimpleNpcLogic::BehaviourState::Leaving;
-	const int payingInt = (int)SimpleNpcLogic::BehaviourState::Paying;
 	const int eatingInt = (int)SimpleNpcLogic::BehaviourState::Eating;
 
+	// Detect state transitions so one-shot success/failure reactions only trigger once.
 	const bool enteredLeaving = (prevBehaviourState_ != leavingInt && curStateInt == leavingInt);
 	const bool enteredEating = (prevBehaviourState_ != eatingInt && curStateInt == eatingInt);
 

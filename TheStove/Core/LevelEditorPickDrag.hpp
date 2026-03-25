@@ -7,7 +7,7 @@
  DESCRIPTION:       Header for picking and dragging utilities in the Level Editor, which handle
 					mouse input to select and manipulate scene objects in the Scene viewport.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

@@ -11,7 +11,7 @@
 					- Stops when LMB is released
 					- Early-out when ImGui wants mouse to prevent UI conflict
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -493,7 +493,7 @@ namespace LEPICKDRAG {
 						}
 					}
 
-					// SCALE HANDLES (corners + edges) – Rect tool only
+					// SCALE HANDLES (corners + edges) ï¿½ Rect tool only
 					if (!startedFromGizmo && sCurrentTool == TransformTool::Rect) {
 						const float handleSize = 6.0f;
 						const float hitSize = handleSize + 3.0f;
@@ -579,7 +579,7 @@ namespace LEPICKDRAG {
 						}
 					}
 
-					// MOVE ARROWS (X / Y axis) – Rect tool only
+					// MOVE ARROWS (X / Y axis) ï¿½ Rect tool only
 					if (!startedFromGizmo &&
 						sGizmoMode == GizmoMode::Transform &&
 						sCurrentTool == TransformTool::Rect) {
@@ -621,7 +621,7 @@ namespace LEPICKDRAG {
 						}
 					}
 
-					// BODY (yellow box) – Rect tool only, lowest priority
+					// BODY (yellow box) ï¿½ Rect tool only, lowest priority
 					if (!startedFromGizmo &&
 						(sCurrentTool == TransformTool::Rect || sCurrentTool == TransformTool::Select) &&
 						insideBodyWorld) {
