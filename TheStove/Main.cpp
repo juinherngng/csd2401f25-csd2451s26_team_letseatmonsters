@@ -156,6 +156,7 @@ static void HandlePauseResume(bool pause) {
 		}
 
 		g_AppState->pausedByOSFocus = true;
+		g_AppState->mouseInitialized = false;
 
 		// Remember and stop simulation (gameplay/physics)
 		if (scene) {
@@ -179,6 +180,7 @@ static void HandlePauseResume(bool pause) {
 		}
 
 		g_AppState->pausedByOSFocus = false;
+		g_AppState->mouseInitialized = false;
 
 		// Avoid a huge dt spike when we come back
 		g_AppState->lastFrame = static_cast<float>(glfwGetTime());
@@ -534,13 +536,14 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	glfwSetWindowFocusCallback(app.window, [](GLFWwindow* win, int focused) {
 
 		if (focused == GLFW_FALSE) {
-			// Force the game window to minimize
-			glfwIconifyWindow(win);
 			if (g_AppState && g_AppState->modalDialogOpen) {
 				// Just pause audio/input, but don't force minimize
 				HandlePauseResume(true);
 				return;
 			}
+
+			// Force the game window to minimize only for normal OS focus loss.
+			glfwIconifyWindow(win);
 
 			// Pause gameplay, physics, audio, and clear input
 			HandlePauseResume(true);
