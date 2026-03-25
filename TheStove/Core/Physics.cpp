@@ -12,7 +12,7 @@
 						- Lane motion with bounce
 						- Equal-mass elastic collisions
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -309,3 +309,4 @@ namespace physics {
 		if (!std::isfinite(secondVel.x) || !std::isfinite(secondVel.y)) secondVel = { 0.f, 0.f };
 	}
 }
+

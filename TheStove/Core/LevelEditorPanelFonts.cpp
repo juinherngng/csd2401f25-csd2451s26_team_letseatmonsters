@@ -8,7 +8,7 @@
  DESCRIPTION:       Implementation of the Fonts panel for Level Editor.
 					Manages font loading and text object data.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -574,3 +574,4 @@ namespace LEPANELFONTS {
 #endif
 	}
 }
+

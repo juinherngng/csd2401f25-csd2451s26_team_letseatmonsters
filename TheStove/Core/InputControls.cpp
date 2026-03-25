@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Input Control function definitions.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -95,3 +95,4 @@ double InputControls::MouseXPos() {
 double InputControls::MouseYPos() {
 	return mouseY;
 }
+

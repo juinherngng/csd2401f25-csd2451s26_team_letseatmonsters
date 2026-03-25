@@ -9,7 +9,7 @@
 					processed state, responds to interactions with worktables and
 					plates, and exposes helper functions to query ingredient state.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -58,3 +58,4 @@ protected:
 		return "IngredientLogic";
 	}
 };
+

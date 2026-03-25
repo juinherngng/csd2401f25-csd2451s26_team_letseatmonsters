@@ -12,7 +12,7 @@
 					entity is stopped. Also clears MovementManager's click-to-move
 					target so the UI/green path reflects the stop.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -279,3 +279,4 @@ void PhysicsManager::Clear() {
 	physicsStates_.clear();
 	seekTargets_.clear();
 }
+

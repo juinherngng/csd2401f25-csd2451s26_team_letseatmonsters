@@ -8,7 +8,7 @@
  DESCRIPTION:       Implements InputCommandHandler. Maps keyboard input to engine/debug actions:
 					collider/debug visibility toggles and force-mode switching for the player.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -98,3 +98,4 @@ void InputCommandHandler::HandleForceToggle(InputManager& inputManager,
 		}
 	}
 }
+

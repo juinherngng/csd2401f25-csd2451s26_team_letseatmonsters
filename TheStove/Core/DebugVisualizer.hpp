@@ -10,7 +10,7 @@
 					GameObjects. Functions are grouped by purpose and kept lightweight
 					so they can be called from the main debug pass each frame.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -91,3 +91,4 @@ private:
 	// Internal toggle for the click-to-move line
 	static bool sDrawPathLine;
 };
+

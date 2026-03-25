@@ -9,7 +9,7 @@
 					required for hover detection, overlay spawning, texture
 					swapping, and tracking which instance owns the overlay.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -50,3 +50,4 @@ private:
 
 	int overlayId_ = -1; // ID of spawned HowToPlay overlay, -1 if none
 };
+

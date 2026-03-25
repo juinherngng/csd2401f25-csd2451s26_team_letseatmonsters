@@ -7,7 +7,7 @@
  DESCRIPTION:		Header for the Level Editor command system, which provides undo/redo functionality
 					by recording snapshots of the level state before mutations and restoring them on demand.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -54,3 +54,4 @@ namespace LECOMMAND {
 	 */
 	void ClearHistory();
 }
+

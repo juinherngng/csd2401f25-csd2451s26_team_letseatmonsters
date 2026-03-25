@@ -6,7 +6,7 @@
 
  DESCRIPTION:		The core engine managing the game loop, systems, and messaging.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

@@ -9,7 +9,7 @@
 					processed state, responds to interactions with worktables and
 					plates, and exposes helper functions to query ingredient state
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -38,7 +38,7 @@ void IngredientLogic::MarkProcessed() {
 
 	isProcessed_ = true;
 
-	// Update type from raw → refined
+	// Update type from raw to refined
 	switch (type_) {
 	case IngredientType::Vegetable:
 		type_ = IngredientType::Refined_Veg;
@@ -57,3 +57,4 @@ void IngredientLogic::MarkProcessed() {
 		break;
 	}
 }
+

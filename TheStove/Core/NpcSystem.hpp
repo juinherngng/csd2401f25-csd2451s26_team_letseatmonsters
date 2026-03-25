@@ -11,7 +11,7 @@
 					Handles simple pairwise elastic collisions within each group
 					and clamps all NPCs inside the walkable area.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -123,3 +123,4 @@ private:
 	// Lane NPCs: npcID -> lane X position.
 	std::unordered_map<int, float> laneNPCs_;
 };
+

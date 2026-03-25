@@ -9,7 +9,7 @@
  DESCRIPTION:		Declares the GraphicsEngine responsible for initialization, off-screen scene FBO,
 					ImGui dockspace, background handling, and batched rendering.
 
-		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -547,3 +547,4 @@ private:
 	 */
 	static int ParseLayerNumber(const std::string& layerName);
 };
+

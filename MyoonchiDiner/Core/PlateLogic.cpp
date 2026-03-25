@@ -9,7 +9,7 @@
 					dish-recipe matching, storing ingredient types, and determining
 					the final dish output (VegDish, MeatDish, SoupDish, etc.).
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -199,3 +199,4 @@ bool PlateLogic::TryAddIngredient(const IngredientLogic& ingredient, bool& outCo
 	// We keep the GameObject alive; visual + destruction are handled elsewhere.
 	return true;
 }
+

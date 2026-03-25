@@ -13,7 +13,7 @@
 					- Context menu: soft delete (move to "trash")
 					- Audio catalog management with inline editing
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -957,3 +957,4 @@ namespace LEPANELASSETS {
 	}
 #endif
 }
+

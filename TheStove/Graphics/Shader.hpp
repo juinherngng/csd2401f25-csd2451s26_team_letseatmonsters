@@ -6,7 +6,7 @@
 
  DESCRIPTION:		GLSL program wrapper: compile/link from files, bind, and set uniforms.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -73,3 +73,4 @@ private:
 	/** @brief Link compiled shader stages into a complete program. */
 	GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 };
+

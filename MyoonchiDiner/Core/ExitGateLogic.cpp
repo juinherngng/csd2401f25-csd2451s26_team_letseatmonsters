@@ -7,7 +7,7 @@
  DESCRIPTION:       Defines the ExitGateLogic component, which defines the world-space
 					exit target for NPCs and provides an optional positional offset.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -22,3 +22,4 @@ Math::Vector2D ExitGateLogic::GetExitTargetWorld(Scene& scene) const {
 	glm::vec3 p = owner->GetPositionGLM();
 	return Math::Vector2D(p.x + exitOffset_.x, p.y + exitOffset_.y);
 }
+

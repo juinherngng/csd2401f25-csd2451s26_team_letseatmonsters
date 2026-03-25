@@ -7,7 +7,7 @@
  DESCRIPTION:		Handles autosaving of level data at regular intervals and provides
 					recovery options if the main level file is missing or older than the autosave.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -55,3 +55,4 @@ namespace LEAUTOSAVE {
 	 */
 	std::string BuildAutosavePath(const std::string& levelPath);
 }
+

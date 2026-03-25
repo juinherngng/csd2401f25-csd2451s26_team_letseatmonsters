@@ -10,7 +10,7 @@
 					- Tracks total selected size live
 					- Exports selected assets to a chosen folder
 
-		 All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -28,3 +28,4 @@ namespace LEPANELBUILDSIZEANALYZER {
 	 */
 	void DrawBuildSizeAnalyzerPanel(LevelEditor& editor, Scene& scene);
 }
+

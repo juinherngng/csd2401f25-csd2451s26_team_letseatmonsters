@@ -13,7 +13,7 @@
 					- Provide utility for other components/systems to read or modify transforms.
 					- Forms the backbone for rendering and physics.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -91,4 +91,5 @@ void Transform::OnDisable() {
 GameComponent* Transform::Clone() const {
 	return new Transform(*this);
 }
+
 

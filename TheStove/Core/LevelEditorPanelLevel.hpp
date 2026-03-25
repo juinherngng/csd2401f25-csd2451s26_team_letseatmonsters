@@ -6,7 +6,7 @@
 
  DESCRIPTION:       Header for the Level panel in the Level Editor, which manages the overall level state and provides
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -37,4 +37,5 @@ namespace LEPANELLEVEL {
 	 */
 	void RecordUndoSnapshot(LevelEditor& editor, Scene& scene);
 }
+
 

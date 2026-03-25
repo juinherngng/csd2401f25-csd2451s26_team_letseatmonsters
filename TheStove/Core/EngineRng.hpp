@@ -8,7 +8,7 @@
 					with explicit seed control and lazy initialization. This allows game logic to use a shared RNG without
 					needing to manage its lifetime or seeding directly.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -44,4 +44,5 @@ namespace EngineRng {
 	 */
 	std::uint32_t CreateSeed();
 }
+
 

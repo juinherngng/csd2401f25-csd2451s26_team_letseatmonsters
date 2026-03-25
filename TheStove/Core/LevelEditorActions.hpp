@@ -7,7 +7,7 @@
  DESCRIPTION:		Declarations for helper functions related to level editor actions,
 					such as rendering action buttons and handling undo/redo shortcuts.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -53,3 +53,4 @@ namespace LEACTIONS {
 	 */
 	void HandleUndoRedoShortcuts(LevelEditor& editor, const std::function<bool()>& undo, const std::function<bool()>& redo);
 }
+

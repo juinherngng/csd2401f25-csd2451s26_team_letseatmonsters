@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Interleaved vertex data, plus vertexCount and vertexSize for Mesh creation.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -57,3 +57,4 @@ void MeshLoader::LoadFullscreenQuad(std::vector<float>& vertices, GLsizei& verte
 	vertexCount = 6;
 	vertexSize = 5 * sizeof(float);
 }
+

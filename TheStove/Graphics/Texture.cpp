@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Loads image data, creates GL texture, sets filtering/wrap, bind/unbind/cleanup.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -161,3 +161,4 @@ void Texture::Bind(unsigned int slot) const {
 void Texture::Unbind() const {
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
+

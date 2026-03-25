@@ -8,7 +8,7 @@
 					such as footsteps, trails, and visual effects. Provides interfaces for
 					emitting and updating particles within the scene.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -209,3 +209,4 @@ private:
 	 */
 	float randRange_(float a, float b, std::mt19937& r);
 };
+

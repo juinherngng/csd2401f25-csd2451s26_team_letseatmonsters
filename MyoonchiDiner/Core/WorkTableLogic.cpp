@@ -12,7 +12,7 @@
 					items can be placed, manage processing states, and output the
 					refined ingredient when complete.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -178,7 +178,7 @@ bool WorkTableLogic::IsItemProcessable(Scene& scene, const GameObject& item) con
 	// If your actual API is different, just swap this one line accordingly.
 	IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
 	if (!ing) {
-		// Not an ingredient � this table doesn�t know how to process it.
+		// Not an ingredient this table does not know how to process it.
 		return false;
 	}
 
@@ -290,13 +290,13 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item) {
 		// Look up the IngredientLogic for this item.
 	IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
 	if (!ing) {
-		//// Not an ingredient � nothing to do.
+		//// Not an ingredient nothing to do.
 		//std::cout << "[WorkTableLogic] OnProcessingComplete: item "
 		//    << item.GetID() << " has no IngredientLogic\n";
 		return;
 	}
 
-	// If your rule is �only raw gets processed�, respect that:
+	// If your rule is only raw gets processed, respect that:
 	if (!CanProcessIngredient(*ing)) {
 		//std::cout << "[WorkTableLogic] OnProcessingComplete: ingredient "
 		//    << item.GetID() << " is not processable\n";
@@ -490,3 +490,4 @@ void WorkTableLogic::UpdateCookingTimerFill(Scene& scene, float ratio01) {
 	fill->SetScale({ newW, fullH, 1.0f });
 	fill->SetPosition(Math::Vector3D(centerX, bgPos.y, bgPos.z));
 }
+

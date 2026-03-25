@@ -7,7 +7,7 @@
  DESCRIPTION:		Declares basic collision primitives (AABB, MTV helpers) and a simple
 					2D collision world that trims desired motion against static walls.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -127,3 +127,4 @@ namespace collision {
 		std::vector<AABB> mWalls;
 	};
 }
+

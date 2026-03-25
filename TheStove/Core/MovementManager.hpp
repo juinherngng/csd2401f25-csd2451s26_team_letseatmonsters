@@ -10,7 +10,7 @@
 					and simple NPC patrol paths. Integrates with world collision for step trimming
 					and updates sprite facing based on effective movement/intended direction.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -284,3 +284,4 @@ private:
 	EntityManager* entityManager_ = nullptr;
 	InputManager* inputManager_ = nullptr;
 };
+

@@ -9,7 +9,7 @@
 					into debug toggles and physics-mode switches (forces vs. kinematic).
 					It does not own any state; it simply reads input and calls other systems.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -76,3 +76,4 @@ private:
 		int playerID,
 		bool& useForces);
 };
+

@@ -8,7 +8,7 @@
 					Call Init once where ParticleSystem is created to register presets.
 					lifetime management, and rendering behavior for in-game visual effects.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -517,3 +517,4 @@ void ParticleSystem::EmitFootstep(EntityManager& em, const glm::vec3& pos, float
 void ParticleSystem::EmitTrail(EntityManager& em, const glm::vec3& pos, float baseZ, const glm::vec2& moveDir) {
 	Emit("FootstepDust", em, pos, baseZ, &moveDir);
 }
+

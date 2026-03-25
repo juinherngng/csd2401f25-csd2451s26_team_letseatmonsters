@@ -10,7 +10,7 @@
 					and texture resources for rendering, and encapsulates its position, scale,
 					rotation, velocity, and collider data for gameplay systems.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -425,3 +425,4 @@ private:
 	bool m_BroadphaseDirty = true;
 	int renderSortOrder_ = 0; // Tie-breaker for render ordering within a layer
 };
+

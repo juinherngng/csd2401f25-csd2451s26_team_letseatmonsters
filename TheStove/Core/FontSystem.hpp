@@ -8,7 +8,7 @@
  DESCRIPTION:		Font system using FreeType to load TTF fonts, render text with
 					different fonts at different positions using OpenGL.
 
-		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Implementation of SceneViewportPresenter, a helper class responsible.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -165,3 +165,4 @@ void SceneViewportPresenter::ComputeSceneImageRect(const ImVec2& cachedSceneImag
 	);
 	outSize = fitted;
 }
+

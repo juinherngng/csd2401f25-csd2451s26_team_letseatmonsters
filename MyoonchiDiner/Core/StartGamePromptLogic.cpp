@@ -20,7 +20,7 @@
 					 - click No starts intro cutscene path.
 
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -329,3 +329,4 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		}
 	}
 }
+

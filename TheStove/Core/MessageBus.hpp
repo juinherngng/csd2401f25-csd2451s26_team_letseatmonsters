@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Publish/Subscribe message bus for inter-component communication.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -200,4 +200,5 @@ namespace CoreFramework {
 		SubscriberId nextSubscriberId;
 	};
 }
+
 

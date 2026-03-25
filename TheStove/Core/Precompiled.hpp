@@ -7,7 +7,7 @@
  DESCRIPTION:        Precompiled header for commonly used system and third-party includes.
 					 Includes OpenGL, GLFW, GLM, and ImGui headers for faster compilation.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

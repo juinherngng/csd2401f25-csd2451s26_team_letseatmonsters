@@ -6,7 +6,7 @@
 
  DESCRIPTION:       Centralized file path constants for all game assets.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -189,3 +189,4 @@ namespace FilePaths {
 	}
 
 } // namespace FilePaths
+

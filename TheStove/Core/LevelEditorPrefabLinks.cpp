@@ -6,7 +6,7 @@
 
  DESCRIPTION:       Definition of the prefab link registry used by the Level Editor.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -16,3 +16,4 @@ namespace LELINKS {
 	// Global registry for prefab links
 	std::unordered_map<int, std::string> PrefabLinkByID;
 }
+

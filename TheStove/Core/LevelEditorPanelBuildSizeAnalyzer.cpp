@@ -9,7 +9,7 @@
 					- Supports persistent per-session selections
 					- Exports selected assets to a destination folder
 
-		 All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -412,3 +412,4 @@ namespace LEPANELBUILDSIZEANALYZER {
 	}
 #endif
 }
+

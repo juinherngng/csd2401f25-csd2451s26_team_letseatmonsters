@@ -7,7 +7,7 @@
  DESCRIPTION:       Header for Level Editor Audio Control panel.
 					Provides real-time volume control for playing audio.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -32,3 +32,4 @@ namespace LEPANELAUDIOCONTROL {
 	 */
 	void DrawAudioControlPanel(LevelEditor& editor, Scene& scene);
 }
+

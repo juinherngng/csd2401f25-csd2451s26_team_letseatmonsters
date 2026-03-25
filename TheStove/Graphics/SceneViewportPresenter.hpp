@@ -6,7 +6,7 @@
 
  DESCRIPTION:       Helper class responsible for presenting the scene viewport within an ImGui dockspace.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -65,3 +65,4 @@ private:
 	 */
 	static ImVec2 FitRectToAspect(const ImVec2& available, float targetAspect);
 };
+

@@ -8,7 +8,7 @@
 
  DESCRIPTION:		The declarations of functions for the debugger window.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -205,3 +205,4 @@ namespace Debug {
 #endif // defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 
 } // namespace Debug
+

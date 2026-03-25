@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Definitions for a uniform 2D spatial hash grid used for broad-phase queries.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -346,3 +346,4 @@ const SpatialGrid::ProfileCounters& SpatialGrid::GetProfileCounters() const {
 void SpatialGrid::ResetProfileCounters() {
 	profile_ = ProfileCounters{};
 }
+

@@ -14,7 +14,7 @@
 					- Apply prefab data to an object (preserve position)
 					- Force-bypass texture cache reload
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -484,3 +484,4 @@ namespace LEFILEIO {
 		return ResourceManager::Instance().LoadTexture(key, path);
 	}
 }
+

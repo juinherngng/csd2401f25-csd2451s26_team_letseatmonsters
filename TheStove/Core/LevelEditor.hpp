@@ -10,7 +10,7 @@
 					- Expose shared state (level path, LevelData) to panels
 					- Delegate scene picking/dragging to helper module
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -137,3 +137,4 @@ private:
 	LevelData level{};             // Working copy while editing
 	LevelData playStartSnapshot{}; // Snapshot captured at Play
 };
+

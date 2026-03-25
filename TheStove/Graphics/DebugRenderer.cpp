@@ -7,7 +7,7 @@
  DESCRIPTION:		Implementation of DebugRenderer. Handles point and line batching
 					for visual debugging overlays.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -228,3 +228,4 @@ void DebugRenderer::Flush(const glm::mat4& viewMatrix, const glm::mat4& projecti
 
 	pointBatches.clear();
 }
+

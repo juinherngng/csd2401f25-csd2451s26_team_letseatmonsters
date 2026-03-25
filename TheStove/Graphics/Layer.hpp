@@ -9,7 +9,7 @@
 					Core functionality includes adding and removing object IDs to/from the layer, retrieving
 					the current list of objects, and accessing the layer's name.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -143,3 +143,4 @@ private:
 	bool collidable = true;
 	bool enabled = true;
 };
+

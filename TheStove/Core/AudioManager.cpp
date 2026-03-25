@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -112,7 +112,7 @@ void AudioManager::Update(float dt) {
 	// Update FMOD system
 	system->update();
 
-	// Stop channels that were silenced last frame â€” FMOD has now mixed
+	// Stop channels that were silenced last frame FMOD has now mixed
 	// at least one block of silence so stopping won't produce a click.
 	for (FMOD::Channel* ch : pendingStops) {
 		if (ch) {
@@ -403,7 +403,7 @@ void AudioManager::StopSound(std::string const& name) {
 	if (it != channels.end() && it->second) {
 		// Silence the channel immediately and defer the actual stop to the
 		// next Update() so FMOD's mixer processes at least one silent block
-		// before the channel is destroyed â€” this prevents an audible click
+		// before the channel is destroyed, this prevents an audible click
 		// from cutting the waveform at a non-zero sample.
 		it->second->setVolume(0.0f);
 		pendingStops.push_back(it->second);
@@ -680,3 +680,4 @@ void AudioManager::EnqueuePlay3D(std::string const& name, float posX, float posY
 	float volume, float minDistance, float maxDistance, bool paused) {
 	pendingPlays3D.push_back({ name, posX, posY, posZ, volume, minDistance, maxDistance, paused });
 }
+

@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Very simple serializer for reading key=value pairs from a text file.
 
-		 All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -80,3 +80,4 @@ bool ISerializer::GetBool(const ComponentData& comp, const std::string& key, boo
 		return defaultVal;
 	}
 }
+

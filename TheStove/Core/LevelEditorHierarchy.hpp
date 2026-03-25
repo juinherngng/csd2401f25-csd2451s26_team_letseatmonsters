@@ -8,7 +8,7 @@
 					Caches generated labels for performance and prunes cache entries for deleted objects.
 					Provides utilities for checking if an object passes the current filter based on its cached label.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -62,3 +62,4 @@ namespace LEHIERARCHY {
 	 */
 	std::string ToLowerCopy(std::string value);
 }
+

@@ -8,7 +8,7 @@
                     all GameObjectLogic instances within a scene, including initialization,
                     update cycles, and cleanup.
 
-        All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 #pragma once

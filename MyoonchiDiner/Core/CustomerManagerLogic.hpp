@@ -8,10 +8,10 @@
 
  DESCRIPTION:       Declares the CustomerManagerLogic system, which is
 					responsible for pairing customers with tables, assigning
-					seating targets, and maintaining runtime customer�table
+					seating targets, and maintaining runtime customer and table
 					relationships.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -144,3 +144,4 @@ private:
 	 */
 	bool TrySpawnOne(Scene& scene);
 };
+

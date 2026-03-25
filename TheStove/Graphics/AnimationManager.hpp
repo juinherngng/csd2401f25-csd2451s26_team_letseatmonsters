@@ -9,7 +9,7 @@
 					updating frame UVs based on Animator2D components. Supports play/pause control
 					and registering animation sets for different entity types.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -113,3 +113,4 @@ private:
 	// Flip existing frames horizontally (for mirrored animations)
 	std::vector<glm::vec4> CreateFlippedFramesX(const std::vector<glm::vec4>& frames);
 };
+

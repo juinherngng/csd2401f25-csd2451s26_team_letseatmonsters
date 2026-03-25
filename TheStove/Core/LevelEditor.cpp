@@ -10,7 +10,7 @@
 					- Delegates to Level/Prefabs/Assets panels
 					- Disables pick/drag while playing
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -74,3 +74,4 @@ void LevelEditor::DrawUI(Scene& scene) {
 		LEPICKDRAG::HandleScenePickDrag(*this, scene, selectedIndex, selectedObjectId);
 	}
 }
+

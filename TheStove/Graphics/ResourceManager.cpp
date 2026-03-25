@@ -8,7 +8,7 @@
 
  DESCRIPTION:		Implements lazy-loading, storage maps, and cleanup for shared GPU resources.
 
-		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -460,3 +460,4 @@ void ResourceManager::Clear() {
 		isCleared = true;
 	}
 }
+

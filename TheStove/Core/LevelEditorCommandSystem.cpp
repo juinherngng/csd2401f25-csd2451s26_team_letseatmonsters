@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Implementation of the Level Editor command system, which provides undo/redo functionality.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -176,3 +176,4 @@ namespace LECOMMAND {
 		sRedoStack.clear();
 	}
 }
+

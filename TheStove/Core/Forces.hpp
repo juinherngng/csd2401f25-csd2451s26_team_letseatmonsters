@@ -12,7 +12,7 @@
 					- ConstantForce:   applies a fixed world-space force each step
 					- SeekForce:       seek/arrive steering toward a target with deadzone
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -177,3 +177,4 @@ struct SeekForce : IForceGenerator {
 	 */
 	void UpdateForce(RigidBody2D& body, float dt) override;
 };
+

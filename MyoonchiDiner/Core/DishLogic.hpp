@@ -8,7 +8,7 @@
 					dish type, eaten state, and providing utilities for game
 					systems (e.g., customers or tables) to mark dishes as eaten.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -51,3 +51,4 @@ protected:
 		return "DishLogic";
 	}
 };
+

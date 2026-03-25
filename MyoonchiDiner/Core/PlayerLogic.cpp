@@ -10,7 +10,7 @@
 					mouse click handling, item pickup/drop, and scene clamping behavior as well
 					hover logic (outlining interactables on mouse hover).
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -1221,7 +1221,7 @@ void PlayerLogic::Drop(Scene& scene) {
 	RestoreCarriedItemLayer(scene, carriedItemID);
 
 	glm::vec3 p = player->GetPositionGLM();
-	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple �in front� drop
+	item->SetPosition(glm::vec3(p.x + 16.f, p.y, p.z)); // simple in front drop
 	carriedItemID = -1;
 }
 
@@ -1739,7 +1739,7 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 			}
 		}
 
-		// Either way, stop here — trash can shouldn't behave like normal tables.
+		// Either way, stop here Ã¢â‚¬â€ trash can shouldn't behave like normal tables.
 		return;
 	}
 
@@ -2438,3 +2438,4 @@ void PlayerLogic::ClearHoverOutlines(Scene& scene) {
 
 	hoverOutlineIDs_.clear();
 }
+

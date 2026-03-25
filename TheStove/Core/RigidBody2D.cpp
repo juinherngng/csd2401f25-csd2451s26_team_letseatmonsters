@@ -9,7 +9,7 @@
 					exponential damping, optionally applies gravity/legacy acceleration,
 					and writes motion to the owner's Transform.
 
-		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -266,3 +266,4 @@ void RigidBody2D::Integrate(float dt) {
 void RigidBody2D::ClearAccum() {
 	forceAccum = Math::Vector2D::ZERO;
 }
+

@@ -7,7 +7,7 @@
  DESCRIPTION:		Implements the force system (registry + generators). Each generator applies
 					its force to a body during UpdateForce; the registry iterates all pairs.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -85,7 +85,7 @@ GravityForce::GravityForce(Math::Vector2D gravity)
  * @return Result produced by this operation.
  */
 void GravityForce::UpdateForce(RigidBody2D& body, float) {
-	// Static bodies have inverse mass 0 (or less) � ignore gravity
+	// Static bodies have inverse mass 0 (or less) ignore gravity
 	if (body.GetInverseMass() <= 0.0f) {
 		return;
 	}
@@ -207,3 +207,4 @@ void SeekForce::UpdateForce(RigidBody2D& body, float) {
 		body.AddForce(direction * (accel * body.GetMass()));
 	}
 }
+

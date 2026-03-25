@@ -10,7 +10,7 @@
 					- Polls GLFW each frame and mirrors common key/mouse states.
 					- Respects ImGui IO capture flags to avoid consuming UI input.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -210,3 +210,4 @@ private:
 
 	bool replayOverride_ = false;
 };
+

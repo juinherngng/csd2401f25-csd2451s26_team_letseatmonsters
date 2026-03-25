@@ -10,7 +10,7 @@
 					builds/owns world collision geometry, resolves step trimming, and exposes broad-
 					phase queries for overlap/point tests.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -350,3 +350,4 @@ std::vector<GameObject*> CollisionManager::QueryPoint(const Math::Vector2D& poin
 
 	return candidates;
 }
+

@@ -7,7 +7,7 @@
  DESCRIPTION:       Declares the ExitGateLogic component, which defines the world-space
 					exit target for NPCs and provides an optional positional offset.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -39,3 +39,4 @@ private:
 	// Local offset from the GameObject's position to define the actual exit target within the walk area
 	Math::Vector2D exitOffset_{ 0.0f, 0.0f };
 };
+

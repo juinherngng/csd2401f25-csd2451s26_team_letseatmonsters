@@ -8,7 +8,7 @@
 					and updating customer order UI elements such as the order bubble,
 					patience bar, and payment result feedback attached to a customer.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -414,3 +414,4 @@ glm::vec2 CustomerOrderUILogic::GetIconSizeForPath(const char* iconPath) const {
 	if (std::string(iconPath) == coinIconPath_) return coinIconSize_;
 	return dishIconSize_;
 }
+

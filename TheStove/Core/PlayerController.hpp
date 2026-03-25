@@ -10,7 +10,7 @@
 					rotation, and click-to-move. Integrates with movement/physics managers and
 					updates sprite facing based on the movement direction.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -164,3 +164,4 @@ private:
 	float clickIndicatorTimer_ = 0.0f;
 	float clickIndicatorAnimTime_ = 0.0f;
 };
+

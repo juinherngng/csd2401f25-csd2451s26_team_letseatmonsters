@@ -11,7 +11,7 @@
 					- Initial static overlap resolution
 					- Final movement constraints and playerNPC collision push
 
-	 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

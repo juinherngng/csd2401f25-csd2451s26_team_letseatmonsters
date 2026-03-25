@@ -9,7 +9,7 @@
 					food type definitions for use by DishLogic, IngredientBoxLogic,
 					and customer/table systems.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -36,3 +36,4 @@ enum class DishType {
 	CarrotSaladDish,
 	PoopDish
 };
+

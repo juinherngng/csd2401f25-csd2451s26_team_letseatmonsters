@@ -7,7 +7,7 @@
  DESCRIPTION:		Definition of ConfigManager for loading/saving game settings.
 					The configuration file uses a simple key=value format.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -406,3 +406,4 @@ namespace ConfigManager {
 		return Load(resolvedPath, out);
 	}
 }
+

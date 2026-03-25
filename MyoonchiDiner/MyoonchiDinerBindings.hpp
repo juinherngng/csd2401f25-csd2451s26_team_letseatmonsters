@@ -9,7 +9,7 @@
 					engine's Scene. This is the only header the engine needs to
 					know about in order to integrate the game layer.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -29,3 +29,4 @@ class Scene;
 */
 /************************************************************************/
 void RegisterMyoonchiDinerBindings(Scene& scene);
+

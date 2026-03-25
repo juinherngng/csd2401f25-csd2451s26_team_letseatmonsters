@@ -9,7 +9,7 @@
 					navigation, arrival callbacks, item pick-up/drop behaviour, and sprite facing
 					updates. Provides the public interface used by the Scene and LogicManager.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -491,3 +491,4 @@ private:
 	 */
 	void ExecuteQueuedAction(Scene& scene);
 };
+

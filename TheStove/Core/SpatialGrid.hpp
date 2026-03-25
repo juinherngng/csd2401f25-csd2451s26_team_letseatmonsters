@@ -9,7 +9,7 @@
 					- Query() returns unique candidates overlapping the query AABB (+ 1-cell neighbors).
 					- QueryPoint() returns candidates in the cell containing a point.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -145,3 +145,4 @@ private:
 	mutable std::uint32_t queryStamp_ = 1;
 	mutable ProfileCounters profile_;
 };
+

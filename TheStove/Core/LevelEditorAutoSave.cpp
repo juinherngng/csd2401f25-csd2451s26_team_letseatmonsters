@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Implements a simple autosave mechanism for the level editor.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -114,3 +114,4 @@ namespace LEAUTOSAVE {
 		}
 	}
 }
+

@@ -8,7 +8,7 @@
 					active customer orders and displaying them as animated order
 					tickets with dish, ingredient, and station icons.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

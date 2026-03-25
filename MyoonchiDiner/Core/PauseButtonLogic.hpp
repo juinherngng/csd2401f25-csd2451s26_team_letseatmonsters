@@ -7,7 +7,7 @@
  DESCRIPTION:		 Declares the PauseButtonLogic component class, which manages pause menu button
 					 interactions (Resume, How-To-Play, Quit) with hover states.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -42,3 +42,4 @@ private:
 	std::string normalTexturePath_;
 	std::string hoverTexturePath_;
 };
+

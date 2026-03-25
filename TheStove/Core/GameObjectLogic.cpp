@@ -8,7 +8,7 @@
 					function, allowing logic scripts to retrieve their associated GameObject via
 					the Scene's ID lookup system.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -19,3 +19,4 @@
 GameObject* GameObjectLogic::GetOwner(Scene& scene) const {
 	return scene.GetGameObjectByID(ownerID);
 }
+

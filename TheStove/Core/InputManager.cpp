@@ -8,7 +8,7 @@
 
  DESCRIPTION:		Implements the InputManager class for handling keyboard and mouse input.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -420,3 +420,4 @@ void InputManager::SetReplayOverride(bool enable) {
 bool InputManager::IsReplayOverride() const {
 	return replayOverride_;
 }
+

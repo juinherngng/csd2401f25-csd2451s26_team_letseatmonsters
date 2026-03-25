@@ -13,7 +13,7 @@
 					2. In GLFW drop callback: dropHandler->HandleGLFWDrop(count, paths);
 					3. Files are automatically copied to project directories and loaded
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -181,3 +181,4 @@ private:
 	/************************************************************************/
 	std::string GetFileExtension(const std::string& path) const;
 };
+

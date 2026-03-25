@@ -13,7 +13,7 @@
 					- Handling prefab/texture drag-drop instantiation
 					- Synchronizing LevelData with the Scene
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -476,7 +476,7 @@ namespace {
 			out.animated = scene.HasAnimations(id);
 			out.animName = scene.GetCurrentAnimationName(id);
 
-			// Layer � use the layering system, fall back to "1"
+			// Layer use the layering system, fall back to "1"
 			out.layer = scene.GetObjectLayer(id);
 			if (out.layer.empty()) {
 				out.layer = "1";
@@ -936,7 +936,7 @@ namespace LEPANELLEVEL {
 
 		DrawLayerManager(scene, selectedObjectId);
 
-		// Object Hierarchy � stable order independent of movement
+		// Object Hierarchy stable order independent of movement
 		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
 		if (ImGui::CollapsingHeader("Hierarchy", ImGuiTreeNodeFlags_DefaultOpen)) {
 			static char sHierarchyFilter[128] = "";
@@ -1007,7 +1007,7 @@ namespace LEPANELLEVEL {
 					}),
 				objectList.end());
 
-			// Sort by ID so list doesn�t reshuffle when objects move
+			// Sort by ID so list does not reshuffle when objects move
 			std::sort(objectList.begin(), objectList.end(),
 				[](GameObject* a, GameObject* b) {
 					return a->GetID() < b->GetID();
@@ -1237,7 +1237,7 @@ namespace LEPANELLEVEL {
 
 			if (!std::isfinite(rotationDeg)) {
 				rotationDeg = 0.0f;
-				// Also push this clean value into the object so it doesn�t stay corrupted
+				// Also push this clean value into the object so it does not stay corrupted
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 			}
 
@@ -2100,3 +2100,4 @@ namespace LEPANELLEVEL {
 	}
 #endif
 } // namespace LEPANELLEVEL
+

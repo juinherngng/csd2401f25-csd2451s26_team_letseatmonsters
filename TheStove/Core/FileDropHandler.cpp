@@ -9,7 +9,7 @@
 					copies files to appropriate project directories, and integrates with the
 					audio catalog and resource manager.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -189,3 +189,4 @@ std::string FileDropHandler::GetFileExtension(const std::string& path) const {
 	}
 	return path.substr(dotPos); // Return extension including the dot
 }
+

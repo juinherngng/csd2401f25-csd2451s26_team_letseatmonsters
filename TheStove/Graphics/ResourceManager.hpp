@@ -8,7 +8,7 @@
 
  DESCRIPTION:		Singleton cache for loading and retrieving Shaders, Textures, and Meshes by name.
 
-		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -208,3 +208,4 @@ private:
 	AudioManager* audioManager; // Non-owning pointer to AudioManager
 	bool isCleared;
 };
+

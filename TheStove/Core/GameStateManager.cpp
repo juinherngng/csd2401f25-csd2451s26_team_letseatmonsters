@@ -13,7 +13,7 @@
 					activation timing, tracks pause state to pause/resume audio in gameplay, and controls state-based
 					playback and cleanup of background music and ambience through the injected AudioManager instance.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

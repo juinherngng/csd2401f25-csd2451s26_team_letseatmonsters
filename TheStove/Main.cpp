@@ -11,7 +11,7 @@
 					Handles window creation, fullscreen toggling, OS-focus pause/resume behaviour,
 					signal handling, and overall application shutdown and cleanup.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -268,7 +268,7 @@ static void ToggleFullscreen(ApplicationState& app) {
 		return;
 	}
 
-	// If weâ€™re going from windowed to fullscreen
+	// If we are going from windowed to fullscreen
 	if (!app.isFullscreen) {
 		// Save current windowed position and size
 		glfwGetWindowPos(app.window, &app.windowedPosX, &app.windowedPosY);
@@ -1122,3 +1122,4 @@ void cleanup(ApplicationState& app) {
 
 	TS_LOG_INFO("Cleanup complete.");
 }
+

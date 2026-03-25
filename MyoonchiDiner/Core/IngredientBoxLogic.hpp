@@ -10,7 +10,7 @@
 					setup. Provides logic for spawning, clearing, and controlling
 					which ingredient type appears.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -39,7 +39,7 @@ public:
 	void Start(Scene& scene) override;
 	void Update(float dt, Scene& scene, InputManager& input) override;
 
-	// Ingredient box is a source – it should never accept dropped items.
+	// Ingredient box is a source, it should never accept dropped items.
 	bool CanAcceptItem(Scene& scene, int itemID) const override;
 
 	// Called by PlayerLogic when interacting while empty-handed.
@@ -66,15 +66,16 @@ private:
 
 	IngredientType spawnType_ = IngredientType::Vegetable;
 
-	// Config for the spawned ingredient sprite – tweak as needed:
+	// Config for the spawned ingredient sprite, tweak as needed:
 	const char* ingredientTexture_ = "../assets/Cabbage_Ingredient.png"; // change to your real asset
 	float ingredientWidth_ = 64.0f;
 	float ingredientHeight_ = 64.0f;
 	const char* ingredientLayer_ = "3";
 
-	// Config for the spawned plate sprite – tweak as needed:
+	// Config for the spawned plate sprite, tweak as needed:
 	const char* plateTexture_ = "../assets/Plate.png";
 	float       plateWidth_ = 64.0f;
 	float       plateHeight_ = 64.0f;
 	const char* plateLayer_ = "2";
 };
+

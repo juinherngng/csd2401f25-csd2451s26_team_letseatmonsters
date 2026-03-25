@@ -8,7 +8,7 @@
 					transitions, vertical patrolling based on authored velocity, walk-area clamping,
 					and automatic direction reversal when hitting boundaries.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -653,7 +653,7 @@ void SimpleNpcLogic::TakePayment(Scene& scene) {
 	}
 	ClearNavigationMove();
 
-	// NOTE: do NOT change customerTableID_ here — you still want to know which table to free.
+	// NOTE: do NOT change customerTableID_ here, you still want to know which table to free.
 }
 
 void SimpleNpcLogic::SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos) {

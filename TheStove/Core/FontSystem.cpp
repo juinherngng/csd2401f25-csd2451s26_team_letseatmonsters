@@ -8,7 +8,7 @@
  DESCRIPTION:		Implementation of font system using FreeType for loading fonts
 					and OpenGL for rendering text.
 
-		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -741,3 +741,4 @@ namespace FontSystem {
 	}
 
 } // namespace FontSystem
+

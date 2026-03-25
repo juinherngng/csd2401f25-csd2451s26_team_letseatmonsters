@@ -7,7 +7,7 @@
  DESCRIPTION:		Declares a lightweight static-only DebugRenderer used to batch and draw
 					debug lines, points, and rectangles for on-screen visualization overlays.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -85,3 +85,4 @@ public:
 	 */
 	static void Flush(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 };
+

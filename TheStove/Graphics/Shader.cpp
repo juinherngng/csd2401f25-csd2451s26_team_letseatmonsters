@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Implements shader file loading, compilation, linking, use(), and uniform helpers.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

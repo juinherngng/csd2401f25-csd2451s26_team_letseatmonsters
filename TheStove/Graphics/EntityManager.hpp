@@ -7,7 +7,7 @@
  DESCRIPTION:		This file declares the EntityManager class, a core engine system responsible for
 					creating, storing, and managing all GameObjects in a level or scene.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -142,3 +142,4 @@ private:
 	/** @brief Return an ID to the free-list for future reuse. */
 	void ReleaseID(int id);
 };
+

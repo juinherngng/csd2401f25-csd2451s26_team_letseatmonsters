@@ -10,7 +10,7 @@
 					to JSON levels, and defining per-state audio playback and
 					pause/resume policies.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -121,3 +121,4 @@ void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 		}
 		});
 }
+

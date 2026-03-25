@@ -10,7 +10,7 @@
 					and passive velocity-based motion. Uses world trimming to resolve step movement
 					against walls and updates sprite facing based on effective direction.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -649,3 +649,4 @@ void MovementManager::UpdateVelocityBasedMovement(float deltaTime, EntityManager
 		obj->SetPosition(pos);
 	}
 }
+

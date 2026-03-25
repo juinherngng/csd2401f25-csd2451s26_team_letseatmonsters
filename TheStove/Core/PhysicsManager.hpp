@@ -11,7 +11,7 @@
 					world-aware movement trimming (stop on wall impact). Works alongside the
 					MovementManager for click-to-move UX.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -193,3 +193,4 @@ private:
 	 */
 	void IntegrateEntity(int entityID, float dt, EntityManager& entityManager);
 };
+

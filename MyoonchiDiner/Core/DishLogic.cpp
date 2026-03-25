@@ -9,7 +9,7 @@
 					interfaces for marking a dish as eaten. Currently does not
 					contain per-frame behaviour.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -28,3 +28,4 @@ void DishLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/) 
 	// No per-frame logic yet.
 	// Customer / game rules can call MarkEaten() when appropriate.
 }
+

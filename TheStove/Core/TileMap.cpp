@@ -8,7 +8,7 @@
 					containing a 2D vector of Int, which serves
 					as a tile map for level environment and logic
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -78,3 +78,4 @@ bool MapData::isWalkable(int x, int y) {
 	}
 	return false;
 }
+

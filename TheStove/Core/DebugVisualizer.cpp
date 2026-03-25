@@ -9,7 +9,7 @@
 					collider rectangles, player path lines, spatial grid outlines,
 					and nearby collision candidates.
 
-		All content @ 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -238,3 +238,4 @@ void DebugVisualizer::DrawCandidates(GameObject* player, CollisionManager& colli
 			{ 0.0f, 1.0f, 1.0f }, 5.0f);
 	}
 }
+

@@ -1,4 +1,4 @@
-﻿/*
+/*
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameObject.cpp
  PROJECT NAME:		Project GAM200
@@ -8,7 +8,7 @@
  DESCRIPTION:		Implements the GameObject class, which encapsulates the state, transform, and
 					rendering details for every entity that appears in the scene.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

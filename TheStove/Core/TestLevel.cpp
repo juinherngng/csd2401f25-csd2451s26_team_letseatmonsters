@@ -7,7 +7,7 @@
  DESCRIPTION:		Source file Test state for GameStateManager. This script contains definitions for Init, Update
 					and Exit functions specific to this level. To be Updated with calls to more components.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 #pragma once
@@ -30,3 +30,4 @@ namespace Framework {
 		std::cout << "Exiting Level 1 at DeltaTime: " << deltaTime << std::endl;
 	}
 }
+

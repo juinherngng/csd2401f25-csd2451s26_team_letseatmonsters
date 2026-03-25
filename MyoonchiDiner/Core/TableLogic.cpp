@@ -10,7 +10,7 @@
 					per-table interaction logic. Specialized tables (worktable,
 					customer table, ingredient box, etc.) inherit and override this.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -234,3 +234,4 @@ Math::Vector2D TableLogic::GetClosestApproachPoint(Scene& scene,
 
 	return bestPoint;
 }
+

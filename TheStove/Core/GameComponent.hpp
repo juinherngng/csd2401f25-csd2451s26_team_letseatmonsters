@@ -12,7 +12,7 @@
 					All user-defined components (e.g., Transform, RigidBody2D) should inherit
 					from GameComponent and override virtual methods to define their behavior.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

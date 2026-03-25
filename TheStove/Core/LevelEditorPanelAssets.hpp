@@ -10,7 +10,7 @@
 					- Drag & drop sources for other panels
 					- Double-click texture to apply to the current selection
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -34,3 +34,4 @@ namespace LEPANELASSETS {
 		int& selectedIndex,
 		int selectedObjectId);
 }
+

@@ -9,7 +9,7 @@
 					win quota, and remaining time, and synchronizes these values
 					with the game UI and win/lose conditions.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -149,3 +149,4 @@ namespace Economy {
 		return gTimeRemaining;
 	}
 }
+

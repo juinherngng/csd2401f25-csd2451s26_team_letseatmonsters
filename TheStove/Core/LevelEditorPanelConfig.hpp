@@ -9,7 +9,7 @@
 					- Reload from config file
 					- Save settings back to config.txt
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -28,3 +28,4 @@ namespace LEPANELCONFIG {
 	 */
 	void DrawConfigPanel(LevelEditor& editor, Scene& scene);
 }
+

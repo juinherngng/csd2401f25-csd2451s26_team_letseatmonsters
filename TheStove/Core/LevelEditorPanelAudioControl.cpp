@@ -10,7 +10,7 @@
 					- Real-time volume adjustment
 					- Master volume control
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -370,8 +370,9 @@ namespace LEPANELAUDIOCONTROL {
 	}
 #else
 	void DrawAudioControlPanel(LevelEditor& /*editor*/, Scene& /*scene*/) {
-		// No-op in Release builds � audio control editor disabled.
+		// No-op in Release builds audio control editor disabled.
 	}
 #endif
 
 } // namespace LEPANELAUDIOCONTROL
+

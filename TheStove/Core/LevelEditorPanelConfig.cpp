@@ -9,7 +9,7 @@
 					- Applies audio settings live through AudioManager
 					- Persists window/audio defaults for the next startup
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -269,3 +269,4 @@ namespace LEPANELCONFIG {
 	}
 #endif
 }
+

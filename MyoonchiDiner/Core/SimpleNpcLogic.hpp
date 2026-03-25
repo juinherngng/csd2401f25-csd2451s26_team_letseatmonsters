@@ -9,7 +9,7 @@
 					movement states, timing values, and direction flags used to drive simple
 					up-down patrolling logic. Inherits from GameObjectLogic.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -510,3 +510,4 @@ private:
 	 */
 	bool UpdateNavigationMove(float dt, Scene& scene, GameObject* npc);
 };
+

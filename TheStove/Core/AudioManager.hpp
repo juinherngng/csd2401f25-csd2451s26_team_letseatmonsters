@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Audio manager using FMOD for sound playback and management.
 
-		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

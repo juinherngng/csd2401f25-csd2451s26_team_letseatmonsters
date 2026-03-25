@@ -9,7 +9,7 @@
 					updating frame UVs based on Animator2D components. Supports play/pause
 					control and registering animation sets for different entity types.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -461,7 +461,7 @@ std::vector<glm::vec4> AnimationManager::CreateFullGridSequence(int totalRows, i
 
 // Generates a full grid sequence with controllable row/column directions.
 // topFirst: true = start at the top row of the image; false = bottom row first.
-// leftToRight: true = increase column index left→right; false = right→left.
+// leftToRight: true = increase column index leftâ†’right; false = rightâ†’left.
 static std::vector<glm::vec4> CreateFullGridSequenceDir(int totalRows, int totalCols, bool topFirst, bool leftToRight) {
 	std::vector<glm::vec4> frames;
 	frames.reserve(static_cast<size_t>(totalRows * totalCols));

@@ -10,7 +10,7 @@
 					both the bootstrap layer and the game logic layer without
 					scattering magic strings.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -55,3 +55,4 @@ namespace MyoonchiPaths {
 		constexpr const char* SFX_SKIP_INTRO_CUTSCENE = "sfx_skip_intro_cutscene";
 	}
 }
+

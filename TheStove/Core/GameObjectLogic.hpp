@@ -8,7 +8,7 @@
 					interface for all gameplay logic components attached to GameObjects,
 					including lifecycle methods and owner access utilities.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 #pragma once
@@ -52,3 +52,4 @@ protected:
 		return "GameObjectLogic";
 	}
 };
+

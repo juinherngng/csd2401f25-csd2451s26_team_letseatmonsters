@@ -4,13 +4,13 @@
  PROJECT NAME:      Project GAM200
  AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
 
- DESCRIPTION:       Handles hover and click behaviour for the “How To Play”
+ DESCRIPTION:       Handles hover and click behaviour for the How To Play
 					button in the main menu. On click, it spawns a fullscreen
 					HowToPlay overlay image; clicking again (or pressing Esc)
 					closes the overlay. Also manages hover texture swapping and
 					ignores input while the overlay is active.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -80,7 +80,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	//	<< "\n";
 
 	// If overlay is active but THIS instance did not spawn it,
-	// ignore input – let the owner instance handle closing.
+	// ignore input, let the owner instance handle closing.
 	if (overlayActive && overlayId_ < 0) {
 		//	std::cout << "  [HowToPlayButtonLogic] overlayActive && overlayId_ < 0, ignoring input.\n";
 		return;
@@ -172,7 +172,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		TrySetTexture(owner, normalTexturePath_);
 	}
 
-	// Click → show overlay
+	// Click to show overlay
 	if (!over || !input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		return;
 	}
@@ -208,3 +208,4 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	//std::cout << "  [HowToPlayButtonLogic] SetHowToPlayOverlayActive(true) and ClearMenuButtonTexts()\n";
 #endif // _DEBUG
 }
+

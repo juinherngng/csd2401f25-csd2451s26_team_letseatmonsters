@@ -9,7 +9,7 @@
 					- When an item is placed, it is destroyed (despawned)
 					- Trash can never stores an item (always "empty")
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -40,3 +40,4 @@ protected:
 		return "TrashCanLogic";
 	}
 };
+

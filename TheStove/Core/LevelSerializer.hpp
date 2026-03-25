@@ -8,7 +8,7 @@
 
  DESCRIPTION:		JSON-based (de)serialization for level data used by the editor/runtime.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -149,3 +149,4 @@ struct LevelSerializer {
 	 */
 	static bool Save(const std::string& path, const LevelData& inLevel);
 };
+

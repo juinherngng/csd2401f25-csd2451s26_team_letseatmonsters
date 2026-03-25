@@ -10,7 +10,7 @@
 					per-table interaction logic. Specialized tables (worktable,
 					customer table, ingredient box, etc.) inherit and override this.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -30,7 +30,7 @@ class TableLogic : public GameObjectLogic {
 public:
 	explicit TableLogic(int ownerID);
 
-	// No special Awake/Update yet – this is pure logic, driven by other systems.
+	// No special Awake/Update yet this is pure logic, driven by other systems.
 	void Start(Scene& scene) override;
 	void OnDestroy(Scene& scene) override;
 
@@ -114,3 +114,4 @@ protected:
 		return "TableLogic";
 	}
 };
+

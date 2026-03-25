@@ -10,7 +10,7 @@
 					its bindings, state mappings, and audio policies without
 					the engine depending on any game-specific types.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -56,3 +56,4 @@ void ConfigureGameStates(Framework::GameStateManager& gsm);
 */
 /************************************************************************/
 void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm);
+

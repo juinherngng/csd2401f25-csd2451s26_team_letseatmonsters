@@ -43,7 +43,7 @@
 	  - Tutorial flow is updated from the customer update hook so popup input
 		remains responsive even when simulation is paused/disabled.
 
-	All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -1967,3 +1967,4 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		return (tag == "npc1" || tag == "npc2" || tag == "dino");
 		});
 }
+

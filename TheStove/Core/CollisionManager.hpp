@@ -10,7 +10,7 @@
 					spatial grid of GameObjects, rebuilds broad-phase data every frame, and
 					exposes helper queries for nearby/point lookups used by gameplay code.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -229,3 +229,4 @@ private:
 	Scene* scene_ = nullptr;
 	mutable ProfileCounters profile_;
 };
+

@@ -7,7 +7,7 @@
  DESCRIPTION:       Implements TrashCanLogic.
 					Any item placed on the trash can is immediately despawned.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -64,3 +64,4 @@ void TrashCanLogic::OnItemPlaced(Scene& /*scene*/, GameObject& item) {
 	std::cout << "[TrashCanLogic] Trashed item " << item.GetID()
 		<< " (owner trash can=" << GetOwnerID() << ")\n";
 }
+

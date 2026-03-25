@@ -7,7 +7,7 @@
  DESCRIPTION:		Message system for inter-component communication.
 					Supports publish/subscribe patterns.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -370,4 +370,5 @@ namespace std {
 		}
 	};
 }
+
 

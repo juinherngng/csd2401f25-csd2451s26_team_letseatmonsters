@@ -10,7 +10,7 @@
 					proper layers/tags/colliders/animations, set scene backgrounds, rebuild colliders, and store object
 					metadata for runtime level loading. (For use outside of editor only.)
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -399,7 +399,7 @@ namespace RuntimeLevel {
 				const bool shadowOn = obj.shadow; // new JSON bool
 				g->EnableShadow(shadowOn);
 
-				// You can keep sizing/offset consistent; they wonâ€™t render unless enabled.
+				// You can keep sizing/offset consistent; they wont render unless enabled.
 				g->SetShadowSize(glm::vec2(obj.w * 0.8f, obj.h * 0.33f));
 				g->SetShadowOffset(glm::vec2(0.0f, 55.0f));
 				g->SetShadowOpacity(0.65f);
@@ -539,3 +539,4 @@ namespace RuntimeLevel {
 		return true;
 	}
 }
+

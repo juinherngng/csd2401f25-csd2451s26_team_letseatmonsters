@@ -9,7 +9,7 @@
 
  DESCRIPTION:		Handles saving and loading of LevelData to and from JSON files.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -426,3 +426,4 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	file << jsonData.dump(2);
 	return true;
 }
+

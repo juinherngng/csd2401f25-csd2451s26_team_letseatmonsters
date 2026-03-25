@@ -9,7 +9,7 @@
 					SimpleNpcLogic "customers" with CustomerTableLogic tables and assigns them
 					seat targets once per scene.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 #pragma once
@@ -140,3 +140,4 @@ protected:
 	const char* timerBarBGPath_ = "../assets/Customer_Timer_Red.png";
 	const char* timerBarFillPath_ = "../assets/Customer_Timer_Green.png";
 };
+

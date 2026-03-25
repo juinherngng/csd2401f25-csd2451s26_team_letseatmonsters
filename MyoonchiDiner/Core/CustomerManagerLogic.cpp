@@ -10,7 +10,7 @@
 					CustomerTableLogic tables, gives them target seating
 					positions, and coordinates table to customer pairing at runtime.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 

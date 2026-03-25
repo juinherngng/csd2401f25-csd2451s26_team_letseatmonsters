@@ -1,4 +1,4 @@
-﻿/*
+/*
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			EntityManager.cpp
  PROJECT NAME:		Project GAM200
@@ -7,7 +7,7 @@
  DESCRIPTION:		This file implements the EntityManager class's core logic for creation and
 					lifecycle management of GameObjects.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

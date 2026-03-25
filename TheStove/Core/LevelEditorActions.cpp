@@ -7,7 +7,7 @@
  DESCRIPTION:		Implements the UI actions for the level editor, including undo/redo shortcuts
 					and action buttons for loading, saving, and controlling simulation playback.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -141,3 +141,4 @@ namespace LEACTIONS {
 #endif
 	}
 }
+

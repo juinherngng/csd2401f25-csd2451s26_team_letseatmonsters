@@ -13,7 +13,7 @@
 					- Applying prefab data to scene objects
 					- Loading textures bypassing the cache
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -115,3 +115,4 @@ namespace LEFILEIO {
 	 */
 	Texture* LoadTextureBypassingCache(const std::string& path);
 }
+

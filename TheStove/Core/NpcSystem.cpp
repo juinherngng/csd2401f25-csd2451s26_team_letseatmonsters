@@ -10,7 +10,7 @@
 					collisions within each subgroup and clamps positions to the
 					walkable area.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -233,3 +233,4 @@ void NPCSystem::Clear() {
 	npcVelocities_.clear();
 	laneNPCs_.clear();
 }
+

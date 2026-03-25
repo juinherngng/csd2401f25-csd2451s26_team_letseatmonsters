@@ -8,7 +8,7 @@
 					levels, a shared output path, and helper macros so engine and game code can
 					emit consistent diagnostics without duplicating console-print logic.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -94,3 +94,4 @@ namespace CoreFramework::Logging {
 #define TS_LOG_INFO(expr) TS_LOG_AT(CoreFramework::Logging::Level::Info, expr)
 #define TS_LOG_WARN(expr) TS_LOG_AT(CoreFramework::Logging::Level::Warn, expr)
 #define TS_LOG_ERROR(expr) TS_LOG_AT(CoreFramework::Logging::Level::Error, expr)
+

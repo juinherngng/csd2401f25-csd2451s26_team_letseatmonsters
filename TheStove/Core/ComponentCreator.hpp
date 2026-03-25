@@ -11,7 +11,7 @@
 					Used by the Factory to register available component types and create them
 					dynamically at runtime based on string keys (e.g., "Transform", "RigidBody2D").
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -53,3 +53,4 @@ public:
 		return new T();
 	}
 };
+

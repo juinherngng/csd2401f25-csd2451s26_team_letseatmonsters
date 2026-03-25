@@ -9,7 +9,7 @@
 					occupancy, assigning customers, and retrieving seat
 					transforms used by the AI.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -140,3 +140,4 @@ protected:
 	bool servedFoodLocked_ = false;
 	int  servedFoodItemID_ = kInvalidID;
 };
+

@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Binds vertex attributes for supported layouts and issues glDrawArrays calls.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

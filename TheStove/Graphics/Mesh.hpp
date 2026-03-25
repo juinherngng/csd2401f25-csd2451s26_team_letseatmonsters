@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Lightweight wrapper for a VAO + VBO with fixed vertex layouts and draw helpers.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

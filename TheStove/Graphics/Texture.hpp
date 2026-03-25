@@ -6,7 +6,7 @@
 
  DESCRIPTION:		2D texture resource wrapper providing load, bind to texture unit, and sampler params.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -73,3 +73,4 @@ private:
 	GLuint textureID;
 	int width, height, channels;
 };
+

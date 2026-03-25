@@ -7,7 +7,7 @@
 					for pathfinding in the game world. NavGrid represents a 2D grid of walkable and blocked cells,
 					while GridPathfinder implements A* search to find paths between grid coordinates.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -132,3 +132,4 @@ public:
 		const GridCoord& goal,
 		std::vector<GridCoord>& outPath);
 };
+

@@ -7,7 +7,7 @@
 					functionality using A* search. NavGrid represents a 2D grid of walkable/blocked cells,
 					while GridPathfinder contains the A* algorithm to find a path between two points on the grid.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -234,3 +234,4 @@ bool GridPathfinder::FindPath(const NavGrid& grid, const GridCoord& start, const
 
 	return !outPath.empty();
 }
+

@@ -8,7 +8,7 @@
 					and seed management for the game. This allows for consistent random behavior across different systems
 					and the ability to set a specific seed for reproducibility.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -61,3 +61,4 @@ namespace EngineRng {
 		return (rd() << 1) ^ rd();
 	}
 }
+

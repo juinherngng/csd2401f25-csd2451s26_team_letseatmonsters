@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Implementation of AABB-based collision primitives and world resolution.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -231,7 +231,7 @@ namespace collision {
 				const bool nowPenetrating = (movedX.max.x > wall.min.x);
 				if (wasLeft && nowPenetrating) {
 					const float penX = movedX.max.x - wall.min.x;
-					const float corr = std::min(penX, allowedDelta.x); // don’t overshoot
+					const float corr = std::min(penX, allowedDelta.x); // do not overshoot
 
 					allowedDelta.x -= corr;
 					movedX.min.x -= corr;
@@ -244,7 +244,7 @@ namespace collision {
 				const bool nowPenetrating = (movedX.min.x < wall.max.x);
 				if (wasRight && nowPenetrating) {
 					const float penX = wall.max.x - movedX.min.x;
-					const float corr = std::min(penX, -allowedDelta.x); // don’t overshoot
+					const float corr = std::min(penX, -allowedDelta.x); // do not overshoot
 
 					allowedDelta.x += corr;
 					movedX.min.x += corr;
@@ -272,7 +272,7 @@ namespace collision {
 				const bool nowPenetrating = (movedY.max.y > wall.min.y);
 				if (wasAbove && nowPenetrating) {
 					const float penY = movedY.max.y - wall.min.y;
-					const float corr = std::min(penY, allowedDelta.y); // don’t overshoot
+					const float corr = std::min(penY, allowedDelta.y); // do not overshoot
 
 					allowedDelta.y -= corr;
 					movedY.min.y -= corr;
@@ -285,7 +285,7 @@ namespace collision {
 				const bool nowPenetrating = (movedY.min.y < wall.max.y);
 				if (wasBelow && nowPenetrating) {
 					const float penY = wall.max.y - movedY.min.y;
-					const float corr = std::min(penY, -allowedDelta.y); // don’t overshoot
+					const float corr = std::min(penY, -allowedDelta.y); // do not overshoot
 
 					allowedDelta.y += corr;
 					movedY.min.y += corr;

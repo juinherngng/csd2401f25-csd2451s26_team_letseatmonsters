@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Implementation of JSON-based audio catalog with serialization.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -364,3 +364,4 @@ namespace Audio {
 		return "Unsupported audio file type: \"" + ext + "\". Only .wav and .mp3 files are supported.";
 	}
 }
+

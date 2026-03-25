@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Sets up default GL state and provides Clear() and SetClearColor().
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -28,3 +28,4 @@ void Renderer::Clear() {
 void Renderer::SetClearColor(float r, float g, float b, float a) {
 	glClearColor(r, g, b, a);
 }
+

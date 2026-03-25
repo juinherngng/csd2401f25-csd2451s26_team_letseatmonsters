@@ -12,7 +12,7 @@
 					entity creation and management, event handling, physics and collision simulation,
 					animation control, input processing, and rendering pipeline integration.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -1777,3 +1777,4 @@ private:
 	 */
 	void FinalizeFramePhase(float deltaTime);
 };
+

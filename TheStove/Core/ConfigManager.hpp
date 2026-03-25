@@ -8,7 +8,7 @@
 					BGM/VFX volumes) and exposes helpers to load from a file or common asset locations,
 					save back to disk, and validate/clamp values to safe ranges.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -111,3 +111,4 @@ namespace ConfigManager {
 		return s;
 	}
 };
+
