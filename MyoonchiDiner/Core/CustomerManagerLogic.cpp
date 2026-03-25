@@ -16,6 +16,7 @@
 
 #include "Core/AudioManager.hpp"
 #include "Core/CustomerManagerLogic.hpp"
+#include "Core/Logger.hpp"
 #include "Core/CustomerOrderUILogic.hpp"
 #include "Core/CustomerTableLogic.hpp"
 #include "Core/LogicManager.hpp"
@@ -27,7 +28,6 @@
 #include "EngineRng.hpp"
 
 #include <algorithm>
-#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -102,7 +102,7 @@ void CustomerManagerSystem::CacheTables(Scene& scene) {
 	}
 
 	cachedTables_ = true;
-	std::cout << "[CustomerManager] Cached " << customerTableIDs_.size() << " customer tables\n";
+	TS_LOG_DEBUG("[CustomerManager] Cached " << customerTableIDs_.size() << " customer tables");
 }
 
 void CustomerManagerSystem::CacheTemplate(Scene& scene) {
@@ -123,10 +123,10 @@ void CustomerManagerSystem::CacheTemplate(Scene& scene) {
 	cachedTemplate_ = true;
 
 	if (customerTemplateID_ < 0) {
-		std::cout << "[CustomerManager] WARNING: No customer_template found in JSON.\n";
+		TS_LOG_WARN("[CustomerManager] No customer_template found in JSON.");
 	}
 	else {
-		std::cout << "[CustomerManager] Cached customer template id=" << customerTemplateID_ << "\n";
+		TS_LOG_DEBUG("[CustomerManager] Cached customer template id=" << customerTemplateID_);
 	}
 }
 
@@ -142,7 +142,7 @@ void CustomerManagerSystem::CacheEntries(Scene& scene) {
 		}
 	}
 
-	std::cout << "[CustomerManager] Cached " << customerEntryIDs_.size() << " customer entries\n";
+	TS_LOG_DEBUG("[CustomerManager] Cached " << customerEntryIDs_.size() << " customer entries");
 	cachedEntries_ = true;
 }
 
@@ -325,8 +325,8 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	}
 #endif
 
-	std::cout << "[CustomerManager] Spawned customer " << npcID
-		<< " -> table " << chosenTableID << "\n";
+	TS_LOG_DEBUG("[CustomerManager] Spawned customer " << npcID
+		<< " -> table " << chosenTableID);
 
 	return true;
 }

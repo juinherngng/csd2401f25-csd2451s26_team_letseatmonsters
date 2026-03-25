@@ -410,7 +410,7 @@ namespace RuntimeLevel {
 
 			Scene::Defaults defs{};
 			defs.pos = { obj.x, obj.y, 0.0f };
-			defs.size = { obj.w, obj.h };
+			defs.size = { obj.w, obj.h, 1.0f };
 			defs.rot = obj.rotation;
 			defs.colSize = { obj.colWidth, obj.colHeight };
 			defs.colOff = { obj.colOffsetX, obj.colOffsetY };

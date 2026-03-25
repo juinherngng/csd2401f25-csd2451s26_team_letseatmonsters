@@ -44,6 +44,7 @@
 #include "GraphicsEngine.hpp"
 #include "Layer.hpp"
 #include "ParticleSystem.hpp"
+#include "SceneObjectMetadata.hpp"
 #include "../Core/FontSystem.hpp"
 
 class AudioManager;
@@ -628,36 +629,7 @@ public:
 	 */
 	void SetObjectTexturePath(int id, const std::string& path);
 
-	// Default properties for objects by ID
-	struct Defaults {
-		glm::vec3 pos{ 0,0,0 };
-		glm::vec2 size{ 128,128 };
-		float rot{ 0.f };
-		glm::vec2 colSize{ 64,128 };
-		glm::vec2 colOff{ 0,0 };
-		glm::vec2 vel{ 0,0 };
-		glm::vec2 approachOffset{ 0,0 }; // Primary table approach point
-		bool hasApproachOffset2{ false };
-		glm::vec2 approachOffset2{ 0,0 }; // Optional secondary approach point
-		bool hasCustomerSeatOffset{ false };
-		glm::vec2 customerSeatOffset{ 0,0 }; // Optional explicit customer seat point
-		int customerSeatCapacity{ 1 };
-		bool hasCustomerSeatOffset2{ false };
-		glm::vec2 customerSeatOffset2{ 0,0 };
-		std::string texture;
-		std::string tag;
-		std::string layer;
-
-		// Audio bindings
-		std::string audioOnSpawn;
-		std::string audioOnInteract;
-		std::string audioOnDestroy;
-		std::string audioOnProcessing;  // Audio that loops while work table is processing
-		bool audioLoop{ false };
-
-		// Per-object visibility (default visible)
-		bool visible{ true };
-	};
+	using Defaults = SceneObjectDefaults;
 
 	/**
 	 * @brief Sets defaults.
@@ -665,7 +637,7 @@ public:
 	 * @param d Parameter for d.
 	 */
 	void SetDefaults(int id, const Defaults& d) {
-		defaults_[id] = d;
+		objectMetadata_.SetDefaults(id, d);
 		collisionManager.MarkStaticStateDirty();
 	}
 
@@ -675,8 +647,7 @@ public:
 	 * @return Requested value.
 	 */
 	Defaults GetDefaults(int id) const {
-		auto it = defaults_.find(id);
-		return (it != defaults_.end()) ? it->second : Defaults{};
+		return objectMetadata_.GetDefaults(id);
 	}
 
 	/**
@@ -685,7 +656,7 @@ public:
 	 * @param visible Parameter for visible.
 	 */
 	void SetObjectVisible(int id, bool visible) {
-		defaults_[id].visible = visible;
+		objectMetadata_.SetVisible(id, visible);
 		collisionManager.MarkStaticStateDirty();
 	}
 
@@ -695,8 +666,7 @@ public:
 	 * @return True when the operation succeeds or the condition is met.
 	 */
 	bool IsObjectVisible(int id) const {
-		auto it = defaults_.find(id);
-		return (it != defaults_.end()) ? it->second.visible : true;
+		return objectMetadata_.IsVisible(id);
 	}
 
 	// -------------------------------------------------------------------------------------------------
@@ -1141,8 +1111,8 @@ private:
 	bool exitGateCached_ = false;
 	Math::Vector2D exitGateWorld_{ 0.0f, 0.0f };
 
-	// Centralized defaults and metadata for objects, keyed by ID
-	std::unordered_map<int, Defaults> defaults_;
+	// Centralized runtime metadata for objects, keyed by object ID.
+	SceneObjectMetadataStore objectMetadata_;
 	std::unordered_map<std::string, Layer> layers;
 
 	/**
@@ -1204,8 +1174,6 @@ private:
 	const float fpsUpdateInterval_ = 0.25f; // update every 0.25s
 
 	LevelEditor mLevelEditor;
-	std::unordered_map<int, std::string> mTexturePathByID;
-	std::unordered_map<int, std::string> objectTags_;
 	TagLogicBinder tagLogicBinder_;
 	TagRuleHook tagRuleHook_;
 	PauseOverlayButtonBinder pauseOverlayButtonBinder_;

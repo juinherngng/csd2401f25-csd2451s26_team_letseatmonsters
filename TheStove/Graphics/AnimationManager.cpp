@@ -16,20 +16,20 @@
 #include "AnimationManager.hpp"
 #include "EntityManager.hpp"
 #include "GameObject.hpp"
+#include "../Core/Logger.hpp"
 
-#include <iostream>
 #include <string>
 #include <vector>
 
 // ===== SystemInterface Implementation =====
 
 void AnimationManager::Initialize() {
-	std::cout << "[AnimationManager] Initialized as system" << std::endl;
+	TS_LOG_DEBUG("[AnimationManager] Initialized as system");
 }
 
 void AnimationManager::Update(float deltaTime) {
 	if (!entityManager_) {
-		std::cerr << "[AnimationManager] Warning: EntityManager not set!" << std::endl;
+		TS_LOG_WARN("[AnimationManager] EntityManager not set");
 		return;
 	}
 
@@ -64,7 +64,7 @@ std::string AnimationManager::GetName() {
 
 void AnimationManager::SetEntityManager(EntityManager* entityMgr) {
 	entityManager_ = entityMgr;
-	std::cout << "[AnimationManager] EntityManager reference set" << std::endl;
+	TS_LOG_DEBUG("[AnimationManager] EntityManager reference set");
 }
 
 // ===== Core Functionality =====
@@ -95,7 +95,7 @@ void AnimationManager::AttachDinoAnimations(int objectID) {
 	currentAnimations_[objectID] = "IDLE";
 	anim.Play();
 
-	std::cout << "[AnimationManager] Attached dino animations to object " << objectID << std::endl;
+	TS_LOG_DEBUG("[AnimationManager] Attached dino animations to object " << objectID);
 }
 
 void AnimationManager::AttachPlayerAnimations(int objectID) {
@@ -154,7 +154,7 @@ void AnimationManager::AttachPlayerAnimations(int objectID) {
 	currentAnimations_[objectID] = "IDLE_FRONT";
 	anim.Play();
 
-	std::cout << "[AnimationManager] Attached player animations to object " << objectID << std::endl;
+	TS_LOG_DEBUG("[AnimationManager] Attached player animations to object " << objectID);
 }
 
 void AnimationManager::AttachNPCAnimations(int objectID) {
@@ -512,7 +512,7 @@ void AnimationManager::AttachMenuAnimations(int objectID) {
 	currentAnimations_[objectID] = "FULL";
 	anim.Play();
 
-	std::cout << "[AnimationManager] Attached 6x5 full-sheet menu animation to object " << objectID << std::endl;
+	TS_LOG_DEBUG("[AnimationManager] Attached 6x5 full-sheet menu animation to object " << objectID);
 }
 
 // ===== Animation Control =====
@@ -520,13 +520,13 @@ void AnimationManager::AttachMenuAnimations(int objectID) {
 void AnimationManager::SetAnimation(int objectID, const std::string& animName) {
 	auto animIt = animators_.find(objectID);
 	if (animIt == animators_.end()) {
-		std::cerr << "[AnimationManager] Warning: No animator found for object " << objectID << std::endl;
+		TS_LOG_WARN("[AnimationManager] No animator found for object " << objectID);
 		return;
 	}
 
 	auto setIt = animationSets_.find(objectID);
 	if (setIt == animationSets_.end() || setIt->second.find(animName) == setIt->second.end()) {
-		std::cerr << "[AnimationManager] Warning: Animation '" << animName << "' not found for object " << objectID << std::endl;
+		TS_LOG_WARN("[AnimationManager] Animation '" << animName << "' not found for object " << objectID);
 		return;
 	}
 
@@ -640,8 +640,7 @@ void AnimationManager::AttachRuntimeAnimation(int objectID,
 	bool loop,
 	const std::string& animName) {
 	if (frames.empty()) {
-		std::cerr << "[AnimationManager] AttachRuntimeAnimation failed: no frames for object "
-			<< objectID << std::endl;
+		TS_LOG_ERROR("[AnimationManager] AttachRuntimeAnimation failed: no frames for object " << objectID);
 		return;
 	}
 

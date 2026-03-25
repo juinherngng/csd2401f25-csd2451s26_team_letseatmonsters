@@ -14,6 +14,7 @@
 */
 
 #include "Core/AudioManager.hpp"
+#include "Core/Logger.hpp"
 #include "Core/Quota.hpp"
 #include "Graphics/SceneManager.hpp"
 
@@ -75,7 +76,7 @@ namespace Economy {
 				// Stop any other looping gameplay sounds
 				scene.StopAllObjectAudio();
 
-				std::cout << "[Economy] Fading gameplay BGM for win/lose cutscene" << std::endl;
+				TS_LOG_DEBUG("[Economy] Fading gameplay BGM for win/lose cutscene");
 			}
 #endif
 #ifdef _DEBUG
@@ -172,7 +173,7 @@ namespace Economy {
 		if (AudioManager* audioMgr = scene.GetAudioManager()) {
 			if (audioMgr->HasSound("sfx_game_over")) {
 				audioMgr->PlaySound("sfx_game_over", audioMgr->GetVfxVolume() * 1.0f, false);
-				std::cout << "[Economy] Playing game over sound effect at 50% volume" << std::endl;
+				TS_LOG_DEBUG("[Economy] Playing game over sound effect at 50% volume");
 			}
 		}
 #endif

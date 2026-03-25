@@ -413,7 +413,7 @@ namespace {
 			// Store defaults for saving later
 			Scene::Defaults defs{};
 			defs.pos = { obj.x, obj.y, obj.z };
-			defs.size = { obj.w, obj.h };
+			defs.size = { obj.w, obj.h, 1.0f };
 			defs.rot = obj.rotation;
 			defs.colSize = { obj.colWidth, obj.colHeight };
 			defs.colOff = { obj.colOffsetX, obj.colOffsetY };
@@ -1161,7 +1161,7 @@ namespace LEPANELLEVEL {
 
 				Scene::Defaults defs{};
 				defs.pos = { proto.x, proto.y, proto.z };
-				defs.size = { proto.w, proto.h };
+				defs.size = { proto.w, proto.h, 1.0f };
 				defs.rot = proto.rotation;
 				defs.colSize = { proto.colWidth, proto.colHeight };
 				defs.colOff = { proto.colOffsetX, proto.colOffsetY };

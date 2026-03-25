@@ -13,11 +13,10 @@
 
 #include "../Core/AudioManager.hpp"
 #include "../Core/FilePaths.hpp"
+#include "../Core/Logger.hpp"
 
 #include "ResourceManager.hpp"
 #include "SceneManager.hpp"
-
-#include <iostream>
 
 // -------------------------------------------------------------------------------------------------
 // Top-Level Frame Driver
@@ -87,7 +86,7 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 			}
 
 			pauseAudioPending_ = false;
-			std::cout << "[Scene] Paused audio channels after fade" << std::endl;
+			TS_LOG_DEBUG("[Scene] Paused audio channels after fade");
 		}
 	}
 #endif

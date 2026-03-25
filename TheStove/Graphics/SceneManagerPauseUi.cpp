@@ -13,11 +13,10 @@
 
 #include "../Core/AudioManager.hpp"
 #include "../Core/FilePaths.hpp"
+#include "../Core/Logger.hpp"
 #include "../Core/MessageBus.hpp"
 
 #include "SceneManager.hpp"
-
-#include <iostream>
 
 // -------------------------------------------------------------------------------------------------
 // Pause Overlay Entry
@@ -40,7 +39,7 @@ void Scene::ShowPauseOverlay() {
 		messageBus_->Post<CoreFramework::PauseOverlayChangedMessage>(true);
 	}
 
-	std::cout << "[Scene] ShowPauseOverlay()\n";
+	TS_LOG_DEBUG("[Scene] ShowPauseOverlay()");
 
 	SetSimulationActive(false);
 
@@ -61,7 +60,7 @@ void Scene::ShowPauseOverlay() {
 		pauseAudioPending_ = true;
 		pauseAudioTimer_ = pauseFadeOut;
 
-		std::cout << "[Scene] Fading out level BGM and ambience for pause menu" << std::endl;
+		TS_LOG_DEBUG("[Scene] Fading out level BGM and ambience for pause menu");
 	}
 
 	const std::string uiLayer = "999999";
@@ -72,7 +71,7 @@ void Scene::ShowPauseOverlay() {
 		{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
 		uiLayer)) {
 		pauseOverlayObjectIds_.push_back(dim->GetID());
-		std::cout << "  [Scene] Pause background id=" << dim->GetID() << "\n";
+		TS_LOG_DEBUG("[Scene] Pause background id=" << dim->GetID());
 	}
 
 	auto spawnPauseBtn = [&](const char* tex, const glm::vec2& pos, const std::string& action) {
@@ -86,7 +85,7 @@ void Scene::ShowPauseOverlay() {
 			}
 		}
 		else {
-			std::cout << "  [Scene] ERROR: failed to spawn pause button for action=" << action << "\n";
+			TS_LOG_ERROR("[Scene] Failed to spawn pause button for action=" << action);
 		}
 		};
 
@@ -145,7 +144,7 @@ void Scene::HidePauseOverlay() {
 			audioManager_->FadeChannel(pauseAmbienceChannel_, pausedAmbienceVolume_, pauseFadeIn);
 		}
 
-		std::cout << "[Scene] Resumed and fading in level BGM and ambience after pause menu" << std::endl;
+		TS_LOG_DEBUG("[Scene] Resumed and fading in level BGM and ambience after pause menu");
 	}
 	SetFlowState(resumeFromPausePending_ ? flowStateBeforePause_ : ComputeSteadyFlowState());
 

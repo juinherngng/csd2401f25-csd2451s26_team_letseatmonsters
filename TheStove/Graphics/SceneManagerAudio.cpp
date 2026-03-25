@@ -12,10 +12,9 @@
  */
 
 #include "../Core/AudioManager.hpp"
+#include "../Core/Logger.hpp"
 
 #include "SceneManager.hpp"
-
-#include <iostream>
 
 // -------------------------------------------------------------------------------------------------
 // Object-Bound Audio Playback Helpers
@@ -30,22 +29,21 @@ void Scene::PlaySpawnAudio(int objectId) {
 		return;
 	}
 
-	auto it = defaults_.find(objectId);
-	if (it == defaults_.end()) {
+	const Defaults* defs = objectMetadata_.FindDefaults(objectId);
+	if (defs == nullptr) {
 		return;
 	}
 
-	const Defaults& defs = it->second;
-	if (defs.audioOnSpawn.empty()) {
+	if (defs->audioOnSpawn.empty()) {
 		return;
 	}
 
-	if (audioManager_->HasSound(defs.audioOnSpawn)) {
-		audioManager_->PlaySound3D(defs.audioOnSpawn, defs.pos.x, defs.pos.y, defs.pos.z);
-		std::cout << "[Scene] Playing spawn audio '" << defs.audioOnSpawn << "' for object " << objectId << std::endl;
+	if (audioManager_->HasSound(defs->audioOnSpawn)) {
+		audioManager_->PlaySound3D(defs->audioOnSpawn, defs->pos.x, defs->pos.y, defs->pos.z);
+		TS_LOG_DEBUG("[Scene] Playing spawn audio '" << defs->audioOnSpawn << "' for object " << objectId);
 	}
 	else {
-		std::cerr << "[Scene] Spawn audio '" << defs.audioOnSpawn << "' not found in AudioManager" << std::endl;
+		TS_LOG_WARN("[Scene] Spawn audio '" << defs->audioOnSpawn << "' not found in AudioManager");
 	}
 }
 
@@ -58,22 +56,21 @@ void Scene::PlayInteractAudio(int objectId) {
 		return;
 	}
 
-	auto it = defaults_.find(objectId);
-	if (it == defaults_.end()) {
+	const Defaults* defs = objectMetadata_.FindDefaults(objectId);
+	if (defs == nullptr) {
 		return;
 	}
 
-	const Defaults& defs = it->second;
-	if (defs.audioOnInteract.empty()) {
+	if (defs->audioOnInteract.empty()) {
 		return;
 	}
 
-	if (audioManager_->HasSound(defs.audioOnInteract)) {
-		audioManager_->PlaySound3D(defs.audioOnInteract, defs.pos.x, defs.pos.y, defs.pos.z);
-		std::cout << "[Scene] Playing interact audio '" << defs.audioOnInteract << "' for object " << objectId << std::endl;
+	if (audioManager_->HasSound(defs->audioOnInteract)) {
+		audioManager_->PlaySound3D(defs->audioOnInteract, defs->pos.x, defs->pos.y, defs->pos.z);
+		TS_LOG_DEBUG("[Scene] Playing interact audio '" << defs->audioOnInteract << "' for object " << objectId);
 	}
 	else {
-		std::cerr << "[Scene] Interact audio '" << defs.audioOnInteract << "' not found in AudioManager" << std::endl;
+		TS_LOG_WARN("[Scene] Interact audio '" << defs->audioOnInteract << "' not found in AudioManager");
 	}
 }
 
@@ -86,22 +83,21 @@ void Scene::PlayDestroyAudio(int objectId) {
 		return;
 	}
 
-	auto it = defaults_.find(objectId);
-	if (it == defaults_.end()) {
+	const Defaults* defs = objectMetadata_.FindDefaults(objectId);
+	if (defs == nullptr) {
 		return;
 	}
 
-	const Defaults& defs = it->second;
-	if (defs.audioOnDestroy.empty()) {
+	if (defs->audioOnDestroy.empty()) {
 		return;
 	}
 
-	if (audioManager_->HasSound(defs.audioOnDestroy)) {
-		audioManager_->PlaySound3D(defs.audioOnDestroy, defs.pos.x, defs.pos.y, defs.pos.z);
-		std::cout << "[Scene] Playing destroy audio '" << defs.audioOnDestroy << "' for object " << objectId << std::endl;
+	if (audioManager_->HasSound(defs->audioOnDestroy)) {
+		audioManager_->PlaySound3D(defs->audioOnDestroy, defs->pos.x, defs->pos.y, defs->pos.z);
+		TS_LOG_DEBUG("[Scene] Playing destroy audio '" << defs->audioOnDestroy << "' for object " << objectId);
 	}
 	else {
-		std::cerr << "[Scene] Destroy audio '" << defs.audioOnDestroy << "' not found in AudioManager" << std::endl;
+		TS_LOG_WARN("[Scene] Destroy audio '" << defs->audioOnDestroy << "' not found in AudioManager");
 	}
 }
 
@@ -114,22 +110,21 @@ void Scene::PlayProcessingAudio(int objectId) {
 		return;
 	}
 
-	auto it = defaults_.find(objectId);
-	if (it == defaults_.end()) {
+	const Defaults* defs = objectMetadata_.FindDefaults(objectId);
+	if (defs == nullptr) {
 		return;
 	}
 
-	const Defaults& defs = it->second;
-	if (defs.audioOnProcessing.empty()) {
+	if (defs->audioOnProcessing.empty()) {
 		return;
 	}
 
-	if (audioManager_->HasSound(defs.audioOnProcessing)) {
-		audioManager_->PlaySound3D(defs.audioOnProcessing, defs.pos.x, defs.pos.y, defs.pos.z);
-		std::cout << "[Scene] Playing processing audio '" << defs.audioOnProcessing << "' for object " << objectId << std::endl;
+	if (audioManager_->HasSound(defs->audioOnProcessing)) {
+		audioManager_->PlaySound3D(defs->audioOnProcessing, defs->pos.x, defs->pos.y, defs->pos.z);
+		TS_LOG_DEBUG("[Scene] Playing processing audio '" << defs->audioOnProcessing << "' for object " << objectId);
 	}
 	else {
-		std::cerr << "[Scene] Processing audio '" << defs.audioOnProcessing << "' not found in AudioManager" << std::endl;
+		TS_LOG_WARN("[Scene] Processing audio '" << defs->audioOnProcessing << "' not found in AudioManager");
 	}
 }
 
@@ -146,19 +141,18 @@ void Scene::StopProcessingAudio(int objectId) {
 		return;
 	}
 
-	auto it = defaults_.find(objectId);
-	if (it == defaults_.end()) {
+	const Defaults* defs = objectMetadata_.FindDefaults(objectId);
+	if (defs == nullptr) {
 		return;
 	}
 
-	const Defaults& defs = it->second;
-	if (defs.audioOnProcessing.empty()) {
+	if (defs->audioOnProcessing.empty()) {
 		return;
 	}
 
-	if (audioManager_->HasSound(defs.audioOnProcessing)) {
-		audioManager_->StopSound(defs.audioOnProcessing);
-		std::cout << "[Scene] Stopped processing audio '" << defs.audioOnProcessing << "' for object " << objectId << std::endl;
+	if (audioManager_->HasSound(defs->audioOnProcessing)) {
+		audioManager_->StopSound(defs->audioOnProcessing);
+		TS_LOG_DEBUG("[Scene] Stopped processing audio '" << defs->audioOnProcessing << "' for object " << objectId);
 	}
 }
 
@@ -170,7 +164,8 @@ void Scene::StopAllObjectAudio() {
 		return;
 	}
 
-	for (const auto& [id, defs] : defaults_) {
+	for (const auto& [id, defs] : objectMetadata_.GetAllDefaults()) {
+		(void)id;
 		if (!defs.audioOnSpawn.empty() && audioManager_->HasSound(defs.audioOnSpawn)) {
 			audioManager_->StopSound(defs.audioOnSpawn);
 		}
@@ -188,6 +183,6 @@ void Scene::StopAllObjectAudio() {
 		}
 	}
 
-	std::cout << "[Scene] Stopped all object-bound audio" << std::endl;
+	TS_LOG_DEBUG("[Scene] Stopped all object-bound audio");
 }
 

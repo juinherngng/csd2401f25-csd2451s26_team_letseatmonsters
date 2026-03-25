@@ -12,12 +12,11 @@
  */
 
 #include "../Core/LevelEditorPanelFonts.hpp"
+#include "../Core/Logger.hpp"
 #include "../Core/MessageBus.hpp"
 #include "../Core/RuntimeLevel.hpp"
 
 #include "SceneManager.hpp"
-
-#include <iostream>
 
 // -------------------------------------------------------------------------------------------------
 // Scene Flow State Helpers
@@ -114,7 +113,7 @@ void Scene::HandleDeferredLoads() {
 
 	if (!pendingLevelPath_.empty()) {
 		if (!RuntimeLevel::LoadAndBuild(pendingLevelPath_, *this)) {
-			std::cerr << "[Scene] Deferred level load failed: " << pendingLevelPath_ << std::endl;
+			TS_LOG_ERROR("[Scene] Deferred level load failed: " << pendingLevelPath_);
 		}
 		else {
 			SetCurrentLevelPath(pendingLevelPath_);
@@ -188,9 +187,7 @@ void Scene::ResetLevelObjectState() {
 	pauseOverlayObjectIds_.clear();
 	pendingDespawns_.clear();
 
-	defaults_.clear();
-	objectTags_.clear();
-	mTexturePathByID.clear();
+	objectMetadata_.Clear();
 	layers.clear();
 	layerSortKeyCache_.clear();
 	AddLayer("1");

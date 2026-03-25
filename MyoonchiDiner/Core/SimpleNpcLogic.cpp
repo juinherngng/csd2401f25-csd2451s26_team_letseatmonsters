@@ -17,6 +17,7 @@
 #include "Core/CustomerTableLogic.hpp"
 #include "Core/EngineRng.hpp"
 #include "Core/ExitGateLogic.hpp"
+#include "Core/Logger.hpp"
 #include "Core/Physics.hpp"      // optional, if you want clamp helpers
 #include "Graphics/SceneManager.hpp"
 
@@ -342,7 +343,7 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 
 			if (arrived) {
 				if (behaviourState_ == BehaviourState::Leaving) {
-					std::cout << "[SimpleNpcLogic] Arrived at exit. NPC will despawn.\n";
+					TS_LOG_DEBUG("[SimpleNpcLogic] Arrived at exit. NPC will despawn.");
 					OnReachedExit(scene);
 					return;
 				}
@@ -460,7 +461,7 @@ void SimpleNpcLogic::UpdateCustomerLogic(float dt, Scene& scene) {
 					}
 				}
 
-				std::cout << "[SimpleNpcLogic] Finished eating, switching to Paying\n";
+				TS_LOG_DEBUG("[SimpleNpcLogic] Finished eating, switching to Paying");
 
 				// Once done eating, NPC is ready to pay.
 				behaviourState_ = BehaviourState::Paying;
@@ -500,7 +501,7 @@ bool SimpleNpcLogic::TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const
 void SimpleNpcLogic::AssignCustomerTable(int tableObjectID) {
 	customerTableID_ = tableObjectID;
 
-	std::cout << "[SimpleNpcLogic] AssignCustomerTable tableID=" << tableObjectID << "\n";
+	TS_LOG_DEBUG("[SimpleNpcLogic] AssignCustomerTable tableID=" << tableObjectID);
 
 	// If currently idle as a customer, start looking for the table.
 	if (behaviourState_ == BehaviourState::Idle) {
@@ -518,9 +519,9 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene) {
 		desiredDishType_ = RollRandomDish(scene);
 		dishRolled_ = true;
 
-		std::cout << "[SimpleNpcLogic] Rolled desired dish = "
+		TS_LOG_DEBUG("[SimpleNpcLogic] Rolled desired dish = "
 			<< DishTypeName(desiredDishType_)
-			<< " (" << (int)desiredDishType_ << ")\n";
+			<< " (" << static_cast<int>(desiredDishType_) << ")");
 	}
 
 	//std::cout << "[SimpleNpcLogic] OnSeatedAtTable, npcID="
@@ -540,8 +541,8 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene) {
 
 
 void SimpleNpcLogic::TakeOrder(Scene& scene) {
-	std::cout << "[SimpleNpcLogic] TakeOrder, state="
-		<< static_cast<int>(behaviourState_) << "\n";
+	TS_LOG_DEBUG("[SimpleNpcLogic] TakeOrder, state="
+		<< static_cast<int>(behaviourState_));
 
 	// Only meaningful if in ORDERING state.
 	if (behaviourState_ != BehaviourState::Ordering)
@@ -567,7 +568,7 @@ void SimpleNpcLogic::TakeOrder(Scene& scene) {
 }
 
 void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType) {
-	std::cout << "[SimpleNpcLogic] OnDishServed, dishType=" << static_cast<int>(dishType) << "\n";
+	TS_LOG_DEBUG("[SimpleNpcLogic] OnDishServed, dishType=" << static_cast<int>(dishType));
 
 	// Only meaningful if actually waiting for food.
 	if (behaviourState_ != BehaviourState::WaitingForFood)
@@ -597,7 +598,7 @@ void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType) {
 		hasPaid_ = false; // doesn't matter much, BeginLeaveToExit sets hasPaid_=true
 		patienceRatioAtServe_ = 0.0f;
 
-		std::cout << "[SimpleNpcLogic] Wrong dish served. Leaving immediately (pay $0)\n";
+		TS_LOG_DEBUG("[SimpleNpcLogic] Wrong dish served. Leaving immediately (pay $0)");
 
 		BeginLeaveToExit(scene, true); // free table NOW
 		return;
@@ -718,11 +719,11 @@ void SimpleNpcLogic::CacheExitGatePos(Scene& scene) {
 	if (!found) {
 		// fallback
 		exitGateWorldPos_ = Math::Vector2D(50.0f, 50.0f);
-		std::cout << "[SimpleNpcLogic] WARNING: No ExitGateLogic found. Using fallback.\n";
+		TS_LOG_WARN("[SimpleNpcLogic] No ExitGateLogic found. Using fallback.");
 	}
 	else {
-		std::cout << "[SimpleNpcLogic] Cached exit gate target at ("
-			<< exitGateWorldPos_.x << ", " << exitGateWorldPos_.y << ")\n";
+		TS_LOG_DEBUG("[SimpleNpcLogic] Cached exit gate target at ("
+			<< exitGateWorldPos_.x << ", " << exitGateWorldPos_.y << ")");
 	}
 
 	hasExitGatePos_ = true;
@@ -732,7 +733,7 @@ void SimpleNpcLogic::CacheExitGatePos(Scene& scene) {
 void SimpleNpcLogic::OnReachedExit(Scene& scene) {
 	if (exitProcessed_) return;
 	exitProcessed_ = true;
-	std::cout << "[SimpleNpcLogic] Reached exit gate. Despawning.\n";
+	TS_LOG_DEBUG("[SimpleNpcLogic] Reached exit gate. Despawning.");
 
 	// Play customer leaving sound effect (release mode only)
 #ifndef _DEBUG

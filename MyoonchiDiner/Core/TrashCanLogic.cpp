@@ -13,10 +13,9 @@
 
 #include "Graphics/GameObject.hpp"
 #include "Graphics/SceneManager.hpp"
+#include "Core/Logger.hpp"
 
 #include "TrashCanLogic.hpp"
-
-#include <iostream>
 
 TrashCanLogic::TrashCanLogic(int ownerID)
 	: TableLogic(ownerID) {
@@ -61,7 +60,7 @@ int TrashCanLogic::TakeItem(Scene& /*scene*/) {
 }
 
 void TrashCanLogic::OnItemPlaced(Scene& /*scene*/, GameObject& item) {
-	std::cout << "[TrashCanLogic] Trashed item " << item.GetID()
-		<< " (owner trash can=" << GetOwnerID() << ")\n";
+	TS_LOG_DEBUG("[TrashCanLogic] Trashed item " << item.GetID()
+		<< " (owner trash can=" << GetOwnerID() << ")");
 }
 

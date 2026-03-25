@@ -962,8 +962,8 @@ namespace LEPICKDRAG {
 
 					// Keep Scene::Defaults in sync for save/load & red debug box
 					Scene::Defaults defs = scene.GetDefaults(draggingId);
-					defs.colSize = glm::vec2(colSize.x, colSize.y);
-					defs.colOff = glm::vec2(colOffset.x, colOffset.y);
+					defs.colSize = Math::Vector2D(colSize.x, colSize.y);
+					defs.colOff = Math::Vector2D(colOffset.x, colOffset.y);
 					scene.SetDefaults(draggingId, defs);
 
 					// Ensure movement/collision systems immediately use the edited collider.

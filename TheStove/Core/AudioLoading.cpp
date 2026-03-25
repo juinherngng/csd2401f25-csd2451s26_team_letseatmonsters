@@ -14,12 +14,12 @@
 
 #include "AudioLoading.hpp"
 #include "JSONInclude.hpp"
+#include "Logger.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 
 using nlohmann::json;
 
@@ -52,21 +52,21 @@ namespace Audio {
 	}
 
 	bool AudioCatalog::LoadCatalogFromFile(const std::string& catalogPath) {
-		std::cout << "AudioCatalog: Loading catalog from " << catalogPath << "..." << std::endl;
+		TS_LOG_INFO("AudioCatalog: Loading catalog from " << catalogPath << "...");
 
 		// Show current working directory for debugging
 		std::filesystem::path cwd = std::filesystem::current_path();
-		std::cout << "  [LoadCatalog] Current working directory: " << cwd << std::endl;
+		TS_LOG_DEBUG("[LoadCatalog] Current working directory: " << cwd.string());
 
 		// Show absolute path
 		std::filesystem::path absolutePath = std::filesystem::absolute(catalogPath);
-		std::cout << "  [LoadCatalog] Absolute path: " << absolutePath << std::endl;
-		std::cout << "  [LoadCatalog] File exists: " << (std::filesystem::exists(absolutePath) ? "YES" : "NO") << std::endl;
+		TS_LOG_DEBUG("[LoadCatalog] Absolute path: " << absolutePath.string());
+		TS_LOG_DEBUG("[LoadCatalog] File exists: " << (std::filesystem::exists(absolutePath) ? "YES" : "NO"));
 
 		std::ifstream file(catalogPath);
 		if (!file.is_open()) {
-			std::cerr << "AudioCatalog: Failed to open catalog file: " << catalogPath << std::endl;
-			std::cerr << "  [LoadCatalog] Attempted to read from: " << absolutePath << std::endl;
+			TS_LOG_ERROR("AudioCatalog: Failed to open catalog file: " << catalogPath);
+			TS_LOG_ERROR("[LoadCatalog] Attempted to read from: " << absolutePath.string());
 			return false;
 		}
 
@@ -86,7 +86,7 @@ namespace Audio {
 
 			// Parse version (for future compatibility)
 			std::string version = catalogJson.value("version", "1.0");
-			std::cout << "  Catalog version: " << version << std::endl;
+			TS_LOG_DEBUG("Catalog version: " << version);
 
 			// Parse audio assets
 			if (catalogJson.contains("audio_assets") && catalogJson["audio_assets"].is_array()) {
@@ -110,41 +110,41 @@ namespace Audio {
 
 					// Validate the asset
 					if (asset.name.empty() || asset.filepath.empty()) {
-						std::cerr << "  Warning: Skipping invalid audio asset entry" << std::endl;
+						TS_LOG_WARN("AudioCatalog: Skipping invalid audio asset entry");
 						continue;
 					}
 
 					// Validate file format
 					if (!IsValidAudioFile(asset.filepath)) {
-						std::cerr << "  Warning: Unsupported audio format for " << asset.filepath
-							<< " (only .wav and .mp3 are supported)" << std::endl;
+						TS_LOG_WARN("AudioCatalog: Unsupported audio format for " << asset.filepath
+							<< " (only .wav and .mp3 are supported)");
 						continue;
 					}
 
 					s_AudioAssets.push_back(asset);
-					std::cout << "  Loaded asset: " << asset.name << " (path: " << asset.filepath << ")" << std::endl;
+					TS_LOG_DEBUG("Loaded asset: " << asset.name << " (path: " << asset.filepath << ")");
 				}
 			}
 			else {
-				std::cout << "  No 'audio_assets' array found in catalog file (empty catalog)" << std::endl;
+				TS_LOG_INFO("AudioCatalog: No 'audio_assets' array found in catalog file (empty catalog)");
 			}
 
-			std::cout << "AudioCatalog: Successfully loaded " << s_AudioAssets.size() << " audio assets from file." << std::endl;
+			TS_LOG_INFO("AudioCatalog: Successfully loaded " << s_AudioAssets.size() << " audio assets from file.");
 			return true;
 		}
 		catch (const json::exception& e) {
-			std::cerr << "AudioCatalog: JSON parsing error: " << e.what() << std::endl;
+			TS_LOG_ERROR("AudioCatalog: JSON parsing error: " << e.what());
 			return false;
 		}
 	}
 
 	bool AudioCatalog::SaveCatalogToFile(const std::string& catalogPath) {
-		std::cout << "AudioCatalog: Saving catalog to " << catalogPath << "..." << std::endl;
+		TS_LOG_INFO("AudioCatalog: Saving catalog to " << catalogPath << "...");
 
 		try {
 			// Show current working directory for debugging
 			std::filesystem::path cwd = std::filesystem::current_path();
-			std::cout << "  [SaveCatalog] Current working directory: " << cwd << std::endl;
+			TS_LOG_DEBUG("[SaveCatalog] Current working directory: " << cwd.string());
 
 			// Ensure parent directory exists
 			std::filesystem::path filePath(catalogPath);
@@ -152,10 +152,10 @@ namespace Audio {
 
 			// Log the absolute path where we're actually writing
 			std::filesystem::path absolutePath = std::filesystem::absolute(filePath);
-			std::cout << "  [SaveCatalog] Absolute path: " << absolutePath << std::endl;
+			TS_LOG_DEBUG("[SaveCatalog] Absolute path: " << absolutePath.string());
 
 			if (!parentDir.empty() && !std::filesystem::exists(parentDir)) {
-				std::cout << "AudioCatalog: Creating directory: " << parentDir << std::endl;
+				TS_LOG_INFO("AudioCatalog: Creating directory: " << parentDir.string());
 				std::filesystem::create_directories(parentDir);
 			}
 
@@ -165,7 +165,7 @@ namespace Audio {
 
 			// Serialize all audio assets
 			for (const auto& asset : s_AudioAssets) {
-				std::cout << "  [SaveCatalog] Saving asset '" << asset.name << "' with filepath: " << asset.filepath << std::endl;
+				TS_LOG_DEBUG("[SaveCatalog] Saving asset '" << asset.name << "' with filepath: " << asset.filepath);
 
 				json assetJson;
 				assetJson["name"] = asset.name;
@@ -181,7 +181,7 @@ namespace Audio {
 			// Write to file with pretty printing
 			std::ofstream file(catalogPath);
 			if (!file.is_open()) {
-				std::cerr << "AudioCatalog: Failed to open file for writing: " << catalogPath << std::endl;
+				TS_LOG_ERROR("AudioCatalog: Failed to open file for writing: " << catalogPath);
 				return false;
 			}
 
@@ -192,10 +192,9 @@ namespace Audio {
 			// Verify the file was actually written by checking its existence and size
 			if (std::filesystem::exists(absolutePath)) {
 				auto fileSize = std::filesystem::file_size(absolutePath);
-				std::cout << "AudioCatalog: Successfully saved " << s_AudioAssets.size() << " audio assets to " << catalogPath << std::endl;
-				std::cout << "  [SaveCatalog] File size: " << fileSize << " bytes" << std::endl;
-				std::cout << "  [SaveCatalog] *** FILE WRITTEN TO: " << absolutePath << " ***" << std::endl;
-				std::cout << "  [SaveCatalog] *** OPEN THIS FILE TO VERIFY THE PATHS! ***" << std::endl;
+				TS_LOG_INFO("AudioCatalog: Successfully saved " << s_AudioAssets.size() << " audio assets to " << catalogPath);
+				TS_LOG_DEBUG("[SaveCatalog] File size: " << fileSize << " bytes");
+				TS_LOG_DEBUG("[SaveCatalog] File written to: " << absolutePath.string());
 
 				// Read back the file to verify it contains the data
 				std::ifstream verifyFile(catalogPath);
@@ -203,7 +202,7 @@ namespace Audio {
 					std::string line;
 					int lineCount = 0;
 					while (std::getline(verifyFile, line) && lineCount < 5) {
-						std::cout << "  [SaveCatalog] Line " << lineCount++ << ": " << line << std::endl;
+						TS_LOG_DEBUG("[SaveCatalog] Line " << lineCount++ << ": " << line);
 					}
 					verifyFile.close();
 				}
@@ -211,29 +210,29 @@ namespace Audio {
 				return true;
 			}
 			else {
-				std::cerr << "AudioCatalog: ERROR - File does not exist after writing!" << std::endl;
+				TS_LOG_ERROR("AudioCatalog: File does not exist after writing");
 				return false;
 			}
 		}
 		catch (const json::exception& e) {
-			std::cerr << "AudioCatalog: JSON serialization error: " << e.what() << std::endl;
+			TS_LOG_ERROR("AudioCatalog: JSON serialization error: " << e.what());
 			return false;
 		}
 	}
 
 	void AudioCatalog::LoadAllAudio() {
-		std::cout << "AudioCatalog: Loading all audio assets into memory..." << std::endl;
+		TS_LOG_INFO("AudioCatalog: Loading all audio assets into memory...");
 
 		auto& resMgr = ResourceManager::Instance();
 		int successCount = 0;
 		int failCount = 0;
 
 		for (const auto& asset : s_AudioAssets) {
-			std::cout << "  Loading: " << asset.name << " from " << asset.filepath << std::endl;
-			std::cout << "    Properties: loop=" << (asset.loop ? "true" : "false")
+			TS_LOG_DEBUG("Loading: " << asset.name << " from " << asset.filepath);
+			TS_LOG_DEBUG("Properties: loop=" << (asset.loop ? "true" : "false")
 				<< ", stream=" << (asset.stream ? "true" : "false")
 				<< ", category=" << asset.category
-				<< ", volume=" << asset.volume << std::endl;
+				<< ", volume=" << asset.volume);
 
 			// Load SFX/VFX sounds as 3D for spatial audio; BGM and UI stay 2D
 			bool isSpatial = (asset.category == "sfx" || asset.category == "vfx");
@@ -248,36 +247,33 @@ namespace Audio {
 				float freq = 0.0f;
 
 				if (resMgr.GetAudioInfo(asset.name, lenMs, channels, bits, freq)) {
-					std::cout << "    Info: " << lenMs << "ms, " << channels << " channels, "
-						<< bits << " bits, " << freq << "Hz" << std::endl;
+					TS_LOG_DEBUG("Info: " << lenMs << "ms, " << channels << " channels, "
+						<< bits << " bits, " << freq << "Hz");
 				}
 
 				successCount++;
 			}
 			else {
-				std::cerr << "  Failed to load: " << asset.name << std::endl;
+				TS_LOG_ERROR("AudioCatalog: Failed to load asset '" << asset.name << "'");
 				failCount++;
 			}
 		}
 
-		std::cout << "AudioCatalog: Loaded " << successCount << " audio assets successfully";
-		if (failCount > 0) {
-			std::cout << " (" << failCount << " failed)";
-		}
-		std::cout << "." << std::endl;
+		TS_LOG_INFO("AudioCatalog: Loaded " << successCount << " audio assets successfully"
+			<< (failCount > 0 ? " (" + std::to_string(failCount) + " failed)" : std::string{}) << ".");
 	}
 
 	void AudioCatalog::UnloadAllAudio() {
-		std::cout << "AudioCatalog: Unloading all audio assets..." << std::endl;
+		TS_LOG_INFO("AudioCatalog: Unloading all audio assets...");
 
 		auto& resMgr = ResourceManager::Instance();
 
 		for (const auto& asset : s_AudioAssets) {
-			std::cout << "  Unloading: " << asset.name << std::endl;
+			TS_LOG_DEBUG("Unloading: " << asset.name);
 			resMgr.UnloadAudio(asset.name);
 		}
 
-		std::cout << "AudioCatalog: All audio assets unloaded." << std::endl;
+		TS_LOG_INFO("AudioCatalog: All audio assets unloaded.");
 	}
 
 	bool AudioCatalog::AddAudioAsset(const AudioAsset& asset) {
@@ -288,19 +284,19 @@ namespace Audio {
 		// Check if asset with same name already exists
 		for (const auto& existing : s_AudioAssets) {
 			if (existing.name == normalizedAsset.name) {
-				std::cerr << "AudioCatalog: Asset with name '" << normalizedAsset.name << "' already exists!" << std::endl;
+				TS_LOG_ERROR("AudioCatalog: Asset with name '" << normalizedAsset.name << "' already exists");
 				return false;
 			}
 		}
 
 		// Validate file format
 		if (!IsValidAudioFile(normalizedAsset.filepath)) {
-			std::cerr << "AudioCatalog: " << GetInvalidFormatMessage(normalizedAsset.filepath) << std::endl;
+			TS_LOG_ERROR("AudioCatalog: " << GetInvalidFormatMessage(normalizedAsset.filepath));
 			return false;
 		}
 
 		s_AudioAssets.push_back(normalizedAsset);
-		std::cout << "AudioCatalog: Added asset: " << normalizedAsset.name << " (path: " << normalizedAsset.filepath << ")" << std::endl;
+		TS_LOG_INFO("AudioCatalog: Added asset: " << normalizedAsset.name << " (path: " << normalizedAsset.filepath << ")");
 		return true;
 	}
 
@@ -310,14 +306,14 @@ namespace Audio {
 
 		if (it != s_AudioAssets.end()) {
 			s_AudioAssets.erase(it);
-			std::cout << "AudioCatalog: Removed asset: " << name << std::endl;
+			TS_LOG_INFO("AudioCatalog: Removed asset: " << name);
 
 			// Also unload from audio system
 			ResourceManager::Instance().UnloadAudio(name);
 			return true;
 		}
 
-		std::cerr << "AudioCatalog: Asset '" << name << "' not found!" << std::endl;
+		TS_LOG_WARN("AudioCatalog: Asset '" << name << "' not found");
 		return false;
 	}
 

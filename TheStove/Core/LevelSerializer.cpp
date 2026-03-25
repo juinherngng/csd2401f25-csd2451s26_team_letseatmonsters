@@ -15,10 +15,10 @@
 
 #include "JSONInclude.hpp"
 #include "LevelSerializer.hpp"
+#include "Logger.hpp"
 
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <optional>
 #include <unordered_set>
 
@@ -215,6 +215,7 @@ static LevelTextObject ReadTextObject(const json& jsonObj) {
 	obj.colorA = jsonObj.value("colorA", 1.0f);
 
 	obj.layer = jsonObj.value("layer", "1");
+	obj.visible = jsonObj.value("visible", true);
 
 	return obj;
 }
@@ -333,8 +334,8 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	outLevel.schemaVersion = jsonData.value("schema_version", 0);
 	ApplyLegacyMigrations(jsonData, outLevel.schemaVersion);
 	if (outLevel.schemaVersion > LEVEL_SCHEMA_VERSION) {
-		std::cerr << "[LevelSerializer] Warning: loading newer schema version " << outLevel.schemaVersion
-			<< " with reader version " << LEVEL_SCHEMA_VERSION << std::endl;
+		TS_LOG_WARN("[LevelSerializer] Loading newer schema version " << outLevel.schemaVersion
+			<< " with reader version " << LEVEL_SCHEMA_VERSION);
 	}
 
 	outLevel.schemaVersion = LEVEL_SCHEMA_VERSION;

@@ -15,12 +15,12 @@
  */
 #include "Core/AudioManager.hpp"
 #include "Core/EngineRng.hpp"
+#include "Core/Logger.hpp"
 #include "Core/LogicManager.hpp"
 #include "Graphics/SceneManager.hpp"
 
 #include "IngredientBoxLogic.hpp"
 
-#include <iostream>
 #include <random>
 
 IngredientBoxLogic::IngredientBoxLogic(int ownerID) : TableLogic(ownerID) {
@@ -88,8 +88,8 @@ void IngredientBoxLogic::Start(Scene& scene) {
 	// Debug: show world-space approach points for this box
 	auto worldPoints = GetApproachPointsWorld(scene);
 	for (std::size_t i = 0; i < worldPoints.size(); ++i) {
-		std::cout << "  [IngredientBoxLogic] approach[" << i << "] world=("
-			<< worldPoints[i].x << ", " << worldPoints[i].y << ")\n";
+		TS_LOG_DEBUG("[IngredientBoxLogic] approach[" << i << "] world=("
+			<< worldPoints[i].x << ", " << worldPoints[i].y << ")");
 	}
 
 	// -------- Auto-config based on tag and texture --------
@@ -118,10 +118,10 @@ void IngredientBoxLogic::Start(Scene& scene) {
 		}
 		else {
 			ConfigureAsVegetableBox();
-			std::cout << "[IngredientBoxLogic] WARNING: owner "
+			TS_LOG_WARN("[IngredientBoxLogic] owner "
 				<< GetOwnerID()
 				<< " has unknown tag '" << tag
-				<< "', defaulting to vegetable box\n";
+				<< "', defaulting to vegetable box");
 		}
 	}
 }
@@ -158,8 +158,8 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene) {
 		);
 
 		if (!spawnedObj) {
-			std::cout << "[IngredientBoxLogic] Failed to spawn INGREDIENT from box "
-				<< ownerID_ << "\n";
+			TS_LOG_ERROR("[IngredientBoxLogic] Failed to spawn INGREDIENT from box "
+				<< ownerID_);
 			return -1;
 		}
 
@@ -176,9 +176,9 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene) {
 			ingLogic->Start(scene);
 		}
 
-		std::cout << "[IngredientBoxLogic] Spawned INGREDIENT " << itemID
+		TS_LOG_DEBUG("[IngredientBoxLogic] Spawned INGREDIENT " << itemID
 			<< " of type=" << static_cast<int>(spawnType_)
-			<< " from box " << ownerID_ << "\n";
+			<< " from box " << ownerID_);
 
 		// Play a random cabbage pickup SFX for vegetable boxes
 		if (spawnType_ == IngredientType::Vegetable) {
@@ -202,8 +202,8 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene) {
 		);
 
 		if (!spawnedObj) {
-			std::cout << "[IngredientBoxLogic] Failed to spawn PLATE from box "
-				<< ownerID_ << "\n";
+			TS_LOG_ERROR("[IngredientBoxLogic] Failed to spawn PLATE from box "
+				<< ownerID_);
 			return -1;
 		}
 
@@ -220,8 +220,8 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene) {
 		}
 
 
-		std::cout << "[IngredientBoxLogic] Spawned PLATE " << itemID
-			<< " from box " << ownerID_ << "\n";
+		TS_LOG_DEBUG("[IngredientBoxLogic] Spawned PLATE " << itemID
+			<< " from box " << ownerID_);
 	}
 
 	return itemID;

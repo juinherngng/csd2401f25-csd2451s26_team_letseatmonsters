@@ -22,6 +22,7 @@
 #include "Core/IngredientLogic.hpp"
 #include "Core/InputControls.hpp"
 #include "Core/InputManager.hpp"
+#include "Core/Logger.hpp"
 #include "Core/PlateLogic.hpp"
 #include "Core/Quota.hpp"
 #include "Core/TableLogic.hpp"
@@ -35,7 +36,6 @@
 #include "SimpleNpcLogic.hpp"
 
 #include <algorithm>
-#include <iostream>
 #include <limits>
 
 namespace {
@@ -613,7 +613,7 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 	const glm::vec2 startPos(pos3.x, pos3.y);
 
 	if (!scene.FindPathForObject(player->GetID(), startPos, finalTarget_, pathPoints_)) {
-		std::cout << "[PlayerLogic] No path found.\n";
+		TS_LOG_DEBUG("[PlayerLogic] No path found.");
 		pendingTableID = -1;
 		moveMode_ = MoveMode::None;
 		return;
@@ -1095,7 +1095,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 			}
 		}
 
-		std::cout << "[PlayerLogic] Path blocked and repath failed.\n";
+		TS_LOG_DEBUG("[PlayerLogic] Path blocked and repath failed.");
 
 		hasMoveTarget = false;
 		moveMode_ = MoveMode::None;

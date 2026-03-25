@@ -118,6 +118,11 @@ bool Scene::IsSimulationActive() const {
  * @return Requested value.
  */
 const std::string& Scene::GetObjectTexturePath(int id) const {
+	const std::string& metadataPath = objectMetadata_.GetTexturePath(id);
+	if (!metadataPath.empty()) {
+		return metadataPath;
+	}
+
 	return entityManager.GetTexturePath(id);
 }
 
@@ -128,6 +133,7 @@ const std::string& Scene::GetObjectTexturePath(int id) const {
  * @return Result produced by this operation.
  */
 void Scene::SetObjectTexturePath(int id, const std::string& path) {
+	objectMetadata_.SetTexturePath(id, path);
 	entityManager.SetTexturePath(id, path);
 }
 
@@ -221,6 +227,7 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	if (obj) {
 		int id = obj->GetID();
 		AssignObjectToLayer(id, layer);
+		SetObjectTexturePath(id, texturePath);
 
 		InitDefaultCollider(obj);
 	}
@@ -257,6 +264,7 @@ GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
 	if (obj) {
 		int id = obj->GetID();
 		AssignObjectToLayer(id, layer);
+		SetObjectTexturePath(id, texturePath);
 		InitDefaultCollider(obj);
 
 		// This is the missing step:
@@ -313,11 +321,11 @@ GameObject* Scene::SpawnStaticSpriteAtSamePos(int ownerID,
 
 	Scene::Defaults defs{};
 	defs.pos = glm::vec3(pos.x, pos.y, pos.z);
-	defs.size = glm::vec2(width, height);
+	defs.size = glm::vec3(width, height, 1.0f);
 	defs.rot = 0.0f;
-	defs.colSize = glm::vec2(width, height);
-	defs.colOff = glm::vec2(0.0f, 0.0f);
-	defs.vel = glm::vec2(0.0f, 0.0f);
+	defs.colSize = Math::Vector2D(width, height);
+	defs.colOff = Math::Vector2D(0.0f, 0.0f);
+	defs.vel = Math::Vector2D(0.0f, 0.0f);
 	defs.texture = texturePath;
 	defs.tag = "ingredient";      // feel free to use something else
 	defs.layer = layer;
@@ -363,23 +371,18 @@ void Scene::DespawnByID(int targetID) {
 	PlayDestroyAudio(targetID);
 
 	// Remove stale layer membership and metadata before despawning.
-	auto defaultsIt = defaults_.find(targetID);
-	if (defaultsIt != defaults_.end()) {
-		const std::string& layerName = defaultsIt->second.layer;
+	if (const Defaults* defaults = objectMetadata_.FindDefaults(targetID)) {
+		const std::string& layerName = defaults->layer;
 		if (!layerName.empty()) {
 			auto layerIt = layers.find(layerName);
 			if (layerIt != layers.end()) {
 				layerIt->second.RemoveObject(targetID);
 			}
 		}
-
-		defaults_.erase(defaultsIt);
 	}
 
 	logicManager.RemoveAllFor(targetID, *this);
-
-	objectTags_.erase(targetID);
-	mTexturePathByID.erase(targetID);
+	objectMetadata_.Erase(targetID);
 
 	animationManager.RemoveAnimator(targetID);
 
@@ -407,14 +410,12 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 
 		// Skip if object is marked invisible in defaults (per-object visibility)
 		const int objId = g->GetID();
-		auto defIt = defaults_.find(objId);
-		if (defIt != defaults_.end()) {
-			if (!defIt->second.visible) {
-				continue;
-			}
+		const Defaults* defaults = objectMetadata_.FindDefaults(objId);
+		if (defaults && !defaults->visible) {
+			continue;
 		}
 
-		const std::string layerName = (defIt != defaults_.end()) ? defIt->second.layer : "";
+		const std::string layerName = (defaults != nullptr) ? defaults->layer : "";
 
 		// While cutscenes are active, render only cutscene/pause overlay layers.
 		// This prevents gameplay objects/HUD strips from bleeding through in debug builds.
@@ -617,7 +618,7 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
  * @return Result produced by this operation.
  */
 void Scene::SetObjectTag(int id, const std::string& tag) {
-	objectTags_[id] = tag;
+	objectMetadata_.SetTag(id, tag);
 }
 
 /**
@@ -626,18 +627,7 @@ void Scene::SetObjectTag(int id, const std::string& tag) {
  * @return Requested value.
  */
 std::string Scene::GetObjectTag(int id) const {
-	auto it = objectTags_.find(id);
-	if (it != objectTags_.end()) {
-		return it->second;
-	}
-
-	// Fallback: if not stored, try defaults (still not hardcoding IDs)
-	auto defIt = defaults_.find(id);
-	if (defIt != defaults_.end() && !defIt->second.tag.empty()) {
-		return defIt->second.tag;
-	}
-
-	return ""; // unknown/untagged
+	return objectMetadata_.GetTag(id);
 }
 
 /**
@@ -760,9 +750,8 @@ const std::unordered_map<std::string, Layer>& Scene::GetAllLayers() const {
  * @return Requested value.
  */
 std::string Scene::GetObjectLayer(int objectID) const {
-	auto it = defaults_.find(objectID);
-	if (it != defaults_.end()) {
-		return it->second.layer;
+	if (const Defaults* defaults = objectMetadata_.FindDefaults(objectID)) {
+		return defaults->layer;
 	}
 
 	return "";
@@ -774,12 +763,12 @@ std::string Scene::GetObjectLayer(int objectID) const {
  * @return Requested value.
  */
 Layer* Scene::GetObjectLayerPtr(int objectID) {
-	auto it = defaults_.find(objectID);
-	if (it == defaults_.end() || it->second.layer.empty()) {
+	const Defaults* defaults = objectMetadata_.FindDefaults(objectID);
+	if (defaults == nullptr || defaults->layer.empty()) {
 		return nullptr;
 	}
 
-	auto layerIt = layers.find(it->second.layer);
+	auto layerIt = layers.find(defaults->layer);
 	return layerIt != layers.end() ? &(layerIt->second) : nullptr;
 }
 
@@ -789,12 +778,12 @@ Layer* Scene::GetObjectLayerPtr(int objectID) {
  * @return Requested value.
  */
 const Layer* Scene::GetObjectLayerPtr(int objectID) const {
-	auto it = defaults_.find(objectID);
-	if (it == defaults_.end() || it->second.layer.empty()) {
+	const Defaults* defaults = objectMetadata_.FindDefaults(objectID);
+	if (defaults == nullptr || defaults->layer.empty()) {
 		return nullptr;
 	}
 
-	auto layerIt = layers.find(it->second.layer);
+	auto layerIt = layers.find(defaults->layer);
 	return layerIt != layers.end() ? &(layerIt->second) : nullptr;
 }
 
@@ -834,9 +823,8 @@ void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
 	std::string layerName = newLayer;
 	if (layerName.empty()) layerName = "1";
 
-	const auto defIt = defaults_.find(id);
-	if (defIt != defaults_.end()) {
-		const std::string& oldLayerName = defIt->second.layer;
+	if (const Defaults* defaults = objectMetadata_.FindDefaults(id)) {
+		const std::string& oldLayerName = defaults->layer;
 		if (!oldLayerName.empty() && oldLayerName != layerName) {
 			auto oldLayerIt = layers.find(oldLayerName);
 			if (oldLayerIt != layers.end()) {
@@ -854,7 +842,7 @@ void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
 	layer.AddObject(id);
 
 	// Store on metadata used by the editor + JSON
-	defaults_[id].layer = layerName;
+	objectMetadata_.EnsureDefaults(id).layer = layerName;
 	collisionManager.MarkStaticStateDirty();
 }
 
