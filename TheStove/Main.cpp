@@ -324,104 +324,88 @@ int main() {
 	ApplicationState app;
 	g_AppState = &app; // Set global pointer for signal handlers
 
-	// Install signal handlers
-	std::signal(SIGINT, signalHandler);  // Ctrl+C
-	std::signal(SIGTERM, signalHandler); // Termination request
-	std::signal(SIGABRT, signalHandler); // Abort
+	try {
+		// Install signal handlers
+		std::signal(SIGINT, signalHandler);  // Ctrl+C
+		std::signal(SIGTERM, signalHandler); // Termination request
+		std::signal(SIGABRT, signalHandler); // Abort
 
 #ifdef _WIN32
-	// Windows-specific console event handler
-	if (!SetConsoleCtrlHandler(ConsoleHandler, TRUE)) {
-		std::cerr << "Failed to set console control handler" << std::endl;
-	}
+		// Windows-specific console event handler
+		if (!SetConsoleCtrlHandler(ConsoleHandler, TRUE)) {
+			std::cerr << "Failed to set console control handler" << std::endl;
+		}
 #endif
 
-	auto settings = ConfigManager::LoadFromAssetsOrDefaults();
-	ConfigManager::Validate(settings);
+		auto settings = ConfigManager::LoadFromAssetsOrDefaults();
+		ConfigManager::Validate(settings);
 
-	bool startFullscreen = settings.fullscreen;
+		bool startFullscreen = settings.fullscreen;
 
-	if (!init(app, settings.resolution.width, settings.resolution.height, "TheStove", startFullscreen)) {
+		if (!init(app, settings.resolution.width, settings.resolution.height, "TheStove", startFullscreen)) {
+			cleanup(app);
+			return -1;
+		}
+
+		if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>()) {
+			audioMgr->ApplySettings(settings);
+			float bgm = audioMgr->GetBgmVolume();
+			float vfx = audioMgr->GetVfxVolume();
+			std::cout << "AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx << "\n";
+		}
+		else {
+			std::cerr << "AudioManager system not found in CoreEngine\n";
+		}
+
+		// Load the initial scene (can be a menu or the first level)
+		std::cout << "Testing TileMap class" << std::endl;
+		MapData testMap(6, 6);
+
+		for (int i = 0; i < testMap.getHeight(); i++) {
+			testMap.setTile(i, i, 1);
+		}
+
+		testMap.printMap();
+
+		std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
+
+		app.lastFrame = static_cast<float>(glfwGetTime());
+
+		while (!glfwWindowShouldClose(app.window) && !app.shouldExit) {
+			update(app);
+			draw(app);
+		}
+
 		cleanup(app);
+		g_AppState = nullptr; // Clear global pointer
+
+#ifdef _DEBUG
+		std::cout << "\n=== Memory Leak Report ===" << std::endl;
+		std::cout << "Checking for memory leaks..." << std::endl;
+		std::cout << "If no leaks are detected, no additional output will appear below." << std::endl;
+		std::cout << "=== End of Memory Leak Report ===" << std::endl;
+#endif
+
+		return 0;
+	}
+	catch (const std::exception& e) {
+#ifdef _DEBUG
+		if (app.debugApp) app.debugApp->LogError(std::string("Unhandled exception: ") + e.what());
+#endif
+		std::cerr << "Fatal error: " << e.what() << std::endl;
+		cleanup(app);
+		g_AppState = nullptr;
 		return -1;
 	}
-
-	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>()) {
-		audioMgr->ApplySettings(settings);
-		float bgm = audioMgr->GetBgmVolume();
-		float vfx = audioMgr->GetVfxVolume();
-		std::cout << "AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx << "\n";
-	}
-	else {
-		std::cerr << "AudioManager system not found in CoreEngine\n";
-	}
-
-	// Load the initial scene (can be a menu or the first level)
-	std::cout << "Testing TileMap class" << std::endl;
-	MapData testMap(6, 6);
-
-	for (int i = 0; i < testMap.getHeight(); i++) {
-		testMap.setTile(i, i, 1);
-	}
-
-	testMap.printMap();
-
-	std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
-
-	app.lastFrame = static_cast<float>(glfwGetTime());
-
-	while (!glfwWindowShouldClose(app.window) && !app.shouldExit) {
-
-		try {
-			// ---- TEST CASES FOR PRINTING TO CRASH_LOG.TXT ----
-			// Uncomment one at a time to test
-			// throw std::runtime_error("Test crash_log");
-			// throw 42; // unknown exception
-
-			/*std::string filename = "fake_file.txt";
-			std::ifstream file(filename);
-
-			if (!file.is_open())
-			{
-				app.debugApp->LogError("Test Case : could not open file : " + filename);
-			 }
-			throw std::runtime_error("Unknown file could not be opened.");*/
-
-			//app.debugApp->RunDebuggerApp();
-		}
-		catch (const std::exception& e) {
+	catch (...) {
 #ifdef _DEBUG
-			if (app.debugApp) app.debugApp->LogError(std::string("Unhandled exception: ") + e.what());
+		if (app.debugApp) app.debugApp->LogError("Unknown crash occurred");
 #endif
-			std::cerr << "Error: " << e.what() << std::endl;
-			cleanup(app);
-			return -1;
-		}
-		catch (...) {
-#ifdef _DEBUG
-			if (app.debugApp) app.debugApp->LogError("Unknown crash occurred");
-#endif
-			std::cerr << "Crash: Unknown exception\n";
-			cleanup(app);
-			return -1;
-		}
-
-		update(app);
-		draw(app);
+		std::cerr << "Fatal error: Unknown exception\n";
+		cleanup(app);
+		g_AppState = nullptr;
+		return -1;
 	}
-
-	cleanup(app);
-
-	g_AppState = nullptr; // Clear global pointer
-
-#ifdef _DEBUG
-	std::cout << "\n=== Memory Leak Report ===" << std::endl;
-	std::cout << "Checking for memory leaks..." << std::endl;
-	std::cout << "If no leaks are detected, no additional output will appear below." << std::endl;
-	std::cout << "=== End of Memory Leak Report ===" << std::endl;
-#endif
-
-	return 0;
 }
 
 // Initialization / Shutdown
