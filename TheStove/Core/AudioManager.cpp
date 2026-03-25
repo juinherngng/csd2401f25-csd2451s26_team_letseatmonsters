@@ -11,6 +11,7 @@
 */
 
 #include "AudioManager.hpp"
+#include "Logger.hpp"
 
 #include <algorithm>
 #include <filesystem> // For checking file existence
@@ -54,12 +55,12 @@ AudioManager::~AudioManager() {
 // Initialize system
 void AudioManager::Initialize() {
 	if (InitializeSystem()) {
-		std::cout << "AudioManager system initialized." << std::endl;
+		TS_LOG_INFO("AudioManager system initialized.");
 
 		// Audio files should now be loaded through ResourceManager
 	}
 	else {
-		std::cerr << "AudioManager system failed to initialize." << std::endl;
+		TS_LOG_ERROR("AudioManager system failed to initialize.");
 	}
 }
 
@@ -111,7 +112,7 @@ void AudioManager::Update(float dt) {
 	// Update FMOD system
 	system->update();
 
-	// Stop channels that were silenced last frame — FMOD has now mixed
+	// Stop channels that were silenced last frame â€” FMOD has now mixed
 	// at least one block of silence so stopping won't produce a click.
 	for (FMOD::Channel* ch : pendingStops) {
 		if (ch) {
@@ -221,7 +222,7 @@ void AudioManager::Shutdown() {
 	for (auto& [name, sound] : sounds) {
 		if (sound) {
 			sound->release();
-			std::cout << "Released sound: " << name << std::endl;
+			TS_LOG_DEBUG("Released sound: " << name);
 		}
 	}
 	sounds.clear();
@@ -238,38 +239,38 @@ void AudioManager::Shutdown() {
 FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const& filePath, bool loop, bool stream) {
 	// Ensure audio system is set
 	if (!system) {
-		std::cerr << "Audio system not initialized!" << std::endl;
+		TS_LOG_ERROR("Audio system not initialized!");
 		return nullptr;
 	}
 
 	// Check if already loaded
 	if (auto it = sounds.find(name); it != sounds.end()) {
-		std::cout << "Audio '" << name << "' already loaded, returning existing." << std::endl;
+		TS_LOG_DEBUG("Audio '" << name << "' already loaded, returning existing.");
 		return it->second;
 	}
 
 	// Debug: Print the path we're trying to load
-	std::cout << "[AudioManager] Attempting to load: " << name << std::endl;
-	std::cout << "  Relative path: " << filePath << std::endl;
+	TS_LOG_DEBUG("[AudioManager] Attempting to load: " << name);
+	TS_LOG_DEBUG("  Relative path: " << filePath);
 
 	// Check if file exists
 	if (!std::filesystem::exists(filePath)) {
-		std::cerr << "[AudioManager] File does not exist at path: " << filePath << std::endl;
+		TS_LOG_ERROR("[AudioManager] File does not exist at path: " << filePath);
 
 		// Try to get absolute path for debugging
 		try {
 			std::filesystem::path absPath = std::filesystem::absolute(filePath);
-			std::cerr << "  Absolute path would be: " << absPath.string() << std::endl;
-			std::cerr << "  Current working directory: " << std::filesystem::current_path().string() << std::endl;
+			TS_LOG_ERROR("  Absolute path would be: " << absPath.string());
+			TS_LOG_ERROR("  Current working directory: " << std::filesystem::current_path().string());
 		}
 		catch (...) {
-			std::cerr << "  Could not determine absolute path" << std::endl;
+			TS_LOG_ERROR("  Could not determine absolute path");
 		}
 
 		return nullptr;
 	}
 
-	std::cout << "  File exists, proceeding with FMOD load..." << std::endl;
+	TS_LOG_DEBUG("  File exists, proceeding with FMOD load...");
 
 	// Set FMOD mode flags
 	FMOD_MODE mode = FMOD_DEFAULT | (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) |
@@ -281,14 +282,14 @@ FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const&
 
 	// Check for errors
 	if (result != FMOD_OK) {
-		std::cerr << "Failed to load audio '" << name << "': " << FMOD_ErrorString(result) << std::endl;
+		TS_LOG_ERROR("Failed to load audio '" << name << "': " << FMOD_ErrorString(result));
 		return nullptr;
 	}
 
 	// Store sound
 	sounds.emplace(name, sound);
 
-	std::cout << "Loaded audio: " << name << std::endl;
+	TS_LOG_INFO("Loaded audio: " << name);
 	return sound;
 }
 
@@ -296,7 +297,7 @@ FMOD::Sound* AudioManager::GetSound(std::string const& name) const {
 	// Check if audio exists
 	if (auto it = sounds.find(name); it != sounds.end()) return it->second;
 
-	std::cerr << "Audio '" << name << "' not found!" << std::endl;
+	TS_LOG_WARN("Audio '" << name << "' not found!");
 	return nullptr;
 }
 
@@ -310,7 +311,7 @@ void AudioManager::UnloadSound(std::string const& name) {
 			it->second->release();
 		}
 		sounds.erase(it);
-		std::cout << "Unloaded audio: " << name << std::endl;
+		TS_LOG_INFO("Unloaded audio: " << name);
 	}
 }
 
@@ -322,7 +323,7 @@ bool AudioManager::HasSound(std::string const& name) const {
 bool AudioManager::GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& outChannels, int& outBits, float& freq) const {
 	auto it = sounds.find(name);
 	if (it == sounds.end() || !it->second) {
-		std::cerr << "Audio '" << name << "' not found!" << std::endl;
+		TS_LOG_WARN("Audio '" << name << "' not found!");
 		return false;
 	}
 
@@ -356,7 +357,7 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 	FMOD::Sound* sound = GetSound(name);
 
 	if (!sound) {
-		std::cerr << "[AudioManager] PlaySound: Sound '" << name << "' not found in loaded sounds!" << std::endl;
+		TS_LOG_WARN("[AudioManager] PlaySound: Sound '" << name << "' not found in loaded sounds!");
 		return;
 	}
 
@@ -391,7 +392,7 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 			channel->setPaused(false);
 		}
 
-		std::cout << "[AudioManager] Playing sound '" << name << "' at volume " << finalVolume << std::endl;
+		TS_LOG_DEBUG("[AudioManager] Playing sound '" << name << "' at volume " << finalVolume);
 	}
 }
 
@@ -402,7 +403,7 @@ void AudioManager::StopSound(std::string const& name) {
 	if (it != channels.end() && it->second) {
 		// Silence the channel immediately and defer the actual stop to the
 		// next Update() so FMOD's mixer processes at least one silent block
-		// before the channel is destroyed — this prevents an audible click
+		// before the channel is destroyed â€” this prevents an audible click
 		// from cutting the waveform at a non-zero sample.
 		it->second->setVolume(0.0f);
 		pendingStops.push_back(it->second);
@@ -444,7 +445,7 @@ void AudioManager::PauseChannel(std::string const& name) {
 	auto it = channels.find(name);
 	if (it != channels.end() && it->second) {
 		it->second->setPaused(true);
-		std::cout << "[AudioManager] Paused channel: " << name << std::endl;
+		TS_LOG_DEBUG("[AudioManager] Paused channel: " << name);
 	}
 }
 
@@ -453,7 +454,7 @@ void AudioManager::ResumeChannel(std::string const& name) {
 	auto it = channels.find(name);
 	if (it != channels.end() && it->second) {
 		it->second->setPaused(false);
-		std::cout << "[AudioManager] Resumed channel: " << name << std::endl;
+		TS_LOG_DEBUG("[AudioManager] Resumed channel: " << name);
 	}
 }
 
@@ -517,7 +518,7 @@ bool AudioManager::IsMuted() const {
 void AudioManager::CheckError(FMOD_RESULT result, std::string const& context) {
 	// Log error if not OK
 	if (result != FMOD_OK) {
-		std::cerr << "[FMOD] Error in " << context << ": " << FMOD_ErrorString(result) << std::endl;
+		TS_LOG_ERROR("[FMOD] Error in " << context << ": " << FMOD_ErrorString(result));
 	}
 }
 
@@ -527,7 +528,7 @@ void AudioManager::ApplySettings(ConfigManager::Settings const& settings) {
 	SetMasterVolume(settings.masterVolume);
 	SetBgmVolume(settings.bgmVolume);
 	SetVfxVolume(settings.vfxVolume);
-	std::cout << "Audio settings applied: Master Volume = " << settings.masterVolume << ", BGM Volume = " << settings.bgmVolume << ", VFX Volume = " << settings.vfxVolume << std::endl;
+	TS_LOG_INFO("Audio settings applied: Master Volume = " << settings.masterVolume << ", BGM Volume = " << settings.bgmVolume << ", VFX Volume = " << settings.vfxVolume);
 }
 
 void AudioManager::EnqueuePlay(std::string const& name, float volume, bool paused) {
@@ -557,33 +558,33 @@ void AudioManager::PlayUIClickSound() {
 
 FMOD::Sound* AudioManager::LoadSound3D(std::string const& name, std::string const& filePath, bool loop, bool stream) {
 	if (!system) {
-		std::cerr << "Audio system not initialized!" << std::endl;
+		TS_LOG_ERROR("Audio system not initialized!");
 		return nullptr;
 	}
 
 	// Check if already loaded
 	if (auto it = sounds.find(name); it != sounds.end()) {
-		std::cout << "Audio '" << name << "' already loaded, returning existing." << std::endl;
+		TS_LOG_DEBUG("Audio '" << name << "' already loaded, returning existing.");
 		return it->second;
 	}
 
-	std::cout << "[AudioManager] Attempting to load 3D sound: " << name << std::endl;
-	std::cout << "  Relative path: " << filePath << std::endl;
+	TS_LOG_DEBUG("[AudioManager] Attempting to load 3D sound: " << name);
+	TS_LOG_DEBUG("  Relative path: " << filePath);
 
 	if (!std::filesystem::exists(filePath)) {
-		std::cerr << "[AudioManager] File does not exist at path: " << filePath << std::endl;
+		TS_LOG_ERROR("[AudioManager] File does not exist at path: " << filePath);
 		try {
 			std::filesystem::path absPath = std::filesystem::absolute(filePath);
-			std::cerr << "  Absolute path would be: " << absPath.string() << std::endl;
-			std::cerr << "  Current working directory: " << std::filesystem::current_path().string() << std::endl;
+			TS_LOG_ERROR("  Absolute path would be: " << absPath.string());
+			TS_LOG_ERROR("  Current working directory: " << std::filesystem::current_path().string());
 		}
 		catch (...) {
-			std::cerr << "  Could not determine absolute path" << std::endl;
+			TS_LOG_ERROR("  Could not determine absolute path");
 		}
 		return nullptr;
 	}
 
-	std::cout << "  File exists, proceeding with FMOD 3D load..." << std::endl;
+	TS_LOG_DEBUG("  File exists, proceeding with FMOD 3D load...");
 
 	// Set FMOD mode flags with FMOD_3D for spatial audio
 	FMOD_MODE mode = FMOD_3D | FMOD_3D_LINEARROLLOFF
@@ -594,7 +595,7 @@ FMOD::Sound* AudioManager::LoadSound3D(std::string const& name, std::string cons
 	FMOD_RESULT result = system->createSound(filePath.c_str(), mode, nullptr, &sound);
 
 	if (result != FMOD_OK) {
-		std::cerr << "Failed to load 3D audio '" << name << "': " << FMOD_ErrorString(result) << std::endl;
+		TS_LOG_ERROR("Failed to load 3D audio '" << name << "': " << FMOD_ErrorString(result));
 		return nullptr;
 	}
 
@@ -602,7 +603,7 @@ FMOD::Sound* AudioManager::LoadSound3D(std::string const& name, std::string cons
 	sound->set3DMinMaxDistance(1.0f, 50.0f);
 
 	sounds.emplace(name, sound);
-	std::cout << "Loaded 3D audio: " << name << std::endl;
+	TS_LOG_INFO("Loaded 3D audio: " << name);
 	return sound;
 }
 
@@ -612,7 +613,7 @@ void AudioManager::PlaySound3D(std::string const& name, float posX, float posY, 
 
 	FMOD::Sound* sound = GetSound(name);
 	if (!sound) {
-		std::cerr << "[AudioManager] PlaySound3D: Sound '" << name << "' not found in loaded sounds!" << std::endl;
+		TS_LOG_WARN("[AudioManager] PlaySound3D: Sound '" << name << "' not found in loaded sounds!");
 		return;
 	}
 
@@ -649,8 +650,8 @@ void AudioManager::PlaySound3D(std::string const& name, float posX, float posY, 
 			channel->setPaused(false);
 		}
 
-		std::cout << "[AudioManager] Playing 3D sound '" << name << "' at position ("
-			<< posX << ", " << posY << ", " << posZ << ") volume " << finalVolume << std::endl;
+		TS_LOG_DEBUG("[AudioManager] Playing 3D sound '" << name << "' at position ("
+			<< posX << ", " << posY << ", " << posZ << ") volume " << finalVolume);
 	}
 }
 

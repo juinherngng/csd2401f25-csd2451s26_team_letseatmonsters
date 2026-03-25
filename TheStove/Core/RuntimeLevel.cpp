@@ -19,6 +19,7 @@
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 #include "AudioLoading.hpp"
+#include "Logger.hpp"
 
 #include "LevelSerializer.hpp"
 #include "RuntimeLevel.hpp"
@@ -28,7 +29,6 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 #include <optional>
 #include <unordered_set>
 #include <vector>
@@ -354,7 +354,7 @@ namespace RuntimeLevel {
 				);
 
 				if (!g) {
-					std::cerr << "[RuntimeLevel] Spawn failed: " << obj.texture << std::endl;
+					TS_LOG_ERROR("[RuntimeLevel] Spawn failed: " << obj.texture);
 					continue;
 				}
 
@@ -362,7 +362,7 @@ namespace RuntimeLevel {
 			else {
 				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, 0.0f }, { obj.w, obj.h }, layerName);
 				if (!g) {
-					std::cerr << "[RuntimeLevel] Spawn failed: " << obj.texture << std::endl;
+					TS_LOG_ERROR("[RuntimeLevel] Spawn failed: " << obj.texture);
 					continue;
 				}
 			}
@@ -399,7 +399,7 @@ namespace RuntimeLevel {
 				const bool shadowOn = obj.shadow; // new JSON bool
 				g->EnableShadow(shadowOn);
 
-				// You can keep sizing/offset consistent; they won’t render unless enabled.
+				// You can keep sizing/offset consistent; they wonâ€™t render unless enabled.
 				g->SetShadowSize(glm::vec2(obj.w * 0.8f, obj.h * 0.33f));
 				g->SetShadowOffset(glm::vec2(0.0f, 55.0f));
 				g->SetShadowOpacity(0.65f);
@@ -455,15 +455,15 @@ namespace RuntimeLevel {
 		const auto loadStart = std::chrono::steady_clock::now();
 		LevelData data{};
 		if (!LevelSerializer::Load(path, data)) {
-			std::cerr << "[RuntimeLevel] Failed to load level JSON: " << path << std::endl;
+			TS_LOG_ERROR("[RuntimeLevel] Failed to load level JSON: " << path);
 			return false;
 		}
 
 		const LevelValidationReport validation = ValidateLevelData(path, data);
 		if (validation.HasWarnings()) {
-			std::cerr << "[RuntimeLevel] Validation warnings for '" << path << "' (" << validation.warnings.size() << "):" << std::endl;
+			TS_LOG_WARN("[RuntimeLevel] Validation warnings for '" << path << "' (" << validation.warnings.size() << "):");
 			for (const std::string& warning : validation.warnings) {
-				std::cerr << "  - " << warning << std::endl;
+				TS_LOG_WARN("  - " << warning);
 			}
 		}
 
@@ -471,12 +471,12 @@ namespace RuntimeLevel {
 
 		// Set background if provided, otherwise keep current
 		if (!data.background.empty()) {
-			std::cout << "[RuntimeLevel] Background set: " << data.background << std::endl;
+			TS_LOG_DEBUG("[RuntimeLevel] Background set: " << data.background);
 			scene.SetSceneBackground(data.background);
 		}
 
 		if (!data.backgroundOverlay.empty()) {
-			std::cout << "[RuntimeLevel] Background overlay set: " << data.backgroundOverlay << std::endl;
+			TS_LOG_DEBUG("[RuntimeLevel] Background overlay set: " << data.backgroundOverlay);
 			scene.SetSceneBackgroundOverlay(data.backgroundOverlay);
 		}
 		else {
@@ -525,8 +525,8 @@ namespace RuntimeLevel {
 #ifndef NDEBUG
 		const double buildMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - buildStart).count();
 		const double totalMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - loadStart).count();
-		std::cout << "[RuntimeLevel] LoadAndBuild '" << path << "': textures=" << manifest.textures.size()
-			<< ", preload=" << preloadMs << " ms, build=" << buildMs << " ms, total=" << totalMs << " ms" << std::endl;
+		TS_LOG_DEBUG("[RuntimeLevel] LoadAndBuild '" << path << "': textures=" << manifest.textures.size()
+			<< ", preload=" << preloadMs << " ms, build=" << buildMs << " ms, total=" << totalMs << " ms");
 #endif
 
 #if 0

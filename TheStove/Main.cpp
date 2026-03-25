@@ -25,6 +25,7 @@
 #include "Core/GameBootstrap.hpp"
 #include "Core/GameStateManager.hpp"
 #include "Core/LevelEditorFileIO.hpp"
+#include "Core/Logger.hpp"
 #include "Core/MovementManager.hpp"
 #include "Core/Precompiled.hpp"
 #include "Core/TileMap.hpp"
@@ -36,7 +37,6 @@
 #include <cctype>
 #include <csignal>
 #include <filesystem>
-#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -149,7 +149,7 @@ void SetModalDialogOpen(bool open) {
  * @param signal Platform signal identifier received by the runtime.
  */
 static void signalHandler(int signal) {
-	std::cout << "\nReceived signal " << signal << ", cleaning up..." << std::endl;
+	TS_LOG_WARN("Received signal " << signal << ", cleaning up...");
 
 	if (g_AppState) {
 		g_AppState->shouldExit = true;
@@ -268,7 +268,7 @@ static void ToggleFullscreen(ApplicationState& app) {
 		return;
 	}
 
-	// If we’re going from windowed to fullscreen
+	// If weâ€™re going from windowed to fullscreen
 	if (!app.isFullscreen) {
 		// Save current windowed position and size
 		glfwGetWindowPos(app.window, &app.windowedPosX, &app.windowedPosY);
@@ -331,7 +331,7 @@ BOOL WINAPI ConsoleHandler(DWORD signal) {
 	case CTRL_CLOSE_EVENT:
 	case CTRL_LOGOFF_EVENT:
 	case CTRL_SHUTDOWN_EVENT:
-		std::cout << "Console event detected, cleaning up..." << std::endl;
+		TS_LOG_WARN("Console event detected, cleaning up...");
 		if (g_AppState) {
 			g_AppState->shouldExit = true;
 			if (g_AppState->window) {
@@ -359,7 +359,7 @@ int main() {
 	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
 
-	std::cout << "=== Memory leak detection enabled ===" << std::endl;
+	TS_LOG_DEBUG("=== Memory leak detection enabled ===");
 #endif
 
 #ifdef _WIN32
@@ -374,14 +374,14 @@ int main() {
 	if (lastSlash != std::string::npos) {
 		std::string exeDir = exePathStr.substr(0, lastSlash);
 		SetCurrentDirectoryA(exeDir.c_str());
-		std::cout << "[Main] Set working directory to: " << exeDir << std::endl;
+		TS_LOG_DEBUG("[Main] Set working directory to: " << exeDir);
 	}
 #else
 	// For non-Windows platforms, use std::filesystem
 	auto exePath = std::filesystem::read_symlink("/proc/self/exe");
 	auto exeDir = exePath.parent_path();
 	std::filesystem::current_path(exeDir);
-	std::cout << "[Main] Set working directory to: " << exeDir << std::endl;
+	TS_LOG_DEBUG("[Main] Set working directory to: " << exeDir);
 #endif
 
 	// Create application state on the stack
@@ -397,7 +397,7 @@ int main() {
 #ifdef _WIN32
 		// Windows-specific console event handler
 		if (!SetConsoleCtrlHandler(ConsoleHandler, TRUE)) {
-			std::cerr << "Failed to set console control handler" << std::endl;
+			TS_LOG_ERROR("Failed to set console control handler");
 		}
 #endif
 
@@ -415,14 +415,14 @@ int main() {
 			audioMgr->ApplySettings(settings);
 			float bgm = audioMgr->GetBgmVolume();
 			float vfx = audioMgr->GetVfxVolume();
-			std::cout << "AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx << "\n";
+			TS_LOG_DEBUG("AudioManager system found in CoreEngine - BGM Volume: " << bgm << ", VFX Volume: " << vfx);
 		}
 		else {
-			std::cerr << "AudioManager system not found in CoreEngine\n";
+			TS_LOG_WARN("AudioManager system not found in CoreEngine");
 		}
 
 		// Load the initial scene (can be a menu or the first level)
-		std::cout << "Testing TileMap class" << std::endl;
+		TS_LOG_DEBUG("Testing TileMap class");
 		MapData testMap(6, 6);
 
 		for (int i = 0; i < testMap.getHeight(); i++) {
@@ -431,7 +431,7 @@ int main() {
 
 		testMap.printMap();
 
-		std::cout << "There are " << testMap.SweepFor(ENTITY) << " Entities on the Map" << std::endl;
+		TS_LOG_DEBUG("There are " << testMap.SweepFor(ENTITY) << " Entities on the Map");
 
 		app.lastFrame = static_cast<float>(glfwGetTime());
 
@@ -444,10 +444,10 @@ int main() {
 		g_AppState = nullptr; // Clear global pointer
 
 #ifdef _DEBUG
-		std::cout << "\n=== Memory Leak Report ===" << std::endl;
-		std::cout << "Checking for memory leaks..." << std::endl;
-		std::cout << "If no leaks are detected, no additional output will appear below." << std::endl;
-		std::cout << "=== End of Memory Leak Report ===" << std::endl;
+		TS_LOG_DEBUG("=== Memory Leak Report ===");
+		TS_LOG_DEBUG("Checking for memory leaks...");
+		TS_LOG_DEBUG("If no leaks are detected, no additional output will appear below.");
+		TS_LOG_DEBUG("=== End of Memory Leak Report ===");
 #endif
 
 		return 0;
@@ -456,7 +456,7 @@ int main() {
 #ifdef _DEBUG
 		if (app.debugApp) app.debugApp->LogError(std::string("Unhandled exception: ") + e.what());
 #endif
-		std::cerr << "Fatal error: " << e.what() << std::endl;
+		TS_LOG_ERROR("Fatal error: " << e.what());
 		cleanup(app);
 		g_AppState = nullptr;
 		return -1;
@@ -465,7 +465,7 @@ int main() {
 #ifdef _DEBUG
 		if (app.debugApp) app.debugApp->LogError("Unknown crash occurred");
 #endif
-		std::cerr << "Fatal error: Unknown exception\n";
+		TS_LOG_ERROR("Fatal error: Unknown exception");
 		cleanup(app);
 		g_AppState = nullptr;
 		return -1;
@@ -493,12 +493,12 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 	// Set GLFW error callback
 	glfwSetErrorCallback([](int error, const char* description) {
-		std::cerr << "GLFW Error " << error << ": " << description << std::endl;
+		TS_LOG_ERROR("GLFW Error " << error << ": " << description);
 		});
 
 	// Initialize GLFW
 	if (!glfwInit()) {
-		std::cerr << "Failed to init GLFW" << std::endl;
+		TS_LOG_ERROR("Failed to init GLFW");
 		return false;
 	}
 
@@ -522,7 +522,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	}
 
 	if (!app.window) {
-		std::cerr << "Failed to create window" << std::endl;
+		TS_LOG_ERROR("Failed to create window");
 		glfwTerminate();
 		app.window = nullptr;
 		return false;
@@ -539,7 +539,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Add window close callback to trigger cleanup
 	glfwSetWindowCloseCallback(app.window, [](GLFWwindow* win) {
 		(void)win; // suppress unused parameter warning
-		std::cout << "Window close requested, cleaning up..." << std::endl;
+		TS_LOG_INFO("Window close requested, cleaning up...");
 		if (g_AppState) {
 			g_AppState->shouldExit = true;
 		}
@@ -633,7 +633,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		std::cerr << "Failed to initialize GLAD\n";
+		TS_LOG_ERROR("Failed to initialize GLAD");
 		return false;
 	}
 
@@ -659,16 +659,16 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Set window for InputManager system
 	if (auto* inputMgr = app.coreEngine->GetSystem<InputManager>()) {
 		inputMgr->SetWindow(app.window);
-		std::cout << "InputManager system initialized.\n";
+		TS_LOG_INFO("InputManager system initialized.");
 	}
 	else {
-		std::cerr << "Warning: InputManager not found in CoreEngine!\n";
+		TS_LOG_WARN("InputManager not found in CoreEngine!");
 	}
 
 	// Initialize ResourceManager with AudioManager
 	if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>()) {
 		ResourceManager::Instance().SetAudioManager(audioMgr);
-		std::cout << "ResourceManager initialized with AudioManager." << std::endl;
+		TS_LOG_INFO("ResourceManager initialized with AudioManager.");
 
 		// Load audio catalog - use appropriate path based on build type
 #ifdef _DEBUG
@@ -679,8 +679,8 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		const std::string catalogPath = FilePaths::Audio::CATALOG;
 #endif
 		if (!Audio::AudioCatalog::LoadCatalogFromFile(catalogPath)) {
-			std::cerr << "Warning: Failed to load audio catalog from " << catalogPath << std::endl;
-			std::cerr << "Creating default catalog..." << std::endl;
+			TS_LOG_WARN("Failed to load audio catalog from " << catalogPath);
+			TS_LOG_WARN("Creating default catalog...");
 			// If catalog doesn't exist, it will be empty but won't crash
 		}
 
@@ -688,13 +688,13 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		Audio::AudioCatalog::LoadAllAudio();
 	}
 	else {
-		std::cerr << "Warning: AudioManager not found in CoreEngine for ResourceManager!" << std::endl;
+		TS_LOG_WARN("AudioManager not found in CoreEngine for ResourceManager!");
 	}
 
 	// Get GraphicsEngine from CoreEngine
 	GraphicsEngine* graphicsEngine = app.coreEngine->GetSystem<GraphicsEngine>();
 	if (!graphicsEngine) {
-		std::cerr << "Failed to get GraphicsEngine from CoreEngine\n";
+		TS_LOG_ERROR("Failed to get GraphicsEngine from CoreEngine");
 		return false;
 	}
 
@@ -712,35 +712,35 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Get InputManager system for Scene
 	InputManager* inputMgr = app.coreEngine->GetSystem<InputManager>();
 	if (!inputMgr) {
-		std::cerr << "Failed to get InputManager from CoreEngine\n";
+		TS_LOG_ERROR("Failed to get InputManager from CoreEngine");
 		return false;
 	}
 
 	// Get AnimationManager system for Scene
 	AnimationManager* animMgr = app.coreEngine->GetSystem<AnimationManager>();
 	if (!animMgr) {
-		std::cerr << "Failed to get AnimationManager from CoreEngine\n";
+		TS_LOG_ERROR("Failed to get AnimationManager from CoreEngine");
 		return false;
 	}
 
 	// Get PhysicsManager system
 	PhysicsManager* physicsMgr = app.coreEngine->GetSystem<PhysicsManager>();
 	if (!physicsMgr) {
-		std::cerr << "Failed to get PhysicsManager from CoreEngine\n";
+		TS_LOG_ERROR("Failed to get PhysicsManager from CoreEngine");
 		return false;
 	}
 
 	// Get MovementManager system
 	MovementManager* movementMgr = app.coreEngine->GetSystem<MovementManager>();
 	if (!movementMgr) {
-		std::cerr << "Failed to get MovementManager from CoreEngine\n";
+		TS_LOG_ERROR("Failed to get MovementManager from CoreEngine");
 		return false;
 	}
 
 	// Get CollisionManager system
 	CollisionManager* collisionMgr = app.coreEngine->GetSystem<CollisionManager>();
 	if (!collisionMgr) {
-		std::cerr << "Failed to get CollisionManager from CoreEngine\n";
+		TS_LOG_ERROR("Failed to get CollisionManager from CoreEngine");
 		return false;
 	}
 
@@ -753,7 +753,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	AudioManager* audioMgr = app.coreEngine->GetSystem<AudioManager>();
 	if (audioMgr) {
 		app.currentScene->SetAudioManager(audioMgr);
-		std::cout << "AudioManager connected to Scene for UI sounds.\n";
+		TS_LOG_INFO("AudioManager connected to Scene for UI sounds.");
 	}
 
 	app.currentScene->SetMessageBus(&app.coreEngine->GetMessageBus());
@@ -763,27 +763,27 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Set the EntityManager reference in AnimationManager
 	animMgr->SetEntityManager(&app.currentScene->GetEntityManager());
 
-	std::cout << "AnimationManager system connected to Scene and EntityManager.\n";
+	TS_LOG_INFO("AnimationManager system connected to Scene and EntityManager.");
 
 	// Set the EntityManager and InputManager references in PhysicsManager
 	physicsMgr->SetEntityManager(&app.currentScene->GetEntityManager());
 	physicsMgr->SetInputManager(inputMgr);
 
-	std::cout << "PhysicsManager system connected to EntityManager and InputManager.\n";
+	TS_LOG_INFO("PhysicsManager system connected to EntityManager and InputManager.");
 
 	// Set the EntityManager and InputManager references in MovementManager
 	movementMgr->SetEntityManager(&app.currentScene->GetEntityManager());
 	movementMgr->SetInputManager(inputMgr);
 
-	std::cout << "MovementManager system connected to EntityManager and InputManager.\n";
+	TS_LOG_INFO("MovementManager system connected to EntityManager and InputManager.");
 
 	// Set the EntityManager reference in CollisionManager
 	collisionMgr->SetEntityManager(&app.currentScene->GetEntityManager());
 
-	std::cout << "CollisionManager system connected to EntityManager.\n";
+	TS_LOG_INFO("CollisionManager system connected to EntityManager.");
 
 	// Scene is now constructed with MovementManager reference - no need for SetMovementManager
-	std::cout << "Scene connected to MovementManager system.\n";
+	TS_LOG_INFO("Scene connected to MovementManager system.");
 
 	{
 		auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>();
@@ -804,7 +804,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 			gsm->InitializeGameState(Framework::GS_Level1, 0.0f);
 			// Ensure menu animations advance even with simulation disabled
 			if (auto* animMgrForcePlay = app.coreEngine->GetSystem<AnimationManager>()) {
-				std::cout << "[Main] Forcing AnimationManager.Play() for main menu animations\n";
+				TS_LOG_DEBUG("[Main] Forcing AnimationManager.Play() for main menu animations");
 				animMgrForcePlay->Play();
 			}
 		}
@@ -814,7 +814,7 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 	// Create DebuggerApp with smart pointer (debug-only)
 	app.debugApp = std::make_unique<Debug::DebuggerApp>();
 	if (!app.debugApp->InitializeDebuggerApp(app.window, app.coreEngine.get())) {
-		std::cerr << "Failed to initialize DebuggerApp\n";
+		TS_LOG_ERROR("Failed to initialize DebuggerApp");
 		return false;
 	}
 	else {
@@ -892,7 +892,7 @@ static void update(ApplicationState& app) {
 		if (graphicsEngine && !graphicsEngine->IsTransitionActive()) {
 			graphicsEngine->StartSceneTransition(0.35f, 0.35f);
 			app.pendingStateAfterFade = newState;
-			std::cout << "[Main] Queued state change " << newState << " to run at blackout\n";
+			TS_LOG_DEBUG("[Main] Queued state change " << newState << " to run at blackout");
 		}
 		else {
 			// If a transition is already active, just overwrite pending
@@ -903,11 +903,11 @@ static void update(ApplicationState& app) {
 	// If we are waiting to switch and we've reached blackout, perform the switch now.
 	if (graphicsEngine && graphicsEngine->IsAtBlackout() && app.pendingStateAfterFade >= 0) {
 		if (auto* gsm = app.coreEngine->GetSystem<Framework::GameStateManager>()) {
-			std::cout << "[Main] Blackout reached; switching to state " << app.pendingStateAfterFade << std::endl;
+			TS_LOG_INFO("[Main] Blackout reached; switching to state " << app.pendingStateAfterFade);
 			gsm->UpdateGameState(app.pendingStateAfterFade, frameDt);
 		}
 		else {
-			std::cerr << "[Main] ERROR: GameStateManager not found!" << std::endl;
+			TS_LOG_ERROR("[Main] GameStateManager not found!");
 		}
 
 		graphicsEngine->ContinueTransitionFadeIn();
@@ -952,7 +952,7 @@ static void draw(ApplicationState& app) {
 	// Get GraphicsEngine from CoreEngine
 	auto* graphicsEngine = app.coreEngine->GetSystem<GraphicsEngine>();
 	if (!graphicsEngine) {
-		std::cerr << "GraphicsEngine not found in CoreEngine during draw!\n";
+		TS_LOG_ERROR("GraphicsEngine not found in CoreEngine during draw!");
 		return;
 	}
 
@@ -1025,11 +1025,11 @@ void cleanup(ApplicationState& app) {
 
 	cleanupCalled = true;
 
-	std::cout << "Starting cleanup..." << std::endl;
+	TS_LOG_INFO("Starting cleanup...");
 
 	// Clear all GLFW callbacks FIRST to prevent dangling references
 	if (app.window) {
-		std::cout << "Clearing GLFW callbacks..." << std::endl;
+		TS_LOG_DEBUG("Clearing GLFW callbacks...");
 		glfwSetWindowCloseCallback(app.window, nullptr);
 		glfwSetCharCallback(app.window, nullptr);
 		glfwSetMouseButtonCallback(app.window, nullptr);
@@ -1050,28 +1050,28 @@ void cleanup(ApplicationState& app) {
 
 	// Flush CoreEngine messages to prevent orphaned messages
 	if (app.coreEngine) {
-		std::cout << "Flushing remaining messages..." << std::endl;
+		TS_LOG_DEBUG("Flushing remaining messages...");
 		app.coreEngine->GetMessageBus().ClearQueue();
 	}
 
 	// Stop and shutdown audio
 	if (app.coreEngine) {
 		if (auto* audioMgr = app.coreEngine->GetSystem<AudioManager>()) {
-			std::cout << "Stopping all sounds..." << std::endl;
+			TS_LOG_DEBUG("Stopping all sounds...");
 			audioMgr->StopAllSounds();
-			std::cout << "Shutting down audio..." << std::endl;
+			TS_LOG_DEBUG("Shutting down audio...");
 			audioMgr->Shutdown();
 		}
 	}
 
 	// Unload all audio assets
-	std::cout << "Unloading audio assets..." << std::endl;
+	TS_LOG_DEBUG("Unloading audio assets...");
 	Audio::AudioCatalog::UnloadAllAudio();
 
 	// Shutdown ImGui (must happen while OpenGL context is valid)
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (app.debugApp) {
-		std::cout << "Shutting down debugger..." << std::endl;
+		TS_LOG_DEBUG("Shutting down debugger...");
 		app.debugApp->Shutdown();
 		app.debugApp.reset();
 	}
@@ -1079,25 +1079,25 @@ void cleanup(ApplicationState& app) {
 
 	// Clean up scene objects
 	if (app.currentScene) {
-		std::cout << "Deleting scene..." << std::endl;
+		TS_LOG_DEBUG("Deleting scene...");
 		app.currentScene.reset();
 	}
 
 	// Shutdown graphics engine (now managed by CoreEngine)
 	if (app.coreEngine) {
 		if (auto* gfxEngine = app.coreEngine->GetSystem<GraphicsEngine>()) {
-			std::cout << "Shutting down graphics engine..." << std::endl;
+			TS_LOG_DEBUG("Shutting down graphics engine...");
 			gfxEngine->Shutdown();
 		}
 	}
 
 	// Clear resource manager (while context still valid)
-	std::cout << "Clearing resource manager..." << std::endl;
+	TS_LOG_DEBUG("Clearing resource manager...");
 	ResourceManager::Instance().Clear();
 
 	// Destroy CoreEngine and all systems
 	if (app.coreEngine) {
-		std::cout << "Destroying core engine..." << std::endl;
+		TS_LOG_DEBUG("Destroying core engine...");
 		app.coreEngine.reset();
 	}
 
@@ -1108,7 +1108,7 @@ void cleanup(ApplicationState& app) {
 
 	// Destroy window
 	if (app.window) {
-		std::cout << "Destroying window..." << std::endl;
+		TS_LOG_DEBUG("Destroying window...");
 		glfwDestroyWindow(app.window);
 		app.window = nullptr;
 	}
@@ -1117,8 +1117,8 @@ void cleanup(ApplicationState& app) {
 	glfwPollEvents();
 
 	// Terminate GLFW
-	std::cout << "Terminating GLFW..." << std::endl;
+	TS_LOG_DEBUG("Terminating GLFW...");
 	glfwTerminate();
 
-	std::cout << "Cleanup complete." << std::endl;
+	TS_LOG_INFO("Cleanup complete.");
 }

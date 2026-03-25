@@ -10,7 +10,7 @@
 					and writes back to an attached Transform. Designed to be used with a
 					ForceRegistry and simple steering forces (seek, drag, gravity).
 
-		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -19,7 +19,6 @@
 #include "GameComponent.hpp"
 #include "Math.hpp"
 
-#include <iostream>
 #include <string>
 
 class Transform;
@@ -150,9 +149,7 @@ public:
 	/**
 	 * @brief Destroys the `RigidBody2D` instance and releases owned resources.
 	 */
-	~RigidBody2D() override {
-		std::cout << "Deleting RigidBody2D's component " << "\n";
-	}
+	~RigidBody2D() override = default;
 private:
 
 	/**

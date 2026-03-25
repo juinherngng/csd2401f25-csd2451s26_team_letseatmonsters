@@ -8,7 +8,7 @@
 					Call Init once where ParticleSystem is created to register presets.
 					lifetime management, and rendering behavior for in-game visual effects.
 
-		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 

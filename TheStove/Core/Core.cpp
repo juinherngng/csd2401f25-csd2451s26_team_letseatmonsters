@@ -12,9 +12,9 @@
 
 #include "Core.hpp"
 #include "GameStateManager.hpp"
+#include "Logger.hpp"
 
 #include <chrono>
-#include <iostream>
 #include <thread>
 
 namespace CoreFramework {
@@ -28,7 +28,7 @@ namespace CoreFramework {
 		messageBus.Subscribe(MessageType::QUIT,
 			[this](const Message& msg) {
 				(void)msg; // suppress unused parameter warning
-				std::cout << "[Core] QUIT message received, shutting down..." << std::endl;
+				TS_LOG_INFO("[Core] QUIT message received, shutting down...");
 				gameActive = false;
 			});
 
@@ -37,9 +37,9 @@ namespace CoreFramework {
 		messageBus.Subscribe(MessageType::PLAY_AUDIO,
 			[](const Message& msg) {
 				const auto& audioMsg = static_cast<const PlayAudioMessage&>(msg);
-				std::cout << "[Core] PLAY_AUDIO message: sound='" << audioMsg.soundName
+				TS_LOG_DEBUG("[Core] PLAY_AUDIO message: sound='" << audioMsg.soundName
 					<< "', volume=" << audioMsg.volume
-					<< ", paused=" << (audioMsg.paused ? "true" : "false") << std::endl;
+					<< ", paused=" << (audioMsg.paused ? "true" : "false"));
 			});
 
 		// Subscribe to STOP_AUDIO messages for logging
@@ -47,45 +47,45 @@ namespace CoreFramework {
 			[](const Message& msg) {
 				const auto& stopMsg = static_cast<const StopAudioMessage&>(msg);
 				if (stopMsg.soundName.empty()) {
-					std::cout << "[Core] STOP_AUDIO message: stopping ALL sounds" << std::endl;
+					TS_LOG_DEBUG("[Core] STOP_AUDIO message: stopping ALL sounds");
 				}
 				else {
-					std::cout << "[Core] STOP_AUDIO message: sound='" << stopMsg.soundName << "'" << std::endl;
+					TS_LOG_DEBUG("[Core] STOP_AUDIO message: sound='" << stopMsg.soundName << "'");
 				}
 			});
 
 		messageBus.Subscribe(MessageType::SCENE_FLOW_STATE_CHANGED,
 			[](const Message& msg) {
 				const auto& flowMsg = static_cast<const SceneFlowStateChangedMessage&>(msg);
-				std::cout << "[Core] SCENE_FLOW_STATE_CHANGED: state='" << flowMsg.stateName
-					<< "', simulationActive=" << (flowMsg.simulationActive ? "true" : "false") << std::endl;
+				TS_LOG_DEBUG("[Core] SCENE_FLOW_STATE_CHANGED: state='" << flowMsg.stateName
+					<< "', simulationActive=" << (flowMsg.simulationActive ? "true" : "false"));
 			});
 
 		messageBus.Subscribe(MessageType::LEVEL_LOAD_QUEUED,
 			[](const Message& msg) {
 				const auto& levelMsg = static_cast<const LevelLoadQueuedMessage&>(msg);
-				std::cout << "[Core] LEVEL_LOAD_QUEUED: path='" << levelMsg.levelPath
-					<< "', activateSimulation=" << (levelMsg.activateSimulation ? "true" : "false") << std::endl;
+				TS_LOG_DEBUG("[Core] LEVEL_LOAD_QUEUED: path='" << levelMsg.levelPath
+					<< "', activateSimulation=" << (levelMsg.activateSimulation ? "true" : "false"));
 			});
 
 		messageBus.Subscribe(MessageType::LEVEL_LOADED,
 			[](const Message& msg) {
 				const auto& levelMsg = static_cast<const LevelLoadedMessage&>(msg);
-				std::cout << "[Core] LEVEL_LOADED: path='" << levelMsg.levelPath
-					<< "', simulationActive=" << (levelMsg.simulationActive ? "true" : "false") << std::endl;
+				TS_LOG_DEBUG("[Core] LEVEL_LOADED: path='" << levelMsg.levelPath
+					<< "', simulationActive=" << (levelMsg.simulationActive ? "true" : "false"));
 			});
 
 		messageBus.Subscribe(MessageType::PAUSE_OVERLAY_CHANGED,
 			[](const Message& msg) {
 				const auto& pauseMsg = static_cast<const PauseOverlayChangedMessage&>(msg);
-				std::cout << "[Core] PAUSE_OVERLAY_CHANGED: isOpen=" << (pauseMsg.isOpen ? "true" : "false") << std::endl;
+				TS_LOG_DEBUG("[Core] PAUSE_OVERLAY_CHANGED: isOpen=" << (pauseMsg.isOpen ? "true" : "false"));
 			});
 
 		messageBus.Subscribe(MessageType::CUTSCENE_SKIPPED,
 			[](const Message& msg) {
 				const auto& skipMsg = static_cast<const CutsceneSkippedMessage&>(msg);
-				std::cout << "[Core] CUTSCENE_SKIPPED: transitioned=" << (skipMsg.transitionedCutscene ? "true" : "false")
-					<< ", target='" << skipMsg.targetLevelPath << "'" << std::endl;
+				TS_LOG_DEBUG("[Core] CUTSCENE_SKIPPED: transitioned=" << (skipMsg.transitionedCutscene ? "true" : "false")
+					<< ", target='" << skipMsg.targetLevelPath << "'");
 			});
 	}
 
@@ -154,18 +154,18 @@ namespace CoreFramework {
 
 	void CoreEngine::AddSystem(std::unique_ptr<SystemInterface> system) {
 		// add a new system to the list of systems
-		std::cout << "Added system: " << system->GetName() << std::endl;
+		TS_LOG_INFO("Added system: " << system->GetName());
 		Systems.push_back(std::move(system));
 	}
 
 	void CoreEngine::DestroySystems() {
-		std::cout << "DestroySystems called, system count: " << Systems.size() << std::endl;
+		TS_LOG_INFO("DestroySystems called, system count: " << Systems.size());
 
 		// Delete all the systems in reverse order
 		// unique_ptr handles automatic deletion
 		for (size_t i = 0; i < Systems.size(); i++) {
 			size_t index = Systems.size() - i - 1;
-			std::cout << "Destroying system: " << Systems[index]->GetName() << std::endl;
+			TS_LOG_DEBUG("Destroying system: " << Systems[index]->GetName());
 		}
 
 		Systems.clear(); // unique_ptrs will automatically clean up

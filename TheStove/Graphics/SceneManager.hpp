@@ -589,7 +589,7 @@ public:
 	 * @param hook Parameter for hook.
 	 */
 	void SetTagRuleHook(TagRuleHook hook) {
-	 tagRuleHook_ = std::move(hook);
+		tagRuleHook_ = std::move(hook);
 	}
 
 	/**
