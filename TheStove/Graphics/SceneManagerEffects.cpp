@@ -20,6 +20,14 @@
 #include <algorithm>
 
 namespace {
+	// -------------------------------------------------------------------------------------------------
+	// Local Effect Helpers
+	// -------------------------------------------------------------------------------------------------
+
+	/**
+	 * @brief Builds the sprite-sheet UVs used by the customer payment star burst.
+	 * @return Ordered frame rectangles for the temporary payment animation.
+	 */
 	std::vector<glm::vec4> CreateCustomerPaymentStarFrames() {
 		constexpr int totalCols = 11;
 		constexpr int totalRows = 2;
@@ -40,6 +48,13 @@ namespace {
 		return frames;
 	}
 
+	/**
+	 * @brief Estimates rendered text width using glyph advance metrics when available.
+	 * @param text Text to measure.
+	 * @param font Font used for rendering.
+	 * @param scale Render scale to apply.
+	 * @return Estimated width in scene-space units.
+	 */
 	float EstimateTextWidth(const std::string& text, FontSystem::Font* font, float scale) {
 		if (!font) {
 			return static_cast<float>(text.size()) * 18.0f * scale;
@@ -57,6 +72,15 @@ namespace {
 	}
 }
 
+// -------------------------------------------------------------------------------------------------
+// Runtime Effect Creation
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Spawns animated and text feedback for customer payment events.
+ * @param tableObjectID Identifier of the table where the payment occurred.
+ * @param amount Currency amount earned from the payment.
+ */
 void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 	GameObject* tableObj = GetGameObjectByID(tableObjectID);
 	if (!tableObj) {
@@ -91,6 +115,7 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 		);
 
 		if (fx) {
+			// These feedback sprites are purely visual and should never participate in gameplay systems.
 			fx->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
 			fx->SetMovableByPhysics(false);
 			fx->EnableShadow(false);
@@ -122,6 +147,14 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 		});
 }
 
+// -------------------------------------------------------------------------------------------------
+// Runtime Effect Updates And Rendering
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Advances and cleans up temporary animated visual effects.
+ * @param dt Frame delta time in seconds.
+ */
 void Scene::UpdateRuntimeAnimatedFx(float dt) {
 	runtimeAnimatedFx_.erase(
 		std::remove_if(runtimeAnimatedFx_.begin(), runtimeAnimatedFx_.end(),
@@ -159,6 +192,10 @@ void Scene::UpdateRuntimeAnimatedFx(float dt) {
 	);
 }
 
+/**
+ * @brief Advances transient floating text feedback and removes expired entries.
+ * @param dt Frame delta time in seconds.
+ */
 void Scene::UpdateFloatingWorldTextFx(float dt) {
 	for (auto& fx : floatingWorldTextFx_) {
 		fx.elapsed += dt;
@@ -174,6 +211,12 @@ void Scene::UpdateFloatingWorldTextFx(float dt) {
 	);
 }
 
+/**
+ * @brief Renders the active floating world-text feedback for the current frame.
+ * @param projection Projection matrix used by the text renderer.
+ * @param pauseActive Whether the pause overlay is currently active.
+ * @param cutsceneActive Whether any cutscene is currently active.
+ */
 void Scene::RenderFloatingWorldTextFx(const glm::mat4& projection, bool pauseActive, bool cutsceneActive) {
 	if (pauseActive || cutsceneActive) {
 		return;

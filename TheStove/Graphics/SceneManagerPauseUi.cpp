@@ -19,6 +19,13 @@
 
 #include <iostream>
 
+// -------------------------------------------------------------------------------------------------
+// Pause Overlay Entry
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Spawns the pause overlay and fades gameplay audio down while gameplay is halted.
+ */
 void Scene::ShowPauseOverlay() {
 #ifndef _DEBUG
 	if (pauseOverlayActive_) {
@@ -59,6 +66,7 @@ void Scene::ShowPauseOverlay() {
 
 	const std::string uiLayer = "999999";
 
+	// Keep the pause overlay on a dedicated top-most UI layer so gameplay objects remain untouched.
 	if (GameObject* dim = SpawnStaticSprite(FilePaths::Textures::PAUSED_BG,
 		{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f },
 		{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) },
@@ -88,6 +96,13 @@ void Scene::ShowPauseOverlay() {
 #endif
 }
 
+// -------------------------------------------------------------------------------------------------
+// Pause Overlay Exit And Resume Handoff
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Requests gameplay resume once the pause overlay teardown has completed.
+ */
 void Scene::RequestResumeFromPauseOverlay() {
 #ifndef _DEBUG
 	resumeFromPausePending_ = true;
@@ -97,6 +112,9 @@ void Scene::RequestResumeFromPauseOverlay() {
 #endif
 }
 
+/**
+ * @brief Removes the pause overlay and restores the paused gameplay audio mix.
+ */
 void Scene::HidePauseOverlay() {
 #ifndef _DEBUG
 	if (!pauseOverlayActive_) return;

@@ -17,6 +17,14 @@
 
 #include <iostream>
 
+// -------------------------------------------------------------------------------------------------
+// Object-Bound Audio Playback Helpers
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Plays the configured spawn sound for an object if one exists.
+ * @param objectId Identifier of the object whose spawn audio should be played.
+ */
 void Scene::PlaySpawnAudio(int objectId) {
 	if (!audioManager_) {
 		return;
@@ -41,6 +49,10 @@ void Scene::PlaySpawnAudio(int objectId) {
 	}
 }
 
+/**
+ * @brief Plays the configured interaction sound for an object if one exists.
+ * @param objectId Identifier of the object whose interaction audio should be played.
+ */
 void Scene::PlayInteractAudio(int objectId) {
 	if (!audioManager_) {
 		return;
@@ -65,6 +77,10 @@ void Scene::PlayInteractAudio(int objectId) {
 	}
 }
 
+/**
+ * @brief Plays the configured destroy sound for an object if one exists.
+ * @param objectId Identifier of the object whose destroy audio should be played.
+ */
 void Scene::PlayDestroyAudio(int objectId) {
 	if (!audioManager_) {
 		return;
@@ -89,6 +105,10 @@ void Scene::PlayDestroyAudio(int objectId) {
 	}
 }
 
+/**
+ * @brief Starts the configured processing sound for an object if one exists.
+ * @param objectId Identifier of the object whose looping processing audio should be played.
+ */
 void Scene::PlayProcessingAudio(int objectId) {
 	if (!audioManager_) {
 		return;
@@ -113,6 +133,14 @@ void Scene::PlayProcessingAudio(int objectId) {
 	}
 }
 
+// -------------------------------------------------------------------------------------------------
+// Object-Bound Audio Stop Helpers
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Stops the configured processing sound for an object if it is active.
+ * @param objectId Identifier of the object whose looping processing audio should be stopped.
+ */
 void Scene::StopProcessingAudio(int objectId) {
 	if (!audioManager_) {
 		return;
@@ -134,6 +162,9 @@ void Scene::StopProcessingAudio(int objectId) {
 	}
 }
 
+/**
+ * @brief Stops every object-bound audio clip currently referenced by scene defaults.
+ */
 void Scene::StopAllObjectAudio() {
 	if (!audioManager_) {
 		return;

@@ -19,6 +19,14 @@
 
 #include <iostream>
 
+// -------------------------------------------------------------------------------------------------
+// Scene Flow State Helpers
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Updates the externally visible scene flow state and publishes change notifications.
+ * @param newState New steady or transitional flow state for the Scene.
+ */
 void Scene::SetFlowState(FlowState newState) {
 	if (flowState_ == newState) {
 		return;
@@ -31,6 +39,10 @@ void Scene::SetFlowState(FlowState newState) {
 	}
 }
 
+/**
+ * @brief Computes the non-transitional flow state implied by current pause and simulation flags.
+ * @return The steady-state flow value that best matches the current scene flags.
+ */
 Scene::FlowState Scene::ComputeSteadyFlowState() const {
 	if (pauseOverlayActive_) {
 		return FlowState::Paused;
@@ -47,6 +59,9 @@ Scene::FlowState Scene::ComputeSteadyFlowState() const {
 	return FlowState::Bootstrapping;
 }
 
+/**
+ * @brief Recomputes flow state from pending loads, transitions, cutscenes, and pause state.
+ */
 void Scene::RefreshFlowState() {
 	if (hasPendingLevel_) {
 		SetFlowState(FlowState::LoadingLevel);
@@ -66,6 +81,14 @@ void Scene::RefreshFlowState() {
 	SetFlowState(ComputeSteadyFlowState());
 }
 
+// -------------------------------------------------------------------------------------------------
+// Scene Loading And Reset
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Resets the Scene to its default empty state and applies any default setup hook.
+ * @param sceneName Unused legacy scene name parameter retained for API compatibility.
+ */
 void Scene::LoadScene(const std::string& sceneName) {
 	(void)sceneName;
 	currentLevelPath_.clear();
@@ -80,6 +103,9 @@ void Scene::LoadScene(const std::string& sceneName) {
 	RefreshFlowState();
 }
 
+/**
+ * @brief Performs any queued level load after the current frame's gameplay iteration completes.
+ */
 void Scene::HandleDeferredLoads() {
 	// Process deferred level load after logic iteration completes.
 	if (!hasPendingLevel_) {
@@ -128,6 +154,9 @@ void Scene::HandleDeferredLoads() {
 	RefreshFlowState();
 }
 
+/**
+ * @brief Clears runtime objects, scripts, simulation state, and object-bound audio.
+ */
 void Scene::ClearAll() {
 	// Stop all object-bound audio before tearing down the scene.
 	StopAllObjectAudio();
@@ -146,6 +175,9 @@ void Scene::ClearAll() {
 	RefreshFlowState();
 }
 
+/**
+ * @brief Resets object-linked scene caches that should not survive a level rebuild.
+ */
 void Scene::ResetLevelObjectState() {
 	// Clear object-linked caches and transient effect state.
 	// Keep cutscene/deferred-load state intact because ClearAll() is used during
@@ -174,10 +206,18 @@ void Scene::ResetLevelObjectState() {
 	flowStateBeforePause_ = FlowState::Gameplay;
 }
 
+/**
+ * @brief Schedules a full scene clear at the start of the next input phase.
+ */
 void Scene::RequestClearAll() {
 	pendingClear_ = true;
 }
 
+/**
+ * @brief Queues a level for deferred loading after gameplay iteration is complete.
+ * @param path Path to the level JSON file to load.
+ * @param activateSimulation Whether simulation should be re-enabled after the load finishes.
+ */
 void Scene::QueueLevelLoad(const std::string& path, bool activateSimulation) {
 	pendingLevelPath_ = path;
 	pendingLevelSimActive_ = activateSimulation;

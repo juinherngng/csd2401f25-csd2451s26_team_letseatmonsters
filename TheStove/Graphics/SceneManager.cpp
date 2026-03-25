@@ -15,7 +15,6 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/AudioManager.hpp"
 #include "../Core/FilePaths.hpp"
 #include "../Core/LevelEditorPanelFonts.hpp"
 #include "../Core/MessageBus.hpp"
@@ -35,8 +34,6 @@
 #include <unordered_set>
 
 namespace {
-
-
 	/**
 	 * @brief Returns flow state name.
 	 * @param state Parameter for state.
@@ -57,7 +54,6 @@ namespace {
 }
 
 namespace {
-
 	/**
 	 * @brief Initializes default collider.
 	 * @param obj Parameter for obj.
@@ -80,6 +76,9 @@ namespace {
 
 }
 
+// -------------------------------------------------------------------------------------------------
+// Core Scene Construction And Global State Access
+// -------------------------------------------------------------------------------------------------
 
 /**
  * @brief Sets simulation active.
@@ -132,7 +131,15 @@ void Scene::SetObjectTexturePath(int id, const std::string& path) {
 	entityManager.SetTexturePath(id, path);
 }
 
-// Construction / core lifecycle
+/**
+ * @brief Constructs a Scene and wires its core managers together.
+ * @param engine Graphics engine used for rendering and transitions.
+ * @param inputMgr Input manager used for per-frame input polling.
+ * @param animMgr Animation manager used to drive animated objects.
+ * @param moveMgr Movement manager used for transform integration.
+ * @param physicsMgr Physics manager used for simulation updates.
+ * @param collisionMgr Collision manager used for collision queries and rebuilds.
+ */
 Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
 	MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr)
 	: graphicsEngine(engine), inputManager(inputMgr), animationManager(animMgr),
@@ -156,269 +163,6 @@ const char* Scene::GetFlowStateName() const {
 }
 
 /**
- * @brief Updates this object.
- * @param deltaTime Frame delta time in seconds.
- * @param window Parameter for window.
- * @return Result produced by this operation.
- */
-void Scene::Update(float deltaTime, GLFWwindow* window) {
-#ifdef _DEBUG
-	UpdateAnimationControls();
-#endif
-
-	UpdateCutscenePhase(deltaTime);
-	if (!UpdateInputPhase(deltaTime)) {
-		return;
-	}
-
-	const float physicsDt = physicsStep_.resolveDt(inputManager, deltaTime);
-	lastPhysicsDt_ = physicsDt;
-
-	UpdateSimulationPhase(deltaTime, physicsDt);
-	HandleDeferredLoads();
-	UpdateUiPhase(deltaTime, window);
-	FinalizeFramePhase(deltaTime);
-}
-
-// Advances both cutscene state machines and level-transition state.
-/**
- * @brief Updates cutscene phase.
- * @param deltaTime Frame delta time in seconds.
- * @return Result produced by this operation.
- */
-void Scene::UpdateCutscenePhase(float deltaTime) {
-
-	// Drive both cutscene players every frame so transitions progress
-	UpdateCutsceneTransitioned(deltaTime);
-	UpdateCutscene(deltaTime);
-
-	UpdateLevelTransition();
-}
-
-// Consumes input, toggles editor/FPS UI, and may clear the whole scene.
-/**
- * @brief Updates input phase.
- * @param deltaTime Frame delta time in seconds.
- * @return Result produced by this operation.
- */
-bool Scene::UpdateInputPhase(float deltaTime) {
-#if defined(_DEBUG) && !defined(ENABLE_DEBUG_UI)
-	(void)deltaTime;
-#endif
-	// Handle pending pause audio (pause channels after fade completes)
-#ifndef _DEBUG
-	if (pauseAudioPending_ && audioManager_) {
-		pauseAudioTimer_ -= deltaTime;
-		if (pauseAudioTimer_ <= 0.0f) {
-			// Fade completed, now pause the channels to stop playback
-			if (!pauseMusicChannel_.empty()) {
-				audioManager_->PauseChannel(pauseMusicChannel_);
-			}
-			if (!pauseAmbienceChannel_.empty()) {
-				audioManager_->PauseChannel(pauseAmbienceChannel_);
-			}
-			pauseAudioPending_ = false;
-			std::cout << "[Scene] Paused audio channels after fade" << std::endl;
-		}
-	}
-#endif
-
-	if (pendingClear_) {
-		ClearAll();
-		RebuildColliders();
-		pendingClear_ = false;
-		return false;
-	}
-
-	// While any cutscene is active, discard input so UI/buttons cannot be pressed (this might need tweaking later, for future cutscenes that need input)
-	if (IsAnyCutsceneActive()) {
-		const bool spaceHeld = inputManager.IsKeyPressed(GLFW_KEY_SPACE);
-		if (spaceHeld && !cutsceneSkipSpaceHeld_ && !cutsceneSkipConsumed_) {
-			SkipActiveCutscene();
-			cutsceneSkipConsumed_ = true;
-		}
-		cutsceneSkipSpaceHeld_ = spaceHeld;
-		inputManager.ClearState();
-	}
-	else {
-		cutsceneSkipSpaceHeld_ = false;
-		cutsceneSkipConsumed_ = false;
-#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-		inputCommandHandler.ProcessCommands(inputManager, physicsManager, movementManager, spriteID, useForces_, showAuxDebug_);
-#endif
-	}
-
-#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-	if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
-		mLevelEditor.Toggle();
-	}
-
-#endif
-
-#ifndef _DEBUG
-
-	// Toggle FPS display with F1 in Release
-	if (inputManager.IsKeyJustPressed(GLFW_KEY_F1)) {
-		showFPS_ = !showFPS_;
-		if (showFPS_) {
-			// Lazy-load a small font for FPS
-			FontSystem::Font* f = ResourceManager::Instance().GetFont("fps_font");
-			if (!f) {
-				f = FontSystem::FontManager::Instance().LoadFont("fps_font", FilePaths::Fonts::TO_THE_POINT, 48);
-			}
-
-			if (f) {
-				fpsText_.SetFont(f);
-				fpsText_.SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)); // yellow for visibility
-				fpsText_.SetScale(1.5f); // 1.5x size for better visibility
-				// Position will be set dynamically in update loop to align to right side
-				fpsAccumTime_ = 0.0f;
-				fpsAccumFrames_ = 0;
-				fpsValue_ = 60; // Start with a visible value
-				std::string fpsStr = std::string("FPS: ") + std::to_string(fpsValue_);
-				fpsText_.SetText(fpsStr);
-				// Set initial position on the right side
-				float estimatedTextWidth = static_cast<float>(fpsStr.length()) * 20.0f * fpsText_.GetScale();
-				float rightPadding = 20.0f;
-				float topPadding = 60.0f;
-				fpsText_.SetPosition(glm::vec2(static_cast<float>(GraphicsEngine::kRefW) - estimatedTextWidth - rightPadding, topPadding));
-			}
-		}
-	}
-
-#endif
-
-	return true;
-}
-
-// Updates game logic, hooks, forces/physics, NPC movement, and collision constraints.
-/**
- * @brief Updates simulation phase.
- * @param deltaTime Frame delta time in seconds.
- * @param physicsDt Parameter for physics dt.
- * @return Result produced by this operation.
- */
-void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
-	// Always update logic (menu buttons need this even with simulation disabled)
-	logicManager.StartAll(*this);
-	logicManager.UpdateAll(deltaTime, *this, inputManager);
-
-	// Seat customers at tables once
-	if (customerUpdateHook_) {
-		customerUpdateHook_(physicsDt, *this);
-	}
-
-	if (simulationActive && simulationUpdateHook_) {
-		simulationUpdateHook_(deltaTime, *this);
-	}
-
-	if (simulationActive) {
-		if (useForces_) {
-			physicsManager.UpdatePhysics(physicsDt, entityManager, inputManager);
-		}
-		const collision::WalkArea walk = GetWalkArea();
-		npcSystem.Update(physicsDt, entityManager, collisionManager, walk);
-		HandlePlayerCollisions(physicsDt, entityManager);
-		ApplyFinalConstraints(entityManager);
-
-		// Update 3D audio listener position to the center of the reference canvas
-		if (audioManager_) {
-			float listenerX = static_cast<float>(GraphicsEngine::kRefW) * 0.5f;
-			float listenerY = static_cast<float>(GraphicsEngine::kRefH) * 0.5f;
-			audioManager_->SetListenerPosition(listenerX, listenerY, 0.0f);
-		}
-	}
-}
-
-// Advances particles and UI slide animations; may draw debug overlays.
-/**
- * @brief Updates ui phase.
- * @param deltaTime Frame delta time in seconds.
- * @param window Parameter for window.
- * @return Result produced by this operation.
- */
-void Scene::UpdateUiPhase(float deltaTime, GLFWwindow* window) {
-	// Update runtime particles
-	particleSystem_.Update(deltaTime, entityManager);
-
-	// Update any UI slide-in animations regardless of simulation flag
-	UpdateUiSlides(deltaTime);
-
-	UpdateRuntimeAnimatedFx(deltaTime);
-	UpdateFloatingWorldTextFx(deltaTime);
-
-#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
-#endif
-	(void)window;
-}
-
-// Despawns queued entities, updates FPS text, and handles pause-overlay toggles.
-/**
- * @brief Performs finalize frame phase.
- * @param deltaTime Frame delta time in seconds.
- * @return Result produced by this operation.
- */
-void Scene::FinalizeFramePhase(float deltaTime) {
-#ifdef _DEBUG
-	(void)deltaTime;
-#endif
-	for (int id : pendingDespawns_) {
-		DespawnByID(id);
-	}
-
-	pendingDespawns_.clear();
-
-#ifndef _DEBUG
-	// Update FPS accumulator when enabled (release builds only)
-	if (showFPS_) {
-		fpsAccumTime_ += deltaTime;
-		fpsAccumFrames_ += 1;
-		if (fpsAccumTime_ >= fpsUpdateInterval_) {
-			float avg = static_cast<float>(fpsAccumFrames_) / fpsAccumTime_;
-			fpsValue_ = static_cast<int>(avg + 0.5f);
-			fpsAccumTime_ = 0.0f;
-			fpsAccumFrames_ = 0;
-			std::string fpsStr = std::string("FPS: ") + std::to_string(fpsValue_);
-			fpsText_.SetText(fpsStr);
-
-			// Position FPS text on the right side of the screen
-			// Use reference canvas width (kRefW) since projection uses reference space
-			float estimatedTextWidth = static_cast<float>(fpsStr.length()) * 20.0f * fpsText_.GetScale();
-			float rightPadding = 20.0f;
-			float topPadding = 60.0f;
-			fpsText_.SetPosition(glm::vec2(static_cast<float>(GraphicsEngine::kRefW) - estimatedTextWidth - rightPadding, topPadding));
-		}
-	}
-#endif
-
-	// Handle ESC to toggle pause overlay in Release
-#ifndef _DEBUG
-	if (inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
-		if (IsPauseOverlayActive()) {
-			HidePauseOverlay();
-			RequestResumeFromPauseOverlay();
-			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
-		}
-		else if (IsSimulationActive()) {
-			// Only allow pause during gameplay (not in main menu)
-			ShowPauseOverlay();
-			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
-		}
-	}
-#endif
-
-#ifndef _DEBUG
-	if (resumeFromPausePending_ && !pauseOverlayActive_) {
-		SetSimulationActive(true);
-		resumeFromPausePending_ = false;
-		RefreshFlowState();
-	}
-#endif
-
-}
-
-/**
  * @brief Resets resize baseline.
  * @return Result produced by this operation.
  */
@@ -436,21 +180,16 @@ void Scene::DrawUI() {
 	}
 }
 
-/**
- * @brief Returns graphics engine.
- * @return Requested value.
- */
+/** @name Core Engine Accessors */
+/// @{
 GraphicsEngine& Scene::GetGraphicsEngine() {
 	return graphicsEngine;
 }
 
-/**
- * @brief Returns graphics engine.
- * @return Requested value.
- */
 const GraphicsEngine& Scene::GetGraphicsEngine() const {
 	return graphicsEngine;
 }
+/// @}
 
 /**
  * @brief Sets player id.
@@ -460,6 +199,10 @@ const GraphicsEngine& Scene::GetGraphicsEngine() const {
 void Scene::SetPlayerID(int id) {
 	spriteID = id;
 }
+
+// -------------------------------------------------------------------------------------------------
+// Spawning, Object Lookup, And Render Collection
+// -------------------------------------------------------------------------------------------------
 
 /**
  * @brief Performs spawn static sprite.
@@ -486,7 +229,7 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	obj->EnableShadow(false);
 
 	obj->SetShadowSize(glm::vec2(size.x * 0.8f, size.y * 0.33f)); // ellipse sized to sprite
-	obj->SetShadowOffset(glm::vec2(0.0f, 55.0f));       // sit near feet (tweak per origin)
+	obj->SetShadowOffset(glm::vec2(0.0f, 55.0f));				  // sit near feet (tweak per origin)
 	obj->SetShadowOpacity(0.65f);
 
 	return obj;
@@ -725,34 +468,27 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	);
 }
 
-/**
- * @brief Sets scene background.
- * @param texturePath Parameter for texture path.
- * @return Result produced by this operation.
- */
+// -------------------------------------------------------------------------------------------------
+// Scene Backgrounds, Transforms, And Animation Routing
+// -------------------------------------------------------------------------------------------------
+
+/** @name Scene Background Helpers */
+/// @{
 void Scene::SetSceneBackground(const std::string& texturePath) {
 	sceneBackgroundPath_ = texturePath;
 	graphicsEngine.SetBackground(texturePath);
 }
 
-/**
- * @brief Sets scene background overlay.
- * @param texturePath Parameter for texture path.
- * @return Result produced by this operation.
- */
 void Scene::SetSceneBackgroundOverlay(const std::string& texturePath) {
 	sceneBackgroundOverlayPath_ = texturePath;
 	graphicsEngine.SetBackgroundOverlay(texturePath);
 }
 
-/**
- * @brief Clears scene background overlay.
- * @return Result produced by this operation.
- */
 void Scene::ClearSceneBackgroundOverlay() {
 	sceneBackgroundOverlayPath_.clear();
 	graphicsEngine.ClearBackgroundOverlay();
 }
+/// @}
 
 /**
  * @brief Sets transform from level.
@@ -784,112 +520,52 @@ void Scene::SetTransformFromLevel(int id,
 	collisionManager.MarkStaticStateDirty();
 }
 
-/**
- * @brief Returns whether animations.
- * @param id Parameter for id.
- * @return True when the operation succeeds or the condition is met.
- */
+/** @name Animation Helpers */
+/// @{
 bool Scene::HasAnimations(int id) const {
 	return animationManager.HasAnimator(id);
 }
 
-/**
- * @brief Returns animation list.
- * @param id Parameter for id.
- * @return Requested value.
- */
 std::vector<std::string> Scene::GetAnimationList(int id) const {
 	return animationManager.GetAnimationNames(id);
 }
 
-/**
- * @brief Returns current animation name.
- * @param id Parameter for id.
- * @return Requested value.
- */
 std::string Scene::GetCurrentAnimationName(int id) const {
 	return animationManager.GetCurrentAnimation(id);
 }
 
-/**
- * @brief Sets animation.
- * @param objID Parameter for obj id.
- * @param animName Parameter for anim name.
- * @return Result produced by this operation.
- */
 void Scene::SetAnimation(int objID, const std::string& animName) {
 	animationManager.SetAnimation(objID, animName);
 }
 
-/**
- * @brief Performs attach player animations.
- * @param objID Parameter for obj id.
- * @return Result produced by this operation.
- */
 void Scene::AttachPlayerAnimations(int objID) {
 	animationManager.AttachPlayerAnimations(objID);
 }
 
-/**
- * @brief Performs attach dino animations.
- * @param objID Parameter for obj id.
- * @return Result produced by this operation.
- */
 void Scene::AttachDinoAnimations(int objID) {
 	animationManager.AttachDinoAnimations(objID);
 }
 
-/**
- * @brief Performs attach customers animations.
- * @param objID Parameter for obj id.
- * @return Result produced by this operation.
- */
 void Scene::AttachCustomersAnimations(int objID) {
 	animationManager.AttachCustomersAnimations(objID, GetObjectTexturePath(objID));
 }
 
-/**
- * @brief Performs attach customers animations.
- * @param objID Parameter for obj id.
- * @param texturePath Parameter for texture path.
- * @return Result produced by this operation.
- */
 void Scene::AttachCustomersAnimations(int objID, const std::string& texturePath) {
 	animationManager.AttachCustomersAnimations(objID, texturePath);
 }
 
-/**
- * @brief Performs attach work vfx cut animations.
- * @param objID Parameter for obj id.
- * @return Result produced by this operation.
- */
 void Scene::AttachWorkVfxCutAnimations(int objID) {
 	animationManager.AttachWorkVfxCutAnimations(objID);
 }
 
-/**
- * @brief Performs attach work vfx grill animations.
- * @param objID Parameter for obj id.
- * @return Result produced by this operation.
- */
 void Scene::AttachWorkVfxGrillAnimations(int objID) {
 	animationManager.AttachWorkVfxGrillAnimations(objID);
 }
 
-/**
- * @brief Performs attach work vfx stove animations.
- * @param objID Parameter for obj id.
- * @return Result produced by this operation.
- */
 void Scene::AttachWorkVfxStoveAnimations(int objID) {
 	animationManager.AttachWorkVfxStoveAnimations(objID);
 }
 
-/**
- * @brief Performs attach menu animations.
- * @param objID Parameter for obj id.
- * @return Result produced by this operation.
- */
 void Scene::AttachMenuAnimations(int objID) {
 	animationManager.AttachMenuAnimations(objID);
 }
@@ -913,6 +589,11 @@ void Scene::MarkAnimated(int id, bool state) {
 		// (HasAnimations() will start returning true once frames are attached.)
 	}
 }
+/// @}
+
+// -------------------------------------------------------------------------------------------------
+// Tagging, Logic Binding, And Per-Object Behavior
+// -------------------------------------------------------------------------------------------------
 
 /**
  * @brief Performs attach logic for tag.
@@ -968,6 +649,7 @@ bool Scene::TagUsesVelocity(const std::string& tag) const {
 	if (tagUsesVelocityHook_) {
 		return tagUsesVelocityHook_(tag);
 	}
+
 	return false;
 }
 
@@ -985,53 +667,36 @@ void Scene::ApplyTagRules(int id, const std::string& tag, float speedX, float sp
 	}
 }
 
-/**
- * @brief Returns movement manager.
- * @return Requested value.
- */
+// -------------------------------------------------------------------------------------------------
+// Movement, Collision, And Layer Management
+// -------------------------------------------------------------------------------------------------
+
+/** @name Physics And Movement Accessors */
+/// @{
 MovementManager& Scene::GetMovementManager() {
 	return movementManager;
 }
 
-/**
- * @brief Returns movement manager.
- * @return Requested value.
- */
 const MovementManager& Scene::GetMovementManager() const {
 	return movementManager;
 }
 
-/**
- * @brief Returns collision manager.
- * @return Requested value.
- */
 CollisionManager& Scene::GetCollisionManager() {
 	return collisionManager;
 }
 
-/**
- * @brief Returns collision manager.
- * @return Requested value.
- */
 const CollisionManager& Scene::GetCollisionManager() const {
 	return collisionManager;
 }
 
-/**
- * @brief Returns collision world.
- * @return Requested value.
- */
 collision::World& Scene::GetCollisionWorld() {
 	return collisionManager.GetCollisionWorld();
 }
 
-/**
- * @brief Returns collision world.
- * @return Requested value.
- */
 const collision::World& Scene::GetCollisionWorld() const {
 	return collisionManager.GetCollisionWorld();
 }
+/// @}
 
 /**
  * @brief Returns layer sort key cached.
@@ -1219,6 +884,9 @@ void Scene::RequestStateChange(int newState) {
 	SetFlowState(FlowState::Transitioning);
 }
 
+// -------------------------------------------------------------------------------------------------
+// UI Text Rendering Helpers
+// -------------------------------------------------------------------------------------------------
 
 // text objects for menu buttons (disabled for now)
 #if 0
@@ -1396,12 +1064,6 @@ void Scene::RenderFPSText() {
 		return;
 	}
 
-	//static bool firstRender = true;
-	//if (firstRender) {
-	//	std::cout << "[Scene] RenderFPSText() called for the first time" << std::endl;
-	//	firstRender = false;
-	//}
-
 	glm::mat4 projection = graphicsEngine.GetProjection();
 
 	// Save current GL viewport so we can restore after drawing
@@ -1435,13 +1097,19 @@ void Scene::RenderFPSText() {
 #endif
 }
 
-
+/**
+ * @brief Renders authored level text objects and runtime floating text overlays.
+ */
 void Scene::RenderLevelTextObjects() {
 	const auto& objs = LEPANELFONTS::GetTextObjects();
-	if (objs.empty()) return;
+	if (objs.empty()) {
+		return;
+	}
 
 	const bool cutsceneActive = IsAnyCutsceneActive();
-	if (cutsceneActive) return;
+	if (cutsceneActive) {
+		return;
+	}
 
 	const bool pauseActive = IsPauseOverlayActive();
 	static const std::unordered_set<std::string> kHudTextNames = {
@@ -1456,8 +1124,12 @@ void Scene::RenderLevelTextObjects() {
 	GLint boundFBO = 0;
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &boundFBO);
 
-	if (boundFBO != 0) glViewport(0, 0, graphicsEngine.GetSceneWidth(), graphicsEngine.GetSceneHeight());
-	else graphicsEngine.ApplyViewport();
+	if (boundFBO != 0) {
+		glViewport(0, 0, graphicsEngine.GetSceneWidth(), graphicsEngine.GetSceneHeight());
+	}
+	else {
+		graphicsEngine.ApplyViewport();
+	}
 
 	glDisable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
@@ -1467,21 +1139,34 @@ void Scene::RenderLevelTextObjects() {
 
 	for (const auto& o : objs) {
 		// Hide HUD text during cutscenes or pause overlay
-		if ((cutsceneActive || pauseActive) && kHudTextNames.count(o.name)) continue;
+		if ((cutsceneActive || pauseActive) && kHudTextNames.count(o.name)) {
+			continue;
+		}
 
-		if (o.text.empty()) continue;
-		if (o.fontName.empty()) continue;
-		if (o.colorA <= 0.001f) continue;
+		if (o.text.empty()) {
+			continue;
+		}
+
+		if (o.fontName.empty()) {
+			continue;
+		}
+
+		if (o.colorA <= 0.001f) {
+			continue;
+		}
 
 		// (your existing layer visibility check is fine)
 		if (!o.layer.empty()) {
 			Layer* layer = GetLayer(o.layer);
-			if (layer && (!layer->IsEnabled() || !layer->IsVisible()))
+			if (layer && (!layer->IsEnabled() || !layer->IsVisible())) {
 				continue;
+			}
 		}
 
 		FontSystem::Font* font = ResourceManager::Instance().GetFont(o.fontName);
-		if (!font) continue;
+		if (!font) {
+			continue;
+		}
 
 		FontSystem::Text t;
 		t.SetFont(font);

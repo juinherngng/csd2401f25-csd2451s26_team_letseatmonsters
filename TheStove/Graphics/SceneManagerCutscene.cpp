@@ -20,6 +20,13 @@
 #include <algorithm>
 
 namespace {
+	// -------------------------------------------------------------------------------------------------
+	// Local Cutscene Constants And Shared State
+	// -------------------------------------------------------------------------------------------------
+
+	/**
+	 * @brief Stores boundary markers for chapter-style transitioned cutscenes.
+	 */
 	std::vector<bool> sCutsceneBoundaryFlags;
 
 	constexpr const char* kCutsceneSkipTexture = "../assets/cutscene_skip.png";
@@ -29,6 +36,18 @@ namespace {
 	constexpr int kCutsceneSkipSortOrder = 5000;
 }
 
+// -------------------------------------------------------------------------------------------------
+// Basic Fade-Based Cutscene Player
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Starts a simple fade-based cutscene that ends by loading a level.
+ * @param imagePaths Ordered image paths shown by the cutscene.
+ * @param holdSecondsPerImage Seconds each image remains fully visible.
+ * @param fadeSeconds Seconds spent fading between images.
+ * @param levelJsonPath Level JSON path queued once the cutscene completes.
+ * @param activateSimulation Whether the loaded level should resume simulation.
+ */
 void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 	float holdSecondsPerImage,
 	float fadeSeconds,
@@ -70,6 +89,9 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 	}
 }
 
+/**
+ * @brief Spawns the top-right "skip cutscene" prompt if it is not already present.
+ */
 void Scene::SpawnCutsceneSkipPrompt() {
 	if (cutsceneSkipPromptId_ >= 0 && GetGameObjectByID(cutsceneSkipPromptId_)) {
 		return;
@@ -89,6 +111,9 @@ void Scene::SpawnCutsceneSkipPrompt() {
 	}
 }
 
+/**
+ * @brief Removes the active cutscene skip prompt, if present.
+ */
 void Scene::DespawnCutsceneSkipPrompt() {
 	if (cutsceneSkipPromptId_ < 0) {
 		return;
@@ -101,6 +126,10 @@ void Scene::DespawnCutsceneSkipPrompt() {
 	cutsceneSkipPromptId_ = -1;
 }
 
+/**
+ * @brief Advances the simple fade-based cutscene state machine.
+ * @param dt Frame delta time in seconds.
+ */
 void Scene::UpdateCutscene(float dt) {
 	if (!cutscene_.active) {
 		return;
@@ -186,6 +215,9 @@ void Scene::UpdateCutscene(float dt) {
 	}
 }
 
+/**
+ * @brief Despawns any transient sprites used by the simple cutscene player.
+ */
 void Scene::CleanupCutsceneObjects() {
 	if (cutscene_.spriteA >= 0) {
 		DespawnByID(cutscene_.spriteA);
@@ -198,6 +230,11 @@ void Scene::CleanupCutsceneObjects() {
 	}
 }
 
+/**
+ * @brief Applies an alpha tint to a sprite while preserving its full UV rectangle.
+ * @param obj Sprite object to modify.
+ * @param alpha Alpha value in the range `[0, 1]`.
+ */
 void Scene::SetSpriteAlpha(GameObject* obj, float alpha) {
 	if (!obj) {
 		return;
@@ -208,6 +245,21 @@ void Scene::SetSpriteAlpha(GameObject* obj, float alpha) {
 	obj->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
 }
 
+// -------------------------------------------------------------------------------------------------
+// Transitioned Cutscene Player
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Starts the transitioned cutscene player that uses blackout fades between images.
+ * @param imagePaths Ordered image paths shown by the cutscene.
+ * @param levelJsonPath Level JSON path queued once the cutscene completes.
+ * @param activateSimulation Whether the loaded level should resume simulation.
+ * @param fadeOutSeconds Seconds spent fading out to blackout.
+ * @param fadeInSeconds Seconds spent fading back in from blackout.
+ * @param holdSeconds Seconds each image remains visible between transitions.
+ * @param crossfadeFromIndex Optional boundary index that should crossfade instead of black out.
+ * @param crossfadeSeconds Seconds spent on the optional crossfade.
+ */
 void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths,
 	const std::string& levelJsonPath,
 	bool activateSimulation,
@@ -253,6 +305,18 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 	cutTrans_.awaitingBlackout = true;
 }
 
+/**
+ * @brief Starts a transitioned cutscene with explicit boundary flags for each image.
+ * @param imagePaths Ordered image paths shown by the cutscene.
+ * @param boundaryFlags Boundary flags used to decide blackout versus instant swap transitions.
+ * @param levelJsonPath Level JSON path queued once the cutscene completes.
+ * @param activateSimulation Whether the loaded level should resume simulation.
+ * @param fadeOutSeconds Seconds spent fading out to blackout.
+ * @param fadeInSeconds Seconds spent fading back in from blackout.
+ * @param holdSeconds Seconds each image remains visible between transitions.
+ * @param crossfadeFromIndex Optional boundary index that should crossfade instead of black out.
+ * @param crossfadeSeconds Seconds spent on the optional crossfade.
+ */
 void Scene::StartCutsceneTransitionedBounded(const std::vector<std::string>& imagePaths,
 	const std::vector<bool>& boundaryFlags,
 	const std::string& levelJsonPath,
@@ -274,6 +338,10 @@ void Scene::StartCutsceneTransitionedBounded(const std::vector<std::string>& ima
 		crossfadeSeconds);
 }
 
+/**
+ * @brief Advances the blackout/crossfade cutscene player and its final level handoff.
+ * @param dt Frame delta time in seconds.
+ */
 void Scene::UpdateCutsceneTransitioned(float dt) {
 	if (!cutTrans_.active) {
 		return;
@@ -320,6 +388,7 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 					? sCutsceneBoundaryFlags[nextIndex]
 					: true;
 
+				// Boundary markers decide whether the next image should black out, crossfade, or swap instantly.
 				if (isBoundary) {
 					if (cutTrans_.useCrossfade && static_cast<int>(nextIndex) == cutTrans_.crossfadeFromIndex) {
 						if (Layer* menuLayer = GetLayer("10")) {
@@ -368,6 +437,7 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 				}
 			}
 			else {
+				// Final boundary fades back to the gameplay level instead of another cutscene image.
 				gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
 				cutTrans_.awaitingBlackout = true;
 				cutTrans_.holding = false;
@@ -440,6 +510,19 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 	}
 }
 
+// -------------------------------------------------------------------------------------------------
+// UI Slide Helpers
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Spawns a UI sprite above the screen and registers it for slide-in animation.
+ * @param targetPos Final on-screen position for the UI sprite.
+ * @param size Sprite size.
+ * @param layer Layer used to render the sprite.
+ * @param texturePath Texture used for the sprite.
+ * @param duration Slide duration in seconds.
+ * @return Identifier of the spawned UI object, or `-1` when spawning fails.
+ */
 int Scene::TriggerOrderUiSlideIn(const glm::vec2& targetPos,
 	const glm::vec2& size,
 	const std::string& layer,
@@ -471,6 +554,10 @@ int Scene::TriggerOrderUiSlideIn(const glm::vec2& targetPos,
 	return id;
 }
 
+/**
+ * @brief Advances active UI slide animations and removes finished entries.
+ * @param dt Frame delta time in seconds.
+ */
 void Scene::UpdateUiSlides(float dt) {
 	if (uiSlides_.empty()) {
 		return;
@@ -516,6 +603,17 @@ void Scene::UpdateUiSlides(float dt) {
 	);
 }
 
+// -------------------------------------------------------------------------------------------------
+// Cutscene And Level Skip/Transition Control
+// -------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Starts a fade-to-black level transition without a cutscene image sequence.
+ * @param levelJsonPath Level JSON path queued once blackout is reached.
+ * @param activateSimulation Whether the loaded level should resume simulation.
+ * @param fadeOutSeconds Seconds spent fading out to blackout.
+ * @param fadeInSeconds Seconds spent fading back in from blackout.
+ */
 void Scene::StartLevelTransition(const std::string& levelJsonPath,
 	bool activateSimulation,
 	float fadeOutSeconds,
@@ -543,6 +641,9 @@ void Scene::StartLevelTransition(const std::string& levelJsonPath,
 	gfx.StartSceneTransition(levelTrans_.outSec, levelTrans_.inSec);
 }
 
+/**
+ * @brief Finalizes a direct level transition once the renderer reaches blackout.
+ */
 void Scene::UpdateLevelTransition() {
 	if (!levelTrans_.active) {
 		return;
@@ -562,6 +663,9 @@ void Scene::UpdateLevelTransition() {
 	}
 }
 
+/**
+ * @brief Skips the currently active cutscene and publishes the appropriate skip event.
+ */
 void Scene::SkipActiveCutscene() {
 	bool publishedSkipEvent = false;
 

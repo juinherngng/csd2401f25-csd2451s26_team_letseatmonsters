@@ -67,86 +67,33 @@ public:
 		NonSimulation
 	};
 
-
-	/**
-	 * @brief Returns graphics engine.
-	 * @return Requested value.
-	 */
+	/** @name Core Manager Accessors */
+	/// @{
 	GraphicsEngine& GetGraphicsEngine();
-
-	/**
-	 * @brief Returns graphics engine.
-	 * @return Requested value.
-	 */
 	const GraphicsEngine& GetGraphicsEngine() const;
-
-	/**
-	 * @brief Returns movement manager.
-	 * @return Requested value.
-	 */
 	MovementManager& GetMovementManager();
-
-	/**
-	 * @brief Returns movement manager.
-	 * @return Requested value.
-	 */
 	const MovementManager& GetMovementManager() const;
-
-	/**
-	 * @brief Returns collision manager.
-	 * @return Requested value.
-	 */
 	CollisionManager& GetCollisionManager();
-
-	/**
-	 * @brief Returns collision manager.
-	 * @return Requested value.
-	 */
 	const CollisionManager& GetCollisionManager() const;
-
-	/**
-	 * @brief Returns collision world.
-	 * @return Requested value.
-	 */
 	collision::World& GetCollisionWorld();
-
-	/**
-	 * @brief Returns collision world.
-	 * @return Requested value.
-	 */
 	const collision::World& GetCollisionWorld() const;
-
-	/**
-	 * @brief Returns player controller.
-	 * @return Requested value.
-	 */
 	PlayerController& GetPlayerController() {
 		return playerController;
 	}
-
-	/**
-	 * @brief Returns player controller.
-	 * @return Requested value.
-	 */
 	const PlayerController& GetPlayerController() const {
 		return playerController;
 	}
-
-	/**
-	 * @brief Returns logic manager.
-	 * @return Requested value.
-	 */
 	LogicManager& GetLogicManager() {
 		return logicManager;
 	}
-
-	/**
-	 * @brief Returns logic manager.
-	 * @return Requested value.
-	 */
 	const LogicManager& GetLogicManager() const {
 		return logicManager;
 	}
+	/// @}
+
+	// -------------------------------------------------------------------------------------------------
+	// Scene Lifetime And Frame Control
+	// -------------------------------------------------------------------------------------------------
 
 	/**
 	 * @brief Constructs a `Scene` instance.
@@ -184,73 +131,27 @@ public:
 		return audioManager_;
 	}
 
-	/**
-	 * @brief Performs play spawn audio.
-	 * @param objectId Identifier of the target object.
+	/** @name Object-Bound Audio Helpers
+	 * Helpers for playing and stopping sounds configured on scene object defaults.
 	 */
+	 /// @{
 	void PlaySpawnAudio(int objectId);
-
-	/**
-	 * @brief Performs play interact audio.
-	 * @param objectId Identifier of the target object.
-	 */
 	void PlayInteractAudio(int objectId);
-
-	/**
-	 * @brief Performs play destroy audio.
-	 * @param objectId Identifier of the target object.
-	 */
 	void PlayDestroyAudio(int objectId);
-
-	/**
-	 * @brief Performs play processing audio.
-	 * @param objectId Identifier of the target object.
-	 */
 	void PlayProcessingAudio(int objectId);   // Start looping processing audio
-
-	/**
-	 * @brief Performs stop processing audio.
-	 * @param objectId Identifier of the target object.
-	 */
 	void StopProcessingAudio(int objectId);   // Stop processing audio
-
-	/**
-	 * @brief Performs stop all object audio.
-	 */
 	void StopAllObjectAudio();				  // Stop all audio bound to objects
+	/// @}
 
-	/**
-	 * @brief Loads scene.
-	 * @param sceneName Parameter for scene name.
-	 */
+	/** @name Scene Lifecycle And Presentation */
+	/// @{
 	void LoadScene(const std::string& sceneName);
-
-	/**
-	 * @brief Updates this object.
-	 * @param deltaTime Frame delta time in seconds.
-	 * @param window Parameter for window.
-	 */
 	void Update(float deltaTime, GLFWwindow* window);
-
-	/**
-	 * @brief Draws ui.
-	 */
 	void DrawUI();
-
-	/**
-	 * @brief Clears all.
-	 */
 	void ClearAll();
-
-	/**
-	 * @brief Performs request clear all.
-	 */
 	void RequestClearAll();
-
-	/**
-	 * @brief Renders level text objects.
-	 */
 	void RenderLevelTextObjects();
+	/// @}
 
 	/**
 	 * @brief Sets simulation active.
@@ -284,6 +185,10 @@ public:
 	const physics::StepController& GetStepController() const {
 		return physicsStep_;
 	}
+
+	// -------------------------------------------------------------------------------------------------
+	// Spawning, Object Access, And World Utilities
+	// -------------------------------------------------------------------------------------------------
 
 	// Spawning / object management
 
@@ -365,40 +270,22 @@ public:
 	 */
 	void CollectRenderablePointers(std::vector<GameObject*>& out);
 
-	// Scene / transform utilities
+	// -------------------------------------------------------------------------------------------------
+	// Scene Presentation, Transform, And Animation Utilities
+	// -------------------------------------------------------------------------------------------------
 
-	/**
-	 * @brief Sets scene background.
-	 * @param texturePath Parameter for texture path.
-	 */
+	/** @name Scene Background Helpers */
+	/// @{
 	void SetSceneBackground(const std::string& texturePath);
-
-	/**
-	 * @brief Sets scene background overlay.
-	 * @param texturePath Parameter for texture path.
-	 */
 	void SetSceneBackgroundOverlay(const std::string& texturePath);
-
-	/**
-	 * @brief Clears scene background overlay.
-	 */
 	void ClearSceneBackgroundOverlay();
-
-	/**
-	 * @brief Returns scene background.
-	 * @return Requested value.
-	 */
 	const std::string& GetSceneBackground() const {
 		return sceneBackgroundPath_;
 	}
-
-	/**
-	 * @brief Returns scene background overlay.
-	 * @return Requested value.
-	 */
 	const std::string& GetSceneBackgroundOverlay() const {
 		return sceneBackgroundOverlayPath_;
 	}
+	/// @}
 
 	/**
 	 * @brief Sets transform from level.
@@ -451,89 +338,22 @@ public:
 	 */
 	float ToRefY(float currentY) const;
 
-	/**
-	 * @brief Returns whether animations.
-	 * @param id Parameter for id.
-	 * @return True when the operation succeeds or the condition is met.
-	 */
+	/** @name Animation Helpers */
+	/// @{
 	bool HasAnimations(int id) const;
-
-	/**
-	 * @brief Returns animation list.
-	 * @param id Parameter for id.
-	 * @return Requested value.
-	 */
 	std::vector<std::string> GetAnimationList(int id) const;
-
-	/**
-	 * @brief Returns current animation name.
-	 * @param id Parameter for id.
-	 * @return Requested value.
-	 */
 	std::string GetCurrentAnimationName(int id) const;
-
-	/**
-	 * @brief Sets animation.
-	 * @param objID Parameter for obj id.
-	 * @param newAnim Parameter for new anim.
-	 */
 	void SetAnimation(int objID, const std::string& newAnim);
-
-	/**
-	 * @brief Performs attach player animations.
-	 * @param objID Parameter for obj id.
-	 */
 	void AttachPlayerAnimations(int objID);
-
-	/**
-	 * @brief Performs attach dino animations.
-	 * @param objID Parameter for obj id.
-	 */
 	void AttachDinoAnimations(int objID);
-
-	/**
-	 * @brief Performs attach customers animations.
-	 * @param objID Parameter for obj id.
-	 */
 	void AttachCustomersAnimations(int objID);
-
-	/**
-	 * @brief Performs attach customers animations.
-	 * @param objID Parameter for obj id.
-	 * @param texturePath Parameter for texture path.
-	 */
 	void AttachCustomersAnimations(int objID, const std::string& texturePath);
-
-	/**
-	 * @brief Performs attach work vfx cut animations.
-	 * @param objID Parameter for obj id.
-	 */
 	void AttachWorkVfxCutAnimations(int objID);
-
-	/**
-	 * @brief Performs attach work vfx grill animations.
-	 * @param objID Parameter for obj id.
-	 */
 	void AttachWorkVfxGrillAnimations(int objID);
-
-	/**
-	 * @brief Performs attach work vfx stove animations.
-	 * @param objID Parameter for obj id.
-	 */
 	void AttachWorkVfxStoveAnimations(int objID);
-
-	/**
-	 * @brief Performs mark animated.
-	 * @param id Parameter for id.
-	 * @param state Parameter for state.
-	 */
 	void MarkAnimated(int id, bool state);
-
-	/**
-	 * @brief Performs attach menu animations.
-	 * @param objID Parameter for obj id.
-	 */
 	void AttachMenuAnimations(int objID);
+	/// @}
 
 	/**
 	 * @brief Generates stress test.
@@ -552,6 +372,11 @@ public:
 	 * @param tag Parameter for tag.
 	 */
 	void AttachLogicForTag(int id, const std::string& tag);
+
+	// -------------------------------------------------------------------------------------------------
+	// Scene Extension Hooks
+	// -------------------------------------------------------------------------------------------------
+
 	using TagLogicBinder = std::function<void(Scene&, int, const std::string&)>;
 	using TagRuleHook = std::function<void(Scene&, int, const std::string&, float, float)>;
 	using PauseOverlayButtonBinder = std::function<void(Scene&, int, const std::string&)>;
@@ -568,135 +393,62 @@ public:
 	using TagUsesVelocityHook = std::function<bool(const std::string&)>;
 	using NavigationBlockerCollector = std::function<void(Scene&, int, std::vector<collision::AABB>&)>;
 
-	/**
-	 * @brief Sets tag logic binder.
-	 * @param binder Parameter for binder.
-	 */
+	/** @name Scene Hook Setters */
+	/// @{
 	void SetTagLogicBinder(TagLogicBinder binder) {
 		tagLogicBinder_ = std::move(binder);
 	}
-
-	/**
-	 * @brief Sets pause overlay button binder.
-	 * @param binder Parameter for binder.
-	 */
 	void SetPauseOverlayButtonBinder(PauseOverlayButtonBinder binder) {
 		pauseOverlayButtonBinder_ = std::move(binder);
 	}
-
-	/**
-	 * @brief Sets tag rule hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetTagRuleHook(TagRuleHook hook) {
 		tagRuleHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets customer update hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetCustomerUpdateHook(CustomerUpdateHook hook) {
 		customerUpdateHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets customer reset hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetCustomerResetHook(CustomerResetHook hook) {
 		customerResetHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets runtime object setup hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetRuntimeObjectSetupHook(RuntimeObjectSetupHook hook) {
 		runtimeObjectSetupHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets simulation update hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetSimulationUpdateHook(SimulationUpdateHook hook) {
 		simulationUpdateHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets default scene setup hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetDefaultSceneSetupHook(DefaultSceneSetupHook hook) {
 		defaultSceneSetupHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets post level load hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetPostLevelLoadHook(PostLevelLoadHook hook) {
 		postLevelLoadHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets cutscene fade out hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetCutsceneFadeOutHook(CutsceneFadeOutHook hook) {
 		cutsceneFadeOutHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets cutscene first frame hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetCutsceneFirstFrameHook(CutsceneFirstFrameHook hook) {
 		cutsceneFirstFrameHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets cutscene before final load hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetCutsceneBeforeFinalLoadHook(CutsceneBeforeFinalLoadHook hook) {
 		cutsceneBeforeFinalLoadHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets navigation blocker collector.
-	 * @param collector Parameter for collector.
-	 */
 	void SetNavigationBlockerCollector(NavigationBlockerCollector collector) {
 		navigationBlockerCollector_ = std::move(collector);
 	}
-
-	/**
-	 * @brief Sets skip cutscene audio hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetSkipCutsceneAudioHook(SkipCutsceneAudioHook hook) {
 		skipCutsceneAudioHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets tag uses velocity hook.
-	 * @param hook Parameter for hook.
-	 */
 	void SetTagUsesVelocityHook(TagUsesVelocityHook hook) {
 		tagUsesVelocityHook_ = std::move(hook);
 	}
-
-	/**
-	 * @brief Sets pause overlay audio channels.
-	 * @param musicChannel Parameter for music channel.
-	 * @param ambienceChannel Parameter for ambience channel.
-	 */
 	void SetPauseOverlayAudioChannels(std::string musicChannel, std::string ambienceChannel) {
 		pauseMusicChannel_ = std::move(musicChannel);
 		pauseAmbienceChannel_ = std::move(ambienceChannel);
 	}
+	/// @}
+
+	// -------------------------------------------------------------------------------------------------
+	// Object Metadata, Identity, And Visibility
+	// -------------------------------------------------------------------------------------------------
 
 	/**
 	 * @brief Applies runtime object setup.
@@ -895,12 +647,14 @@ public:
 		std::string texture;
 		std::string tag;
 		std::string layer;
+
 		// Audio bindings
 		std::string audioOnSpawn;
 		std::string audioOnInteract;
 		std::string audioOnDestroy;
 		std::string audioOnProcessing;  // Audio that loops while work table is processing
 		bool audioLoop{ false };
+
 		// Per-object visibility (default visible)
 		bool visible{ true };
 	};
@@ -944,6 +698,10 @@ public:
 		auto it = defaults_.find(id);
 		return (it != defaults_.end()) ? it->second.visible : true;
 	}
+
+	// -------------------------------------------------------------------------------------------------
+	// Layers, Collision, Navigation, And Runtime Systems
+	// -------------------------------------------------------------------------------------------------
 
 	// Particle system
 	ParticleSystem particleSystem_;
@@ -1072,6 +830,10 @@ public:
 		return entityManager;
 	}
 
+	// -------------------------------------------------------------------------------------------------
+	// Flow State, Pause, Replay, And Cutscene Control
+	// -------------------------------------------------------------------------------------------------
+
 	/**
 	 * @brief Performs queue level load.
 	 * @param path Path to process.
@@ -1178,7 +940,6 @@ public:
 	bool HasReplayFrameDt() const {
 		return lastReplayFrameDt_ > 0.0f;
 	}
-
 
 	// Menu button text rendering
 #if 0
@@ -1332,6 +1093,10 @@ public:
 	void SkipActiveCutscene();
 
 private:
+	// -------------------------------------------------------------------------------------------------
+	// Core References And Shared Systems
+	// -------------------------------------------------------------------------------------------------
+
 	// Engine/input
 	GraphicsEngine& graphicsEngine;
 	EntityManager entityManager;
@@ -1467,6 +1232,10 @@ private:
 	bool cutsceneSkipSpaceHeld_ = false;
 	// Ensure skip only runs once for the currently active cutscene sequence.
 	bool cutsceneSkipConsumed_ = false;
+
+	// -------------------------------------------------------------------------------------------------
+	// Cutscene, Transition, And Runtime UI Animation State
+	// -------------------------------------------------------------------------------------------------
 
 	// Basic cutscene runner with simple fade-out, image swap, fade-in sequence. No cross-fade or separate hold time.
 	struct CutsceneState {
@@ -1619,6 +1388,9 @@ private:
 	}
 
 public:
+	// -------------------------------------------------------------------------------------------------
+	// Advanced Navigation And Runtime Feedback API
+	// -------------------------------------------------------------------------------------------------
 
 	/**
 	 * @brief Performs start level transition.
@@ -1683,6 +1455,10 @@ public:
 	void TriggerCustomerPaymentFeedback(int tableObjectID, int amount);
 
 private:
+	// -------------------------------------------------------------------------------------------------
+	// Runtime Effects And Per-Frame Internal Helpers
+	// -------------------------------------------------------------------------------------------------
+
 	// Simpler version of cutscene transition for level changes without per-frame images. Reuses some cutTrans_ state for convenience.
 	struct LevelTrans {
 		bool active = false;
@@ -1777,4 +1553,3 @@ private:
 	 */
 	void FinalizeFramePhase(float deltaTime);
 };
-
