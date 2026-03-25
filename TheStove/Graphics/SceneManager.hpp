@@ -47,6 +47,9 @@
 #include "../Core/FontSystem.hpp"
 
 class AudioManager;
+namespace CoreFramework {
+	class MessageBus;
+}
 
 /**
  * @class Scene
@@ -54,6 +57,16 @@ class AudioManager;
  */
 class Scene {
 public:
+	enum class FlowState {
+		Bootstrapping,
+		LoadingLevel,
+		Transitioning,
+		Cutscene,
+		Gameplay,
+		Paused,
+		NonSimulation
+	};
+
 
 	/**
 	 * @brief Returns graphics engine.
@@ -153,6 +166,14 @@ public:
 	 */
 	void SetAudioManager(AudioManager* audioMgr) {
 		audioManager_ = audioMgr;
+	}
+
+	/**
+	 * @brief Sets message bus.
+	 * @param bus Parameter for bus.
+	 */
+	void SetMessageBus(CoreFramework::MessageBus* bus) {
+		messageBus_ = bus;
 	}
 
 	/**
@@ -1292,6 +1313,20 @@ public:
 	}
 
 	/**
+	 * @brief Returns flow state.
+	 * @return Requested value.
+	 */
+	FlowState GetFlowState() const {
+		return flowState_;
+	}
+
+	/**
+	 * @brief Returns flow state name.
+	 * @return Requested value.
+	 */
+	const char* GetFlowStateName() const;
+
+	/**
 	 * @brief Performs skip active cutscene.
 	 */
 	void SkipActiveCutscene();
@@ -1310,6 +1345,7 @@ private:
 
 	// Audio for UI sounds
 	AudioManager* audioManager_ = nullptr;
+	CoreFramework::MessageBus* messageBus_ = nullptr;
 
 	// Systems
 	InputCommandHandler inputCommandHandler;
@@ -1377,6 +1413,8 @@ private:
 	bool pauseOverlayActive_ = false;
 	bool resumeFromPausePending_ = false;
 	std::vector<int> pauseOverlayObjectIds_;
+	FlowState flowState_ = FlowState::Bootstrapping;
+	FlowState flowStateBeforePause_ = FlowState::Gameplay;
 
 	// Pause audio fade state
 	bool pauseAudioPending_ = false;
@@ -1552,6 +1590,23 @@ private:
 	 * @brief Resets object-backed scene state that should not survive a level rebuild.
 	 */
 	void ResetLevelObjectState();
+
+	/**
+	 * @brief Sets flow state.
+	 * @param newState Parameter for new state.
+	 */
+	void SetFlowState(FlowState newState);
+
+	/**
+	 * @brief Refreshes flow state from current scene flags.
+	 */
+	void RefreshFlowState();
+
+	/**
+	 * @brief Returns fallback steady flow state.
+	 * @return Requested value.
+	 */
+	FlowState ComputeSteadyFlowState() const;
 
 	/**
 	 * @brief Performs ease out cubic.

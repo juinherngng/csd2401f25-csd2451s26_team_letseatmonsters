@@ -18,18 +18,280 @@
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
+#include "AudioLoading.hpp"
 
 #include "LevelSerializer.hpp"
 #include "RuntimeLevel.hpp"
 
 #include <chrono>
+#include <cmath>
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <optional>
 #include <unordered_set>
 #include <vector>
 
+namespace {
+	namespace fs = std::filesystem;
+
+	/**
+	 * @brief Resolves freshest level path.
+	 * @param path Path to process.
+	 * @return Result produced by this operation.
+	 */
+	std::optional<fs::path> ResolveFreshestLevelPath(const std::string& path) {
+		std::vector<fs::path> candidates;
+		candidates.emplace_back(path);
+
+		const fs::path inputPath(path);
+		const fs::path fileName = inputPath.filename();
+		if (!fileName.empty()) {
+			candidates.emplace_back(fs::path("../levels") / fileName);
+			candidates.emplace_back(fs::path("../../levels") / fileName);
+			candidates.emplace_back(fs::path("levels") / fileName);
+		}
+
+		std::unordered_set<std::string> seen;
+		std::optional<fs::path> freshest;
+		fs::file_time_type freshestTime{};
+
+		for (const fs::path& candidate : candidates) {
+			std::error_code ec;
+			const fs::path normalized = candidate.lexically_normal();
+			const std::string key = normalized.string();
+			if (!seen.insert(key).second) {
+				continue;
+			}
+
+			if (!fs::exists(normalized, ec) || ec) {
+				continue;
+			}
+
+			const fs::file_time_type modified = fs::last_write_time(normalized, ec);
+			if (ec) {
+				continue;
+			}
+
+			if (!freshest || modified >= freshestTime) {
+				freshest = normalized;
+				freshestTime = modified;
+			}
+		}
+
+		return freshest;
+	}
+
+	/**
+	 * @brief Determines whether the input is finite.
+	 * @param value Parameter for value.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
+	bool IsFinite(float value) {
+		return std::isfinite(value);
+	}
+
+	/**
+	 * @brief Appends warning.
+	 * @param report Parameter for report.
+	 * @param warning Parameter for warning.
+	 */
+	void AddWarning(RuntimeLevel::LevelValidationReport& report, std::string warning) {
+		report.warnings.push_back(std::move(warning));
+	}
+
+	/**
+	 * @brief Resolves existing path.
+	 * @param rawPath Path to process.
+	 * @param levelPath Parameter for level path.
+	 * @param fallbackDir Parameter for fallback dir.
+	 * @return Result produced by this operation.
+	 */
+	std::optional<fs::path> ResolveExistingPath(const std::string& rawPath, const fs::path& levelPath, const fs::path& fallbackDir = {}) {
+		if (rawPath.empty()) {
+			return std::nullopt;
+		}
+
+		std::vector<fs::path> candidates;
+		candidates.emplace_back(rawPath);
+
+		if (!levelPath.empty()) {
+			candidates.push_back(levelPath.parent_path() / rawPath);
+		}
+
+		if (!fallbackDir.empty()) {
+			candidates.push_back(fallbackDir / rawPath);
+			candidates.push_back(fallbackDir / fs::path(rawPath).filename());
+		}
+
+		std::unordered_set<std::string> seen;
+		for (const fs::path& candidate : candidates) {
+			std::error_code ec;
+			const fs::path normalized = candidate.lexically_normal();
+			const std::string key = normalized.string();
+			if (!seen.insert(key).second) {
+				continue;
+			}
+
+			if (fs::exists(normalized, ec) && !ec) {
+				return normalized;
+			}
+		}
+
+		return std::nullopt;
+	}
+
+	/**
+	 * @brief Validates referenced path.
+	 * @param report Parameter for report.
+	 * @param levelPath Parameter for level path.
+	 * @param rawPath Path to process.
+	 * @param fieldName Parameter for field name.
+	 * @param owner Parameter for owner.
+	 * @param fallbackDir Parameter for fallback dir.
+	 */
+	void ValidateReferencedPath(RuntimeLevel::LevelValidationReport& report,
+		const fs::path& levelPath,
+		const std::string& rawPath,
+		const char* fieldName,
+		const std::string& owner,
+		const fs::path& fallbackDir = {}) {
+		if (rawPath.empty()) {
+			return;
+		}
+
+		if (!ResolveExistingPath(rawPath, levelPath, fallbackDir)) {
+			AddWarning(report, owner + ": missing " + fieldName + " path '" + rawPath + "'.");
+		}
+	}
+
+	/**
+	 * @brief Validates audio key.
+	 * @param report Parameter for report.
+	 * @param audioKey Parameter for audio key.
+	 * @param fieldName Parameter for field name.
+	 * @param owner Parameter for owner.
+	 */
+	void ValidateAudioKey(RuntimeLevel::LevelValidationReport& report,
+		const std::string& audioKey,
+		const char* fieldName,
+		const std::string& owner) {
+		if (audioKey.empty()) {
+			return;
+		}
+
+		if (!Audio::AudioCatalog::GetAudioAsset(audioKey)) {
+			AddWarning(report, owner + ": unknown " + fieldName + " audio key '" + audioKey + "'.");
+		}
+	}
+
+	/**
+	 * @brief Validates level data.
+	 * @param levelPath Parameter for level path.
+	 * @param data Parameter for data.
+	 * @return Result produced by this operation.
+	 */
+	RuntimeLevel::LevelValidationReport ValidateResolvedLevelData(const fs::path& levelPath, const LevelData& data) {
+		RuntimeLevel::LevelValidationReport report;
+
+		ValidateReferencedPath(report, levelPath, data.background, "background", "Level", "../assets");
+		ValidateReferencedPath(report, levelPath, data.backgroundOverlay, "background overlay", "Level", "../assets");
+
+		for (size_t index = 0; index < data.objects.size(); ++index) {
+			const LevelObject& obj = data.objects[index];
+			const std::string owner = "Object[" + std::to_string(index) + "]";
+
+			if (obj.texture.empty() && obj.prefabPath.empty()) {
+				AddWarning(report, owner + ": has neither a texture nor a prefab path.");
+			}
+
+			ValidateReferencedPath(report, levelPath, obj.texture, "texture", owner, "../assets");
+			ValidateReferencedPath(report, levelPath, obj.prefabPath, "prefab", owner, "../prefabs");
+
+			if (!IsFinite(obj.x) || !IsFinite(obj.y) || !IsFinite(obj.z) || !IsFinite(obj.w) || !IsFinite(obj.h) || !IsFinite(obj.rotation)) {
+				AddWarning(report, owner + ": contains non-finite transform values.");
+			}
+			else if (obj.w <= 0.0f || obj.h <= 0.0f) {
+				AddWarning(report, owner + ": has non-positive size (" + std::to_string(obj.w) + ", " + std::to_string(obj.h) + ").");
+			}
+
+			if (!IsFinite(obj.speedX) || !IsFinite(obj.speedY)) {
+				AddWarning(report, owner + ": contains non-finite velocity values.");
+			}
+
+			if (obj.hasCollider) {
+				if (!IsFinite(obj.colWidth) || !IsFinite(obj.colHeight) || !IsFinite(obj.colOffsetX) || !IsFinite(obj.colOffsetY)) {
+					AddWarning(report, owner + ": contains non-finite collider values.");
+				}
+				else if (obj.colWidth <= 0.0f || obj.colHeight <= 0.0f) {
+					AddWarning(report, owner + ": collider is enabled but has non-positive size (" + std::to_string(obj.colWidth) + ", " + std::to_string(obj.colHeight) + ").");
+				}
+			}
+
+			ValidateAudioKey(report, obj.audioOnSpawn, "spawn", owner);
+			ValidateAudioKey(report, obj.audioOnInteract, "interact", owner);
+			ValidateAudioKey(report, obj.audioOnDestroy, "destroy", owner);
+			ValidateAudioKey(report, obj.audioOnProcessing, "processing", owner);
+		}
+
+		std::unordered_set<std::string> seenTextNames;
+		for (size_t index = 0; index < data.textObjects.size(); ++index) {
+			const LevelTextObject& text = data.textObjects[index];
+			const std::string owner = "TextObject[" + std::to_string(index) + "]";
+
+			if (text.name.empty()) {
+				AddWarning(report, owner + ": is missing a name.");
+			}
+			else if (!seenTextNames.insert(text.name).second) {
+				AddWarning(report, owner + ": duplicates text object name '" + text.name + "'.");
+			}
+
+			if (text.text.empty()) {
+				AddWarning(report, owner + ": has empty text content.");
+			}
+
+			if (text.fontName.empty()) {
+				AddWarning(report, owner + ": is missing a font name.");
+			}
+			else if (text.fontName != "font1" && text.fontName != "font2" && !ResourceManager::Instance().GetFont(text.fontName)) {
+				AddWarning(report, owner + ": font '" + text.fontName + "' is not loaded and may not render in runtime.");
+			}
+
+			if (!IsFinite(text.x) || !IsFinite(text.y) || !IsFinite(text.scale) || !IsFinite(text.rotation)) {
+				AddWarning(report, owner + ": contains non-finite transform values.");
+			}
+			else if (text.scale <= 0.0f) {
+				AddWarning(report, owner + ": has non-positive scale (" + std::to_string(text.scale) + ").");
+			}
+
+			if (!IsFinite(text.colorR) || !IsFinite(text.colorG) || !IsFinite(text.colorB) || !IsFinite(text.colorA)) {
+				AddWarning(report, owner + ": contains non-finite color values.");
+			}
+			else if (text.colorR < 0.0f || text.colorR > 1.0f ||
+				text.colorG < 0.0f || text.colorG > 1.0f ||
+				text.colorB < 0.0f || text.colorB > 1.0f ||
+				text.colorA < 0.0f || text.colorA > 1.0f) {
+				AddWarning(report, owner + ": has color values outside the expected 0..1 range.");
+			}
+		}
+
+		return report;
+	}
+}
+
 namespace RuntimeLevel {
+
+	/**
+	 * @brief Validates level data.
+	 * @param path Path to process.
+	 * @param data Parameter for data.
+	 * @return Result produced by this operation.
+	 */
+	LevelValidationReport ValidateLevelData(const std::string& path, const LevelData& data) {
+		const std::optional<fs::path> resolvedLevelPath = ResolveFreshestLevelPath(path);
+		return ValidateResolvedLevelData(resolvedLevelPath.value_or(fs::path(path)), data);
+	}
 
 	struct LevelManifest {
 		std::vector<std::string> textures;
@@ -195,6 +457,14 @@ namespace RuntimeLevel {
 		if (!LevelSerializer::Load(path, data)) {
 			std::cerr << "[RuntimeLevel] Failed to load level JSON: " << path << std::endl;
 			return false;
+		}
+
+		const LevelValidationReport validation = ValidateLevelData(path, data);
+		if (validation.HasWarnings()) {
+			std::cerr << "[RuntimeLevel] Validation warnings for '" << path << "' (" << validation.warnings.size() << "):" << std::endl;
+			for (const std::string& warning : validation.warnings) {
+				std::cerr << "  - " << warning << std::endl;
+			}
 		}
 
 		scene.ClearAll();

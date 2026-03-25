@@ -36,7 +36,12 @@ namespace CoreFramework {
 		MOUSE_MOVE,
 		PLAY_AUDIO,
 		STOP_AUDIO,
-		PLAY_AUDIO_3D
+		PLAY_AUDIO_3D,
+		SCENE_FLOW_STATE_CHANGED,
+		LEVEL_LOAD_QUEUED,
+		LEVEL_LOADED,
+		PAUSE_OVERLAY_CHANGED,
+		CUTSCENE_SKIPPED
 	};
 
 	// Legacy support - can be removed after full migration
@@ -53,6 +58,11 @@ namespace CoreFramework {
 		constexpr MessageType PLAY_AUDIO = MessageType::PLAY_AUDIO;
 		constexpr MessageType STOP_AUDIO = MessageType::STOP_AUDIO;
 		constexpr MessageType PLAY_AUDIO_3D = MessageType::PLAY_AUDIO_3D;
+		constexpr MessageType SCENE_FLOW_STATE_CHANGED = MessageType::SCENE_FLOW_STATE_CHANGED;
+		constexpr MessageType LEVEL_LOAD_QUEUED = MessageType::LEVEL_LOAD_QUEUED;
+		constexpr MessageType LEVEL_LOADED = MessageType::LEVEL_LOADED;
+		constexpr MessageType PAUSE_OVERLAY_CHANGED = MessageType::PAUSE_OVERLAY_CHANGED;
+		constexpr MessageType CUTSCENE_SKIPPED = MessageType::CUTSCENE_SKIPPED;
 	}
 
 	/************************************************************************/
@@ -254,6 +264,60 @@ namespace CoreFramework {
 		bool paused;			// whether to start paused
 	};
 
+	struct SceneFlowStateChangedMessage final : public Message {
+		SceneFlowStateChangedMessage(std::string stateName, bool simulationActive) noexcept
+			: Message(MessageType::SCENE_FLOW_STATE_CHANGED)
+			, stateName(std::move(stateName))
+			, simulationActive(simulationActive) {
+		}
+
+		std::string stateName;
+		bool simulationActive;
+	};
+
+	struct LevelLoadQueuedMessage final : public Message {
+		LevelLoadQueuedMessage(std::string levelPath, bool activateSimulation) noexcept
+			: Message(MessageType::LEVEL_LOAD_QUEUED)
+			, levelPath(std::move(levelPath))
+			, activateSimulation(activateSimulation) {
+		}
+
+		std::string levelPath;
+		bool activateSimulation;
+	};
+
+	struct LevelLoadedMessage final : public Message {
+		LevelLoadedMessage(std::string levelPath, bool simulationActive) noexcept
+			: Message(MessageType::LEVEL_LOADED)
+			, levelPath(std::move(levelPath))
+			, simulationActive(simulationActive) {
+		}
+
+		std::string levelPath;
+		bool simulationActive;
+	};
+
+	struct PauseOverlayChangedMessage final : public Message {
+		explicit PauseOverlayChangedMessage(bool isOpen) noexcept
+			: Message(MessageType::PAUSE_OVERLAY_CHANGED)
+			, isOpen(isOpen) {
+		}
+
+		bool isOpen;
+	};
+
+	struct CutsceneSkippedMessage final : public Message {
+		CutsceneSkippedMessage(bool transitionedCutscene, std::string targetLevelPath) noexcept
+			: Message(MessageType::CUTSCENE_SKIPPED)
+			, transitionedCutscene(transitionedCutscene)
+			, targetLevelPath(std::move(targetLevelPath)) {
+		}
+
+		bool transitionedCutscene;
+		std::string targetLevelPath;
+	};
+
+
 	/************************************************************************/
 	/*!
 	\brief
@@ -276,6 +340,11 @@ namespace CoreFramework {
 		case MessageType::PLAY_AUDIO:			return "PLAY_AUDIO";
 		case MessageType::STOP_AUDIO:			return "STOP_AUDIO";
 		case MessageType::PLAY_AUDIO_3D:		return "PLAY_AUDIO_3D";
+		case MessageType::SCENE_FLOW_STATE_CHANGED: return "SCENE_FLOW_STATE_CHANGED";
+		case MessageType::LEVEL_LOAD_QUEUED:    return "LEVEL_LOAD_QUEUED";
+		case MessageType::LEVEL_LOADED:         return "LEVEL_LOADED";
+		case MessageType::PAUSE_OVERLAY_CHANGED: return "PAUSE_OVERLAY_CHANGED";
+		case MessageType::CUTSCENE_SKIPPED:     return "CUTSCENE_SKIPPED";
 		default:								return "UNKNOWN";
 		}
 	}
@@ -301,3 +370,4 @@ namespace std {
 		}
 	};
 }
+

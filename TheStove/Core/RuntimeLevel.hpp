@@ -16,12 +16,28 @@
 #include "LevelSerializer.hpp"
 
 #include <string>
+#include <vector>
 
 class Scene;
 
 namespace RuntimeLevel {
+	struct LevelValidationReport {
+		std::vector<std::string> warnings;
+
+		/**
+		 * @brief Returns whether the report contains warnings.
+		 * @return True when the operation succeeds or the condition is met.
+		 */
+		bool HasWarnings() const {
+			return !warnings.empty();
+		}
+	};
+
 	// Build the current Scene from LevelData (runtime-friendly, no editor UI)
 	void BuildSceneFromLevel(const LevelData& levelIn, Scene& scene);
+
+	// Validate level data without mutating scene state
+	LevelValidationReport ValidateLevelData(const std::string& path, const LevelData& data);
 
 	// Load JSON from path and build the Scene
 	bool LoadAndBuild(const std::string& path, Scene& scene);

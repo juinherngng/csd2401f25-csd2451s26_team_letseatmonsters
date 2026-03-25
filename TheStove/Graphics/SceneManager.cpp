@@ -18,6 +18,7 @@
 #include "../Core/AudioManager.hpp"
 #include "../Core/FilePaths.hpp"
 #include "../Core/LevelEditorPanelFonts.hpp"
+#include "../Core/MessageBus.hpp"
 
 #include "GraphicsEngine.hpp"
 #include "SceneManager.hpp"
@@ -88,6 +89,24 @@ namespace {
 			}
 		}
 		return width;
+	}
+
+	/**
+	 * @brief Returns flow state name.
+	 * @param state Parameter for state.
+	 * @return Requested value.
+	 */
+	const char* FlowStateToString(Scene::FlowState state) {
+		switch (state) {
+		case Scene::FlowState::Bootstrapping: return "Bootstrapping";
+		case Scene::FlowState::LoadingLevel: return "LoadingLevel";
+		case Scene::FlowState::Transitioning: return "Transitioning";
+		case Scene::FlowState::Cutscene: return "Cutscene";
+		case Scene::FlowState::Gameplay: return "Gameplay";
+		case Scene::FlowState::Paused: return "Paused";
+		case Scene::FlowState::NonSimulation: return "NonSimulation";
+		default: return "Unknown";
+		}
 	}
 }
 
@@ -363,6 +382,75 @@ Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& a
 
 	// Basic default layer used when no explicit layer name is given
 	AddLayer("1");
+	SetFlowState(FlowState::Bootstrapping);
+}
+
+/**
+ * @brief Returns flow state name.
+ * @return Requested value.
+ */
+const char* Scene::GetFlowStateName() const {
+	return FlowStateToString(flowState_);
+}
+
+/**
+ * @brief Sets flow state.
+ * @param newState Parameter for new state.
+ * @return Result produced by this operation.
+ */
+void Scene::SetFlowState(FlowState newState) {
+	if (flowState_ == newState) {
+		return;
+	}
+
+	flowState_ = newState;
+
+	if (messageBus_) {
+		messageBus_->Post<CoreFramework::SceneFlowStateChangedMessage>(GetFlowStateName(), simulationActive);
+	}
+}
+
+/**
+ * @brief Returns fallback steady flow state.
+ * @return Requested value.
+ */
+Scene::FlowState Scene::ComputeSteadyFlowState() const {
+	if (pauseOverlayActive_) {
+		return FlowState::Paused;
+	}
+
+	if (simulationActive) {
+		return FlowState::Gameplay;
+	}
+
+	if (!currentLevelPath_.empty()) {
+		return FlowState::NonSimulation;
+	}
+
+	return FlowState::Bootstrapping;
+}
+
+/**
+ * @brief Refreshes flow state from current scene flags.
+ * @return Result produced by this operation.
+ */
+void Scene::RefreshFlowState() {
+	if (hasPendingLevel_) {
+		SetFlowState(FlowState::LoadingLevel);
+		return;
+	}
+
+	if (levelTrans_.active || hasPendingStateChange_) {
+		SetFlowState(FlowState::Transitioning);
+		return;
+	}
+
+	if (cutscene_.active || cutTrans_.active) {
+		SetFlowState(FlowState::Cutscene);
+		return;
+	}
+
+	SetFlowState(ComputeSteadyFlowState());
 }
 
 /**
@@ -380,6 +468,8 @@ void Scene::LoadScene(const std::string& sceneName) {
 	if (defaultSceneSetupHook_) {
 		defaultSceneSetupHook_(*this);
 	}
+
+	RefreshFlowState();
 }
 
 /**
@@ -598,11 +688,17 @@ void Scene::HandleDeferredLoads() {
 
 				LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
 				//Economy::Reset();
+
+				if (messageBus_) {
+					messageBus_->Post<CoreFramework::LevelLoadedMessage>(pendingLevelPath_, pendingLevelSimActive_);
+				}
+				RefreshFlowState();
 			}
 		}
 
 		hasPendingLevel_ = false;
 		pendingLevelPath_.clear();
+		RefreshFlowState();
 	}
 }
 
@@ -688,6 +784,7 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 	if (resumeFromPausePending_ && !pauseOverlayActive_) {
 		SetSimulationActive(true);
 		resumeFromPausePending_ = false;
+		RefreshFlowState();
 	}
 #endif
 
@@ -729,6 +826,7 @@ void Scene::ClearAll() {
 		customerResetHook_(*this);
 	}
 	ResetLevelObjectState();
+	RefreshFlowState();
 }
 
 /**
@@ -761,6 +859,7 @@ void Scene::ResetLevelObjectState() {
 	exitGateCached_ = false;
 	exitGateWorld_ = Math::Vector2D(0.0f, 0.0f);
 	editorSelectedId = -1;
+	flowStateBeforePause_ = FlowState::Gameplay;
 }
 
 /**
@@ -1553,6 +1652,11 @@ void Scene::QueueLevelLoad(const std::string& path, bool activateSimulation) {
 	pendingLevelPath_ = path;
 	pendingLevelSimActive_ = activateSimulation;
 	hasPendingLevel_ = true;
+	SetFlowState(FlowState::LoadingLevel);
+
+	if (messageBus_) {
+		messageBus_->Post<CoreFramework::LevelLoadQueuedMessage>(path, activateSimulation);
+	}
 }
 
 /**
@@ -1563,6 +1667,7 @@ void Scene::QueueLevelLoad(const std::string& path, bool activateSimulation) {
 void Scene::RequestStateChange(int newState) {
 	pendingState_ = newState;
 	hasPendingStateChange_ = true;
+	SetFlowState(FlowState::Transitioning);
 }
 
 /**
@@ -1572,7 +1677,13 @@ void Scene::RequestStateChange(int newState) {
 void Scene::ShowPauseOverlay() {
 #ifndef _DEBUG
 	if (pauseOverlayActive_) return;
+	flowStateBeforePause_ = ComputeSteadyFlowState();
 	pauseOverlayActive_ = true;
+	SetFlowState(FlowState::Paused);
+
+	if (messageBus_) {
+		messageBus_->Post<CoreFramework::PauseOverlayChangedMessage>(true);
+	}
 
 	std::cout << "[Scene] ShowPauseOverlay()\n";
 
@@ -1644,6 +1755,9 @@ void Scene::RequestResumeFromPauseOverlay() {
 	// Defer simulation re-enable until end-of-frame to avoid
 	// running physics/collision in the same frame the pause UI click is handled.
 	resumeFromPausePending_ = true;
+	if (!pauseOverlayActive_) {
+		RefreshFlowState();
+	}
 #endif
 }
 
@@ -1684,6 +1798,11 @@ void Scene::HidePauseOverlay() {
 		}
 
 		std::cout << "[Scene] Resumed and fading in level BGM and ambience after pause menu" << std::endl;
+	}
+	SetFlowState(resumeFromPausePending_ ? flowStateBeforePause_ : ComputeSteadyFlowState());
+
+	if (messageBus_) {
+		messageBus_->Post<CoreFramework::PauseOverlayChangedMessage>(false);
 	}
 #endif
 }
@@ -2066,6 +2185,7 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 
 	SetSimulationActive(false);
 	HidePauseOverlay();
+	SetFlowState(FlowState::Cutscene);
 	SpawnCutsceneSkipPrompt();
 
 	// Reset state
@@ -2278,6 +2398,7 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 
 	SetSimulationActive(false);
 	HidePauseOverlay();
+	SetFlowState(FlowState::Cutscene);
 	SpawnCutsceneSkipPrompt();
 
 	if (cutTrans_.currentSpriteId >= 0) DespawnByID(cutTrans_.currentSpriteId);
@@ -2696,6 +2817,7 @@ void Scene::StartLevelTransition(const std::string& levelJsonPath,
 	levelTrans_.targetActivateSim = activateSimulation;
 	levelTrans_.outSec = fadeOutSeconds;
 	levelTrans_.inSec = fadeInSeconds;
+	SetFlowState(FlowState::Transitioning);
 
 	// Reuse existing "fade in after load" behavior that you already have:
 	// Scene::Update checks cutTrans_.fadeInAfterLoad and uses cutTrans_.inSeconds.
@@ -2724,6 +2846,7 @@ void Scene::UpdateLevelTransition() {
 		cutTrans_.fadeInAfterLoad = true;
 
 		levelTrans_.active = false;
+		SetFlowState(FlowState::LoadingLevel);
 	}
 }
 
@@ -2732,6 +2855,8 @@ void Scene::UpdateLevelTransition() {
  * @return Result produced by this operation.
  */
 void Scene::SkipActiveCutscene() {
+	bool publishedSkipEvent = false;
+
 	if (cutTrans_.active) {
 		auto& gfx = GetGraphicsEngine();
 		const float skipFadeOutSeconds = cutTrans_.outSeconds * 2.0f;
@@ -2747,6 +2872,7 @@ void Scene::SkipActiveCutscene() {
 		cutTrans_.holding = false;
 		cutTrans_.crossfading = false;
 		cutTrans_.holdElapsed = 0.0f;
+		SetFlowState(FlowState::Transitioning);
 
 		if (!cutTrans_.images.empty()) {
 			cutTrans_.index = cutTrans_.images.size() - 1;
@@ -2757,6 +2883,11 @@ void Scene::SkipActiveCutscene() {
 			skipCutsceneAudioHook_(*this, skipFadeOutSeconds);
 		}
 #endif
+
+		if (messageBus_) {
+			messageBus_->Post<CoreFramework::CutsceneSkippedMessage>(true, cutTrans_.targetLevelJson);
+			publishedSkipEvent = true;
+		}
 	}
 
 	if (cutscene_.active) {
@@ -2767,6 +2898,10 @@ void Scene::SkipActiveCutscene() {
 		if (!cutscene_.queuedFinalLoad) {
 			cutscene_.queuedFinalLoad = true;
 			QueueLevelLoad(cutscene_.targetLevelJson, cutscene_.targetActivateSim);
+		}
+
+		if (messageBus_ && !publishedSkipEvent) {
+			messageBus_->Post<CoreFramework::CutsceneSkippedMessage>(false, cutscene_.targetLevelJson);
 		}
 	}
 }

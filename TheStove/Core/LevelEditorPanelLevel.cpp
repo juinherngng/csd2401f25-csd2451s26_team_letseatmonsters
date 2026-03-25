@@ -22,39 +22,40 @@
 #include <imgui_internal.h>
 #endif
 
-#include <filesystem>
-#include <vector>
-#include <string>
 #include <algorithm>
 #include <cctype>
-#include <unordered_set>
-#include <unordered_map>
-#include <sstream>
-#include <iostream>
-#include <cstdio>
 #include <cmath>
+#include <cstdio>
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #ifdef _DEBUG
 #include <windows.h>
 #endif
 
-#include "../Graphics/SceneManager.hpp"
-#include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/Layer.hpp"
+#include "../Graphics/ResourceManager.hpp"
+#include "../Graphics/SceneManager.hpp"
 
-#include "LevelEditorPanelLevel.hpp"
+#include "AudioLoading.hpp"
+#include "InputManager.hpp"
 #include "LevelEditor.hpp"
-#include "LevelEditorFileIO.hpp"
-#include "LevelEditorPrefabLinks.hpp"
-#include "LevelEditorPanelFonts.hpp"  // Include for text object sync
 #include "LevelEditorActions.hpp"
 #include "LevelEditorCommandSystem.hpp"
+#include "LevelEditorFileIO.hpp"
 #include "LevelEditorHierarchy.hpp"
-#include "InputManager.hpp"
-#include "AudioLoading.hpp"
+#include "LevelEditorPanelFonts.hpp" // Include for text object sync
+#include "LevelEditorPanelLevel.hpp"
+#include "LevelEditorPrefabLinks.hpp"
+#include "RuntimeLevel.hpp"
 
 namespace fs = std::filesystem;
 
@@ -299,9 +300,7 @@ namespace {
 	 * @return True when an undo operation was performed.
 	 */
 	static bool PerformUndo(LevelEditor& editor, Scene& scene) {
-		return LECOMMAND::Undo(editor,
-			[&](LevelData& outState) { CaptureEditorState(scene, outState); },
-			[&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
+		return LECOMMAND::Undo(editor, [&](LevelData& outState) { CaptureEditorState(scene, outState); }, [&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
 	}
 
 	/**
@@ -311,9 +310,7 @@ namespace {
 	 * @return True when a redo operation was performed.
 	 */
 	static bool PerformRedo(LevelEditor& editor, Scene& scene) {
-		return LECOMMAND::Redo(editor,
-			[&](LevelData& outState) { CaptureEditorState(scene, outState); },
-			[&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
+		return LECOMMAND::Redo(editor, [&](LevelData& outState) { CaptureEditorState(scene, outState); }, [&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
 	}
 
 	/**
@@ -379,7 +376,8 @@ namespace {
 
 			// Optional: keep it within [0, 360) if you want
 			rotDeg = std::fmod(rotDeg, 360.0f);
-			if (rotDeg < 0.0f) rotDeg += 360.0f;
+			if (rotDeg < 0.0f)
+				rotDeg += 360.0f;
 
 			// Apply to object
 			g->SetRotation(glm::radians(rotDeg), { 0, 0, 1 });
@@ -711,7 +709,7 @@ namespace {
 		}
 	}
 #endif
-}
+} // namespace
 
 // Public ImGui Level Panel Implementation
 namespace LEPANELLEVEL {
@@ -725,6 +723,8 @@ namespace LEPANELLEVEL {
 	 */
 	void DrawLevelPanel(LevelEditor& editor, Scene& scene,
 		int& selectedIndex, int& selectedObjectId) {
+		static RuntimeLevel::LevelValidationReport sLastValidationReport{};
+
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 
 		// Force "no default level" once per run
@@ -816,113 +816,123 @@ namespace LEPANELLEVEL {
 			editor.levelPath = (fs::path(sLevelsDir) / (stem + ".json")).generic_string();
 		}
 
-		LEACTIONS::HandleUndoRedoShortcuts(editor,
-			[&]() {
-				if (PerformUndo(editor, scene)) {
-					selectedIndex = -1;
-					selectedObjectId = -1;
-					return true;
-				}
+		LEACTIONS::HandleUndoRedoShortcuts(editor, [&]() {
+			if (PerformUndo(editor, scene)) {
+				selectedIndex = -1;
+				selectedObjectId = -1;
+				return true;
+			}
 
-				return false;
-			},
-			[&]() {
+			return false; }, [&]() {
 				if (PerformRedo(editor, scene)) {
 					selectedIndex = -1;
 					selectedObjectId = -1;
 					return true;
 				}
 
-				return false;
-			});
+				return false; });
 
 		static std::size_t sLastSavedHash = 0;
 		static std::string sLastSavedPath;
 
-		LEACTIONS::DrawActionGrid(editor, scene, {
-			[&]() {
-				scene.StopAllObjectAudio();
-				scene.SetSimulationActive(false);
-				editor.SetPlaying(false);
+		LEACTIONS::DrawActionGrid(editor, scene, { [&]() {
+													  scene.StopAllObjectAudio();
+													  scene.SetSimulationActive(false);
+													  editor.SetPlaying(false);
 
-				LevelData& work = editor.MutableLevel();
-				if (LevelSerializer::Load(editor.levelPath, work)) {
-					scene.SetCurrentLevelPath(editor.levelPath);
-					scene.ClearAll();
-					LEPANELFONTS::ClearTextObjects();
-					SyncLevelToScene(work, scene);
-					SyncTextObjectsToEditor(work);
-					scene.RebuildColliders();
-					scene.SetSimulationActive(false);
-					scene.ResetResizeBaseline();
+													  LevelData& work = editor.MutableLevel();
+													  if (LevelSerializer::Load(editor.levelPath, work)) {
+														  sLastValidationReport = RuntimeLevel::ValidateLevelData(editor.levelPath, work);
+														  if (sLastValidationReport.HasWarnings()) {
+															  std::cerr << "[LevelEditor] Validation warnings for '" << editor.levelPath
+																		<< "' (" << sLastValidationReport.warnings.size() << "):" << std::endl;
+															  for (const std::string& warning : sLastValidationReport.warnings) {
+																  std::cerr << "  - " << warning << std::endl;
+															  }
+														  }
 
-					selectedIndex = -1;
-					selectedObjectId = -1;
-					LEHIERARCHY::InvalidateCache();
-					sLastSavedHash = HashLevelData(work);
-					sLastSavedPath = editor.levelPath;
-					ClearUndoHistory();
-				}
-			},
-			[&]() {
-				scene.StopAllObjectAudio();
-				scene.SetSimulationActive(false);
-				scene.ClearAll();
-				scene.RebuildColliders();
-				scene.ResetResizeBaseline();
+														  scene.SetCurrentLevelPath(editor.levelPath);
+														  scene.ClearAll();
+														  LEPANELFONTS::ClearTextObjects();
+														  SyncLevelToScene(work, scene);
+														  SyncTextObjectsToEditor(work);
+														  scene.RebuildColliders();
+														  scene.SetSimulationActive(false);
+														  scene.ResetResizeBaseline();
 
-				editor.SetPlaying(false);
-				LEPANELFONTS::ClearTextObjects();
+														  selectedIndex = -1;
+														  selectedObjectId = -1;
+														  LEHIERARCHY::InvalidateCache();
+														  sLastSavedHash = HashLevelData(work);
+														  sLastSavedPath = editor.levelPath;
+														  ClearUndoHistory();
+													  }
+												  },
+												  [&]() {
+													  scene.StopAllObjectAudio();
+													  scene.SetSimulationActive(false);
+													  scene.ClearAll();
+													  scene.RebuildColliders();
+													  scene.ResetResizeBaseline();
 
-				LevelData& fresh = editor.MutableLevel();
-				fresh.objects.clear();
-				fresh.textObjects.clear();
-				fresh.background.clear();
-				LEHIERARCHY::InvalidateCache();
-				sLastSavedHash = HashLevelData(fresh);
-				sLastSavedPath.clear();
-				ClearUndoHistory();
-			},
-			[&]() {
-				LevelData& dst = editor.MutableLevel();
-				SyncSceneToLevel(scene, dst);
-				SyncTextObjectsToLevel(dst);
-				const std::size_t currentHash = HashLevelData(dst);
-				const bool savePathChanged = (editor.levelPath != sLastSavedPath);
+													  editor.SetPlaying(false);
+													  LEPANELFONTS::ClearTextObjects();
 
-				if ((currentHash != sLastSavedHash || savePathChanged) && LevelSerializer::Save(editor.levelPath, dst)) {
-					sLastSavedHash = currentHash;
-					sLastSavedPath = editor.levelPath;
-				}
-			},
-			[&]() { return PerformUndo(editor, scene); },
-			[&]() { return PerformRedo(editor, scene); },
-			[&]() {
-				LevelData& snap = editor.MutablePlaySnapshot();
-				SyncSceneToLevel(scene, snap);
-				SyncTextObjectsToLevel(snap);
+													  LevelData& fresh = editor.MutableLevel();
+													  fresh.objects.clear();
+													  fresh.textObjects.clear();
+													  fresh.background.clear();
+													  fresh.backgroundOverlay.clear();
+													  sLastValidationReport = {};
+													  LEHIERARCHY::InvalidateCache();
+													  sLastSavedHash = HashLevelData(fresh);
+													  sLastSavedPath.clear();
+													  ClearUndoHistory();
+												  },
+												  [&]() {
+													  LevelData& dst = editor.MutableLevel();
+													  SyncSceneToLevel(scene, dst);
+													  SyncTextObjectsToLevel(dst);
+													  const std::size_t currentHash = HashLevelData(dst);
+													  const bool savePathChanged = (editor.levelPath != sLastSavedPath);
 
-				editor.SetPlaying(true);
-				selectedIndex = -1;
-				selectedObjectId = -1;
+													  if ((currentHash != sLastSavedHash || savePathChanged) && LevelSerializer::Save(editor.levelPath, dst)) {
+														  sLastSavedHash = currentHash;
+														  sLastSavedPath = editor.levelPath;
+													  }
+												  },
+												  [&]() { return PerformUndo(editor, scene); }, [&]() { return PerformRedo(editor, scene); }, [&]() {
+						LevelData& snap = editor.MutablePlaySnapshot();
+						SyncSceneToLevel(scene, snap);
+						SyncTextObjectsToLevel(snap);
 
-				scene.SetSimulationActive(true);
-				scene.ClearAll();
-				SyncLevelToScene(snap, scene);
-				scene.RebuildColliders();
-				scene.ResolveInitialStaticOverlaps();
-			},
-			[&]() {
-				scene.StopAllObjectAudio();
-				scene.SetSimulationActive(false);
+						editor.SetPlaying(true);
+						selectedIndex = -1;
+						selectedObjectId = -1;
 
-				scene.ClearAll();
-				SyncLevelToScene(editor.MutablePlaySnapshot(), scene);
-				SyncTextObjectsToEditor(editor.MutablePlaySnapshot());
-				scene.RebuildColliders();
-				editor.SetPlaying(false);
+						scene.SetSimulationActive(true);
+						scene.ClearAll();
+						SyncLevelToScene(snap, scene);
+						scene.RebuildColliders();
+						scene.ResolveInitialStaticOverlaps(); }, [&]() {
+						scene.StopAllObjectAudio();
+						scene.SetSimulationActive(false);
+
+						scene.ClearAll();
+						SyncLevelToScene(editor.MutablePlaySnapshot(), scene);
+						SyncTextObjectsToEditor(editor.MutablePlaySnapshot());
+						scene.RebuildColliders();
+						editor.SetPlaying(false); } });
+
+		if (sLastValidationReport.HasWarnings() && ImGui::CollapsingHeader("Validation Warnings", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::TextColored(ImVec4(1.0f, 0.78f, 0.25f, 1.0f), "%d warning(s) in loaded level", static_cast<int>(sLastValidationReport.warnings.size()));
+			ImGui::BeginChild("##LevelValidationWarnings", ImVec2(0.0f, 120.0f), true);
+			for (const std::string& warning : sLastValidationReport.warnings) {
+				ImGui::TextWrapped("- %s", warning.c_str());
 			}
-			});
+
+			ImGui::EndChild();
+		}
 
 		DrawLayerManager(scene, selectedObjectId);
 
@@ -932,7 +942,10 @@ namespace LEPANELLEVEL {
 			static char sHierarchyFilter[128] = "";
 			static bool sHierarchyCompactDensity = false;
 			enum class HierarchyQuickFilter {
-				All = 0, LayerCurrent, HasCollider, HasAudio
+				All = 0,
+				LayerCurrent,
+				HasCollider,
+				HasAudio
 			};
 			static HierarchyQuickFilter sQuickFilter = HierarchyQuickFilter::All;
 
@@ -1126,8 +1139,11 @@ namespace LEPANELLEVEL {
 			LevelObject proto{};
 			proto.texture = "../assets/goat_sprite_front.png";
 			proto.tag = "npc";
-			proto.x = 300.f; proto.y = 300.f; proto.z = 0.f;
-			proto.w = 128.f; proto.h = 128.f;
+			proto.x = 300.f;
+			proto.y = 300.f;
+			proto.z = 0.f;
+			proto.w = 128.f;
+			proto.h = 128.f;
 			proto.layer = "1";
 			proto.rotation = 0.f;
 
@@ -1201,14 +1217,16 @@ namespace LEPANELLEVEL {
 			char textureBuf[256];
 			{
 				std::string texPath = scene.GetObjectTexturePath(id);
-				if (texPath.empty()) texPath = "../assets/goat_sprite_front.png";
+				if (texPath.empty())
+					texPath = "../assets/goat_sprite_front.png";
 				std::snprintf(textureBuf, sizeof(textureBuf), "%s", texPath.c_str());
 			}
 
 			char tagBuf[64] = "";
 			{
 				std::string tag = scene.GetObjectTag(id);
-				if (tag.empty()) tag = defaults.tag;
+				if (tag.empty())
+					tag = defaults.tag;
 				std::snprintf(tagBuf, sizeof(tagBuf), "%s", tag.c_str());
 			}
 
@@ -1309,7 +1327,8 @@ namespace LEPANELLEVEL {
 				};
 
 			// Texture
-			ImGui::Text("Texture"); ImGui::NextColumn();
+			ImGui::Text("Texture");
+			ImGui::NextColumn();
 			FullWidthNext();
 			bool texEdited = ImGui::InputText("##TexturePath", textureBuf, IM_ARRAYSIZE(textureBuf));
 
@@ -1347,7 +1366,8 @@ namespace LEPANELLEVEL {
 			ImGui::NextColumn();
 
 			// Tag
-			ImGui::Text("Tag"); ImGui::NextColumn();
+			ImGui::Text("Tag");
+			ImGui::NextColumn();
 			FullWidthNext();
 			ImGui::InputText("##Tag", tagBuf, IM_ARRAYSIZE(tagBuf));
 
@@ -1359,7 +1379,8 @@ namespace LEPANELLEVEL {
 			ImGui::NextColumn();
 
 			// Layer
-			ImGui::Text("Layer"); ImGui::NextColumn();
+			ImGui::Text("Layer");
+			ImGui::NextColumn();
 			FullWidthNext();
 
 			// Current layer name (fallback to "Default" if empty)
@@ -1400,7 +1421,8 @@ namespace LEPANELLEVEL {
 			ImGui::NextColumn();
 
 			// Position
-			ImGui::Text("Position (x,y)"); ImGui::NextColumn();
+			ImGui::Text("Position (x,y)");
+			ImGui::NextColumn();
 			FullWidthNext();
 			DragVec2WithReset("##pos", &position.x, ImVec2(defaults.pos.x, defaults.pos.y), 1.0f, [&](bool) {
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
@@ -1410,7 +1432,8 @@ namespace LEPANELLEVEL {
 			ImGui::NextColumn();
 
 			// Size
-			ImGui::Text("Size (w,h)"); ImGui::NextColumn();
+			ImGui::Text("Size (w,h)");
+			ImGui::NextColumn();
 			FullWidthNext();
 			DragVec2WithReset("##size", &size.x, ImVec2(defaults.size.x, defaults.size.y), 1.0f, [&](bool) {
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
@@ -1424,7 +1447,6 @@ namespace LEPANELLEVEL {
 					SyncColliderDefaults({ colliderSize.x, colliderSize.y }, colliderOff);
 					scene.RebuildColliders();
 				}
-
 				});
 			ImGui::NextColumn();
 
@@ -1479,7 +1501,8 @@ namespace LEPANELLEVEL {
 				ImGui::NextColumn();
 
 				// Rotation
-				ImGui::Text("Rotation (deg)"); ImGui::NextColumn();
+				ImGui::Text("Rotation (deg)");
+				ImGui::NextColumn();
 				FullWidthNext();
 				DragFloatWithReset("##rot", &rotationDeg, defaults.rot, 0.8f, [&](bool) {
 					// Clamp to [0, 360) before applying so it never stores huge angles
@@ -1586,7 +1609,7 @@ namespace LEPANELLEVEL {
 
 				// Build list of audio names for combo boxes
 				std::vector<const char*> audioNames;
-				audioNames.push_back("(None)");  // First option to clear binding
+				audioNames.push_back("(None)"); // First option to clear binding
 				for (const auto& asset : audioAssets) {
 					audioNames.push_back(asset.name.c_str());
 				}
@@ -1615,10 +1638,14 @@ namespace LEPANELLEVEL {
 									PushUndoSnapshot(editor, scene);
 								}
 								audioBinding = (i == 0) ? "" : audioNames[i];
-								if (label == std::string("On Spawn")) defaults.audioOnSpawn = audioBinding;
-								else if (label == std::string("On Interact")) defaults.audioOnInteract = audioBinding;
-								else if (label == std::string("On Destroy")) defaults.audioOnDestroy = audioBinding;
-								else if (label == std::string("On Processing")) defaults.audioOnProcessing = audioBinding;
+								if (label == std::string("On Spawn"))
+									defaults.audioOnSpawn = audioBinding;
+								else if (label == std::string("On Interact"))
+									defaults.audioOnInteract = audioBinding;
+								else if (label == std::string("On Destroy"))
+									defaults.audioOnDestroy = audioBinding;
+								else if (label == std::string("On Processing"))
+									defaults.audioOnProcessing = audioBinding;
 								scene.SetDefaults(id, defaults);
 							}
 							if (isSelected) {
@@ -1635,10 +1662,14 @@ namespace LEPANELLEVEL {
 							if (droppedName) {
 								PushUndoSnapshot(editor, scene);
 								audioBinding = droppedName;
-								if (label == std::string("On Spawn")) defaults.audioOnSpawn = audioBinding;
-								else if (label == std::string("On Interact")) defaults.audioOnInteract = audioBinding;
-								else if (label == std::string("On Destroy")) defaults.audioOnDestroy = audioBinding;
-								else if (label == std::string("On Processing")) defaults.audioOnProcessing = audioBinding;
+								if (label == std::string("On Spawn"))
+									defaults.audioOnSpawn = audioBinding;
+								else if (label == std::string("On Interact"))
+									defaults.audioOnInteract = audioBinding;
+								else if (label == std::string("On Destroy"))
+									defaults.audioOnDestroy = audioBinding;
+								else if (label == std::string("On Processing"))
+									defaults.audioOnProcessing = audioBinding;
 								scene.SetDefaults(id, defaults);
 							}
 						}
@@ -1651,10 +1682,14 @@ namespace LEPANELLEVEL {
 					if (ImGui::Button(clearBtnId.c_str(), ImVec2(20, 0))) {
 						PushUndoSnapshot(editor, scene);
 						audioBinding = "";
-						if (label == std::string("On Spawn")) defaults.audioOnSpawn = "";
-						else if (label == std::string("On Interact")) defaults.audioOnInteract = "";
-						else if (label == std::string("On Destroy")) defaults.audioOnDestroy = "";
-						else if (label == std::string("On Processing")) defaults.audioOnProcessing = "";
+						if (label == std::string("On Spawn"))
+							defaults.audioOnSpawn = "";
+						else if (label == std::string("On Interact"))
+							defaults.audioOnInteract = "";
+						else if (label == std::string("On Destroy"))
+							defaults.audioOnDestroy = "";
+						else if (label == std::string("On Processing"))
+							defaults.audioOnProcessing = "";
 						scene.SetDefaults(id, defaults);
 					}
 					if (ImGui::IsItemHovered()) {
@@ -1967,7 +2002,7 @@ namespace LEPANELLEVEL {
 						g->SetRotation(glm::radians(data.rotation), { 0, 0, 1 });
 
 						if (data.colWidth > 0.f && data.colHeight > 0.f) {
-							g->SetColliderSize({ data.colWidth,  data.colHeight });
+							g->SetColliderSize({ data.colWidth, data.colHeight });
 							g->SetColliderOffset({ data.colOffsetX, data.colOffsetY });
 						}
 
@@ -2064,4 +2099,4 @@ namespace LEPANELLEVEL {
 		// No-op in Release.
 	}
 #endif
-}
+} // namespace LEPANELLEVEL

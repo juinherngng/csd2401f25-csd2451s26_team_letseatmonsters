@@ -756,6 +756,8 @@ static bool init(ApplicationState& app, GLint width, GLint height, std::string t
 		std::cout << "AudioManager connected to Scene for UI sounds.\n";
 	}
 
+	app.currentScene->SetMessageBus(&app.coreEngine->GetMessageBus());
+
 	app.currentScene->LoadScene("LoadTest");
 
 	// Set the EntityManager reference in AnimationManager

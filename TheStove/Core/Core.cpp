@@ -53,6 +53,40 @@ namespace CoreFramework {
 					std::cout << "[Core] STOP_AUDIO message: sound='" << stopMsg.soundName << "'" << std::endl;
 				}
 			});
+
+		messageBus.Subscribe(MessageType::SCENE_FLOW_STATE_CHANGED,
+			[](const Message& msg) {
+				const auto& flowMsg = static_cast<const SceneFlowStateChangedMessage&>(msg);
+				std::cout << "[Core] SCENE_FLOW_STATE_CHANGED: state='" << flowMsg.stateName
+					<< "', simulationActive=" << (flowMsg.simulationActive ? "true" : "false") << std::endl;
+			});
+
+		messageBus.Subscribe(MessageType::LEVEL_LOAD_QUEUED,
+			[](const Message& msg) {
+				const auto& levelMsg = static_cast<const LevelLoadQueuedMessage&>(msg);
+				std::cout << "[Core] LEVEL_LOAD_QUEUED: path='" << levelMsg.levelPath
+					<< "', activateSimulation=" << (levelMsg.activateSimulation ? "true" : "false") << std::endl;
+			});
+
+		messageBus.Subscribe(MessageType::LEVEL_LOADED,
+			[](const Message& msg) {
+				const auto& levelMsg = static_cast<const LevelLoadedMessage&>(msg);
+				std::cout << "[Core] LEVEL_LOADED: path='" << levelMsg.levelPath
+					<< "', simulationActive=" << (levelMsg.simulationActive ? "true" : "false") << std::endl;
+			});
+
+		messageBus.Subscribe(MessageType::PAUSE_OVERLAY_CHANGED,
+			[](const Message& msg) {
+				const auto& pauseMsg = static_cast<const PauseOverlayChangedMessage&>(msg);
+				std::cout << "[Core] PAUSE_OVERLAY_CHANGED: isOpen=" << (pauseMsg.isOpen ? "true" : "false") << std::endl;
+			});
+
+		messageBus.Subscribe(MessageType::CUTSCENE_SKIPPED,
+			[](const Message& msg) {
+				const auto& skipMsg = static_cast<const CutsceneSkippedMessage&>(msg);
+				std::cout << "[Core] CUTSCENE_SKIPPED: transitioned=" << (skipMsg.transitionedCutscene ? "true" : "false")
+					<< ", target='" << skipMsg.targetLevelPath << "'" << std::endl;
+			});
 	}
 
 	CoreEngine::~CoreEngine() {
