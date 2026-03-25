@@ -3,6 +3,10 @@
 cmake_minimum_required(VERSION 3.5...3.27)
 project (Lets-Eat-Monsters)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 include(ImportDependencies)
@@ -19,7 +23,7 @@ set(ALL_LIBS
 )
 
 # Gather source files for the core game library
-file(GLOB_RECURSE SOURCE_FILES
+file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_LIST_DIR}/TheStove/*.cpp
     ${CMAKE_CURRENT_LIST_DIR}/TheStove/*.h
     ${CMAKE_CURRENT_LIST_DIR}/TheStove/*.hpp
@@ -61,13 +65,12 @@ set(GAME_FILES_IN_THESTOVE
     ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/Quota.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/Quota.hpp
     ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/FoodTypes.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Main.cpp
 )
 
 list(REMOVE_ITEM SOURCE_FILES ${GAME_FILES_IN_THESTOVE})
 
 # Gather source files for game-specific code
-file(GLOB_RECURSE GAME_SOURCE_FILES
+file(GLOB_RECURSE GAME_SOURCE_FILES CONFIGURE_DEPENDS
     ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/*.cpp
     ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/*.h
     ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/*.hpp
@@ -100,9 +103,6 @@ target_include_directories(TheStove PUBLIC
 
 target_link_libraries(TheStove PUBLIC ${ALL_LIBS})
 
-# Set C++ standard for the library
-set_property(TARGET TheStove PROPERTY CXX_STANDARD 20)
-
 # Game-specific library layered on top of TheStove
 add_library(MyoonchiDiner STATIC ${GAME_SOURCE_FILES})
 
@@ -120,10 +120,9 @@ target_include_directories(MyoonchiDiner PUBLIC
 )
 
 target_link_libraries(MyoonchiDiner PUBLIC TheStove)
-set_property(TARGET MyoonchiDiner PROPERTY CXX_STANDARD 20)
 
 # Create executable target, typically with only main.cpp or launcher
-add_executable(LetsEatMonsters ${CMAKE_CURRENT_LIST_DIR}/TheStove/main.cpp)
+add_executable(LetsEatMonsters ${CMAKE_CURRENT_LIST_DIR}/TheStove/Main.cpp)
 
 target_link_libraries(LetsEatMonsters PRIVATE MyoonchiDiner)
 
@@ -137,9 +136,6 @@ if(WIN32)
         $<$<NOT:$<CONFIG:Debug>>:/ENTRY:mainCRTStartup>
     )
 endif()
-
-# Set C++ standard for the build
-set_property(TARGET LetsEatMonsters PROPERTY CXX_STANDARD 20)
 
 # Set the working directory for Visual Studio debugging to the build directory
 # This ensures relative paths like ../assets work correctly
@@ -178,14 +174,6 @@ add_custom_command(TARGET LetsEatMonsters POST_BUILD
     "${CMAKE_SOURCE_DIR}/prefabs"
     "${CMAKE_BINARY_DIR}/prefabs"
     COMMENT "Copying prefab files to build directory"
-)
-
-# Copy extern files to the build directory for run.bat
-add_custom_command(TARGET LetsEatMonsters POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_SOURCE_DIR}/extern"
-    "${CMAKE_BINARY_DIR}/extern"
-    COMMENT "Copying extern files to build directory"
 )
 
 # Add compiler warnings and flags based on compiler

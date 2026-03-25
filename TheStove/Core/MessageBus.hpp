@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Publish/Subscribe message bus for inter-component communication.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -17,6 +17,7 @@
 #include <deque>
 #include <functional>
 #include <memory>
+#include <utility>
 #include <unordered_map>
 #include <vector>
 
@@ -26,6 +27,7 @@ namespace CoreFramework {
 
 	// Unique subscriber ID for unsubscribing
 	using SubscriberId = size_t;
+	using SubscriberEntry = std::pair<SubscriberId, MessageCallback>;
 
 	/************************************************************************/
 	/*!
@@ -96,8 +98,13 @@ namespace CoreFramework {
 		void Publish(const Message& message) {
 			auto it = subscribers.find(message.MessageId);
 			if (it != subscribers.end()) {
-				for (auto& [id, callback] : it->second) {
-					callback(message);
+				// Dispatch against a snapshot so callbacks can safely mutate
+				// subscriptions without invalidating this iteration.
+				std::vector<SubscriberEntry> callbacks = it->second;
+				for (const auto& [id, callback] : callbacks) {
+					if (IsStillSubscribed(message.MessageId, id)) {
+						callback(message);
+					}
 				}
 			}
 		}
@@ -167,8 +174,24 @@ namespace CoreFramework {
 		}
 
 	private:
+		bool IsStillSubscribed(MessageType messageType, SubscriberId subscriberId) const {
+			auto it = subscribers.find(messageType);
+			if (it == subscribers.end()) {
+				return false;
+			}
+
+			for (const auto& [id, callback] : it->second) {
+				(void)callback;
+				if (id == subscriberId) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		// Map of message type -> list of (subscriberId, callback)
-		std::unordered_map<MessageType, std::vector<std::pair<SubscriberId, MessageCallback>>> subscribers;
+		std::unordered_map<MessageType, std::vector<SubscriberEntry>> subscribers;
 
 		// Queue for deferred message processing
 		std::deque<std::unique_ptr<Message>> messageQueue;
@@ -177,3 +200,4 @@ namespace CoreFramework {
 		SubscriberId nextSubscriberId;
 	};
 }
+
