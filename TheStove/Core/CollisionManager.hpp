@@ -10,7 +10,7 @@
 					spatial grid of GameObjects, rebuilds broad-phase data every frame, and
 					exposes helper queries for nearby/point lookups used by gameplay code.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -33,59 +33,123 @@ class Scene;
 // Forward declare GameObject to avoid circular dependency.
 class CollisionManager : public CoreFramework::SystemInterface {
 public:
-	// Public interface methods.
+
+	/**
+	 * @brief Constructs a `CollisionManager` instance.
+	 * @param cellSize Parameter for cell size.
+	 * @return Result produced by this operation.
+	 */
 	explicit CollisionManager(float cellSize = 100.0f);
 
-	// SystemInterface implementation.
+	/**
+	 * @brief Initializes this object.
+	 */
 	void Initialize() override;
+
+	/**
+	 * @brief Updates this object.
+	 * @param deltaTime Frame delta time in seconds.
+	 */
 	void Update(float deltaTime) override;
+
+	/**
+	 * @brief Returns the stable name for this object.
+	 * @return Requested value.
+	 */
 	std::string GetName() override;
 
-	// Set the EntityManager reference (must be called after construction).
+	/**
+	 * @brief Sets entity manager.
+	 * @param entityMgr Parameter for entity mgr.
+	 */
 	void SetEntityManager(EntityManager* entityMgr);
 
-	// Main update method to rebuild broad-phase grid and update collision world as needed.
+	/**
+	 * @brief Updates collisions.
+	 * @param entityManager Entity manager containing the active objects.
+	 */
 	void UpdateCollisions(EntityManager& entityManager);
 
-	// Build static world geometry from authoring structs.
+	/**
+	 * @brief Builds walls.
+	 * @param walkArea Parameter for walk area.
+	 * @param wood Parameter for wood.
+	 * @param endGate Parameter for end gate.
+	 */
 	void BuildWalls(const collision::WalkArea& walkArea,
 		const collision::WoodVertical& wood,
 		const collision::StageEndGateVertical& endGate);
 
-	// Query grid for objects overlapping an AABB.
+	/**
+	 * @brief Performs query nearby.
+	 * @param queryBox Parameter for query box.
+	 * @return Result produced by this operation.
+	 */
 	std::vector<GameObject*> QueryNearby(const collision::AABB& queryBox) const;
 
-	// Query grid for objects containing a point.
+	/**
+	 * @brief Performs query point.
+	 * @param point Parameter for point.
+	 * @return Result produced by this operation.
+	 */
 	std::vector<GameObject*> QueryPoint(const Math::Vector2D& point) const;
 
-	// Access to the static collision world for trimming and other queries.
+	/**
+	 * @brief Returns collision world.
+	 * @return Requested value.
+	 */
 	collision::World& GetCollisionWorld() {
 		return collisionWorld_;
 	}
+
+	/**
+	 * @brief Returns collision world.
+	 * @return Requested value.
+	 */
 	const collision::World& GetCollisionWorld() const {
 		return collisionWorld_;
 	}
 
-	// Access to the spatial grid for direct updates or queries.
+	/**
+	 * @brief Returns spatial grid.
+	 * @return Requested value.
+	 */
 	SpatialGrid& GetSpatialGrid() {
 		return spatialGrid_;
 	}
+
+	/**
+	 * @brief Returns spatial grid.
+	 * @return Requested value.
+	 */
 	const SpatialGrid& GetSpatialGrid() const {
 		return spatialGrid_;
 	}
 
-	// Add static rectangles to the collision world.
+	/**
+	 * @brief Adds static rects.
+	 * @param rects Parameter for rects.
+	 */
 	void AddStaticRects(const std::vector<collision::AABB>& rects);
 
-	// Set the current scene reference.
+	/**
+	 * @brief Sets scene.
+	 * @param scene Scene being processed.
+	 */
 	void SetScene(Scene* scene) {
 		scene_ = scene;
 	}
+
+	/**
+	 * @brief Performs mark static state dirty.
+	 */
 	void MarkStaticStateDirty() {
 		staticStateDirty_ = true;
 	}
 
-	// Clear both the grid and the world geometry.
+	/**
+	 * @brief Clears this object.
+	 */
 	void Clear();
 
 	// Profiling counters for performance analysis.
@@ -98,10 +162,17 @@ public:
 		std::uint64_t narrowPhaseCollisions = 0;
 	};
 
-	// Access profiling counters for performance analysis.
+	/**
+	 * @brief Returns profile counters.
+	 * @return Requested value.
+	 */
 	const ProfileCounters& GetProfileCounters() const {
 		return profile_;
 	}
+
+	/**
+	 * @brief Resets profile counters.
+	 */
 	void ResetProfileCounters() {
 		profile_ = ProfileCounters{};
 	}
@@ -120,9 +191,25 @@ private:
 		bool broadphaseDirty = true;
 	};
 
-	// Internal methods for broad-phase management and change detection.
+	/**
+	 * @brief Returns whether rebuild grid.
+	 * @param allObjects Parameter for all objects.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool ShouldRebuildGrid(const std::vector<std::unique_ptr<GameObject>>& allObjects);
+
+	/**
+	 * @brief Builds broadphase state.
+	 * @param obj Parameter for obj.
+	 * @return Result produced by this operation.
+	 */
 	ObjectBroadphaseState BuildBroadphaseState(const GameObject* obj) const;
+
+	/**
+	 * @brief Returns whether dynamic object.
+	 * @param obj Parameter for obj.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsDynamicObject(const GameObject* obj) const;
 
 	// Internal helper methods and state.

@@ -741,7 +741,9 @@ namespace LEPANELPREFABS {
 		ImGui::End();
 	}
 #else
-	// Release build: no-op implementation to avoid ImGui dependency
+	/**
+	 * @brief Draws prefabs panel.
+	 */
 	void DrawPrefabsPanel(LevelEditor& /*editor*/, Scene& /*scene*/, int& /*selectedObjectId*/) {
 		// Prefab editor disabled in Release builds.
 	}

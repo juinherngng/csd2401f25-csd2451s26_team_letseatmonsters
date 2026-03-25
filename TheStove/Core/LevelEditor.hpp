@@ -33,6 +33,7 @@ class Scene;
  */
 class LevelEditor {
 public:
+
 	/**
 	 * @brief Returns whether the editor UI is currently enabled.
 	 * @return True when the level editor interface should be shown.

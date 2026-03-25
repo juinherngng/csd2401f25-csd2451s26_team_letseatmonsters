@@ -10,7 +10,7 @@
 					builds/owns world collision geometry, resolves step trimming, and exposes broad-
 					phase queries for overlap/point tests.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -21,21 +21,40 @@
 #include <unordered_set>
 
 namespace {
+
+	/**
+	 * @brief Returns whether overlapsaabb.
+	 * @param lhs Parameter for lhs.
+	 * @param rhs Parameter for rhs.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool OverlapsAABB(const collision::AABB& lhs, const collision::AABB& rhs) {
 		return !(lhs.max.x < rhs.min.x || lhs.min.x > rhs.max.x || lhs.max.y < rhs.min.y || lhs.min.y > rhs.max.y);
 	}
 }
 
-// Constructor
+/**
+ * @brief Performs collision manager.
+ * @param cellSize Parameter for cell size.
+ * @return Result produced by this operation.
+ */
 CollisionManager::CollisionManager(float cellSize)
 	: spatialGrid_(cellSize) {
 }
 
-// SystemInterface implementation
+/**
+ * @brief Initializes this object.
+ * @return Result produced by this operation.
+ */
 void CollisionManager::Initialize() {
 	// No special initialization needed
 }
 
+/**
+ * @brief Updates this object.
+ * @param deltaTime Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void CollisionManager::Update(float deltaTime) {
 	(void)deltaTime; // Suppress unused parameter warning
 
@@ -45,16 +64,28 @@ void CollisionManager::Update(float deltaTime) {
 	}
 }
 
+/**
+ * @brief Returns the stable name for this object.
+ * @return Requested value.
+ */
 std::string CollisionManager::GetName() {
 	return "CollisionManager";
 }
 
-// Engine integration
+/**
+ * @brief Sets entity manager.
+ * @param entityMgr Parameter for entity mgr.
+ * @return Result produced by this operation.
+ */
 void CollisionManager::SetEntityManager(EntityManager* entityMgr) {
 	entityManager_ = entityMgr;
 }
 
-// Broad-phase state tracking
+/**
+ * @brief Returns whether dynamic object.
+ * @param obj Parameter for obj.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool CollisionManager::IsDynamicObject(const GameObject* obj) const {
 	if (!obj) {
 		return false;
@@ -65,7 +96,11 @@ bool CollisionManager::IsDynamicObject(const GameObject* obj) const {
 	return obj->IsMovableByPhysics() || hasVelocity;
 }
 
-// Build the broad-phase state for an object, including position/scale and layer properties relevant to collision logic. Used for change detection to minimize grid rebuilds.
+/**
+ * @brief Builds broadphase state.
+ * @param obj Parameter for obj.
+ * @return Result produced by this operation.
+ */
 CollisionManager::ObjectBroadphaseState CollisionManager::BuildBroadphaseState(const GameObject* obj) const {
 	ObjectBroadphaseState state;
 	if (!obj) {
@@ -90,8 +125,11 @@ CollisionManager::ObjectBroadphaseState CollisionManager::BuildBroadphaseState(c
 	return state;
 }
 
-// Determine if we need to rebuild the spatial grid based on changes to objects' broad-phase state (position/scale/layer properties).
-// If only a few objects changed, we can do a partial update instead of a full rebuild.
+/**
+ * @brief Returns whether rebuild grid.
+ * @param allObjects Parameter for all objects.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool CollisionManager::ShouldRebuildGrid(const std::vector<std::unique_ptr<GameObject>>& allObjects) {
 	std::vector<ObjectBroadphaseState> nextState;
 	nextState.reserve(allObjects.size());
@@ -160,7 +198,11 @@ bool CollisionManager::ShouldRebuildGrid(const std::vector<std::unique_ptr<GameO
 	return changed;
 }
 
-// Per-frame rebuild
+/**
+ * @brief Updates collisions.
+ * @param entityManager Entity manager containing the active objects.
+ * @return Result produced by this operation.
+ */
 void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 	++profile_.updateCalls;
 	// Get all objects as vector of pointers
@@ -232,7 +274,10 @@ void CollisionManager::UpdateCollisions(EntityManager& entityManager) {
 	}
 }
 
-// Lifecycle
+/**
+ * @brief Clears this object.
+ * @return Result produced by this operation.
+ */
 void CollisionManager::Clear() {
 	spatialGrid_.Clear();
 	collisionWorld_.clear();
@@ -244,19 +289,35 @@ void CollisionManager::Clear() {
 
 }
 
-// World building
+/**
+ * @brief Builds walls.
+ * @param walkArea Parameter for walk area.
+ * @param wood Parameter for wood.
+ * @param endGate Parameter for end gate.
+ * @return Result produced by this operation.
+ */
 void CollisionManager::BuildWalls(const collision::WalkArea& walkArea,
 	const collision::WoodVertical& wood,
 	const collision::StageEndGateVertical& endGate) {
 	collisionWorld_.build(walkArea, wood, endGate);
 }
+
+/**
+ * @brief Adds static rects.
+ * @param rects Parameter for rects.
+ * @return Result produced by this operation.
+ */
 void CollisionManager::AddStaticRects(const std::vector<collision::AABB>& rects) {
 	for (const auto& r : rects) {
 		collisionWorld_.addWall(r);
 	}
 }
 
-// Queries
+/**
+ * @brief Performs query nearby.
+ * @param queryBox Parameter for query box.
+ * @return Result produced by this operation.
+ */
 std::vector<GameObject*> CollisionManager::QueryNearby(const collision::AABB& queryBox) const {
 	std::vector<GameObject*> candidates;
 	spatialGrid_.Query(queryBox, candidates);
@@ -277,6 +338,12 @@ std::vector<GameObject*> CollisionManager::QueryNearby(const collision::AABB& qu
 
 	return candidates;
 }
+
+/**
+ * @brief Performs query point.
+ * @param point Parameter for point.
+ * @return Result produced by this operation.
+ */
 std::vector<GameObject*> CollisionManager::QueryPoint(const Math::Vector2D& point) const {
 	std::vector<GameObject*> candidates;
 	spatialGrid_.QueryPoint(point, candidates);

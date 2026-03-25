@@ -49,6 +49,7 @@
 namespace fs = std::filesystem;
 
 namespace {
+
 	/**
 	 * @brief Returns whether a path contains a specific component.
 	 * @param path Path to inspect.
@@ -143,6 +144,7 @@ namespace {
 }
 
 namespace LEFILEIO {
+
 	/**
 	 * @brief Opens a native Windows file dialog.
 	 * @param filter Windows dialog filter string.

@@ -21,6 +21,7 @@ class Scene;
 
 // Forward declare GameObject to avoid circular dependency.
 namespace LEPANELASSETS {
+
 	/**
 	 * @brief Draws the Assets panel and handles asset import/apply actions.
 	 * @param editor Shared level editor controller.

@@ -7,7 +7,7 @@
  DESCRIPTION:		Declares basic collision primitives (AABB, MTV helpers) and a simple
 					2D collision world that trims desired motion against static walls.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -47,34 +47,79 @@ namespace collision {
 		float botMinY, botMaxY; // bottom solid segment
 	};
 
-	// Primitive Queries
-
-	// Returns true and writes MTV if overlapping (A relative to B). False if separated.
+	/**
+	 * @brief Returns whether overlapmtv.
+	 * @param a Parameter for a.
+	 * @param b Parameter for b.
+	 * @param mtvOut Parameter for mtv out.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool overlapMTV(const AABB& a, const AABB& b, Math::Vector2D& mtvOut);
 
-	// Splits MTV using weightA in [0..1] between A and B (moveA/moveB are outputs).
+	/**
+	 * @brief Returns whether separateweighted.
+	 * @param a Parameter for a.
+	 * @param b Parameter for b.
+	 * @param weightA Parameter for weight a.
+	 * @param moveA Parameter for move a.
+	 * @param moveB Parameter for move b.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool separateWeighted(const AABB& a, const AABB& b, float weightA, Math::Vector2D& moveA, Math::Vector2D& moveB);
 
-	// Half-extent check: is 2D point inside AABB defined by center/scale (x,y used)?
+	/**
+	 * @brief Returns whether pointinsidecenteraabb.
+	 * @param point Parameter for point.
+	 * @param center Parameter for center.
+	 * @param scale Parameter for scale.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool pointInsideCenterAABB(const Math::Vector2D& point, const Math::Vector3D& center, const Math::Vector3D& scale);
 
 	// World (static walls + resolve)
 	class World {
 	public:
-		// Public interface methods
-		// Walls management
+
+		/**
+		 * @brief Clears this object.
+		 */
 		void clear();
+
+		/**
+		 * @brief Adds wall.
+		 * @param aabb Parameter for aabb.
+		 */
 		void addWall(const AABB& aabb);
 
-		// Build boundary/obstacles from editor primitives.
+		/**
+		 * @brief Builds this object.
+		 * @param walk Parameter for walk.
+		 * @param wood Parameter for wood.
+		 * @param end Parameter for end.
+		 */
 		void build(const WalkArea& walk, const WoodVertical& wood, const StageEndGateVertical& end);
 
-		// Axis-separable sweep: tries desiredDelta, trims by walls, returns allowed delta.
+		/**
+		 * @brief Resolves this object.
+		 * @param startBox Parameter for start box.
+		 * @param desiredDelta Parameter for desired delta.
+		 * @return Result produced by this operation.
+		 */
 		Math::Vector2D resolve(const AABB& startBox, Math::Vector2D desiredDelta) const;
 
-		// Utility: construct AABB from 2D center & 2D size (z ignored).
+		/**
+		 * @brief Performs make aabbfrom center.
+		 * @param center Parameter for center.
+		 * @param scale Parameter for scale.
+		 * @return Result produced by this operation.
+		 */
 		static AABB makeAABBFromCenter(const Math::Vector3D& center, const Math::Vector3D& scale);
 
+		/**
+		 * @brief Returns whether overlapsanywall.
+		 * @param box Parameter for box.
+		 * @return True when the operation succeeds or the condition is met.
+		 */
 		bool overlapsAnyWall(const AABB& box) const;
 
 	private:

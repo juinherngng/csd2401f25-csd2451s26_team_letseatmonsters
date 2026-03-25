@@ -16,14 +16,28 @@
 
 #include <algorithm>
 
- // IForceGenerator 
+/**
+ * @brief Performs ~iforce generator.
+ * @return Result produced by this operation.
+ */
 IForceGenerator::~IForceGenerator() = default;
 
-// ForceRegistry
+/**
+ * @brief Adds this object.
+ * @param bodyPtr Parameter for body ptr.
+ * @param generator Parameter for generator.
+ * @return Result produced by this operation.
+ */
 void ForceRegistry::Add(RigidBody2D* bodyPtr, IForceGenerator* generator) {
 	entries.push_back({ bodyPtr, generator });
 }
 
+/**
+ * @brief Removes this object.
+ * @param bodyPtr Parameter for body ptr.
+ * @param generator Parameter for generator.
+ * @return Result produced by this operation.
+ */
 void ForceRegistry::Remove(RigidBody2D* bodyPtr, IForceGenerator* generator) {
 	entries.erase(
 		std::remove_if(entries.begin(), entries.end(),
@@ -34,10 +48,19 @@ void ForceRegistry::Remove(RigidBody2D* bodyPtr, IForceGenerator* generator) {
 	);
 }
 
+/**
+ * @brief Clears this object.
+ * @return Result produced by this operation.
+ */
 void ForceRegistry::Clear() {
 	entries.clear();
 }
 
+/**
+ * @brief Updates forces.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void ForceRegistry::UpdateForces(float dt) {
 	for (Entry& entry : entries) {
 		if (entry.body && entry.gen) {
@@ -46,11 +69,21 @@ void ForceRegistry::UpdateForces(float dt) {
 	}
 }
 
-// GravityForce
+/**
+ * @brief Performs gravity force.
+ * @param gravity Parameter for gravity.
+ * @return Result produced by this operation.
+ */
 GravityForce::GravityForce(Math::Vector2D gravity)
 	: g(gravity) {
 }
 
+/**
+ * @brief Updates force.
+ * @param body Parameter for body.
+ * @param float Parameter for float.
+ * @return Result produced by this operation.
+ */
 void GravityForce::UpdateForce(RigidBody2D& body, float) {
 	// Static bodies have inverse mass 0 (or less) � ignore gravity
 	if (body.GetInverseMass() <= 0.0f) {
@@ -61,11 +94,22 @@ void GravityForce::UpdateForce(RigidBody2D& body, float) {
 	body.AddForce(g * body.GetMass());
 }
 
-// DragForce
+/**
+ * @brief Performs drag force.
+ * @param linearK Parameter for linear k.
+ * @param quadraticK Parameter for quadratic k.
+ * @return Result produced by this operation.
+ */
 DragForce::DragForce(float linearK, float quadraticK)
 	: k1(linearK), k2(quadraticK) {
 }
 
+/**
+ * @brief Updates force.
+ * @param body Parameter for body.
+ * @param float Parameter for float.
+ * @return Result produced by this operation.
+ */
 void DragForce::UpdateForce(RigidBody2D& body, float) {
 	const Math::Vector2D velocity = body.GetVelocity();
 	const float speed = velocity.Length();
@@ -81,20 +125,44 @@ void DragForce::UpdateForce(RigidBody2D& body, float) {
 	body.AddForce(velocity * (-dragMagnitude / (speed + 1e-6f)));
 }
 
-// ConstantForce
+/**
+ * @brief Performs constant force.
+ * @param force Parameter for force.
+ * @return Result produced by this operation.
+ */
 ConstantForce::ConstantForce(Math::Vector2D force)
 	: f(force) {
 }
 
+/**
+ * @brief Updates force.
+ * @param body Parameter for body.
+ * @param float Parameter for float.
+ * @return Result produced by this operation.
+ */
 void ConstantForce::UpdateForce(RigidBody2D& body, float) {
 	body.AddForce(f);
 }
 
-// SeekForce
+/**
+ * @brief Performs seek force.
+ * @param targetPtr Parameter for target ptr.
+ * @param maxAccelIn Parameter for max accel in.
+ * @param arrive Parameter for arrive.
+ * @return Result produced by this operation.
+ */
 SeekForce::SeekForce(Math::Vector2D* targetPtr, float maxAccelIn, float arrive)
 	: target(targetPtr), currentPos2DPtr(nullptr), maxAccel(maxAccelIn), arriveRadius(arrive) {
 }
 
+/**
+ * @brief Performs seek force.
+ * @param targetPtr Parameter for target ptr.
+ * @param cur Parameter for cur.
+ * @param maxAccelIn Parameter for max accel in.
+ * @param arrive Parameter for arrive.
+ * @return Result produced by this operation.
+ */
 SeekForce::SeekForce(Math::Vector2D* targetPtr,
 	const Math::Vector2D* cur,
 	float maxAccelIn,
@@ -102,6 +170,12 @@ SeekForce::SeekForce(Math::Vector2D* targetPtr,
 	: target(targetPtr), currentPos2DPtr(cur), maxAccel(maxAccelIn), arriveRadius(arrive) {
 }
 
+/**
+ * @brief Updates force.
+ * @param body Parameter for body.
+ * @param float Parameter for float.
+ * @return Result produced by this operation.
+ */
 void SeekForce::UpdateForce(RigidBody2D& body, float) {
 	if (!target) {
 		return;

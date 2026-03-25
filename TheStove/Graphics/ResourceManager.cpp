@@ -8,7 +8,7 @@
 
  DESCRIPTION:		Implements lazy-loading, storage maps, and cleanup for shared GPU resources.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -26,6 +26,12 @@
 #include <unordered_set>
 
 namespace {
+
+	/**
+	 * @brief Normalizes path.
+	 * @param path Path to process.
+	 * @return Result produced by this operation.
+	 */
 	std::string NormalizePath(const std::string& path) {
 		if (path.empty()) {
 			return path;
@@ -41,7 +47,11 @@ namespace {
 	}
 }
 
-// Caches normalized paths to avoid redundant filesystem calls for the same paths
+/**
+ * @brief Normalizes path cached.
+ * @param path Path to process.
+ * @return Result produced by this operation.
+ */
 std::string ResourceManager::NormalizePathCached(const std::string& path) {
 	if (path.empty()) {
 		return path;
@@ -57,7 +67,11 @@ std::string ResourceManager::NormalizePathCached(const std::string& path) {
 	return normalized;
 }
 
-// AudioManager injection
+/**
+ * @brief Sets audio manager.
+ * @param audioMgr Parameter for audio mgr.
+ * @return Result produced by this operation.
+ */
 void ResourceManager::SetAudioManager(AudioManager* audioMgr) {
 	audioManager = audioMgr;
 	if (audioManager) {
@@ -65,7 +79,13 @@ void ResourceManager::SetAudioManager(AudioManager* audioMgr) {
 	}
 }
 
-// Shader management methods
+/**
+ * @brief Loads shader.
+ * @param name Parameter for name.
+ * @param vertexPath Parameter for vertex path.
+ * @param fragmentPath Parameter for fragment path.
+ * @return Result produced by this operation.
+ */
 Shader* ResourceManager::LoadShader(const std::string& name, const std::string& vertexPath, const std::string& fragmentPath) {
 	auto it = shaders.find(name);
 	if (it != shaders.end()) {
@@ -84,6 +104,12 @@ Shader* ResourceManager::LoadShader(const std::string& name, const std::string& 
 	std::cout << "[ResourceManager] Successfully loaded shader: " << name << std::endl;
 	return shaderPtr;
 }
+
+/**
+ * @brief Returns shader.
+ * @param name Parameter for name.
+ * @return Requested value.
+ */
 Shader* ResourceManager::GetShader(const std::string& name) {
 	auto it = shaders.find(name);
 	if (it != shaders.end()) {
@@ -94,7 +120,15 @@ Shader* ResourceManager::GetShader(const std::string& name) {
 	return nullptr;
 }
 
-// Mesh management methods
+/**
+ * @brief Loads mesh.
+ * @param name Parameter for name.
+ * @param vertices Parameter for vertices.
+ * @param vertexCount Parameter for vertex count.
+ * @param vertexSize Parameter for vertex size.
+ * @param layout Parameter for layout.
+ * @return Result produced by this operation.
+ */
 Mesh* ResourceManager::LoadMesh(const std::string& name, const std::vector<float>& vertices, GLsizei vertexCount, GLsizei vertexSize, Mesh::VertexLayout layout) {
 	auto it = meshes.find(name);
 	if (it != meshes.end()) {
@@ -109,6 +143,12 @@ Mesh* ResourceManager::LoadMesh(const std::string& name, const std::vector<float
 	std::cout << "Loaded mesh: " << name << std::endl;
 	return meshPtr;
 }
+
+/**
+ * @brief Returns mesh.
+ * @param name Parameter for name.
+ * @return Requested value.
+ */
 Mesh* ResourceManager::GetMesh(const std::string& name) {
 	auto it = meshes.find(name);
 	if (it != meshes.end()) {
@@ -119,7 +159,12 @@ Mesh* ResourceManager::GetMesh(const std::string& name) {
 	return nullptr;
 }
 
-// Texture management methods
+/**
+ * @brief Loads texture.
+ * @param name Parameter for name.
+ * @param filePath Path to the target file.
+ * @return Result produced by this operation.
+ */
 Texture* ResourceManager::LoadTexture(const std::string& name, const std::string& filePath) {
 	auto it = textures.find(name);
 	if (it != textures.end()) {
@@ -159,6 +204,12 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 #endif
 	return texturePtr;
 }
+
+/**
+ * @brief Returns texture.
+ * @param name Parameter for name.
+ * @return Requested value.
+ */
 Texture* ResourceManager::GetTexture(const std::string& name) {
 	auto it = textures.find(name);
 	if (it != textures.end()) {
@@ -173,6 +224,12 @@ Texture* ResourceManager::GetTexture(const std::string& name) {
 	std::cerr << "Texture '" << name << "' not found!" << std::endl;
 	return nullptr;
 }
+
+/**
+ * @brief Performs preload textures.
+ * @param filePaths Parameter for file paths.
+ * @return Result produced by this operation.
+ */
 void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths) {
 	if (filePaths.empty()) {
 		return;
@@ -282,7 +339,14 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 #endif
 }
 
-// Audio management methods - delegate to AudioManager
+/**
+ * @brief Loads audio.
+ * @param name Parameter for name.
+ * @param filePath Path to the target file.
+ * @param loop Parameter for loop.
+ * @param stream Parameter for stream.
+ * @return Result produced by this operation.
+ */
 bool ResourceManager::LoadAudio(const std::string& name, const std::string& filePath, bool loop, bool stream) {
 	if (!audioManager) {
 		std::cerr << "AudioManager not set in ResourceManager! Cannot load audio." << std::endl;
@@ -292,6 +356,15 @@ bool ResourceManager::LoadAudio(const std::string& name, const std::string& file
 	auto* sound = audioManager->LoadSound(name, filePath, loop, stream);
 	return sound != nullptr;
 }
+
+/**
+ * @brief Loads audio3 d.
+ * @param name Parameter for name.
+ * @param filePath Path to the target file.
+ * @param loop Parameter for loop.
+ * @param stream Parameter for stream.
+ * @return Result produced by this operation.
+ */
 bool ResourceManager::LoadAudio3D(const std::string& name, const std::string& filePath, bool loop, bool stream) {
 	if (!audioManager) {
 		std::cerr << "AudioManager not set in ResourceManager! Cannot load 3D audio." << std::endl;
@@ -301,6 +374,12 @@ bool ResourceManager::LoadAudio3D(const std::string& name, const std::string& fi
 	auto* sound = audioManager->LoadSound3D(name, filePath, loop, stream);
 	return sound != nullptr;
 }
+
+/**
+ * @brief Returns whether audio.
+ * @param name Parameter for name.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool ResourceManager::HasAudio(const std::string& name) const {
 	if (!audioManager) {
 		std::cerr << "AudioManager not set in ResourceManager! Cannot check audio." << std::endl;
@@ -309,6 +388,12 @@ bool ResourceManager::HasAudio(const std::string& name) const {
 
 	return audioManager->HasSound(name);
 }
+
+/**
+ * @brief Performs unload audio.
+ * @param name Parameter for name.
+ * @return Result produced by this operation.
+ */
 void ResourceManager::UnloadAudio(const std::string& name) {
 	if (!audioManager) {
 		std::cerr << "AudioManager not set in ResourceManager! Cannot unload audio." << std::endl;
@@ -317,6 +402,16 @@ void ResourceManager::UnloadAudio(const std::string& name) {
 
 	audioManager->UnloadSound(name);
 }
+
+/**
+ * @brief Returns audio info.
+ * @param name Parameter for name.
+ * @param lengthMs Parameter for length ms.
+ * @param channels Parameter for channels.
+ * @param bits Parameter for bits.
+ * @param freq Parameter for freq.
+ * @return Requested value.
+ */
 bool ResourceManager::GetAudioInfo(const std::string& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const {
 	if (!audioManager) {
 		std::cerr << "AudioManager not set in ResourceManager! Cannot get audio info." << std::endl;
@@ -326,15 +421,30 @@ bool ResourceManager::GetAudioInfo(const std::string& name, unsigned int& length
 	return audioManager->GetSoundInfo(name, lengthMs, channels, bits, freq);
 }
 
-// Font management methods
+/**
+ * @brief Loads font.
+ * @param name Parameter for name.
+ * @param fontPath Parameter for font path.
+ * @param fontSize Parameter for font size.
+ * @return Result produced by this operation.
+ */
 FontSystem::Font* ResourceManager::LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize) {
 	return FontSystem::FontManager::Instance().LoadFont(name, fontPath, fontSize);
 }
+
+/**
+ * @brief Returns font.
+ * @param name Parameter for name.
+ * @return Requested value.
+ */
 FontSystem::Font* ResourceManager::GetFont(const std::string& name) {
 	return FontSystem::FontManager::Instance().GetFont(name);
 }
 
-// Cleanup method
+/**
+ * @brief Clears this object.
+ * @return Result produced by this operation.
+ */
 void ResourceManager::Clear() {
 	if (!isCleared) {
 		std::cout << "Clearing ResourceManager..." << std::endl;

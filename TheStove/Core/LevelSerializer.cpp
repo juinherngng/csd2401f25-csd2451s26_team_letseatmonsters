@@ -29,6 +29,11 @@ using nlohmann::json;
 namespace {
 	constexpr int LEVEL_SCHEMA_VERSION = 2;
 
+	/**
+	 * @brief Resolves freshest level path.
+	 * @param path Path to process.
+	 * @return Result produced by this operation.
+	 */
 	std::optional<fs::path> ResolveFreshestLevelPath(const std::string& path) {
 		std::vector<fs::path> candidates;
 		candidates.emplace_back(path);
@@ -71,7 +76,11 @@ namespace {
 		return freshest;
 	}
 
-	// Applies necessary transformations to jsonData to ensure compatibility with the current schema version.
+	/**
+	 * @brief Applies legacy migrations.
+	 * @param jsonData Parameter for json data.
+	 * @param schemaVersion Parameter for schema version.
+	 */
 	void ApplyLegacyMigrations(json& jsonData, int schemaVersion) {
 		if (schemaVersion < 1) {
 			if (!jsonData.contains("textObjects") && jsonData.contains("text_objects")) {
@@ -104,7 +113,11 @@ namespace {
 	}
 }
 
-// Helpers (local)
+/**
+ * @brief Reads level object.
+ * @param jsonObj Parameter for json obj.
+ * @return Result produced by this operation.
+ */
 static LevelObject ReadLevelObject(const json& jsonObj) {
 	LevelObject obj{};
 
@@ -177,7 +190,11 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	return obj;
 }
 
-// Read a text object from JSON
+/**
+ * @brief Reads text object.
+ * @param jsonObj Parameter for json obj.
+ * @return Result produced by this operation.
+ */
 static LevelTextObject ReadTextObject(const json& jsonObj) {
 	LevelTextObject obj{};
 
@@ -202,7 +219,11 @@ static LevelTextObject ReadTextObject(const json& jsonObj) {
 	return obj;
 }
 
-// Converts a LevelObject to JSON
+/**
+ * @brief Writes level object.
+ * @param obj Parameter for obj.
+ * @return Result produced by this operation.
+ */
 static json WriteLevelObject(const LevelObject& obj) {
 	json jsonData = {
 		{ "texture", obj.texture },
@@ -252,7 +273,11 @@ static json WriteLevelObject(const LevelObject& obj) {
 	return jsonData;
 }
 
-// Converts a LevelTextObject to JSON
+/**
+ * @brief Writes text object.
+ * @param obj Parameter for obj.
+ * @return Result produced by this operation.
+ */
 static json WriteTextObject(const LevelTextObject& obj) {
 	json jsonData = {
 		{ "name", obj.name },
@@ -275,7 +300,12 @@ static json WriteTextObject(const LevelTextObject& obj) {
 	return jsonData;
 }
 
-// Load the level data from a JSON file, populating outLevel. Returns false if file open or JSON parse fails.
+/**
+ * @brief Loads this object.
+ * @param path Path to process.
+ * @param outLevel Output value for out level.
+ * @return Result produced by this operation.
+ */
 bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	const std::optional<fs::path> resolvedPath = ResolveFreshestLevelPath(path);
 	if (!resolvedPath) {
@@ -331,7 +361,12 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	return true;
 }
 
-// Save the level data to JSON, replacing only the "objects" and "textObjects" arrays while preserving other keys (like background)
+/**
+ * @brief Saves this object.
+ * @param path Path to process.
+ * @param inLevel Parameter for in level.
+ * @return Result produced by this operation.
+ */
 bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	json jsonData = json::object();
 

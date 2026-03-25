@@ -12,7 +12,7 @@
 					entity is stopped. Also clears MovementManager's click-to-move
 					target so the UI/green path reflects the stop.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -25,32 +25,65 @@
 
  // SystemInterface implementation
 
+/**
+ * @brief Initializes this object.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::Initialize() {
 	std::cout << "PhysicsManager system initialized.\n";
 }
 
+/**
+ * @brief Updates this object.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::Update(float dt) {
 	(void)dt;
 }
 
+/**
+ * @brief Returns the stable name for this object.
+ * @return Requested value.
+ */
 std::string PhysicsManager::GetName() {
 	return "PhysicsManager";
 }
 
-// Wiring / dependencies
+/**
+ * @brief Sets entity manager.
+ * @param entityMgr Parameter for entity mgr.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::SetEntityManager(EntityManager* entityMgr) {
 	entityManager_ = entityMgr;
 }
 
+/**
+ * @brief Sets input manager.
+ * @param inputMgr Parameter for input mgr.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::SetInputManager(InputManager* inputMgr) {
 	inputManager_ = inputMgr;
 }
 
+/**
+ * @brief Sets collision world.
+ * @param world Parameter for world.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::SetCollisionWorld(collision::World* world) {
 	world_ = world;
 }
 
-// Top-level physics update
+/**
+ * @brief Updates physics.
+ * @param physicsDt Parameter for physics dt.
+ * @param entityManager Entity manager containing the active objects.
+ * @param inputManager Input manager for the current frame.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::UpdatePhysics(float physicsDt,
 	EntityManager& entityManager,
 	InputManager& inputManager) {
@@ -70,7 +103,12 @@ void PhysicsManager::UpdatePhysics(float physicsDt,
 	}
 }
 
-// Public control API
+/**
+ * @brief Enables physics.
+ * @param entityID Parameter for entity id.
+ * @param mass Parameter for mass.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::EnablePhysics(int entityID, float mass) {
 	PhysicsState state;
 	state.invMass = (mass > 0.0f) ? (1.0f / mass) : 0.0f;
@@ -81,15 +119,31 @@ void PhysicsManager::EnablePhysics(int entityID, float mass) {
 	physicsStates_[entityID] = state;
 }
 
+/**
+ * @brief Disables physics.
+ * @param entityID Parameter for entity id.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::DisablePhysics(int entityID) {
 	physicsStates_.erase(entityID);
 	seekTargets_.erase(entityID);
 }
 
+/**
+ * @brief Returns whether physics.
+ * @param entityID Parameter for entity id.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool PhysicsManager::HasPhysics(int entityID) const {
 	return physicsStates_.find(entityID) != physicsStates_.end();
 }
 
+/**
+ * @brief Sets seek target.
+ * @param entityID Parameter for entity id.
+ * @param target Parameter for target.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::SetSeekTarget(int entityID, const Math::Vector2D& target) {
 	if (!HasPhysics(entityID)) {
 		return;
@@ -98,6 +152,11 @@ void PhysicsManager::SetSeekTarget(int entityID, const Math::Vector2D& target) {
 	seekTargets_[entityID] = target;
 }
 
+/**
+ * @brief Clears seek target.
+ * @param entityID Parameter for entity id.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::ClearSeekTarget(int entityID) {
 	seekTargets_.erase(entityID);
 
@@ -108,7 +167,13 @@ void PhysicsManager::ClearSeekTarget(int entityID) {
 	}
 }
 
-// Core integration for a single entity
+/**
+ * @brief Performs integrate entity.
+ * @param entityID Parameter for entity id.
+ * @param dt Frame delta time in seconds.
+ * @param entityManager Entity manager containing the active objects.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::IntegrateEntity(int entityID, float dt, EntityManager& entityManager) {
 	GameObject* obj = entityManager.GetByID(entityID);
 	if (!obj) {
@@ -206,6 +271,10 @@ void PhysicsManager::IntegrateEntity(int entityID, float dt, EntityManager& enti
 	}
 }
 
+/**
+ * @brief Clears this object.
+ * @return Result produced by this operation.
+ */
 void PhysicsManager::Clear() {
 	physicsStates_.clear();
 	seekTargets_.clear();

@@ -7,7 +7,7 @@
  DESCRIPTION:		Declares a lightweight static-only DebugRenderer used to batch and draw
 					debug lines, points, and rectangles for on-screen visualization overlays.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -24,19 +24,64 @@
  // A lightweight static-only DebugRenderer used to batch and draw debug lines, points, and rectangles for on-screen visualization overlays.
 class DebugRenderer {
 public:
-	// Initialization and shutdown (called by GraphicsEngine)
+
+	/**
+	 * @brief Initializes this object.
+	 * @return Result produced by this operation.
+	 */
 	static void Init();
+
+	/**
+	 * @brief Performs shutdown.
+	 * @return Result produced by this operation.
+	 */
 	static void Shutdown();
 
-	// Enable or disable debug rendering globally (no-op if not initialized).
+	/**
+	 * @brief Sets enabled.
+	 * @param enable Boolean flag controlling whether the feature is enabled.
+	 * @return Result produced by this operation.
+	 */
 	static void SetEnabled(bool enable);
+
+	/**
+	 * @brief Returns whether enabled.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	static bool IsEnabled();
 
-	// Drawing API - queues primitives for drawing on the next Flush call.
+	/**
+	 * @brief Draws line.
+	 * @param start Parameter for start.
+	 * @param end Parameter for end.
+	 * @param color Parameter for color.
+	 * @return Result produced by this operation.
+	 */
 	static void DrawLine(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color);
+
+	/**
+	 * @brief Draws point.
+	 * @param position Parameter for position.
+	 * @param color Parameter for color.
+	 * @param size Parameter for size.
+	 * @return Result produced by this operation.
+	 */
 	static void DrawPoint(const glm::vec3& position, const glm::vec3& color, float size = 5.0f);
+
+	/**
+	 * @brief Draws rect.
+	 * @param minCorner Parameter for min corner.
+	 * @param maxCorner Parameter for max corner.
+	 * @param color Parameter for color.
+	 * @return Result produced by this operation.
+	 */
 	static void DrawRect(const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec3& color);
 
-	// Flushes all queued primitives to the screen using the provided view and projection matrices, then clears the queues.
+	/**
+	 * @brief Performs flush.
+	 * @param viewMatrix Parameter for view matrix.
+	 * @param projectionMatrix Parameter for projection matrix.
+	 * @return Result produced by this operation.
+	 */
 	static void Flush(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix);
 };

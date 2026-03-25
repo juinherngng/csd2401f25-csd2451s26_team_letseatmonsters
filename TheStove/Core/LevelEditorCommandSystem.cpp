@@ -97,6 +97,16 @@ namespace {
 	 * @return True when a snapshot was applied.
 	 */
 	template <typename CaptureFn, typename RestoreFn>
+
+	/**
+	 * @brief Applies snapshot from history.
+	 * @param editor Level editor state to operate on.
+	 * @param source Parameter for source.
+	 * @param destination Parameter for destination.
+	 * @param capture Parameter for capture.
+	 * @param restore Parameter for restore.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool ApplySnapshotFromHistory(LevelEditor& editor,
 		std::vector<LevelData>& source,
 		std::vector<LevelData>& destination,
@@ -119,6 +129,7 @@ namespace {
 }
 
 namespace LECOMMAND {
+
 	/**
 	 * @brief Records an undo snapshot before a level mutation.
 	 * @param editor Shared level editor controller.

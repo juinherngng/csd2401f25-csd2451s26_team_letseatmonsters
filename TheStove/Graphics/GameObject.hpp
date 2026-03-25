@@ -36,6 +36,7 @@
 class GameObject {
 
 public:
+
 	/** @brief Construct an empty object (no mesh/shader). */
 	GameObject()
 		: m_Mesh(nullptr),
@@ -73,9 +74,23 @@ public:
 	 * @param position New position (XYZ).
 	 */
 	void SetPosition(const glm::vec3& position);
+
+	/**
+	 * @brief Returns position glm.
+	 * @return Requested value.
+	 */
 	glm::vec3 GetPositionGLM() const;
 
+	/**
+	 * @brief Sets position.
+	 * @param position Parameter for position.
+	 */
 	void SetPosition(const Math::Vector3D& position);
+
+	/**
+	 * @brief Returns position.
+	 * @return Requested value.
+	 */
 	Math::Vector3D GetPosition() const;
 
 	/**
@@ -93,46 +108,94 @@ public:
 
 	float m_RotationAngle = 0.0f;
 
+	/**
+	 * @brief Sets velocity.
+	 * @param velocity Parameter for velocity.
+	 */
 	void SetVelocity(const Math::Vector2D& velocity);
+
+	/**
+	 * @brief Returns velocity.
+	 * @return Requested value.
+	 */
 	Math::Vector2D GetVelocity() const;
 
 	/** @brief Recompute the model matrix based on position/rotation/scale. */
 	void UpdateModelMatrix();
 
+	/**
+	 * @brief Sets texture.
+	 * @param tex Parameter for tex.
+	 */
 	void SetTexture(Texture* tex) {
 		m_Texture = tex;
 	}
 
+	/**
+	 * @brief Returns shader.
+	 * @return Requested value.
+	 */
 	Shader* GetShader() const {
 		return m_Shader;
 	}
+
+	/**
+	 * @brief Sets shader.
+	 * @param shader Parameter for shader.
+	 */
 	void SetShader(Shader* shader) {
 		m_Shader = shader;
 	}
+
+	/**
+	 * @brief Returns mesh.
+	 * @return Requested value.
+	 */
 	Mesh* GetMesh() const {
 		return m_Mesh;
 	}
+
+	/**
+	 * @brief Returns model matrix.
+	 * @return Requested value.
+	 */
 	glm::mat4 GetModelMatrix() const {
 		return m_ModelMatrix;
 	}
+
+	/**
+	 * @brief Returns texture.
+	 * @return Requested value.
+	 */
 	Texture* GetTexture() const {
 		return m_Texture;
 	}
 
-	// Collider handling
 	/** @brief Set the colliders full size (width/height). */
 	void SetColliderSize(const Math::Vector2D& size);
 
 	/** @brief Set the colliders positional offset relative to object center. */
 	void SetColliderOffset(const Math::Vector2D& offset);
 
-	// Dirty-flag helpers used by physics/collision sync paths.
+	/**
+	 * @brief Returns whether transform dirty.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsTransformDirty() const {
 		return m_TransformDirty;
 	}
+
+	/**
+	 * @brief Returns whether broadphase dirty.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsBroadphaseDirty() const {
 		return m_BroadphaseDirty;
 	}
+
+	/**
+	 * @brief Performs mark broadphase clean.
+	 */
 	void MarkBroadphaseClean() {
 		m_BroadphaseDirty = false;
 	}
@@ -143,8 +206,22 @@ public:
 	/** @brief Get the collider offset. */
 	Math::Vector2D GetColliderOffset() const;
 
+	/**
+	 * @brief Returns scale glm.
+	 * @return Requested value.
+	 */
 	glm::vec3 GetScaleGLM() const;
+
+	/**
+	 * @brief Returns rotation angle z.
+	 * @return Requested value.
+	 */
 	float GetRotationAngleZ() const;
+
+	/**
+	 * @brief Returns rotation.
+	 * @return Requested value.
+	 */
 	float GetRotation() const {
 		return rotation_;
 	}
@@ -157,70 +234,152 @@ public:
 	 */
 	void DrawBoundingBox(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& color) const;
 
+	/**
+	 * @brief Sets uvrect.
+	 * @param r Parameter for r.
+	 */
 	void SetUVRect(const glm::vec4& r) {
 		m_uvRect = r;
 	}
+
+	/**
+	 * @brief Returns uvrect.
+	 * @return Requested value.
+	 */
 	glm::vec4 GetUVRect() const {
 		return m_uvRect;
 	}
 
-	// Check if the GameObject is currently using an animated sprite
+	/**
+	 * @brief Returns whether animated.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsAnimated() const;
 
-	// Physics / pushability flag
+	/**
+	 * @brief Sets movable by physics.
+	 * @param movable Parameter for movable.
+	 */
 	void SetMovableByPhysics(bool movable) {
 		m_IsMovableByPhysics = movable;
 	}
+
+	/**
+	 * @brief Returns whether movable by physics.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsMovableByPhysics() const {
 		return m_IsMovableByPhysics;
 	}
 
-	// ----- Shadow controls -----
+	/**
+	 * @brief Enables shadow.
+	 * @param enable Boolean flag controlling whether the feature is enabled.
+	 */
 	void EnableShadow(bool enable) {
 		m_HasShadow = enable;
 	}
+
+	/**
+	 * @brief Returns whether shadow.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasShadow() const {
 		return m_HasShadow;
 	}
+
+	/**
+	 * @brief Sets shadow size.
+	 * @param size Parameter for size.
+	 */
 	void SetShadowSize(const glm::vec2& size) {
 		m_ShadowSize = size;
 	}
+
+	/**
+	 * @brief Returns shadow size.
+	 * @return Requested value.
+	 */
 	glm::vec2 GetShadowSize() const {
 		return m_ShadowSize;
 	}
+
+	/**
+	 * @brief Sets shadow offset.
+	 * @param offset Parameter for offset.
+	 */
 	void SetShadowOffset(const glm::vec2& offset) {
 		m_ShadowOffset = offset;
 	}
+
+	/**
+	 * @brief Returns shadow offset.
+	 * @return Requested value.
+	 */
 	glm::vec2 GetShadowOffset() const {
 		return m_ShadowOffset;
 	}
+
+	/**
+	 * @brief Sets shadow opacity.
+	 * @param opacity Parameter for opacity.
+	 */
 	void SetShadowOpacity(float opacity) {
 		m_ShadowOpacity = opacity;
 	}
+
+	/**
+	 * @brief Returns shadow opacity.
+	 * @return Requested value.
+	 */
 	float GetShadowOpacity() const {
 		return m_ShadowOpacity;
 	}
 
-	// For cross blending / tinting
+	/**
+	 * @brief Sets color tint.
+	 * @param tint Parameter for tint.
+	 */
 	void SetColorTint(const glm::vec4& tint) {
 		colorTint_ = tint;
 	}
+
+	/**
+	 * @brief Returns color tint.
+	 * @return Requested value.
+	 */
 	const glm::vec4& GetColorTint() const {
 		return colorTint_;
 	}
 
-	// Layer number for rendering order (set by Scene during collection)
+	/**
+	 * @brief Sets render layer.
+	 * @param layer Parameter for layer.
+	 */
 	void SetRenderLayer(int layer) {
 		renderLayer_ = layer;
 	}
+
+	/**
+	 * @brief Returns render layer.
+	 * @return Requested value.
+	 */
 	int GetRenderLayer() const {
 		return renderLayer_;
 	}
 
-	// Secondary render order within the same layer (higher draws later)
+	/**
+	 * @brief Sets render sort order.
+	 * @param order Parameter for order.
+	 */
 	void SetRenderSortOrder(int order) {
 		renderSortOrder_ = order;
 	}
+
+	/**
+	 * @brief Returns render sort order.
+	 * @return Requested value.
+	 */
 	int GetRenderSortOrder() const {
 		return renderSortOrder_;
 	}

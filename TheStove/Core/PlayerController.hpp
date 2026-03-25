@@ -10,7 +10,7 @@
 					rotation, and click-to-move. Integrates with movement/physics managers and
 					updates sprite facing based on the movement direction.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -32,9 +32,23 @@
  // Forward declare GraphicsEngine to avoid circular dependency.
 class PlayerController {
 public:
+
+	/**
+	 * @brief Constructs a `PlayerController` instance.
+	 */
 	PlayerController() = default;
 
-	// Main per - frame input handler for the player.
+	/**
+	 * @brief Handles input.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param inputManager Input manager for the current frame.
+	 * @param entityManager Entity manager containing the active objects.
+	 * @param movementManager Movement manager used for movement updates.
+	 * @param physicsManager Physics manager used for physics updates.
+	 * @param graphicsEngine Graphics engine used for rendering-related queries.
+	 * @param playerID Identifier of the player object.
+	 * @param useForces Parameter for use forces.
+	 */
 	void HandleInput(float deltaTime,
 		InputManager& inputManager,
 		EntityManager& entityManager,
@@ -44,40 +58,83 @@ public:
 		int playerID,
 		bool useForces);
 
+	/**
+	 * @brief Returns rotation.
+	 * @return Requested value.
+	 */
 	float GetRotation() const {
 		return rotation_;
 	}
 
 	// Input snapshot for PlayerLogic / other systems
-	// Sample input for this frame (WASD + click-to-move) WITHOUT moving anything.
+	/**
+	 * @brief Samples input.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param inputManager Input manager for the current frame.
+	 * @param graphicsEngine Graphics engine used for rendering-related queries.
+	 */
 	void SampleInput(float deltaTime,
 		InputManager& inputManager,
 		GraphicsEngine& graphicsEngine);
 
-	// Movement axis from WASD (-1..1 per axis). Same semantics as your old code.
+	/**
+	 * @brief Returns move axis.
+	 * @return Requested value.
+	 */
 	glm::vec2 GetMoveAxis() const {
 		return moveAxis_;
 	}
 
-	// Click-to-move snapshot (LMB). Valid only for the frame where the click happened.
+	/**
+	 * @brief Returns whether click to move just pressed.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsClickToMoveJustPressed() const {
 		return clickToMoveJustPressed_ && clickWorldValid_;
 	}
+
+	/**
+	 * @brief Returns click world.
+	 * @return Requested value.
+	 */
 	glm::vec2 GetClickWorld() const {
 		return clickWorld_;
 	}
 
 private:
-	// Spawns (on first use) and animates the click indicator sprite.
+
+	/**
+	 * @brief Updates click indicator.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param entityManager Entity manager containing the active objects.
+	 */
 	void UpdateClickIndicator(float deltaTime, EntityManager& entityManager);
 
-	// Handles up/down key scaling with clamped bounds.
+	/**
+	 * @brief Handles scale input.
+	 * @param inputManager Input manager for the current frame.
+	 * @param sprite Parameter for sprite.
+	 * @param deltaTime Frame delta time in seconds.
+	 */
 	void HandleScaleInput(InputManager& inputManager, GameObject* sprite, float deltaTime);
 
-	// Handles left / right key rotation and normalizes the angle.
+	/**
+	 * @brief Handles rotation input.
+	 * @param inputManager Input manager for the current frame.
+	 * @param deltaTime Frame delta time in seconds.
+	 */
 	void HandleRotationInput(InputManager& inputManager, float deltaTime);
 
-	// Handles left - click to set a new target(forces or kinematic).
+	/**
+	 * @brief Handles click to move.
+	 * @param inputManager Input manager for the current frame.
+	 * @param entityManager Entity manager containing the active objects.
+	 * @param movementManager Movement manager used for movement updates.
+	 * @param physicsManager Physics manager used for physics updates.
+	 * @param graphicsEngine Graphics engine used for rendering-related queries.
+	 * @param playerID Identifier of the player object.
+	 * @param useForces Parameter for use forces.
+	 */
 	void HandleClickToMove(InputManager& inputManager,
 		EntityManager& entityManager,
 		MovementManager& movementManager,
@@ -86,7 +143,11 @@ private:
 		int playerID,
 		bool useForces);
 
-	// Update player sprite texture based on movement direction
+	/**
+	 * @brief Updates sprite direction.
+	 * @param direction Parameter for direction.
+	 * @param sprite Parameter for sprite.
+	 */
 	void UpdateSpriteDirection(const glm::vec2& direction, GameObject* sprite);
 
 	// Rotation state (degrees).

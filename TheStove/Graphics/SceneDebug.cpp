@@ -9,7 +9,7 @@
 						- Stress test object generator
 						- Animation hotkey controls for dinos
 
-	 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+	 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -19,7 +19,11 @@
 #include <iostream>
 #include <random>
 
- // Stress test generator
+/**
+ * @brief Generates stress test.
+ * @param objectCount Parameter for object count.
+ * @return Result produced by this operation.
+ */
 void Scene::GenerateStressTest(int objectCount) {
 	std::cout << "[Scene] Generating stress test with " << objectCount << " objects...\n";
 
@@ -62,7 +66,10 @@ void Scene::GenerateStressTest(int objectCount) {
 	std::cout << "[Scene] Stress test loaded\n";
 }
 
-// Animation hotkey controls (debug only)
+/**
+ * @brief Updates animation controls.
+ * @return Result produced by this operation.
+ */
 void Scene::UpdateAnimationControls() {
 	// Do nothing when simulation is paused
 	if (!simulationActive) {

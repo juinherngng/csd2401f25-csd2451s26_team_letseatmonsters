@@ -32,7 +32,10 @@ class Scene;
 
 class CustomerManagerSystem {
 public:
-	// Construct a customer manager with default spawn and cap settings
+
+	/**
+	 * @brief Constructs a `CustomerManagerSystem` instance.
+	 */
 	CustomerManagerSystem() = default;
 
 	/**
@@ -111,16 +114,28 @@ private:
 	int nextEntryIndex_ = 0;
 	bool cachedEntries_ = false;
 
-	// Discover and cache all customer-table entity IDs in the scene
+	/**
+	 * @brief Performs cache tables.
+	 * @param scene Scene being processed.
+	 */
 	void CacheTables(Scene& scene);
 
-	// Discover and cache the customer template/prefab entity ID
+	/**
+	 * @brief Performs cache template.
+	 * @param scene Scene being processed.
+	 */
 	void CacheTemplate(Scene& scene);
 
-	// Discover optional customer entry marker IDs (tag: customer_entry).
+	/**
+	 * @brief Performs cache entries.
+	 * @param scene Scene being processed.
+	 */
 	void CacheEntries(Scene& scene);
 
-	// Remove stale/dead customer IDs from the active customer list
+	/**
+	 * @brief Performs cleanup dead customers.
+	 * @param scene Scene being processed.
+	 */
 	void CleanupDeadCustomers(Scene& scene);
 
 	/**

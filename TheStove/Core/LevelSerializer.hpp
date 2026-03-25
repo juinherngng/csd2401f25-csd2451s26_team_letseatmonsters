@@ -132,9 +132,20 @@ struct LevelData {
 
 // Public Interface
 struct LevelSerializer {
-	// Load a JSON file into outLevel; returns false if file open/parse failed.
+
+	/**
+	 * @brief Loads this object.
+	 * @param path Path to process.
+	 * @param outLevel Output value for out level.
+	 * @return Result produced by this operation.
+	 */
 	static bool Load(const std::string& path, LevelData& outLevel);
 
-	// Save inLevel as pretty-printed JSON; returns false if file open failed.
+	/**
+	 * @brief Saves this object.
+	 * @param path Path to process.
+	 * @param inLevel Parameter for in level.
+	 * @return Result produced by this operation.
+	 */
 	static bool Save(const std::string& path, const LevelData& inLevel);
 };

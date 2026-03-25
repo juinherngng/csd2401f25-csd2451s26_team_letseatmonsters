@@ -18,6 +18,7 @@ class LevelEditor;
 
 // Forward declare GameObject to avoid circular dependency.
 namespace LEPICKDRAG {
+
 	/**
 	 * @brief Handles object picking and drag manipulation inside the scene viewport.
 	 * @param editor Shared level editor controller.

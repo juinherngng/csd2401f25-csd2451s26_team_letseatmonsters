@@ -54,90 +54,242 @@ class AudioManager;
  */
 class Scene {
 public:
-	// Systems and managers
+
+	/**
+	 * @brief Returns graphics engine.
+	 * @return Requested value.
+	 */
 	GraphicsEngine& GetGraphicsEngine();
+
+	/**
+	 * @brief Returns graphics engine.
+	 * @return Requested value.
+	 */
 	const GraphicsEngine& GetGraphicsEngine() const;
 
-	// Input manager for player input and UI interactions
+	/**
+	 * @brief Returns movement manager.
+	 * @return Requested value.
+	 */
 	MovementManager& GetMovementManager();
+
+	/**
+	 * @brief Returns movement manager.
+	 * @return Requested value.
+	 */
 	const MovementManager& GetMovementManager() const;
 
-	// Physics manager for physics simulation and queries
+	/**
+	 * @brief Returns collision manager.
+	 * @return Requested value.
+	 */
 	CollisionManager& GetCollisionManager();
+
+	/**
+	 * @brief Returns collision manager.
+	 * @return Requested value.
+	 */
 	const CollisionManager& GetCollisionManager() const;
+
+	/**
+	 * @brief Returns collision world.
+	 * @return Requested value.
+	 */
 	collision::World& GetCollisionWorld();
+
+	/**
+	 * @brief Returns collision world.
+	 * @return Requested value.
+	 */
 	const collision::World& GetCollisionWorld() const;
 
-	// Entity manager for game object lifecycle and data access
+	/**
+	 * @brief Returns player controller.
+	 * @return Requested value.
+	 */
 	PlayerController& GetPlayerController() {
 		return playerController;
 	}
+
+	/**
+	 * @brief Returns player controller.
+	 * @return Requested value.
+	 */
 	const PlayerController& GetPlayerController() const {
 		return playerController;
 	}
 
-	// Logic manager for tag-based behavior attachment and per-object logic updates
+	/**
+	 * @brief Returns logic manager.
+	 * @return Requested value.
+	 */
 	LogicManager& GetLogicManager() {
 		return logicManager;
 	}
+
+	/**
+	 * @brief Returns logic manager.
+	 * @return Requested value.
+	 */
 	const LogicManager& GetLogicManager() const {
 		return logicManager;
 	}
 
-	// Animation manager for sprite animations and control
+	/**
+	 * @brief Constructs a `Scene` instance.
+	 * @param engine Parameter for engine.
+	 * @param inputMgr Parameter for input mgr.
+	 * @param animMgr Parameter for anim mgr.
+	 * @param moveMgr Parameter for move mgr.
+	 * @param physicsMgr Parameter for physics mgr.
+	 * @param collisionMgr Parameter for collision mgr.
+	 */
 	Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& animMgr,
 		MovementManager& moveMgr, PhysicsManager& physicsMgr, CollisionManager& collisionMgr);
 
-	// Set AudioManager for UI sounds and audio bindings
+	/**
+	 * @brief Sets audio manager.
+	 * @param audioMgr Parameter for audio mgr.
+	 */
 	void SetAudioManager(AudioManager* audioMgr) {
 		audioManager_ = audioMgr;
 	}
 
-	// Get AudioManager (for audio bindings playback)
+	/**
+	 * @brief Returns audio manager.
+	 * @return Requested value.
+	 */
 	AudioManager* GetAudioManager() const {
 		return audioManager_;
 	}
 
-	// Audio binding playback helpers
+	/**
+	 * @brief Performs play spawn audio.
+	 * @param objectId Identifier of the target object.
+	 */
 	void PlaySpawnAudio(int objectId);
+
+	/**
+	 * @brief Performs play interact audio.
+	 * @param objectId Identifier of the target object.
+	 */
 	void PlayInteractAudio(int objectId);
+
+	/**
+	 * @brief Performs play destroy audio.
+	 * @param objectId Identifier of the target object.
+	 */
 	void PlayDestroyAudio(int objectId);
+
+	/**
+	 * @brief Performs play processing audio.
+	 * @param objectId Identifier of the target object.
+	 */
 	void PlayProcessingAudio(int objectId);   // Start looping processing audio
+
+	/**
+	 * @brief Performs stop processing audio.
+	 * @param objectId Identifier of the target object.
+	 */
 	void StopProcessingAudio(int objectId);   // Stop processing audio
+
+	/**
+	 * @brief Performs stop all object audio.
+	 */
 	void StopAllObjectAudio();				  // Stop all audio bound to objects
 
-	// Scene lifecycle and updates
+	/**
+	 * @brief Loads scene.
+	 * @param sceneName Parameter for scene name.
+	 */
 	void LoadScene(const std::string& sceneName);
+
+	/**
+	 * @brief Updates this object.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param window Parameter for window.
+	 */
 	void Update(float deltaTime, GLFWwindow* window);
 
-	// Rendering
+	/**
+	 * @brief Draws ui.
+	 */
 	void DrawUI();
+
+	/**
+	 * @brief Clears all.
+	 */
 	void ClearAll();
+
+	/**
+	 * @brief Performs request clear all.
+	 */
 	void RequestClearAll();
+
+	/**
+	 * @brief Renders level text objects.
+	 */
 	void RenderLevelTextObjects();
 
-	// Simulation control
+	/**
+	 * @brief Sets simulation active.
+	 * @param active Parameter for active.
+	 */
 	void SetSimulationActive(bool active);
+
+	/**
+	 * @brief Returns whether simulation active.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsSimulationActive() const;
 
-	// Physics step control
+	/**
+	 * @brief Resets resize baseline.
+	 */
 	void ResetResizeBaseline();
+
+	/**
+	 * @brief Returns last physics dt.
+	 * @return Requested value.
+	 */
 	float GetLastPhysicsDt() const {
 		return lastPhysicsDt_;
 	}
+
+	/**
+	 * @brief Returns step controller.
+	 * @return Requested value.
+	 */
 	const physics::StepController& GetStepController() const {
 		return physicsStep_;
 	}
 
 	// Spawning / object management
 
-	// Spawns a static sprite with a given texture, size, and layer. Returns the new GameObject* or nullptr on failure.
+	/**
+	 * @brief Performs spawn static sprite.
+	 * @param texturePath Parameter for texture path.
+	 * @param position Parameter for position.
+	 * @param size Parameter for size.
+	 * @param layer Parameter for layer.
+	 * @return Result produced by this operation.
+	 */
 	GameObject* SpawnStaticSprite(const std::string& texturePath,
 		const glm::vec3 position,
 		const glm::vec2 size = glm::vec2(100.0f, 100.0f),
 		const std::string& layer = "Not set in JSON");
 
-	// Spawns an animated sprite with a given texture, size, and animation frames.
+	/**
+	 * @brief Performs spawn animated sprite.
+	 * @param texturePath Parameter for texture path.
+	 * @param position Parameter for position.
+	 * @param size Parameter for size.
+	 * @param frames Parameter for frames.
+	 * @param frameDuration Parameter for frame duration.
+	 * @param loop Parameter for loop.
+	 * @param layer Parameter for layer.
+	 * @return Result produced by this operation.
+	 */
 	GameObject* SpawnAnimatedSprite(const std::string& texturePath,
 		const glm::vec3 position,
 		const glm::vec2 size,
@@ -146,66 +298,238 @@ public:
 		const std::string& layer);
 
 	// Spawns a static sprite at the same position as ownerID, with given texture/size/layer.
-	// Returns the new GameObject* or nullptr on failure.
+	/**
+	 * @brief Performs spawn static sprite at same pos.
+	 * @param ownerID Parameter for owner id.
+	 * @param texturePath Parameter for texture path.
+	 * @param width Width value in pixels.
+	 * @param height Height value in pixels.
+	 * @param layer Parameter for layer.
+	 * @return Result produced by this operation.
+	 */
 	GameObject* SpawnStaticSpriteAtSamePos(int ownerID,
 		const std::string& texturePath,
 		float width,
 		float height,
 		const std::string& layer);
 
-	// Spawns an animated sprite at the same position as ownerID, with given texture/size/frames/layer.
+	/**
+	 * @brief Returns game object by id.
+	 * @param targetID Parameter for target id.
+	 * @return Requested value.
+	 */
 	GameObject* GetGameObjectByID(int targetID);
+
+	/**
+	 * @brief Returns all objects raw.
+	 * @return Requested value.
+	 */
 	std::vector<GameObject*> GetAllObjectsRaw();
+
+	/**
+	 * @brief Returns object storage raw.
+	 * @return Requested value.
+	 */
 	const std::vector<std::unique_ptr<GameObject>>& GetObjectStorageRaw() const;
+
+	/**
+	 * @brief Performs despawn by id.
+	 * @param targetID Parameter for target id.
+	 */
 	void DespawnByID(int targetID);
+
+	/**
+	 * @brief Collects renderable pointers.
+	 * @param out Output value for out.
+	 */
 	void CollectRenderablePointers(std::vector<GameObject*>& out);
 
 	// Scene / transform utilities
 
-	// Set the scene background texture
+	/**
+	 * @brief Sets scene background.
+	 * @param texturePath Parameter for texture path.
+	 */
 	void SetSceneBackground(const std::string& texturePath);
+
+	/**
+	 * @brief Sets scene background overlay.
+	 * @param texturePath Parameter for texture path.
+	 */
 	void SetSceneBackgroundOverlay(const std::string& texturePath);
+
+	/**
+	 * @brief Clears scene background overlay.
+	 */
 	void ClearSceneBackgroundOverlay();
+
+	/**
+	 * @brief Returns scene background.
+	 * @return Requested value.
+	 */
 	const std::string& GetSceneBackground() const {
 		return sceneBackgroundPath_;
 	}
+
+	/**
+	 * @brief Returns scene background overlay.
+	 * @return Requested value.
+	 */
 	const std::string& GetSceneBackgroundOverlay() const {
 		return sceneBackgroundOverlayPath_;
 	}
 
-	// Set the transform of the object with given ID, using level editor semantics
+	/**
+	 * @brief Sets transform from level.
+	 * @param id Parameter for id.
+	 * @param pos Parameter for pos.
+	 * @param scale Parameter for scale.
+	 * @param rotation Parameter for rotation.
+	 */
 	void SetTransformFromLevel(int id, const glm::vec3& pos, const glm::vec3& scale, float rotation);
+
+	/**
+	 * @brief Performs clamp to walk area.
+	 * @param obj Parameter for obj.
+	 */
 	void ClampToWalkArea(GameObject* obj);
+
+	/**
+	 * @brief Resolves world step.
+	 * @param obj Parameter for obj.
+	 * @param desiredDelta Parameter for desired delta.
+	 * @return Result produced by this operation.
+	 */
 	glm::vec2 ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta);
 
-	// Coordinate scaling utilities (for level editor reference vs actual game units)
+	/**
+	 * @brief Performs scale xto current.
+	 * @param referenceX Parameter for reference x.
+	 * @return Result produced by this operation.
+	 */
 	float ScaleXToCurrent(float referenceX) const;
+
+	/**
+	 * @brief Performs scale yto current.
+	 * @param referenceY Parameter for reference y.
+	 * @return Result produced by this operation.
+	 */
 	float ScaleYToCurrent(float referenceY) const;
+
+	/**
+	 * @brief Performs to ref x.
+	 * @param currentX Parameter for current x.
+	 * @return Result produced by this operation.
+	 */
 	float ToRefX(float currentX) const;
+
+	/**
+	 * @brief Performs to ref y.
+	 * @param currentY Parameter for current y.
+	 * @return Result produced by this operation.
+	 */
 	float ToRefY(float currentY) const;
 
-	// Animation helpers
+	/**
+	 * @brief Returns whether animations.
+	 * @param id Parameter for id.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasAnimations(int id) const;
+
+	/**
+	 * @brief Returns animation list.
+	 * @param id Parameter for id.
+	 * @return Requested value.
+	 */
 	std::vector<std::string> GetAnimationList(int id) const;
+
+	/**
+	 * @brief Returns current animation name.
+	 * @param id Parameter for id.
+	 * @return Requested value.
+	 */
 	std::string GetCurrentAnimationName(int id) const;
 
-	// Set the current animation of the object with given ID. Does nothing if object doesn't exist or doesn't have that animation.
+	/**
+	 * @brief Sets animation.
+	 * @param objID Parameter for obj id.
+	 * @param newAnim Parameter for new anim.
+	 */
 	void SetAnimation(int objID, const std::string& newAnim);
+
+	/**
+	 * @brief Performs attach player animations.
+	 * @param objID Parameter for obj id.
+	 */
 	void AttachPlayerAnimations(int objID);
+
+	/**
+	 * @brief Performs attach dino animations.
+	 * @param objID Parameter for obj id.
+	 */
 	void AttachDinoAnimations(int objID);
+
+	/**
+	 * @brief Performs attach customers animations.
+	 * @param objID Parameter for obj id.
+	 */
 	void AttachCustomersAnimations(int objID);
+
+	/**
+	 * @brief Performs attach customers animations.
+	 * @param objID Parameter for obj id.
+	 * @param texturePath Parameter for texture path.
+	 */
 	void AttachCustomersAnimations(int objID, const std::string& texturePath);
+
+	/**
+	 * @brief Performs attach work vfx cut animations.
+	 * @param objID Parameter for obj id.
+	 */
 	void AttachWorkVfxCutAnimations(int objID);
+
+	/**
+	 * @brief Performs attach work vfx grill animations.
+	 * @param objID Parameter for obj id.
+	 */
 	void AttachWorkVfxGrillAnimations(int objID);
+
+	/**
+	 * @brief Performs attach work vfx stove animations.
+	 * @param objID Parameter for obj id.
+	 */
 	void AttachWorkVfxStoveAnimations(int objID);
+
+	/**
+	 * @brief Performs mark animated.
+	 * @param id Parameter for id.
+	 * @param state Parameter for state.
+	 */
 	void MarkAnimated(int id, bool state);
+
+	/**
+	 * @brief Performs attach menu animations.
+	 * @param objID Parameter for obj id.
+	 */
 	void AttachMenuAnimations(int objID);
 
-	// Stress test helper (spawns a large number of objects with simple movement logic to test performance and stability)
+	/**
+	 * @brief Generates stress test.
+	 * @param objectCount Parameter for object count.
+	 */
 	void GenerateStressTest(int objectCount = 2500);
+
+	/**
+	 * @brief Updates animation controls.
+	 */
 	void UpdateAnimationControls();
 
-	// Tag-based logic helpers
+	/**
+	 * @brief Performs attach logic for tag.
+	 * @param id Parameter for id.
+	 * @param tag Parameter for tag.
+	 */
 	void AttachLogicForTag(int id, const std::string& tag);
 	using TagLogicBinder = std::function<void(Scene&, int, const std::string&)>;
 	using TagRuleHook = std::function<void(Scene&, int, const std::string&, float, float)>;
@@ -222,117 +546,292 @@ public:
 	using SkipCutsceneAudioHook = std::function<void(Scene&, float)>;
 	using TagUsesVelocityHook = std::function<bool(const std::string&)>;
 	using NavigationBlockerCollector = std::function<void(Scene&, int, std::vector<collision::AABB>&)>;
+
+	/**
+	 * @brief Sets tag logic binder.
+	 * @param binder Parameter for binder.
+	 */
 	void SetTagLogicBinder(TagLogicBinder binder) {
 		tagLogicBinder_ = std::move(binder);
 	}
+
+	/**
+	 * @brief Sets pause overlay button binder.
+	 * @param binder Parameter for binder.
+	 */
 	void SetPauseOverlayButtonBinder(PauseOverlayButtonBinder binder) {
 		pauseOverlayButtonBinder_ = std::move(binder);
 	}
+
+	/**
+	 * @brief Sets tag rule hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetTagRuleHook(TagRuleHook hook) {
 	 tagRuleHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets customer update hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetCustomerUpdateHook(CustomerUpdateHook hook) {
 		customerUpdateHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets customer reset hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetCustomerResetHook(CustomerResetHook hook) {
 		customerResetHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets runtime object setup hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetRuntimeObjectSetupHook(RuntimeObjectSetupHook hook) {
 		runtimeObjectSetupHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets simulation update hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetSimulationUpdateHook(SimulationUpdateHook hook) {
 		simulationUpdateHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets default scene setup hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetDefaultSceneSetupHook(DefaultSceneSetupHook hook) {
 		defaultSceneSetupHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets post level load hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetPostLevelLoadHook(PostLevelLoadHook hook) {
 		postLevelLoadHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets cutscene fade out hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetCutsceneFadeOutHook(CutsceneFadeOutHook hook) {
 		cutsceneFadeOutHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets cutscene first frame hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetCutsceneFirstFrameHook(CutsceneFirstFrameHook hook) {
 		cutsceneFirstFrameHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets cutscene before final load hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetCutsceneBeforeFinalLoadHook(CutsceneBeforeFinalLoadHook hook) {
 		cutsceneBeforeFinalLoadHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets navigation blocker collector.
+	 * @param collector Parameter for collector.
+	 */
 	void SetNavigationBlockerCollector(NavigationBlockerCollector collector) {
 		navigationBlockerCollector_ = std::move(collector);
 	}
+
+	/**
+	 * @brief Sets skip cutscene audio hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetSkipCutsceneAudioHook(SkipCutsceneAudioHook hook) {
 		skipCutsceneAudioHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets tag uses velocity hook.
+	 * @param hook Parameter for hook.
+	 */
 	void SetTagUsesVelocityHook(TagUsesVelocityHook hook) {
 		tagUsesVelocityHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Sets pause overlay audio channels.
+	 * @param musicChannel Parameter for music channel.
+	 * @param ambienceChannel Parameter for ambience channel.
+	 */
 	void SetPauseOverlayAudioChannels(std::string musicChannel, std::string ambienceChannel) {
 		pauseMusicChannel_ = std::move(musicChannel);
 		pauseAmbienceChannel_ = std::move(ambienceChannel);
 	}
+
+	/**
+	 * @brief Applies runtime object setup.
+	 * @param id Parameter for id.
+	 * @param tag Parameter for tag.
+	 * @param texturePath Parameter for texture path.
+	 * @param animated Parameter for animated.
+	 * @param animName Parameter for anim name.
+	 * @param speedX Parameter for speed x.
+	 * @param speedY Parameter for speed y.
+	 */
 	void ApplyRuntimeObjectSetup(int id, const std::string& tag, const std::string& texturePath, bool animated, const std::string& animName, float speedX, float speedY) {
 		if (runtimeObjectSetupHook_) {
 			runtimeObjectSetupHook_(*this, id, tag, texturePath, animated, animName, speedX, speedY);
 		}
 	}
 
-	// Centralized tag metadata
+	/**
+	 * @brief Sets object tag.
+	 * @param id Parameter for id.
+	 * @param tag Parameter for tag.
+	 */
 	void SetObjectTag(int id, const std::string& tag);
+
+	/**
+	 * @brief Returns object tag.
+	 * @param id Parameter for id.
+	 * @return Requested value.
+	 */
 	std::string GetObjectTag(int id) const;
 
-	// Centralized tag rules
+	/**
+	 * @brief Applies tag rules.
+	 * @param id Parameter for id.
+	 * @param tag Parameter for tag.
+	 * @param speedX Parameter for speed x.
+	 * @param speedY Parameter for speed y.
+	 */
 	void ApplyTagRules(int id, const std::string& tag, float speedX, float speedY);
+
+	/**
+	 * @brief Returns whether tagusesvelocity.
+	 * @param tag Parameter for tag.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool TagUsesVelocity(const std::string& tag) const;
 
-	// ID / role helpers
+	/**
+	 * @brief Sets player id.
+	 * @param id Parameter for id.
+	 */
 	void SetPlayerID(int id);
+
+	/**
+	 * @brief Returns player id.
+	 * @return Requested value.
+	 */
 	int GetPlayerID() const {
 		return spriteID;
 	}
 
-	// NPC IDs can be extended as needed
+	/**
+	 * @brief Sets npc1 id.
+	 * @param id Parameter for id.
+	 */
 	void SetNPC1ID(int id) {
 		otherID = id;
 		if (id >= 0) {
 			npcSystem.RegisterLaneNPC(id, 1000.0f); // Only this npc1 gets lane behavior
 		}
 	}
+
+	/**
+	 * @brief Sets npc2 id.
+	 * @param id Parameter for id.
+	 */
 	void SetNPC2ID(int id) {
 		otherID2 = id;
 		if (id >= 0) {
 			npcSystem.RegisterLaneNPC(id, 1000.0f); //Only this npc2 gets lane behavior
 		}
 	}
+
+	/**
+	 * @brief Sets dino id.
+	 * @param id Parameter for id.
+	 */
 	void SetDinoID(int id) {
 		dinoID = id;
 	}
+
+	/**
+	 * @brief Returns npc1 id.
+	 * @return Requested value.
+	 */
 	int GetNPC1ID() const {
 		return otherID;
 	}
+
+	/**
+	 * @brief Returns npc2 id.
+	 * @return Requested value.
+	 */
 	int GetNPC2ID() const {
 		return otherID2;
 	}
+
+	/**
+	 * @brief Returns dino id.
+	 * @return Requested value.
+	 */
 	int GetDinoID() const {
 		return dinoID;
 	}
 
-	// NPC System
+	/**
+	 * @brief Sets npcvelocity.
+	 * @param id Parameter for id.
+	 * @param vx Parameter for vx.
+	 * @param vy Parameter for vy.
+	 */
 	void SetNPCVelocity(int id, float vx, float vy) {
 		npcSystem.SetNPCVelocity(id, glm::vec2(vx, vy));
 	}
+
+	/**
+	 * @brief Returns npcvelocity.
+	 * @param id Parameter for id.
+	 * @return Requested value.
+	 */
 	glm::vec2 GetNPCVelocity(int id) const {
 		return npcSystem.GetNPCVelocity(id);
 	}
+
+	/**
+	 * @brief Registers lane npc.
+	 * @param id Parameter for id.
+	 * @param laneX Parameter for lane x.
+	 */
 	void RegisterLaneNPC(int id, float laneX) {
 		npcSystem.RegisterLaneNPC(id, laneX);
 	}
 
-	// Exit gate handling
+	/**
+	 * @brief Registers exit gate.
+	 * @param id Parameter for id.
+	 */
 	void RegisterExitGate(int id) {
 		exitGateID_ = id;
 		exitGateCached_ = false;
 	}
+
+	/**
+	 * @brief Returns exit gate world pos.
+	 * @return Requested value.
+	 */
 	Math::Vector2D GetExitGateWorldPos() {
 		if (exitGateID_ < 0) return { 0.f, 0.f };
 		if (GameObject* g = GetGameObjectByID(exitGateID_)) {
@@ -342,8 +841,18 @@ public:
 		return { 0.f, 0.f };
 	}
 
-	// Texture metadata (LevelEditor / JSON)
+	/**
+	 * @brief Returns object texture path.
+	 * @param id Parameter for id.
+	 * @return Requested value.
+	 */
 	const std::string& GetObjectTexturePath(int id) const;
+
+	/**
+	 * @brief Sets object texture path.
+	 * @param id Parameter for id.
+	 * @param path Path to process.
+	 */
 	void SetObjectTexturePath(int id, const std::string& path);
 
 	// Default properties for objects by ID
@@ -375,21 +884,41 @@ public:
 		bool visible{ true };
 	};
 
-	// Set and get defaults for an object ID. Setting defaults will mark static state dirty for collision rebuild.
+	/**
+	 * @brief Sets defaults.
+	 * @param id Parameter for id.
+	 * @param d Parameter for d.
+	 */
 	void SetDefaults(int id, const Defaults& d) {
 		defaults_[id] = d;
 		collisionManager.MarkStaticStateDirty();
 	}
+
+	/**
+	 * @brief Returns defaults.
+	 * @param id Parameter for id.
+	 * @return Requested value.
+	 */
 	Defaults GetDefaults(int id) const {
 		auto it = defaults_.find(id);
 		return (it != defaults_.end()) ? it->second : Defaults{};
 	}
 
-	// Per-object visibility controls 
+	/**
+	 * @brief Sets object visible.
+	 * @param id Parameter for id.
+	 * @param visible Parameter for visible.
+	 */
 	void SetObjectVisible(int id, bool visible) {
 		defaults_[id].visible = visible;
 		collisionManager.MarkStaticStateDirty();
 	}
+
+	/**
+	 * @brief Returns whether object visible.
+	 * @param id Parameter for id.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsObjectVisible(int id) const {
 		auto it = defaults_.find(id);
 		return (it != defaults_.end()) ? it->second.visible : true;
@@ -397,79 +926,234 @@ public:
 
 	// Particle system
 	ParticleSystem particleSystem_;
+
+	/**
+	 * @brief Returns particle system.
+	 * @return Requested value.
+	 */
 	ParticleSystem& GetParticleSystem() {
 		return particleSystem_;
 	}
 
-	// Layers
+	/**
+	 * @brief Adds layer.
+	 * @param name Parameter for name.
+	 */
 	void AddLayer(const std::string& name);
+
+	/**
+	 * @brief Returns layer.
+	 * @param name Parameter for name.
+	 * @return Requested value.
+	 */
 	Layer* GetLayer(const std::string& name);
+
+	/**
+	 * @brief Returns all layers.
+	 * @return Requested value.
+	 */
 	const std::unordered_map<std::string, Layer>& GetAllLayers() const;
 
-	// Layer assignment helpers
+	/**
+	 * @brief Returns object layer.
+	 * @param objectID Identifier of the target object.
+	 * @return Requested value.
+	 */
 	std::string GetObjectLayer(int objectID) const;
+
+	/**
+	 * @brief Returns object layer ptr.
+	 * @param objectID Identifier of the target object.
+	 * @return Requested value.
+	 */
 	Layer* GetObjectLayerPtr(int objectID);
+
+	/**
+	 * @brief Returns object layer ptr.
+	 * @param objectID Identifier of the target object.
+	 * @return Requested value.
+	 */
 	const Layer* GetObjectLayerPtr(int objectID) const;
+
+	/**
+	 * @brief Performs assign object to layer.
+	 * @param id Parameter for id.
+	 * @param newLayer Parameter for new layer.
+	 */
 	void AssignObjectToLayer(int id, const std::string& newLayer);
+
+	/**
+	 * @brief Removes layer.
+	 * @param name Parameter for name.
+	 */
 	void RemoveLayer(const std::string& name);
 
-	// Layer enable/disable helpers
+	/**
+	 * @brief Returns whether layer enabled.
+	 * @param layerName Parameter for layer name.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsLayerEnabled(const std::string& layerName) const;
+
+	/**
+	 * @brief Returns whether object layer enabled.
+	 * @param objectID Identifier of the target object.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsObjectLayerEnabled(int objectID) const;
 
-	// Collision and walk area
+	/**
+	 * @brief Builds level colliders.
+	 */
 	void BuildLevelColliders();
+
+	/**
+	 * @brief Performs rebuild colliders.
+	 */
 	void RebuildColliders();
+
+	/**
+	 * @brief Resolves initial static overlaps.
+	 */
 	void ResolveInitialStaticOverlaps();
+
+	/**
+	 * @brief Returns walk area.
+	 * @return Requested value.
+	 */
 	collision::WalkArea GetWalkArea() const;
+
+	/**
+	 * @brief Handles player collisions.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param entityMgr Parameter for entity mgr.
+	 */
 	void HandlePlayerCollisions(float deltaTime, EntityManager& entityMgr);
+
+	/**
+	 * @brief Applies final constraints.
+	 * @param entityMgr Parameter for entity mgr.
+	 */
 	void ApplyFinalConstraints(EntityManager& entityMgr);
+
+	/**
+	 * @brief Collects navigation blocker boxes.
+	 * @param moverObjectID Parameter for mover object id.
+	 * @param outBoxes Output value for out boxes.
+	 */
 	void CollectNavigationBlockerBoxes(int moverObjectID, std::vector<collision::AABB>& outBoxes);
 
-	// Expose EntityManager for systems that need it
+	/**
+	 * @brief Returns entity manager.
+	 * @return Requested value.
+	 */
 	EntityManager& GetEntityManager() {
 		return entityManager;
 	}
 
-	// Level loading queue
+	/**
+	 * @brief Performs queue level load.
+	 * @param path Path to process.
+	 * @param activateSimulation Parameter for activate simulation.
+	 */
 	void QueueLevelLoad(const std::string& path, bool activateSimulation);
+
+	/**
+	 * @brief Sets current level path.
+	 * @param path Path to process.
+	 */
 	void SetCurrentLevelPath(const std::string& path) {
 		currentLevelPath_ = path;
 	}
+
+	/**
+	 * @brief Returns current level path.
+	 * @return Requested value.
+	 */
 	const std::string& GetCurrentLevelPath() const {
 		return currentLevelPath_;
 	}
+
+	/**
+	 * @brief Returns whether pending level.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasPendingLevel() const {
 		return hasPendingLevel_;
 	}
 
-	// Game state change request
+	/**
+	 * @brief Performs request state change.
+	 * @param newState Parameter for new state.
+	 */
 	void RequestStateChange(int newState);
+
+	/**
+	 * @brief Returns whether pending state change.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasPendingStateChange() const {
 		return hasPendingStateChange_;
 	}
+
+	/**
+	 * @brief Returns pending state.
+	 * @return Requested value.
+	 */
 	int GetPendingState() const {
 		return pendingState_;
 	}
+
+	/**
+	 * @brief Clears pending state change.
+	 */
 	void ClearPendingStateChange() {
 		hasPendingStateChange_ = false;
 	}
 
-	// Pause overlay methods
+	/**
+	 * @brief Performs show pause overlay.
+	 */
 	void ShowPauseOverlay();
+
+	/**
+	 * @brief Performs hide pause overlay.
+	 */
 	void HidePauseOverlay();
+
+	/**
+	 * @brief Performs request resume from pause overlay.
+	 */
 	void RequestResumeFromPauseOverlay();
+
+	/**
+	 * @brief Returns whether pause overlay active.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsPauseOverlayActive() const {
 		return pauseOverlayActive_;
 	}
 
-	// Replay state exposure
+	/**
+	 * @brief Returns whether replay playback active.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsReplayPlaybackActive() const {
 		return replayManager_.IsPlaybackActive();
 	}
+
+	/**
+	 * @brief Returns replay frame dt.
+	 * @return Requested value.
+	 */
 	float GetReplayFrameDt() const {
 		return lastReplayFrameDt_;
 	}
+
+	/**
+	 * @brief Returns whether replay frame dt.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasReplayFrameDt() const {
 		return lastReplayFrameDt_ > 0.0f;
 	}
@@ -477,36 +1161,78 @@ public:
 
 	// Menu button text rendering
 #if 0
+	/**
+	 * @brief Creates menu button texts.
+	 */
 	void CreateMenuButtonTexts();
+
+	/**
+	 * @brief Renders menu button texts.
+	 */
 	void RenderMenuButtonTexts();
+
+	/**
+	 * @brief Clears menu button texts.
+	 */
 	void ClearMenuButtonTexts();
 #endif
 
-	// How-to-play overlay state
+	/**
+	 * @brief Sets how to play overlay active.
+	 * @param active Parameter for active.
+	 */
 	void SetHowToPlayOverlayActive(bool active) {
 		howToPlayOverlayActive_ = active;
 	}
+
+	/**
+	 * @brief Returns whether how to play overlay active.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsHowToPlayOverlayActive() const {
 		return howToPlayOverlayActive_;
 	}
-	// FPS display rendering
+
+	/**
+	 * @brief Renders fpstext.
+	 */
 	void RenderFPSText();
 
-	// Pending despawn queue (to avoid modifying EntityManager during iteration)
+	/**
+	 * @brief Performs request despawn.
+	 * @param id Parameter for id.
+	 */
 	void RequestDespawn(int id) {
 		pendingDespawns_.push_back(id);
 	}
 
 	// Cutscene API
 	// Starts a cutscene consisting of image paths played in sequence.
-	// When finished, queues level load to 'levelJsonPath' and sets simulation according to 'activateSimulation'.
+	/**
+	 * @brief Performs start cutscene.
+	 * @param imagePaths Parameter for image paths.
+	 * @param holdSecondsPerImage Parameter for hold seconds per image.
+	 * @param fadeSeconds Parameter for fade seconds.
+	 * @param levelJsonPath Parameter for level json path.
+	 * @param activateSimulation Parameter for activate simulation.
+	 */
 	void StartCutscene(const std::vector<std::string>& imagePaths,
 		float holdSecondsPerImage,
 		float fadeSeconds,
 		const std::string& levelJsonPath,
 		bool activateSimulation);
 
-	// Starts a cutscene with fade transitions between frames. 'holdSeconds' controls how long each image is held at full opacity before transitioning to the next.
+	/**
+	 * @brief Performs start cutscene transitioned.
+	 * @param imagePaths Parameter for image paths.
+	 * @param levelJsonPath Parameter for level json path.
+	 * @param activateSimulation Parameter for activate simulation.
+	 * @param fadeOutSeconds Parameter for fade out seconds.
+	 * @param fadeInSeconds Parameter for fade in seconds.
+	 * @param holdSeconds Parameter for hold seconds.
+	 * @param crossfadeFromIndex Parameter for crossfade from index.
+	 * @param crossfadeSeconds Parameter for crossfade seconds.
+	 */
 	void StartCutsceneTransitioned(const std::vector<std::string>& imagePaths,
 		const std::string& levelJsonPath,
 		bool activateSimulation,
@@ -518,7 +1244,18 @@ public:
 
 	// Starts a cutscene with per-frame images. 'boundaryFlags' marks indices where a chapter boundary occurs.
 	// At boundaries, the engine performs fade-out/in (or crossfade when 'crossfadeFromIndex' matches).
-	// Between frames without a boundary, it swaps instantly with no transition (for smooth animation).
+	/**
+	 * @brief Performs start cutscene transitioned bounded.
+	 * @param imagePaths Parameter for image paths.
+	 * @param boundaryFlags Parameter for boundary flags.
+	 * @param levelJsonPath Parameter for level json path.
+	 * @param activateSimulation Parameter for activate simulation.
+	 * @param fadeOutSeconds Parameter for fade out seconds.
+	 * @param fadeInSeconds Parameter for fade in seconds.
+	 * @param holdSeconds Parameter for hold seconds.
+	 * @param crossfadeFromIndex Parameter for crossfade from index.
+	 * @param crossfadeSeconds Parameter for crossfade seconds.
+	 */
 	void StartCutsceneTransitionedBounded(const std::vector<std::string>& imagePaths,
 		const std::vector<bool>& boundaryFlags,
 		const std::string& levelJsonPath,
@@ -531,19 +1268,32 @@ public:
 
 	// Order UI slide-in API
 	// Spawns an Order UI sprite off-screen at the top, then animates it sliding down to target.
-	// Returns spawned object ID or -1 on failure.
+	/**
+	 * @brief Triggers order ui slide in.
+	 * @param targetPos Parameter for target pos.
+	 * @param size Parameter for size.
+	 * @param layer Parameter for layer.
+	 * @param texturePath Parameter for texture path.
+	 * @param slideDuration Parameter for slide duration.
+	 * @return Result produced by this operation.
+	 */
 	int TriggerOrderUiSlideIn(const glm::vec2& targetPos,
 		const glm::vec2& size,
 		const std::string& layer = "3",
 		const std::string& texturePath = "../assets/Order_UI.png",
 		float slideDuration = 0.45f);
 
-	// Check if any cutscene is active
+	/**
+	 * @brief Returns whether any cutscene active.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsAnyCutsceneActive() const {
 		return cutscene_.active || cutTrans_.active;
 	}
 
-	// Skips whichever cutscene system is currently active and advances to queued target level.
+	/**
+	 * @brief Performs skip active cutscene.
+	 */
 	void SkipActiveCutscene();
 
 private:
@@ -593,6 +1343,12 @@ private:
 	// Centralized defaults and metadata for objects, keyed by ID
 	std::unordered_map<int, Defaults> defaults_;
 	std::unordered_map<std::string, Layer> layers;
+
+	/**
+	 * @brief Returns layer sort key cached.
+	 * @param layerName Parameter for layer name.
+	 * @return Requested value.
+	 */
 	int GetLayerSortKeyCached(const std::string& layerName) const;
 	mutable std::unordered_map<std::string, int> layerSortKeyCache_;
 
@@ -752,45 +1508,118 @@ private:
 	};
 	std::vector<UiSlide> uiSlides_; // multiple parallel slides if needed
 
-	// Internal helpers
+	/**
+	 * @brief Updates cutscene.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void UpdateCutscene(float dt);
+
+	/**
+	 * @brief Updates cutscene transitioned.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void UpdateCutsceneTransitioned(float dt);
+
+	/**
+	 * @brief Performs cleanup cutscene objects.
+	 */
 	void CleanupCutsceneObjects();
+
+	/**
+	 * @brief Sets sprite alpha.
+	 * @param obj Parameter for obj.
+	 * @param alpha Parameter for alpha.
+	 */
 	void SetSpriteAlpha(GameObject* obj, float alpha); // no-op if shader lacks alpha tint
 
-	// Cutscene "Press Space to Skip" prompt
+	/**
+	 * @brief Performs spawn cutscene skip prompt.
+	 */
 	void SpawnCutsceneSkipPrompt();
+
+	/**
+	 * @brief Performs despawn cutscene skip prompt.
+	 */
 	void DespawnCutsceneSkipPrompt();
 
-	// Update all active UI slides
+	/**
+	 * @brief Updates ui slides.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void UpdateUiSlides(float dt);
-	// Ease-out cubic for snappy drop
+
+	/**
+	 * @brief Performs ease out cubic.
+	 * @param x Parameter for x.
+	 * @return Result produced by this operation.
+	 */
 	static float EaseOutCubic(float x) {
 		float inv = 1.0f - x;
 		return 1.0f - inv * inv * inv;
 	}
 
 public:
-	// Starts a level transition cutscene with fade-out, image swap, fade-in sequence. No cross-fade or separate hold time.
+
+	/**
+	 * @brief Performs start level transition.
+	 * @param levelJsonPath Parameter for level json path.
+	 * @param activateSimulation Parameter for activate simulation.
+	 * @param fadeOutSeconds Parameter for fade out seconds.
+	 * @param fadeInSeconds Parameter for fade in seconds.
+	 */
 	void StartLevelTransition(const std::string& levelJsonPath,
 		bool activateSimulation,
 		float fadeOutSeconds = 0.35f,
 		float fadeInSeconds = 0.35f);
 
+	/**
+	 * @brief Builds navigation grid for object.
+	 * @param moverObjectID Parameter for mover object id.
+	 * @param outGrid Output value for out grid.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid);
+
+	/**
+	 * @brief Finds path for object.
+	 * @param moverObjectID Parameter for mover object id.
+	 * @param startWorld Parameter for start world.
+	 * @param goalWorld Parameter for goal world.
+	 * @param outPath Output value for out path.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool FindPathForObject(int moverObjectID,
 		const glm::vec2& startWorld,
 		const glm::vec2& goalWorld,
 		std::vector<glm::vec2>& outPath);
 
+	/**
+	 * @brief Returns nearest navigation cell center for object.
+	 * @param moverObjectID Parameter for mover object id.
+	 * @param worldPos Parameter for world pos.
+	 * @param outCenter Output value for out center.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool GetNearestNavigationCellCenterForObject(int moverObjectID,
 		const glm::vec2& worldPos,
 		glm::vec2& outCenter);
 
+	/**
+	 * @brief Returns whether direct path for object.
+	 * @param moverObjectID Parameter for mover object id.
+	 * @param startWorld Parameter for start world.
+	 * @param goalWorld Parameter for goal world.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasDirectPathForObject(int moverObjectID,
 		const glm::vec2& startWorld,
 		const glm::vec2& goalWorld);
 
+	/**
+	 * @brief Triggers customer payment feedback.
+	 * @param tableObjectID Parameter for table object id.
+	 * @param amount Parameter for amount.
+	 */
 	void TriggerCustomerPaymentFeedback(int tableObjectID, int amount);
 
 private:
@@ -825,17 +1654,66 @@ private:
 	std::vector<RuntimeAnimatedFx> runtimeAnimatedFx_;
 	std::vector<FloatingWorldTextFx> floatingWorldTextFx_;
 
+	/**
+	 * @brief Updates runtime animated fx.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void UpdateRuntimeAnimatedFx(float dt);
+
+	/**
+	 * @brief Updates floating world text fx.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void UpdateFloatingWorldTextFx(float dt);
+
+	/**
+	 * @brief Renders floating world text fx.
+	 * @param projection Parameter for projection.
+	 * @param pauseActive Parameter for pause active.
+	 * @param cutsceneActive Parameter for cutscene active.
+	 */
 	void RenderFloatingWorldTextFx(const glm::mat4& projection, bool pauseActive, bool cutsceneActive);
 
+	/**
+	 * @brief Updates level transition.
+	 */
 	void UpdateLevelTransition();
 
-	// Per-frame update phases (kept in strict orchestration order by Scene::Update)
+	/**
+	 * @brief Updates cutscene phase.
+	 * @param deltaTime Frame delta time in seconds.
+	 */
 	void UpdateCutscenePhase(float deltaTime);
+
+	/**
+	 * @brief Updates input phase.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool UpdateInputPhase(float deltaTime);
+
+	/**
+	 * @brief Updates simulation phase.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param physicsDt Parameter for physics dt.
+	 */
 	void UpdateSimulationPhase(float deltaTime, float physicsDt);
+
+	/**
+	 * @brief Handles deferred loads.
+	 */
 	void HandleDeferredLoads();
+
+	/**
+	 * @brief Updates ui phase.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param window Parameter for window.
+	 */
 	void UpdateUiPhase(float deltaTime, GLFWwindow* window);
+
+	/**
+	 * @brief Performs finalize frame phase.
+	 * @param deltaTime Frame delta time in seconds.
+	 */
 	void FinalizeFramePhase(float deltaTime);
 };

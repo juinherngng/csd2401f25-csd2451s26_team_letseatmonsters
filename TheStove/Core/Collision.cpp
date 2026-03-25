@@ -18,12 +18,23 @@
 namespace collision {
 	static constexpr float kEPS = 1e-4f;
 
-	// Helper functions
+	/**
+	 * @brief Performs clampf.
+	 * @param v Parameter for v.
+	 * @param lo Parameter for lo.
+	 * @param hi Parameter for hi.
+	 * @return Result produced by this operation.
+	 */
 	static inline float clampf(float v, float lo, float hi) {
 		return std::max(lo, std::min(v, hi));
 	}
 
-	// Internal overlap test (AABB vs AABB).
+	/**
+	 * @brief Performs overlaps.
+	 * @param a Parameter for a.
+	 * @param b Parameter for b.
+	 * @return Result produced by this operation.
+	 */
 	static inline bool overlaps(const AABB& a, const AABB& b) {
 		bool aRightOfB = (a.min.x >= b.max.x);
 		bool aLeftOfB = (a.max.x <= b.min.x);
@@ -39,7 +50,13 @@ namespace collision {
 		return overlapExists;
 	}
 
-	// Internal method to compute the Minimum Translation Vector (MTV) to resolve an overlap between two AABBs.
+	/**
+	 * @brief Returns whether overlapmtv.
+	 * @param a Parameter for a.
+	 * @param b Parameter for b.
+	 * @param mtvOut Parameter for mtv out.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool overlapMTV(const AABB& a, const AABB& b, Math::Vector2D& mtvOut) {
 		// Signed gaps (A relative to B)
 		float left = b.min.x - a.max.x;
@@ -67,6 +84,15 @@ namespace collision {
 		return true;
 	}
 
+	/**
+	 * @brief Returns whether separateweighted.
+	 * @param a Parameter for a.
+	 * @param b Parameter for b.
+	 * @param weightA Parameter for weight a.
+	 * @param moveA Parameter for move a.
+	 * @param moveB Parameter for move b.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool separateWeighted(const AABB& a, const AABB& b, float weightA, Math::Vector2D& moveA, Math::Vector2D& moveB) {
 		Math::Vector2D mtv;
 		if (!overlapMTV(a, b, mtv)) {
@@ -82,6 +108,13 @@ namespace collision {
 		return true;
 	}
 
+	/**
+	 * @brief Returns whether pointinsidecenteraabb.
+	 * @param point Parameter for point.
+	 * @param center Parameter for center.
+	 * @param scale Parameter for scale.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool pointInsideCenterAABB(const Math::Vector2D& point, const Math::Vector3D& center, const Math::Vector3D& scale) {
 		const float hx = scale.x * 0.5f;
 		const float hy = scale.y * 0.5f;
@@ -89,15 +122,30 @@ namespace collision {
 			point.y >= center.y - hy && point.y <= center.y + hy);
 	}
 
-	// World methods
+	/**
+	 * @brief Clears this object.
+	 * @return Result produced by this operation.
+	 */
 	void World::clear() {
 		mWalls.clear();
 	}
 
+	/**
+	 * @brief Adds wall.
+	 * @param aabb Parameter for aabb.
+	 * @return Result produced by this operation.
+	 */
 	void World::addWall(const AABB& aabb) {
 		mWalls.push_back(aabb);
 	}
 
+	/**
+	 * @brief Builds this object.
+	 * @param w Parameter for w.
+	 * @param wood Parameter for wood.
+	 * @param end Parameter for end.
+	 * @return Result produced by this operation.
+	 */
 	void World::build(const WalkArea& w, const WoodVertical& wood, const StageEndGateVertical& end) {
 		mWalls.clear();
 
@@ -154,6 +202,12 @@ namespace collision {
 		mWalls.push_back(endBottom);
 	}
 
+	/**
+	 * @brief Resolves this object.
+	 * @param startBox Parameter for start box.
+	 * @param desiredDelta Parameter for desired delta.
+	 * @return Result produced by this operation.
+	 */
 	Math::Vector2D World::resolve(const AABB& startBox, Math::Vector2D desiredDelta) const {
 		// Begin with desired; trim by walls.
 		Math::Vector2D allowedDelta = desiredDelta;
@@ -243,6 +297,12 @@ namespace collision {
 		return allowedDelta;
 	}
 
+	/**
+	 * @brief Performs make aabbfrom center.
+	 * @param center Parameter for center.
+	 * @param scale Parameter for scale.
+	 * @return Result produced by this operation.
+	 */
 	AABB World::makeAABBFromCenter(const Math::Vector3D& center, const Math::Vector3D& scale) {
 		const float halfW = scale.x * 0.5f;
 		const float halfH = scale.y * 0.5f;
@@ -253,6 +313,11 @@ namespace collision {
 		return box;
 	}
 
+	/**
+	 * @brief Performs overlaps any wall.
+	 * @param box Parameter for box.
+	 * @return Result produced by this operation.
+	 */
 	bool World::overlapsAnyWall(const AABB& box) const {
 		Math::Vector2D mtv;
 		for (const auto& wall : mWalls) {

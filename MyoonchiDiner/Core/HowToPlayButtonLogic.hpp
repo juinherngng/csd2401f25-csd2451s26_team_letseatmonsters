@@ -9,7 +9,7 @@
 					required for hover detection, overlay spawning, texture
 					swapping, and tracking which instance owns the overlay.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -22,12 +22,21 @@
  // Logic for the "How To Play" button in the pause menu, which spawns an overlay with instructions when clicked.
 class HowToPlayButtonLogic final : public GameObjectLogic {
 public:
-	// Constructor takes ownerID and initializes base GameObjectLogic
+	/**
+	 * @brief Constructs a `HowToPlayButtonLogic` instance.
+	 * @param ownerID Parameter for owner id.
+	 * @return Result produced by this operation.
+	 */
 	explicit HowToPlayButtonLogic(int ownerID)
 		: GameObjectLogic(ownerID) {
 	}
 
-	// Override lifecycle methods
+	/**
+	 * @brief Updates this object.
+	 * @param dt Frame delta time in seconds.
+	 * @param scene Scene being processed.
+	 * @param input Input manager for the current frame.
+	 */
 	void Update(float dt, Scene& scene, InputManager& input) override;
 
 private:

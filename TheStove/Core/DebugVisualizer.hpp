@@ -27,28 +27,64 @@
 // Forward declare GameObject to avoid circular dependency.
 class DebugVisualizer {
 public:
+
+	/**
+	 * @brief Constructs a `DebugVisualizer` instance.
+	 */
 	DebugVisualizer() = default;
 
-	// Entry point to render all debug overlays for the current frame.
+	/**
+	 * @brief Draws debug info.
+	 * @param entityManager Entity manager containing the active objects.
+	 * @param collisionManager Collision manager used for collision queries.
+	 * @param movementManager Movement manager used for movement updates.
+	 * @param playerId Identifier of the player object.
+	 * @param showAuxiliary Parameter for show auxiliary.
+	 * @return Result produced by this operation.
+	 */
 	static void DrawDebugInfo(EntityManager& entityManager,
 		CollisionManager& collisionManager,
 		MovementManager& movementManager,
 		int playerId,
 		bool showAuxiliary);
 
-	// Draws AABBs for every object that has a valid collider size.
+	/**
+	 * @brief Draws all colliders.
+	 * @param objects Parameter for objects.
+	 * @return Result produced by this operation.
+	 */
 	static void DrawAllColliders(const std::vector<std::unique_ptr<GameObject>>& objects);
 
-	// Draws player-specific helpers (path line and collider corners/center).
+	/**
+	 * @brief Draws player debug.
+	 * @param player Parameter for player.
+	 * @param movementManager Movement manager used for movement updates.
+	 * @param playerID Identifier of the player object.
+	 * @return Result produced by this operation.
+	 */
 	static void DrawPlayerDebug(GameObject* player, MovementManager& movementManager, int playerID);
 
-	// Outlines spatial grid cells around the player's collider AABB.
+	/**
+	 * @brief Draws spatial grid.
+	 * @param player Parameter for player.
+	 * @param collisionManager Collision manager used for collision queries.
+	 * @return Result produced by this operation.
+	 */
 	static void DrawSpatialGrid(GameObject* player, CollisionManager& collisionManager);
 
-	// Highlights nearby collision candidates fetched from the spatial grid.
+	/**
+	 * @brief Draws candidates.
+	 * @param player Parameter for player.
+	 * @param collisionManager Collision manager used for collision queries.
+	 * @return Result produced by this operation.
+	 */
 	static void DrawCandidates(GameObject* player, CollisionManager& collisionManager);
 
-	// Allow other systems to enable/disable the click-to-move path line.
+	/**
+	 * @brief Sets draw path line.
+	 * @param enable Boolean flag controlling whether the feature is enabled.
+	 * @return Result produced by this operation.
+	 */
 	static void SetDrawPathLine(bool enable);
 
 private:

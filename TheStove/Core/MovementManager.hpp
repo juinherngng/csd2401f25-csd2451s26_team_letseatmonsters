@@ -10,7 +10,7 @@
 					and simple NPC patrol paths. Integrates with world collision for step trimming
 					and updates sprite facing based on effective movement/intended direction.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -37,79 +37,167 @@
   */
 class MovementManager : public CoreFramework::SystemInterface {
 public:
+
+	/**
+	 * @brief Constructs a `MovementManager` instance.
+	 */
 	MovementManager() = default;
+
+	/**
+	 * @brief Destroys the `MovementManager` instance and releases owned resources.
+	 */
 	~MovementManager() override = default;
 
-	// ----- SystemInterface implementation -----
+	/**
+	 * @brief Initializes this object.
+	 */
 	void Initialize() override;
+
+	/**
+	 * @brief Updates this object.
+	 * @param deltaTime Frame delta time in seconds.
+	 */
 	void Update(float deltaTime) override;
+
+	/**
+	 * @brief Returns the stable name for this object.
+	 * @return Requested value.
+	 */
 	std::string GetName() override;
 
 	// ----- Core update & lifecycle -----
 
-	// Per-frame update for player, click-to-move, patrol, and passive-velocity objects.
+	/**
+	 * @brief Updates movement.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param entityManager Entity manager containing the active objects.
+	 * @param inputManager Input manager for the current frame.
+	 */
 	void UpdateMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager);
 
-	// Clear all runtime movement state.
+	/**
+	 * @brief Clears this object.
+	 */
 	void Clear();
 
-	// ----- Entity Manager Reference -----
+	/**
+	 * @brief Sets entity manager.
+	 * @param entityMgr Parameter for entity mgr.
+	 */
 	void SetEntityManager(EntityManager* entityMgr);
+
+	/**
+	 * @brief Sets input manager.
+	 * @param inputMgr Parameter for input mgr.
+	 */
 	void SetInputManager(InputManager* inputMgr);
 
 	// ----- Player setup -----
 
-	// Set the entity ID that represents the player.
+	/**
+	 * @brief Sets player id.
+	 * @param playerID Identifier of the player object.
+	 */
 	void SetPlayerID(int playerID);
 
+	/**
+	 * @brief Returns player id.
+	 * @return Requested value.
+	 */
 	int GetPlayerID() const {
 		return playerID_;
 	}
 
 	// ----- Movement control (generic) -----
 
-	// Override the move speed for an object (pixels per second).
+	/**
+	 * @brief Sets move speed.
+	 * @param objectID Identifier of the target object.
+	 * @param speed Parameter for speed.
+	 */
 	void SetMoveSpeed(int objectID, float speed);
 
-	// Get the configured move speed (defaults to 200.f if no entry).
+	/**
+	 * @brief Returns move speed.
+	 * @param objectID Identifier of the target object.
+	 * @return Requested value.
+	 */
 	float GetMoveSpeed(int objectID) const;
 
-	// Assign a click-to-move world target to an object.
+	/**
+	 * @brief Sets move target.
+	 * @param objectID Identifier of the target object.
+	 * @param target Parameter for target.
+	 */
 	void SetMoveTarget(int objectID, const glm::vec2& target);
 
-	// Remove click - to - move target and stop the object immediately.
+	/**
+	 * @brief Clears move target.
+	 * @param objectID Identifier of the target object.
+	 */
 	void ClearMoveTarget(int objectID);
 
-	// Query if an object currently has an active click-to-move target.
+	/**
+	 * @brief Returns whether move target.
+	 * @param objectID Identifier of the target object.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasMoveTarget(int objectID) const;
 
-	// Get the current click-to-move target; returns (0,0) if none.
+	/**
+	 * @brief Returns move target.
+	 * @param objectID Identifier of the target object.
+	 * @return Requested value.
+	 */
 	glm::vec2 GetMoveTarget(int objectID) const;
 
 	// ----- NPC patrol -----
 
-	// Set patrol waypoints for an object.
+	/**
+	 * @brief Sets patrol path.
+	 * @param objectID Identifier of the target object.
+	 * @param waypoints Parameter for waypoints.
+	 * @param loop Parameter for loop.
+	 */
 	void SetPatrolPath(int objectID, const std::vector<glm::vec2>& waypoints, bool loop = true);
 
-	// Enable or disable patrol for an object.
+	/**
+	 * @brief Enables patrol.
+	 * @param objectID Identifier of the target object.
+	 * @param enable Boolean flag controlling whether the feature is enabled.
+	 */
 	void EnablePatrol(int objectID, bool enable);
 
 	// ----- Queries -----
 
-	// True if the object has a non-zero velocity this frame.
+	/**
+	 * @brief Returns whether moving.
+	 * @param objectID Identifier of the target object.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsMoving(int objectID) const;
 
-	// Get the last computed velocity for an object; zero if unknown.
+	/**
+	 * @brief Returns velocity.
+	 * @param objectID Identifier of the target object.
+	 * @return Requested value.
+	 */
 	glm::vec2 GetVelocity(int objectID) const;
 
 	// ----- Wiring to other systems -----
 
-	// Provide access to world resolver used for wall trimming.
+	/**
+	 * @brief Sets collision world.
+	 * @param w Parameter for w.
+	 */
 	void SetCollisionWorld(const collision::World* w) {
 		world_ = w;
 	}
 
-	// Provide the NPC system to skip “lane NPCs” from passive updates.
+	/**
+	 * @brief Sets npcsystem.
+	 * @param npcSys Parameter for npc sys.
+	 */
 	void SetNPCSystem(const NPCSystem* npcSys) {
 		npcSystem_ = npcSys;
 	}
@@ -141,19 +229,44 @@ private:
 
 	// ----- Helpers -----
 
-	// Player-specific WASD / click-to-move resolver and world trimming.
+	/**
+	 * @brief Updates player movement.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param entityManager Entity manager containing the active objects.
+	 * @param inputManager Input manager for the current frame.
+	 */
 	void UpdatePlayerMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager);
 
-	// Generic click-to-move integrator for non-player objects.
+	/**
+	 * @brief Updates click to move.
+	 * @param objectID Identifier of the target object.
+	 * @param data Parameter for data.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param entityManager Entity manager containing the active objects.
+	 */
 	void UpdateClickToMove(int objectID, MovementData& data, float deltaTime, EntityManager& entityManager);
 
-	// Patrol waypoint traversal with optional looping.
+	/**
+	 * @brief Updates npcpatrol.
+	 * @param objectID Identifier of the target object.
+	 * @param data Parameter for data.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param entityManager Entity manager containing the active objects.
+	 */
 	void UpdateNPCPatrol(int objectID, MovementData& data, float deltaTime, EntityManager& entityManager);
 
-	// Choose a sprite texture based on movement or intent.
+	/**
+	 * @brief Updates sprite direction.
+	 * @param entityID Parameter for entity id.
+	 * @param entityManager Entity manager containing the active objects.
+	 */
 	void UpdateSpriteDirection(int entityID, EntityManager& entityManager);
 
-	// Move objects that rely only on their own velocity (bouncing off screen edges).
+	/**
+	 * @brief Updates velocity based movement.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param entityManager Entity manager containing the active objects.
+	 */
 	void UpdateVelocityBasedMovement(float deltaTime, EntityManager& entityManager);
 
 private:

@@ -2041,15 +2041,25 @@ namespace LEPANELLEVEL {
 		ImGui::End();
 	}
 
+	/**
+	 * @brief Records undo snapshot.
+	 * @param editor Level editor state to operate on.
+	 * @param scene Scene being processed.
+	 */
 	void RecordUndoSnapshot(LevelEditor& editor, Scene& scene) {
 		PushUndoSnapshot(editor, scene);
 	}
 #else
-	// Release: no ImGui, provide no-op implementations so callers still link.
+	/**
+	 * @brief Draws level panel.
+	 */
 	void DrawLevelPanel(LevelEditor& /*editor*/, Scene& /*scene*/, int& /*selectedIndex*/, int& /*selectedObjectId*/) {
 		// Editor UI disabled in Release builds.
 	}
 
+	/**
+	 * @brief Records undo snapshot.
+	 */
 	void RecordUndoSnapshot(LevelEditor& /*editor*/, Scene& /*scene*/) {
 		// No-op in Release.
 	}

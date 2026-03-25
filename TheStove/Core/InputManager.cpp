@@ -22,7 +22,13 @@
 
  // Helper to get button state from a map, defaulting to false if not found
 namespace {
-	// GLFW key/button codes are sparse, so we use unordered_maps for storage. This helper abstracts the lookup with a default of false.
+
+	/**
+	 * @brief Returns button state.
+	 * @param states Parameter for states.
+	 * @param code Parameter for code.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool GetButtonState(const std::unordered_map<int, bool>& states, int code) {
 		auto it = states.find(code);
 		return (it != states.end()) && it->second;
@@ -64,20 +70,37 @@ namespace {
 
 // Static instance pointer initialization
 InputManager* InputManager::sActive = nullptr;
+
+/**
+ * @brief Performs input manager.
+ * @return Result produced by this operation.
+ */
 InputManager::InputManager() {
 	sActive = this;
 }
 
+/**
+ * @brief Returns this object.
+ * @return Requested value.
+ */
 InputManager& InputManager::Get() {
 	static InputManager fallback;
 	return sActive ? *sActive : fallback;
 }
 
-// SystemInterface implementation
+/**
+ * @brief Initializes this object.
+ * @return Result produced by this operation.
+ */
 void InputManager::Initialize() {
 	// Nothing to initialize - window will be set externally
 }
 
+/**
+ * @brief Updates this object.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void InputManager::Update(float dt) {
 	(void)dt; // Suppress unused parameter warning	
 
@@ -90,19 +113,37 @@ void InputManager::Update(float dt) {
 	}
 }
 
+/**
+ * @brief Returns the stable name for this object.
+ * @return Requested value.
+ */
 std::string InputManager::GetName() {
 	return "InputManager";
 }
 
-// Frame Update / Focus Hints
+/**
+ * @brief Sets scene viewport wants game mouse.
+ * @param enable Boolean flag controlling whether the feature is enabled.
+ * @return Result produced by this operation.
+ */
 void InputManager::SetSceneViewportWantsGameMouse(bool enable) {
 	mSceneViewportWantsGameMouse = enable;
 }
 
+/**
+ * @brief Sets window.
+ * @param window Parameter for window.
+ * @return Result produced by this operation.
+ */
 void InputManager::SetWindow(GLFWwindow* window) {
 	mWindow = window;
 }
 
+/**
+ * @brief Updates internal.
+ * @param window Parameter for window.
+ * @return Result produced by this operation.
+ */
 void InputManager::UpdateInternal(GLFWwindow* window) {
 	mPreviousKeyStates = mCurrentKeyStates;
 	mPrevMouseButtons = mMouseButtons;
@@ -147,7 +188,10 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	glfwGetCursorPos(window, &mMousePos.x, &mMousePos.y);
 }
 
-// Clear all input state (used when losing/regaining focus)
+/**
+ * @brief Clears state.
+ * @return Result produced by this operation.
+ */
 void InputManager::ClearState() {
 	mCurrentKeyStates.clear();
 	mPreviousKeyStates.clear();
@@ -158,11 +202,20 @@ void InputManager::ClearState() {
 	mMousePos = glm::dvec2(0.0, 0.0);
 }
 
-// Keyboard Queries
+/**
+ * @brief Returns whether key pressed.
+ * @param key Parameter for key.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool InputManager::IsKeyPressed(int key) const {
 	return GetButtonState(mCurrentKeyStates, key);
 }
 
+/**
+ * @brief Returns whether key just pressed.
+ * @param key Parameter for key.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool InputManager::IsKeyJustPressed(int key) {
 	const bool curr = GetButtonState(mCurrentKeyStates, key);
 	const bool prev = GetButtonState(mPreviousKeyStates, key);
@@ -175,11 +228,20 @@ bool InputManager::IsKeyJustPressed(int key) {
 	return justPressed;
 }
 
-// Mouse Queries
+/**
+ * @brief Returns whether mouse button pressed.
+ * @param button Parameter for button.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool InputManager::IsMouseButtonPressed(int button) const {
 	return GetButtonState(mMouseButtons, button);
 }
 
+/**
+ * @brief Returns whether mouse button just pressed.
+ * @param button Parameter for button.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool InputManager::IsMouseButtonJustPressed(int button) {
 	const bool curr = GetButtonState(mMouseButtons, button);
 	const bool prev = GetButtonState(mPrevMouseButtons, button);
@@ -193,6 +255,11 @@ bool InputManager::IsMouseButtonJustPressed(int button) {
 	return justPressed;
 }
 
+/**
+ * @brief Returns whether mouse button just released.
+ * @param button Parameter for button.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool InputManager::IsMouseButtonJustReleased(int button) const {
 	const bool curr = GetButtonState(mMouseButtons, button);
 	const bool prev = GetButtonState(mPrevMouseButtons, button);
@@ -200,11 +267,20 @@ bool InputManager::IsMouseButtonJustReleased(int button) const {
 	return !curr && prev;
 }
 
+/**
+ * @brief Returns mouse position.
+ * @return Requested value.
+ */
 glm::dvec2 InputManager::GetMousePosition() const {
 	return mMousePos;
 }
 
-// Coordinate Conversion
+/**
+ * @brief Performs screen to world.
+ * @param mouseX Parameter for mouse x.
+ * @param mouseY Parameter for mouse y.
+ * @return Result produced by this operation.
+ */
 glm::vec3 InputManager::ScreenToWorld(float mouseX, float mouseY) const {
 	const int w = GraphicsEngine::Instance().GetWidth();
 	const int h = GraphicsEngine::Instance().GetHeight();
@@ -225,6 +301,11 @@ glm::vec3 InputManager::ScreenToWorld(float mouseX, float mouseY) const {
 	return glm::vec3(world.x, world.y, world.z);
 }
 
+/**
+ * @brief Performs consume next mouse press.
+ * @param button Parameter for button.
+ * @return Result produced by this operation.
+ */
 void InputManager::ConsumeNextMousePress(int button) {
 	const bool curr = GetButtonState(mMouseButtons, button);
 	const bool prev = GetButtonState(mPrevMouseButtons, button);
@@ -239,10 +320,20 @@ void InputManager::ConsumeNextMousePress(int button) {
 	mConsumeNextMousePress.insert(button);
 }
 
+/**
+ * @brief Clears mouse consume.
+ * @param button Parameter for button.
+ * @return Result produced by this operation.
+ */
 void InputManager::ClearMouseConsume(int button) {
 	mConsumeNextMousePress.erase(button);
 }
 
+/**
+ * @brief Performs consume next key press.
+ * @param key Parameter for key.
+ * @return Result produced by this operation.
+ */
 void InputManager::ConsumeNextKeyPress(int key) {
 	const bool curr = GetButtonState(mCurrentKeyStates, key);
 	const bool prev = GetButtonState(mPreviousKeyStates, key);
@@ -257,10 +348,20 @@ void InputManager::ConsumeNextKeyPress(int key) {
 	mConsumeNextKeyPress.insert(key);
 }
 
+/**
+ * @brief Clears key consume.
+ * @param key Parameter for key.
+ * @return Result produced by this operation.
+ */
 void InputManager::ClearKeyConsume(int key) {
 	mConsumeNextKeyPress.erase(key);
 }
 
+/**
+ * @brief Performs capture snapshot.
+ * @param out Output value for out.
+ * @return Result produced by this operation.
+ */
 void InputManager::CaptureSnapshot(Snapshot& out) const {
 	out.pressedKeys.clear();
 	out.pressedMouseButtons.clear();
@@ -280,6 +381,11 @@ void InputManager::CaptureSnapshot(Snapshot& out) const {
 	out.mousePos = mMousePos;
 }
 
+/**
+ * @brief Applies snapshot.
+ * @param snapshot Parameter for snapshot.
+ * @return Result produced by this operation.
+ */
 void InputManager::ApplySnapshot(const Snapshot& snapshot) {
 	mPreviousKeyStates = mCurrentKeyStates;
 	mPrevMouseButtons = mMouseButtons;
@@ -298,10 +404,19 @@ void InputManager::ApplySnapshot(const Snapshot& snapshot) {
 	mMousePos = snapshot.mousePos;
 }
 
+/**
+ * @brief Sets replay override.
+ * @param enable Boolean flag controlling whether the feature is enabled.
+ * @return Result produced by this operation.
+ */
 void InputManager::SetReplayOverride(bool enable) {
 	replayOverride_ = enable;
 }
 
+/**
+ * @brief Returns whether replay override.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool InputManager::IsReplayOverride() const {
 	return replayOverride_;
 }

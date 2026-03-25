@@ -42,6 +42,7 @@ struct ApplicationState {
 extern ApplicationState* g_AppState;
 
 namespace {
+
 	/**
 	 * @brief Resolves the config file path using the same candidate search order as ConfigManager.
 	 * @return Path to the config file used by the editor panel.
@@ -257,6 +258,11 @@ namespace LEPANELCONFIG {
 		ImGui::End();
 	}
 #else
+	/**
+	 * @brief Draws config panel.
+	 * @param editor Level editor state to operate on.
+	 * @param scene Scene being processed.
+	 */
 	void DrawConfigPanel(LevelEditor& editor, Scene& scene) {
 		(void)editor;
 		(void)scene;

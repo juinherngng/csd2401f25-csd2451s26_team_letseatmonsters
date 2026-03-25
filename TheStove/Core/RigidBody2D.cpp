@@ -9,7 +9,7 @@
 					exponential damping, optionally applies gravity/legacy acceleration,
 					and writes motion to the owner's Transform.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -20,7 +20,10 @@
 
 #include <cmath>
 
-// Lifecycle
+/**
+ * @brief Initializes this object.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::Initialize() {
 	velocity = Math::Vector2D::ZERO;
 	acceleration = Math::Vector2D::ZERO;
@@ -31,6 +34,11 @@ void RigidBody2D::Initialize() {
 	registry = nullptr;
 }
 
+/**
+ * @brief Updates this object.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::Update(float dt) {
 	// Disabled or no time passed
 	if (!IsEnabled()) {
@@ -62,12 +70,21 @@ void RigidBody2D::Update(float dt) {
 	ClearAccum();
 }
 
-// Forces / Impulses
+/**
+ * @brief Adds force.
+ * @param force Parameter for force.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::AddForce(const Math::Vector2D& force) {
 	// Accumulate forces for this step
 	forceAccum = forceAccum + force;
 }
 
+/**
+ * @brief Adds impulse.
+ * @param impulse Parameter for impulse.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::AddImpulse(const Math::Vector2D& impulse) {
 	if (invMass <= 0.0f) {
 		return;
@@ -77,19 +94,34 @@ void RigidBody2D::AddImpulse(const Math::Vector2D& impulse) {
 	velocity = velocity + (impulse * invMass);
 }
 
-// Queries
+/**
+ * @brief Returns velocity.
+ * @return Requested value.
+ */
 Math::Vector2D const RigidBody2D::GetVelocity() const {
 	return velocity;
 }
 
+/**
+ * @brief Returns acceleration.
+ * @return Requested value.
+ */
 Math::Vector2D const RigidBody2D::GetAcceleration() const {
 	return acceleration;
 }
 
+/**
+ * @brief Returns use gravity.
+ * @return Requested value.
+ */
 bool const RigidBody2D::GetUseGravity() const {
 	return useGravity;
 }
 
+/**
+ * @brief Returns position.
+ * @return Requested value.
+ */
 Math::Vector2D RigidBody2D::GetPosition() const {
 	if (GOC* owner = GetOwner()) {
 		if (auto transformHandle = owner->Get<Transform>()) {
@@ -101,53 +133,105 @@ Math::Vector2D RigidBody2D::GetPosition() const {
 	return Math::Vector2D(0.0f, 0.0f);
 }
 
+/**
+ * @brief Returns mass.
+ * @return Requested value.
+ */
 float RigidBody2D::GetMass() const {
 	return (invMass > 0.0f) ? (1.0f / invMass) : 0.0f;
 }
 
+/**
+ * @brief Returns inverse mass.
+ * @return Requested value.
+ */
 float RigidBody2D::GetInverseMass() const {
 	return invMass;
 }
 
-// Setters
+/**
+ * @brief Sets velocity.
+ * @param newVelocity Parameter for new velocity.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::SetVelocity(const Math::Vector2D& newVelocity) {
 	velocity = newVelocity;
 }
 
+/**
+ * @brief Sets acceleration.
+ * @param newAcceleration Parameter for new acceleration.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::SetAcceleration(const Math::Vector2D& newAcceleration) {
 	acceleration = newAcceleration;
 }
 
+/**
+ * @brief Sets use gravity.
+ * @param enable Boolean flag controlling whether the feature is enabled.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::SetUseGravity(const bool enable) {
 	useGravity = enable;
 }
 
+/**
+ * @brief Performs stop.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::Stop() {
 	velocity = Math::Vector2D::ZERO;
 }
 
+/**
+ * @brief Sets mass.
+ * @param mass Parameter for mass.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::SetMass(float mass) {
 	invMass = (mass > 0.0f) ? (1.0f / mass) : 0.0f;
 }
 
+/**
+ * @brief Sets linear damping.
+ * @param value Parameter for value.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::SetLinearDamping(float value) {
 	damping = value;
 }
 
+/**
+ * @brief Sets force registry.
+ * @param fr Parameter for fr.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::SetForceRegistry(ForceRegistry* fr) {
 	registry = fr;
 }
 
-// Utilities
+/**
+ * @brief Performs to string.
+ * @return Result produced by this operation.
+ */
 std::string RigidBody2D::ToString() const {
 	return "Rigidbody2D (vel: " + std::to_string(velocity.x) + "," + std::to_string(velocity.y) + ")";
 }
 
+/**
+ * @brief Performs clone.
+ * @return Result produced by this operation.
+ */
 GameComponent* RigidBody2D::Clone() const {
 	return new RigidBody2D(*this);
 }
 
-// Internal
+/**
+ * @brief Performs integrate.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::Integrate(float dt) {
 	// Infinite mass - static body
 	if (invMass <= 0.0f) {
@@ -175,6 +259,10 @@ void RigidBody2D::Integrate(float dt) {
 	}
 }
 
+/**
+ * @brief Clears accum.
+ * @return Result produced by this operation.
+ */
 void RigidBody2D::ClearAccum() {
 	forceAccum = Math::Vector2D::ZERO;
 }

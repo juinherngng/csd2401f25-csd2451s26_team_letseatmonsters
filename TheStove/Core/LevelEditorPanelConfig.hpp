@@ -20,6 +20,7 @@ class Scene;
 
 // Forward declare GameObject to avoid circular dependency.
 namespace LEPANELCONFIG {
+
 	/**
 	 * @brief Draws the configuration editing panel for engine settings.
 	 * @param editor Shared level editor controller.

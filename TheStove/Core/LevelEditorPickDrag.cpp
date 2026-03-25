@@ -102,7 +102,10 @@ namespace LEPICKDRAG {
 	static glm::vec2 sDragStartColSize{ 0.f, 0.f };
 	static glm::vec2 sDragStartColOffset{ 0.f, 0.f };
 
-	// Small helpers
+	/**
+	 * @brief Resets drag state.
+	 * @return Result produced by this operation.
+	 */
 	static void ResetDragState() {
 		sActiveAxis = ActiveAxis::None;
 		sDragMode = DragMode::None;
@@ -119,23 +122,55 @@ namespace LEPICKDRAG {
 		sDragStartColOffset = { 0.f, 0.f };
 	}
 
+	/**
+	 * @brief Returns whether point in circle.
+	 * @param p Parameter for p.
+	 * @param c Parameter for c.
+	 * @param radius Parameter for radius.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	static inline bool IsPointInCircle(ImVec2 p, ImVec2 c, float radius) {
 		const float dx = p.x - c.x;
 		const float dy = p.y - c.y;
 		return (dx * dx + dy * dy) <= radius * radius;
 	}
 
+	/**
+	 * @brief Returns whether point in rect.
+	 * @param p Parameter for p.
+	 * @param mn Parameter for mn.
+	 * @param mx Parameter for mx.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	static inline bool IsPointInRect(ImVec2 p, ImVec2 mn, ImVec2 mx) {
 		return (p.x >= mn.x && p.x <= mx.x &&
 			p.y >= mn.y && p.y <= mx.y);
 	}
 
+	/**
+	 * @brief Returns whether point near line end.
+	 * @param p Parameter for p.
+	 * @param end Parameter for end.
+	 * @param radius Parameter for radius.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	static inline bool IsPointNearLineEnd(ImVec2 p, ImVec2 end, float radius) {
 		const float dx = p.x - end.x;
 		const float dy = p.y - end.y;
 		return (dx * dx + dy * dy) <= radius * radius;
 	}
 
+	/**
+	 * @brief Computes world corners.
+	 * @param pos Parameter for pos.
+	 * @param scale Parameter for scale.
+	 * @param rotDeg Parameter for rot deg.
+	 * @param outTL Output value for out tl.
+	 * @param outTR Output value for out tr.
+	 * @param outBL Output value for out bl.
+	 * @param outBR Output value for out br.
+	 * @return Result produced by this operation.
+	 */
 	static void ComputeWorldCorners(const glm::vec3& pos,
 		const glm::vec3& scale,
 		float rotDeg,
@@ -163,6 +198,14 @@ namespace LEPICKDRAG {
 		outBR = TransformLocal(hx, hy);
 	}
 
+	/**
+	 * @brief Returns whether point inside object bounds.
+	 * @param pointWorld Parameter for point world.
+	 * @param objPos Parameter for obj pos.
+	 * @param objScale Parameter for obj scale.
+	 * @param objRotDeg Parameter for obj rot deg.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	static bool IsPointInsideObjectBounds(const glm::vec2& pointWorld,
 		const glm::vec3& objPos,
 		const glm::vec3& objScale,
@@ -183,6 +226,13 @@ namespace LEPICKDRAG {
 			(localY >= -halfY && localY <= halfY);
 	}
 
+	/**
+	 * @brief Returns collider box world.
+	 * @param obj Parameter for obj.
+	 * @param outCenter Output value for out center.
+	 * @param outSize Output value for out size.
+	 * @return Requested value.
+	 */
 	static bool GetColliderBoxWorld(GameObject* obj,
 		glm::vec3& outCenter,
 		glm::vec3& outSize) {
@@ -214,7 +264,15 @@ namespace LEPICKDRAG {
 		return true;
 	}
 
-	// Exact collider AABB in world space, using the same math as GameObject::DrawBoundingBox
+	/**
+	 * @brief Returns collider aabbworld.
+	 * @param obj Parameter for obj.
+	 * @param outTL Output value for out tl.
+	 * @param outTR Output value for out tr.
+	 * @param outBL Output value for out bl.
+	 * @param outBR Output value for out br.
+	 * @return Requested value.
+	 */
 	static bool GetColliderAABBWorld(GameObject* obj,
 		glm::vec2& outTL,
 		glm::vec2& outTR,
@@ -252,7 +310,14 @@ namespace LEPICKDRAG {
 		return true;
 	}
 
-	// Basis for TRANSFORM gizmo: use sprite transform only
+	/**
+	 * @brief Returns transform basis.
+	 * @param obj Parameter for obj.
+	 * @param outPos Output value for out pos.
+	 * @param outScale Output value for out scale.
+	 * @param outRotDeg Output value for out rot deg.
+	 * @return Requested value.
+	 */
 	static void GetTransformBasis(GameObject* obj,
 		glm::vec3& outPos,
 		glm::vec3& outScale,
@@ -267,7 +332,14 @@ namespace LEPICKDRAG {
 		}
 	}
 
-	// Basis for COLLIDER gizmo: use collider AABB (no rotation)
+	/**
+	 * @brief Returns collider basis.
+	 * @param obj Parameter for obj.
+	 * @param outPos Output value for out pos.
+	 * @param outScale Output value for out scale.
+	 * @param outRotDeg Output value for out rot deg.
+	 * @return Requested value.
+	 */
 	static bool GetColliderBasis(GameObject* obj,
 		glm::vec3& outPos,
 		glm::vec3& outScale,
@@ -284,6 +356,13 @@ namespace LEPICKDRAG {
 		return true;
 	}
 
+	/**
+	 * @brief Handles scene pick drag.
+	 * @param editor Level editor state to operate on.
+	 * @param scene Scene being processed.
+	 * @param selectedIndex Selected hierarchy index to update.
+	 * @param selectedObjectId Selected object identifier.
+	 */
 	void HandleScenePickDrag(LevelEditor& editor,
 		Scene& scene,
 		int& selectedIndex,
@@ -1078,7 +1157,9 @@ namespace LEPICKDRAG {
 		}
 	}
 #else
-	// Release build: no-op stub so code can link but no ImGui is referenced.
+	/**
+	 * @brief Handles scene pick drag.
+	 */
 	void HandleScenePickDrag(LevelEditor& /*editor*/,
 		Scene& /*scene*/,
 		int& /*selectedIndex*/,

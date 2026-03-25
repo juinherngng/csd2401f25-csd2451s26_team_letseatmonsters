@@ -12,7 +12,7 @@
 						- Lane motion with bounce
 						- Equal-mass elastic collisions
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -23,7 +23,12 @@
 #include <iostream>
 
 namespace {
-	// Safe normalize (returns 0,0 if tiny)
+
+	/**
+	 * @brief Performs safe normalize.
+	 * @param v Parameter for v.
+	 * @return Result produced by this operation.
+	 */
 	inline Math::Vector2D SafeNormalize(const Math::Vector2D& v) {
 		const float len = v.Length();
 		if (len > 1e-6f) {
@@ -35,7 +40,13 @@ namespace {
 }
 
 namespace physics {
-	// Colliders / Clamp
+
+	/**
+	 * @brief Performs make collider box.
+	 * @param gameObj Parameter for game obj.
+	 * @param pos Parameter for pos.
+	 * @return Result produced by this operation.
+	 */
 	collision::AABB MakeColliderBox(GameObject* gameObj, const Math::Vector3D& pos) {
 		const Math::Vector2D offset = gameObj->GetColliderOffset();
 		const Math::Vector2D size = gameObj->GetColliderSize();
@@ -44,6 +55,12 @@ namespace physics {
 		return collision::World::makeAABBFromCenter(center, scale);
 	}
 
+	/**
+	 * @brief Performs clamp inside walk.
+	 * @param walkArea Parameter for walk area.
+	 * @param gameObj Parameter for game obj.
+	 * @param pos Parameter for pos.
+	 */
 	void ClampInsideWalk(const collision::WalkArea& walkArea, GameObject* gameObj, Math::Vector3D& pos) {
 		const Math::Vector2D size = gameObj->GetColliderSize();
 		const Math::Vector2D offset = gameObj->GetColliderOffset();
@@ -53,6 +70,13 @@ namespace physics {
 		pos.y = std::clamp(pos.y, walkArea.T + half.y - offset.y, walkArea.B - half.y - offset.y);
 	}
 
+	/**
+	 * @brief Performs clamp inside walk with gate.
+	 * @param walk Parameter for walk.
+	 * @param gate Parameter for gate.
+	 * @param obj Parameter for obj.
+	 * @param pos Parameter for pos.
+	 */
 	void ClampInsideWalkWithGate(const collision::WalkArea& walk,
 		const collision::StageEndGateVertical& gate,
 		GameObject* obj, Math::Vector3D& pos) {
@@ -72,7 +96,12 @@ namespace physics {
 		pos.x = std::clamp(pos.x, minX, maxX);
 	}
 
-	// Step Controller
+	/**
+	 * @brief Resolves dt.
+	 * @param input Input manager for the current frame.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @return Result produced by this operation.
+	 */
 	float StepController::resolveDt(::InputManager& input, float deltaTime) {
 		// Toggle step mode with P (edge)
 		if (input.IsKeyJustPressed(GLFW_KEY_P)) {
@@ -121,7 +150,17 @@ namespace physics {
 		}
 	}
 
-	// Separation / Movement helpers
+	/**
+	 * @brief Performs separate player vs other stop player only.
+	 * @param world Parameter for world.
+	 * @param player Parameter for player.
+	 * @param other Parameter for other.
+	 * @param playerPos Parameter for player pos.
+	 * @param otherPos Parameter for other pos.
+	 * @param desiredMove Parameter for desired move.
+	 * @param hasClickTarget Parameter for has click target.
+	 * @param splitPlayer Parameter for split player.
+	 */
 	void SeparatePlayerVsOther_StopPlayerOnly(
 		collision::World& world,
 		GameObject* player, GameObject* other,
@@ -176,6 +215,15 @@ namespace physics {
 		}
 	}
 
+	/**
+	 * @brief Moves ylane with bounce.
+	 * @param world Parameter for world.
+	 * @param gameObj Parameter for game obj.
+	 * @param pos Parameter for pos.
+	 * @param vel Parameter for vel.
+	 * @param laneX Parameter for lane x.
+	 * @param physicsDt Parameter for physics dt.
+	 */
 	void MoveYLaneWithBounce(
 		collision::World& world,
 		GameObject* gameObj, Math::Vector3D& pos, Math::Vector2D& vel,
@@ -198,6 +246,15 @@ namespace physics {
 		}
 	}
 
+	/**
+	 * @brief Performs elastic bounce equal mass.
+	 * @param firstObj Parameter for first obj.
+	 * @param secondObj Parameter for second obj.
+	 * @param firstPos Parameter for first pos.
+	 * @param secondPos Parameter for second pos.
+	 * @param firstVel Parameter for first vel.
+	 * @param secondVel Parameter for second vel.
+	 */
 	void ElasticBounceEqualMass(
 		GameObject* firstObj, GameObject* secondObj,
 		Math::Vector3D& firstPos, Math::Vector3D& secondPos,

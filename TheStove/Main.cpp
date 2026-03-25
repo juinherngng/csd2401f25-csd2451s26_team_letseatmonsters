@@ -87,7 +87,6 @@ struct ApplicationState {
 // Global app state pointer for signal handlers and callbacks
 ApplicationState* g_AppState = nullptr;
 
-// Forward Declarations
 /**
  * @brief Renders the current frame.
  * @param app Global application state containing the window, scene, and systems.
@@ -135,7 +134,6 @@ static void HandlePauseResume(bool pause);
  */
 static void ToggleFullscreen(ApplicationState& app);
 
-// Exposed for file-dialog code
 /**
  * @brief Updates whether a modal dialog is currently open.
  * @param open True when a native modal dialog is active.

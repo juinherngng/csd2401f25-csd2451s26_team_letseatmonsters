@@ -68,6 +68,9 @@ namespace {
 			}
 		}
 
+		/**
+		 * @brief Destroys the `ScopedRenderPassState` instance and releases owned resources.
+		 */
 		~ScopedRenderPassState() {
 			SetEnabled(GL_DEPTH_TEST, depthTestWasEnabled_);
 			glDepthMask(depthWriteWasEnabled_ ? GL_TRUE : GL_FALSE);
@@ -80,10 +83,20 @@ namespace {
 			);
 		}
 
+		/**
+		 * @brief Constructs a `ScopedRenderPassState` instance.
+		 */
 		ScopedRenderPassState(const ScopedRenderPassState&) = delete;
 		ScopedRenderPassState& operator=(const ScopedRenderPassState&) = delete;
 
 	private:
+
+		/**
+		 * @brief Sets enabled.
+		 * @param capability Parameter for capability.
+		 * @param enabled Parameter for enabled.
+		 * @return Result produced by this operation.
+		 */
 		static void SetEnabled(GLenum capability, bool enabled) {
 			if (enabled) {
 				glEnable(capability);
@@ -102,6 +115,11 @@ namespace {
 		GLint blendDstAlpha_ = GL_ONE_MINUS_SRC_ALPHA;
 	};
 
+	/**
+	 * @brief Resolves shader path.
+	 * @param relativePathFromProjectRoot Parameter for relative path from project root.
+	 * @return Result produced by this operation.
+	 */
 	std::string ResolveShaderPath(const std::string& relativePathFromProjectRoot) {
 		// Print working directory only once
 		static bool printedCwd = false;
@@ -136,6 +154,10 @@ namespace {
 		return relativePathFromProjectRoot;
 	}
 
+	/**
+	 * @brief Performs log open glerrors.
+	 * @param prefix Parameter for prefix.
+	 */
 	void LogOpenGLErrors(const char* prefix = kOpenGLErrorPrefixDefault) {
 		GLenum error;
 		while ((error = glGetError()) != GL_NO_ERROR) {
@@ -143,6 +165,11 @@ namespace {
 		}
 	}
 
+	/**
+	 * @brief Returns whether needsperinstancetintfallback.
+	 * @param batch Parameter for batch.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool NeedsPerInstanceTintFallback(const std::vector<Mesh::InstanceData>& batch) {
 		return std::any_of(batch.begin(), batch.end(), [](const Mesh::InstanceData& inst) {
 			return inst.colorTint.x != 1.0f || inst.colorTint.y != 1.0f ||
@@ -151,7 +178,10 @@ namespace {
 	}
 }
 
-// Singleton access
+/**
+ * @brief Performs instance.
+ * @return Result produced by this operation.
+ */
 GraphicsEngine& GraphicsEngine::Instance() {
 	static GraphicsEngine instance;
 	return instance;
@@ -164,7 +194,10 @@ GraphicsEngine::GraphicsEngine()
 	view(1.0f) {
 }
 
-// Initialize core renderer, FBO, default resources, and ImGui
+/**
+ * @brief Initializes this object.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::Initialize() {
 	// Ensure there's a current GLFW OpenGL context before calling any GL functions.
 	GLFWwindow* ctx = glfwGetCurrentContext();
@@ -226,7 +259,11 @@ void GraphicsEngine::Initialize() {
 #endif
 }
 
-// SystemInterface Update - currently just tracks deltaTime for performance monitoring
+/**
+ * @brief Updates this object.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::Update(float dt) {
 	// Store dt for performance tracking
 	lastDt = dt;
@@ -239,7 +276,10 @@ void GraphicsEngine::Update(float dt) {
 	(void)dt; // Suppress unused parameter warning if no other logic needed
 }
 
-// Destroy the current scene FBO (safe to call repeatedly)
+/**
+ * @brief Performs destroy scene fbo.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::DestroySceneFBO() {
 	if (mSceneDepth) {
 		glDeleteRenderbuffers(1, &mSceneDepth);
@@ -257,7 +297,12 @@ void GraphicsEngine::DestroySceneFBO() {
 	}
 }
 
-// Create a color and depth FBO for the scene at the given size
+/**
+ * @brief Creates scene fbo.
+ * @param w Parameter for w.
+ * @param h Parameter for h.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::CreateSceneFBO(int w, int h) {
 	DestroySceneFBO();
 
@@ -285,7 +330,12 @@ void GraphicsEngine::CreateSceneFBO(int w, int h) {
 	mSceneHeight = h;
 }
 
-// Resize (recreate) the scene FBO if size is valid
+/**
+ * @brief Performs resize scene fbo.
+ * @param w Parameter for w.
+ * @param h Parameter for h.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::ResizeSceneFBO(int w, int h) {
 	if (w <= 0 || h <= 0) {
 		return;
@@ -294,7 +344,10 @@ void GraphicsEngine::ResizeSceneFBO(int w, int h) {
 	CreateSceneFBO(w, h);
 }
 
-// Bind scene FBO and clear
+/**
+ * @brief Begins scene render.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::BeginSceneRender() {
 	glBindFramebuffer(GL_FRAMEBUFFER, mSceneFBO);
 	glViewport(0, 0, mSceneWidth, mSceneHeight);
@@ -302,23 +355,44 @@ void GraphicsEngine::BeginSceneRender() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-// Unbind scene FBO
+/**
+ * @brief Ends scene render.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::EndSceneRender() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-// Getters
+/**
+ * @brief Returns projection.
+ * @return Requested value.
+ */
 const glm::mat4& GraphicsEngine::GetProjection() const {
 	return projection;
 }
+
+/**
+ * @brief Returns view.
+ * @return Requested value.
+ */
 const glm::mat4& GraphicsEngine::GetView() const {
 	return view;
 }
+
+/**
+ * @brief Returns main dockspace id.
+ * @return Requested value.
+ */
 ImGuiID GraphicsEngine::GetMainDockspaceID() const {
 	return mMainDockspaceId;
 }
 
-// Handle window resize: update letterboxed viewport and background placement
+/**
+ * @brief Performs resize.
+ * @param width Width value in pixels.
+ * @param height Height value in pixels.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::Resize(int width, int height) {
 	if (width <= 0 || height <= 0) {
 		return;
@@ -360,12 +434,18 @@ void GraphicsEngine::Resize(int width, int height) {
 	}
 }
 
-// Apply the current letterboxed viewport (use before world rendering)
+/**
+ * @brief Applies viewport.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::ApplyViewport() const {
 	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
 }
 
-// Load core shaders and meshes used by engine/editor
+/**
+ * @brief Loads default resources.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::LoadDefaultResources() {
 	// Load default shader
 	resourceManager.LoadShader("basic",
@@ -432,7 +512,11 @@ void GraphicsEngine::LoadDefaultResources() {
 	resourceManager.LoadMesh("fullscreen_quad", vertices, vertexCount, vertexSize);
 }
 
-// Set/ensure a fullscreen background quad using the given texture path
+/**
+ * @brief Sets background.
+ * @param texturePath Parameter for texture path.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::SetBackground(const std::string& texturePath) {
 	// Derive a unique key per path to avoid returning a cached texture
 	std::string key = "background_" + std::filesystem::path(texturePath).filename().string();
@@ -461,6 +545,11 @@ void GraphicsEngine::SetBackground(const std::string& texturePath) {
 	}
 }
 
+/**
+ * @brief Sets background overlay.
+ * @param texturePath Parameter for texture path.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::SetBackgroundOverlay(const std::string& texturePath) {
 	std::string key = "background_overlay_" + std::filesystem::path(texturePath).filename().string();
 
@@ -486,16 +575,26 @@ void GraphicsEngine::SetBackgroundOverlay(const std::string& texturePath) {
 	}
 }
 
-// Remove the background object (if present).
+/**
+ * @brief Clears background.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::ClearBackground() {
 	backgroundObject.reset();
 }
 
+/**
+ * @brief Clears background overlay.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::ClearBackgroundOverlay() {
 	backgroundOverlayObject.reset();
 }
 
-// Start a new ImGui frame and host a global DockSpace
+/**
+ * @brief Begins im gui frame.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::BeginImGuiFrame() {
 #ifdef _DEBUG
 	// Guard: only call backend frame functions if ImGui was initialized
@@ -510,7 +609,11 @@ void GraphicsEngine::BeginImGuiFrame() {
 #endif
 }
 
-// Parse a layer number from a string, returning a default of 1 for empty and an error code for invalid input
+/**
+ * @brief Performs parse layer number.
+ * @param layerName Parameter for layer name.
+ * @return Result produced by this operation.
+ */
 int GraphicsEngine::ParseLayerNumber(const std::string& layerName) {
 	if (layerName.empty()) {
 		return 1;
@@ -528,7 +631,12 @@ int GraphicsEngine::ParseLayerNumber(const std::string& layerName) {
 	return result;
 }
 
-// Compute the screen-space rect of the Scene image based on the current viewport and reference size, for mouse picking and UI alignment
+/**
+ * @brief Computes scene image rect.
+ * @param outPos Output value for out pos.
+ * @param outSize Output value for out size.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 	sceneViewportPresenter_.ComputeSceneImageRect(
 		sceneImagePos_,
@@ -540,7 +648,12 @@ void GraphicsEngine::ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) cons
 	);
 }
 
-// Render the background quad (if set) with appropriate shader and texture bindings, ignoring depth and blending
+/**
+ * @brief Renders background.
+ * @param viewMatrix Parameter for view matrix.
+ * @param projectionMatrix Parameter for projection matrix.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
 	if (!backgroundObject) {
 		return;
@@ -572,6 +685,12 @@ void GraphicsEngine::RenderBackground(const glm::mat4& viewMatrix, const glm::ma
 	}
 }
 
+/**
+ * @brief Renders background overlay.
+ * @param viewMatrix Parameter for view matrix.
+ * @param projectionMatrix Parameter for projection matrix.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::RenderBackgroundOverlay(const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
 	if (!backgroundOverlayObject) {
 		return;
@@ -603,7 +722,10 @@ void GraphicsEngine::RenderBackgroundOverlay(const glm::mat4& viewMatrix, const 
 	}
 }
 
-// Blit the rendered scene from the FBO to the default framebuffer, applying letterboxing as needed
+/**
+ * @brief Performs present scene to default framebuffer.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::PresentSceneToDefaultFramebuffer() {
 	if (mSceneFBO == 0 || mSceneColor == 0 || screenWidth <= 0 || screenHeight <= 0) {
 		return;
@@ -631,7 +753,10 @@ void GraphicsEngine::PresentSceneToDefaultFramebuffer() {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-// Draw the Scene window and present the scene FBO texture inside it
+/**
+ * @brief Draws scene dock window.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::DrawSceneDockWindow() {
 #ifdef _DEBUG
 	// Guard: bail if ImGui not initialized or no context
@@ -650,7 +775,10 @@ void GraphicsEngine::DrawSceneDockWindow() {
 #endif
 }
 
-// Unbind FBO, draw ImGui (including Scene window with FBO texture), and present to default framebuffer if not in debug mode
+/**
+ * @brief Ends scene and present.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::EndSceneAndPresent() {
 	EndSceneRender();
 #ifdef _DEBUG
@@ -661,7 +789,10 @@ void GraphicsEngine::EndSceneAndPresent() {
 #endif
 }
 
-// Finish the current ImGui frame and render it
+/**
+ * @brief Ends im gui frame.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::EndImGuiFrame() {
 #ifdef _DEBUG
 	// Guard: only render if initialized & valid ImGui context
@@ -674,7 +805,10 @@ void GraphicsEngine::EndImGuiFrame() {
 #endif
 }
 
-// Frame begin: clear backbuffer, set viewport, bind scene FBO, begin ImGui
+/**
+ * @brief Begins frame.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::BeginFrame() {
 	glViewport(0, 0, screenWidth, screenHeight);
 	renderer.Clear();
@@ -684,7 +818,12 @@ void GraphicsEngine::BeginFrame() {
 	BeginImGuiFrame();
 }
 
-// Convert current mouse (screen) into scene world coords if within image
+/**
+ * @brief Returns mouse world in scene.
+ * @param outWorld Output value for out world.
+ * @param mousePosOverride Parameter for mouse pos override.
+ * @return Requested value.
+ */
 bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld, const glm::dvec2* mousePosOverride) const {
 
 	if (mousePosOverride == nullptr) {
@@ -738,7 +877,12 @@ bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld, const glm::dvec2*
 	return true;
 }
 
-// Get the screen-space rect of the Scene image for mouse picking and UI alignment
+/**
+ * @brief Returns scene image rect.
+ * @param outPos Output value for out pos.
+ * @param outSize Output value for out size.
+ * @return Requested value.
+ */
 void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 #ifdef _DEBUG
 	ComputeSceneImageRect(outPos, outSize);
@@ -750,7 +894,12 @@ void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
 #endif
 }
 
-// Try to get the mouse position in scene local pixel coordinates and scene size. Returns false if not over the scene image.
+/**
+ * @brief Attempts to get mouse position in scene.
+ * @param outLocalPos Output value for out local pos.
+ * @param outSceneSize Output value for out scene size.
+ * @return Result produced by this operation.
+ */
 bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& outSceneSize) const {
 #ifdef _DEBUG
 	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
@@ -823,7 +972,12 @@ bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& out
 #endif
 }
 
-// Convert pixel coordinates relative to the Scene image into world coordinates using inverse view-projection
+/**
+ * @brief Performs scene pixel to world.
+ * @param localPixel Parameter for local pixel.
+ * @param sceneSize Parameter for scene size.
+ * @return Result produced by this operation.
+ */
 glm::vec2 GraphicsEngine::ScenePixelToWorld(const ImVec2& localPixel, const ImVec2& sceneSize) const {
 	const float u = localPixel.x / sceneSize.x;
 	const float v = localPixel.y / sceneSize.y;
@@ -842,7 +996,13 @@ glm::vec2 GraphicsEngine::ScenePixelToWorld(const ImVec2& localPixel, const ImVe
 	return glm::vec2(world4.x, world4.y);
 }
 
-// Convert world position to pixel coordinates relative to the Scene image (for editor gizmos, etc.)
+/**
+ * @brief Performs world to scene pixel.
+ * @param world Parameter for world.
+ * @param scenePos Parameter for scene pos.
+ * @param sceneSize Parameter for scene size.
+ * @return Result produced by this operation.
+ */
 ImVec2 GraphicsEngine::WorldToScenePixel(const glm::vec2& world, const ImVec2& scenePos, const ImVec2& sceneSize) const {
 	glm::vec4 world4(world.x, world.y, 0.0f, 1.0f);
 	const glm::vec4 clip = projection * view * world4;
@@ -860,7 +1020,11 @@ ImVec2 GraphicsEngine::WorldToScenePixel(const glm::vec2& world, const ImVec2& s
 	);
 }
 
-// Convert world position to screen coordinates relative to the Scene image (for editor gizmos, etc.)
+/**
+ * @brief Performs world to scene image.
+ * @param world Parameter for world.
+ * @return Result produced by this operation.
+ */
 ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
 #ifdef _DEBUG
 	ImVec2 imgPos;
@@ -874,7 +1038,13 @@ ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
 #endif
 }
 
-// Default render path
+/**
+ * @brief Renders this object.
+ * @param objects Parameter for objects.
+ * @param viewMatrix Parameter for view matrix.
+ * @param projectionMatrix Parameter for projection matrix.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
 	// Keep internal matrices in sync for editor picking + gizmos
 	view = viewMatrix;
@@ -950,7 +1120,11 @@ void GraphicsEngine::Render(const std::vector<GameObject*>& objects, const glm::
 	LogOpenGLErrors("[GraphicsEngine] OpenGL error after draw call");
 }
 
-// Batched/instanced render path 
+/**
+ * @brief Renders batched.
+ * @param objects Parameter for objects.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Reset stats
 	renderStats = RenderStats();
@@ -1169,7 +1343,11 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	LogOpenGLErrors("[GraphicsEngine] OpenGL error in batched rendering");
 }
 
-// Render a single text object (for layered rendering)
+/**
+ * @brief Renders single text object.
+ * @param data Parameter for data.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& data) {
 	if (!data.visible || data.text.empty()) {
 		return;
@@ -1203,7 +1381,10 @@ void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& 
 	FontSystem::TextRenderer::Instance().RenderText(textRenderer, projection);
 }
 
-// Render text objects
+/**
+ * @brief Renders text objects.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::RenderTextObjects() {
 #ifdef _DEBUG
 	if (suppressDebugTextRendering_) {
@@ -1248,7 +1429,13 @@ void GraphicsEngine::RenderTextObjects() {
 #endif
 }
 
-// Simple blob shadow pass (draw before sprites)
+/**
+ * @brief Draws sprite shadows.
+ * @param objects Parameter for objects.
+ * @param viewMatrix Parameter for view matrix.
+ * @param projectionMatrix Parameter for projection matrix.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, const glm::mat4& viewMatrix, const glm::mat4& projectionMatrix) {
 	Shader* shadowShader = resourceManager.GetShader("shadow");
 	Mesh* quad = resourceManager.GetMesh("sprite");
@@ -1298,7 +1485,10 @@ void GraphicsEngine::DrawSpriteShadows(const std::vector<GameObject*>& objects, 
 	}
 }
 
-// Clean up resources and ImGui context
+/**
+ * @brief Performs shutdown.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::Shutdown() {
 	backgroundObject.reset();
 	backgroundOverlayObject.reset();
@@ -1321,7 +1511,12 @@ void GraphicsEngine::Shutdown() {
 #endif
 }
 
-// Transition implementation
+/**
+ * @brief Performs start scene transition.
+ * @param fadeOutSeconds Parameter for fade out seconds.
+ * @param fadeInSeconds Parameter for fade in seconds.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::StartSceneTransition(float fadeOutSeconds, float fadeInSeconds) {
 	if (transitionPhase_ != TransitionPhase::None) {
 		return; // already running
@@ -1334,17 +1529,26 @@ void GraphicsEngine::StartSceneTransition(float fadeOutSeconds, float fadeInSeco
 	transitionAlpha_ = 0.0f;
 }
 
-// Returns true if a transition is in progress (either fading out, hold/blackout, or fading in)
+/**
+ * @brief Returns whether transition active.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool GraphicsEngine::IsTransitionActive() const {
 	return transitionPhase_ != TransitionPhase::None;
 }
 
-// Returns true if currently in the hold/blackout phase (after fade-out completed, before fade-in starts)
+/**
+ * @brief Returns whether at blackout.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool GraphicsEngine::IsAtBlackout() const {
 	return transitionPhase_ == TransitionPhase::Hold;
 }
 
-// Called by external code (e.g. SceneManager) when ready to start fade-in after scene switch
+/**
+ * @brief Performs continue transition fade in.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::ContinueTransitionFadeIn() {
 	if (transitionPhase_ == TransitionPhase::Hold) {
 		transitionPhase_ = TransitionPhase::FadeIn;
@@ -1353,14 +1557,21 @@ void GraphicsEngine::ContinueTransitionFadeIn() {
 	}
 }
 
-// Immediately cancel any active transition and reset state
+/**
+ * @brief Performs cancel scene transition.
+ * @return True when the operation succeeds or the condition is met.
+ */
 void GraphicsEngine::CancelSceneTransition() {
 	transitionPhase_ = TransitionPhase::None;
 	transitionTimer_ = 0.0f;
 	transitionAlpha_ = 0.0f;
 }
 
-// Update transition state; should be called every frame with delta time
+/**
+ * @brief Updates transition.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::UpdateTransition(float dt) {
 	switch (transitionPhase_) {
 	case TransitionPhase::None:
@@ -1397,7 +1608,10 @@ void GraphicsEngine::UpdateTransition(float dt) {
 	}
 }
 
-// Draw a fullscreen black quad with alpha based on current transition state, on top of the scene FBO
+/**
+ * @brief Draws transition overlay.
+ * @return Result produced by this operation.
+ */
 void GraphicsEngine::DrawTransitionOverlay() {
 	if (transitionPhase_ == TransitionPhase::None || transitionAlpha_ <= 0.0f) {
 		return;

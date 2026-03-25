@@ -10,7 +10,7 @@
 					sets click-to-move targets (either physics-based or direct), and
 					updates sprite facing textures accordingly.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -21,6 +21,18 @@
 #include <algorithm>
 #include <vector>
 
+/**
+ * @brief Handles input.
+ * @param deltaTime Frame delta time in seconds.
+ * @param inputManager Input manager for the current frame.
+ * @param entityManager Entity manager containing the active objects.
+ * @param movementManager Movement manager used for movement updates.
+ * @param physicsManager Physics manager used for physics updates.
+ * @param graphicsEngine Graphics engine used for rendering-related queries.
+ * @param playerID Identifier of the player object.
+ * @param useForces Parameter for use forces.
+ * @return Result produced by this operation.
+ */
 void PlayerController::HandleInput(float deltaTime,
 	InputManager& inputManager,
 	EntityManager& entityManager,
@@ -52,6 +64,13 @@ void PlayerController::HandleInput(float deltaTime,
 	UpdateClickIndicator(deltaTime, entityManager);
 }
 
+/**
+ * @brief Handles scale input.
+ * @param inputManager Input manager for the current frame.
+ * @param sprite Parameter for sprite.
+ * @param deltaTime Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void PlayerController::HandleScaleInput(InputManager& inputManager, GameObject* sprite, float deltaTime) {
 	// Simple bounded uniform scaling
 	glm::vec3 scale = sprite->GetScaleGLM();
@@ -71,6 +90,12 @@ void PlayerController::HandleScaleInput(InputManager& inputManager, GameObject* 
 	(void)deltaTime;
 }
 
+/**
+ * @brief Handles rotation input.
+ * @param inputManager Input manager for the current frame.
+ * @param deltaTime Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void PlayerController::HandleRotationInput(InputManager& inputManager, float deltaTime) {
 	// Degrees per second
 	const float kRotationSpeed = 10.0f;
@@ -93,6 +118,17 @@ void PlayerController::HandleRotationInput(InputManager& inputManager, float del
 	}
 }
 
+/**
+ * @brief Handles click to move.
+ * @param inputManager Input manager for the current frame.
+ * @param entityManager Entity manager containing the active objects.
+ * @param movementManager Movement manager used for movement updates.
+ * @param physicsManager Physics manager used for physics updates.
+ * @param graphicsEngine Graphics engine used for rendering-related queries.
+ * @param playerID Identifier of the player object.
+ * @param useForces Parameter for use forces.
+ * @return Result produced by this operation.
+ */
 void PlayerController::HandleClickToMove(InputManager& inputManager,
 	EntityManager& entityManager,
 	MovementManager& movementManager,
@@ -134,6 +170,12 @@ void PlayerController::HandleClickToMove(InputManager& inputManager,
 	clickIndicatorAnimTime_ = 0.0f;
 }
 
+/**
+ * @brief Updates click indicator.
+ * @param deltaTime Frame delta time in seconds.
+ * @param entityManager Entity manager containing the active objects.
+ * @return Result produced by this operation.
+ */
 void PlayerController::UpdateClickIndicator(float deltaTime, EntityManager& entityManager) {
 	if (clickIndicatorTimer_ <= 0.0f) {
 		return;
@@ -190,6 +232,12 @@ void PlayerController::UpdateClickIndicator(float deltaTime, EntityManager& enti
 	indicator->SetUVRect(glm::vec4(frameIndex * kFrameWidth, 0.0f, kFrameWidth, 1.0f));
 }
 
+/**
+ * @brief Updates sprite direction.
+ * @param direction Parameter for direction.
+ * @param sprite Parameter for sprite.
+ * @return Result produced by this operation.
+ */
 void PlayerController::UpdateSpriteDirection(const glm::vec2& direction, GameObject* sprite) {
 	// Small dead zone to avoid jitter when very close to target.
 	if (glm::length(direction) <= 0.001f) {
@@ -224,6 +272,13 @@ void PlayerController::UpdateSpriteDirection(const glm::vec2& direction, GameObj
 	}
 }
 
+/**
+ * @brief Samples input.
+ * @param deltaTime Frame delta time in seconds.
+ * @param inputManager Input manager for the current frame.
+ * @param graphicsEngine Graphics engine used for rendering-related queries.
+ * @return Result produced by this operation.
+ */
 void PlayerController::SampleInput(float deltaTime,
 	InputManager& inputManager,
 	GraphicsEngine& graphicsEngine) {

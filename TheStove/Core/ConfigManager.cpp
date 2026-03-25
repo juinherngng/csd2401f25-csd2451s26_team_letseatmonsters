@@ -29,7 +29,11 @@ namespace ConfigManager {
 	namespace {
 		constexpr int CONFIG_SCHEMA_VERSION = 1;
 
-		// Helper to trim leading and trailing whitespace from a string
+		/**
+		 * @brief Performs trim.
+		 * @param str Parameter for str.
+		 * @return Result produced by this operation.
+		 */
 		std::string Trim(std::string str) {
 			auto isNotSpace = [](unsigned char ch) { return !std::isspace(ch); };
 
@@ -43,7 +47,12 @@ namespace ConfigManager {
 			return str;
 		}
 
-		// Case-insensitive string comparison
+		/**
+		 * @brief Returns whether iequals.
+		 * @param lhs Parameter for lhs.
+		 * @param rhs Parameter for rhs.
+		 * @return True when the operation succeeds or the condition is met.
+		 */
 		bool IEquals(const std::string& lhs, const std::string& rhs) {
 			if (lhs.size() != rhs.size()) return false;
 			for (size_t i = 0; i < lhs.size(); ++i) {
@@ -55,7 +64,12 @@ namespace ConfigManager {
 			return true;
 		}
 
-		// Parses a string into bool. Accepts "true"/"false" (case-insensitive) or "1"/"0".
+		/**
+		 * @brief Returns whether parsebool.
+		 * @param str Parameter for str.
+		 * @param valueOut Parameter for value out.
+		 * @return True when the operation succeeds or the condition is met.
+		 */
 		bool ParseBool(const std::string& str, bool& valueOut) {
 			if (IEquals(str, "true") || str == "1") {
 				valueOut = true; return true;
@@ -68,7 +82,12 @@ namespace ConfigManager {
 			return false;
 		}
 
-		// Parses a string into int. Returns false if parsing fails or if there are extra characters.
+		/**
+		 * @brief Returns whether parseint.
+		 * @param str Parameter for str.
+		 * @param valueOut Parameter for value out.
+		 * @return True when the operation succeeds or the condition is met.
+		 */
 		bool ParseInt(const std::string& str, int& valueOut) {
 			try {
 				size_t pos = 0;
@@ -86,7 +105,12 @@ namespace ConfigManager {
 			}
 		}
 
-		// Parses a string into float. Returns false if parsing fails or if there are extra characters.
+		/**
+		 * @brief Returns whether parsefloat.
+		 * @param str Parameter for str.
+		 * @param valueOut Parameter for value out.
+		 * @return True when the operation succeeds or the condition is met.
+		 */
 		bool ParseFloat(const std::string& str, float& valueOut) {
 			if (!str.empty() && str.back() == '%') {
 				float percentValue = 0.0f;
@@ -114,7 +138,13 @@ namespace ConfigManager {
 			}
 		}
 
-		// Applies a single key=value setting to the config struct. Returns true if the key is recognized.
+		/**
+		 * @brief Applies setting.
+		 * @param key Parameter for key.
+		 * @param val Parameter for val.
+		 * @param cfg Parameter for cfg.
+		 * @return True when the operation succeeds or the condition is met.
+		 */
 		bool ApplySetting(const std::string& key, const std::string& val, Settings& cfg) {
 			int parsedInt = 0;
 			bool parsedBool = false;
@@ -163,7 +193,10 @@ namespace ConfigManager {
 		}
 	}
 
-	// Enforces valid ranges and constraints on settings(e.g.minimum resolution, volume clamping)
+	/**
+	 * @brief Validates this object.
+	 * @param s Parameter for s.
+	 */
 	void Validate(Settings& s) {
 		// Enforce minimum resolution
 		if (s.resolution.width < 320) s.resolution.width = 320;
@@ -179,7 +212,13 @@ namespace ConfigManager {
 		s.vfxVolume = clamp01(s.vfxVolume);
 	}
 
-	// Fluent setters for chaining (returns modified copy)
+	/**
+	 * @brief Performs with resolution.
+	 * @param s Parameter for s.
+	 * @param width Width value in pixels.
+	 * @param height Height value in pixels.
+	 * @return Result produced by this operation.
+	 */
 	Settings WithResolution(Settings s, int width, int height) {
 		s.resolution.width = width;
 		s.resolution.height = height;
@@ -187,14 +226,26 @@ namespace ConfigManager {
 		return s;
 	}
 
-	// Fluent setter for fullscreen
+	/**
+	 * @brief Performs with fullscreen.
+	 * @param s Parameter for s.
+	 * @param fullscreenEnabled Parameter for fullscreen enabled.
+	 * @return Result produced by this operation.
+	 */
 	Settings WithFullscreen(Settings s, bool fullscreenEnabled) {
 		s.fullscreen = fullscreenEnabled;
 		Validate(s);
 		return s;
 	}
 
-	// Fluent setter for volumes
+	/**
+	 * @brief Performs with volumes.
+	 * @param s Parameter for s.
+	 * @param master Parameter for master.
+	 * @param bgm Parameter for bgm.
+	 * @param vfx Parameter for vfx.
+	 * @return Result produced by this operation.
+	 */
 	Settings WithVolumes(Settings s, float master, float bgm, float vfx) {
 		s.masterVolume = master;
 		s.bgmVolume = bgm;
@@ -203,7 +254,12 @@ namespace ConfigManager {
 		return s;
 	}
 
-	// Loads settings from a file. Returns false if the file cannot be read. Missing keys are left unchanged in the output struct (allowing for defaults).
+	/**
+	 * @brief Loads this object.
+	 * @param filePath Path to the target file.
+	 * @param out Output value for out.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool Load(const std::string& filePath, Settings& out) {
 		std::ifstream ifs(filePath);
 		if (!ifs.is_open()) {
@@ -263,7 +319,12 @@ namespace ConfigManager {
 		return true;
 	}
 
-	// Fluent setter for fullscreen
+	/**
+	 * @brief Saves this object.
+	 * @param filePath Path to the target file.
+	 * @param s Parameter for s.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool Save(const std::string& filePath, const Settings& s) {
 		std::ofstream ofs(filePath, std::ios::trunc);
 		if (!ofs.is_open()) {
@@ -286,6 +347,12 @@ namespace ConfigManager {
 	}
 
 	namespace {
+
+		/**
+		 * @brief Builds asset candidates.
+		 * @param filename Parameter for filename.
+		 * @return Result produced by this operation.
+		 */
 		std::vector<fs::path> BuildAssetCandidates(const char* filename) {
 			const char* fname = filename ? filename : "config.txt";
 
@@ -306,6 +373,12 @@ namespace ConfigManager {
 		}
 	}
 
+	/**
+	 * @brief Resolves asset path.
+	 * @param outFilePath Output value for out file path.
+	 * @param filename Parameter for filename.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool ResolveAssetPath(std::string& outFilePath, const char* filename) {
 		for (const auto& candidate : BuildAssetCandidates(filename)) {
 			std::error_code ec;
@@ -318,7 +391,12 @@ namespace ConfigManager {
 		return false;
 	}
 
-	// Attempts to load config from multiple candidate locations in the executable's directory hierarchy. Falls back to defaults if not found.
+	/**
+	 * @brief Loads from assets.
+	 * @param out Output value for out.
+	 * @param filename Parameter for filename.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool LoadFromAssets(Settings& out, const char* filename) {
 		std::string resolvedPath;
 		if (!ResolveAssetPath(resolvedPath, filename)) {

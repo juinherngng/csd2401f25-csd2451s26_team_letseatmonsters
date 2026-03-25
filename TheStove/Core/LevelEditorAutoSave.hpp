@@ -18,6 +18,7 @@
 struct LevelData;
 
 namespace LEAUTOSAVE {
+
 	/**
 	 * @brief Advances the autosave timer and writes a recovery file when needed.
 	 * @param levelPath Path to the main level file.

@@ -9,7 +9,7 @@
 					- Query() returns unique candidates overlapping the query AABB (+ 1-cell neighbors).
 					- QueryPoint() returns candidates in the cell containing a point.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -38,31 +38,100 @@ public:
 		std::uint64_t updateSkippedSameCells = 0;
 	};
 
-	// Public interface
+	/**
+	 * @brief Constructs a `SpatialGrid` instance.
+	 * @param cellSize Parameter for cell size.
+	 * @return Result produced by this operation.
+	 */
 	explicit SpatialGrid(float cellSize);
+
+	/**
+	 * @brief Clears this object.
+	 */
 	void Clear();
 
-	// Getters/setters
+	/**
+	 * @brief Performs cell size.
+	 * @return Result produced by this operation.
+	 */
 	float CellSize() const;
 
-	// Insert or update an object with its current AABB. Automatically handles cell associations.
+	/**
+	 * @brief Inserts this object.
+	 * @param object Parameter for object.
+	 * @param box Parameter for box.
+	 */
 	void Insert(GameObject* object, const collision::AABB& box);
+
+	/**
+	 * @brief Removes this object.
+	 * @param object Parameter for object.
+	 */
 	void Remove(GameObject* object);
+
+	/**
+	 * @brief Updates this object.
+	 * @param object Parameter for object.
+	 * @param box Parameter for box.
+	 */
 	void Update(GameObject* object, const collision::AABB& box);
 
-	// Query grid for objects overlapping an AABB (including 1-cell neighbors for broader queries). Returns unique candidates.
+	/**
+	 * @brief Performs query.
+	 * @param box Parameter for box.
+	 * @param outCandidates Output value for out candidates.
+	 */
 	void Query(const collision::AABB& box, std::vector<GameObject*>& outCandidates) const;
+
+	/**
+	 * @brief Performs query point.
+	 * @param point Parameter for point.
+	 * @param outCandidates Output value for out candidates.
+	 */
 	void QueryPoint(const Math::Vector2D& point, std::vector<GameObject*>& outCandidates) const;
 
-	// Access profiling counters for performance analysis
+	/**
+	 * @brief Returns profile counters.
+	 * @return Requested value.
+	 */
 	const ProfileCounters& GetProfileCounters() const;
+
+	/**
+	 * @brief Resets profile counters.
+	 */
 	void ResetProfileCounters();
 
 private:
-	// Helper methods
+
+	/**
+	 * @brief Collects cells.
+	 * @param box Parameter for box.
+	 * @param expandByCells Parameter for expand by cells.
+	 * @param outKeys Output value for out keys.
+	 */
 	void CollectCells(const collision::AABB& box, int expandByCells, std::vector<Key>& outKeys) const;
+
+	/**
+	 * @brief Performs to key.
+	 * @param cellX Parameter for cell x.
+	 * @param cellY Parameter for cell y.
+	 * @return Result produced by this operation.
+	 */
 	Key ToKey(int cellX, int cellY) const;
+
+	/**
+	 * @brief Returns whether same aabb.
+	 * @param a Parameter for a.
+	 * @param b Parameter for b.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	static bool IsSameAABB(const collision::AABB& a, const collision::AABB& b);
+
+	/**
+	 * @brief Performs reserve bucket if needed.
+	 * @param bucket Parameter for bucket.
+	 * @return Result produced by this operation.
+	 */
 	static void ReserveBucketIfNeeded(std::vector<GameObject*>& bucket);
 
 	// Internal state

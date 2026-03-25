@@ -9,9 +9,9 @@
 					- Static level geometry (kitchen tiles / benches / gate)
 					- Collision-world construction for this level
 					- Initial static overlap resolution
-					- Final movement constraints and player–NPC collision push
+					- Final movement constraints and playerNPC collision push
 
-	 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+	 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -94,18 +94,39 @@ static constexpr float kEndVBotMinY = kEndVBotMinY_T * kTile;
 static constexpr float kEndVBotMaxY = kEndVBotMaxY_T * kTile;
 
 namespace {
+
+	/**
+	 * @brief Performs to m.
+	 * @param v Parameter for v.
+	 * @return Result produced by this operation.
+	 */
 	inline Math::Vector2D toM(const glm::vec2& v) {
 		return Math::Vector2D(v.x, v.y);
 	}
 
+	/**
+	 * @brief Performs to m.
+	 * @param v Parameter for v.
+	 * @return Result produced by this operation.
+	 */
 	inline Math::Vector3D toM(const glm::vec3& v) {
 		return Math::Vector3D(v.x, v.y, v.z);
 	}
 
+	/**
+	 * @brief Performs to g.
+	 * @param v Parameter for v.
+	 * @return Result produced by this operation.
+	 */
 	inline glm::vec2 toG(const Math::Vector2D& v) {
 		return glm::vec2(v.x, v.y);
 	}
 
+	/**
+	 * @brief Performs to g.
+	 * @param v Parameter for v.
+	 * @return Result produced by this operation.
+	 */
 	inline glm::vec3 toG(const Math::Vector3D& v) {
 		return glm::vec3(v.x, v.y, v.z);
 	}
@@ -118,10 +139,20 @@ namespace {
 	constexpr const char* kCollisionLevel1File = "collision_level1.json";
 	constexpr const char* kCollisionLevel2File = "collision_level2.json";
 
+	/**
+	 * @brief Returns whether level2 path.
+	 * @param levelPath Path to the level resource.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsLevel2Path(const std::string& levelPath) {
 		return levelPath.find("kitchen02") != std::string::npos;
 	}
 
+	/**
+	 * @brief Resolves collision layout path from file.
+	 * @param filename Parameter for filename.
+	 * @return Result produced by this operation.
+	 */
 	std::string ResolveCollisionLayoutPathFromFile(const char* filename) {
 		namespace fs = std::filesystem;
 		const std::array<fs::path, 5> candidates = {
@@ -141,6 +172,11 @@ namespace {
 		return candidates.front().lexically_normal().string();
 	}
 
+	/**
+	 * @brief Resolves collision layout path.
+	 * @param levelPath Path to the level resource.
+	 * @return Result produced by this operation.
+	 */
 	std::string ResolveCollisionLayoutPath(const std::string& levelPath) {
 		if (IsLevel2Path(levelPath)) {
 			return ResolveCollisionLayoutPathFromFile(kCollisionLevel2File);
@@ -148,6 +184,11 @@ namespace {
 		return ResolveCollisionLayoutPathFromFile(kCollisionLevel1File);
 	}
 
+	/**
+	 * @brief Builds fallback layout.
+	 * @param isLevel2 Parameter for is level2.
+	 * @return Result produced by this operation.
+	 */
 	CollisionLayoutData BuildFallbackLayout(bool isLevel2) {
 		CollisionLayoutData data;
 		data.walkArea = collision::WalkArea{ kWalkL, kWalkR, kWalkT, kWalkB, kEdgeThick };
@@ -193,6 +234,12 @@ namespace {
 		return data;
 	}
 
+	/**
+	 * @brief Loads collision layout.
+	 * @param path Path to process.
+	 * @param out Output value for out.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool LoadCollisionLayout(const std::string& path, CollisionLayoutData& out) {
 		std::ifstream input(path);
 		if (!input.is_open()) {
@@ -225,6 +272,11 @@ namespace {
 		return !out.walls.empty();
 	}
 
+	/**
+	 * @brief Returns collision layout for scene.
+	 * @param scene Scene being processed.
+	 * @return Requested value.
+	 */
 	CollisionLayoutData GetCollisionLayoutForScene(const Scene& scene) {
 		CollisionLayoutData data;
 		const std::string levelPath = scene.GetCurrentLevelPath();
@@ -244,7 +296,14 @@ namespace {
 		return BuildFallbackLayout(isLevel2);
 	}
 
-	// Build an AABB in world/reference space from tile coordinates.
+	/**
+	 * @brief Performs make tile rect.
+	 * @param tx0 Parameter for tx0.
+	 * @param ty0 Parameter for ty0.
+	 * @param tx1 Parameter for tx1.
+	 * @param ty1 Parameter for ty1.
+	 * @return Result produced by this operation.
+	 */
 	collision::AABB MakeTileRect(float tx0, float ty0, float tx1, float ty1) {
 		collision::AABB r{};
 		r.min = { tx0 * kTile, ty0 * kTile };
@@ -252,13 +311,27 @@ namespace {
 		return r;
 	}
 
-	// Returns true if AABB "box" overlaps the axis-aligned rectangle [x0,x1]x[y0,y1].
+	/**
+	 * @brief Returns whether overlapsrect.
+	 * @param box Parameter for box.
+	 * @param x0 Parameter for x0.
+	 * @param x1 Parameter for x1.
+	 * @param y0 Parameter for y0.
+	 * @param y1 Parameter for y1.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool OverlapsRect(const collision::AABB& box, float x0, float x1, float y0, float y1) {
 		return (box.min.x < x1 && box.max.x > x0 &&
 			box.min.y < y1 && box.max.y > y0);
 	}
 
-	// Snap a dynamic object horizontally out of the vertical wood segment it overlaps (minimal move).
+	/**
+	 * @brief Performs snap horizontally out of band.
+	 * @param box Parameter for box.
+	 * @param bandX0 Parameter for band x0.
+	 * @param bandX1 Parameter for band x1.
+	 * @param posM Parameter for pos m.
+	 */
 	void SnapHorizontallyOutOfBand(const collision::AABB& box, float bandX0, float bandX1, Math::Vector3D& posM) {
 		const float moveLeft = bandX0 - box.max.x - 0.5f; // small epsilon
 		const float moveRight = bandX1 - box.min.x + 0.5f;
@@ -271,7 +344,13 @@ namespace {
 		}
 	}
 
-	// Snap a dynamic object vertically out of a horizontal band it overlaps (minimal move).
+	/**
+	 * @brief Performs snap vertically out of band.
+	 * @param box Parameter for box.
+	 * @param bandY0 Parameter for band y0.
+	 * @param bandY1 Parameter for band y1.
+	 * @param posM Parameter for pos m.
+	 */
 	void SnapVerticallyOutOfBand(const collision::AABB& box, float bandY0, float bandY1, Math::Vector3D& posM) {
 		const float moveUp = bandY0 - box.max.y - 0.5f; // small epsilon
 		const float moveDown = bandY1 - box.min.y + 0.5f;
@@ -285,28 +364,51 @@ namespace {
 	}
 }
 
-// Reference <-> current framebuffer conversion
+/**
+ * @brief Performs scale xto current.
+ * @param referenceX Parameter for reference x.
+ * @return Result produced by this operation.
+ */
 float Scene::ScaleXToCurrent(float referenceX) const {
 	const float worldWidth = static_cast<float>(graphicsEngine.GetWidth());
 	return referenceX * worldWidth / kRefW;
 }
 
+/**
+ * @brief Performs scale yto current.
+ * @param referenceY Parameter for reference y.
+ * @return Result produced by this operation.
+ */
 float Scene::ScaleYToCurrent(float referenceY) const {
 	const float worldHeight = static_cast<float>(graphicsEngine.GetHeight());
 	return referenceY * worldHeight / kRefH;
 }
 
+/**
+ * @brief Performs to ref x.
+ * @param currentX Parameter for current x.
+ * @return Result produced by this operation.
+ */
 float Scene::ToRefX(float currentX) const {
 	const float worldW = static_cast<float>(graphicsEngine.GetWidth());
 	return currentX * (kRefW / worldW);
 }
 
+/**
+ * @brief Performs to ref y.
+ * @param currentY Parameter for current y.
+ * @return Result produced by this operation.
+ */
 float Scene::ToRefY(float currentY) const {
 	const float worldH = static_cast<float>(graphicsEngine.GetHeight());
 	return currentY * (kRefH / worldH);
 }
 
-// Clamp helpers / world step resolution
+/**
+ * @brief Performs clamp to walk area.
+ * @param obj Parameter for obj.
+ * @return Result produced by this operation.
+ */
 void Scene::ClampToWalkArea(GameObject* obj) {
 	if (obj == nullptr) {
 		return;
@@ -334,6 +436,12 @@ void Scene::ClampToWalkArea(GameObject* obj) {
 	entityManager.SetPosition(obj->GetID(), clampedPos);
 }
 
+/**
+ * @brief Resolves world step.
+ * @param obj Parameter for obj.
+ * @param desiredDelta Parameter for desired delta.
+ * @return Result produced by this operation.
+ */
 glm::vec2 Scene::ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta) {
 	if (!obj) {
 		return desiredDelta;
@@ -348,18 +456,25 @@ glm::vec2 Scene::ResolveWorldStep(GameObject* obj, const glm::vec2& desiredDelta
 
 	const collision::AABB start = physics::MakeColliderBox(obj, posM);
 
-	// Ask world how much of desiredDelta we’re allowed to move
+	// Ask world how much of desiredDelta were allowed to move
 	Math::Vector2D desired(desiredDelta.x, desiredDelta.y);
 	Math::Vector2D allowed = world.resolve(start, desired);
 
 	return glm::vec2(allowed.x, allowed.y);
 }
 
+/**
+ * @brief Returns walk area.
+ * @return Requested value.
+ */
 collision::WalkArea Scene::GetWalkArea() const {
 	return GetCollisionLayoutForScene(*this).walkArea;
 }
 
-// Collision world construction for this level
+/**
+ * @brief Builds level colliders.
+ * @return Result produced by this operation.
+ */
 void Scene::BuildLevelColliders() {
 	const CollisionLayoutData layout = GetCollisionLayoutForScene(*this);
 
@@ -377,7 +492,11 @@ void Scene::BuildLevelColliders() {
 	physicsManager.SetCollisionWorld(world);
 }
 
-// Final constraints (stage gate + framebuffer bounds)
+/**
+ * @brief Applies final constraints.
+ * @param entityMgr Parameter for entity mgr.
+ * @return Result produced by this operation.
+ */
 void Scene::ApplyFinalConstraints(EntityManager& entityMgr) {
 	if (spriteID < 0) {
 		return;
@@ -418,7 +537,10 @@ void Scene::ApplyFinalConstraints(EntityManager& entityMgr) {
 	sprite->SetPosition(position);
 }
 
-// Resolve initial static overlaps vs benches / dividers
+/**
+ * @brief Resolves initial static overlaps.
+ * @return Result produced by this operation.
+ */
 void Scene::ResolveInitialStaticOverlaps() {
 	const bool isLevel2 = IsLevel2Path(GetCurrentLevelPath());
 
@@ -488,11 +610,20 @@ void Scene::ResolveInitialStaticOverlaps() {
 	RebuildColliders();
 }
 
+/**
+ * @brief Performs rebuild colliders.
+ * @return Result produced by this operation.
+ */
 void Scene::RebuildColliders() {
 	BuildLevelColliders();
 }
 
-// Player–NPC collision push + sliding
+/**
+ * @brief Handles player collisions.
+ * @param physicsDt Parameter for physics dt.
+ * @param entityMgr Parameter for entity mgr.
+ * @return Result produced by this operation.
+ */
 void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 	if (spriteID < 0) {
 		return;
@@ -503,7 +634,7 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 		return;
 	}
 
-	// If the player's layer is non-collidable, skip all player–object collisions.
+	// If the player's layer is non-collidable, skip all playerobject collisions.
 	{
 		std::string playerLayer = GetObjectLayer(spriteID);
 		Layer* pl = GetLayer(playerLayer);
@@ -670,6 +801,12 @@ void Scene::HandlePlayerCollisions(float physicsDt, EntityManager& entityMgr) {
 	}
 }
 
+/**
+ * @brief Collects navigation blocker boxes.
+ * @param moverObjectID Parameter for mover object id.
+ * @param outBoxes Output value for out boxes.
+ * @return Result produced by this operation.
+ */
 void Scene::CollectNavigationBlockerBoxes(int moverObjectID, std::vector<collision::AABB>& outBoxes) {
 	outBoxes.clear();
 	if (navigationBlockerCollector_) {
@@ -678,6 +815,13 @@ void Scene::CollectNavigationBlockerBoxes(int moverObjectID, std::vector<collisi
 }
 
 namespace {
+
+	/**
+	 * @brief Performs compress cell path to waypoints.
+	 * @param grid Parameter for grid.
+	 * @param cells Parameter for cells.
+	 * @param outWaypoints Output value for out waypoints.
+	 */
 	void CompressCellPathToWaypoints(const NavGrid& grid,
 		const std::vector<GridCoord>& cells,
 		const glm::vec2& /*goalWorld*/,
@@ -712,12 +856,25 @@ namespace {
 		outWaypoints.push_back(grid.CellCenter(cells.back()));
 	}
 
+	/**
+	 * @brief Collects navigation blockers.
+	 * @param scene Scene being processed.
+	 * @param moverObjectID Parameter for mover object id.
+	 * @param outBoxes Output value for out boxes.
+	 */
 	void CollectNavigationBlockers(Scene& scene,
 		int moverObjectID,
 		std::vector<collision::AABB>& outBoxes) {
 		scene.CollectNavigationBlockerBoxes(moverObjectID, outBoxes);
 	}
 
+	/**
+	 * @brief Returns whether boxhitsanynavigationblocker.
+	 * @param box Parameter for box.
+	 * @param world Parameter for world.
+	 * @param blockers Parameter for blockers.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool BoxHitsAnyNavigationBlocker(const collision::AABB& box,
 		const collision::World& world,
 		const std::vector<collision::AABB>& blockers) {
@@ -735,6 +892,13 @@ namespace {
 		return false;
 	}
 
+	/**
+	 * @brief Performs smooth waypoint path.
+	 * @param scene Scene being processed.
+	 * @param moverObjectID Parameter for mover object id.
+	 * @param startWorld Parameter for start world.
+	 * @param path Path to process.
+	 */
 	void SmoothWaypointPath(Scene& scene,
 		int moverObjectID,
 		const glm::vec2& startWorld,
@@ -768,6 +932,12 @@ namespace {
 	}
 }
 
+/**
+ * @brief Builds navigation grid for object.
+ * @param moverObjectID Parameter for mover object id.
+ * @param outGrid Output value for out grid.
+ * @return Result produced by this operation.
+ */
 bool Scene::BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid) {
 	outGrid = NavGrid();
 
@@ -832,6 +1002,14 @@ bool Scene::BuildNavigationGridForObject(int moverObjectID, NavGrid& outGrid) {
 	return true;
 }
 
+/**
+ * @brief Finds path for object.
+ * @param moverObjectID Parameter for mover object id.
+ * @param startWorld Parameter for start world.
+ * @param goalWorld Parameter for goal world.
+ * @param outPath Output value for out path.
+ * @return Result produced by this operation.
+ */
 bool Scene::FindPathForObject(int moverObjectID, const glm::vec2& startWorld, const glm::vec2& goalWorld, std::vector<glm::vec2>& outPath) {
 	outPath.clear();
 
@@ -861,6 +1039,13 @@ bool Scene::FindPathForObject(int moverObjectID, const glm::vec2& startWorld, co
 	return !outPath.empty();
 }
 
+/**
+ * @brief Returns nearest navigation cell center for object.
+ * @param moverObjectID Parameter for mover object id.
+ * @param worldPos Parameter for world pos.
+ * @param outCenter Output value for out center.
+ * @return Requested value.
+ */
 bool Scene::GetNearestNavigationCellCenterForObject(int moverObjectID,
 	const glm::vec2& worldPos,
 	glm::vec2& outCenter) {
@@ -879,6 +1064,13 @@ bool Scene::GetNearestNavigationCellCenterForObject(int moverObjectID,
 	return true;
 }
 
+/**
+ * @brief Returns whether direct path for object.
+ * @param moverObjectID Parameter for mover object id.
+ * @param startWorld Parameter for start world.
+ * @param goalWorld Parameter for goal world.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool Scene::HasDirectPathForObject(int moverObjectID,
 	const glm::vec2& startWorld,
 	const glm::vec2& goalWorld) {

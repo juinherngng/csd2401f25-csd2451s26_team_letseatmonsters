@@ -8,7 +8,7 @@
  DESCRIPTION:       Implements InputCommandHandler. Maps keyboard input to engine/debug actions:
 					collider/debug visibility toggles and force-mode switching for the player.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -16,7 +16,16 @@
 
 #include <iostream>
 
- // Processes per-frame command inputs, including debug toggles and physics mode switching.
+/**
+ * @brief Processes commands.
+ * @param inputManager Input manager for the current frame.
+ * @param physicsManager Physics manager used for physics updates.
+ * @param movementManager Movement manager used for movement updates.
+ * @param playerID Identifier of the player object.
+ * @param useForces Parameter for use forces.
+ * @param showAuxDebug Parameter for show aux debug.
+ * @return Result produced by this operation.
+ */
 void InputCommandHandler::ProcessCommands(InputManager& inputManager,
 	PhysicsManager& physicsManager,
 	MovementManager& movementManager,
@@ -27,7 +36,12 @@ void InputCommandHandler::ProcessCommands(InputManager& inputManager,
 	HandleForceToggle(inputManager, physicsManager, movementManager, playerID, useForces);
 }
 
-// Handles debug visualization toggles (G for colliders, H for auxiliary visuals).
+/**
+ * @brief Handles debug toggles.
+ * @param inputManager Input manager for the current frame.
+ * @param showAuxDebug Parameter for show aux debug.
+ * @return Result produced by this operation.
+ */
 void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& showAuxDebug) {
 	// Toggle collider visualization
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_G)) {
@@ -48,7 +62,15 @@ void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& s
 	}
 }
 
-// Handles the physics mode toggle (F key) and updates the player's physics component accordingly, as well as the click-to-move path line visibility.
+/**
+ * @brief Handles force toggle.
+ * @param inputManager Input manager for the current frame.
+ * @param physicsManager Physics manager used for physics updates.
+ * @param movementManager Movement manager used for movement updates.
+ * @param playerID Identifier of the player object.
+ * @param useForces Parameter for use forces.
+ * @return Result produced by this operation.
+ */
 void InputCommandHandler::HandleForceToggle(InputManager& inputManager,
 	PhysicsManager& physicsManager,
 	MovementManager& movementManager,

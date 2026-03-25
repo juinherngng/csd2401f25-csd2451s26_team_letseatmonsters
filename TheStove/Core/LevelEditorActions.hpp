@@ -20,6 +20,7 @@ class Scene;
 struct LevelData;
 
 namespace LEACTIONS {
+
 	/**
 	 * @brief Callback bundle used by the Level Editor action bar.
 	 *

@@ -9,7 +9,7 @@
 					into debug toggles and physics-mode switches (forces vs. kinematic).
 					It does not own any state; it simply reads input and calls other systems.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -26,10 +26,26 @@
  // Forward declare Scene to avoid circular dependency.
 class InputCommandHandler {
 public:
+
+	/**
+	 * @brief Constructs a `InputCommandHandler` instance.
+	 */
 	InputCommandHandler() = default;
+
+	/**
+	 * @brief Destroys the `InputCommandHandler` instance and releases owned resources.
+	 */
 	~InputCommandHandler() = default;
 
-	// Entry point to process per-frame command inputs.
+	/**
+	 * @brief Processes commands.
+	 * @param inputManager Input manager for the current frame.
+	 * @param physicsManager Physics manager used for physics updates.
+	 * @param movementManager Movement manager used for movement updates.
+	 * @param playerID Identifier of the player object.
+	 * @param useForces Parameter for use forces.
+	 * @param showAuxDebug Parameter for show aux debug.
+	 */
 	void ProcessCommands(InputManager& inputManager,
 		PhysicsManager& physicsManager,
 		MovementManager& movementManager,
@@ -38,10 +54,22 @@ public:
 		bool& showAuxDebug);
 
 private:
-	// Handles keys that toggle debug state (G, H).
+
+	/**
+	 * @brief Handles debug toggles.
+	 * @param inputManager Input manager for the current frame.
+	 * @param showAuxDebug Parameter for show aux debug.
+	 */
 	void HandleDebugToggles(InputManager& inputManager, bool& showAuxDebug);
 
-	// Handles the physics mode toggle (F) and updates the player's physics component.
+	/**
+	 * @brief Handles force toggle.
+	 * @param inputManager Input manager for the current frame.
+	 * @param physicsManager Physics manager used for physics updates.
+	 * @param movementManager Movement manager used for movement updates.
+	 * @param playerID Identifier of the player object.
+	 * @param useForces Parameter for use forces.
+	 */
 	void HandleForceToggle(InputManager& inputManager,
 		PhysicsManager& physicsManager,
 		MovementManager& movementManager,

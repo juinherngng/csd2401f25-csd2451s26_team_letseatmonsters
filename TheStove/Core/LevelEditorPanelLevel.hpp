@@ -17,6 +17,7 @@ class Scene;
 
 // Forward declare GameObject to avoid circular dependency.
 namespace LEPANELLEVEL {
+
 	/**
 	 * @brief Draws the main Level panel and handles its editor interactions.
 	 * @param editor Shared level editor controller.

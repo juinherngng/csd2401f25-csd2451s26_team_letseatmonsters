@@ -38,49 +38,154 @@ public:
 		glm::dvec2 mousePos{ 0.0, 0.0 };
 	};
 
-	// Lifetime / Access
+	/**
+	 * @brief Constructs a `InputManager` instance.
+	 */
 	InputManager();
+
+	/**
+	 * @brief Returns this object.
+	 * @return Requested value.
+	 */
 	static InputManager& Get();
 
-	// SystemInterface implementation
+	/**
+	 * @brief Initializes this object.
+	 */
 	void Initialize() override;
+
+	/**
+	 * @brief Updates this object.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void Update(float dt) override;
+
+	/**
+	 * @brief Returns the stable name for this object.
+	 * @return Requested value.
+	 */
 	std::string GetName() override;
 
-	// Frame Update / Focus Hints
+	/**
+	 * @brief Sets scene viewport wants game mouse.
+	 * @param enable Boolean flag controlling whether the feature is enabled.
+	 */
 	void SetSceneViewportWantsGameMouse(bool enable);
+
+	/**
+	 * @brief Sets window.
+	 * @param window Parameter for window.
+	 */
 	void SetWindow(GLFWwindow* window);
 
-	// Keyboard Queries
+	/**
+	 * @brief Returns whether key pressed.
+	 * @param key Parameter for key.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsKeyPressed(int key) const;
+
+	/**
+	 * @brief Returns whether key just pressed.
+	 * @param key Parameter for key.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsKeyJustPressed(int key);
 
-	// Mouse Queries
+	/**
+	 * @brief Returns whether mouse button pressed.
+	 * @param button Parameter for button.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsMouseButtonPressed(int button) const;
+
+	/**
+	 * @brief Returns whether mouse button just pressed.
+	 * @param button Parameter for button.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsMouseButtonJustPressed(int button);
+
+	/**
+	 * @brief Returns whether mouse button just released.
+	 * @param button Parameter for button.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsMouseButtonJustReleased(int button) const;
+
+	/**
+	 * @brief Returns mouse position.
+	 * @return Requested value.
+	 */
 	glm::dvec2 GetMousePosition() const;
 
-	// Coordinate Conversion
+	/**
+	 * @brief Performs screen to world.
+	 * @param mouseX Parameter for mouse x.
+	 * @param mouseY Parameter for mouse y.
+	 * @return Result produced by this operation.
+	 */
 	glm::vec3 ScreenToWorld(float mouseX, float mouseY) const;
 
-	// Clear all key/mouse state (used when losing/regaining focus)
+	/**
+	 * @brief Clears state.
+	 */
 	void ClearState();
 
-	// Edge consumption (for one frame only)
+	/**
+	 * @brief Performs consume next mouse press.
+	 * @param button Parameter for button.
+	 */
 	void ConsumeNextMousePress(int button);
+
+	/**
+	 * @brief Clears mouse consume.
+	 * @param button Parameter for button.
+	 */
 	void ClearMouseConsume(int button);
+
+	/**
+	 * @brief Performs consume next key press.
+	 * @param key Parameter for key.
+	 */
 	void ConsumeNextKeyPress(int key);
+
+	/**
+	 * @brief Clears key consume.
+	 * @param key Parameter for key.
+	 */
 	void ClearKeyConsume(int key);
 
+	/**
+	 * @brief Performs capture snapshot.
+	 * @param out Output value for out.
+	 */
 	void CaptureSnapshot(Snapshot& out) const;
+
+	/**
+	 * @brief Applies snapshot.
+	 * @param snapshot Parameter for snapshot.
+	 */
 	void ApplySnapshot(const Snapshot& snapshot);
 
+	/**
+	 * @brief Sets replay override.
+	 * @param enable Boolean flag controlling whether the feature is enabled.
+	 */
 	void SetReplayOverride(bool enable);
+
+	/**
+	 * @brief Returns whether replay override.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsReplayOverride() const;
 
 private:
-	// Internal update method that takes window
+
+	/**
+	 * @brief Updates internal.
+	 * @param window Parameter for window.
+	 */
 	void UpdateInternal(GLFWwindow* window);
 
 	// Data Members

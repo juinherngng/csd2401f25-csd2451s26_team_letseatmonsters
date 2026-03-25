@@ -8,7 +8,7 @@
 					such as footsteps, trails, and visual effects. Provides interfaces for
 					emitting and updating particles within the scene.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -68,19 +68,49 @@ public:
 		std::mt19937 rng{ std::random_device{}() };
 	};
 
-	// Register a new particle effect preset. Must be called before emitting any particles with the preset.
+	/**
+	 * @brief Registers preset.
+	 * @param preset Parameter for preset.
+	 * @param em Parameter for em.
+	 */
 	void RegisterPreset(const Preset& preset, EntityManager& em);
+
+	/**
+	 * @brief Updates this object.
+	 * @param dt Frame delta time in seconds.
+	 * @param em Parameter for em.
+	 */
 	void Update(float dt, EntityManager& em);
 
-	// Emit a particle effect at the specified position.
+	/**
+	 * @brief Emits this object.
+	 * @param presetName Parameter for preset name.
+	 * @param em Parameter for em.
+	 * @param pos Parameter for pos.
+	 * @param baseZ Parameter for base z.
+	 * @param moveDir Parameter for move dir.
+	 */
 	void Emit(const std::string& presetName,
 		EntityManager& em,
 		const glm::vec3& pos,
 		float baseZ,
 		const glm::vec2* moveDir = nullptr);
 
-	// Backwards-compatible helpers
+	/**
+	 * @brief Emits footstep.
+	 * @param em Parameter for em.
+	 * @param pos Parameter for pos.
+	 * @param baseZ Parameter for base z.
+	 */
 	void EmitFootstep(EntityManager& em, const glm::vec3& pos, float baseZ);
+
+	/**
+	 * @brief Emits trail.
+	 * @param em Parameter for em.
+	 * @param pos Parameter for pos.
+	 * @param baseZ Parameter for base z.
+	 * @param moveDir Parameter for move dir.
+	 */
 	void EmitTrail(EntityManager& em, const glm::vec3& pos, float baseZ, const glm::vec2& moveDir);
 
 private:
@@ -117,22 +147,65 @@ private:
 	// Whether we've registered callbacks with the EntityManager
 	bool callbackRegistered_ = false;
 
+	/**
+	 * @brief Performs ensure default footstep preset.
+	 * @param em Parameter for em.
+	 */
 	void EnsureDefaultFootstepPreset_(EntityManager& em);
+
+	/**
+	 * @brief Initializes pool.
+	 * @param preset Parameter for preset.
+	 * @param em Parameter for em.
+	 */
 	void InitPool_(const Preset& preset, EntityManager& em);
 
 	// Initialize the particle system with the EntityManager. Registers callbacks
-	// and performs one-time setup. Call once at startup.
+	/**
+	 * @brief Initializes this object.
+	 * @param em Parameter for em.
+	 */
 	void Init(EntityManager& em);
 
-	// Called by EntityManager when an entity is despawned so we can clear cached pointers
+	/**
+	 * @brief Performs on entity despawned.
+	 * @param id Parameter for id.
+	 */
 	void OnEntityDespawned(int id);
 
-	// Seed the RNG for deterministic particle behavior (useful for tests/replays)
+	/**
+	 * @brief Sets seed.
+	 * @param seed Parameter for seed.
+	 */
 	void SetSeed(uint32_t seed);
 
-	// Random utility functions
+	/**
+	 * @brief Performs rand01.
+	 * @return Result produced by this operation.
+	 */
 	float rand01_();
+
+	/**
+	 * @brief Performs rand01.
+	 * @param r Parameter for r.
+	 * @return Result produced by this operation.
+	 */
 	float rand01_(std::mt19937& r);
+
+	/**
+	 * @brief Performs rand range.
+	 * @param a Parameter for a.
+	 * @param b Parameter for b.
+	 * @return Result produced by this operation.
+	 */
 	float randRange_(float a, float b);
+
+	/**
+	 * @brief Performs rand range.
+	 * @param a Parameter for a.
+	 * @param b Parameter for b.
+	 * @param r Parameter for r.
+	 * @return Result produced by this operation.
+	 */
 	float randRange_(float a, float b, std::mt19937& r);
 };

@@ -39,6 +39,13 @@
 #include <limits>
 
 namespace {
+
+	/**
+	 * @brief Returns whether pointinsideobjectvisualrect.
+	 * @param point Parameter for point.
+	 * @param obj Parameter for obj.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool PointInsideObjectVisualRect(const glm::vec2& point, GameObject* obj) {
 		if (!obj) return false;
 
@@ -64,6 +71,12 @@ namespace {
 			point.y >= center.y - halfH && point.y <= center.y + halfH;
 	}
 
+	/**
+	 * @brief Performs distance sq to object center.
+	 * @param point Parameter for point.
+	 * @param obj Parameter for obj.
+	 * @return Result produced by this operation.
+	 */
 	float DistanceSqToObjectCenter(const glm::vec2& point, GameObject* obj) {
 		if (!obj) return std::numeric_limits<float>::max();
 
@@ -75,6 +88,13 @@ namespace {
 		return d.x * d.x + d.y * d.y;
 	}
 
+	/**
+	 * @brief Returns object rect.
+	 * @param obj Parameter for obj.
+	 * @param outCenter Output value for out center.
+	 * @param outHalfExtents Output value for out half extents.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool GetObjectRect(GameObject* obj, glm::vec2& outCenter, glm::vec2& outHalfExtents) {
 		if (!obj) return false;
 
@@ -95,6 +115,13 @@ namespace {
 		return true;
 	}
 
+	/**
+	 * @brief Performs distance sq point to expanded rect.
+	 * @param point Parameter for point.
+	 * @param rectCenter Parameter for rect center.
+	 * @param rectHalfExtents Parameter for rect half extents.
+	 * @return Result produced by this operation.
+	 */
 	float DistanceSqPointToExpandedRect(
 		const glm::vec2& point,
 		const glm::vec2& rectCenter,
@@ -126,18 +153,31 @@ namespace {
 	// so movement cannot jump/teleport in a single update.
 	constexpr float kMaxPlayerUpdateDt = 1.0f / 30.0f;
 
-	// Squared distance between two points (avoids sqrt for efficiency when comparing distances)
+	/**
+	 * @brief Performs distance squared.
+	 * @param a Parameter for a.
+	 * @param b Parameter for b.
+	 * @return Result produced by this operation.
+	 */
 	float DistanceSquared(const glm::vec2& a, const glm::vec2& b) {
 		const glm::vec2 delta = a - b;
 		return delta.x * delta.x + delta.y * delta.y;
 	}
 
-	// Convert a glm::vec3 to glm::vec2 by dropping the z component
+	/**
+	 * @brief Performs to vec2.
+	 * @param value Parameter for value.
+	 * @return Result produced by this operation.
+	 */
 	glm::vec2 ToVec2(const glm::vec3& value) {
 		return { value.x, value.y };
 	}
 
-	// Normalize a vector, but return zero if the length is very small to avoid instability
+	/**
+	 * @brief Normalizes or zero.
+	 * @param v Parameter for v.
+	 * @return Result produced by this operation.
+	 */
 	glm::vec2 NormalizeOrZero(const glm::vec2& v) {
 		const float len = std::sqrt(v.x * v.x + v.y * v.y);
 		if (len <= 0.0001f) {
@@ -153,7 +193,12 @@ namespace {
 		TableLogic* tableLogic = nullptr;
 	};
 
-	// Find the closest table under the mouse cursor, if any. Returns a struct with the table ID and logic pointer, or defaults if no table was clicked.
+	/**
+	 * @brief Finds clicked table.
+	 * @param scene Scene being processed.
+	 * @param mouseWorld Parameter for mouse world.
+	 * @return Result produced by this operation.
+	 */
 	ClickedTableResult FindClickedTable(Scene& scene, const glm::vec2& mouseWorld) {
 		ClickedTableResult result{};
 		float bestDistSq = std::numeric_limits<float>::max();
@@ -199,7 +244,11 @@ namespace {
 	}
 }
 
-// Initialize player state
+/**
+ * @brief Performs start.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::Start(Scene& scene) {
 	(void)scene;
 	hasMoveTarget = false;
@@ -222,6 +271,14 @@ void PlayerLogic::Start(Scene& scene) {
 	directPathCheckTimer_ = 0.0f;
 }
 
+/**
+ * @brief Attempts to resolve clicked table target.
+ * @param scene Scene being processed.
+ * @param mouseWorld Parameter for mouse world.
+ * @param outTableID Output value for out table id.
+ * @param outTableLogic Output value for out table logic.
+ * @return Result produced by this operation.
+ */
 bool PlayerLogic::TryResolveClickedTableTarget(Scene& scene,
 	const glm::vec2& mouseWorld,
 	int& outTableID,
@@ -283,6 +340,12 @@ bool PlayerLogic::TryResolveClickedTableTarget(Scene& scene,
 	return outTableID >= 0 && outTableLogic != nullptr;
 }
 
+/**
+ * @brief Returns whether in table commit range.
+ * @param scene Scene being processed.
+ * @param tableObjectID Parameter for table object id.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool PlayerLogic::IsInTableCommitRange(Scene& scene, int tableObjectID) {
 	GameObject* player = GetOwner(scene);
 	if (!player) {
@@ -311,21 +374,40 @@ bool PlayerLogic::IsInTableCommitRange(Scene& scene, int tableObjectID) {
 	return distSq <= kInteractionCommitRadius * kInteractionCommitRadius;
 }
 
+/**
+ * @brief Performs queue move action.
+ * @param worldPos Parameter for world pos.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::QueueMoveAction(const glm::vec2& worldPos) {
 	queuedAction_.type = QueuedActionType::MoveWorld;
 	queuedAction_.worldPos = worldPos;
 	queuedAction_.tableID = -1;
 }
 
+/**
+ * @brief Performs queue table action.
+ * @param tableObjectID Parameter for table object id.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::QueueTableAction(int tableObjectID) {
 	queuedAction_.type = QueuedActionType::InteractTable;
 	queuedAction_.tableID = tableObjectID;
 }
 
+/**
+ * @brief Clears queued action.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::ClearQueuedAction() {
 	queuedAction_ = QueuedAction{};
 }
 
+/**
+ * @brief Performs execute queued action.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::ExecuteQueuedAction(Scene& scene) {
 	if (movementLocked_) {
 		return;
@@ -374,14 +456,23 @@ void PlayerLogic::ExecuteQueuedAction(Scene& scene) {
 	}
 }
 
-// Handle input and movement each frame
+/**
+ * @brief Resets mouse drag state.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::ResetMouseDragState() {
 	mouseDragActive_ = false;
 	hasLastDragWorld_ = false;
 	dragRetargetTimer_ = 0.0f;
 }
 
-//Get the mouse world position if the mouse is currently over the scene viewport
+/**
+ * @brief Attempts to get mouse world.
+ * @param scene Scene being processed.
+ * @param input Input manager for the current frame.
+ * @param mouseWorld Parameter for mouse world.
+ * @return Result produced by this operation.
+ */
 bool PlayerLogic::TryGetMouseWorld(Scene& scene, InputManager& input, glm::vec2& mouseWorld) const {
 	if (input.IsReplayOverride()) {
 		const glm::dvec2 replayMousePos = input.GetMousePosition();
@@ -391,7 +482,11 @@ bool PlayerLogic::TryGetMouseWorld(Scene& scene, InputManager& input, glm::vec2&
 	return scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, nullptr);
 }
 
-// Clear the current movement target and reset related state
+/**
+ * @brief Clears movement target.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::ClearMovementTarget(Scene& scene) {
 	hasMoveTarget = false;
 	blockedMoveFrames_ = 0;
@@ -401,7 +496,13 @@ void PlayerLogic::ClearMovementTarget(Scene& scene) {
 	}
 }
 
-// Decide and apply sprite based on movement direction
+/**
+ * @brief Updates sprite.
+ * @param scene Scene being processed.
+ * @param player Parameter for player.
+ * @param moveDirRaw Parameter for move dir raw.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2& moveDirRaw) {
 	(void)scene;
 	if (!player) {
@@ -454,6 +555,11 @@ void PlayerLogic::UpdateSprite(Scene& scene, GameObject* player, const glm::vec2
 	}
 }
 
+/**
+ * @brief Moves direct.
+ * @param dest Parameter for dest.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::MoveDirect(const glm::vec2& dest) {
 	const float kRetargetEpsSq = 16.0f * 16.0f;
 
@@ -472,6 +578,12 @@ void PlayerLogic::MoveDirect(const glm::vec2& dest) {
 	moveMode_ = MoveMode::Direct;
 }
 
+/**
+ * @brief Moves to.
+ * @param scene Scene being processed.
+ * @param dest Parameter for dest.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 	GameObject* player = GetOwner(scene);
 	if (!player)
@@ -528,6 +640,12 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 	moveTarget = pathPoints_[0];
 }
 
+/**
+ * @brief Returns whether in table interaction range.
+ * @param scene Scene being processed.
+ * @param tableObjectID Parameter for table object id.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID) {
 	GameObject* player = GetOwner(scene);
 	GameObject* tableObj = scene.GetGameObjectByID(tableObjectID);
@@ -577,6 +695,11 @@ bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID) {
 	return false;
 }
 
+/**
+ * @brief Performs cancel queued table move.
+ * @param scene Scene being processed.
+ * @return True when the operation succeeds or the condition is met.
+ */
 void PlayerLogic::CancelQueuedTableMove(Scene& scene) {
 	hasMoveTarget = false;
 	moveMode_ = MoveMode::None;
@@ -589,6 +712,11 @@ void PlayerLogic::CancelQueuedTableMove(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Performs enter pause state.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::EnterPauseState(Scene& scene) {
 	ClearInteractableVisualCues(scene);
 	ClearClickMoveIndicator(scene);
@@ -598,6 +726,13 @@ void PlayerLogic::EnterPauseState(Scene& scene) {
 	suppressMouseUntilRelease_ = true;
 }
 
+/**
+ * @brief Handles click input.
+ * @param scene Scene being processed.
+ * @param input Input manager for the current frame.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) {
 	if (suppressMouseUntilRelease_) {
 		const bool lmbHeld = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
@@ -748,7 +883,12 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	ShowClickMoveIndicator(scene, mouseWorld);
 }
 
-// Move owner GameObject towards moveTarget at moveSpeed
+/**
+ * @brief Updates movement.
+ * @param dt Frame delta time in seconds.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	if (movementLocked_)
 		return;
@@ -993,7 +1133,11 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 }
 
 // Unity: OnArrived()
-// For now it's a stub; later you can branch by what we clicked (tables, spawners, etc.)
+/**
+ * @brief Performs on arrived.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::OnArrived(Scene& scene) {
 	if (pendingTableID < 0) {
 		return;
@@ -1006,7 +1150,12 @@ void PlayerLogic::OnArrived(Scene& scene) {
 	pendingTableID = -1;
 }
 
-// Unity: PickUp(GameObject item)
+/**
+ * @brief Performs pick up.
+ * @param scene Scene being processed.
+ * @param itemID Parameter for item id.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	GameObject* item = scene.GetGameObjectByID(itemID);
 	GameObject* player = GetOwner(scene);
@@ -1043,7 +1192,11 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	UpdateCarriedItemTransform(scene);
 }
 
-// Unity: Drop(Vector3 dropPos) � here: drop slightly in front of player
+/**
+ * @brief Performs drop.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::Drop(Scene& scene) {
 	if (carriedItemID < 0) {
 		return;
@@ -1072,7 +1225,15 @@ void PlayerLogic::Drop(Scene& scene) {
 	carriedItemID = -1;
 }
 
-// Main update loop for player logic: handle input, movement, sprite updates, interactions, and footstep effects.
+/**
+ * @brief Handles keyboard movement.
+ * @param dt Frame delta time in seconds.
+ * @param scene Scene being processed.
+ * @param input Input manager for the current frame.
+ * @param player Parameter for player.
+ * @param playerPos Parameter for player pos.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::HandleKeyboardMovement(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& playerPos) {
 	if (movementLocked_) {
 		UpdateSprite(scene, player, glm::vec2(0.0f, 0.0f));
@@ -1115,7 +1276,16 @@ void PlayerLogic::HandleKeyboardMovement(float dt, Scene& scene, InputManager& i
 	}
 }
 
-// Emit footstep particles and play sounds based on movement. Particles are emitted along the path traveled, with some jitter for visual interest. Sounds are played at regular intervals while moving.
+/**
+ * @brief Updates footstep trail and audio.
+ * @param dt Frame delta time in seconds.
+ * @param scene Scene being processed.
+ * @param input Input manager for the current frame.
+ * @param player Parameter for player.
+ * @param beforePos Parameter for before pos.
+ * @param afterPos Parameter for after pos.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& beforePos, const glm::vec3& afterPos) {
 	(void)dt;
 	const bool hasIntent =
@@ -1190,7 +1360,13 @@ void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManag
 	lastTrailPos_ = feet;
 }
 
-// Main update loop for player logic: handle input, movement, sprite updates, interactions, and footstep effects.
+/**
+ * @brief Updates this object.
+ * @param dt Frame delta time in seconds.
+ * @param scene Scene being processed.
+ * @param input Input manager for the current frame.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	const float safeDt = std::clamp(dt, 0.0f, kMaxPlayerUpdateDt);
 
@@ -1264,7 +1440,13 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	UpdateCarriedItemTransform(scene);
 }
 
-// Optional: visual cues for interactable objects under mouse cursor
+/**
+ * @brief Updates interactable visual cues.
+ * @param scene Scene being processed.
+ * @param input Input manager for the current frame.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::UpdateInteractableVisualCues(Scene& scene, InputManager& input, float dt) {
 	(void)dt;
 
@@ -1306,7 +1488,12 @@ void PlayerLogic::UpdateInteractableVisualCues(Scene& scene, InputManager& input
 	highlightedInteractableIDs_ = std::move(nextHighlighted);
 }
 
-// Check if a world point is inside the object's collider (used for mouse hover)
+/**
+ * @brief Returns whether point inside object collider.
+ * @param obj Parameter for obj.
+ * @param worldPoint Parameter for world point.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool PlayerLogic::IsPointInsideObjectCollider(const GameObject* obj, const glm::vec2& worldPoint) const {
 	if (!obj) {
 		return false;
@@ -1328,7 +1515,12 @@ bool PlayerLogic::IsPointInsideObjectCollider(const GameObject* obj, const glm::
 		(worldPoint.y >= center.y - halfH && worldPoint.y <= center.y + halfH);
 }
 
-// Show a temporary indicator at the clicked position for click-to-move feedback
+/**
+ * @brief Performs show click move indicator.
+ * @param scene Scene being processed.
+ * @param worldPoint Parameter for world point.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint) {
 	const glm::vec3 markerPos(worldPoint.x, worldPoint.y, 0.0f);
 
@@ -1385,7 +1577,12 @@ void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoi
 	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
-// Update the click move indicator (scaling and fading) and despawn when time is up
+/**
+ * @brief Updates click move indicator.
+ * @param scene Scene being processed.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
 	if (clickIndicatorID_ < 0) {
 		return;
@@ -1428,6 +1625,11 @@ void PlayerLogic::UpdateClickMoveIndicator(Scene& scene, float dt) {
 	marker->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
+/**
+ * @brief Clears click move indicator.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::ClearClickMoveIndicator(Scene& scene) {
 	if (clickIndicatorID_ >= 0) {
 		scene.DespawnByID(clickIndicatorID_);
@@ -1437,7 +1639,11 @@ void PlayerLogic::ClearClickMoveIndicator(Scene& scene) {
 	clickIndicatorTimeLeft_ = 0.0f;
 }
 
-// Reset color tints on previously highlighted interactables
+/**
+ * @brief Clears interactable visual cues.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::ClearInteractableVisualCues(Scene& scene) {
 	for (int id : highlightedInteractableIDs_) {
 		if (GameObject* obj = scene.GetGameObjectByID(id)) {
@@ -1449,7 +1655,12 @@ void PlayerLogic::ClearInteractableVisualCues(Scene& scene) {
 	ClearHoverOutlines(scene);
 }
 
-// Handle interaction logic when clicking on a table-like object
+/**
+ * @brief Performs interact with table.
+ * @param scene Scene being processed.
+ * @param tableObjectID Parameter for table object id.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 	//std::cout << "[PlayerLogic] InteractWithTable tableID=" << tableObjectID << "\n";
 
@@ -1741,7 +1952,11 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 	//std::cout << "  [PlayerLogic] No case matched, doing nothing.\n";
 }
 
-// Update the position of the carried item to follow the player with an offset
+/**
+ * @brief Updates carried item transform.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	if (carriedItemID < 0) {
 		return;
@@ -1801,6 +2016,12 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	//	<< p.y + carryOffset.y << ")\n";
 }
 
+/**
+ * @brief Begins station lock.
+ * @param scene Scene being processed.
+ * @param tableID Parameter for table id.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::BeginStationLock(Scene& scene, int tableID) {
 	movementLocked_ = true;
 	lockedTableID_ = tableID;
@@ -1818,11 +2039,20 @@ void PlayerLogic::BeginStationLock(Scene& scene, int tableID) {
 	}
 }
 
+/**
+ * @brief Ends station lock.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::EndStationLock() {
 	movementLocked_ = false;
 	lockedTableID_ = -1;
 }
 
+/**
+ * @brief Updates station lock.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::UpdateStationLock(Scene& scene) {
 	if (!movementLocked_)
 		return;
@@ -1840,6 +2070,11 @@ void PlayerLogic::UpdateStationLock(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Returns whether play chop animation.
+ * @param scene Scene being processed.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool PlayerLogic::ShouldPlayChopAnimation(Scene& scene) const {
 	if (lockedTableID_ < 0) {
 		return false;
@@ -1853,6 +2088,12 @@ bool PlayerLogic::ShouldPlayChopAnimation(Scene& scene) const {
 	return wt->LocksPlayerMovementWhileProcessing() && wt->IsProcessing();
 }
 
+/**
+ * @brief Performs ensure chop animation.
+ * @param scene Scene being processed.
+ * @param player Parameter for player.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::EnsureChopAnimation(Scene& scene, GameObject* player) {
 	if (!player) {
 		return;
@@ -1864,6 +2105,10 @@ void PlayerLogic::EnsureChopAnimation(Scene& scene, GameObject* player) {
 	}
 }
 
+/**
+ * @brief Returns carry offset for facing.
+ * @return Requested value.
+ */
 glm::vec2 PlayerLogic::GetCarryOffsetForFacing() const {
 	switch (facingDir) {
 	case FacingDir::Front: return carryOffsetFront_;
@@ -1874,6 +2119,12 @@ glm::vec2 PlayerLogic::GetCarryOffsetForFacing() const {
 	}
 }
 
+/**
+ * @brief Applies carry layer.
+ * @param scene Scene being processed.
+ * @param itemID Parameter for item id.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::ApplyCarryLayer(Scene& scene, int itemID) {
 	if (!hasCarriedItemOriginalLayer_) {
 		return;
@@ -1896,6 +2147,12 @@ void PlayerLogic::ApplyCarryLayer(Scene& scene, int itemID) {
 	}
 }
 
+/**
+ * @brief Restores carried item layer.
+ * @param scene Scene being processed.
+ * @param itemID Parameter for item id.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::RestoreCarriedItemLayer(Scene& scene, int itemID) {
 	if (!hasCarriedItemOriginalLayer_) {
 		return;
@@ -1927,6 +2184,13 @@ void PlayerLogic::RestoreCarriedItemLayer(Scene& scene, int itemID) {
 }
 
 namespace {
+
+	/**
+	 * @brief Attempts to parse layer number.
+	 * @param layer Parameter for layer.
+	 * @param outValue Output value for out value.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool TryParseLayerNumber(const std::string& layer, int& outValue) {
 		if (layer.empty()) {
 			return false;
@@ -1945,6 +2209,10 @@ namespace {
 	}
 }
 
+/**
+ * @brief Returns carry layer for facing.
+ * @return Requested value.
+ */
 std::string PlayerLogic::GetCarryLayerForFacing(const std::string& /*baseLayer*/) const {
 	switch (facingDir) {
 	case FacingDir::Front: return "6";
@@ -1955,6 +2223,10 @@ std::string PlayerLogic::GetCarryLayerForFacing(const std::string& /*baseLayer*/
 	}
 }
 
+/**
+ * @brief Returns carry child layer for facing.
+ * @return Requested value.
+ */
 std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& /*baseLayer*/) const {
 	switch (facingDir) {
 	case FacingDir::Front: return "6";
@@ -1965,6 +2237,11 @@ std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& /*baseLa
 	}
 }
 
+/**
+ * @brief Returns child layer above.
+ * @param baseLayer Parameter for base layer.
+ * @return Requested value.
+ */
 std::string PlayerLogic::GetChildLayerAbove(const std::string& baseLayer) const {
 	int value = 0;
 	if (!TryParseLayerNumber(baseLayer, value)) {
@@ -1981,9 +2258,24 @@ namespace {
 	constexpr int kHoverOutlineSortOrder = 200;
 	constexpr int kHoverOutlineMaskSortOrder = 201;
 
+	/**
+	 * @brief Performs k hover outline tint.
+	 * @param f Parameter for f.
+	 * @param f Parameter for f.
+	 * @param f Parameter for f.
+	 * @param f Parameter for f.
+	 * @return Result produced by this operation.
+	 */
 	const glm::vec4 kHoverOutlineTint(0.0f, 1.0f, 1.0f, 0.92f);
 }
 
+/**
+ * @brief Performs ensure hover outline.
+ * @param scene Scene being processed.
+ * @param sourceObj Parameter for source obj.
+ * @param sourceID Parameter for source id.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::EnsureHoverOutline(Scene& scene, GameObject* sourceObj, int sourceID) {
 	if (!sourceObj || sourceID < 0) {
 		return;
@@ -2108,6 +2400,12 @@ void PlayerLogic::EnsureHoverOutline(Scene& scene, GameObject* sourceObj, int so
 	}
 }
 
+/**
+ * @brief Removes hover outline.
+ * @param scene Scene being processed.
+ * @param sourceID Parameter for source id.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::RemoveHoverOutline(Scene& scene, int sourceID) {
 	auto it = hoverOutlineIDs_.find(sourceID);
 	if (it == hoverOutlineIDs_.end()) {
@@ -2123,6 +2421,11 @@ void PlayerLogic::RemoveHoverOutline(Scene& scene, int sourceID) {
 	hoverOutlineIDs_.erase(it);
 }
 
+/**
+ * @brief Clears hover outlines.
+ * @param scene Scene being processed.
+ * @return Result produced by this operation.
+ */
 void PlayerLogic::ClearHoverOutlines(Scene& scene) {
 	for (auto& [sourceID, outlineIDs] : hoverOutlineIDs_) {
 		(void)sourceID;

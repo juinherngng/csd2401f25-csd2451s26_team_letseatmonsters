@@ -35,6 +35,11 @@ namespace RuntimeLevel {
 		std::vector<std::string> textures;
 	};
 
+	/**
+	 * @brief Builds level manifest.
+	 * @param data Parameter for data.
+	 * @return Result produced by this operation.
+	 */
 	LevelManifest BuildLevelManifest(const LevelData& data) {
 		LevelManifest manifest;
 		manifest.textures.reserve(data.objects.size() + 2);
@@ -63,6 +68,11 @@ namespace RuntimeLevel {
 		return manifest;
 	}
 
+	/**
+	 * @brief Builds scene from level.
+	 * @param levelIn Parameter for level in.
+	 * @param scene Scene being processed.
+	 */
 	void BuildSceneFromLevel(const LevelData& levelIn, Scene& scene) {
 		static const std::string kDefaultLayer = "1";
 		static const std::vector<glm::vec4> kFullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
@@ -173,6 +183,12 @@ namespace RuntimeLevel {
 		}
 	}
 
+	/**
+	 * @brief Loads and build.
+	 * @param path Path to process.
+	 * @param scene Scene being processed.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool LoadAndBuild(const std::string& path, Scene& scene) {
 		const auto loadStart = std::chrono::steady_clock::now();
 		LevelData data{};

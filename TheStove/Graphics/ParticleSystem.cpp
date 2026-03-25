@@ -8,7 +8,7 @@
 					Call Init once where ParticleSystem is created to register presets.
 					lifetime management, and rendering behavior for in-game visual effects.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -29,13 +29,32 @@ static const std::vector<glm::vec4> kSparkleFrames = {
 
 // Full texture (single-frame PNG)
 static const std::vector<glm::vec4> kFullFrame = {
+
+	/**
+	 * @brief Performs vec4.
+	 * @param f Parameter for f.
+	 * @param f Parameter for f.
+	 * @param f Parameter for f.
+	 * @param f Parameter for f.
+	 * @return Result produced by this operation.
+	 */
 	glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)
 };
 
+/**
+ * @brief Performs length safe.
+ * @param v Parameter for v.
+ * @return Result produced by this operation.
+ */
 static float lengthSafe(const glm::vec2& v) {
 	return glm::length(v);
 }
 
+/**
+ * @brief Sets seed.
+ * @param seed Parameter for seed.
+ * @return Result produced by this operation.
+ */
 void ParticleSystem::SetSeed(uint32_t seed) {
 	rng_.seed(seed);
 	std::uniform_int_distribution<uint32_t> sd(0, 0xFFFFFFFFu);
@@ -44,16 +63,31 @@ void ParticleSystem::SetSeed(uint32_t seed) {
 	}
 }
 
+/**
+ * @brief Performs rand01.
+ * @return Result produced by this operation.
+ */
 float ParticleSystem::rand01_() {
 	std::uniform_real_distribution<float> d(0.0f, 1.0f);
 	return d(rng_);
 }
 
+/**
+ * @brief Performs rand range.
+ * @param a Parameter for a.
+ * @param b Parameter for b.
+ * @return Result produced by this operation.
+ */
 float ParticleSystem::randRange_(float a, float b) {
 	std::uniform_real_distribution<float> d(a, b);
 	return d(rng_);
 }
 
+/**
+ * @brief Performs ensure default footstep preset.
+ * @param em Parameter for em.
+ * @return Result produced by this operation.
+ */
 void ParticleSystem::EnsureDefaultFootstepPreset_(EntityManager& em) {
 	if (presets_.find("FootstepDust") != presets_.end()) return;
 
@@ -87,6 +121,12 @@ void ParticleSystem::EnsureDefaultFootstepPreset_(EntityManager& em) {
 	RegisterPreset(dust, em);
 }
 
+/**
+ * @brief Initializes pool.
+ * @param preset Parameter for preset.
+ * @param em Parameter for em.
+ * @return Result produced by this operation.
+ */
 void ParticleSystem::InitPool_(const Preset& preset, EntityManager& em) {
 	Pool& pool = pools_[preset.name];
 	pool.p.clear();
@@ -144,6 +184,12 @@ void ParticleSystem::InitPool_(const Preset& preset, EntityManager& em) {
 	pool.initialized = true;
 }
 
+/**
+ * @brief Registers preset.
+ * @param preset Parameter for preset.
+ * @param em Parameter for em.
+ * @return Result produced by this operation.
+ */
 void ParticleSystem::RegisterPreset(const Preset& preset, EntityManager& em) {
 	// Ensure callbacks are registered
 	Init(em);
@@ -156,12 +202,22 @@ void ParticleSystem::RegisterPreset(const Preset& preset, EntityManager& em) {
 	InitPool_(presets_.at(preset.name), em);
 }
 
+/**
+ * @brief Initializes this object.
+ * @param em Parameter for em.
+ * @return Result produced by this operation.
+ */
 void ParticleSystem::Init(EntityManager& em) {
 	if (callbackRegistered_) return;
 	em.RegisterDespawnCallback([this](int id) { this->OnEntityDespawned(id); });
 	callbackRegistered_ = true;
 }
 
+/**
+ * @brief Performs on entity despawned.
+ * @param id Parameter for id.
+ * @return Result produced by this operation.
+ */
 void ParticleSystem::OnEntityDespawned(int id) {
 	// Walk all pools and clear any cached pointers matching the despawned id
 	for (auto& kv : pools_) {
@@ -176,16 +232,37 @@ void ParticleSystem::OnEntityDespawned(int id) {
 	}
 }
 
+/**
+ * @brief Performs rand01.
+ * @param r Parameter for r.
+ * @return Result produced by this operation.
+ */
 float ParticleSystem::rand01_(std::mt19937& r) {
 	std::uniform_real_distribution<float> d(0.0f, 1.0f);
 	return d(r);
 }
 
+/**
+ * @brief Performs rand range.
+ * @param a Parameter for a.
+ * @param b Parameter for b.
+ * @param r Parameter for r.
+ * @return Result produced by this operation.
+ */
 float ParticleSystem::randRange_(float a, float b, std::mt19937& r) {
 	std::uniform_real_distribution<float> d(a, b);
 	return d(r);
 }
 
+/**
+ * @brief Emits this object.
+ * @param presetName Parameter for preset name.
+ * @param em Parameter for em.
+ * @param pos Parameter for pos.
+ * @param baseZ Parameter for base z.
+ * @param moveDir Parameter for move dir.
+ * @return Result produced by this operation.
+ */
 void ParticleSystem::Emit(const std::string& presetName,
 	EntityManager& em,
 	const glm::vec3& pos,
@@ -311,6 +388,12 @@ void ParticleSystem::Emit(const std::string& presetName,
 	p.vel = v;
 }
 
+/**
+ * @brief Updates this object.
+ * @param dt Frame delta time in seconds.
+ * @param em Parameter for em.
+ * @return Result produced by this operation.
+ */
 void ParticleSystem::Update(float dt, EntityManager& em) {
 	if (dt <= 0.0f) {
 		return;
@@ -412,10 +495,25 @@ void ParticleSystem::Update(float dt, EntityManager& em) {
 	}
 }
 
+/**
+ * @brief Emits footstep.
+ * @param em Parameter for em.
+ * @param pos Parameter for pos.
+ * @param baseZ Parameter for base z.
+ * @return Result produced by this operation.
+ */
 void ParticleSystem::EmitFootstep(EntityManager& em, const glm::vec3& pos, float baseZ) {
 	Emit("FootstepDust", em, pos, baseZ, nullptr);
 }
 
+/**
+ * @brief Emits trail.
+ * @param em Parameter for em.
+ * @param pos Parameter for pos.
+ * @param baseZ Parameter for base z.
+ * @param moveDir Parameter for move dir.
+ * @return Result produced by this operation.
+ */
 void ParticleSystem::EmitTrail(EntityManager& em, const glm::vec3& pos, float baseZ, const glm::vec2& moveDir) {
 	Emit("FootstepDust", em, pos, baseZ, &moveDir);
 }

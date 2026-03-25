@@ -20,6 +20,7 @@ class LevelEditor;
 class Scene;
 
 namespace LEPANELBUILDSIZEANALYZER {
+
 	/**
 	 * @brief Draws the Build Size Analyzer panel.
 	 * @param editor Shared level editor controller.

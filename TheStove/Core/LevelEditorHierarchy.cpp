@@ -39,6 +39,7 @@ namespace {
 }
 
 namespace LEHIERARCHY {
+
 	/**
 	 * @brief Converts a string to lowercase for filtering and cache keys.
 	 * @param value Input string to convert.

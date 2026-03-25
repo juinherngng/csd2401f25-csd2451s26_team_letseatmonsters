@@ -19,7 +19,15 @@
 
 bool DebugVisualizer::sDrawPathLine = true;
 
-// Frame Debug Pass
+/**
+ * @brief Draws debug info.
+ * @param entityManager Entity manager containing the active objects.
+ * @param collisionManager Collision manager used for collision queries.
+ * @param movementManager Movement manager used for movement updates.
+ * @param playerID Identifier of the player object.
+ * @param showAuxiliary Parameter for show auxiliary.
+ * @return Result produced by this operation.
+ */
 void DebugVisualizer::DrawDebugInfo(EntityManager& entityManager,
 	CollisionManager& collisionManager,
 	MovementManager& movementManager,
@@ -44,7 +52,11 @@ void DebugVisualizer::DrawDebugInfo(EntityManager& entityManager,
 	}
 }
 
-// Collider Overlays
+/**
+ * @brief Draws all colliders.
+ * @param objects Parameter for objects.
+ * @return Result produced by this operation.
+ */
 void DebugVisualizer::DrawAllColliders(const std::vector<std::unique_ptr<GameObject>>& objects) {
 	for (const auto& objPtr : objects) {
 		GameObject* obj = objPtr.get();
@@ -75,11 +87,22 @@ void DebugVisualizer::DrawAllColliders(const std::vector<std::unique_ptr<GameObj
 	}
 }
 
+/**
+ * @brief Sets draw path line.
+ * @param enable Boolean flag controlling whether the feature is enabled.
+ * @return Result produced by this operation.
+ */
 void DebugVisualizer::SetDrawPathLine(bool enable) {
 	sDrawPathLine = enable;
 }
 
-// Player-Focused Overlays
+/**
+ * @brief Draws player debug.
+ * @param player Parameter for player.
+ * @param movementManager Movement manager used for movement updates.
+ * @param playerID Identifier of the player object.
+ * @return Result produced by this operation.
+ */
 void DebugVisualizer::DrawPlayerDebug(GameObject* player,
 	MovementManager& movementManager,
 	int playerID) {
@@ -119,6 +142,12 @@ void DebugVisualizer::DrawPlayerDebug(GameObject* player,
 	}
 }
 
+/**
+ * @brief Draws spatial grid.
+ * @param player Parameter for player.
+ * @param collisionManager Collision manager used for collision queries.
+ * @return Result produced by this operation.
+ */
 void DebugVisualizer::DrawSpatialGrid(GameObject* player, CollisionManager& collisionManager) {
 	if (player == nullptr) {
 		return;
@@ -160,6 +189,12 @@ void DebugVisualizer::DrawSpatialGrid(GameObject* player, CollisionManager& coll
 	}
 }
 
+/**
+ * @brief Draws candidates.
+ * @param player Parameter for player.
+ * @param collisionManager Collision manager used for collision queries.
+ * @return Result produced by this operation.
+ */
 void DebugVisualizer::DrawCandidates(GameObject* player, CollisionManager& collisionManager) {
 	const glm::vec3 pos = player->GetPositionGLM();
 	const auto playerSize = player->GetColliderSize();

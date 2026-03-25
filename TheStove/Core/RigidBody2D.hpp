@@ -10,7 +10,7 @@
 					and writes back to an attached Transform. Designed to be used with a
 					ForceRegistry and simple steering forces (seek, drag, gravity).
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -28,52 +28,142 @@ class ForceRegistry;
 // A simple 2D rigid body component for basic physics simulation.
 class RigidBody2D : public GameComponent {
 public:
+
+	/**
+	 * @brief Constructs a `RigidBody2D` instance.
+	 */
 	RigidBody2D() : velocity(Math::Vector2D::ZERO), acceleration(Math::Vector2D::ZERO)/*, mass(0.0f)*/, useGravity(false) {
 	};
 
-	// GameComponent interface
+	/**
+	 * @brief Initializes this object.
+	 */
 	void Initialize() override;
+
+	/**
+	 * @brief Updates this object.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void Update(float dt) override;
 
-	// Force application
+	/**
+	 * @brief Adds force.
+	 * @param force Parameter for force.
+	 */
 	void AddForce(const Math::Vector2D& force);
+
+	/**
+	 * @brief Adds impulse.
+	 * @param impulse Parameter for impulse.
+	 */
 	void AddImpulse(const Math::Vector2D& impulse);
 
-	// Getters
+	/**
+	 * @brief Returns velocity.
+	 * @return Requested value.
+	 */
 	Math::Vector2D const GetVelocity() const;
+
+	/**
+	 * @brief Returns acceleration.
+	 * @return Requested value.
+	 */
 	Math::Vector2D const GetAcceleration() const;
+
+	/**
+	 * @brief Returns use gravity.
+	 * @return Requested value.
+	 */
 	bool const GetUseGravity() const;
+
+	/**
+	 * @brief Returns position.
+	 * @return Requested value.
+	 */
 	Math::Vector2D GetPosition() const;
+
+	/**
+	 * @brief Returns mass.
+	 * @return Requested value.
+	 */
 	float GetMass() const;
+
+	/**
+	 * @brief Returns inverse mass.
+	 * @return Requested value.
+	 */
 	float GetInverseMass() const;
 
-	// Setters
+	/**
+	 * @brief Sets velocity.
+	 * @param vel Parameter for vel.
+	 */
 	void SetVelocity(const Math::Vector2D& vel);
+
+	/**
+	 * @brief Sets acceleration.
+	 * @param accel Parameter for accel.
+	 */
 	void SetAcceleration(const Math::Vector2D& accel);
+
+	/**
+	 * @brief Sets use gravity.
+	 * @param b Parameter for b.
+	 */
 	void SetUseGravity(const bool b);
 
-	// Hard-stop the body (velocity = 0).
+	/**
+	 * @brief Performs stop.
+	 */
 	void Stop();
 
-	// Set the mass (<= 0 becomes infinite mass).
+	/**
+	 * @brief Sets mass.
+	 * @param m Parameter for m.
+	 */
 	void SetMass(float m);
 
-	// Set exponential linear damping (applied as damping^dt).
+	/**
+	 * @brief Sets linear damping.
+	 * @param d Parameter for d.
+	 */
 	void SetLinearDamping(float d);
 
-	// Attach a ForceRegistry that updates external force generators.
+	/**
+	 * @brief Sets force registry.
+	 * @param fr Parameter for fr.
+	 */
 	void SetForceRegistry(ForceRegistry* fr);
 
-	// GameComponent overrides
+	/**
+	 * @brief Performs to string.
+	 * @return Result produced by this operation.
+	 */
 	std::string ToString() const override;
+
+	/**
+	 * @brief Performs clone.
+	 * @return Result produced by this operation.
+	 */
 	GameComponent* Clone() const override;
 
+	/**
+	 * @brief Destroys the `RigidBody2D` instance and releases owned resources.
+	 */
 	~RigidBody2D() override {
 		std::cout << "Deleting RigidBody2D's component " << "\n";
 	}
 private:
-	// Internal integration method to update velocity and position based on accumulated forces and damping.
+
+	/**
+	 * @brief Performs integrate.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void Integrate(float dt);
+
+	/**
+	 * @brief Clears accum.
+	 */
 	void ClearAccum();
 
 private:

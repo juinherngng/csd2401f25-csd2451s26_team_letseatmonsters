@@ -8,7 +8,7 @@
  DESCRIPTION:		Implementation of font system using FreeType for loading fonts
 					and OpenGL for rendering text.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -25,6 +25,10 @@ namespace FontSystem {
 	// Font Implementation
 	// ===========================
 
+	/**
+	 * @brief Performs ~font.
+	 * @return Result produced by this operation.
+	 */
 	Font::~Font() {
 		// Cleanup all character textures
 		for (auto& pair : m_characters) {
@@ -33,6 +37,12 @@ namespace FontSystem {
 		m_characters.clear();
 	}
 
+	/**
+	 * @brief Loads this object.
+	 * @param fontPath Parameter for font path.
+	 * @param fontSize Parameter for font size.
+	 * @return Result produced by this operation.
+	 */
 	bool Font::Load(const std::string& fontPath, unsigned int fontSize) {
 		m_fontPath = fontPath;
 		m_fontSize = fontSize;
@@ -105,6 +115,11 @@ namespace FontSystem {
 		return true;
 	}
 
+	/**
+	 * @brief Returns character.
+	 * @param c Parameter for c.
+	 * @return Requested value.
+	 */
 	const Character* Font::GetCharacter(char c) const {
 		auto it = m_characters.find(c);
 		if (it != m_characters.end()) {
@@ -117,15 +132,27 @@ namespace FontSystem {
 	// FontManager Implementation
 	// ===========================
 
+	/**
+	 * @brief Performs instance.
+	 * @return Result produced by this operation.
+	 */
 	FontManager& FontManager::Instance() {
 		static FontManager instance;
 		return instance;
 	}
 
+	/**
+	 * @brief Performs ~font manager.
+	 * @return Result produced by this operation.
+	 */
 	FontManager::~FontManager() {
 		Shutdown();
 	}
 
+	/**
+	 * @brief Initializes this object.
+	 * @return Result produced by this operation.
+	 */
 	bool FontManager::Initialize() {
 		if (m_initialized) {
 			std::cout << "FontSystem::FontManager - Already initialized." << std::endl;
@@ -143,6 +170,10 @@ namespace FontSystem {
 		return true;
 	}
 
+	/**
+	 * @brief Performs shutdown.
+	 * @return Result produced by this operation.
+	 */
 	void FontManager::Shutdown() {
 		if (!m_initialized)
 			return;
@@ -160,6 +191,13 @@ namespace FontSystem {
 		std::cout << "FontSystem::FontManager - Shutdown complete." << std::endl;
 	}
 
+	/**
+	 * @brief Loads font.
+	 * @param name Parameter for name.
+	 * @param fontPath Parameter for font path.
+	 * @param fontSize Parameter for font size.
+	 * @return Result produced by this operation.
+	 */
 	Font* FontManager::LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize) {
 		if (!m_initialized) {
 			std::cerr << "FontSystem::FontManager - Cannot load font, not initialized!" << std::endl;
@@ -186,6 +224,11 @@ namespace FontSystem {
 		return fontPtr;
 	}
 
+	/**
+	 * @brief Returns font.
+	 * @param name Parameter for name.
+	 * @return Requested value.
+	 */
 	Font* FontManager::GetFont(const std::string& name) {
 		auto it = m_fonts.find(name);
 		if (it != m_fonts.end()) {
@@ -198,43 +241,90 @@ namespace FontSystem {
 	// Text Implementation
 	// ===========================
 
+	/**
+	 * @brief Performs text.
+	 * @return Result produced by this operation.
+	 */
 	Text::Text() {
 		// Don't call SetupRendering() here - OpenGL may not be initialized yet
 		// SetupRendering will be called lazily in Render() when needed
 	}
 
+	/**
+	 * @brief Performs ~text.
+	 * @return Result produced by this operation.
+	 */
 	Text::~Text() {
 		CleanupRendering();
 	}
 
+	/**
+	 * @brief Sets font.
+	 * @param font Parameter for font.
+	 * @return Result produced by this operation.
+	 */
 	void Text::SetFont(Font* font) {
 		m_font = font;
 	}
 
+	/**
+	 * @brief Sets text.
+	 * @param text Parameter for text.
+	 * @return Result produced by this operation.
+	 */
 	void Text::SetText(const std::string& text) {
 		m_text = text;
 	}
 
+	/**
+	 * @brief Sets position.
+	 * @param position Parameter for position.
+	 * @return Result produced by this operation.
+	 */
 	void Text::SetPosition(const glm::vec2& position) {
 		m_position = position;
 	}
 
+	/**
+	 * @brief Sets color.
+	 * @param color Parameter for color.
+	 * @return Result produced by this operation.
+	 */
 	void Text::SetColor(const glm::vec4& color) {
 		m_color = color;
 	}
 
+	/**
+	 * @brief Sets scale.
+	 * @param scale Parameter for scale.
+	 * @return Result produced by this operation.
+	 */
 	void Text::SetScale(float scale) {
 		m_scale = scale;
 	}
 
+	/**
+	 * @brief Sets rotation.
+	 * @param degrees Parameter for degrees.
+	 * @return Result produced by this operation.
+	 */
 	void Text::SetRotation(float degrees) {
 		m_rotation = degrees;
 	}
 
+	/**
+	 * @brief Sets rotation mode.
+	 * @param mode Parameter for mode.
+	 * @return Result produced by this operation.
+	 */
 	void Text::SetRotationMode(RotationMode mode) {
 		m_rotationMode = mode;
 	}
 
+	/**
+	 * @brief Performs setup rendering.
+	 * @return Result produced by this operation.
+	 */
 	void Text::SetupRendering() {
 		if (m_renderingSetup)
 			return;
@@ -258,6 +348,10 @@ namespace FontSystem {
 		m_renderingSetup = true;
 	}
 
+	/**
+	 * @brief Performs cleanup rendering.
+	 * @return Result produced by this operation.
+	 */
 	void Text::CleanupRendering() {
 		if (!m_renderingSetup)
 			return;
@@ -272,6 +366,12 @@ namespace FontSystem {
 		m_renderingSetup = false;
 	}
 
+	/**
+	 * @brief Renders this object.
+	 * @param shaderProgram Parameter for shader program.
+	 * @param projection Parameter for projection.
+	 * @return Result produced by this operation.
+	 */
 	void Text::Render(GLuint shaderProgram, const glm::mat4& projection) {
 		// Lazy initialization - setup rendering on first render call when OpenGL is ready
 		if (!m_renderingSetup)
@@ -454,15 +554,27 @@ namespace FontSystem {
 	// TextRenderer Implementation
 	// ===========================
 
+	/**
+	 * @brief Performs instance.
+	 * @return Result produced by this operation.
+	 */
 	TextRenderer& TextRenderer::Instance() {
 		static TextRenderer instance;
 		return instance;
 	}
 
+	/**
+	 * @brief Performs ~text renderer.
+	 * @return Result produced by this operation.
+	 */
 	TextRenderer::~TextRenderer() {
 		Shutdown();
 	}
 
+	/**
+	 * @brief Initializes this object.
+	 * @return Result produced by this operation.
+	 */
 	bool TextRenderer::Initialize() {
 		if (m_initialized) {
 			std::cout << "FontSystem::TextRenderer - Already initialized." << std::endl;
@@ -479,6 +591,10 @@ namespace FontSystem {
 		return true;
 	}
 
+	/**
+	 * @brief Performs shutdown.
+	 * @return Result produced by this operation.
+	 */
 	void TextRenderer::Shutdown() {
 		if (!m_initialized)
 			return;
@@ -492,6 +608,12 @@ namespace FontSystem {
 		std::cout << "FontSystem::TextRenderer - Shutdown complete." << std::endl;
 	}
 
+	/**
+	 * @brief Renders text.
+	 * @param text Parameter for text.
+	 * @param projection Parameter for projection.
+	 * @return Result produced by this operation.
+	 */
 	void TextRenderer::RenderText(Text& text, const glm::mat4& projection) {
 		if (!m_initialized || !m_shaderProgram)
 			return;
@@ -499,6 +621,12 @@ namespace FontSystem {
 		text.Render(m_shaderProgram, projection);
 	}
 
+	/**
+	 * @brief Renders texts.
+	 * @param texts Parameter for texts.
+	 * @param projection Parameter for projection.
+	 * @return Result produced by this operation.
+	 */
 	void TextRenderer::RenderTexts(const std::vector<Text*>& texts, const glm::mat4& projection) {
 		if (!m_initialized || !m_shaderProgram)
 			return;
@@ -510,6 +638,10 @@ namespace FontSystem {
 		}
 	}
 
+	/**
+	 * @brief Loads shaders.
+	 * @return Result produced by this operation.
+	 */
 	bool TextRenderer::LoadShaders() {
 		// Vertex shader source
 		const char* vertexShaderSource = R"(
@@ -560,6 +692,12 @@ namespace FontSystem {
 		return m_shaderProgram != 0;
 	}
 
+	/**
+	 * @brief Performs compile shader.
+	 * @param type Parameter for type.
+	 * @param source Parameter for source.
+	 * @return Result produced by this operation.
+	 */
 	GLuint TextRenderer::CompileShader(GLenum type, const std::string& source) {
 		GLuint shader = glCreateShader(type);
 		const char* src = source.c_str();
@@ -578,6 +716,12 @@ namespace FontSystem {
 		return shader;
 	}
 
+	/**
+	 * @brief Performs link program.
+	 * @param vertexShader Parameter for vertex shader.
+	 * @param fragmentShader Parameter for fragment shader.
+	 * @return Result produced by this operation.
+	 */
 	GLuint TextRenderer::LinkProgram(GLuint vertexShader, GLuint fragmentShader) {
 		GLuint program = glCreateProgram();
 		glAttachShader(program, vertexShader);

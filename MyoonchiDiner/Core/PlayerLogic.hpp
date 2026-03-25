@@ -31,12 +31,12 @@ public:
 	// Inherit constructor from GameObjectLogic
 	using GameObjectLogic::GameObjectLogic; // inherit constructor
 
-	// Lifecycle overrides
 	/**
 	 * @brief Initializes cached player state once the owning scene is ready.
 	 * @param scene Active scene containing the player object and related systems.
 	 */
 	void Start(Scene& scene) override;
+
 	/**
 	 * @brief Updates movement, interaction, carried items, and player VFX for one frame.
 	 * @param dt Frame delta time in seconds.
@@ -44,6 +44,7 @@ public:
 	 * @param input Centralized input snapshot for the current frame.
 	 */
 	void Update(float dt, Scene& scene, InputManager& input) override;
+
 	/**
 	 * @brief Returns the runtime logic name used by the logic system and debugger.
 	 * @return Stable script name for this logic component.
@@ -52,7 +53,6 @@ public:
 		return "PlayerLogic";
 	}
 
-	// Carry state helpers
 	/**
 	 * @brief Returns whether the player is currently carrying an item.
 	 * @return True when a carried item ID is assigned.
@@ -60,6 +60,7 @@ public:
 	bool IsHolding() const {
 		return carriedItemID >= 0;
 	}
+
 	/**
 	 * @brief Returns the object ID of the currently carried item.
 	 * @return Carried object ID, or `-1` when empty-handed.
@@ -70,7 +71,6 @@ public:
 
 	// High-level interaction
 	// Called when we want the player to interact with a particular table GameObject.
-	// (For example: you can call this when the player presses a key near a table.)
 	/**
 	 * @brief Queues or performs interaction with a specific table object.
 	 * @param scene Active scene containing the table.
@@ -78,7 +78,6 @@ public:
 	 */
 	void InteractWithTable(Scene& scene, int tableObjectID);
 
-	// Unity: Move(Vector3 dest)
 	/**
 	 * @brief Sends the player toward a world-space destination using pathfinding when needed.
 	 * @param scene Active scene used for path queries and collision checks.
@@ -86,14 +85,12 @@ public:
 	 */
 	void MoveTo(Scene& scene, const glm::vec2& dest);
 
-	// Direct free movement (use this for plain floor clicks)
 	/**
 	 * @brief Starts direct movement toward a world-space destination without table interaction.
 	 * @param dest Target world position.
 	 */
 	void MoveDirect(const glm::vec2& dest);
 
-	// Unity: bool ReachedDestination()
 	/**
 	 * @brief Returns whether the player currently has an active movement target.
 	 * @return True when a destination is pending.
@@ -101,6 +98,7 @@ public:
 	bool HasDestination() const {
 		return hasMoveTarget;
 	}
+
 	/**
 	 * @brief Returns whether the player is currently idle at its destination.
 	 * @return True when no movement target remains.
@@ -109,7 +107,6 @@ public:
 		return !hasMoveTarget;
 	}
 
-	// Unity: PickUp(GameObject item)
 	/**
 	 * @brief Attaches a world item to the player as the carried object.
 	 * @param scene Active scene containing the item.
@@ -117,14 +114,12 @@ public:
 	 */
 	void PickUp(Scene& scene, int itemID);
 
-	// Unity: Drop()
 	/**
 	 * @brief Drops the currently carried item back into the scene.
 	 * @param scene Active scene receiving the dropped item.
 	 */
 	void Drop(Scene& scene);
 
-	// Force-clear movement/click state while pause overlay is active or before resume.
 	/**
 	 * @brief Clears movement and interaction state while gameplay is paused.
 	 * @param scene Active scene used to clear indicators and queued actions.
@@ -172,39 +167,198 @@ private:
 	Math::Vector2D carriedItemOriginalColliderSize{ 0.f, 0.f };
 	bool hasCarriedItemOriginalColliderSize{ false };
 
-	// Internal helpers
+	/**
+	 * @brief Handles click input.
+	 * @param scene Scene being processed.
+	 * @param input Input manager for the current frame.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void HandleClickInput(Scene& scene, InputManager& input, float dt); // Unity: input + raycast
+
+	/**
+	 * @brief Updates movement.
+	 * @param dt Frame delta time in seconds.
+	 * @param scene Scene being processed.
+	 */
 	void UpdateMovement(float dt, Scene& scene);						// Unity: NavMeshAgent movement
+
+	/**
+	 * @brief Performs on arrived.
+	 * @param scene Scene being processed.
+	 */
 	void OnArrived(Scene& scene);										// Unity: OnArrived() hook
+
+	/**
+	 * @brief Updates sprite.
+	 * @param scene Scene being processed.
+	 * @param player Parameter for player.
+	 * @param moveDir Parameter for move dir.
+	 */
 	void UpdateSprite(Scene& scene, GameObject* player, const glm::vec2& moveDir);
+
+	/**
+	 * @brief Returns carry offset for facing.
+	 * @return Requested value.
+	 */
 	glm::vec2 GetCarryOffsetForFacing() const;
 
-	// Layer management for carried item (to render above player)
+	/**
+	 * @brief Returns carry layer for facing.
+	 * @param baseLayer Parameter for base layer.
+	 * @return Requested value.
+	 */
 	std::string GetCarryLayerForFacing(const std::string& baseLayer) const;
+
+	/**
+	 * @brief Returns carry child layer for facing.
+	 * @param baseLayer Parameter for base layer.
+	 * @return Requested value.
+	 */
 	std::string GetCarryChildLayerForFacing(const std::string& baseLayer) const;
+
+	/**
+	 * @brief Returns child layer above.
+	 * @param baseLayer Parameter for base layer.
+	 * @return Requested value.
+	 */
 	std::string GetChildLayerAbove(const std::string& baseLayer) const;
+
+	/**
+	 * @brief Applies carry layer.
+	 * @param scene Scene being processed.
+	 * @param itemID Parameter for item id.
+	 */
 	void ApplyCarryLayer(Scene& scene, int itemID);
+
+	/**
+	 * @brief Restores carried item layer.
+	 * @param scene Scene being processed.
+	 * @param itemID Parameter for item id.
+	 */
 	void RestoreCarriedItemLayer(Scene& scene, int itemID);
 
-	// Interaction helpers
+	/**
+	 * @brief Updates carried item transform.
+	 * @param scene Scene being processed.
+	 */
 	void UpdateCarriedItemTransform(Scene& scene);
+
+	/**
+	 * @brief Updates interactable visual cues.
+	 * @param scene Scene being processed.
+	 * @param input Input manager for the current frame.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void UpdateInteractableVisualCues(Scene& scene, InputManager& input, float dt);
+
+	/**
+	 * @brief Returns whether point inside object collider.
+	 * @param obj Parameter for obj.
+	 * @param worldPoint Parameter for world point.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsPointInsideObjectCollider(const GameObject* obj, const glm::vec2& worldPoint) const;
+
+	/**
+	 * @brief Performs show click move indicator.
+	 * @param scene Scene being processed.
+	 * @param worldPoint Parameter for world point.
+	 */
 	void ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoint);
+
+	/**
+	 * @brief Updates click move indicator.
+	 * @param scene Scene being processed.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void UpdateClickMoveIndicator(Scene& scene, float dt);
+
+	/**
+	 * @brief Clears click move indicator.
+	 * @param scene Scene being processed.
+	 */
 	void ClearClickMoveIndicator(Scene& scene);
+
+	/**
+	 * @brief Clears interactable visual cues.
+	 * @param scene Scene being processed.
+	 */
 	void ClearInteractableVisualCues(Scene& scene);
+
+	/**
+	 * @brief Resets mouse drag state.
+	 */
 	void ResetMouseDragState();
+
+	/**
+	 * @brief Attempts to get mouse world.
+	 * @param scene Scene being processed.
+	 * @param input Input manager for the current frame.
+	 * @param mouseWorld Parameter for mouse world.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool TryGetMouseWorld(Scene& scene, InputManager& input, glm::vec2& mouseWorld) const;
+
+	/**
+	 * @brief Handles keyboard movement.
+	 * @param dt Frame delta time in seconds.
+	 * @param scene Scene being processed.
+	 * @param input Input manager for the current frame.
+	 * @param player Parameter for player.
+	 * @param playerPos Parameter for player pos.
+	 */
 	void HandleKeyboardMovement(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& playerPos);
+
+	/**
+	 * @brief Updates footstep trail and audio.
+	 * @param dt Frame delta time in seconds.
+	 * @param scene Scene being processed.
+	 * @param input Input manager for the current frame.
+	 * @param player Parameter for player.
+	 * @param beforePos Parameter for before pos.
+	 * @param afterPos Parameter for after pos.
+	 */
 	void UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManager& input, GameObject* player, const glm::vec3& beforePos, const glm::vec3& afterPos);
+
+	/**
+	 * @brief Clears movement target.
+	 * @param scene Scene being processed.
+	 */
 	void ClearMovementTarget(Scene& scene);
+
+	/**
+	 * @brief Returns whether in table interaction range.
+	 * @param scene Scene being processed.
+	 * @param tableObjectID Parameter for table object id.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsInTableInteractionRange(Scene& scene, int tableObjectID);
+
+	/**
+	 * @brief Performs cancel queued table move.
+	 * @param scene Scene being processed.
+	 */
 	void CancelQueuedTableMove(Scene& scene);
 
-	// Hover outline helpers
+	/**
+	 * @brief Performs ensure hover outline.
+	 * @param scene Scene being processed.
+	 * @param sourceObj Parameter for source obj.
+	 * @param sourceID Parameter for source id.
+	 */
 	void EnsureHoverOutline(Scene& scene, GameObject* sourceObj, int sourceID);
+
+	/**
+	 * @brief Removes hover outline.
+	 * @param scene Scene being processed.
+	 * @param sourceID Parameter for source id.
+	 */
 	void RemoveHoverOutline(Scene& scene, int sourceID);
+
+	/**
+	 * @brief Clears hover outlines.
+	 * @param scene Scene being processed.
+	 */
 	void ClearHoverOutlines(Scene& scene);
 
 	// Particle footsteps
@@ -237,10 +391,36 @@ private:
 	bool movementLocked_ = false;
 	int  lockedTableID_ = -1;
 
+	/**
+	 * @brief Begins station lock.
+	 * @param scene Scene being processed.
+	 * @param tableID Parameter for table id.
+	 */
 	void BeginStationLock(Scene& scene, int tableID);
+
+	/**
+	 * @brief Ends station lock.
+	 */
 	void EndStationLock();
+
+	/**
+	 * @brief Updates station lock.
+	 * @param scene Scene being processed.
+	 */
 	void UpdateStationLock(Scene& scene);
+
+	/**
+	 * @brief Returns whether play chop animation.
+	 * @param scene Scene being processed.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool ShouldPlayChopAnimation(Scene& scene) const;
+
+	/**
+	 * @brief Performs ensure chop animation.
+	 * @param scene Scene being processed.
+	 * @param player Parameter for player.
+	 */
 	void EnsureChopAnimation(Scene& scene, GameObject* player);
 
 	std::vector<glm::vec2> pathPoints_;
@@ -267,15 +447,47 @@ private:
 
 	QueuedAction queuedAction_{};
 
+	/**
+	 * @brief Attempts to resolve clicked table target.
+	 * @param scene Scene being processed.
+	 * @param mouseWorld Parameter for mouse world.
+	 * @param outTableID Output value for out table id.
+	 * @param outTableLogic Output value for out table logic.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool TryResolveClickedTableTarget(Scene& scene,
 		const glm::vec2& mouseWorld,
 		int& outTableID,
 		TableLogic*& outTableLogic);
 
+	/**
+	 * @brief Returns whether in table commit range.
+	 * @param scene Scene being processed.
+	 * @param tableObjectID Parameter for table object id.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsInTableCommitRange(Scene& scene, int tableObjectID);
 
+	/**
+	 * @brief Performs queue move action.
+	 * @param worldPos Parameter for world pos.
+	 */
 	void QueueMoveAction(const glm::vec2& worldPos);
+
+	/**
+	 * @brief Performs queue table action.
+	 * @param tableObjectID Parameter for table object id.
+	 */
 	void QueueTableAction(int tableObjectID);
+
+	/**
+	 * @brief Clears queued action.
+	 */
 	void ClearQueuedAction();
+
+	/**
+	 * @brief Performs execute queued action.
+	 * @param scene Scene being processed.
+	 */
 	void ExecuteQueuedAction(Scene& scene);
 };

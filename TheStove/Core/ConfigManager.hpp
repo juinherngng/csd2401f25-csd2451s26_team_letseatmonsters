@@ -8,7 +8,7 @@
 					BGM/VFX volumes) and exposes helpers to load from a file or common asset locations,
 					save back to disk, and validate/clamp values to safe ranges.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -33,26 +33,76 @@ namespace ConfigManager {
 		float vfxVolume{};
 	};
 
-	// Current config schema version. Increment this when making breaking changes to the config format.
+	/**
+	 * @brief Validates this object.
+	 * @param s Parameter for s.
+	 */
 	void Validate(Settings& s);
 
-	// Helper functions to create modified copies of Settings with specific fields updated.
+	/**
+	 * @brief Performs with resolution.
+	 * @param s Parameter for s.
+	 * @param width Width value in pixels.
+	 * @param height Height value in pixels.
+	 * @return Result produced by this operation.
+	 */
 	Settings WithResolution(Settings s, int width, int height);
+
+	/**
+	 * @brief Performs with fullscreen.
+	 * @param s Parameter for s.
+	 * @param fullscreenEnabled Parameter for fullscreen enabled.
+	 * @return Result produced by this operation.
+	 */
 	Settings WithFullscreen(Settings s, bool fullscreenEnabled);
+
+	/**
+	 * @brief Performs with volumes.
+	 * @param s Parameter for s.
+	 * @param master Parameter for master.
+	 * @param bgm Parameter for bgm.
+	 * @param vfx Parameter for vfx.
+	 * @return Result produced by this operation.
+	 */
 	Settings WithVolumes(Settings s, float master, float bgm, float vfx);
 
-	// Load settings from a file at the given path. Returns true if successful, false if file not found or parse error.
+	/**
+	 * @brief Loads this object.
+	 * @param filePath Path to the target file.
+	 * @param out Output value for out.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool Load(const std::string& filePath, Settings& out);
+
+	/**
+	 * @brief Saves this object.
+	 * @param filePath Path to the target file.
+	 * @param s Parameter for s.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool Save(const std::string& filePath, const Settings& s);
 
-	// Attempts to load settings from common asset locations (e.g. "assets/config.txt" or parent directories).
+	/**
+	 * @brief Loads from assets.
+	 * @param out Output value for out.
+	 * @param filename Parameter for filename.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool LoadFromAssets(Settings& out, const char* filename = "config.txt");
 
-	// Resolves the first config file path that would be used by LoadFromAssets.
-	// Returns true when an existing file is found and writes it to outFilePath.
+	/**
+	 * @brief Resolves asset path.
+	 * @param outFilePath Output value for out file path.
+	 * @param filename Parameter for filename.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool ResolveAssetPath(std::string& outFilePath, const char* filename = "config.txt");
 
-	// Convenience function to load settings from assets with defaults applied. Defaults are used if file is missing or keys are missing.
+	/**
+	 * @brief Loads from assets or defaults.
+	 * @param filename Parameter for filename.
+	 * @return Result produced by this operation.
+	 */
 	inline Settings LoadFromAssetsOrDefaults(const char* filename = "config.txt") {
 		Settings s;
 		// Set default fullscreen to true

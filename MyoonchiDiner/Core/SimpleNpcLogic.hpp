@@ -29,7 +29,11 @@ public:
 	// Constructor takes owner object ID and desired dish type for this NPC
 	using GameObjectLogic::GameObjectLogic;
 
-	// Helper to convert DishType to string for debugging
+	/**
+	 * @brief Performs dish type name.
+	 * @param t Parameter for t.
+	 * @return Result produced by this operation.
+	 */
 	static const char* DishTypeName(DishType t) {
 		switch (t) {
 		case DishType::MeatDish: return "MeatDish";
@@ -42,14 +46,32 @@ public:
 		}
 	}
 
-	// Accessors for testing and debugging
+	/**
+	 * @brief Returns patience ratio at serve.
+	 * @return Requested value.
+	 */
 	float GetPatienceRatioAtServe() const {
 		return patienceRatioAtServe_;
 	}
 
-	// GameObjectLogic overrides
+	/**
+	 * @brief Performs awake.
+	 * @param scene Scene being processed.
+	 */
 	void Awake(Scene& scene) override;
+
+	/**
+	 * @brief Updates this object.
+	 * @param dt Frame delta time in seconds.
+	 * @param scene Scene being processed.
+	 * @param input Input manager for the current frame.
+	 */
 	void Update(float dt, Scene& scene, InputManager& input) override;
+
+	/**
+	 * @brief Returns the stable name for this object.
+	 * @return Requested value.
+	 */
 	std::string GetName() const override {
 		return "SimpleNpcLogic";
 	}
@@ -70,42 +92,94 @@ public:
 		Leaving
 	};
 
+	/**
+	 * @brief Updates npc animation.
+	 * @param scene Scene being processed.
+	 * @param npc Parameter for npc.
+	 * @param moveDelta Parameter for move delta.
+	 */
 	void UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm::vec2& moveDelta);
 
-	// Table assignment -------------------------------------------------
+	/**
+	 * @brief Performs assign customer table.
+	 * @param tableObjectID Parameter for table object id.
+	 */
 	void AssignCustomerTable(int tableObjectID);  // call when you pick a table
+
+	/**
+	 * @brief Returns customer table id.
+	 * @return Requested value.
+	 */
 	int  GetCustomerTableID() const {
 		return customerTableID_;
 	}
 
-	// Call when movement/pathfinding detects NPC has reached their table.
+	/**
+	 * @brief Performs on seated at table.
+	 * @param scene Scene being processed.
+	 */
 	void OnSeatedAtTable(Scene& scene);
 
-	// Behaviour state access -------------------------------------------
+	/**
+	 * @brief Returns behaviour state.
+	 * @return Requested value.
+	 */
 	BehaviourState GetBehaviourState() const {
 		return behaviourState_;
 	}
 
-	// Convenience queries for specific states (for table logic to decide what interactions are valid)
+	/**
+	 * @brief Returns whether ordering.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsOrdering() const {
 		return behaviourState_ == BehaviourState::Ordering;
 	}
+
+	/**
+	 * @brief Returns whether waiting for food.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsWaitingForFood() const {
 		return behaviourState_ == BehaviourState::WaitingForFood;
 	}
+
+	/**
+	 * @brief Returns whether paying.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsPaying() const {
 		return behaviourState_ == BehaviourState::Paying;
 	}
+
+	/**
+	 * @brief Returns whether leaving.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsLeaving() const {
 		return behaviourState_ == BehaviourState::Leaving;
 	}
+
+	/**
+	 * @brief Returns whether eating.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsEating() const {
 		return behaviourState_ == BehaviourState::Eating;
 	}
+
+	/**
+	 * @brief Returns whether at table.
+	 * @param tableID Parameter for table id.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsAtTable(int tableID) const {
 		return customerTableID_ == tableID;
 	}
 
+	/**
+	 * @brief Sets leaving.
+	 */
 	void SetLeaving() {
 		behaviourState_ = BehaviourState::Leaving;
 		hasPaid_ = true;
@@ -113,48 +187,97 @@ public:
 
 
 	// Interactions from table / player --------------------------------
-	// Called when player interacts at the table while this NPC is ORDERING.
+	/**
+	 * @brief Performs take order.
+	 * @param scene Scene being processed.
+	 */
 	void TakeOrder(Scene& scene);
 
-	// Called when a completed dish is served to this NPC's table.
+	/**
+	 * @brief Performs on dish served.
+	 * @param scene Scene being processed.
+	 * @param dishType Parameter for dish type.
+	 */
 	void OnDishServed(Scene& scene, DishType dishType);
 
-	// Called when player interacts at the table while this NPC is PAYING.
+	/**
+	 * @brief Performs take payment.
+	 * @param scene Scene being processed.
+	 */
 	void TakePayment(Scene& scene);
 
-	// Status queries ---------------------------------------------------
+	/**
+	 * @brief Returns whether order been taken.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasOrderBeenTaken() const {
 		return orderTaken_;
 	}
+
+	/**
+	 * @brief Returns whether dish served.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasDishServed()     const {
 		return dishServed_;
 	}
+
+	/**
+	 * @brief Returns whether finished eating.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasFinishedEating() const {
 		return finishedDish_;
 	}
+
+	/**
+	 * @brief Returns whether paid.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasPaid()           const {
 		return hasPaid_;
 	}
 
+	/**
+	 * @brief Returns served dish type.
+	 * @return Requested value.
+	 */
 	DishType GetServedDishType() const {
 		return servedDishType_;
 	}
 
-	// True when NPC has paid and entered Leaving state (you can despawn).
+	/**
+	 * @brief Returns whether service complete.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsServiceComplete() const {
 		return hasPaid_ && behaviourState_ == BehaviourState::Leaving;
 	}
 
 	// Assign a customer table and the exact world position where this NPC
 	// should sit. If you call this, the NPC will try to walk to that point
-	// instead of doing the up/down patrol.
+	/**
+	 * @brief Sets customer table target.
+	 * @param tableObjectID Parameter for table object id.
+	 * @param seatWorldPos Parameter for seat world pos.
+	 */
 	void SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos);
+
+	/**
+	 * @brief Sets leave target.
+	 * @param leaveWorldPos Parameter for leave world pos.
+	 */
 	void SetLeaveTarget(const Math::Vector2D& leaveWorldPos);
 
-	// Clear any assigned customer table � NPC will go back to normal patrol.
+	/**
+	 * @brief Clears customer table target.
+	 */
 	void ClearCustomerTableTarget();
 
-	// True if a customer table target is currently assigned (you can call GetCustomerTableID() and GetCustomerSeatTarget() safely).
+	/**
+	 * @brief Returns whether customer table target.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasCustomerTableTarget() const {
 		return hasCustomerTarget_;
 	}
@@ -164,22 +287,46 @@ public:
 	Math::Vector2D exitGateWorldPos_{ 0.0f, 0.0f };
 	float          exitArriveThreshold_ = 8.0f;
 
-	// Call when NPC should start trying to exit (after paying). Caches the exit gate position for pathfinding.
+	/**
+	 * @brief Performs cache exit gate pos.
+	 * @param scene Scene being processed.
+	 */
 	void CacheExitGatePos(Scene& scene);
+
+	/**
+	 * @brief Performs on reached exit.
+	 * @param scene Scene being processed.
+	 */
 	void OnReachedExit(Scene& scene);
+
+	/**
+	 * @brief Returns desired dish type.
+	 * @return Requested value.
+	 */
 	DishType GetDesiredDishType() const {
 		return desiredDishType_;
 	}
 
-	// ===== Patience =====
+	/**
+	 * @brief Returns patience remaining.
+	 * @return Requested value.
+	 */
 	float GetPatienceRemaining() const {
 		return patienceRemaining_;
 	}
+
+	/**
+	 * @brief Returns patience max.
+	 * @return Requested value.
+	 */
 	float GetPatienceMax() const {
 		return patienceMax_;
 	}
 
-	// Returns 0..1 ratio of patience remaining, clamped to that range. Useful for UI.
+	/**
+	 * @brief Returns patience ratio01.
+	 * @return Requested value.
+	 */
 	float GetPatienceRatio01() const {
 		if (patienceMax_ <= 0.f) return 0.f;
 		float r = patienceRemaining_ / patienceMax_;
@@ -188,12 +335,18 @@ public:
 		return r;
 	}
 
-	// True if patience has fully expired (you can check this in your update loop to trigger any consequences like auto-leaving or payment reduction).
+	/**
+	 * @brief Returns whether patience expired.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasPatienceExpired() const {
 		return patienceExpired_;
 	}
 
-	// Unified "will pay $0" for wrong dish OR patience timeout
+	/**
+	 * @brief Returns whether willpayzero.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool WillPayZero() const {
 		return payZero_;
 	}
@@ -204,6 +357,10 @@ public:
 	};
 	FacingDir facingDir_ = FacingDir::Front;
 
+	/**
+	 * @brief Sets infinite patience.
+	 * @param enabled Parameter for enabled.
+	 */
 	void SetInfinitePatience(bool enabled = true) {
 		if (enabled) {
 			patienceMax_ = 1000000.0f;
@@ -253,11 +410,21 @@ private:
 	float eatTimer_ = 0.0f;
 	float eatDuration_ = 10.0f;   // seconds
 
-	// Internal helper to advance the customer eating logic.
+	/**
+	 * @brief Updates customer logic.
+	 * @param dt Frame delta time in seconds.
+	 * @param scene Scene being processed.
+	 */
 	void UpdateCustomerLogic(float dt, Scene& scene);
 
 	bool exitProcessed_ = false;
 	bool dishRolled_ = false;
+
+	/**
+	 * @brief Performs roll random dish.
+	 * @param scene Scene being processed.
+	 * @return Result produced by this operation.
+	 */
 	DishType RollRandomDish(Scene& scene);
 
 	// ===== Customer patience =====
@@ -268,11 +435,26 @@ private:
 	// If true, payment should be $0 (wrong dish OR patience timeout)
 	bool  payZero_ = false;
 
-	// helper
+	/**
+	 * @brief Performs on patience expired.
+	 * @param scene Scene being processed.
+	 */
 	void OnPatienceExpired(Scene& scene);
 	float patienceRatioAtServe_ = 0.0f; // 0..1 snapshot when correct dish is served
+
+	/**
+	 * @brief Attempts to get delta to table.
+	 * @param scene Scene being processed.
+	 * @param outDelta Output value for out delta.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const;
 
+	/**
+	 * @brief Begins leave to exit.
+	 * @param scene Scene being processed.
+	 * @param freeTableImmediately Parameter for free table immediately.
+	 */
 	void BeginLeaveToExit(Scene& scene, bool freeTableImmediately);
 
 	enum class MoveMode {
@@ -293,9 +475,38 @@ private:
 	float directPathCheckTimer_ = 0.0f;
 	static constexpr float kDirectPathCheckInterval = 0.05f;
 
+	/**
+	 * @brief Clears navigation move.
+	 */
 	void ClearNavigationMove();
+
+	/**
+	 * @brief Begins move direct.
+	 * @param dest Parameter for dest.
+	 */
 	void BeginMoveDirect(const glm::vec2& dest);
+
+	/**
+	 * @brief Begins move to.
+	 * @param scene Scene being processed.
+	 * @param dest Parameter for dest.
+	 */
 	void BeginMoveTo(Scene& scene, const glm::vec2& dest);
+
+	/**
+	 * @brief Performs ensure navigation plan.
+	 * @param scene Scene being processed.
+	 * @param npc Parameter for npc.
+	 * @param desiredTarget Parameter for desired target.
+	 */
 	void EnsureNavigationPlan(Scene& scene, GameObject* npc, const glm::vec2& desiredTarget);
+
+	/**
+	 * @brief Updates navigation move.
+	 * @param dt Frame delta time in seconds.
+	 * @param scene Scene being processed.
+	 * @param npc Parameter for npc.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool UpdateNavigationMove(float dt, Scene& scene, GameObject* npc);
 };

@@ -15,7 +15,12 @@
 
 #include <cstdint>
 
- // Helper to fit a rect of given aspect ratio within available space, preserving aspect and centering.
+/**
+ * @brief Fits rect to aspect.
+ * @param available Parameter for available.
+ * @param targetAspect Parameter for target aspect.
+ * @return Result produced by this operation.
+ */
 ImVec2 SceneViewportPresenter::FitRectToAspect(const ImVec2& available, float targetAspect) {
 	float width = available.x;
 	float height = available.y;
@@ -35,7 +40,11 @@ ImVec2 SceneViewportPresenter::FitRectToAspect(const ImVec2& available, float ta
 	return ImVec2(width, height);
 }
 
-// Begin the ImGui frame for the main dockspace and get the dockspace ID for docking other windows.
+/**
+ * @brief Begins dockspace frame.
+ * @param dockspaceId ImGui dockspace identifier.
+ * @return Result produced by this operation.
+ */
 void SceneViewportPresenter::BeginDockspaceFrame(ImGuiID& dockspaceId) const {
 	ImGuiViewport* viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(viewport->WorkPos);
@@ -60,7 +69,16 @@ void SceneViewportPresenter::BeginDockspaceFrame(ImGuiID& dockspaceId) const {
 	ImGui::PopStyleVar(2);
 }
 
-// Draw the scene viewport window with the given scene color texture and reference dimensions for aspect ratio.
+/**
+ * @brief Draws scene window.
+ * @param sceneColorTexture Parameter for scene color texture.
+ * @param referenceWidth Reference width in pixels.
+ * @param referenceHeight Reference height in pixels.
+ * @param dockspaceId ImGui dockspace identifier.
+ * @param outSceneImagePos Output value for out scene image pos.
+ * @param outSceneImageSize Output value for out scene image size.
+ * @return Result produced by this operation.
+ */
 void SceneViewportPresenter::DrawSceneWindow(unsigned int sceneColorTexture,
 	int referenceWidth,
 	int referenceHeight,
@@ -103,7 +121,16 @@ void SceneViewportPresenter::DrawSceneWindow(unsigned int sceneColorTexture,
 	ImGui::End();
 }
 
-// Compute the screen-space rect of the scene image based on cached position/size and current window dimensions, for mouse picking and UI alignment.
+/**
+ * @brief Computes scene image rect.
+ * @param cachedSceneImagePos Parameter for cached scene image pos.
+ * @param cachedSceneImageSize Parameter for cached scene image size.
+ * @param referenceWidth Reference width in pixels.
+ * @param referenceHeight Reference height in pixels.
+ * @param outPos Output value for out pos.
+ * @param outSize Output value for out size.
+ * @return Result produced by this operation.
+ */
 void SceneViewportPresenter::ComputeSceneImageRect(const ImVec2& cachedSceneImagePos,
 	const ImVec2& cachedSceneImageSize,
 	int referenceWidth,

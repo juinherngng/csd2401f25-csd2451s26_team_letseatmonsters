@@ -37,6 +37,11 @@
 static std::vector<bool> sCutsceneBoundaryFlags;
 
 namespace {
+
+	/**
+	 * @brief Creates customer payment star frames.
+	 * @return Result produced by this operation.
+	 */
 	std::vector<glm::vec4> CreateCustomerPaymentStarFrames() {
 		// staranim-Sheet.png:
 		// top row = 11 frames
@@ -63,6 +68,13 @@ namespace {
 		return frames;
 	}
 
+	/**
+	 * @brief Estimates text width.
+	 * @param text Parameter for text.
+	 * @param font Parameter for font.
+	 * @param scale Parameter for scale.
+	 * @return Result produced by this operation.
+	 */
 	float EstimateTextWidth(const std::string& text, FontSystem::Font* font, float scale) {
 		if (!font) {
 			return static_cast<float>(text.size()) * 18.0f * scale;
@@ -80,7 +92,11 @@ namespace {
 }
 
 namespace {
-	// If an object has no collider yet, initialise an AABB that matches its visual size.
+
+	/**
+	 * @brief Initializes default collider.
+	 * @param obj Parameter for obj.
+	 */
 	void InitDefaultCollider(GameObject* obj) {
 		if (!obj) {
 			return;
@@ -104,6 +120,12 @@ namespace {
 	constexpr int kCutsceneSkipSortOrder = 5000;
 }
 
+/**
+ * @brief Triggers customer payment feedback.
+ * @param tableObjectID Parameter for table object id.
+ * @param amount Parameter for amount.
+ * @return Result produced by this operation.
+ */
 void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 	GameObject* tableObj = GetGameObjectByID(tableObjectID);
 	if (!tableObj) {
@@ -171,6 +193,11 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 		});
 }
 
+/**
+ * @brief Updates runtime animated fx.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void Scene::UpdateRuntimeAnimatedFx(float dt) {
 	runtimeAnimatedFx_.erase(
 		std::remove_if(runtimeAnimatedFx_.begin(), runtimeAnimatedFx_.end(),
@@ -210,6 +237,11 @@ void Scene::UpdateRuntimeAnimatedFx(float dt) {
 	);
 }
 
+/**
+ * @brief Updates floating world text fx.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void Scene::UpdateFloatingWorldTextFx(float dt) {
 	for (auto& fx : floatingWorldTextFx_) {
 		fx.elapsed += dt;
@@ -225,6 +257,13 @@ void Scene::UpdateFloatingWorldTextFx(float dt) {
 	);
 }
 
+/**
+ * @brief Renders floating world text fx.
+ * @param projection Parameter for projection.
+ * @param pauseActive Parameter for pause active.
+ * @param cutsceneActive Parameter for cutscene active.
+ * @return Result produced by this operation.
+ */
 void Scene::RenderFloatingWorldTextFx(const glm::mat4& projection, bool pauseActive, bool cutsceneActive) {
 	if (pauseActive || cutsceneActive) {
 		return;
@@ -261,7 +300,11 @@ void Scene::RenderFloatingWorldTextFx(const glm::mat4& projection, bool pauseAct
 	}
 }
 
-// Simulation control
+/**
+ * @brief Sets simulation active.
+ * @param active Parameter for active.
+ * @return Result produced by this operation.
+ */
 void Scene::SetSimulationActive(bool active) {
 	simulationActive = active;
 
@@ -281,17 +324,29 @@ void Scene::SetSimulationActive(bool active) {
 	}
 }
 
-// Query
+/**
+ * @brief Returns whether simulation active.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool Scene::IsSimulationActive() const {
 	return simulationActive;
 }
 
-// Texture metadata helpers
+/**
+ * @brief Returns object texture path.
+ * @param id Parameter for id.
+ * @return Requested value.
+ */
 const std::string& Scene::GetObjectTexturePath(int id) const {
 	return entityManager.GetTexturePath(id);
 }
 
-// Update the texture path for an object (used by LevelEditor and JSON loading to keep track of the original texture path, since the GameObject's current texture can change due to animation or other effects)
+/**
+ * @brief Sets object texture path.
+ * @param id Parameter for id.
+ * @param path Path to process.
+ * @return Result produced by this operation.
+ */
 void Scene::SetObjectTexturePath(int id, const std::string& path) {
 	entityManager.SetTexturePath(id, path);
 }
@@ -310,7 +365,11 @@ Scene::Scene(GraphicsEngine& engine, InputManager& inputMgr, AnimationManager& a
 	AddLayer("1");
 }
 
-// Load a scene by name (currently just a stub that clears and sets a background, but can be expanded to load from JSON or other formats)
+/**
+ * @brief Loads scene.
+ * @param sceneName Parameter for scene name.
+ * @return Result produced by this operation.
+ */
 void Scene::LoadScene(const std::string& sceneName) {
 	(void)sceneName;
 	currentLevelPath_.clear();
@@ -323,7 +382,12 @@ void Scene::LoadScene(const std::string& sceneName) {
 	}
 }
 
-// Per-frame update: drive all systems, logic, and cutscenes; handle pending clear requests; manage simulation state and input processing
+/**
+ * @brief Updates this object.
+ * @param deltaTime Frame delta time in seconds.
+ * @param window Parameter for window.
+ * @return Result produced by this operation.
+ */
 void Scene::Update(float deltaTime, GLFWwindow* window) {
 #ifdef _DEBUG
 	UpdateAnimationControls();
@@ -344,7 +408,11 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
 }
 
 // Advances both cutscene state machines and level-transition state.
-// Must run before input so active cutscenes can suppress gameplay/UI controls.
+/**
+ * @brief Updates cutscene phase.
+ * @param deltaTime Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void Scene::UpdateCutscenePhase(float deltaTime) {
 
 	// Drive both cutscene players every frame so transitions progress
@@ -355,7 +423,11 @@ void Scene::UpdateCutscenePhase(float deltaTime) {
 }
 
 // Consumes input, toggles editor/FPS UI, and may clear the whole scene.
-// Must run before physics-step resolution and simulation update.
+/**
+ * @brief Updates input phase.
+ * @param deltaTime Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 bool Scene::UpdateInputPhase(float deltaTime) {
 #if defined(_DEBUG) && !defined(ENABLE_DEBUG_UI)
 	(void)deltaTime;
@@ -447,7 +519,12 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 }
 
 // Updates game logic, hooks, forces/physics, NPC movement, and collision constraints.
-// Must run after input handling and before deferred level loads/UI updates.
+/**
+ * @brief Updates simulation phase.
+ * @param deltaTime Frame delta time in seconds.
+ * @param physicsDt Parameter for physics dt.
+ * @return Result produced by this operation.
+ */
 void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 	// Always update logic (menu buttons need this even with simulation disabled)
 	logicManager.StartAll(*this);
@@ -481,7 +558,10 @@ void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 }
 
 // Rebuilds a new level, resets simulation/input state, and triggers post-load hooks.
-// Must run after logic iteration completes to avoid mutating entities mid-update.
+/**
+ * @brief Handles deferred loads.
+ * @return Result produced by this operation.
+ */
 void Scene::HandleDeferredLoads() {
 	// Process deferred level load after logic iteration completes
 	if (hasPendingLevel_) {
@@ -527,7 +607,12 @@ void Scene::HandleDeferredLoads() {
 }
 
 // Advances particles and UI slide animations; may draw debug overlays.
-// Should run after simulation/deferred loads so visuals match the latest world state.
+/**
+ * @brief Updates ui phase.
+ * @param deltaTime Frame delta time in seconds.
+ * @param window Parameter for window.
+ * @return Result produced by this operation.
+ */
 void Scene::UpdateUiPhase(float deltaTime, GLFWwindow* window) {
 	// Update runtime particles
 	particleSystem_.Update(deltaTime, entityManager);
@@ -545,7 +630,11 @@ void Scene::UpdateUiPhase(float deltaTime, GLFWwindow* window) {
 }
 
 // Despawns queued entities, updates FPS text, and handles pause-overlay toggles.
-// Must run at end of frame after all gameplay/UI work is complete.
+/**
+ * @brief Performs finalize frame phase.
+ * @param deltaTime Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void Scene::FinalizeFramePhase(float deltaTime) {
 #ifdef _DEBUG
 	(void)deltaTime;
@@ -604,18 +693,28 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 
 }
 
+/**
+ * @brief Resets resize baseline.
+ * @return Result produced by this operation.
+ */
 void Scene::ResetResizeBaseline() {
 	resetBaseline_ = true;
 }
 
-// UI
+/**
+ * @brief Draws ui.
+ * @return Result produced by this operation.
+ */
 void Scene::DrawUI() {
 	if (mLevelEditor.IsEnabled()) {
 		mLevelEditor.DrawUI(*this);
 	}
 }
 
-// Render text objects that are part of the level
+/**
+ * @brief Clears all.
+ * @return Result produced by this operation.
+ */
 void Scene::ClearAll() {
 	// Stop all object-bound audio before tearing down the scene
 	StopAllObjectAudio();
@@ -639,27 +738,47 @@ void Scene::ClearAll() {
 	otherID2 = -1;
 }
 
-// Request a clear to be processed at the start of the next update cycle
+/**
+ * @brief Performs request clear all.
+ * @return Result produced by this operation.
+ */
 void Scene::RequestClearAll() {
 	pendingClear_ = true;
 }
 
-// Engine accessors
+/**
+ * @brief Returns graphics engine.
+ * @return Requested value.
+ */
 GraphicsEngine& Scene::GetGraphicsEngine() {
 	return graphicsEngine;
 }
 
-// Provide const version of GraphicsEngine accessor for systems that only need read access
+/**
+ * @brief Returns graphics engine.
+ * @return Requested value.
+ */
 const GraphicsEngine& Scene::GetGraphicsEngine() const {
 	return graphicsEngine;
 }
 
-// Spawning / object management
+/**
+ * @brief Sets player id.
+ * @param id Parameter for id.
+ * @return Result produced by this operation.
+ */
 void Scene::SetPlayerID(int id) {
 	spriteID = id;
 }
 
-// Spawns a static sprite with the specified texture, position, size, and layer. Also initializes a default collider and shadow settings.
+/**
+ * @brief Performs spawn static sprite.
+ * @param texturePath Parameter for texture path.
+ * @param position Parameter for position.
+ * @param size Parameter for size.
+ * @param layer Parameter for layer.
+ * @return Result produced by this operation.
+ */
 GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	const glm::vec3 position,
 	const glm::vec2 size,
@@ -683,7 +802,17 @@ GameObject* Scene::SpawnStaticSprite(const std::string& texturePath,
 	return obj;
 }
 
-// Spawns an animated sprite with the specified texture, position, size, animation frames, frame duration, looping behavior, and layer. Also initializes a default collider and shadow settings.
+/**
+ * @brief Performs spawn animated sprite.
+ * @param texturePath Parameter for texture path.
+ * @param position Parameter for position.
+ * @param size Parameter for size.
+ * @param frames Parameter for frames.
+ * @param frameDuration Parameter for frame duration.
+ * @param loop Parameter for loop.
+ * @param layer Parameter for layer.
+ * @return Result produced by this operation.
+ */
 GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
 	const glm::vec3 position,
 	const glm::vec2 size,
@@ -711,7 +840,15 @@ GameObject* Scene::SpawnAnimatedSprite(const std::string& texturePath,
 	return obj;
 }
 
-// Spawns a static sprite at the same position as an existing object (identified by ownerID) with the specified texture, size, and layer. Also initializes a default collider and shadow settings.
+/**
+ * @brief Performs spawn static sprite at same pos.
+ * @param ownerID Parameter for owner id.
+ * @param texturePath Parameter for texture path.
+ * @param width Width value in pixels.
+ * @param height Height value in pixels.
+ * @param layer Parameter for layer.
+ * @return Result produced by this operation.
+ */
 GameObject* Scene::SpawnStaticSpriteAtSamePos(int ownerID,
 	const std::string& texturePath,
 	float width,
@@ -758,21 +895,36 @@ GameObject* Scene::SpawnStaticSpriteAtSamePos(int ownerID,
 	return obj;
 }
 
-// Retrieves a pointer to a GameObject by its unique ID. Returns nullptr if no object with the given ID exists.
+/**
+ * @brief Returns game object by id.
+ * @param targetID Parameter for target id.
+ * @return Requested value.
+ */
 GameObject* Scene::GetGameObjectByID(int targetID) {
 	return entityManager.GetByID(targetID);
 }
 
-// Retrieves a vector of pointers to all GameObjects currently managed by the scene.
+/**
+ * @brief Returns all objects raw.
+ * @return Requested value.
+ */
 std::vector<GameObject*> Scene::GetAllObjectsRaw() {
 	return entityManager.GetAllObjects();
 }
 
+/**
+ * @brief Returns object storage raw.
+ * @return Requested value.
+ */
 const std::vector<std::unique_ptr<GameObject>>& Scene::GetObjectStorageRaw() const {
 	return entityManager.GetObjectStorage();
 }
 
-// Despawns (removes) an object from the scene by its unique ID. Also handles cleanup of associated logic and tags.
+/**
+ * @brief Performs despawn by id.
+ * @param targetID Parameter for target id.
+ * @return Result produced by this operation.
+ */
 void Scene::DespawnByID(int targetID) {
 	// Play destroy audio before removing the object
 	PlayDestroyAudio(targetID);
@@ -802,7 +954,11 @@ void Scene::DespawnByID(int targetID) {
 	entityManager.DespawnByID(targetID);
 }
 
-// Collects pointers to all GameObjects that should be rendered, sorted by layer and Y position for correct draw order. Applies visibility rules based on per-object defaults and layer settings.
+/**
+ * @brief Collects renderable pointers.
+ * @param out Output value for out.
+ * @return Result produced by this operation.
+ */
 void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	out.clear();
 	const bool cutsceneActive = IsAnyCutsceneActive();
@@ -879,23 +1035,43 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	);
 }
 
-// Scene / Transform Utilities
+/**
+ * @brief Sets scene background.
+ * @param texturePath Parameter for texture path.
+ * @return Result produced by this operation.
+ */
 void Scene::SetSceneBackground(const std::string& texturePath) {
 	sceneBackgroundPath_ = texturePath;
 	graphicsEngine.SetBackground(texturePath);
 }
 
+/**
+ * @brief Sets scene background overlay.
+ * @param texturePath Parameter for texture path.
+ * @return Result produced by this operation.
+ */
 void Scene::SetSceneBackgroundOverlay(const std::string& texturePath) {
 	sceneBackgroundOverlayPath_ = texturePath;
 	graphicsEngine.SetBackgroundOverlay(texturePath);
 }
 
+/**
+ * @brief Clears scene background overlay.
+ * @return Result produced by this operation.
+ */
 void Scene::ClearSceneBackgroundOverlay() {
 	sceneBackgroundOverlayPath_.clear();
 	graphicsEngine.ClearBackgroundOverlay();
 }
 
-// Sets the position, scale, and rotation (in degrees) of an object by its ID. Converts rotation from degrees to radians for internal use. Also updates the GameObject's transform if it exists.
+/**
+ * @brief Sets transform from level.
+ * @param id Parameter for id.
+ * @param pos Parameter for pos.
+ * @param scale Parameter for scale.
+ * @param rotationDeg Parameter for rotation deg.
+ * @return Result produced by this operation.
+ */
 void Scene::SetTransformFromLevel(int id,
 	const glm::vec3& pos,
 	const glm::vec3& scale,
@@ -918,55 +1094,122 @@ void Scene::SetTransformFromLevel(int id,
 	collisionManager.MarkStaticStateDirty();
 }
 
-// Animation helpers
+/**
+ * @brief Returns whether animations.
+ * @param id Parameter for id.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool Scene::HasAnimations(int id) const {
 	return animationManager.HasAnimator(id);
 }
 
+/**
+ * @brief Returns animation list.
+ * @param id Parameter for id.
+ * @return Requested value.
+ */
 std::vector<std::string> Scene::GetAnimationList(int id) const {
 	return animationManager.GetAnimationNames(id);
 }
 
+/**
+ * @brief Returns current animation name.
+ * @param id Parameter for id.
+ * @return Requested value.
+ */
 std::string Scene::GetCurrentAnimationName(int id) const {
 	return animationManager.GetCurrentAnimation(id);
 }
 
+/**
+ * @brief Sets animation.
+ * @param objID Parameter for obj id.
+ * @param animName Parameter for anim name.
+ * @return Result produced by this operation.
+ */
 void Scene::SetAnimation(int objID, const std::string& animName) {
 	animationManager.SetAnimation(objID, animName);
 }
 
+/**
+ * @brief Performs attach player animations.
+ * @param objID Parameter for obj id.
+ * @return Result produced by this operation.
+ */
 void Scene::AttachPlayerAnimations(int objID) {
 	animationManager.AttachPlayerAnimations(objID);
 }
 
+/**
+ * @brief Performs attach dino animations.
+ * @param objID Parameter for obj id.
+ * @return Result produced by this operation.
+ */
 void Scene::AttachDinoAnimations(int objID) {
 	animationManager.AttachDinoAnimations(objID);
 }
 
+/**
+ * @brief Performs attach customers animations.
+ * @param objID Parameter for obj id.
+ * @return Result produced by this operation.
+ */
 void Scene::AttachCustomersAnimations(int objID) {
 	animationManager.AttachCustomersAnimations(objID, GetObjectTexturePath(objID));
 }
 
+/**
+ * @brief Performs attach customers animations.
+ * @param objID Parameter for obj id.
+ * @param texturePath Parameter for texture path.
+ * @return Result produced by this operation.
+ */
 void Scene::AttachCustomersAnimations(int objID, const std::string& texturePath) {
 	animationManager.AttachCustomersAnimations(objID, texturePath);
 }
 
+/**
+ * @brief Performs attach work vfx cut animations.
+ * @param objID Parameter for obj id.
+ * @return Result produced by this operation.
+ */
 void Scene::AttachWorkVfxCutAnimations(int objID) {
 	animationManager.AttachWorkVfxCutAnimations(objID);
 }
 
+/**
+ * @brief Performs attach work vfx grill animations.
+ * @param objID Parameter for obj id.
+ * @return Result produced by this operation.
+ */
 void Scene::AttachWorkVfxGrillAnimations(int objID) {
 	animationManager.AttachWorkVfxGrillAnimations(objID);
 }
 
+/**
+ * @brief Performs attach work vfx stove animations.
+ * @param objID Parameter for obj id.
+ * @return Result produced by this operation.
+ */
 void Scene::AttachWorkVfxStoveAnimations(int objID) {
 	animationManager.AttachWorkVfxStoveAnimations(objID);
 }
 
+/**
+ * @brief Performs attach menu animations.
+ * @param objID Parameter for obj id.
+ * @return Result produced by this operation.
+ */
 void Scene::AttachMenuAnimations(int objID) {
 	animationManager.AttachMenuAnimations(objID);
 }
 
+/**
+ * @brief Performs mark animated.
+ * @param id Parameter for id.
+ * @param state Parameter for state.
+ * @return Result produced by this operation.
+ */
 void Scene::MarkAnimated(int id, bool state) {
 	if (!state) {
 		// Turning OFF animation: remove any per-object animation state
@@ -981,7 +1224,12 @@ void Scene::MarkAnimated(int id, bool state) {
 	}
 }
 
-// Tag-based logic helpers
+/**
+ * @brief Performs attach logic for tag.
+ * @param id Parameter for id.
+ * @param tag Parameter for tag.
+ * @return Result produced by this operation.
+ */
 void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	// ALWAYS wipe old logic from this object
 	logicManager.RemoveAllFor(id, *this);
@@ -991,10 +1239,21 @@ void Scene::AttachLogicForTag(int id, const std::string& tag) {
 	}
 }
 
+/**
+ * @brief Sets object tag.
+ * @param id Parameter for id.
+ * @param tag Parameter for tag.
+ * @return Result produced by this operation.
+ */
 void Scene::SetObjectTag(int id, const std::string& tag) {
 	objectTags_[id] = tag;
 }
 
+/**
+ * @brief Returns object tag.
+ * @param id Parameter for id.
+ * @return Requested value.
+ */
 std::string Scene::GetObjectTag(int id) const {
 	auto it = objectTags_.find(id);
 	if (it != objectTags_.end()) {
@@ -1010,6 +1269,11 @@ std::string Scene::GetObjectTag(int id) const {
 	return ""; // unknown/untagged
 }
 
+/**
+ * @brief Performs tag uses velocity.
+ * @param tag Parameter for tag.
+ * @return Result produced by this operation.
+ */
 bool Scene::TagUsesVelocity(const std::string& tag) const {
 	if (tagUsesVelocityHook_) {
 		return tagUsesVelocityHook_(tag);
@@ -1017,36 +1281,73 @@ bool Scene::TagUsesVelocity(const std::string& tag) const {
 	return false;
 }
 
+/**
+ * @brief Applies tag rules.
+ * @param id Parameter for id.
+ * @param tag Parameter for tag.
+ * @param speedX Parameter for speed x.
+ * @param speedY Parameter for speed y.
+ * @return Result produced by this operation.
+ */
 void Scene::ApplyTagRules(int id, const std::string& tag, float speedX, float speedY) {
 	if (tagRuleHook_) {
 		tagRuleHook_(*this, id, tag, speedX, speedY);
 	}
 }
 
+/**
+ * @brief Returns movement manager.
+ * @return Requested value.
+ */
 MovementManager& Scene::GetMovementManager() {
 	return movementManager;
 }
 
+/**
+ * @brief Returns movement manager.
+ * @return Requested value.
+ */
 const MovementManager& Scene::GetMovementManager() const {
 	return movementManager;
 }
 
+/**
+ * @brief Returns collision manager.
+ * @return Requested value.
+ */
 CollisionManager& Scene::GetCollisionManager() {
 	return collisionManager;
 }
 
+/**
+ * @brief Returns collision manager.
+ * @return Requested value.
+ */
 const CollisionManager& Scene::GetCollisionManager() const {
 	return collisionManager;
 }
 
+/**
+ * @brief Returns collision world.
+ * @return Requested value.
+ */
 collision::World& Scene::GetCollisionWorld() {
 	return collisionManager.GetCollisionWorld();
 }
 
+/**
+ * @brief Returns collision world.
+ * @return Requested value.
+ */
 const collision::World& Scene::GetCollisionWorld() const {
 	return collisionManager.GetCollisionWorld();
 }
 
+/**
+ * @brief Returns layer sort key cached.
+ * @param layerName Parameter for layer name.
+ * @return Requested value.
+ */
 int Scene::GetLayerSortKeyCached(const std::string& layerName) const {
 	auto it = layerSortKeyCache_.find(layerName);
 	if (it != layerSortKeyCache_.end()) {
@@ -1069,21 +1370,40 @@ int Scene::GetLayerSortKeyCached(const std::string& layerName) const {
 	return result;
 }
 
+/**
+ * @brief Adds layer.
+ * @param name Parameter for name.
+ * @return Result produced by this operation.
+ */
 void Scene::AddLayer(const std::string& name) {
 	layers.try_emplace(name, name); // Only add if missing
 	layerSortKeyCache_.erase(name);
 	collisionManager.MarkStaticStateDirty();
 }
 
+/**
+ * @brief Returns layer.
+ * @param name Parameter for name.
+ * @return Requested value.
+ */
 Layer* Scene::GetLayer(const std::string& name) {
 	auto it = layers.find(name);
 	return it != layers.end() ? &(it->second) : nullptr;
 }
 
+/**
+ * @brief Returns all layers.
+ * @return Requested value.
+ */
 const std::unordered_map<std::string, Layer>& Scene::GetAllLayers() const {
 	return layers;
 }
 
+/**
+ * @brief Returns object layer.
+ * @param objectID Identifier of the target object.
+ * @return Requested value.
+ */
 std::string Scene::GetObjectLayer(int objectID) const {
 	auto it = defaults_.find(objectID);
 	if (it != defaults_.end()) {
@@ -1093,6 +1413,11 @@ std::string Scene::GetObjectLayer(int objectID) const {
 	return "";
 }
 
+/**
+ * @brief Returns object layer ptr.
+ * @param objectID Identifier of the target object.
+ * @return Requested value.
+ */
 Layer* Scene::GetObjectLayerPtr(int objectID) {
 	auto it = defaults_.find(objectID);
 	if (it == defaults_.end() || it->second.layer.empty()) {
@@ -1103,6 +1428,11 @@ Layer* Scene::GetObjectLayerPtr(int objectID) {
 	return layerIt != layers.end() ? &(layerIt->second) : nullptr;
 }
 
+/**
+ * @brief Returns object layer ptr.
+ * @param objectID Identifier of the target object.
+ * @return Requested value.
+ */
 const Layer* Scene::GetObjectLayerPtr(int objectID) const {
 	auto it = defaults_.find(objectID);
 	if (it == defaults_.end() || it->second.layer.empty()) {
@@ -1113,6 +1443,11 @@ const Layer* Scene::GetObjectLayerPtr(int objectID) const {
 	return layerIt != layers.end() ? &(layerIt->second) : nullptr;
 }
 
+/**
+ * @brief Returns whether layer enabled.
+ * @param layerName Parameter for layer name.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool Scene::IsLayerEnabled(const std::string& layerName) const {
 	auto it = layers.find(layerName);
 	if (it == layers.end()) {
@@ -1121,6 +1456,11 @@ bool Scene::IsLayerEnabled(const std::string& layerName) const {
 	return it->second.IsEnabled();
 }
 
+/**
+ * @brief Returns whether object layer enabled.
+ * @param objectID Identifier of the target object.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool Scene::IsObjectLayerEnabled(int objectID) const {
 	const std::string layerName = GetObjectLayer(objectID);
 	if (layerName.empty()) {
@@ -1129,6 +1469,12 @@ bool Scene::IsObjectLayerEnabled(int objectID) const {
 	return IsLayerEnabled(layerName);
 }
 
+/**
+ * @brief Performs assign object to layer.
+ * @param id Parameter for id.
+ * @param newLayer Parameter for new layer.
+ * @return Result produced by this operation.
+ */
 void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
 	std::string layerName = newLayer;
 	if (layerName.empty()) layerName = "1";
@@ -1157,6 +1503,11 @@ void Scene::AssignObjectToLayer(int id, const std::string& newLayer) {
 	collisionManager.MarkStaticStateDirty();
 }
 
+/**
+ * @brief Removes layer.
+ * @param name Parameter for name.
+ * @return Result produced by this operation.
+ */
 void Scene::RemoveLayer(const std::string& name) {
 	auto it = layers.find(name);
 	if (it != layers.end()) {
@@ -1167,17 +1518,32 @@ void Scene::RemoveLayer(const std::string& name) {
 	collisionManager.MarkStaticStateDirty();
 }
 
+/**
+ * @brief Performs queue level load.
+ * @param path Path to process.
+ * @param activateSimulation Parameter for activate simulation.
+ * @return Result produced by this operation.
+ */
 void Scene::QueueLevelLoad(const std::string& path, bool activateSimulation) {
 	pendingLevelPath_ = path;
 	pendingLevelSimActive_ = activateSimulation;
 	hasPendingLevel_ = true;
 }
 
+/**
+ * @brief Performs request state change.
+ * @param newState Parameter for new state.
+ * @return Result produced by this operation.
+ */
 void Scene::RequestStateChange(int newState) {
 	pendingState_ = newState;
 	hasPendingStateChange_ = true;
 }
 
+/**
+ * @brief Performs show pause overlay.
+ * @return Result produced by this operation.
+ */
 void Scene::ShowPauseOverlay() {
 #ifndef _DEBUG
 	if (pauseOverlayActive_) return;
@@ -1244,6 +1610,10 @@ void Scene::ShowPauseOverlay() {
 #endif
 }
 
+/**
+ * @brief Performs request resume from pause overlay.
+ * @return Result produced by this operation.
+ */
 void Scene::RequestResumeFromPauseOverlay() {
 #ifndef _DEBUG
 	// Defer simulation re-enable until end-of-frame to avoid
@@ -1252,6 +1622,10 @@ void Scene::RequestResumeFromPauseOverlay() {
 #endif
 }
 
+/**
+ * @brief Performs hide pause overlay.
+ * @return Result produced by this operation.
+ */
 void Scene::HidePauseOverlay() {
 #ifndef _DEBUG
 	if (!pauseOverlayActive_) return;
@@ -1291,6 +1665,10 @@ void Scene::HidePauseOverlay() {
 
 // text objects for menu buttons (disabled for now)
 #if 0
+/**
+ * @brief Creates menu button texts.
+ * @return Result produced by this operation.
+ */
 void Scene::CreateMenuButtonTexts() {
 	ClearMenuButtonTexts();
 
@@ -1398,6 +1776,10 @@ void Scene::CreateMenuButtonTexts() {
 	}
 }
 
+/**
+ * @brief Renders menu button texts.
+ * @return Result produced by this operation.
+ */
 void Scene::RenderMenuButtonTexts() {
 	if (menuButtonTexts_.empty()) {
 		return;
@@ -1437,12 +1819,20 @@ void Scene::RenderMenuButtonTexts() {
 	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 }
 
+/**
+ * @brief Clears menu button texts.
+ * @return Result produced by this operation.
+ */
 void Scene::ClearMenuButtonTexts() {
 	menuButtonTexts_.clear();
 }
 
 #endif
 
+/**
+ * @brief Renders fpstext.
+ * @return Result produced by this operation.
+ */
 void Scene::RenderFPSText() {
 #ifndef _DEBUG
 	if (!showFPS_) {
@@ -1488,7 +1878,11 @@ void Scene::RenderFPSText() {
 #endif
 }
 
-// Audio binding playback helpers
+/**
+ * @brief Performs play spawn audio.
+ * @param objectId Identifier of the target object.
+ * @return Result produced by this operation.
+ */
 void Scene::PlaySpawnAudio(int objectId) {
 	if (!audioManager_) return;
 
@@ -1508,6 +1902,11 @@ void Scene::PlaySpawnAudio(int objectId) {
 	}
 }
 
+/**
+ * @brief Performs play interact audio.
+ * @param objectId Identifier of the target object.
+ * @return Result produced by this operation.
+ */
 void Scene::PlayInteractAudio(int objectId) {
 	if (!audioManager_) return;
 
@@ -1526,6 +1925,11 @@ void Scene::PlayInteractAudio(int objectId) {
 	}
 }
 
+/**
+ * @brief Performs play destroy audio.
+ * @param objectId Identifier of the target object.
+ * @return Result produced by this operation.
+ */
 void Scene::PlayDestroyAudio(int objectId) {
 	if (!audioManager_) return;
 
@@ -1544,6 +1948,11 @@ void Scene::PlayDestroyAudio(int objectId) {
 	}
 }
 
+/**
+ * @brief Performs play processing audio.
+ * @param objectId Identifier of the target object.
+ * @return Result produced by this operation.
+ */
 void Scene::PlayProcessingAudio(int objectId) {
 	if (!audioManager_) return;
 
@@ -1562,6 +1971,11 @@ void Scene::PlayProcessingAudio(int objectId) {
 	}
 }
 
+/**
+ * @brief Performs stop processing audio.
+ * @param objectId Identifier of the target object.
+ * @return Result produced by this operation.
+ */
 void Scene::StopProcessingAudio(int objectId) {
 	if (!audioManager_) return;
 
@@ -1577,6 +1991,10 @@ void Scene::StopProcessingAudio(int objectId) {
 	}
 }
 
+/**
+ * @brief Performs stop all object audio.
+ * @return Result produced by this operation.
+ */
 void Scene::StopAllObjectAudio() {
 	if (!audioManager_) return;
 
@@ -1601,6 +2019,15 @@ void Scene::StopAllObjectAudio() {
 
 // Cutscene management
 
+/**
+ * @brief Performs start cutscene.
+ * @param imagePaths Parameter for image paths.
+ * @param holdSecondsPerImage Parameter for hold seconds per image.
+ * @param fadeSeconds Parameter for fade seconds.
+ * @param levelJsonPath Parameter for level json path.
+ * @param activateSimulation Parameter for activate simulation.
+ * @return Result produced by this operation.
+ */
 void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 	float holdSecondsPerImage,
 	float fadeSeconds,
@@ -1644,6 +2071,10 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 	}
 }
 
+/**
+ * @brief Performs spawn cutscene skip prompt.
+ * @return Result produced by this operation.
+ */
 void Scene::SpawnCutsceneSkipPrompt() {
 	if (cutsceneSkipPromptId_ >= 0 && GetGameObjectByID(cutsceneSkipPromptId_)) {
 		return;
@@ -1663,6 +2094,10 @@ void Scene::SpawnCutsceneSkipPrompt() {
 	}
 }
 
+/**
+ * @brief Performs despawn cutscene skip prompt.
+ * @return Result produced by this operation.
+ */
 void Scene::DespawnCutsceneSkipPrompt() {
 	if (cutsceneSkipPromptId_ < 0) {
 		return;
@@ -1674,6 +2109,11 @@ void Scene::DespawnCutsceneSkipPrompt() {
 	cutsceneSkipPromptId_ = -1;
 }
 
+/**
+ * @brief Updates cutscene.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void Scene::UpdateCutscene(float dt) {
 	if (!cutscene_.active) return;
 
@@ -1756,6 +2196,10 @@ void Scene::UpdateCutscene(float dt) {
 	}
 }
 
+/**
+ * @brief Performs cleanup cutscene objects.
+ * @return Result produced by this operation.
+ */
 void Scene::CleanupCutsceneObjects() {
 	if (cutscene_.spriteA >= 0) {
 		DespawnByID(cutscene_.spriteA);
@@ -1767,7 +2211,12 @@ void Scene::CleanupCutsceneObjects() {
 	}
 }
 
-// Crossfade helper
+/**
+ * @brief Sets sprite alpha.
+ * @param obj Parameter for obj.
+ * @param alpha Parameter for alpha.
+ * @return Result produced by this operation.
+ */
 void Scene::SetSpriteAlpha(GameObject* obj, float alpha) {
 	if (!obj) return;
 	// Clamp and apply as RGBA tint
@@ -1777,7 +2226,18 @@ void Scene::SetSpriteAlpha(GameObject* obj, float alpha) {
 	obj->SetUVRect({ 0.f, 0.f, 1.f, 1.f });
 }
 
-// Call this from MenuButtonLogic on click
+/**
+ * @brief Performs start cutscene transitioned.
+ * @param imagePaths Parameter for image paths.
+ * @param levelJsonPath Parameter for level json path.
+ * @param activateSimulation Parameter for activate simulation.
+ * @param fadeOutSeconds Parameter for fade out seconds.
+ * @param fadeInSeconds Parameter for fade in seconds.
+ * @param holdSeconds Parameter for hold seconds.
+ * @param crossfadeFromIndex Parameter for crossfade from index.
+ * @param crossfadeSeconds Parameter for crossfade seconds.
+ * @return Result produced by this operation.
+ */
 void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths,
 	const std::string& levelJsonPath,
 	bool activateSimulation,
@@ -1821,6 +2281,19 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 	cutTrans_.awaitingBlackout = true;
 }
 
+/**
+ * @brief Performs start cutscene transitioned bounded.
+ * @param imagePaths Parameter for image paths.
+ * @param boundaryFlags Parameter for boundary flags.
+ * @param levelJsonPath Parameter for level json path.
+ * @param activateSimulation Parameter for activate simulation.
+ * @param fadeOutSeconds Parameter for fade out seconds.
+ * @param fadeInSeconds Parameter for fade in seconds.
+ * @param holdSeconds Parameter for hold seconds.
+ * @param crossfadeFromIndex Parameter for crossfade from index.
+ * @param crossfadeSeconds Parameter for crossfade seconds.
+ * @return Result produced by this operation.
+ */
 void Scene::StartCutsceneTransitionedBounded(const std::vector<std::string>& imagePaths,
 	const std::vector<bool>& boundaryFlags,
 	const std::string& levelJsonPath,
@@ -1844,6 +2317,11 @@ void Scene::StartCutsceneTransitionedBounded(const std::vector<std::string>& ima
 		crossfadeSeconds);
 }
 
+/**
+ * @brief Updates cutscene transitioned.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void Scene::UpdateCutsceneTransitioned(float dt) {
 	if (!cutTrans_.active) return;
 
@@ -2007,7 +2485,15 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 	}
 }
 
-// Order UI slide-in API 
+/**
+ * @brief Triggers order ui slide in.
+ * @param targetPos Parameter for target pos.
+ * @param size Parameter for size.
+ * @param layer Parameter for layer.
+ * @param texturePath Parameter for texture path.
+ * @param duration Parameter for duration.
+ * @return Result produced by this operation.
+ */
 int Scene::TriggerOrderUiSlideIn(const glm::vec2& targetPos,
 	const glm::vec2& size,
 	const std::string& layer,
@@ -2042,6 +2528,11 @@ int Scene::TriggerOrderUiSlideIn(const glm::vec2& targetPos,
 	return id;
 }
 
+/**
+ * @brief Updates ui slides.
+ * @param dt Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void Scene::UpdateUiSlides(float dt) {
 	if (uiSlides_.empty()) return;
 
@@ -2084,6 +2575,10 @@ void Scene::UpdateUiSlides(float dt) {
 	);
 }
 
+/**
+ * @brief Renders level text objects.
+ * @return Result produced by this operation.
+ */
 void Scene::RenderLevelTextObjects() {
 	const auto& objs = LEPANELFONTS::GetTextObjects();
 	if (objs.empty()) return;
@@ -2149,6 +2644,14 @@ void Scene::RenderLevelTextObjects() {
 	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
 }
 
+/**
+ * @brief Performs start level transition.
+ * @param levelJsonPath Parameter for level json path.
+ * @param activateSimulation Parameter for activate simulation.
+ * @param fadeOutSeconds Parameter for fade out seconds.
+ * @param fadeInSeconds Parameter for fade in seconds.
+ * @return Result produced by this operation.
+ */
 void Scene::StartLevelTransition(const std::string& levelJsonPath,
 	bool activateSimulation,
 	float fadeOutSeconds,
@@ -2177,6 +2680,10 @@ void Scene::StartLevelTransition(const std::string& levelJsonPath,
 	gfx.StartSceneTransition(levelTrans_.outSec, levelTrans_.inSec);
 }
 
+/**
+ * @brief Updates level transition.
+ * @return Result produced by this operation.
+ */
 void Scene::UpdateLevelTransition() {
 	if (!levelTrans_.active) return;
 
@@ -2195,7 +2702,10 @@ void Scene::UpdateLevelTransition() {
 	}
 }
 
-// Called from MenuButtonLogic when player clicks spacebar (to skip) during cutscene
+/**
+ * @brief Performs skip active cutscene.
+ * @return Result produced by this operation.
+ */
 void Scene::SkipActiveCutscene() {
 	if (cutTrans_.active) {
 		auto& gfx = GetGraphicsEngine();

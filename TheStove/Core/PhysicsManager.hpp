@@ -11,7 +11,7 @@
 					world-aware movement trimming (stop on wall impact). Works alongside the
 					MovementManager for click-to-move UX.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -35,53 +35,120 @@ class Scene;
 // Forward declare GameObject to avoid circular dependency.
 class PhysicsManager : public CoreFramework::SystemInterface {
 public:
+
+	/**
+	 * @brief Constructs a `PhysicsManager` instance.
+	 */
 	PhysicsManager() = default;
+
+	/**
+	 * @brief Destroys the `PhysicsManager` instance and releases owned resources.
+	 */
 	~PhysicsManager() override = default;
 
-	// SystemInterface implementation
+	/**
+	 * @brief Initializes this object.
+	 */
 	void Initialize() override;
+
+	/**
+	 * @brief Updates this object.
+	 * @param dt Frame delta time in seconds.
+	 */
 	void Update(float dt) override;
+
+	/**
+	 * @brief Returns the stable name for this object.
+	 * @return Requested value.
+	 */
 	std::string GetName() override;
 
-	// Set EntityManager and InputManager references (must be called after construction)
+	/**
+	 * @brief Sets entity manager.
+	 * @param entityMgr Parameter for entity mgr.
+	 */
 	void SetEntityManager(EntityManager* entityMgr);
+
+	/**
+	 * @brief Sets input manager.
+	 * @param inputMgr Parameter for input mgr.
+	 */
 	void SetInputManager(InputManager* inputMgr);
+
+	/**
+	 * @brief Sets scene.
+	 * @param scene Scene being processed.
+	 */
 	void SetScene(Scene* scene) {
 		scene_ = scene;
 	}
 
-	// World collision/trim resolver used to clamp movement each step.
+	/**
+	 * @brief Sets collision world.
+	 * @param world Parameter for world.
+	 */
 	void SetCollisionWorld(collision::World* world);
 
-	// Core physics update (original signature - now called internally)
+	/**
+	 * @brief Updates physics.
+	 * @param deltaTime Frame delta time in seconds.
+	 * @param entityManager Entity manager containing the active objects.
+	 * @param inputManager Input manager for the current frame.
+	 */
 	void UpdatePhysics(float deltaTime,
 		EntityManager& entityManager,
 		InputManager& inputManager);
 
-	// Enable physics on an entity and initialize its state.
+	/**
+	 * @brief Enables physics.
+	 * @param entityID Parameter for entity id.
+	 * @param mass Parameter for mass.
+	 */
 	void EnablePhysics(int entityID, float mass = 1.0f);
 
-	// Disable physics on an entity(removes state and any active seek).
+	/**
+	 * @brief Disables physics.
+	 * @param entityID Parameter for entity id.
+	 */
 	void DisablePhysics(int entityID);
 
-	// Returns true if an entity has a physics state.
+	/**
+	 * @brief Returns whether physics.
+	 * @param entityID Parameter for entity id.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool HasPhysics(int entityID) const;
 
-	// Set/replace a seek target for an entity (arrive behavior inside).
+	/**
+	 * @brief Sets seek target.
+	 * @param entityID Parameter for entity id.
+	 * @param target Parameter for target.
+	 */
 	void SetSeekTarget(int entityID, const Math::Vector2D& target);
 
-	// Clear an entity's seek target and stop the body immediately.
+	/**
+	 * @brief Clears seek target.
+	 * @param entityID Parameter for entity id.
+	 */
 	void ClearSeekTarget(int entityID);
 
-	// Clear all physics states and seek targets.
+	/**
+	 * @brief Clears this object.
+	 */
 	void Clear();
 
-	// Access to step controller
+	/**
+	 * @brief Returns step controller.
+	 * @return Requested value.
+	 */
 	physics::StepController& GetStepController() {
 		return physicsStep_;
 	}
 
-	// Movement system (used to clear click-to-move targets on impact).
+	/**
+	 * @brief Sets movement manager.
+	 * @param m Parameter for m.
+	 */
 	void SetMovementManager(MovementManager* m) {
 		movement_ = m;
 	}
@@ -118,6 +185,11 @@ private:
 	static constexpr float SEEK_MAX_ACCEL = 600.0f;
 	static constexpr float ARRIVE_RADIUS = 10.0f;
 
-	// Integrate one entity by dt, applying seek/arrive and drag, then trimming movement against world; hard - stop on impact.
+	/**
+	 * @brief Performs integrate entity.
+	 * @param entityID Parameter for entity id.
+	 * @param dt Frame delta time in seconds.
+	 * @param entityManager Entity manager containing the active objects.
+	 */
 	void IntegrateEntity(int entityID, float dt, EntityManager& entityManager);
 };

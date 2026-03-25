@@ -29,6 +29,7 @@ class Texture;
 
 // Forward declaration of ResourceManager for texture loading
 namespace LEFILEIO {
+
 	/**
 	 * @brief Opens a native file selection dialog.
 	 * @param filter Windows dialog filter string.

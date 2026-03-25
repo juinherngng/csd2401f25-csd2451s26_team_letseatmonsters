@@ -55,6 +55,7 @@ struct ApplicationState {
 extern ApplicationState* g_AppState;
 
 namespace {
+
 	/**
 	 * @brief Normalizes an audio asset path to use forward slashes.
 	 * @param path Input path to normalize.
@@ -947,7 +948,10 @@ namespace LEPANELASSETS {
 		(void)selectedIndex; // currently unused in this panel; keep parameter for future hooks
 	}
 #else
-	// Release build: no-op implementation so code compiles without ImGui
+	/**
+	 * @brief Draws assets panel.
+	 * @param int Parameter for int.
+	 */
 	void DrawAssetsPanel(LevelEditor& /*editor*/, Scene& /*scene*/, int& /*selectedIndex*/, int /*selectedObjectId*/) {
 		// Editor UI disabled in Release.
 	}

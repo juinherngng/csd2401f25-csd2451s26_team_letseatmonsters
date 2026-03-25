@@ -25,6 +25,7 @@
 namespace LEACTIONS {
 #ifdef _DEBUG
 	namespace {
+
 		/**
 		 * @brief Draws a full-width toolbar button and invokes its callback when clicked.
 		 * @param label Button label.

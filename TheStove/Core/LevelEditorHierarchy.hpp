@@ -19,6 +19,7 @@
 class Scene;
 
 namespace LEHIERARCHY {
+
 	/**
 	 * @brief Clears cached hierarchy labels and search tokens.
 	 */

@@ -6,7 +6,7 @@
 
  DESCRIPTION:		Definitions for a uniform 2D spatial hash grid used for broad-phase queries.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -25,6 +25,13 @@ namespace {
 		int maxY;
 	};
 
+	/**
+	 * @brief Builds cell range.
+	 * @param box Parameter for box.
+	 * @param cellSize Parameter for cell size.
+	 * @param expandByCells Parameter for expand by cells.
+	 * @return Result produced by this operation.
+	 */
 	CellRange BuildCellRange(const collision::AABB& box, float cellSize, int expandByCells) {
 		const int minCellX = static_cast<int>(std::floor(box.min.x / cellSize)) - expandByCells;
 		const int maxCellX = static_cast<int>(std::floor(box.max.x / cellSize)) + expandByCells;
@@ -33,6 +40,11 @@ namespace {
 		return { minCellX, maxCellX, minCellY, maxCellY };
 	}
 
+	/**
+	 * @brief Performs erase object from bucket.
+	 * @param bucket Parameter for bucket.
+	 * @param object Parameter for object.
+	 */
 	void EraseObjectFromBucket(std::vector<GameObject*>& bucket, GameObject* object) {
 		auto foundIt = std::find(bucket.begin(), bucket.end(), object);
 		if (foundIt == bucket.end()) {
@@ -44,10 +56,19 @@ namespace {
 	}
 }
 
+/**
+ * @brief Performs spatial grid.
+ * @param cellSize Parameter for cell size.
+ * @return Result produced by this operation.
+ */
 SpatialGrid::SpatialGrid(float cellSize)
 	: cellSize(std::max(cellSize, kMinCellSize)) {
 }
 
+/**
+ * @brief Clears this object.
+ * @return Result produced by this operation.
+ */
 void SpatialGrid::Clear() {
 	cells.clear();
 	objectCells_.clear();
@@ -58,17 +79,32 @@ void SpatialGrid::Clear() {
 	queryStamp_ = 1;
 }
 
+/**
+ * @brief Performs to key.
+ * @param cellX Parameter for cell x.
+ * @param cellY Parameter for cell y.
+ * @return Result produced by this operation.
+ */
 SpatialGrid::Key SpatialGrid::ToKey(int cellX, int cellY) const {
 	return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(cellX)) << 32)
 		| static_cast<std::uint64_t>(static_cast<std::uint32_t>(cellY));
 }
 
-// Visit each cell overlapped by the box, calling the provided function with the cell's key.
+/**
+ * @brief Returns whether same aabb.
+ * @param a Parameter for a.
+ * @param b Parameter for b.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool SpatialGrid::IsSameAABB(const collision::AABB& a, const collision::AABB& b) {
 	return a.min.x == b.min.x && a.min.y == b.min.y && a.max.x == b.max.x && a.max.y == b.max.y;
 }
 
-// Visit each cell overlapped by the box, calling the provided function with the cell's key. Does not track visited objects.
+/**
+ * @brief Performs reserve bucket if needed.
+ * @param bucket Parameter for bucket.
+ * @return Result produced by this operation.
+ */
 void SpatialGrid::ReserveBucketIfNeeded(std::vector<GameObject*>& bucket) {
 	if (bucket.size() == bucket.capacity()) {
 		const size_t nextCapacity = bucket.capacity() > 0 ? bucket.capacity() * 2 : 4;
@@ -76,7 +112,13 @@ void SpatialGrid::ReserveBucketIfNeeded(std::vector<GameObject*>& bucket) {
 	}
 }
 
-// Visit each cell overlapped by the box, calling the provided function with the cell's key. Also visits 1-cell neighbors for broader queries.
+/**
+ * @brief Collects cells.
+ * @param box Parameter for box.
+ * @param expandByCells Parameter for expand by cells.
+ * @param outKeys Output value for out keys.
+ * @return Result produced by this operation.
+ */
 void SpatialGrid::CollectCells(const collision::AABB& box, int expandByCells, std::vector<Key>& outKeys) const {
 	outKeys.clear();
 
@@ -92,10 +134,20 @@ void SpatialGrid::CollectCells(const collision::AABB& box, int expandByCells, st
 	}
 }
 
+/**
+ * @brief Performs cell size.
+ * @return Result produced by this operation.
+ */
 float SpatialGrid::CellSize() const {
 	return cellSize;
 }
 
+/**
+ * @brief Inserts this object.
+ * @param object Parameter for object.
+ * @param box Parameter for box.
+ * @return Result produced by this operation.
+ */
 void SpatialGrid::Insert(GameObject* object, const collision::AABB& box) {
 	if (object == nullptr) {
 		return;
@@ -112,6 +164,11 @@ void SpatialGrid::Insert(GameObject* object, const collision::AABB& box) {
 	}
 }
 
+/**
+ * @brief Removes this object.
+ * @param object Parameter for object.
+ * @return Result produced by this operation.
+ */
 void SpatialGrid::Remove(GameObject* object) {
 	if (object == nullptr) {
 		return;
@@ -139,7 +196,12 @@ void SpatialGrid::Remove(GameObject* object) {
 	queryVisitStamp_.erase(object);
 }
 
-// Update an object's position in the grid by first removing it from its old cells and then inserting it into the new cells based on the updated AABB.
+/**
+ * @brief Updates this object.
+ * @param object Parameter for object.
+ * @param box Parameter for box.
+ * @return Result produced by this operation.
+ */
 void SpatialGrid::Update(GameObject* object, const collision::AABB& box) {
 	if (object == nullptr) {
 		return;
@@ -208,6 +270,12 @@ void SpatialGrid::Update(GameObject* object, const collision::AABB& box) {
 	}
 }
 
+/**
+ * @brief Performs query.
+ * @param box Parameter for box.
+ * @param outCandidates Output value for out candidates.
+ * @return Result produced by this operation.
+ */
 void SpatialGrid::Query(const collision::AABB& box, std::vector<GameObject*>& outCandidates) const {
 	outCandidates.clear();
 	++profile_.queryCalls;
@@ -244,6 +312,12 @@ void SpatialGrid::Query(const collision::AABB& box, std::vector<GameObject*>& ou
 	profile_.queryCandidatesReturned += outCandidates.size();
 }
 
+/**
+ * @brief Performs query point.
+ * @param point Parameter for point.
+ * @param outCandidates Output value for out candidates.
+ * @return Result produced by this operation.
+ */
 void SpatialGrid::QueryPoint(const Math::Vector2D& point, std::vector<GameObject*>& outCandidates) const {
 	outCandidates.clear();
 
@@ -257,10 +331,18 @@ void SpatialGrid::QueryPoint(const Math::Vector2D& point, std::vector<GameObject
 	}
 }
 
+/**
+ * @brief Returns profile counters.
+ * @return Requested value.
+ */
 const SpatialGrid::ProfileCounters& SpatialGrid::GetProfileCounters() const {
 	return profile_;
 }
 
+/**
+ * @brief Resets profile counters.
+ * @return Result produced by this operation.
+ */
 void SpatialGrid::ResetProfileCounters() {
 	profile_ = ProfileCounters{};
 }

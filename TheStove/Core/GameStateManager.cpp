@@ -35,6 +35,12 @@ namespace Framework {
 		// Fixed seed for tutorial levels to ensure consistent RNG behavior 
 		constexpr std::uint32_t kTutorialFixedSeed = 0x00C0FFEEu;
 
+		/**
+		 * @brief Appends level textures.
+		 * @param levelPath Path to the level resource.
+		 * @param inOutPaths Output value for in out paths.
+		 * @param seen Parameter for seen.
+		 */
 		void AppendLevelTextures(const std::string& levelPath, std::vector<std::string>& inOutPaths, std::unordered_set<std::string>& seen) {
 			LevelData levelData;
 			if (!LevelSerializer::Load(levelPath, levelData)) {
@@ -59,6 +65,11 @@ namespace Framework {
 	typedef std::function<void(float dt)> FP;
 	extern FP fpInit = nullptr, fpUpdate = nullptr, fpExit = nullptr;
 
+	/**
+	 * @brief Performs game state manager.
+	 * @param bus Parameter for bus.
+	 * @return Result produced by this operation.
+	 */
 	GameStateManager::GameStateManager(CoreFramework::MessageBus& bus)
 		: messageBus(bus) {
 		quitSubId = messageBus.Subscribe(
@@ -67,14 +78,27 @@ namespace Framework {
 		);
 	}
 
+	/**
+	 * @brief Performs ~game state manager.
+	 * @return Result produced by this operation.
+	 */
 	GameStateManager::~GameStateManager() {
 		messageBus.Unsubscribe(CoreFramework::MessageType::QUIT, quitSubId);
 	}
 
+	/**
+	 * @brief Initializes this object.
+	 * @return Result produced by this operation.
+	 */
 	void GameStateManager::Initialize() {
 		std::cout << "GameStateManager system initialized." << std::endl;
 	}
 
+	/**
+	 * @brief Updates this object.
+	 * @param dt Frame delta time in seconds.
+	 * @return Result produced by this operation.
+	 */
 	void GameStateManager::Update(float dt) {
 		if (!init) {
 			InitializeGameState(0, dt);
@@ -102,15 +126,30 @@ namespace Framework {
 		}
 	}
 
+	/**
+	 * @brief Performs on quit.
+	 * @param msg Parameter for msg.
+	 * @return Result produced by this operation.
+	 */
 	void GameStateManager::OnQuit(const CoreFramework::Message& msg) {
 		(void)msg;
 		nextGS = GS_Quit;
 	}
 
+	/**
+	 * @brief Returns the stable name for this object.
+	 * @return Requested value.
+	 */
 	std::string GameStateManager::GetName() {
 		return "GameStateManager";
 	}
 
+	/**
+	 * @brief Initializes game state.
+	 * @param GS Parameter for gs.
+	 * @param dt Frame delta time in seconds.
+	 * @return Result produced by this operation.
+	 */
 	void GameStateManager::InitializeGameState(int GS, float dt) {
 		nextGS = currentGS = GS;
 
@@ -141,6 +180,12 @@ namespace Framework {
 		init = true;
 	}
 
+	/**
+	 * @brief Updates game state.
+	 * @param newState Parameter for new state.
+	 * @param dt Frame delta time in seconds.
+	 * @return Result produced by this operation.
+	 */
 	void GameStateManager::UpdateGameState(int newState, float dt) {
 		nextGS = newState;
 
@@ -188,6 +233,12 @@ namespace Framework {
 		}
 	}
 
+	/**
+	 * @brief Attempts to switch json state.
+	 * @param state Parameter for state.
+	 * @param dt Frame delta time in seconds.
+	 * @return Result produced by this operation.
+	 */
 	bool GameStateManager::TrySwitchJsonState(int state, float dt) {
 		(void)dt;
 		auto it = jsonStatePaths.find(state);
@@ -232,6 +283,11 @@ namespace Framework {
 		return true;
 	}
 
+	/**
+	 * @brief Performs preload json state assets.
+	 * @param activeState Parameter for active state.
+	 * @return Result produced by this operation.
+	 */
 	void GameStateManager::PreloadJsonStateAssets(int activeState) {
 		std::vector<std::string> texturePaths;
 		std::unordered_set<std::string> seen;
@@ -249,6 +305,10 @@ namespace Framework {
 		}
 	}
 
+	/**
+	 * @brief Performs stop current audio.
+	 * @return Result produced by this operation.
+	 */
 	void GameStateManager::StopCurrentAudio() {
 		if (audioManager) {
 			if (!currentAudio.empty()) {

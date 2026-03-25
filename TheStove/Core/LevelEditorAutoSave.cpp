@@ -37,6 +37,7 @@ namespace {
 }
 
 namespace LEAUTOSAVE {
+
 	/**
 	 * @brief Builds the autosave file path associated with a level file.
 	 * @param levelPath Path to the main level file.

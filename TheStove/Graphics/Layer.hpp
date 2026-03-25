@@ -9,7 +9,7 @@
 					Core functionality includes adding and removing object IDs to/from the layer, retrieving
 					the current list of objects, and accessing the layer's name.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -22,57 +22,108 @@
  // Forward declare GameObject to avoid circular dependency.
 class Layer {
 public:
-	// Construct a layer with the default name "Layer".
+
+	/**
+	 * @brief Constructs a `Layer` instance.
+	 */
 	Layer() : name("") {
 	}
 
-	// Construct a layer with a specified name.
+	/**
+	 * @brief Constructs a `Layer` instance.
+	 * @param name Parameter for name.
+	 */
 	Layer(const std::string& name) : name(name) {
 	}
 
-	// Add an object ID to the layer if it's not already present.
+	/**
+	 * @brief Adds object.
+	 * @param id Parameter for id.
+	 */
 	void AddObject(int id) {
 		if (std::find(objectIDs.begin(), objectIDs.end(), id) == objectIDs.end()) {
 			objectIDs.push_back(id);
 		}
 	}
+
+	/**
+	 * @brief Removes object.
+	 * @param id Parameter for id.
+	 */
 	void RemoveObject(int id) {
 		objectIDs.erase(
 			std::remove(objectIDs.begin(), objectIDs.end(), id),
 			objectIDs.end());
 	}
+
+	/**
+	 * @brief Returns objects.
+	 * @return Requested value.
+	 */
 	const std::vector<int>& GetObjects() const {
 		return objectIDs;
 	}
 
-	// Get the name of the layer.
+	/**
+	 * @brief Returns the stable name for this object.
+	 * @return Requested value.
+	 */
 	std::string GetName() const {
 		return name;
 	}
+
+	/**
+	 * @brief Sets name.
+	 * @param newName Parameter for new name.
+	 */
 	void SetName(const std::string& newName) {
 		name = newName;
 	}
 
-	// Check whether this layer is visible for rendering.
+	/**
+	 * @brief Returns whether visible.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsVisible() const {
 		return visible;
 	}
+
+	/**
+	 * @brief Sets visible.
+	 * @param v Parameter for v.
+	 */
 	void SetVisible(bool v) {
 		visible = v;
 	}
 
-	// Check whether this layer participates in collision logic.
+	/**
+	 * @brief Returns whether collidable.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsCollidable() const {
 		return collidable;
 	}
+
+	/**
+	 * @brief Sets collidable.
+	 * @param c Parameter for c.
+	 */
 	void SetCollidable(bool c) {
 		collidable = c;
 	}
 
-	// Check whether this layer is enabled (active in the scene). If disabled, it should not be visible or collidable.
+	/**
+	 * @brief Returns whether enabled.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
 	bool IsEnabled() const {
 		return enabled;
 	}
+
+	/**
+	 * @brief Sets enabled.
+	 * @param e Parameter for e.
+	 */
 	void SetEnabled(bool e) {
 		enabled = e;
 		// Optional: if a layer is disabled, it should not be visible/collidable either

@@ -20,6 +20,14 @@
 #include <iostream>
 #include <vector>
 
+/**
+ * @brief Updates this object.
+ * @param deltaTime Frame delta time in seconds.
+ * @param entityManager Entity manager containing the active objects.
+ * @param collisionManager Collision manager used for collision queries.
+ * @param walkArea Parameter for walk area.
+ * @return Result produced by this operation.
+ */
 void NPCSystem::Update(float deltaTime, EntityManager& entityManager, CollisionManager& collisionManager, const collision::WalkArea& walkArea) {
 	/*UpdateLaneNPCs(deltaTime, entityManager, collisionManager, walkArea);
 	HandleNPCCollisions(entityManager);
@@ -30,10 +38,21 @@ void NPCSystem::Update(float deltaTime, EntityManager& entityManager, CollisionM
 	(void)walkArea;
 }
 
+/**
+ * @brief Sets npcvelocity.
+ * @param npcID Identifier of the NPC object.
+ * @param velocity Parameter for velocity.
+ * @return Result produced by this operation.
+ */
 void NPCSystem::SetNPCVelocity(int npcID, const glm::vec2& velocity) {
 	npcVelocities_[npcID] = velocity;
 }
 
+/**
+ * @brief Returns npcvelocity.
+ * @param npcID Identifier of the NPC object.
+ * @return Requested value.
+ */
 glm::vec2 NPCSystem::GetNPCVelocity(int npcID) const {
 	auto it = npcVelocities_.find(npcID);
 	if (it != npcVelocities_.end()) {
@@ -43,10 +62,24 @@ glm::vec2 NPCSystem::GetNPCVelocity(int npcID) const {
 	return glm::vec2(0.0f);
 }
 
+/**
+ * @brief Registers lane npc.
+ * @param npcID Identifier of the NPC object.
+ * @param laneX Parameter for lane x.
+ * @return Result produced by this operation.
+ */
 void NPCSystem::RegisterLaneNPC(int npcID, float laneX) {
 	laneNPCs_[npcID] = laneX;
 }
 
+/**
+ * @brief Updates lane npcs.
+ * @param deltaTime Frame delta time in seconds.
+ * @param entityManager Entity manager containing the active objects.
+ * @param collisionManager Collision manager used for collision queries.
+ * @param walkArea Parameter for walk area.
+ * @return Result produced by this operation.
+ */
 void NPCSystem::UpdateLaneNPCs(float deltaTime,
 	EntityManager& entityManager,
 	CollisionManager& collisionManager,
@@ -78,6 +111,11 @@ void NPCSystem::UpdateLaneNPCs(float deltaTime,
 	}
 }
 
+/**
+ * @brief Handles npccollisions.
+ * @param entityManager Entity manager containing the active objects.
+ * @return Result produced by this operation.
+ */
 void NPCSystem::HandleNPCCollisions(EntityManager& entityManager) {
 	//  Lane goats collide with each other
 	std::vector<int> laneNPCIDs;
@@ -153,6 +191,13 @@ void NPCSystem::HandleNPCCollisions(EntityManager& entityManager) {
 	// Intentionally no collisions between lane and non-lane NPCs.
 }
 
+/**
+ * @brief Updates generic npcs.
+ * @param deltaTime Frame delta time in seconds.
+ * @param entityManager Entity manager containing the active objects.
+ * @param walkArea Parameter for walk area.
+ * @return Result produced by this operation.
+ */
 void NPCSystem::UpdateGenericNPCs(float deltaTime,
 	EntityManager& entityManager,
 	const collision::WalkArea& walkArea) {
@@ -180,6 +225,10 @@ void NPCSystem::UpdateGenericNPCs(float deltaTime,
 	}
 }
 
+/**
+ * @brief Clears this object.
+ * @return Result produced by this operation.
+ */
 void NPCSystem::Clear() {
 	npcVelocities_.clear();
 	laneNPCs_.clear();

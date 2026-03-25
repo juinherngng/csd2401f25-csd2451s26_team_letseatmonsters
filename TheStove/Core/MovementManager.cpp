@@ -10,7 +10,7 @@
 					and passive velocity-based motion. Uses world trimming to resolve step movement
 					against walls and updates sprite facing based on effective direction.
 
-		 All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		 All content  2025 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
  */
 
@@ -25,30 +25,58 @@
 #include <iostream>
 #include <vector>
 
- // ----- SystemInterface implementation -----
+/**
+ * @brief Initializes this object.
+ * @return Result produced by this operation.
+ */
 void MovementManager::Initialize() {
 	std::cout << "MovementManager initialized" << std::endl;
 }
 
+/**
+ * @brief Updates this object.
+ * @param deltaTime Frame delta time in seconds.
+ * @return Result produced by this operation.
+ */
 void MovementManager::Update(float deltaTime) {
 	if (entityManager_ && inputManager_) {
 		UpdateMovement(deltaTime, *entityManager_, *inputManager_);
 	}
 }
 
+/**
+ * @brief Returns the stable name for this object.
+ * @return Requested value.
+ */
 std::string MovementManager::GetName() {
 	return "MovementManager";
 }
 
+/**
+ * @brief Sets entity manager.
+ * @param entityMgr Parameter for entity mgr.
+ * @return Result produced by this operation.
+ */
 void MovementManager::SetEntityManager(EntityManager* entityMgr) {
 	entityManager_ = entityMgr;
 }
 
+/**
+ * @brief Sets input manager.
+ * @param inputMgr Parameter for input mgr.
+ * @return Result produced by this operation.
+ */
 void MovementManager::SetInputManager(InputManager* inputMgr) {
 	inputManager_ = inputMgr;
 }
 
-// Core Functionality
+/**
+ * @brief Updates movement.
+ * @param deltaTime Frame delta time in seconds.
+ * @param entityManager Entity manager containing the active objects.
+ * @param inputManager Input manager for the current frame.
+ * @return Result produced by this operation.
+ */
 void MovementManager::UpdateMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager) {
 	// Update player movement (WASD + click-to-move)
 	if (playerID_ >= 0) {
@@ -74,12 +102,20 @@ void MovementManager::UpdateMovement(float deltaTime, EntityManager& entityManag
 	UpdateVelocityBasedMovement(deltaTime, entityManager);
 }
 
+/**
+ * @brief Clears this object.
+ * @return Result produced by this operation.
+ */
 void MovementManager::Clear() {
 	movementData_.clear();
 	playerID_ = -1;
 }
 
-// Player Setup
+/**
+ * @brief Sets player id.
+ * @param playerID Identifier of the player object.
+ * @return Result produced by this operation.
+ */
 void MovementManager::SetPlayerID(int playerID) {
 	playerID_ = playerID;
 
@@ -90,11 +126,21 @@ void MovementManager::SetPlayerID(int playerID) {
 	}
 }
 
-// Movement Control
+/**
+ * @brief Sets move speed.
+ * @param objectID Identifier of the target object.
+ * @param speed Parameter for speed.
+ * @return Result produced by this operation.
+ */
 void MovementManager::SetMoveSpeed(int objectID, float speed) {
 	movementData_[objectID].moveSpeed = speed;
 }
 
+/**
+ * @brief Returns move speed.
+ * @param objectID Identifier of the target object.
+ * @return Requested value.
+ */
 float MovementManager::GetMoveSpeed(int objectID) const {
 	auto it = movementData_.find(objectID);
 	if (it != movementData_.end()) {
@@ -104,12 +150,23 @@ float MovementManager::GetMoveSpeed(int objectID) const {
 	return 200.0f;
 }
 
+/**
+ * @brief Sets move target.
+ * @param objectID Identifier of the target object.
+ * @param target Parameter for target.
+ * @return Result produced by this operation.
+ */
 void MovementManager::SetMoveTarget(int objectID, const glm::vec2& target) {
 	auto& md = movementData_[objectID];
 	md.hasTarget = true;
 	md.moveTarget = target;
 }
 
+/**
+ * @brief Clears move target.
+ * @param objectID Identifier of the target object.
+ * @return Result produced by this operation.
+ */
 void MovementManager::ClearMoveTarget(int objectID) {
 	auto it = movementData_.find(objectID);
 	if (it != movementData_.end()) {
@@ -118,11 +175,21 @@ void MovementManager::ClearMoveTarget(int objectID) {
 	}
 }
 
+/**
+ * @brief Returns whether move target.
+ * @param objectID Identifier of the target object.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool MovementManager::HasMoveTarget(int objectID) const {
 	auto it = movementData_.find(objectID);
 	return (it != movementData_.end()) && it->second.hasTarget;
 }
 
+/**
+ * @brief Returns move target.
+ * @param objectID Identifier of the target object.
+ * @return Requested value.
+ */
 glm::vec2 MovementManager::GetMoveTarget(int objectID) const {
 	auto it = movementData_.find(objectID);
 	if (it != movementData_.end()) {
@@ -132,7 +199,13 @@ glm::vec2 MovementManager::GetMoveTarget(int objectID) const {
 	return glm::vec2(0.f);
 }
 
-// NPC Patrol
+/**
+ * @brief Sets patrol path.
+ * @param objectID Identifier of the target object.
+ * @param waypoints Parameter for waypoints.
+ * @param loop Parameter for loop.
+ * @return Result produced by this operation.
+ */
 void MovementManager::SetPatrolPath(int objectID, const std::vector<glm::vec2>& waypoints, bool loop) {
 	auto& data = movementData_[objectID];
 	data.patrolPath = waypoints;
@@ -140,11 +213,21 @@ void MovementManager::SetPatrolPath(int objectID, const std::vector<glm::vec2>& 
 	data.currentWaypoint = 0;
 }
 
+/**
+ * @brief Enables patrol.
+ * @param objectID Identifier of the target object.
+ * @param enable Boolean flag controlling whether the feature is enabled.
+ * @return Result produced by this operation.
+ */
 void MovementManager::EnablePatrol(int objectID, bool enable) {
 	movementData_[objectID].patrolEnabled = enable;
 }
 
-// Query
+/**
+ * @brief Returns whether moving.
+ * @param objectID Identifier of the target object.
+ * @return True when the operation succeeds or the condition is met.
+ */
 bool MovementManager::IsMoving(int objectID) const {
 	auto it = movementData_.find(objectID);
 	if (it == movementData_.end()) {
@@ -155,6 +238,11 @@ bool MovementManager::IsMoving(int objectID) const {
 	return (vel.x != 0.f || vel.y != 0.f);
 }
 
+/**
+ * @brief Returns velocity.
+ * @param objectID Identifier of the target object.
+ * @return Requested value.
+ */
 glm::vec2 MovementManager::GetVelocity(int objectID) const {
 	auto it = movementData_.find(objectID);
 	if (it != movementData_.end()) {
@@ -164,7 +252,13 @@ glm::vec2 MovementManager::GetVelocity(int objectID) const {
 	return glm::vec2(0.f);
 }
 
-// Internals
+/**
+ * @brief Updates player movement.
+ * @param deltaTime Frame delta time in seconds.
+ * @param entityManager Entity manager containing the active objects.
+ * @param inputManager Input manager for the current frame.
+ * @return Result produced by this operation.
+ */
 void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entityManager, InputManager& inputManager) {
 	GameObject* player = entityManager.GetByID(playerID_);
 	if (player == nullptr) {
@@ -293,6 +387,14 @@ void MovementManager::UpdatePlayerMovement(float deltaTime, EntityManager& entit
 	}
 }
 
+/**
+ * @brief Updates click to move.
+ * @param objectID Identifier of the target object.
+ * @param data Parameter for data.
+ * @param deltaTime Frame delta time in seconds.
+ * @param entityManager Entity manager containing the active objects.
+ * @return Result produced by this operation.
+ */
 void MovementManager::UpdateClickToMove(int objectID, MovementData& data, float deltaTime, EntityManager& entityManager) {
 	GameObject* obj = entityManager.GetByID(objectID);
 	if (obj == nullptr || !data.hasTarget) {
@@ -322,6 +424,14 @@ void MovementManager::UpdateClickToMove(int objectID, MovementData& data, float 
 	obj->SetPosition(pos3D);
 }
 
+/**
+ * @brief Updates npcpatrol.
+ * @param objectID Identifier of the target object.
+ * @param data Parameter for data.
+ * @param deltaTime Frame delta time in seconds.
+ * @param entityManager Entity manager containing the active objects.
+ * @return Result produced by this operation.
+ */
 void MovementManager::UpdateNPCPatrol(int objectID, MovementData& data, float deltaTime, EntityManager& entityManager) {
 	if (data.patrolPath.empty()) {
 		return;
@@ -371,6 +481,12 @@ void MovementManager::UpdateNPCPatrol(int objectID, MovementData& data, float de
 	obj->SetPosition(pos3D);
 }
 
+/**
+ * @brief Updates sprite direction.
+ * @param entityID Parameter for entity id.
+ * @param entityManager Entity manager containing the active objects.
+ * @return Result produced by this operation.
+ */
 void MovementManager::UpdateSpriteDirection(int entityID, EntityManager& entityManager) {
 	auto it = movementData_.find(entityID);
 	if (it == movementData_.end()) {
@@ -405,7 +521,7 @@ void MovementManager::UpdateSpriteDirection(int entityID, EntityManager& entityM
 		}
 	}
 
-	// Remember the chosen facing if it’s meaningful
+	// Remember the chosen facing if its meaningful
 	if (std::fabs(basis.x) > 0.01f || std::fabs(basis.y) > 0.01f) {
 		data.lastFacing = basis;
 	}
@@ -461,6 +577,12 @@ void MovementManager::UpdateSpriteDirection(int entityID, EntityManager& entityM
 	}
 }
 
+/**
+ * @brief Updates velocity based movement.
+ * @param deltaTime Frame delta time in seconds.
+ * @param entityManager Entity manager containing the active objects.
+ * @return Result produced by this operation.
+ */
 void MovementManager::UpdateVelocityBasedMovement(float deltaTime, EntityManager& entityManager) {
 	const auto& allObjects = entityManager.GetObjectStorage();
 
