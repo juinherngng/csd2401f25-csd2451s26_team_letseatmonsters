@@ -1213,8 +1213,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
 	const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
 	const bool forceClearShortcut =
-		(isLevel1 && input.IsKeyJustPressed(GLFW_KEY_F10)) ||
-		(isLevel2 && input.IsKeyJustPressed(GLFW_KEY_F9));
+		((isLevel1 || isLevel2) && input.IsKeyJustPressed(GLFW_KEY_F10));
 
 	if (forceClearShortcut && !Economy::gQuotaReached) {
 		Economy::gPlayerMoney = Economy::kQuota;

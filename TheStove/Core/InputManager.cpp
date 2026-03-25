@@ -51,8 +51,7 @@ namespace {
 		GLFW_KEY_F1,	 // FPS display toggle in Release
 		GLFW_KEY_F5,	 // Scene reload in Release, debug toggle in Debug
 		GLFW_KEY_F6,	 // Level editor toggle
-		GLFW_KEY_F9,	 // Gameplay debug shortcut (e.g., force-win testing for kitchen02)
-		GLFW_KEY_F10	 // Gameplay debug shortcut (e.g., force-win testing for kitchen01)
+		GLFW_KEY_F10	 // Gameplay debug shortcut (instant win testing during gameplay)
 	};
 
 	// We track mouse buttons separately since they have different semantics and are often used in combination with ImGui's WantCaptureMouse.
