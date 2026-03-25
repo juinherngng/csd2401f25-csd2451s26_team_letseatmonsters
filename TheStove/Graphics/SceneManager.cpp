@@ -731,6 +731,12 @@ void Scene::ClearAll() {
 	//ClearMenuButtonTexts();
 	runtimeAnimatedFx_.clear();
 	floatingWorldTextFx_.clear();
+	defaults_.clear();
+	objectTags_.clear();
+	mTexturePathByID.clear();
+	layers.clear();
+	layerSortKeyCache_.clear();
+	AddLayer("1");
 
 	spriteID = -1;
 	dinoID = -1;

@@ -1545,10 +1545,11 @@ namespace {
 
 #ifndef _DEBUG
 	// existing audio/UI logic unchanged...
-	if (!simulationActive) {
+	if (!simulationActive || IsDayClearLevelLoaded(scene)) {
 		if (Layer* menuLayer = scene.GetLayer("10")) {
 			menuLayer->SetVisible(true);
 			menuLayer->SetEnabled(true);
+			menuLayer->SetCollidable(false);
 		}
 	}
 
