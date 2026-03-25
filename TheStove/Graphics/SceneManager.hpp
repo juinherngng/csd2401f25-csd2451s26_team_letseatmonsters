@@ -1549,6 +1549,11 @@ private:
 	void UpdateUiSlides(float dt);
 
 	/**
+	 * @brief Resets object-backed scene state that should not survive a level rebuild.
+	 */
+	void ResetLevelObjectState();
+
+	/**
 	 * @brief Performs ease out cubic.
 	 * @param x Parameter for x.
 	 * @return Result produced by this operation.

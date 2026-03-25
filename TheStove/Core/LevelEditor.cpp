@@ -26,6 +26,7 @@
 #include "LevelEditorPickDrag.hpp"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
  /**
   * @brief Draws all top-level editor panels for the current ImGui frame.

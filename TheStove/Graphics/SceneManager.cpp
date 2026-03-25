@@ -728,9 +728,24 @@ void Scene::ClearAll() {
 	if (customerResetHook_) {
 		customerResetHook_(*this);
 	}
+	ResetLevelObjectState();
+}
+
+/**
+ * @brief Resets object-backed scene state that should not survive a level rebuild.
+ * @return Result produced by this operation.
+ */
+void Scene::ResetLevelObjectState() {
+	// Clear object-linked caches and transient effect state.
+	// Keep cutscene/deferred-load state intact because ClearAll() is used during
+	// level transitions, including cutscene skip flows that still need to finish.
 	//ClearMenuButtonTexts();
 	runtimeAnimatedFx_.clear();
 	floatingWorldTextFx_.clear();
+	uiSlides_.clear();
+	pauseOverlayObjectIds_.clear();
+	pendingDespawns_.clear();
+
 	defaults_.clear();
 	objectTags_.clear();
 	mTexturePathByID.clear();
@@ -742,6 +757,10 @@ void Scene::ClearAll() {
 	dinoID = -1;
 	otherID = -1;
 	otherID2 = -1;
+	exitGateID_ = -1;
+	exitGateCached_ = false;
+	exitGateWorld_ = Math::Vector2D(0.0f, 0.0f);
+	editorSelectedId = -1;
 }
 
 /**

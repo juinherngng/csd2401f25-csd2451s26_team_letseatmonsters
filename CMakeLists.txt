@@ -78,9 +78,18 @@ add_library(TheStove STATIC ${SOURCE_FILES})
 
 # Enable precompiled headers for faster builds (CMake 3.16+)
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
-    target_precompile_headers(TheStove PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/Precompiled.hpp
-    )
+    if(MSVC)
+        # Debug builds have been hitting stale/incompatible CMake PCH artifacts
+        # during incremental builds. Keep PCH for non-Debug configs, but turn it
+        # off in Debug so local iteration remains reliable.
+        target_precompile_headers(TheStove PRIVATE
+            "$<$<NOT:$<CONFIG:Debug>>:${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/Precompiled.hpp>"
+        )
+    else()
+        target_precompile_headers(TheStove PRIVATE
+            ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/Precompiled.hpp
+        )
+    endif()
 endif()
 
 # Include directories for the project
