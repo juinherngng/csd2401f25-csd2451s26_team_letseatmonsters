@@ -1,6 +1,6 @@
 /*
  ----------------------------------------------------------------------------------------------------
- FILE NAME:         LevelEditorAutoSave.cpp
+ FILE NAME:         LevelEditorAutoSave.hpp
  PROJECT NAME:      Project GAM200
  AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
@@ -18,19 +18,39 @@
 struct LevelData;
 
 namespace LEAUTOSAVE {
-	// Ticks the autosave timer and saves the current level data to an autosave file if the specified interval has elapsed
+	/**
+	 * @brief Advances the autosave timer and writes a recovery file when needed.
+	 * @param levelPath Path to the main level file.
+	 * @param currentLevel Current level data to serialize.
+	 * @param deltaTimeSeconds Time elapsed since the previous frame in seconds.
+	 */
 	void Tick(const std::string& levelPath, const LevelData& currentLevel, float deltaTimeSeconds);
 
-	// Checks if there is a recovery candidate for the given level path.
-	// A recovery candidate exists if the autosave file exists and is newer than the main level file, or if the main level file does not exist.
+	/**
+	 * @brief Returns whether an autosave recovery candidate exists for a level.
+	 * @param levelPath Path to the main level file.
+	 * @return True when the autosave file is usable as a recovery source.
+	 */
 	bool HasRecoveryCandidate(const std::string& levelPath);
 
-	// Loads the recovery data from the autosave file for the given level path into outLevel. Returns true if successful.
+	/**
+	 * @brief Loads autosave recovery data for a level.
+	 * @param levelPath Path to the main level file.
+	 * @param outLevel Receives the recovered level data.
+	 * @return True when recovery data was loaded successfully.
+	 */
 	bool LoadRecovery(const std::string& levelPath, LevelData& outLevel);
 
-	// Discards the recovery file for the given level path by deleting the autosave file if it exists.
+	/**
+	 * @brief Deletes the autosave recovery file for a level, if present.
+	 * @param levelPath Path to the main level file.
+	 */
 	void DiscardRecovery(const std::string& levelPath);
 
-	// Builds the autosave file path by taking the original level path, extracting its stem, and appending ".autosave.json" before the extension.
+	/**
+	 * @brief Builds the autosave filename associated with a level file.
+	 * @param levelPath Path to the main level file.
+	 * @return Autosave file path derived from the input level path.
+	 */
 	std::string BuildAutosavePath(const std::string& levelPath);
 }

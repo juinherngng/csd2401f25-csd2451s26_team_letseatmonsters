@@ -38,15 +38,24 @@ namespace {
 	std::unordered_map<int, HierarchyLabelCacheEntry> sHierarchyLabelCache;
 }
 
-// Utility function to convert a string to lowercase. Used for generating search tokens for filtering.
 namespace LEHIERARCHY {
+	/**
+	 * @brief Converts a string to lowercase for filtering and cache keys.
+	 * @param value Input string to convert.
+	 * @return Lowercase copy of the input string.
+	 */
 	std::string ToLowerCopy(std::string value) {
 		std::transform(value.begin(), value.end(), value.begin(),
 			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 		return value;
 	}
 
-	// Checks if a given label passes the current filter by converting both the label and filter to lowercase and checking if the filter is a substring of the label.
+	/**
+	 * @brief Tests whether a hierarchy label matches the current filter.
+	 * @param label Display label to evaluate.
+	 * @param filterLower Lowercase filter string entered by the user.
+	 * @return True when the label passes the filter.
+	 */
 	bool PassesFilter(const std::string& label, const std::string& filterLower) {
 		if (filterLower.empty()) {
 			return true;
@@ -55,6 +64,12 @@ namespace LEHIERARCHY {
 		return ToLowerCopy(label).find(filterLower) != std::string::npos;
 	}
 
+	/**
+	 * @brief Tests whether a cached hierarchy label matches the current filter.
+	 * @param objectId Engine object identifier.
+	 * @param filterLower Lowercase filter string entered by the user.
+	 * @return True when the cached label passes the filter.
+	 */
 	bool PassesFilterCached(int objectId, const std::string& filterLower) {
 		if (filterLower.empty()) {
 			return true;
@@ -68,7 +83,12 @@ namespace LEHIERARCHY {
 		return it->second.searchTokenLower.find(filterLower) != std::string::npos;
 	}
 
-	// Retrieves the cached label for a given object ID, generating and caching it if necessary based on the object's tag, texture path, and layer.
+	/**
+	 * @brief Returns a cached hierarchy label for an object, rebuilding it when needed.
+	 * @param scene Scene containing the object.
+	 * @param objectId Engine object identifier.
+	 * @return Cached label string for the object.
+	 */
 	const std::string& GetCachedLabel(Scene& scene, int objectId) {
 		auto& entry = sHierarchyLabelCache[objectId];
 		const Scene::Defaults defs = scene.GetDefaults(objectId);
@@ -98,10 +118,17 @@ namespace LEHIERARCHY {
 		return entry.label;
 	}
 
+	/**
+	 * @brief Clears the hierarchy label cache.
+	 */
 	void InvalidateCache() {
 		sHierarchyLabelCache.clear();
 	}
 
+	/**
+	 * @brief Removes cache entries for objects that no longer exist in the scene.
+	 * @param scene Scene used to determine which object IDs are still alive.
+	 */
 	void PruneDeadObjects(Scene& scene) {
 		std::unordered_set<int> liveIds;
 		auto objectList = scene.GetAllObjectsRaw();

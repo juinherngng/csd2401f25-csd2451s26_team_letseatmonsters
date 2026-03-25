@@ -61,13 +61,20 @@ namespace fs = std::filesystem;
 using namespace LEFILEIO;
 
 #ifdef _DEBUG
+/**
+ * @brief Returns the directory containing the running executable.
+ * @return Filesystem path to the executable directory.
+ */
 static std::filesystem::path GetExeDir() {
 	char buf[MAX_PATH]{};
 	GetModuleFileNameA(nullptr, buf, MAX_PATH);
 	return std::filesystem::path(buf).parent_path();
 }
 
-// Utility function to find the repository root by looking for specific subdirectories.
+/**
+ * @brief Finds the repository root by walking upward from the executable folder.
+ * @return Best-effort path to the repository root used by editor tooling.
+ */
 static std::filesystem::path FindRepoRoot() {
 	namespace fs = std::filesystem;
 	fs::path p = GetExeDir();
@@ -92,7 +99,11 @@ static std::filesystem::path FindRepoRoot() {
 
 namespace {
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-	// Hashing function for LevelData to optimize change detection.
+	/**
+	 * @brief Builds a hash of level data for editor-side change detection.
+	 * @param level Level snapshot to hash.
+	 * @return Hash representing the supplied level state.
+	 */
 	static std::size_t HashLevelData(const LevelData& level) {
 		std::size_t seed = std::hash<std::string>{}(level.background);
 		seed ^= std::hash<std::string>{}(level.backgroundOverlay) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -112,11 +123,16 @@ namespace {
 		return seed;
 	}
 
-	// Internal helpers for Level <-> Scene synchronization
+	/// @brief Synchronizes serialized level data into a live scene.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
+	/// @brief Captures the current live scene into serializable level data.
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
 
-	// Caches a sorted list of unique layer names from the scene for UI dropdowns, with change detection based on hashing.
+	/**
+	 * @brief Returns a cached sorted list of unique layer names for editor dropdowns.
+	 * @param scene Scene whose layers should be listed.
+	 * @return Sorted vector of unique layer names.
+	 */
 	static std::vector<std::string> BuildLayerNameList(const Scene& scene) {
 		struct LayerCache {
 			std::size_t keyHash = 0;
@@ -161,7 +177,10 @@ namespace {
 	}
 #endif
 
-	// Helper to sync text objects from LevelData to editor state
+	/**
+	 * @brief Synchronizes serialized text objects into the editor font panel state.
+	 * @param levelIn Level snapshot containing serialized text objects.
+	 */
 	void SyncTextObjectsToEditor(const LevelData& levelIn) {
 		std::vector<LEPANELFONTS::TextObjectData> textObjects;
 		textObjects.reserve(levelIn.textObjects.size());
@@ -199,7 +218,10 @@ namespace {
 		LEPANELFONTS::SetTextObjects(textObjects);
 	}
 
-	// Helper to sync text objects from editor state to LevelData
+	/**
+	 * @brief Copies text object state from the editor font panel into level data.
+	 * @param levelOut Level snapshot to populate.
+	 */
 	void SyncTextObjectsToLevel(LevelData& levelOut) {
 		const auto& textObjects = LEPANELFONTS::GetTextObjects();
 		levelOut.textObjects.clear();
@@ -233,7 +255,11 @@ namespace {
 	}
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-	// Undo/redo system using LevelData snapshots.
+	/**
+	 * @brief Captures the full editor state into a serializable snapshot.
+	 * @param scene Scene currently being edited.
+	 * @param outState Snapshot to populate.
+	 */
 	static void CaptureEditorState(Scene& scene, LevelData& outState) {
 		SyncSceneToLevel(scene, outState);
 		SyncTextObjectsToLevel(outState);
@@ -241,7 +267,12 @@ namespace {
 		outState.backgroundOverlay = scene.GetSceneBackgroundOverlay();
 	}
 
-	// Restore the editor state from a LevelData snapshot, rebuilding the scene and syncing text objects.
+	/**
+	 * @brief Restores the editor from a previously captured level snapshot.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene to rebuild from the snapshot.
+	 * @param state Snapshot to restore.
+	 */
 	static void RestoreEditorState(LevelEditor& editor, Scene& scene, const LevelData& state) {
 		scene.ClearAll();
 		SyncLevelToScene(state, scene);
@@ -252,31 +283,51 @@ namespace {
 		SyncTextObjectsToEditor(state);
 	}
 
-	// Push a snapshot of the current editor state onto the undo stack before a mutation occurs.
+	/**
+	 * @brief Pushes the current editor state onto the undo stack.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 */
 	static void PushUndoSnapshot(LevelEditor& editor, Scene& scene) {
 		LECOMMAND::RecordPreMutationSnapshot(editor, [&](LevelData& outState) { CaptureEditorState(scene, outState); });
 	}
 
-	// Perform an undo operation, restoring the previous state if available.
+	/**
+	 * @brief Performs an undo operation for the Level panel.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 * @return True when an undo operation was performed.
+	 */
 	static bool PerformUndo(LevelEditor& editor, Scene& scene) {
 		return LECOMMAND::Undo(editor,
 			[&](LevelData& outState) { CaptureEditorState(scene, outState); },
 			[&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
 	}
 
-	// Perform a redo operation, restoring the next state if available.
+	/**
+	 * @brief Performs a redo operation for the Level panel.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 * @return True when a redo operation was performed.
+	 */
 	static bool PerformRedo(LevelEditor& editor, Scene& scene) {
 		return LECOMMAND::Redo(editor,
 			[&](LevelData& outState) { CaptureEditorState(scene, outState); },
 			[&](const LevelData& state) { RestoreEditorState(editor, scene, state); });
 	}
 
-	// Clear the undo/redo history, typically called when loading a new level or starting a new one.
+	/**
+	 * @brief Clears all undo and redo history tracked by the Level panel.
+	 */
 	static void ClearUndoHistory() {
 		LECOMMAND::ClearHistory();
 	}
 #endif // _DEBUG
-	// Build the current scene from loaded LevelData.
+	/**
+	 * @brief Rebuilds the current scene from serialized level data.
+	 * @param levelIn Level snapshot to load into the scene.
+	 * @param scene Scene to rebuild.
+	 */
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene) {
 		LELINKS::PrefabLinkByID.clear();
 
@@ -405,7 +456,11 @@ namespace {
 		}
 	}
 
-	// Scene to LevelData snapshot
+	/**
+	 * @brief Captures the current scene into a serializable level snapshot.
+	 * @param scene Scene to read from.
+	 * @param levelOut Snapshot to populate.
+	 */
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut) {
 		levelOut.objects.clear();
 
@@ -494,7 +549,12 @@ namespace {
 		}
 	}
 
-	// Swap transform + default-pos between two objects, if both exist.
+	/**
+	 * @brief Swaps the world positions and saved default positions of two objects.
+	 * @param scene Scene containing the objects.
+	 * @param aID First object ID.
+	 * @param bID Second object ID.
+	 */
 	void SwapObjectPositions(Scene& scene, int aID, int bID) {
 		if (aID == -1 || bID == -1 || aID == bID)
 			return;
@@ -520,7 +580,11 @@ namespace {
 	}
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-	// Draws the advanced Layering System UI (debug-only)
+	/**
+	 * @brief Draws the advanced layer-management UI for the Level panel.
+	 * @param scene Scene currently being edited.
+	 * @param selectedObjectId Engine object ID for the active scene selection.
+	 */
 	static void DrawLayerManager(Scene& scene, int selectedObjectId) {
 		if (!ImGui::CollapsingHeader("Layers")) {
 			return;

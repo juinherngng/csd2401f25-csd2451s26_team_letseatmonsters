@@ -21,7 +21,13 @@ class Scene;
 
 // Forward declare GameObject to avoid circular dependency.
 namespace LEPANELASSETS {
-	// Draw the Assets panel window.
+	/**
+	 * @brief Draws the Assets panel and handles asset import/apply actions.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 * @param selectedIndex Hierarchy selection index tracked across editor panels.
+	 * @param selectedObjectId Engine object ID for the active scene selection.
+	 */
 	void DrawAssetsPanel(LevelEditor& editor,
 		Scene& scene,
 		int& selectedIndex,

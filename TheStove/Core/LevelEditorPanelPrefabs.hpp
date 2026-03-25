@@ -21,6 +21,11 @@ class Scene;
  * @brief ImGui panel for working with JSON prefabs/archetypes.
  */
 namespace LEPANELPREFABS {
-	// Draw the Prefabs panel window.
+	/**
+	 * @brief Draws the Prefabs panel for saving and instantiating prefab assets.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 * @param selectedObjectId Engine object ID for the active scene selection.
+	 */
 	void DrawPrefabsPanel(LevelEditor& editor, Scene& scene, int& selectedObjectId);
 }

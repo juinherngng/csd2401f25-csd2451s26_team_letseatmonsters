@@ -19,19 +19,38 @@ class LevelEditor;
 struct LevelData;
 
 namespace LECOMMAND {
-	// Type aliases for snapshot capture and restore functions.
+	/// @brief Callback type used to capture the current level state into a snapshot.
 	using CaptureStateFn = std::function<void(LevelData&)>;
+	/// @brief Callback type used to restore a previously captured level snapshot.
 	using RestoreStateFn = std::function<void(const LevelData&)>;
 
-	// Records a snapshot of the current level state before a mutation occurs.
+	/**
+	 * @brief Records an undo snapshot before mutating level data.
+	 * @param editor Shared level editor controller.
+	 * @param capture Callback used to capture the current level state.
+	 */
 	void RecordPreMutationSnapshot(LevelEditor& editor, const CaptureStateFn& capture);
 
-	// Undo the last action by restoring the most recent snapshot from the undo stack.
+	/**
+	 * @brief Restores the most recent undo snapshot.
+	 * @param editor Shared level editor controller.
+	 * @param capture Callback used to capture the current state before undoing.
+	 * @param restore Callback used to apply the restored snapshot.
+	 * @return True when an undo action was performed.
+	 */
 	bool Undo(LevelEditor& editor, const CaptureStateFn& capture, const RestoreStateFn& restore);
 
-	// Redo the last undone action by restoring the next snapshot from the redo stack.
+	/**
+	 * @brief Restores the most recent redo snapshot.
+	 * @param editor Shared level editor controller.
+	 * @param capture Callback used to capture the current state before redoing.
+	 * @param restore Callback used to apply the restored snapshot.
+	 * @return True when a redo action was performed.
+	 */
 	bool Redo(LevelEditor& editor, const CaptureStateFn& capture, const RestoreStateFn& restore);
 
-	// Clears the undo and redo history stacks.
+	/**
+	 * @brief Clears all undo and redo history managed by the command system.
+	 */
 	void ClearHistory();
 }

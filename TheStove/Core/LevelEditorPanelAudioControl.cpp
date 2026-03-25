@@ -48,7 +48,11 @@ extern ApplicationState* g_AppState;
 
 namespace LEPANELAUDIOCONTROL {
 #ifdef _DEBUG
-	// Draw the Audio Control docked window
+	/**
+	 * @brief Draws the docked Audio Control panel for previewing and tuning audio.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 */
 	void DrawAudioControlPanel(LevelEditor& editor, Scene& scene) {
 		// Dock into the main dockspace on first use
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);

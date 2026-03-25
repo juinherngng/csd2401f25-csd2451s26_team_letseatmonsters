@@ -55,7 +55,11 @@ struct ApplicationState {
 extern ApplicationState* g_AppState;
 
 namespace {
-	// Helper to normalize paths for audio loading (convert to forward slashes)
+	/**
+	 * @brief Normalizes an audio asset path to use forward slashes.
+	 * @param path Input path to normalize.
+	 * @return Normalized path string.
+	 */
 	std::string NormalizeAudioPath(const std::string& path) {
 		std::string normalized = path;
 
@@ -68,7 +72,11 @@ namespace {
 		return normalized;
 	}
 
-	// Helper to detect category from name prefix
+	/**
+	 * @brief Infers an audio category from a filename prefix.
+	 * @param name Asset name to inspect.
+	 * @return Detected category label, or `"other"` when no known prefix matches.
+	 */
 	std::string DetectCategoryFromName(const std::string& name) {
 		// Convert to lowercase for comparison
 		std::string lowerName = name;
@@ -88,7 +96,13 @@ namespace {
 
 namespace LEPANELASSETS {
 #ifdef _DEBUG
-	// Draw the Assets docked window
+	/**
+	 * @brief Draws the docked Assets panel for importing, browsing, and applying assets.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 * @param selectedIndex Hierarchy selection index tracked across editor panels.
+	 * @param selectedObjectId Engine object ID for the active scene selection.
+	 */
 	void DrawAssetsPanel(LevelEditor& editor, Scene& scene, int& selectedIndex, int selectedObjectId) {
 		// Dock into the main dockspace on first use (safe no-op otherwise)
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);

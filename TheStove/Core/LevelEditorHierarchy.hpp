@@ -19,22 +19,45 @@
 class Scene;
 
 namespace LEHIERARCHY {
-	// Cache entry for storing generated labels and search tokens for scene objects in the hierarchy panel.
+	/**
+	 * @brief Clears cached hierarchy labels and search tokens.
+	 */
 	void InvalidateCache();
 
-	// Retrieves the cached label for a given object ID, generating and caching it if necessary based on the object's tag, texture path, and layer.
+	/**
+	 * @brief Returns the cached hierarchy label for an object.
+	 * @param scene Scene containing the object.
+	 * @param objectId Engine object identifier.
+	 * @return Cached display label for the requested object.
+	 */
 	const std::string& GetCachedLabel(Scene& scene, int objectId);
 
-	// Prunes cache entries for objects that no longer exist in the scene by comparing the set of live object IDs
-	// with the keys in the cache and erasing any entries that do not correspond to live objects.
+	/**
+	 * @brief Removes cached hierarchy entries for objects that no longer exist.
+	 * @param scene Scene used to determine which object IDs are still valid.
+	 */
 	void PruneDeadObjects(Scene& scene);
 
-	// Checks if a given label passes the current filter by converting both the label and filter to lowercase and checking if the filter is a substring of the label.
+	/**
+	 * @brief Tests whether a hierarchy label matches the active filter text.
+	 * @param label Display label to evaluate.
+	 * @param filterLower Lowercase filter string entered by the user.
+	 * @return True when the label passes the filter.
+	 */
 	bool PassesFilter(const std::string& label, const std::string& filterLower);
 
-	// Checks if a given label passes the current filter by converting both the label and filter to lowercase and checking if the filter is a substring of the label. 
+	/**
+	 * @brief Tests whether a cached object label matches the active filter text.
+	 * @param objectId Engine object identifier.
+	 * @param filterLower Lowercase filter string entered by the user.
+	 * @return True when the cached label passes the filter.
+	 */
 	bool PassesFilterCached(int objectId, const std::string& filterLower);
 
-	// Utility function to convert a string to lowercase. Used for generating search tokens for filtering.
+	/**
+	 * @brief Converts a string to lowercase for case-insensitive comparisons.
+	 * @param value Input string to convert.
+	 * @return Lowercase copy of the input string.
+	 */
 	std::string ToLowerCopy(std::string value);
 }

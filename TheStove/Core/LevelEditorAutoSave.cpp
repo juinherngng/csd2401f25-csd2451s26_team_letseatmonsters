@@ -23,7 +23,11 @@ namespace {
 	std::size_t sLastSavedHash = 0;
 	constexpr float kAutosaveIntervalSeconds = 30.0f;
 
-	// Generates a hash for the given LevelData by combining hashes of its background, object counts, and text object counts.
+	/**
+	 * @brief Builds a lightweight hash for autosave change detection.
+	 * @param level Level data to hash.
+	 * @return Hash representing the current level snapshot.
+	 */
 	std::size_t HashLevelData(const LevelData& level) {
 		std::size_t seed = std::hash<std::string>{}(level.background);
 		seed ^= std::hash<std::size_t>{}(level.objects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -33,14 +37,23 @@ namespace {
 }
 
 namespace LEAUTOSAVE {
-	// Builds the autosave file path by taking the original level path, extracting its stem, and appending ".autosave.json" before the extension.
+	/**
+	 * @brief Builds the autosave file path associated with a level file.
+	 * @param levelPath Path to the main level file.
+	 * @return Autosave path derived from the level path.
+	 */
 	std::string BuildAutosavePath(const std::string& levelPath) {
 		const fs::path original(levelPath);
 		const std::string stem = original.stem().string();
 		return (original.parent_path() / (stem + ".autosave.json")).generic_string();
 	}
 
-	// Ticks the autosave timer and saves the current level data to an autosave file if the specified interval has elapsed and the level data has changed since the last save.
+	/**
+	 * @brief Advances the autosave timer and writes an autosave when required.
+	 * @param levelPath Path to the main level file.
+	 * @param currentLevel Current level data to serialize.
+	 * @param deltaTimeSeconds Time elapsed since the previous frame in seconds.
+	 */
 	void Tick(const std::string& levelPath, const LevelData& currentLevel, float deltaTimeSeconds) {
 		sAccumulatedSeconds += deltaTimeSeconds;
 		if (sAccumulatedSeconds < kAutosaveIntervalSeconds) {
@@ -60,8 +73,11 @@ namespace LEAUTOSAVE {
 		}
 	}
 
-	// Checks if a recovery candidate exists by verifying the presence of the autosave file and comparing its last write time with the main level file.
-	// Returns true if the autosave is newer or if the main level file is missing.
+	/**
+	 * @brief Returns whether an autosave can be used for recovery.
+	 * @param levelPath Path to the main level file.
+	 * @return True when the autosave exists and is newer than the main file, or when the main file is missing.
+	 */
 	bool HasRecoveryCandidate(const std::string& levelPath) {
 		const fs::path autosavePath(BuildAutosavePath(levelPath));
 		if (!fs::exists(autosavePath)) {
@@ -76,12 +92,20 @@ namespace LEAUTOSAVE {
 		return fs::last_write_time(autosavePath) >= fs::last_write_time(mainPath);
 	}
 
-	// Loads recovery data from the autosave file into the provided LevelData reference. Returns true on successful load.
+	/**
+	 * @brief Loads recovery data from an autosave file.
+	 * @param levelPath Path to the main level file.
+	 * @param outLevel Receives the recovered level data.
+	 * @return True when recovery data was loaded successfully.
+	 */
 	bool LoadRecovery(const std::string& levelPath, LevelData& outLevel) {
 		return LevelSerializer::Load(BuildAutosavePath(levelPath), outLevel);
 	}
 
-	// Discards the recovery candidate by deleting the autosave file if it exists.
+	/**
+	 * @brief Deletes the autosave file associated with a level, if present.
+	 * @param levelPath Path to the main level file.
+	 */
 	void DiscardRecovery(const std::string& levelPath) {
 		fs::path autosavePath(BuildAutosavePath(levelPath));
 		if (fs::exists(autosavePath)) {

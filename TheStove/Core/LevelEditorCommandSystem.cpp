@@ -21,7 +21,11 @@ namespace {
 	constexpr const char* kUndoLimitEnvVar = "LE_EDITOR_UNDO_LIMIT";
 	constexpr int kDefaultUndoLimit = 50;
 
-	// Reads an environment variable and returns its value as a string.
+	/**
+	 * @brief Reads an environment variable and returns its value as a string.
+	 * @param key Environment-variable name.
+	 * @return Variable value, or an empty string when unset.
+	 */
 	std::string ReadEnvVar(const char* key) {
 #ifdef _WIN32
 		char* rawValue = nullptr;
@@ -39,7 +43,12 @@ namespace {
 #endif
 	}
 
-	// Parses a string as a positive integer, returning a fallback value if parsing fails or if the value is not positive.
+	/**
+	 * @brief Parses a positive integer from text with a fallback.
+	 * @param value Text value to parse.
+	 * @param fallback Value to return when parsing fails.
+	 * @return Parsed positive integer, or the fallback value.
+	 */
 	int ParsePositiveInt(const std::string& value, int fallback) {
 		if (value.empty()) {
 			return fallback;
@@ -54,7 +63,10 @@ namespace {
 		return static_cast<int>(parsed);
 	}
 
-	// Retrieves the undo limit from the environment variable, parsing it as a positive integer and falling back to a default value if necessary.
+	/**
+	 * @brief Returns the configured undo-history limit.
+	 * @return Maximum number of undo snapshots to retain.
+	 */
 	int GetUndoLimit() {
 		static const int undoLimit = ParsePositiveInt(ReadEnvVar(kUndoLimitEnvVar), kDefaultUndoLimit);
 		return undoLimit;
@@ -63,7 +75,11 @@ namespace {
 	std::vector<LevelData> sUndoStack;
 	std::vector<LevelData> sRedoStack;
 
-	// Pushes a new state onto the given stack and ensures the stack size does not exceed the configured undo limit by removing the oldest entry if necessary.
+	/**
+	 * @brief Pushes a snapshot onto a history stack while enforcing the undo limit.
+	 * @param stack History stack to append to.
+	 * @param state Snapshot to store.
+	 */
 	void BoundedPush(std::vector<LevelData>& stack, LevelData&& state) {
 		stack.push_back(std::move(state));
 		if (stack.size() > static_cast<std::size_t>(GetUndoLimit())) {
@@ -71,7 +87,15 @@ namespace {
 		}
 	}
 
-	// Applies a snapshot from the source history stack to the editor, moving the current state to the destination stack.
+	/**
+	 * @brief Moves one snapshot between history stacks and applies it to the editor.
+	 * @param editor Shared level editor controller.
+	 * @param source Source history stack to pop from.
+	 * @param destination Destination history stack to push the current state onto.
+	 * @param capture Callback used to capture the current level state.
+	 * @param restore Callback used to apply the retrieved snapshot.
+	 * @return True when a snapshot was applied.
+	 */
 	template <typename CaptureFn, typename RestoreFn>
 	bool ApplySnapshotFromHistory(LevelEditor& editor,
 		std::vector<LevelData>& source,
@@ -95,9 +119,11 @@ namespace {
 }
 
 namespace LECOMMAND {
-	// Records a snapshot of the current level state before a mutation occurs.
-	// The capture function is called to fill a LevelData snapshot, which is then pushed onto the undo stack.
-	// The redo stack is cleared to maintain consistency with the new action.
+	/**
+	 * @brief Records an undo snapshot before a level mutation.
+	 * @param editor Shared level editor controller.
+	 * @param capture Callback used to capture the current level state.
+	 */
 	void RecordPreMutationSnapshot(LevelEditor& editor, const CaptureStateFn& capture) {
 		if (editor.IsPlaying() || !capture) {
 			return;
@@ -109,14 +135,31 @@ namespace LECOMMAND {
 		sRedoStack.clear();
 	}
 
+	/**
+	 * @brief Restores the latest snapshot from the undo history.
+	 * @param editor Shared level editor controller.
+	 * @param capture Callback used to capture the current level state.
+	 * @param restore Callback used to apply the restored snapshot.
+	 * @return True when an undo operation was performed.
+	 */
 	bool Undo(LevelEditor& editor, const CaptureStateFn& capture, const RestoreStateFn& restore) {
 		return ApplySnapshotFromHistory(editor, sUndoStack, sRedoStack, capture, restore);
 	}
 
+	/**
+	 * @brief Restores the latest snapshot from the redo history.
+	 * @param editor Shared level editor controller.
+	 * @param capture Callback used to capture the current level state.
+	 * @param restore Callback used to apply the restored snapshot.
+	 * @return True when a redo operation was performed.
+	 */
 	bool Redo(LevelEditor& editor, const CaptureStateFn& capture, const RestoreStateFn& restore) {
 		return ApplySnapshotFromHistory(editor, sRedoStack, sUndoStack, capture, restore);
 	}
 
+	/**
+	 * @brief Clears all stored undo and redo snapshots.
+	 */
 	void ClearHistory() {
 		sUndoStack.clear();
 		sRedoStack.clear();

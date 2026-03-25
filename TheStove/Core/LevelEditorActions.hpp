@@ -20,7 +20,12 @@ class Scene;
 struct LevelData;
 
 namespace LEACTIONS {
-	// Struct to hold callbacks for level editor actions.
+	/**
+	 * @brief Callback bundle used by the Level Editor action bar.
+	 *
+	 * Each callback is supplied by the caller so the UI layer can trigger
+	 * scene-management and undo/redo behavior without owning that logic.
+	 */
 	struct Callbacks {
 		std::function<void()> onLoad;
 		std::function<void()> onNewScene;
@@ -31,9 +36,19 @@ namespace LEACTIONS {
 		std::function<void()> onStop;
 	};
 
-	// Draws the action grid with buttons for Load, New Scene, Save, Undo, Redo, Play, Stop, and Pause/Resume.
+	/**
+	 * @brief Draws the action-button grid for the Level Editor toolbar.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 * @param callbacks Action handlers invoked by the toolbar buttons.
+	 */
 	void DrawActionGrid(LevelEditor& editor, Scene& scene, const Callbacks& callbacks);
 
-	// Handles undo/redo shortcuts (Ctrl+Z / Ctrl+Y or Cmd+Z / Cmd+Shift+Z) and calls the provided callbacks if the shortcuts are triggered.
+	/**
+	 * @brief Processes editor undo and redo keyboard shortcuts.
+	 * @param editor Shared level editor controller.
+	 * @param undo Callback used when an undo shortcut is triggered.
+	 * @param redo Callback used when a redo shortcut is triggered.
+	 */
 	void HandleUndoRedoShortcuts(LevelEditor& editor, const std::function<bool()>& undo, const std::function<bool()>& redo);
 }

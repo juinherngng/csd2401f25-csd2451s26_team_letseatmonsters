@@ -33,53 +33,85 @@ class Scene;
  */
 class LevelEditor {
 public:
-	/// @brief Returns whether the editor UI is currently enabled.
+	/**
+	 * @brief Returns whether the editor UI is currently enabled.
+	 * @return True when the level editor interface should be shown.
+	 */
 	bool IsEnabled() const {
 		return isEnabled;
 	}
 
-	/// @brief Toggles the overall editor visibility.
+	/**
+	 * @brief Toggles the overall editor visibility.
+	 *
+	 * This switches the editor between visible and hidden states without
+	 * changing any of its currently loaded data.
+	 */
 	void Toggle() {
 		isEnabled = !isEnabled;
 	}
 
-	/// @brief Stores the active level path used by the editor.
+	/**
+	 * @brief Stores the active level path used by the editor.
+	 * @param path Filesystem path to the level currently being edited.
+	 */
 	void SetPath(const std::string& path) {
 		levelPath = path;
 	}
 
-	/// @brief Returns the active level path.
+	/**
+	 * @brief Returns the active level path.
+	 * @return Constant reference to the current level path string.
+	 */
 	const std::string& GetPath() const {
 		return levelPath;
 	}
 	std::string levelPath{}; // public on purpose to preserve existing panel access
 
-	/// @brief Returns whether the editor is currently in play mode.
+	/**
+	 * @brief Returns whether the editor is currently in play mode.
+	 * @return True when the editor is simulating the scene in play mode.
+	 */
 	bool IsPlaying() const {
 		return isPlaying;
 	}
 
-	/// @brief Updates the play-state flag tracked by the editor.
+	/**
+	 * @brief Updates the play-state flag tracked by the editor.
+	 * @param on True to mark the editor as being in play mode.
+	 */
 	void SetPlaying(bool on) {
 		isPlaying = on;
 	}
 
-	/// @brief Returns whether the Build Size Analyzer panel should be shown.
+	/**
+	 * @brief Returns whether the Build Size Analyzer panel should be shown.
+	 * @return True when the Build Size Analyzer panel is open.
+	 */
 	bool IsBuildSizeAnalyzerOpen() const {
 		return buildSizeAnalyzerOpen;
 	}
 
-	/// @brief Updates the Build Size Analyzer panel visibility.
+	/**
+	 * @brief Updates the Build Size Analyzer panel visibility.
+	 * @param open True to display the Build Size Analyzer panel.
+	 */
 	void SetBuildSizeAnalyzerOpen(bool open) {
 		buildSizeAnalyzerOpen = open;
 	}
 
-	/// @brief Returns the working LevelData snapshot being edited.
+	/**
+	 * @brief Returns the working LevelData snapshot being edited.
+	 * @return Mutable reference to the editor's active level data.
+	 */
 	LevelData& MutableLevel() {
 		return level;
 	}
 
-	/// @brief Returns the snapshot captured when play mode begins.
+	/**
+	 * @brief Returns the snapshot captured when play mode begins.
+	 * @return Mutable reference to the play-mode entry snapshot.
+	 */
 	LevelData& MutablePlaySnapshot() {
 		return playStartSnapshot;
 	}

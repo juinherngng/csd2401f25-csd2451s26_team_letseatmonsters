@@ -20,6 +20,10 @@ class Scene;
 
 // Forward declare GameObject to avoid circular dependency.
 namespace LEPANELCONFIG {
-	// Draw the Config panel window.
+	/**
+	 * @brief Draws the configuration editing panel for engine settings.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 */
 	void DrawConfigPanel(LevelEditor& editor, Scene& scene);
 }

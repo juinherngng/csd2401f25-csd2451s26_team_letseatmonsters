@@ -42,7 +42,10 @@ struct ApplicationState {
 extern ApplicationState* g_AppState;
 
 namespace {
-	// Resolves the config file path using the same candidate order as ConfigManager::LoadFromAssets.
+	/**
+	 * @brief Resolves the config file path using the same candidate search order as ConfigManager.
+	 * @return Path to the config file used by the editor panel.
+	 */
 	std::string ResolveConfigPath() {
 		std::string resolvedPath;
 		if (ConfigManager::ResolveAssetPath(resolvedPath)) {
@@ -54,7 +57,11 @@ namespace {
 		return (cwd / "assets/config.txt").lexically_normal().string();
 	}
 
-	// Collects source/build config candidates so Save can keep both runtime and source config files in sync.
+	/**
+	 * @brief Builds the list of config file targets to keep in sync when saving.
+	 * @param primaryPath Primary config path currently in use.
+	 * @return Ordered list of distinct config save targets.
+	 */
 	std::vector<std::string> CollectConfigSaveTargets(const std::string& primaryPath) {
 		namespace fs = std::filesystem;
 		const fs::path cwd = fs::current_path();
@@ -80,8 +87,11 @@ namespace {
 
 namespace LEPANELCONFIG {
 #ifdef _DEBUG
-	// Draws the Config panel in the level editor, allowing users to view and edit display and audio settings from config.txt,
-	// apply audio changes live, and save changes back to the config file.
+	/**
+	 * @brief Draws the Config panel for viewing, editing, and saving engine settings.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 */
 	void DrawConfigPanel(LevelEditor& editor, Scene& scene) {
 		(void)editor;
 		(void)scene;

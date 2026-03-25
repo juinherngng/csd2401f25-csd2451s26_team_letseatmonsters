@@ -18,7 +18,13 @@ class LevelEditor;
 
 // Forward declare GameObject to avoid circular dependency.
 namespace LEPICKDRAG {
-	// Handle scene picking and dragging inside the Scene viewport.
+	/**
+	 * @brief Handles object picking and drag manipulation inside the scene viewport.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 * @param selectedIndex Hierarchy selection index tracked across editor panels.
+	 * @param selectedObjectId Engine object ID for the active scene selection.
+	 */
 	void HandleScenePickDrag(LevelEditor& editor,
 		Scene& scene,
 		int& selectedIndex,

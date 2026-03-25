@@ -49,6 +49,12 @@ using namespace LELINKS;
 
 namespace LEPANELPREFABS {
 #ifdef _DEBUG
+	/**
+	 * @brief Builds a serializable prefab snapshot from a scene object.
+	 * @param scene Scene containing the object.
+	 * @param g Object to serialize.
+	 * @return LevelObject snapshot representing the object.
+	 */
 	static LevelObject BuildPrefabFromObject(Scene& scene, GameObject* g) {
 		LevelObject out{};
 
@@ -83,10 +89,23 @@ namespace LEPANELPREFABS {
 		return out;
 	}
 
+	/**
+	 * @brief Compares two floating-point values using a tolerance.
+	 * @param a First value.
+	 * @param b Second value.
+	 * @param epsilon Allowed absolute difference.
+	 * @return True when the values are within the requested tolerance.
+	 */
 	static bool NearlyEqual(float a, float b, float epsilon = 0.01f) {
 		return std::fabs(a - b) <= epsilon;
 	}
 
+	/**
+	 * @brief Returns whether two prefab snapshots are equivalent for propagation checks.
+	 * @param lhs First prefab snapshot.
+	 * @param rhs Second prefab snapshot.
+	 * @return True when the compared prefab properties are effectively equal.
+	 */
 	static bool IsPrefabEquivalent(const LevelObject& lhs, const LevelObject& rhs) {
 		return lhs.texture == rhs.texture &&
 			lhs.tag == rhs.tag &&
@@ -106,13 +125,21 @@ namespace LEPANELPREFABS {
 			(lhs.animated == rhs.animated);
 	}
 
-	// Ensure a .json extension for save paths
+	/**
+	 * @brief Ensures that a prefab path ends with a `.json` extension.
+	 * @param path Path string to normalize in place.
+	 */
 	static inline void EnsureJsonExt(std::string& path) {
 		if (fs::path(path).extension().empty()) {
 			path += ".json";
 		}
 	}
 
+	/**
+	 * @brief Resolves user-entered prefab text into a normalized prefab path.
+	 * @param inputPath User-supplied prefab path or filename.
+	 * @return Resolved prefab path with a `.json` extension.
+	 */
 	static std::string ResolvePrefabPathFromInput(const std::string& inputPath) {
 		fs::path resolved(inputPath);
 
@@ -125,6 +152,11 @@ namespace LEPANELPREFABS {
 		return out;
 	}
 
+	/**
+	 * @brief Normalizes a prefab path for reliable comparisons.
+	 * @param path Prefab path to normalize.
+	 * @return Canonicalized or lexically normalized prefab path.
+	 */
 	static std::string NormalizePrefabPath(const std::string& path) {
 		std::error_code ec;
 		const fs::path raw(path);
@@ -136,6 +168,12 @@ namespace LEPANELPREFABS {
 		return raw.lexically_normal().generic_string();
 	}
 
+	/**
+	 * @brief Returns whether two prefab paths refer to the same file.
+	 * @param lhs First prefab path.
+	 * @param rhs Second prefab path.
+	 * @return True when both paths resolve to the same prefab file.
+	 */
 	static bool IsSamePrefabPath(const std::string& lhs, const std::string& rhs) {
 		if (lhs == rhs) {
 			return true;
@@ -144,6 +182,10 @@ namespace LEPANELPREFABS {
 		return NormalizePrefabPath(lhs) == NormalizePrefabPath(rhs);
 	}
 
+	/**
+	 * @brief Resolves the levels directory used when propagating prefab edits to disk.
+	 * @return Directory path containing level JSON files.
+	 */
 	static std::string ResolveLevelsDirectoryForPropagation() {
 		std::error_code ec;
 
@@ -169,6 +211,12 @@ namespace LEPANELPREFABS {
 		return FilePaths::Dirs::LEVELS_EDITOR;
 	}
 
+	/**
+	 * @brief Propagates an updated prefab snapshot to all linked objects across level files.
+	 * @param prefabPath Prefab file path being updated.
+	 * @param updatedPrefab New prefab data to apply.
+	 * @return Number of linked objects updated across all level files.
+	 */
 	static int PropagatePrefabToAllLevelFiles(const std::string& prefabPath, const LevelObject& updatedPrefab) {
 		int totalObjectsUpdated = 0;
 		const std::vector<std::string> levelFiles = ListJsonFiles(ResolveLevelsDirectoryForPropagation());
@@ -206,7 +254,12 @@ namespace LEPANELPREFABS {
 		return totalObjectsUpdated;
 	}
 
-	// Draw the Prefabs docked window
+	/**
+	 * @brief Draws the docked Prefabs panel for saving and instantiating prefabs.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 * @param selectedObjectId Engine object ID for the active scene selection.
+	 */
 	void DrawPrefabsPanel(LevelEditor& editor, Scene& scene, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(
 			GraphicsEngine::Instance().GetMainDockspaceID(),

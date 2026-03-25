@@ -25,14 +25,23 @@
 namespace LEACTIONS {
 #ifdef _DEBUG
 	namespace {
-		// Helper function to draw a full-width button with a callback.
+		/**
+		 * @brief Draws a full-width toolbar button and invokes its callback when clicked.
+		 * @param label Button label.
+		 * @param callback Callback to invoke after a click.
+		 */
 		inline void DrawActionButton(const char* label, const std::function<void()>& callback) {
 			if (ImGui::Button(label, ImVec2(-FLT_MIN, 0.0f)) && callback) {
 				callback();
 			}
 		}
 
-		// Helper function to draw a full-width button that can be disabled based on the 'disabled' flag.
+		/**
+		 * @brief Draws a full-width toolbar button with optional disabled state.
+		 * @param label Button label.
+		 * @param disabled True to disable interaction with the button.
+		 * @param callback Callback to invoke after a click.
+		 */
 		inline void DrawActionButtonDisabled(const char* label, bool disabled, const std::function<void()>& callback) {
 			ImGui::BeginDisabled(disabled);
 			DrawActionButton(label, callback);
@@ -41,8 +50,12 @@ namespace LEACTIONS {
 	}
 #endif
 
-	// Handles undo/redo shortcuts (Ctrl+Z / Ctrl+Y or Cmd+Z / Cmd+Shift+Z) and calls the provided callbacks if the shortcuts are triggered.
-	// Only active when not playing and when ImGui is not capturing keyboard input.
+	/**
+	 * @brief Processes editor undo and redo shortcuts.
+	 * @param editor Shared level editor controller.
+	 * @param undo Callback used when an undo shortcut is triggered.
+	 * @param redo Callback used when a redo shortcut is triggered.
+	 */
 	void HandleUndoRedoShortcuts(LevelEditor& editor, const std::function<bool()>& undo, const std::function<bool()>& redo) {
 #ifndef _DEBUG
 		(void)editor;
@@ -64,8 +77,12 @@ namespace LEACTIONS {
 #endif
 	}
 
-	// Renders the action grid with buttons for Load, New Scene, Save, Undo, Redo, Play, Stop, and Pause/Resume.
-	// Buttons are disabled based on the editor's play state. Calls the provided callbacks when buttons are clicked.
+	/**
+	 * @brief Draws the main action grid for file, history, and simulation controls.
+	 * @param editor Shared level editor controller.
+	 * @param scene Scene currently being edited.
+	 * @param callbacks Callback bundle invoked by the toolbar buttons.
+	 */
 	void DrawActionGrid(LevelEditor& editor, Scene& scene, const Callbacks& callbacks) {
 		(void)scene;
 #ifndef _DEBUG
