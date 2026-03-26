@@ -407,7 +407,39 @@
       "name": "vo_customer_happy_09",
       "stream": false,
       "volume": 1.0
+    },
+    {
+      "category": "ui",
+      "filepath": "../../assets/Audio/ui_back.wav",
+      "loop": false,
+      "name": "ui_back",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "ui",
+      "filepath": "../../assets/Audio/ui_clickbutton.wav",
+      "loop": false,
+      "name": "ui_clickbutton",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "ui",
+      "filepath": "../../assets/Audio/ui_hover.wav",
+      "loop": false,
+      "name": "ui_hover",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "ui",
+      "filepath": "../../assets/Audio/ui_startresume.wav",
+      "loop": false,
+      "name": "ui_startresume",
+      "stream": false,
+      "volume": 1.0
     }
   ],
-  "version": "5.1"
+  "version": "1.0"
 }
