@@ -53,7 +53,8 @@ void TableLogic::Start(Scene& scene) {
 		AddApproachOffset(Math::Vector2D(def.approachOffset.x, def.approachOffset.y));
 	}
 
-	if (def.hasApproachOffset2) {
+	if (def.hasApproachOffset2 &&
+		(def.approachOffset2.x != 0.0f || def.approachOffset2.y != 0.0f)) {
 		AddApproachOffset(Math::Vector2D(def.approachOffset2.x, def.approachOffset2.y));
 	}
 }
