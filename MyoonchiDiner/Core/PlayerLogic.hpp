@@ -443,7 +443,7 @@ private:
 		int tableID = -1;
 	};
 
-	static constexpr float kInteractionCommitRadius = 30.0f;
+	static constexpr float kInteractionCommitRadius = 60.0f;
 
 	QueuedAction queuedAction_{};
 
