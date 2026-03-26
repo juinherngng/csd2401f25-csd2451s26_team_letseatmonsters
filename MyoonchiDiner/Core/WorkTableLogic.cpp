@@ -143,6 +143,36 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&) {
 	}
 }
 
+bool WorkTableLogic::CanTakeHeldItem(Scene& scene) const {
+	if (!HasItem()) {
+		return false;
+	}
+
+	const int heldItemID = GetHeldItemID();
+	GameObject* item = scene.GetGameObjectByID(heldItemID);
+	if (!item) {
+		return false;
+	}
+
+	// Main rule: while the workstation is actively processing,
+	// the player is not allowed to take the ingredient back out.
+	if (isProcessing_) {
+		return false;
+	}
+
+	// Safety rule: even if processing was somehow cancelled or paused,
+	// a RAW ingredient should still not be removable from a workstation.
+	if (IngredientLogic* ing =
+		scene.GetLogicManager().GetLogicForObject<IngredientLogic>(heldItemID)) {
+		if (ing->IsRaw()) {
+			return false;
+		}
+	}
+
+	// Processed ingredient is allowed to be taken.
+	return true;
+}
+
 float WorkTableLogic::GetProcessingProgress() const {
 	if (!isProcessing_ || processingTime_ <= 0.0f)
 		return 0.0f;

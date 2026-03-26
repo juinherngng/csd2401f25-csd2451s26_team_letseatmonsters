@@ -1748,7 +1748,13 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 
 	// CASE 1: Player empty-handed, table has an item -> pick up
 	if (!playerHolding && tableHasItem) {
-		//std::cout << "  [PlayerLogic] CASE1: table has item, player empty -> TakeItem + PickUp\n";
+		// Workstations: do NOT allow taking back raw / still-processing ingredients.
+		if (WorkTableLogic* wt = logicMgr.GetLogicForObject<WorkTableLogic>(tableObjectID)) {
+			if (!wt->CanTakeHeldItem(scene)) {
+				return;
+			}
+		}
+
 		int itemID = table->TakeItem(scene);
 		if (itemID >= 0) {
 			PickUp(scene, itemID);

@@ -68,6 +68,13 @@ public:
 		return stationType_ == StationType::CuttingBoard;
 	}
 
+	/**
+	* @brief Returns whether the current held item may be taken from this station.
+	* Raw / still-processing ingredients are locked on the station until finished.
+	* @param scene Scene being processed.
+	* @return True when the station's current item is allowed to be removed.
+	*/
+	bool CanTakeHeldItem(Scene& scene) const;
 
 protected:
 	enum class StationType {
