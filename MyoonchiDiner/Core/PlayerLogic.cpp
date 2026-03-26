@@ -135,7 +135,7 @@ namespace {
 // Constants and helper functions for PlayerLogic, in an anonymous namespace to limit scope to this file.
 namespace {
 	// Interaction and movement parameters
-	constexpr float kPlayerInteractRadius = 85.0f;
+	constexpr float kPlayerInteractRadius = 40.0f;
 	constexpr float kMoveRetargetDeadzone = 6.0f;
 	constexpr float kDragRetargetDistance = 20.0f;
 	constexpr float kDragRetargetInterval = 0.06f;
@@ -824,10 +824,8 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	// pending interaction, finish THAT first, then do one queued action.
 	// ------------------------------------------------------------
 	if (pendingTableID >= 0 && IsInTableCommitRange(scene, pendingTableID)) {
-		const int committedTableID = pendingTableID;
-
 		if (clickedTable) {
-			if (clickedTableID != committedTableID) {
+			if (clickedTableID != pendingTableID) {
 				QueueTableAction(clickedTableID);
 
 				const glm::vec2 playerPos = ToVec2(player->GetPositionGLM());
@@ -844,12 +842,7 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 			ShowClickMoveIndicator(scene, mouseWorld);
 		}
 
-		CancelQueuedTableMove(scene);
-		InteractWithTable(scene, committedTableID);
-
-		if (!movementLocked_) {
-			ExecuteQueuedAction(scene);
-		}
+		// Keep walking to the current destination first.
 		return;
 	}
 
@@ -1143,11 +1136,16 @@ void PlayerLogic::OnArrived(Scene& scene) {
 		return;
 	}
 
-	if (IsInTableInteractionRange(scene, pendingTableID)) {
-		InteractWithTable(scene, pendingTableID);
-	}
-
+	const int arrivedTableID = pendingTableID;
 	pendingTableID = -1;
+
+	if (IsInTableInteractionRange(scene, arrivedTableID)) {
+		InteractWithTable(scene, arrivedTableID);
+
+		if (!movementLocked_) {
+			ExecuteQueuedAction(scene);
+		}
+	}
 }
 
 /**
