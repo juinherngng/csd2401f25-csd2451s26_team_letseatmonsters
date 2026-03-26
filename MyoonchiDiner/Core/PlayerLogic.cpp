@@ -2020,6 +2020,70 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 
 			return;
 		}
+		// ------------------------------------------------------------
+// CASE 3C: player is holding a PLATE with 1 ingredient,
+// table has another PLATE with 1 ingredient.
+// Transfer the ingredient from the table plate to the held plate.
+// Leave the table plate behind as an empty plate.
+// ------------------------------------------------------------
+		if (heldPlate && tablePlate) {
+			// Do not allow combining already-finished dishes
+			if (heldPlate->HasPreparedDish() || tablePlate->HasPreparedDish()) {
+				return;
+			}
+
+			// This behavior is specifically for 1-ingredient plate + 1-ingredient plate
+			if (heldPlate->GetIngredientCount() != 1 || tablePlate->GetIngredientCount() != 1) {
+				return;
+			}
+
+			const std::vector<IngredientType>& tableIngredients = tablePlate->GetIngredients();
+			if (tableIngredients.empty()) {
+				return;
+			}
+
+			const IngredientType transferType = tableIngredients[0];
+
+			// Make sure held plate can still accept one more ingredient
+			if (!heldPlate->CanAcceptIngredientType(transferType)) {
+				return;
+			}
+
+			const int heldFirstObjID = heldPlate->GetFirstIngredientObjectID();
+			const int tableFirstObjID = tablePlate->GetFirstIngredientObjectID();
+
+			// Add the table plate's ingredient logically onto the held plate
+			heldPlate->AddIngredientType(transferType);
+
+			// The table plate is now empty
+			if (tableFirstObjID >= 0 && scene.GetGameObjectByID(tableFirstObjID)) {
+				scene.DespawnByID(tableFirstObjID);
+			}
+			tablePlate->ClearIngredients();
+
+			// Try to assemble final dish on held plate
+			DishType dishType;
+			std::vector<IngredientType> consumedTypes;
+			if (heldPlate->TryAssembleDish(dishType, consumedTypes)) {
+				heldPlate->ApplyDishVisual(scene);
+
+				// Remove old first ingredient visual from held plate
+				if (heldFirstObjID >= 0 && scene.GetGameObjectByID(heldFirstObjID)) {
+					scene.DespawnByID(heldFirstObjID);
+				}
+
+				heldPlate->SetFirstIngredientObjectID(-1);
+			}
+
+#ifndef _DEBUG
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				glm::vec3 playerPos = player->GetPositionGLM();
+				audioMgr->PlaySound3D("sfx_put_down", playerPos.x, playerPos.y, playerPos.z,
+					audioMgr->GetVfxVolume() * 0.8f);
+			}
+#endif
+			return;
+		}
 
 		return;
 	}
