@@ -235,9 +235,9 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item) {
 	if (IsItemProcessable(scene, item)) {
 		if (IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID())) {
 			switch (stationType_) {
-			case StationType::CuttingBoard: processingTime_ = 3.0f; break;
+			case StationType::CuttingBoard: processingTime_ = 1.5f; break;
 			case StationType::Grill:        processingTime_ = 5.0f; break;
-			case StationType::Stove:        processingTime_ = (ing->GetType() == IngredientType::Carrot) ? 5.0f : 7.0f; break;
+			case StationType::Stove:        processingTime_ = (ing->GetType() == IngredientType::Carrot) ? 3.0f : 7.0f; break;
 			default:                        processingTime_ = 3.0f; break;
 			}
 		}

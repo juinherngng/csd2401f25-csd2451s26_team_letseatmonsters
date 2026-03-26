@@ -1809,10 +1809,17 @@ namespace {
 		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
 
 		if (isLevel2) {
-			customerManager.SetSpawnCooldown(10.0f);
+			customerManager.ConfigureSpawnCurve(
+				20.0f,  // opening grace time before first customer
+				17.0f,  // first repeat cooldown
+				9.0f,   // rush-hour minimum cooldown
+				1.0f,   // drop by 1 second per successful spawn
+				180.0f  // stop ramping after 2 minutes
+			);
+
 			customerManager.SetMaxCustomers(12);
 			Economy::SetTimeLimitSeconds(240.0f);
-			Economy::SetQuota(310);
+			Economy::SetQuota(450);
 		}
 		else if (isLevel1) {
 			customerManager.SetSpawnCooldown(20.0f);

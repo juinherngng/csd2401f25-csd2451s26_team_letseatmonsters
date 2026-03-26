@@ -28,120 +28,112 @@ class Scene;
  *  - Pairs them 1:1 in order, calls SeatCustomer() on the table,
  *    and SetCustomerTableTarget() on the NPC so they walk to the seat.
  */
-class Scene;
 
 class CustomerManagerSystem {
 public:
-
-	/**
-	 * @brief Constructs a `CustomerManagerSystem` instance.
-	 */
 	CustomerManagerSystem() = default;
 
-	/**
-	  * @brief Run per-frame customer management.
-	  * @param dt Delta time for the current frame in seconds.
-	  * @param scene Scene context used for table discovery, spawning, and cleanup.
-	  */
 	void Update(float dt, Scene& scene);
-
-	/**
-	 * @brief Reset all cached state when the active scene is cleared/reloaded.
-	 */
 	void Reset();
 
-	/**
-	 * @brief Set the maximum number of simultaneously active customers.
-	 * @param n Hard cap applied by the spawn logic.
-	 */
 	void SetMaxCustomers(int n) {
 		maxCustomers_ = n;
 	}
 
-	/**
-	 * @brief Set a hard cap on total customers spawned for this level run.
-	 * @param n Total spawn cap. Use negative value for unlimited.
-	 */
 	void SetTotalSpawnLimit(int n) {
 		totalSpawnLimit_ = n;
 	}
 
-	/**
-	 * @brief Remove total spawn cap (unlimited).
-	 */
 	void ClearTotalSpawnLimit() {
 		totalSpawnLimit_ = -1;
 	}
 
-	/**
-	 * @brief Force newly spawned customers to have effectively infinite patience.
-	 * @param enabled True to force infinite patience on spawn, false to use normal patience.
-	 */
 	void SetSpawnedCustomersInfinitePatience(bool enabled) {
 		spawnWithInfinitePatience_ = enabled;
 	}
 
-	/**
-	* @brief Set cooldown time between customer spawns.
-	* @param seconds Seconds to wait before spawning the next customer.
-	*/
 	void SetSpawnCooldown(float seconds) {
+		if (seconds < 0.0f) seconds = 0.0f;
+
+		startSpawnCooldown_ = seconds;
 		spawnCooldown_ = seconds;
+		minSpawnCooldown_ = seconds;
+		spawnCooldownStep_ = 0.0f;
+		initialSpawnDelay_ = 0.0f;
+		cooldownRampStopTime_ = -1.0f;
 	}
+
+	void ConfigureSpawnCurve(float initialDelay,
+		float firstRepeatCooldown,
+		float minCooldown,
+		float cooldownStepPerSpawn,
+		float rampStopTimeSeconds) {
+		if (initialDelay < 0.0f) initialDelay = 0.0f;
+		if (firstRepeatCooldown < 0.0f) firstRepeatCooldown = 0.0f;
+		if (minCooldown < 0.0f) minCooldown = 0.0f;
+		if (cooldownStepPerSpawn < 0.0f) cooldownStepPerSpawn = 0.0f;
+
+		if (minCooldown > firstRepeatCooldown) {
+			minCooldown = firstRepeatCooldown;
+		}
+
+		initialSpawnDelay_ = initialDelay;
+		startSpawnCooldown_ = firstRepeatCooldown;
+		spawnCooldown_ = firstRepeatCooldown;
+		minSpawnCooldown_ = minCooldown;
+		spawnCooldownStep_ = cooldownStepPerSpawn;
+		cooldownRampStopTime_ = rampStopTimeSeconds;
+	}
+
 private:
-	int maxCustomers_ = 16;				// hard cap on simultaneous customers; set by level design or difficulty settings
-	float spawnCooldown_ = 10.0f;       // small delay between spawns
-	float spawnTimer_ = 999.0f;         // big so it spawns immediately at start
+	int maxCustomers_ = 16;
 
-	int totalSpawnLimit_ = -1;           // hard cap on total spawned customers (-1 = unlimited)
-	int totalSpawned_ = 0;               // number of customers spawned this level run
-	bool spawnWithInfinitePatience_ = false; // flag to determine if spawned customers have infinite patience
+	// Current live cooldown used for the NEXT spawn after the first customer.
+	float spawnCooldown_ = 10.0f;
 
-	std::vector<int> activeCustomers_;  // ids of customers alive
-	std::vector<int> customerTableIDs_; // ids of customer tables we discovered
-	bool cachedTables_ = false;			// tracks whether table discovery has already run for the current scene
+	// Initial recurring cooldown after the first customer has already appeared.
+	float startSpawnCooldown_ = 10.0f;
 
-	// Cached template/prefab ID for spawning new customers
+	// Lower bound once rush hour is reached.
+	float minSpawnCooldown_ = 10.0f;
+
+	// Amount removed from cooldown after each successful spawn during the ramp.
+	float spawnCooldownStep_ = 0.0f;
+
+	// Delay before the very first customer appears.
+	float initialSpawnDelay_ = 0.0f;
+
+	// Stop reducing cooldown after this many seconds of level time.
+	// Use negative value for "never stop by time".
+	float cooldownRampStopTime_ = -1.0f;
+
+	// Time accumulated toward the next spawn.
+	float spawnTimer_ = 0.0f;
+
+	// Elapsed active gameplay time in this level.
+	float levelElapsed_ = 0.0f;
+
+	// Whether the first customer has already spawned.
+	bool hasSpawnedAtLeastOnce_ = false;
+
+	int totalSpawnLimit_ = -1;
+	int totalSpawned_ = 0;
+	bool spawnWithInfinitePatience_ = false;
+
+	std::vector<int> activeCustomers_;
+	std::vector<int> customerTableIDs_;
+	bool cachedTables_ = false;
+
 	int customerTemplateID_ = -1;
-
-	// Tracks whether template discovery has already run for the current scene
 	bool cachedTemplate_ = false;
 
-	// Optional customer spawn entry markers discovered in the level JSON.
 	std::vector<int> customerEntryIDs_;
-
-	// Round-robin index for choosing which customer entry marker to spawn from.
 	int nextEntryIndex_ = 0;
 	bool cachedEntries_ = false;
 
-	/**
-	 * @brief Performs cache tables.
-	 * @param scene Scene being processed.
-	 */
 	void CacheTables(Scene& scene);
-
-	/**
-	 * @brief Performs cache template.
-	 * @param scene Scene being processed.
-	 */
 	void CacheTemplate(Scene& scene);
-
-	/**
-	 * @brief Performs cache entries.
-	 * @param scene Scene being processed.
-	 */
 	void CacheEntries(Scene& scene);
-
-	/**
-	 * @brief Performs cleanup dead customers.
-	 * @param scene Scene being processed.
-	 */
 	void CleanupDeadCustomers(Scene& scene);
-
-	/**
-	 * @brief Attempt to spawn exactly one customer if capacity/cooldown allows.
-	 * @return True when one customer is spawned successfully, false otherwise.
-	 */
 	bool TrySpawnOne(Scene& scene);
 };
-

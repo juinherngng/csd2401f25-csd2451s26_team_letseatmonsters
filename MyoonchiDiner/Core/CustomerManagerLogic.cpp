@@ -78,6 +78,20 @@ void CustomerManagerSystem::Reset() {
 	customerTableIDs_.clear();
 	customerEntryIDs_.clear();
 
+	// Reset tuning too, so one level's spawn curve does not leak into another.
+	maxCustomers_ = 16;
+
+	startSpawnCooldown_ = 10.0f;
+	spawnCooldown_ = 10.0f;
+	minSpawnCooldown_ = 10.0f;
+	spawnCooldownStep_ = 0.0f;
+	initialSpawnDelay_ = 0.0f;
+	cooldownRampStopTime_ = -1.0f;
+
+	totalSpawnLimit_ = -1;
+	totalSpawned_ = 0;
+	spawnWithInfinitePatience_ = false;
+
 	cachedTables_ = false;
 
 	customerTemplateID_ = -1;
@@ -85,8 +99,11 @@ void CustomerManagerSystem::Reset() {
 
 	nextEntryIndex_ = 0;
 	cachedEntries_ = false;
-	spawnTimer_ = 180.0f;
-	totalSpawned_ = 0;
+
+	// Start from zero. The first customer now waits for initialSpawnDelay_.
+	spawnTimer_ = 0.0f;
+	levelElapsed_ = 0.0f;
+	hasSpawnedAtLeastOnce_ = false;
 }
 
 void CustomerManagerSystem::CacheTables(Scene& scene) {
@@ -317,6 +334,20 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 
 	activeCustomers_.push_back(npcID);
 	++totalSpawned_;
+	hasSpawnedAtLeastOnce_ = true;
+
+	// Keep the first repeat cooldown at its starting value (e.g. 15s),
+	// then begin accelerating from the second successful spawn onward:
+	// 15 -> 14 -> 13 -> ...
+	const bool canStillRampByTime =
+		(cooldownRampStopTime_ < 0.0f) || (levelElapsed_ < cooldownRampStopTime_);
+
+	if (canStillRampByTime &&
+		totalSpawned_ >= 2 &&
+		spawnCooldownStep_ > 0.0f &&
+		spawnCooldown_ > minSpawnCooldown_) {
+		spawnCooldown_ = std::max(minSpawnCooldown_, spawnCooldown_ - spawnCooldownStep_);
+	}
 
 	// Play customer entering sound effect (release mode only)
 #ifndef _DEBUG
@@ -326,11 +357,11 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 #endif
 
 	TS_LOG_DEBUG("[CustomerManager] Spawned customer " << npcID
-		<< " -> table " << chosenTableID);
+		<< " -> table " << chosenTableID
+		<< " | next cooldown=" << spawnCooldown_);
 
 	return true;
 }
-
 
 void CustomerManagerSystem::Update(float dt, Scene& scene) {
 	if (!scene.IsSimulationActive())
@@ -341,6 +372,9 @@ void CustomerManagerSystem::Update(float dt, Scene& scene) {
 	if (!cachedEntries_) CacheEntries(scene);
 
 	CleanupDeadCustomers(scene);
+
+	levelElapsed_ += dt;
+	spawnTimer_ += dt;
 
 	// Hard cap by number of seats
 	int totalSeatCap = 0;
@@ -354,15 +388,27 @@ void CustomerManagerSystem::Update(float dt, Scene& scene) {
 
 	const int targetCount = std::min(maxCustomers_, totalSeatCap);
 
-	spawnTimer_ += dt;
-
 	while ((int)activeCustomers_.size() < targetCount &&
-		(totalSpawnLimit_ < 0 || totalSpawned_ < totalSpawnLimit_) &&
-		spawnTimer_ >= spawnCooldown_) {
-		spawnTimer_ = 0.0f;
+		(totalSpawnLimit_ < 0 || totalSpawned_ < totalSpawnLimit_)) {
+
+		const float requiredDelay = hasSpawnedAtLeastOnce_
+			? spawnCooldown_
+			: initialSpawnDelay_;
+
+		if (requiredDelay > 0.0f && spawnTimer_ < requiredDelay) {
+			break;
+		}
 
 		if (!TrySpawnOne(scene)) {
-			break; // no empty table/template or total spawn cap reached
+			break;
+		}
+
+		// Consume only the delay that was actually just used.
+		if (requiredDelay > 0.0f) {
+			spawnTimer_ -= requiredDelay;
+		}
+		else {
+			spawnTimer_ = 0.0f;
 		}
 	}
 }
