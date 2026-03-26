@@ -135,7 +135,7 @@ namespace {
 // Constants and helper functions for PlayerLogic, in an anonymous namespace to limit scope to this file.
 namespace {
 	// Interaction and movement parameters
-	constexpr float kPlayerInteractRadius = 67.0f;
+	constexpr float kPlayerInteractRadius = 85.0f;
 	constexpr float kMoveRetargetDeadzone = 6.0f;
 	constexpr float kDragRetargetDistance = 20.0f;
 	constexpr float kDragRetargetInterval = 0.06f;
