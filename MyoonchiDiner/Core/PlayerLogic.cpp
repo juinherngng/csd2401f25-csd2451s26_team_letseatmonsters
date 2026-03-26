@@ -1687,13 +1687,84 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 	//	<< " tableHeldItemID=" << (tableHasItem ? table->GetHeldItemID() : -1)
 	//	<< "\n";
 
-	// --- Special case: Ingredient box ---
+// --- Special case: Ingredient box / plate box ---
 	if (IngredientBoxLogic* box = logicMgr.GetLogicForObject<IngredientBoxLogic>(tableObjectID)) {
-		//std::cout << "  [PlayerLogic] This table is an IngredientBox\n";
+		const bool isPlateBox = (scene.GetObjectTag(tableObjectID) == "plate_box");
 
+		// New behaviour:
+		// If this is a plate box and the player is holding a processed ingredient,
+		// spawn a plate and immediately place that ingredient onto the new plate.
+		if (isPlateBox && carriedItemID >= 0) {
+			IngredientLogic* heldIngredient =
+				logicMgr.GetLogicForObject<IngredientLogic>(carriedItemID);
+
+			// Only processed ingredients can go straight onto a fresh plate.
+			if (!heldIngredient || !heldIngredient->IsProcessed()) {
+				return;
+			}
+
+			const int ingredientObjID = carriedItemID;
+			GameObject* ingredientObj = scene.GetGameObjectByID(ingredientObjID);
+			if (!ingredientObj) {
+				return;
+			}
+
+			// Spawn a fresh plate from the plate box
+			const int newPlateID = box->SpawnIngredient(scene);
+			if (newPlateID < 0) {
+				return;
+			}
+
+			PlateLogic* newPlate = logicMgr.GetLogicForObject<PlateLogic>(newPlateID);
+			GameObject* plateObj = scene.GetGameObjectByID(newPlateID);
+
+			if (!newPlate || !plateObj) {
+				if (scene.GetGameObjectByID(newPlateID)) {
+					scene.DespawnByID(newPlateID);
+				}
+				return;
+			}
+
+			bool consumedNow = false;
+			if (!newPlate->TryAddIngredient(*heldIngredient, consumedNow)) {
+				if (scene.GetGameObjectByID(newPlateID)) {
+					scene.DespawnByID(newPlateID);
+				}
+				return;
+			}
+
+			// Put the spawned plate where the held ingredient currently is,
+			// then attach the ingredient visually onto the plate.
+			plateObj->SetPosition(ingredientObj->GetPositionGLM());
+			ingredientObj->SetPosition(plateObj->GetPositionGLM());
+
+			newPlate->SetFirstIngredientObjectID(ingredientObjID);
+			ingredientObj->SetColliderSize(Math::Vector2D(0.f, 0.f));
+			ingredientObj->SetMovableByPhysics(false);
+			ingredientObj->SetRenderSortOrder(1);
+
+			// The player is no longer holding the ingredient.
+			// Clear old held-item bookkeeping before switching to the new plate.
+			carriedItemID = -1;
+			carriedItemOriginalLayer_.clear();
+			hasCarriedItemOriginalLayer_ = false;
+			hasCarriedItemOriginalColliderSize = false;
+
+			// Now make the player hold the plate instead.
+			PickUp(scene, newPlateID);
+
+#ifndef _DEBUG
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				glm::vec3 playerPos = player->GetPositionGLM();
+				audioMgr->PlaySound3D("sfx_put_down", playerPos.x, playerPos.y, playerPos.z,
+					audioMgr->GetVfxVolume() * 0.8f);
+			}
+#endif
+			return;
+		}
+
+		// Old behaviour for normal ingredient boxes / empty-handed plate pickup
 		if (carriedItemID >= 0) {
-			//std::cout << "  [PlayerLogic] Already holding item " << carriedItemID
-			//	<< ", ignoring ingredient box\n";
 			return;
 		}
 
