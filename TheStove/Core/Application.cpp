@@ -90,7 +90,6 @@ namespace {
 		// Update both the GL viewport and the engine-side cached framebuffer size.
 		glViewport(0, 0, width, height);
 
-		GraphicsEngine::Instance().Resize(width, height);
 		if (g_AppState && g_AppState->coreEngine) {
 			if (auto* gfxEngine = g_AppState->coreEngine->GetSystem<GraphicsEngine>()) {
 				gfxEngine->Resize(width, height);
@@ -212,7 +211,6 @@ namespace {
 		// Refresh the viewport after the monitor switch has completed.
 		glViewport(0, 0, fbw, fbh);
 
-		GraphicsEngine::Instance().Resize(fbw, fbh);
 		if (app.coreEngine) {
 			if (auto* gfx = app.coreEngine->GetSystem<GraphicsEngine>()) {
 				gfx->Resize(fbw, fbh);
@@ -575,7 +573,6 @@ bool Application::Initialize(int width, int height, const std::string& title, bo
 	int fbh = 0;
 	glfwGetFramebufferSize(state_.window, &fbw, &fbh);
 	glViewport(0, 0, fbw, fbh);
-	GraphicsEngine::Instance().Resize(fbw, fbh);
 	graphicsEngine->Resize(fbw, fbh);
 
 	// Create the scene after all managers it depends on are available.
@@ -608,7 +605,7 @@ bool Application::Initialize(int width, int height, const std::string& title, bo
 
 		ConfigureGameStates(*gsm);
 		ConfigureGameStateAudioPolicy(*gsm);
-		gsm->InitializeGameState(Framework::GS_Level1, 0.0f);
+		gsm->InitializeGameState(Framework::GameState::MainMenu, 0.0f);
 
 		if (auto* animMgrForcePlay = state_.coreEngine->GetSystem<AnimationManager>()) {
 			animMgrForcePlay->Play();
@@ -678,31 +675,31 @@ void Application::Update() {
 
 	if (state_.currentScene->HasPendingStateChange()) {
 		// Queue scene changes behind a fade transition to avoid popping between states.
-		int newState = state_.currentScene->GetPendingState();
+		Framework::GameState newState = state_.currentScene->GetPendingState();
 		state_.currentScene->ClearPendingStateChange();
 
 		if (graphicsEngine && !graphicsEngine->IsTransitionActive()) {
 			graphicsEngine->StartSceneTransition(0.35f, 0.35f);
 			state_.pendingStateAfterFade = newState;
-			TS_LOG_DEBUG("[Application] Queued state change " << newState << " to run at blackout");
+			TS_LOG_DEBUG("[Application] Queued state change " << static_cast<int>(newState) << " to run at blackout");
 		}
 		else {
 			state_.pendingStateAfterFade = newState;
 		}
 	}
 
-	if (graphicsEngine && graphicsEngine->IsAtBlackout() && state_.pendingStateAfterFade >= 0) {
+	if (graphicsEngine && graphicsEngine->IsAtBlackout() && state_.pendingStateAfterFade.has_value()) {
 		// Apply the queued state change only when the transition has fully blacked out.
 		if (auto* gsm = state_.coreEngine->GetSystem<Framework::GameStateManager>()) {
-			TS_LOG_INFO("[Application] Blackout reached; switching to state " << state_.pendingStateAfterFade);
-			gsm->UpdateGameState(state_.pendingStateAfterFade, frameDt);
+			TS_LOG_INFO("[Application] Blackout reached; switching to state " << static_cast<int>(*state_.pendingStateAfterFade));
+			gsm->UpdateGameState(*state_.pendingStateAfterFade, frameDt);
 		}
 		else {
 			TS_LOG_ERROR("[Application] GameStateManager not found!");
 		}
 
 		graphicsEngine->ContinueTransitionFadeIn();
-		state_.pendingStateAfterFade = -1;
+		state_.pendingStateAfterFade.reset();
 
 		// Clear carry-over input so menu clicks do not leak into the next state.
 		if (auto* inputMgr = state_.coreEngine->GetSystem<InputManager>()) {

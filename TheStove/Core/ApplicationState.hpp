@@ -15,7 +15,10 @@
 
 #pragma once
 
+#include "GameStateManager.hpp"
+
 #include <memory>
+#include <optional>
 
 struct GLFWwindow;
 
@@ -84,7 +87,7 @@ struct ApplicationState {
 	bool f11WasDown = false;
 
 	// Queued state transition to apply once the screen fade reaches blackout.
-	int pendingStateAfterFade = -1;
+	std::optional<Framework::GameState> pendingStateAfterFade;
 };
 
 // Global pointer used by callbacks that cannot capture the application instance directly.

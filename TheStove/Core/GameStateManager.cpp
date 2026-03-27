@@ -59,12 +59,6 @@ namespace Framework {
 		}
 	}
 
-	extern int currentGS = 0, nextGS = 0;
-	extern bool init = false;
-
-	typedef std::function<void(float dt)> FP;
-	extern FP fpInit = nullptr, fpUpdate = nullptr, fpExit = nullptr;
-
 	/**
 	 * @brief Performs game state manager.
 	 * @param bus Parameter for bus.
@@ -100,8 +94,8 @@ namespace Framework {
 	 * @return Result produced by this operation.
 	 */
 	void GameStateManager::Update(float dt) {
-		if (!init) {
-			InitializeGameState(0, dt);
+		if (!initialized) {
+			InitializeGameState(GameState::MainMenu, dt);
 		}
 		// Deferred simulation activation (after scene construction & first system frame)
 		if (pendingSimActivation && scene) {
@@ -116,13 +110,13 @@ namespace Framework {
 		if (audioManager && scene) {
 			bool isPaused = !scene->IsSimulationActive();
 			if (pauseAudioPolicy) {
-				pauseAudioPolicy(isPaused, wasPaused, currentGS, *scene, audioManager);
+				pauseAudioPolicy(isPaused, wasPaused, currentState, *scene, audioManager);
 			}
 			wasPaused = isPaused;
 		}
 
-		if (currentGS == nextGS && fpUpdate) {
-			fpUpdate(dt);
+		if (currentState == nextState && legacyUpdateFn) {
+			legacyUpdateFn(dt);
 		}
 	}
 
@@ -133,7 +127,7 @@ namespace Framework {
 	 */
 	void GameStateManager::OnQuit(const CoreFramework::Message& msg) {
 		(void)msg;
-		nextGS = GS_Quit;
+		nextState = GameState::Quit;
 	}
 
 	/**
@@ -150,34 +144,34 @@ namespace Framework {
 	 * @param dt Frame delta time in seconds.
 	 * @return Result produced by this operation.
 	 */
-	void GameStateManager::InitializeGameState(int GS, float dt) {
-		nextGS = currentGS = GS;
+	void GameStateManager::InitializeGameState(GameState state, float dt) {
+		nextState = currentState = state;
 
 		// Warm up target-state textures before switching (menu->level, level->cutscene).
-		if (jsonStatePaths.find(GS) != jsonStatePaths.end()) {
+		if (jsonStatePaths.find(state) != jsonStatePaths.end()) {
 			std::vector<std::string> targetTextures;
 			std::unordered_set<std::string> seen;
-			AppendLevelTextures(jsonStatePaths[GS], targetTextures, seen);
+			AppendLevelTextures(jsonStatePaths[state], targetTextures, seen);
 			if (!targetTextures.empty()) {
 				ResourceManager::Instance().PreloadTextures(targetTextures);
 			}
 		}
 
 		// Prefer JSON mapping if available
-		if (TrySwitchJsonState(GS, dt)) {
-			init = true;
+		if (TrySwitchJsonState(state, dt)) {
+			initialized = true;
 			return;
 		}
 
 		// Fallback to legacy function-pointer state
-		fpInit = Level1Init;
-		fpUpdate = Level1Update;
-		fpExit = Level1Exit;
+		legacyInitFn = Level1Init;
+		legacyUpdateFn = Level1Update;
+		legacyExitFn = Level1Exit;
 
-		if (fpInit) {
-			fpInit(dt);
+		if (legacyInitFn) {
+			legacyInitFn(dt);
 		}
-		init = true;
+		initialized = true;
 	}
 
 	/**
@@ -186,49 +180,51 @@ namespace Framework {
 	 * @param dt Frame delta time in seconds.
 	 * @return Result produced by this operation.
 	 */
-	void GameStateManager::UpdateGameState(int newState, float dt) {
-		nextGS = newState;
+	void GameStateManager::UpdateGameState(GameState newState, float dt) {
+		nextState = newState;
 
 		// If we were using legacy function pointers, call exit
-		if (fpExit) {
-			fpExit(dt);
+		if (legacyExitFn) {
+			legacyExitFn(dt);
 		}
 
-		currentGS = newState;
+		currentState = newState;
 
 		// Warm up textures for the destination state before scene build.
-		if (jsonStatePaths.find(currentGS) != jsonStatePaths.end()) {
+		if (jsonStatePaths.find(currentState) != jsonStatePaths.end()) {
 			std::vector<std::string> targetTextures;
 			std::unordered_set<std::string> seen;
-			AppendLevelTextures(jsonStatePaths[currentGS], targetTextures, seen);
+			AppendLevelTextures(jsonStatePaths[currentState], targetTextures, seen);
 			if (!targetTextures.empty()) {
 				ResourceManager::Instance().PreloadTextures(targetTextures);
 			}
 		}
 
 		// Prefer JSON mapping if available
-		if (TrySwitchJsonState(currentGS, dt)) {
+		if (TrySwitchJsonState(currentState, dt)) {
 			return;
 		}
 
 		// Fallback to legacy hard-coded states
-		switch (currentGS) {
-		case GS_Level1:
-			fpInit = Level1Init;
-			fpUpdate = Level1Update;
-			fpExit = Level1Exit;
-			if (fpInit) fpInit(dt);
+		switch (currentState) {
+		case GameState::MainMenu:
+			legacyInitFn = Level1Init;
+			legacyUpdateFn = Level1Update;
+			legacyExitFn = Level1Exit;
+			if (legacyInitFn) legacyInitFn(dt);
 			break;
 
-		case GS_Level2:
-			fpInit = Level2Init;
-			fpUpdate = Level2Update;
-			fpExit = Level2Exit;
-			if (fpInit) fpInit(dt);
+		case GameState::Kitchen01:
+			legacyInitFn = Level2Init;
+			legacyUpdateFn = Level2Update;
+			legacyExitFn = Level2Exit;
+			if (legacyInitFn) legacyInitFn(dt);
 			break;
 
-		case GS_Quit:
+		case GameState::Quit:
 			// No-op, let app quit
+			break;
+		case GameState::Tutorial:
 			break;
 		}
 	}
@@ -239,19 +235,19 @@ namespace Framework {
 	 * @param dt Frame delta time in seconds.
 	 * @return Result produced by this operation.
 	 */
-	bool GameStateManager::TrySwitchJsonState(int state, float dt) {
+	bool GameStateManager::TrySwitchJsonState(GameState state, float dt) {
 		(void)dt;
 		auto it = jsonStatePaths.find(state);
 		if (it == jsonStatePaths.end()) {
 			return false;
 		}
 		if (!scene) {
-			std::cerr << "[GameStateManager] Scene not set; cannot load JSON level for state " << state << std::endl;
+			std::cerr << "[GameStateManager] Scene not set; cannot load JSON level for state " << static_cast<int>(state) << std::endl;
 			return false;
 		}
 
 		// Force deterministic RNG only for tutorial state.
-		if (state == Framework::GS_Tutorial) {
+		if (state == Framework::GameState::Tutorial) {
 			EngineRng::SetSeed(kTutorialFixedSeed);
 			std::cout << "[GameStateManager] Tutorial fixed seed set to " << kTutorialFixedSeed << std::endl;
 		}
@@ -263,7 +259,7 @@ namespace Framework {
 		}
 
 		// Auto-start simulation for gameplay only
-		if (state == Framework::GS_Level1) {
+		if (state == Framework::GameState::MainMenu) {
 			scene->SetSimulationActive(false);  // main menu stays paused
 			pendingSimActivation = false;
 		}
@@ -277,9 +273,9 @@ namespace Framework {
 
 		PreloadJsonStateAssets(state);
 
-		fpInit = nullptr;
-		fpUpdate = nullptr;
-		fpExit = nullptr;
+		legacyInitFn = nullptr;
+		legacyUpdateFn = nullptr;
+		legacyExitFn = nullptr;
 		return true;
 	}
 
@@ -288,7 +284,7 @@ namespace Framework {
 	 * @param activeState Parameter for active state.
 	 * @return Result produced by this operation.
 	 */
-	void GameStateManager::PreloadJsonStateAssets(int activeState) {
+	void GameStateManager::PreloadJsonStateAssets(GameState activeState) {
 		std::vector<std::string> texturePaths;
 		std::unordered_set<std::string> seen;
 

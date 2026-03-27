@@ -866,7 +866,7 @@ void Scene::RemoveLayer(const std::string& name) {
  * @param newState Parameter for new state.
  * @return Result produced by this operation.
  */
-void Scene::RequestStateChange(int newState) {
+void Scene::RequestStateChange(Framework::GameState newState) {
 	pendingState_ = newState;
 	hasPendingStateChange_ = true;
 	SetFlowState(FlowState::Transitioning);

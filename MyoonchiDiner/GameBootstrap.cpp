@@ -60,16 +60,16 @@ void RegisterGameBindings(Scene& scene) {
 }
 
 void ConfigureGameStates(Framework::GameStateManager& gsm) {
-	// GS_Level1 = main menu, GS_Level2 = first kitchen gameplay level, GS_TUTORIAL = tutorial walkthrough
-	gsm.RegisterJsonState(Framework::GS_Level1, MyoonchiPaths::Levels::MAIN_MENU);
-	gsm.RegisterJsonState(Framework::GS_Level2, MyoonchiPaths::Levels::KITCHEN_01);
-	gsm.RegisterJsonState(Framework::GS_Tutorial, MyoonchiPaths::Levels::TUTORIAL);
+	// MainMenu = main menu, Kitchen01 = first kitchen gameplay level, Tutorial = tutorial walkthrough
+	gsm.RegisterJsonState(Framework::GameState::MainMenu, MyoonchiPaths::Levels::MAIN_MENU);
+	gsm.RegisterJsonState(Framework::GameState::Kitchen01, MyoonchiPaths::Levels::KITCHEN_01);
+	gsm.RegisterJsonState(Framework::GameState::Tutorial, MyoonchiPaths::Levels::TUTORIAL);
 }
 
 void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 	// Called by the GSM each time a new state is entered. Responsible for
 	// stopping the previous state's audio and starting the new state's BGM.
-	gsm.SetStateAudioPolicy([](int state, Scene& scene, AudioManager* audioManager) {
+	gsm.SetStateAudioPolicy([](Framework::GameState state, Scene& scene, AudioManager* audioManager) {
 		(void)scene;
 #ifndef _DEBUG
 		if (!audioManager) {
@@ -78,12 +78,12 @@ void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 
 		StopCurrentAudio(audioManager);
 
-		if (state == Framework::GS_Level1) {
+		if (state == Framework::GameState::MainMenu) {
 			// Main menu: play menu BGM at full volume immediately
 			gCurrentAudio = MyoonchiPaths::Audio::BGM_MAIN_MENU;
 			audioManager->PlaySound(gCurrentAudio, audioManager->GetBgmVolume(), false);
 		}
-		else if (state == Framework::GS_Level2) {
+		else if (state == Framework::GameState::Kitchen01) {
 			// Gameplay: fade in the level theme over 1 second
 			gCurrentAudio = MyoonchiPaths::Audio::BGM_LEVEL_THEME;
 			audioManager->PlaySound(gCurrentAudio, 0.0f, false);
@@ -102,15 +102,15 @@ void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 		});
 
 
-	// Only active during gameplay (GS_Level2). Pauses all audio channels
+	// Only active during gameplay (GS_Kitchen01). Pauses all audio channels
 	// when the simulation is paused and resumes them when un-paused.
-	gsm.SetPauseAudioPolicy([](bool isPaused, bool wasPaused, int state, Scene& scene, AudioManager* audioManager) {
+	gsm.SetPauseAudioPolicy([](bool isPaused, bool wasPaused, Framework::GameState state, Scene& scene, AudioManager* audioManager) {
 		(void)scene;
 		if (!audioManager) {
 			return;
 		}
 		// Only handle pause/resume for the gameplay state
-		if (state != Framework::GS_Level2 || gCurrentAudio.empty()) {
+		if (state != Framework::GameState::Kitchen01 || gCurrentAudio.empty()) {
 			return;
 		}
 		if (isPaused && !wasPaused) {

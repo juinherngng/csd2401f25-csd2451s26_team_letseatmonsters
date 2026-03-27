@@ -14,6 +14,7 @@
 */
 
 #include "Core/AudioManager.hpp"
+#include "Core/GameStateManager.hpp"
 #include "Core/Logger.hpp"
 #include "Core/Quota.hpp"
 #include "Graphics/SceneManager.hpp"
@@ -127,7 +128,7 @@ namespace Economy {
 
 		// If no frames, go straight to MAIN MENU
 		if (frames.empty()) {
-			scene.RequestStateChange(0); // GS_Level1 = main menu
+			scene.RequestStateChange(Framework::GameState::MainMenu);
 			return;
 		}
 
@@ -189,7 +190,7 @@ namespace Economy {
 		);
 
 		if (frames.empty()) {
-			scene.RequestStateChange(0); // GS_Level1 = main menu
+			scene.RequestStateChange(Framework::GameState::MainMenu);
 			return;
 		}
 

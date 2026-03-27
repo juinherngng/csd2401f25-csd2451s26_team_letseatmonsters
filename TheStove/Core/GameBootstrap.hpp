@@ -36,7 +36,7 @@ void RegisterGameBindings(Scene& scene);
 /************************************************************************/
 /*!
 \brief
-	Maps engine game-state IDs (GS_Level1, GS_Level2, etc.) to their
+	Maps engine game-state IDs (GS_MainMenu, GS_Kitchen01, etc.) to their
 	corresponding JSON level files so the GameStateManager can load
 	them at runtime.
 \param gsm

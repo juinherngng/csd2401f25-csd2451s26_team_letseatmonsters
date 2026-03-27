@@ -31,6 +31,8 @@
 // File-scoped state
 static bool _imguiInitialized = false;
 
+GraphicsEngine* GraphicsEngine::activeInstance_ = nullptr;
+
 // Helper function to resolve shader paths across different build configurations
 namespace {
 	constexpr const char* kOpenGLErrorPrefixDefault = "[GraphicsEngine] OpenGL error";
@@ -183,8 +185,11 @@ namespace {
  * @return Result produced by this operation.
  */
 GraphicsEngine& GraphicsEngine::Instance() {
-	static GraphicsEngine instance;
-	return instance;
+	if (activeInstance_ == nullptr) {
+		throw std::runtime_error("GraphicsEngine::Instance() called before engine system registration");
+	}
+
+	return *activeInstance_;
 }
 
 // Constructor: Initializes references and identity matrices for view/projection
@@ -192,6 +197,7 @@ GraphicsEngine::GraphicsEngine()
 	: resourceManager(ResourceManager::Instance()),
 	projection(1.0f),
 	view(1.0f) {
+	activeInstance_ = this;
 }
 
 /**
@@ -1509,6 +1515,10 @@ void GraphicsEngine::Shutdown() {
 		_imguiInitialized = false;
 	}
 #endif
+
+	if (activeInstance_ == this) {
+		activeInstance_ = nullptr;
+	}
 }
 
 /**

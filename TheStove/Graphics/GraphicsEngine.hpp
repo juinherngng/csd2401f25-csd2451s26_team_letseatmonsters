@@ -346,6 +346,8 @@ public:
 	}
 
 private:
+	static GraphicsEngine* activeInstance_;
+
 	// Internal helper types
 	struct RenderKey {
 		Mesh* mesh;

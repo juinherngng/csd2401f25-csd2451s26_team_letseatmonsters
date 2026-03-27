@@ -37,6 +37,7 @@
 #include "../Core/PlayerController.hpp"
 #include "../Core/ReplayManager.hpp"
 #include "../Core/GridPathfinder.hpp"
+#include "../Core/GameStateManager.hpp"
 
 #include "AnimationManager.hpp"
 #include "Animator.hpp"
@@ -839,7 +840,7 @@ public:
 	 * @brief Performs request state change.
 	 * @param newState Parameter for new state.
 	 */
-	void RequestStateChange(int newState);
+	void RequestStateChange(Framework::GameState newState);
 
 	/**
 	 * @brief Returns whether pending state change.
@@ -853,7 +854,7 @@ public:
 	 * @brief Returns pending state.
 	 * @return Requested value.
 	 */
-	int GetPendingState() const {
+	Framework::GameState GetPendingState() const {
 		return pendingState_;
 	}
 
@@ -1141,7 +1142,7 @@ private:
 	bool hasPendingLevel_ = false;
 
 	// Pending game state change
-	int pendingState_ = -1;
+	Framework::GameState pendingState_ = Framework::GameState::MainMenu;
 	bool hasPendingStateChange_ = false;
 
 	// Pause overlay state

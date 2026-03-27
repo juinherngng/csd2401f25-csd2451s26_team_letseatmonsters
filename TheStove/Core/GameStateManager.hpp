@@ -31,19 +31,12 @@ class Scene; // forward-declare Scene
 class AudioManager; // forward-declare AudioManager
 
 namespace Framework {
-	enum GameState {
-		GS_Tutorial,
-		GS_Level1,
-		GS_Level2,
-		GS_Quit
+	enum class GameState : int {
+		MainMenu,
+		Tutorial,
+		Kitchen01,
+		Quit
 	};
-
-	extern int currentGS, nextGS;
-	extern bool init;
-
-	typedef std::function<void(float dt)> FP;
-
-	extern FP fpInit, fpUpdate, fpExit;
 
 	class GameStateManager : public CoreFramework::SystemInterface {
 	public:
@@ -69,15 +62,15 @@ namespace Framework {
 		 * @param GS State identifier to initialize.
 		 * @param dt Frame delta time available during startup.
 		 */
-		void InitializeGameState(int GS, float dt);
+		void InitializeGameState(GameState state, float dt);
 		/**
 		 * @brief Switches from the current state to a new state.
 		 * @param newState Destination state identifier.
 		 * @param dt Frame delta time used during the transition.
 		 */
-		void UpdateGameState(int newState, float dt);
-		using StateAudioPolicy = std::function<void(int, Scene&, AudioManager*)>;
-		using PauseAudioPolicy = std::function<void(bool, bool, int, Scene&, AudioManager*)>;
+		void UpdateGameState(GameState newState, float dt);
+		using StateAudioPolicy = std::function<void(GameState, Scene&, AudioManager*)>;
+		using PauseAudioPolicy = std::function<void(bool, bool, GameState, Scene&, AudioManager*)>;
 
 		// Inject Scene used for runtime level loading
 		/**
@@ -94,7 +87,7 @@ namespace Framework {
 		 * @param state Game-state identifier.
 		 * @param levelPath Path to the JSON level file.
 		 */
-		void RegisterJsonState(int state, const std::string& levelPath) {
+		void RegisterJsonState(GameState state, const std::string& levelPath) {
 			jsonStatePaths[state] = levelPath;
 		}
 
@@ -124,11 +117,13 @@ namespace Framework {
 		}
 
 	private:
+		using LegacyStateFn = std::function<void(float dt)>;
+
 		void OnQuit(const CoreFramework::Message& msg);
 
 		// Switch to a JSON-backed state if mapping exists; returns true if handled
-		bool TrySwitchJsonState(int state, float dt);
-		void PreloadJsonStateAssets(int activeState);
+		bool TrySwitchJsonState(GameState state, float dt);
+		void PreloadJsonStateAssets(GameState activeState);
 		void StopCurrentAudio();
 
 	private:
@@ -136,8 +131,15 @@ namespace Framework {
 		CoreFramework::SubscriberId quitSubId;
 
 		Scene* scene = nullptr;
-		std::unordered_map<int, std::string> jsonStatePaths;
+		std::unordered_map<GameState, std::string> jsonStatePaths;
+		GameState currentState = GameState::MainMenu;
+		GameState nextState = GameState::MainMenu;
+		bool initialized = false;
 		bool pendingSimActivation = false; // NEW
+
+		LegacyStateFn legacyInitFn;
+		LegacyStateFn legacyUpdateFn;
+		LegacyStateFn legacyExitFn;
 
 		// Audio service
 		AudioManager* audioManager = nullptr;
