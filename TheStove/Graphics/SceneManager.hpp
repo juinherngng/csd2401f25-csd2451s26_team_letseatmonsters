@@ -928,24 +928,6 @@ public:
 		return lastReplayFrameDt_ > 0.0f;
 	}
 
-	// Menu button text rendering
-#if 0
-	/**
-	 * @brief Creates menu button texts.
-	 */
-	void CreateMenuButtonTexts();
-
-	/**
-	 * @brief Renders menu button texts.
-	 */
-	void RenderMenuButtonTexts();
-
-	/**
-	 * @brief Clears menu button texts.
-	 */
-	void ClearMenuButtonTexts();
-#endif
-
 	/**
 	 * @brief Sets how to play overlay active.
 	 * @param active Parameter for active.

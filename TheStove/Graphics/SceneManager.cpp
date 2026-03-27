@@ -8,8 +8,7 @@
 					Ng Juin Herng, juinherng.ng@digipen.edu (30%)
 
  DESCRIPTION:		Implements the core Scene construction and high-level state access
-					helpers. Object/layer utilities and text rendering have been
-					extracted into focused implementation files.
+					helpers.
 
 		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

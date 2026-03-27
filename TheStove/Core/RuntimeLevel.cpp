@@ -529,13 +529,6 @@ namespace RuntimeLevel {
 			<< ", preload=" << preloadMs << " ms, build=" << buildMs << " ms, total=" << totalMs << " ms");
 #endif
 
-#if 0
-		// Create text for menu buttons if this is a menu level
-		if (path.find("main_menu") != std::string::npos) {
-			scene.CreateMenuButtonTexts();
-		}
-#endif
-
 		return true;
 	}
 }
