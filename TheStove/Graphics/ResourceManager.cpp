@@ -14,6 +14,7 @@
 
 #include "../Core/AudioManager.hpp"
 #include "../Core/FontSystem.hpp"
+#include "../Core/Logger.hpp"
 
 #include "ResourceManager.hpp"
 
@@ -21,7 +22,6 @@
 #include <chrono>
 #include <filesystem>
 #include <future>
-#include <iostream>
 #include <thread>
 #include <unordered_set>
 
@@ -75,7 +75,7 @@ std::string ResourceManager::NormalizePathCached(const std::string& path) {
 void ResourceManager::SetAudioManager(AudioManager* audioMgr) {
 	audioManager = audioMgr;
 	if (audioManager) {
-		std::cout << "AudioManager set in ResourceManager." << std::endl;
+		TS_LOG_INFO("[ResourceManager] AudioManager registered.");
 	}
 }
 
@@ -89,19 +89,18 @@ void ResourceManager::SetAudioManager(AudioManager* audioMgr) {
 Shader* ResourceManager::LoadShader(const std::string& name, const std::string& vertexPath, const std::string& fragmentPath) {
 	auto it = shaders.find(name);
 	if (it != shaders.end()) {
-		std::cout << "[ResourceManager] Shader '" << name << "' already loaded, returning cached version." << std::endl;
+		TS_LOG_DEBUG("[ResourceManager] Shader '" << name << "' already loaded, returning cached version.");
 		return it->second.get();
 	}
 
-	std::cout << "[ResourceManager] Loading NEW shader '" << name << "' from:" << std::endl;
-	std::cout << "  Vertex: " << vertexPath << std::endl;
-	std::cout << "  Fragment: " << fragmentPath << std::endl;
+	TS_LOG_INFO("[ResourceManager] Loading shader '" << name << "' from vertex='" << vertexPath
+		<< "', fragment='" << fragmentPath << "'.");
 
 	auto shader = std::make_unique<Shader>(vertexPath, fragmentPath);
 	Shader* shaderPtr = shader.get();
 	shaders[name] = std::move(shader);
 
-	std::cout << "[ResourceManager] Successfully loaded shader: " << name << std::endl;
+	TS_LOG_INFO("[ResourceManager] Successfully loaded shader: " << name);
 	return shaderPtr;
 }
 
@@ -116,7 +115,7 @@ Shader* ResourceManager::GetShader(const std::string& name) {
 		return it->second.get();
 	}
 
-	std::cerr << "Shader '" << name << "' not found!" << std::endl;
+	TS_LOG_ERROR("[ResourceManager] Shader '" << name << "' not found!");
 	return nullptr;
 }
 
@@ -140,7 +139,7 @@ Mesh* ResourceManager::LoadMesh(const std::string& name, const std::vector<float
 	Mesh* meshPtr = mesh.get();
 	meshes[name] = std::move(mesh);
 
-	std::cout << "Loaded mesh: " << name << std::endl;
+	TS_LOG_DEBUG("[ResourceManager] Loaded mesh: " << name);
 	return meshPtr;
 }
 
@@ -155,7 +154,7 @@ Mesh* ResourceManager::GetMesh(const std::string& name) {
 		return it->second.get();
 	}
 
-	std::cerr << "Mesh '" << name << "' not found!" << std::endl;
+	TS_LOG_ERROR("[ResourceManager] Mesh '" << name << "' not found!");
 	return nullptr;
 }
 
@@ -180,7 +179,7 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 	auto pathIt = texturePaths.find(normalizedPath);
 	if (pathIt != texturePaths.end()) {
 		textureAliases[name] = pathIt->second;
-		std::cout << "Reusing texture: " << filePath << " as alias '" << name << "'" << std::endl;
+		TS_LOG_DEBUG("[ResourceManager] Reusing texture '" << filePath << "' as alias '" << name << "'.");
 		return pathIt->second;
 	}
 
@@ -200,7 +199,7 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 	failedTexturePaths.erase(normalizedPath);
 
 #ifndef NDEBUG
-	std::cout << "Loaded texture: " << name << std::endl;
+	TS_LOG_DEBUG("[ResourceManager] Loaded texture: " << name);
 #endif
 	return texturePtr;
 }
@@ -221,7 +220,7 @@ Texture* ResourceManager::GetTexture(const std::string& name) {
 		return aliasIt->second;
 	}
 
-	std::cerr << "Texture '" << name << "' not found!" << std::endl;
+	TS_LOG_ERROR("[ResourceManager] Texture '" << name << "' not found!");
 	return nullptr;
 }
 
@@ -334,8 +333,8 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 
 #ifndef NDEBUG
 	const double totalMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - preloadStart).count();
-	std::cout << "[ResourceManager] Preloaded textures: " << loadedCount << "/" << uniquePaths.size()
-		<< " (failed: " << failedCount << ", total: " << totalMs << " ms, upload: " << uploadMs << " ms)" << std::endl;
+	TS_LOG_INFO("[ResourceManager] Preloaded textures: " << loadedCount << "/" << uniquePaths.size()
+		<< " (failed: " << failedCount << ", total: " << totalMs << " ms, upload: " << uploadMs << " ms)");
 #endif
 }
 
@@ -349,7 +348,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
  */
 bool ResourceManager::LoadAudio(const std::string& name, const std::string& filePath, bool loop, bool stream) {
 	if (!audioManager) {
-		std::cerr << "AudioManager not set in ResourceManager! Cannot load audio." << std::endl;
+		TS_LOG_ERROR("[ResourceManager] AudioManager not set; cannot load audio.");
 		return false;
 	}
 
@@ -367,7 +366,7 @@ bool ResourceManager::LoadAudio(const std::string& name, const std::string& file
  */
 bool ResourceManager::LoadAudio3D(const std::string& name, const std::string& filePath, bool loop, bool stream) {
 	if (!audioManager) {
-		std::cerr << "AudioManager not set in ResourceManager! Cannot load 3D audio." << std::endl;
+		TS_LOG_ERROR("[ResourceManager] AudioManager not set; cannot load 3D audio.");
 		return false;
 	}
 
@@ -382,7 +381,7 @@ bool ResourceManager::LoadAudio3D(const std::string& name, const std::string& fi
  */
 bool ResourceManager::HasAudio(const std::string& name) const {
 	if (!audioManager) {
-		std::cerr << "AudioManager not set in ResourceManager! Cannot check audio." << std::endl;
+		TS_LOG_ERROR("[ResourceManager] AudioManager not set; cannot check audio.");
 		return false;
 	}
 
@@ -396,7 +395,7 @@ bool ResourceManager::HasAudio(const std::string& name) const {
  */
 void ResourceManager::UnloadAudio(const std::string& name) {
 	if (!audioManager) {
-		std::cerr << "AudioManager not set in ResourceManager! Cannot unload audio." << std::endl;
+		TS_LOG_ERROR("[ResourceManager] AudioManager not set; cannot unload audio.");
 		return;
 	}
 
@@ -414,7 +413,7 @@ void ResourceManager::UnloadAudio(const std::string& name) {
  */
 bool ResourceManager::GetAudioInfo(const std::string& name, unsigned int& lengthMs, int& channels, int& bits, float& freq) const {
 	if (!audioManager) {
-		std::cerr << "AudioManager not set in ResourceManager! Cannot get audio info." << std::endl;
+		TS_LOG_ERROR("[ResourceManager] AudioManager not set; cannot get audio info.");
 		return false;
 	}
 
@@ -447,7 +446,7 @@ FontSystem::Font* ResourceManager::GetFont(const std::string& name) {
  */
 void ResourceManager::Clear() {
 	if (!isCleared) {
-		std::cout << "Clearing ResourceManager..." << std::endl;
+		TS_LOG_INFO("[ResourceManager] Clearing cached resources.");
 		shaders.clear();
 		meshes.clear();
 		textureAliases.clear();

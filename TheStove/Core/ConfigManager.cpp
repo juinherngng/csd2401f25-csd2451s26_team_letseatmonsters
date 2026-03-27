@@ -12,12 +12,12 @@
  */
 
 #include "ConfigManager.hpp"
+#include "Logger.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <set>
 #include <stdexcept>
 #include <vector>
@@ -294,18 +294,14 @@ namespace ConfigManager {
 		}
 
 		if (!unknownKeys.empty()) {
-			std::cerr << "[ConfigManager] Unknown config key(s): ";
-			bool first = true;
+			std::string joinedKeys;
 			for (const auto& unknownKey : unknownKeys) {
-				if (!first) {
-					std::cerr << ", ";
+				if (!joinedKeys.empty()) {
+					joinedKeys += ", ";
 				}
-
-				std::cerr << unknownKey;
-				first = false;
+				joinedKeys += unknownKey;
 			}
-
-			std::cerr << "\n";
+			TS_LOG_WARN("[ConfigManager] Unknown config key(s): " << joinedKeys);
 		}
 
 		if (cfg.schemaVersion < 1) {

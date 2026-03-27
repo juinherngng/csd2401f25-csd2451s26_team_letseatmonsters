@@ -22,7 +22,6 @@
 #include <cctype>
 #include <cstdint>
 #include <filesystem>
-#include <iostream>
 #include <system_error>
 #include <vector>
 #include <string>
@@ -35,6 +34,7 @@
 #include "../Graphics/SceneManager.hpp"
 
 #include "LevelEditorFileIO.hpp"
+#include "Logger.hpp"
 #include "LevelSerializer.hpp"
 
 #ifdef _WIN32
@@ -249,7 +249,7 @@ namespace LEFILEIO {
 		const std::string normalizedDir = NormalizeDirectoryPath(destinationDir);
 		const std::string relativePath = BuildRelativeChildPath(normalizedDir, dst);
 
-		std::cout << "[CopyFileIntoProjectUnique] Returning path: " << relativePath << std::endl;
+		TS_LOG_INFO("[CopyFileIntoProjectUnique] Returning path: " << relativePath);
 		return relativePath;
 	}
 

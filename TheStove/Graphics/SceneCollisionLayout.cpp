@@ -15,14 +15,19 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "../Core/CollisionManager.hpp"
 #include "../Core/JSONInclude.hpp"
+#include "../Core/Logger.hpp"
+#include "../Core/MovementManager.hpp"
+#include "../Core/PhysicsManager.hpp"
+
+#include "GraphicsEngine.hpp"
 #include "SceneManager.hpp"
 
 #include <array>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -289,10 +294,10 @@ namespace {
 			}
 		}
 		catch (const std::exception& ex) {
-			std::cerr << "[SceneCollisionLayout] Failed to parse collision layout '" << path << "': " << ex.what() << std::endl;
+			TS_LOG_ERROR("[SceneCollisionLayout] Failed to parse collision layout '" << path << "': " << ex.what());
 		}
 
-		std::cerr << "[SceneCollisionLayout] Using fallback collision layout for: " << path << std::endl;
+		TS_LOG_WARN("[SceneCollisionLayout] Using fallback collision layout for: " << path);
 		return BuildFallbackLayout(isLevel2);
 	}
 

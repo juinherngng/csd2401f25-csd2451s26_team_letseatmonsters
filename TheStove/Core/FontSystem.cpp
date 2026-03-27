@@ -13,12 +13,12 @@
 */
 
 #include "FontSystem.hpp"
+#include "Logger.hpp"
 #include "Math.hpp"
 
 #include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <iostream>
 
 namespace FontSystem {
 	// ===========================
@@ -49,14 +49,14 @@ namespace FontSystem {
 
 		FT_Library library = FontManager::Instance().GetLibrary();
 		if (!library) {
-			std::cerr << "FontSystem::Font - FreeType library not initialized!" << std::endl;
+			TS_LOG_ERROR("[FontSystem::Font] FreeType library not initialized.");
 			return false;
 		}
 
 		// Load font face
 		FT_Face face;
 		if (FT_New_Face(library, fontPath.c_str(), 0, &face)) {
-			std::cerr << "FontSystem::Font - Failed to load font: " << fontPath << std::endl;
+			TS_LOG_ERROR("[FontSystem::Font] Failed to load font: " << fontPath);
 			return false;
 		}
 
@@ -70,7 +70,7 @@ namespace FontSystem {
 		for (unsigned char c = 0; c < 128; c++) {
 			// Load character glyph
 			if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
-				std::cerr << "FontSystem::Font - Failed to load glyph for character: " << c << std::endl;
+				TS_LOG_WARN("[FontSystem::Font] Failed to load glyph for character: " << static_cast<int>(c));
 				continue;
 			}
 
@@ -111,7 +111,7 @@ namespace FontSystem {
 		// Cleanup FreeType face
 		FT_Done_Face(face);
 
-		std::cout << "FontSystem::Font - Loaded font: " << fontPath << " (size: " << fontSize << ")" << std::endl;
+		TS_LOG_INFO("[FontSystem::Font] Loaded font: " << fontPath << " (size: " << fontSize << ")");
 		return true;
 	}
 
@@ -155,18 +155,18 @@ namespace FontSystem {
 	 */
 	bool FontManager::Initialize() {
 		if (m_initialized) {
-			std::cout << "FontSystem::FontManager - Already initialized." << std::endl;
+			TS_LOG_DEBUG("[FontSystem::FontManager] Already initialized.");
 			return true;
 		}
 
 		// Initialize FreeType library
 		if (FT_Init_FreeType(&m_library)) {
-			std::cerr << "FontSystem::FontManager - Failed to initialize FreeType library!" << std::endl;
+			TS_LOG_ERROR("[FontSystem::FontManager] Failed to initialize FreeType library.");
 			return false;
 		}
 
 		m_initialized = true;
-		std::cout << "FontSystem::FontManager - Initialized successfully." << std::endl;
+		TS_LOG_INFO("[FontSystem::FontManager] Initialized successfully.");
 		return true;
 	}
 
@@ -188,7 +188,7 @@ namespace FontSystem {
 		}
 
 		m_initialized = false;
-		std::cout << "FontSystem::FontManager - Shutdown complete." << std::endl;
+		TS_LOG_INFO("[FontSystem::FontManager] Shutdown complete.");
 	}
 
 	/**
@@ -200,21 +200,21 @@ namespace FontSystem {
 	 */
 	Font* FontManager::LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize) {
 		if (!m_initialized) {
-			std::cerr << "FontSystem::FontManager - Cannot load font, not initialized!" << std::endl;
+			TS_LOG_ERROR("[FontSystem::FontManager] Cannot load font, not initialized.");
 			return nullptr;
 		}
 
 		// Check if font already loaded
 		auto it = m_fonts.find(name);
 		if (it != m_fonts.end()) {
-			std::cout << "FontSystem::FontManager - Font '" << name << "' already loaded." << std::endl;
+			TS_LOG_DEBUG("[FontSystem::FontManager] Font '" << name << "' already loaded.");
 			return it->second.get();
 		}
 
 		// Create new font
 		auto font = std::make_unique<Font>();
 		if (!font->Load(fontPath, fontSize)) {
-			std::cerr << "FontSystem::FontManager - Failed to load font '" << name << "' from: " << fontPath << std::endl;
+			TS_LOG_ERROR("[FontSystem::FontManager] Failed to load font '" << name << "' from: " << fontPath);
 			return nullptr;
 		}
 
@@ -577,17 +577,17 @@ namespace FontSystem {
 	 */
 	bool TextRenderer::Initialize() {
 		if (m_initialized) {
-			std::cout << "FontSystem::TextRenderer - Already initialized." << std::endl;
+			TS_LOG_DEBUG("[FontSystem::TextRenderer] Already initialized.");
 			return true;
 		}
 
 		if (!LoadShaders()) {
-			std::cerr << "FontSystem::TextRenderer - Failed to load shaders!" << std::endl;
+			TS_LOG_ERROR("[FontSystem::TextRenderer] Failed to load shaders.");
 			return false;
 		}
 
 		m_initialized = true;
-		std::cout << "FontSystem::TextRenderer - Initialized successfully." << std::endl;
+		TS_LOG_INFO("[FontSystem::TextRenderer] Initialized successfully.");
 		return true;
 	}
 
@@ -605,7 +605,7 @@ namespace FontSystem {
 		}
 
 		m_initialized = false;
-		std::cout << "FontSystem::TextRenderer - Shutdown complete." << std::endl;
+		TS_LOG_INFO("[FontSystem::TextRenderer] Shutdown complete.");
 	}
 
 	/**
@@ -709,7 +709,7 @@ namespace FontSystem {
 		if (!success) {
 			char infoLog[512];
 			glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-			std::cerr << "FontSystem::TextRenderer - Shader compilation failed: " << infoLog << std::endl;
+			TS_LOG_ERROR("[FontSystem::TextRenderer] Shader compilation failed: " << infoLog);
 			glDeleteShader(shader);
 			return 0;
 		}
@@ -733,7 +733,7 @@ namespace FontSystem {
 		if (!success) {
 			char infoLog[512];
 			glGetProgramInfoLog(program, 512, nullptr, infoLog);
-			std::cerr << "FontSystem::TextRenderer - Program linking failed: " << infoLog << std::endl;
+			TS_LOG_ERROR("[FontSystem::TextRenderer] Program linking failed: " << infoLog);
 			glDeleteProgram(program);
 			return 0;
 		}

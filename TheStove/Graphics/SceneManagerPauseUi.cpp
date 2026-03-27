@@ -16,6 +16,7 @@
 #include "../Core/Logger.hpp"
 #include "../Core/MessageBus.hpp"
 
+#include "GraphicsEngine.hpp"
 #include "SceneManager.hpp"
 
 // -------------------------------------------------------------------------------------------------
@@ -31,6 +32,7 @@ void Scene::ShowPauseOverlay() {
 		return;
 	}
 
+	// Remember the pre-pause flow state so resume can restore the correct gameplay/non-sim state.
 	flowStateBeforePause_ = ComputeSteadyFlowState();
 	pauseOverlayActive_ = true;
 	SetFlowState(FlowState::Paused);
@@ -46,6 +48,7 @@ void Scene::ShowPauseOverlay() {
 	if (audioManager_) {
 		const float pauseFadeOut = 0.2f;
 
+		// Snapshot the current mix so it can be restored after the overlay closes.
 		pausedBgmVolume_ = audioManager_->GetBgmVolume();
 		pausedAmbienceVolume_ = audioManager_->GetBgmVolume() * 0.5f;
 
@@ -80,6 +83,7 @@ void Scene::ShowPauseOverlay() {
 			pauseOverlayObjectIds_.push_back(id);
 			SetObjectTexturePath(id, tex);
 
+			// Attach the scene-provided pause button behavior once the UI object exists.
 			if (pauseOverlayButtonBinder_) {
 				pauseOverlayButtonBinder_(*this, id, action);
 			}
@@ -104,6 +108,7 @@ void Scene::ShowPauseOverlay() {
  */
 void Scene::RequestResumeFromPauseOverlay() {
 #ifndef _DEBUG
+	// Defer simulation restart until the overlay objects and audio state are fully restored.
 	resumeFromPausePending_ = true;
 	if (!pauseOverlayActive_) {
 		RefreshFlowState();
@@ -117,6 +122,7 @@ void Scene::RequestResumeFromPauseOverlay() {
 void Scene::HidePauseOverlay() {
 #ifndef _DEBUG
 	if (!pauseOverlayActive_) return;
+	// Remove all pause-only UI objects before resuming the underlying scene.
 	for (int id : pauseOverlayObjectIds_) {
 		DespawnByID(id);
 	}
@@ -128,6 +134,7 @@ void Scene::HidePauseOverlay() {
 	if (audioManager_) {
 		const float pauseFadeIn = 0.2f;
 
+		// Resume paused channels first, then fade them back to the captured gameplay mix.
 		if (!pauseMusicChannel_.empty()) {
 			audioManager_->ResumeChannel(pauseMusicChannel_);
 		}
@@ -146,6 +153,8 @@ void Scene::HidePauseOverlay() {
 
 		TS_LOG_DEBUG("[Scene] Resumed and fading in level BGM and ambience after pause menu");
 	}
+
+	// Restore whichever flow state should own the scene after the overlay disappears.
 	SetFlowState(resumeFromPausePending_ ? flowStateBeforePause_ : ComputeSteadyFlowState());
 
 	if (messageBus_) {

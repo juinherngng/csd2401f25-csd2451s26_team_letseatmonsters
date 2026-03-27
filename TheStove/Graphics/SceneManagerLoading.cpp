@@ -12,10 +12,14 @@
  */
 
 #include "../Core/LevelEditorPanelFonts.hpp"
+#include "../Core/InputManager.hpp"
 #include "../Core/Logger.hpp"
 #include "../Core/MessageBus.hpp"
+#include "../Core/MovementManager.hpp"
 #include "../Core/RuntimeLevel.hpp"
 
+#include "AnimationManager.hpp"
+#include "GraphicsEngine.hpp"
 #include "SceneManager.hpp"
 
 // -------------------------------------------------------------------------------------------------
@@ -31,6 +35,7 @@ void Scene::SetFlowState(FlowState newState) {
 		return;
 	}
 
+	// Persist the new state first so observers receive the current scene status.
 	flowState_ = newState;
 
 	if (messageBus_) {
@@ -43,6 +48,7 @@ void Scene::SetFlowState(FlowState newState) {
  * @return The steady-state flow value that best matches the current scene flags.
  */
 Scene::FlowState Scene::ComputeSteadyFlowState() const {
+	// Pause always wins over simulation when deciding the externally visible steady state.
 	if (pauseOverlayActive_) {
 		return FlowState::Paused;
 	}
@@ -62,6 +68,7 @@ Scene::FlowState Scene::ComputeSteadyFlowState() const {
  * @brief Recomputes flow state from pending loads, transitions, cutscenes, and pause state.
  */
 void Scene::RefreshFlowState() {
+	// Pending work takes precedence over the steady-state flags so external systems see transitions.
 	if (hasPendingLevel_) {
 		SetFlowState(FlowState::LoadingLevel);
 		return;
@@ -90,12 +97,14 @@ void Scene::RefreshFlowState() {
  */
 void Scene::LoadScene(const std::string& sceneName) {
 	(void)sceneName;
+	// Drop any previously tracked level path so the new scene starts from a blank boot state.
 	currentLevelPath_.clear();
 
 	// Ensure we start EMPTY per rubric (no auto-spawned objects).
 	ClearAll();
 
 	if (defaultSceneSetupHook_) {
+		// Reapply any default scene scaffolding required by the current game bootstrap.
 		defaultSceneSetupHook_(*this);
 	}
 
@@ -116,6 +125,7 @@ void Scene::HandleDeferredLoads() {
 			TS_LOG_ERROR("[Scene] Deferred level load failed: " << pendingLevelPath_);
 		}
 		else {
+			// Promote the pending level to active state only after the build succeeds.
 			SetCurrentLevelPath(pendingLevelPath_);
 			RebuildColliders();
 			SetSimulationActive(pendingLevelSimActive_);
@@ -141,6 +151,7 @@ void Scene::HandleDeferredLoads() {
 			LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
 
 			if (messageBus_) {
+				// Broadcast the completed load once runtime state is consistent again.
 				messageBus_->Post<CoreFramework::LevelLoadedMessage>(pendingLevelPath_, pendingLevelSimActive_);
 			}
 
@@ -167,6 +178,7 @@ void Scene::ClearAll() {
 	movementManager.Clear();
 	npcSystem.Clear();
 	if (customerResetHook_) {
+		// Let gameplay-specific systems clear any state that lives outside the core scene containers.
 		customerResetHook_(*this);
 	}
 
@@ -190,6 +202,7 @@ void Scene::ResetLevelObjectState() {
 	objectMetadata_.Clear();
 	layers.clear();
 	layerSortKeyCache_.clear();
+	// Recreate the default base layer so newly spawned objects have a valid destination.
 	AddLayer("1");
 
 	spriteID = -1;
@@ -207,6 +220,7 @@ void Scene::ResetLevelObjectState() {
  * @brief Schedules a full scene clear at the start of the next input phase.
  */
 void Scene::RequestClearAll() {
+	// Defer the destructive scene wipe until the next safe input-phase checkpoint.
 	pendingClear_ = true;
 }
 
@@ -216,6 +230,7 @@ void Scene::RequestClearAll() {
  * @param activateSimulation Whether simulation should be re-enabled after the load finishes.
  */
 void Scene::QueueLevelLoad(const std::string& path, bool activateSimulation) {
+	// Cache the load request so the actual rebuild can happen after active iteration completes.
 	pendingLevelPath_ = path;
 	pendingLevelSimActive_ = activateSimulation;
 	hasPendingLevel_ = true;

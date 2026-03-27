@@ -18,18 +18,17 @@
 #include "AudioLoading.hpp"
 #include "FileDropHandler.hpp"
 #include "LevelEditorFileIO.hpp"
+#include "Logger.hpp"
 
 #include <algorithm>
-#include <iostream>
 
 
 FileDropHandler::FileDropHandler(CoreFramework::MessageBus& bus)
-	: messageBus(bus) {
-}
+	: messageBus(bus) {}
 
 
 void FileDropHandler::Initialize() {
-	std::cout << "[FileDropHandler] System initialized and ready to receive file drops." << std::endl;
+	TS_LOG_INFO("[FileDropHandler] System initialized and ready to receive file drops.");
 }
 
 
@@ -44,12 +43,12 @@ void FileDropHandler::HandleGLFWDrop(int count, const char** paths) {
 		return;
 	}
 
-	std::cout << "[FileDropHandler] Received " << count << " dropped file(s)" << std::endl;
+	TS_LOG_INFO("[FileDropHandler] Received " << count << " dropped file(s)");
 
 	// Process each dropped file
 	for (int i = 0; i < count; ++i) {
 		std::string droppedPath(paths[i]);
-		std::cout << "[FileDropHandler] Processing file " << (i + 1) << ": " << droppedPath << std::endl;
+		TS_LOG_INFO("[FileDropHandler] Processing file " << (i + 1) << ": " << droppedPath);
 
 		ProcessDroppedFile(droppedPath);
 	}
@@ -62,7 +61,7 @@ bool FileDropHandler::ProcessDroppedFile(const std::string& droppedPath) {
 
 	// Reject files without extensions
 	if (ext.empty()) {
-		std::cerr << "[FileDropHandler] Skipping file without extension: " << droppedPath << std::endl;
+		TS_LOG_WARN("[FileDropHandler] Skipping file without extension: " << droppedPath);
 		return false;
 	}
 
@@ -82,14 +81,14 @@ bool FileDropHandler::ProcessDroppedFile(const std::string& droppedPath) {
 	}
 	else {
 		// Unsupported file type
-		std::cout << "[FileDropHandler] Unsupported file type: " << ext << std::endl;
+		TS_LOG_WARN("[FileDropHandler] Unsupported file type: " << ext);
 		return false;
 	}
 }
 
 
 bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
-	std::cout << "[FileDropHandler] Processing audio file: " << droppedPath << std::endl;
+	TS_LOG_INFO("[FileDropHandler] Processing audio file: " << droppedPath);
 
 	// Target directory: ../../assets/Audio (relative to build/Release)
 	// This goes from build/Release ? project root ? assets/Audio (SOURCE directory)
@@ -99,11 +98,11 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 	const std::string projPath = LEFILEIO::CopyFileIntoProjectUnique(droppedPath, targetDir);
 
 	if (projPath.empty()) {
-		std::cerr << "[FileDropHandler] ERROR: Failed to copy audio file!" << std::endl;
+		TS_LOG_ERROR("[FileDropHandler] Failed to copy audio file!");
 		return false;
 	}
 
-	std::cout << "[FileDropHandler] Audio file copied to: " << projPath << std::endl;
+	TS_LOG_INFO("[FileDropHandler] Audio file copied to: " << projPath);
 
 	// Normalize path for FMOD (convert backslashes to forward slashes)
 	std::string normalizedPath = projPath;
@@ -111,7 +110,7 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 
 	// Validate audio file format (.wav or .mp3)
 	if (!Audio::AudioCatalog::IsValidAudioFile(normalizedPath)) {
-		std::cerr << "[FileDropHandler] ERROR: Invalid audio file format!" << std::endl;
+		TS_LOG_ERROR("[FileDropHandler] Invalid audio file format!");
 		return false;
 	}
 
@@ -133,7 +132,7 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 		newAsset.name = "audio_" + std::to_string(assets.size());
 	}
 
-	std::cout << "[FileDropHandler] Adding to catalog as: " << newAsset.name << std::endl;
+	TS_LOG_INFO("[FileDropHandler] Adding to catalog as: " << newAsset.name);
 
 	// Set default audio properties
 	newAsset.loop = false;          // Don't loop by default
@@ -143,11 +142,11 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 
 	// Add asset to AudioCatalog (checks for duplicate names)
 	if (!Audio::AudioCatalog::AddAudioAsset(newAsset)) {
-		std::cerr << "[FileDropHandler] ERROR: Failed to add to catalog (duplicate name?)" << std::endl;
+		TS_LOG_ERROR("[FileDropHandler] Failed to add to catalog (duplicate name?)");
 		return false;
 	}
 
-	std::cout << "[FileDropHandler] Successfully added to catalog" << std::endl;
+	TS_LOG_INFO("[FileDropHandler] Successfully added to catalog");
 
 	// Load the audio file into memory via ResourceManager
 	ResourceManager::Instance().LoadAudio(
@@ -160,10 +159,10 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 	// Auto-save catalog to SOURCE directory (../../assets from build/Release)
 	const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
 	if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
-		std::cout << "[FileDropHandler] Catalog auto-saved to: " << catalogPath << std::endl;
+		TS_LOG_INFO("[FileDropHandler] Catalog auto-saved to: " << catalogPath);
 	}
 	else {
-		std::cerr << "[FileDropHandler] WARNING: Failed to auto-save catalog!" << std::endl;
+		TS_LOG_WARN("[FileDropHandler] Failed to auto-save catalog!");
 	}
 
 	return true;
@@ -171,13 +170,13 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 
 
 bool FileDropHandler::ProcessTextureFile(const std::string& droppedPath) {
-	std::cout << "[FileDropHandler] Texture import not yet implemented: " << droppedPath << std::endl;
+	TS_LOG_INFO("[FileDropHandler] Texture import not yet implemented: " << droppedPath);
 	return false;
 }
 
 
 bool FileDropHandler::ProcessPrefabFile(const std::string& droppedPath) {
-	std::cout << "[FileDropHandler] Prefab import not yet implemented: " << droppedPath << std::endl;
+	TS_LOG_INFO("[FileDropHandler] Prefab import not yet implemented: " << droppedPath);
 	return false;
 }
 

@@ -13,19 +13,18 @@
  */
 
 #include "InputCommandHandler.hpp"
+#include "Logger.hpp"
 
-#include <iostream>
-
-/**
- * @brief Processes commands.
- * @param inputManager Input manager for the current frame.
- * @param physicsManager Physics manager used for physics updates.
- * @param movementManager Movement manager used for movement updates.
- * @param playerID Identifier of the player object.
- * @param useForces Parameter for use forces.
- * @param showAuxDebug Parameter for show aux debug.
- * @return Result produced by this operation.
- */
+ /**
+  * @brief Processes commands.
+  * @param inputManager Input manager for the current frame.
+  * @param physicsManager Physics manager used for physics updates.
+  * @param movementManager Movement manager used for movement updates.
+  * @param playerID Identifier of the player object.
+  * @param useForces Parameter for use forces.
+  * @param showAuxDebug Parameter for show aux debug.
+  * @return Result produced by this operation.
+  */
 void InputCommandHandler::ProcessCommands(InputManager& inputManager,
 	PhysicsManager& physicsManager,
 	MovementManager& movementManager,
@@ -47,18 +46,16 @@ void InputCommandHandler::HandleDebugToggles(InputManager& inputManager, bool& s
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_G)) {
 		DebugRenderer::SetEnabled(!DebugRenderer::IsEnabled());
 
-		std::cout << "[DebugRenderer] Collider visibility: "
-			<< (DebugRenderer::IsEnabled() ? "ON" : "OFF")
-			<< std::endl;
+		TS_LOG_INFO("[DebugRenderer] Collider visibility: "
+			<< (DebugRenderer::IsEnabled() ? "ON" : "OFF"));
 	}
 
 	// Toggle auxiliary debug visuals
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_H)) {
 		showAuxDebug = !showAuxDebug;
 
-		std::cout << "[Debug] Auxiliary visuals: "
-			<< (showAuxDebug ? "ON" : "OFF")
-			<< std::endl;
+		TS_LOG_INFO("[Debug] Auxiliary visuals: "
+			<< (showAuxDebug ? "ON" : "OFF"));
 	}
 }
 
@@ -79,7 +76,7 @@ void InputCommandHandler::HandleForceToggle(InputManager& inputManager,
 	// Toggle physics forces vs. kinematic
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_F)) {
 		useForces = !useForces;
-		std::cout << "[Forces] " << (useForces ? "ON" : "OFF") << std::endl;
+		TS_LOG_INFO("[Forces] " << (useForces ? "ON" : "OFF"));
 
 		// Hide click-to-move path line while force mode is ON
 		DebugVisualizer::SetDrawPathLine(!useForces);

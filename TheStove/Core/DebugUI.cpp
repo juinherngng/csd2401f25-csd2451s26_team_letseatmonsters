@@ -21,6 +21,7 @@
 #include "Core.hpp"
 #include "DebugUI.hpp"
 #include "FilePaths.hpp"
+#include "Logger.hpp"
 
 #include <algorithm>
 #include <glm/gtc/matrix_transform.hpp>
@@ -38,7 +39,7 @@ namespace Debug {
 			crashlogFile << "---- Debugger Started ---- \n";
 		}
 		else {
-			std::cerr << "Crash Log File was not opened!" << std::endl;
+			TS_LOG_ERROR("[DebugUI] Crash log file was not opened.");
 		}
 	}
 
@@ -50,7 +51,7 @@ namespace Debug {
 			crashlogFile.close();
 		}
 		else {
-			std::cerr << "Crash Log File was not opened at start!" << std::endl;
+			TS_LOG_WARN("[DebugUI] Crash log file was not opened at startup.");
 		}
 	}
 
@@ -65,7 +66,7 @@ namespace Debug {
 		}
 
 		isInitialised = false; // only mark state, do not shutdown ImGui here
-		std::cout << "Debugger Destructed with Shutdown\n";
+		TS_LOG_INFO("[DebugUI] Debugger shutdown completed.");
 	}
 
 	bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow, CoreFramework::CoreEngine* coreEnginePtr) {
@@ -79,7 +80,7 @@ namespace Debug {
 		glfwMakeContextCurrent(debugWindow);
 
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-			std::cerr << "Failed to initialize OpenGL context\n";
+			TS_LOG_ERROR("[DebugUI] Failed to initialize OpenGL context.");
 			return false;
 		}
 
@@ -94,13 +95,13 @@ namespace Debug {
 	void DebuggerApp::InitializeFontSystem() {
 		// Initialize FontManager
 		if (!FontSystem::FontManager::Instance().Initialize()) {
-			std::cerr << "Failed to initialize FontManager\n";
+			TS_LOG_ERROR("[DebugUI] Failed to initialize FontManager.");
 			return;
 		}
 
 		// Initialize TextRenderer
 		if (!FontSystem::TextRenderer::Instance().Initialize()) {
-			std::cerr << "Failed to initialize TextRenderer\n";
+			TS_LOG_ERROR("[DebugUI] Failed to initialize TextRenderer.");
 			FontSystem::FontManager::Instance().Shutdown();
 			return;
 		}
@@ -122,7 +123,7 @@ namespace Debug {
 
 		// Check if at least one font loaded successfully
 		if (!fontChrusty && !fontToThePoint) {
-			std::cerr << "Failed to load any fonts from assets folder\n";
+			TS_LOG_ERROR("[DebugUI] Failed to load any fonts from assets folder.");
 			FontSystem::TextRenderer::Instance().Shutdown();
 			FontSystem::FontManager::Instance().Shutdown();
 			return;
@@ -147,10 +148,20 @@ namespace Debug {
 		text2.SetScale(0.75f);
 
 		fontSystemInitialized = true;
-		std::cout << "Font system initialized successfully!\n";
-		std::cout << "Loaded fonts from assets folder:\n";
-		if (fontChrusty) std::cout << "  - ChrustyRock-ORLA.ttf\n";
-		if (fontToThePoint) std::cout << "  - ToThePointRegular-n9y4.ttf\n";
+		TS_LOG_INFO("[DebugUI] Font system initialized successfully.");
+		if (fontChrusty || fontToThePoint) {
+			std::string loadedFonts;
+			if (fontChrusty) {
+				loadedFonts += "ChrustyRock-ORLA.ttf";
+			}
+			if (fontToThePoint) {
+				if (!loadedFonts.empty()) {
+					loadedFonts += ", ";
+				}
+				loadedFonts += "ToThePointRegular-n9y4.ttf";
+			}
+			TS_LOG_INFO("[DebugUI] Loaded fonts: " << loadedFonts);
+		}
 		AddDebugLine("Font system initialized with fonts from assets folder\n");
 	}
 
@@ -179,7 +190,7 @@ namespace Debug {
 		// Close the debugger if esc was pressed
 		if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
 			openedDebugger = !openedDebugger;
-			std::cout << "CLOSING DEBUGGER" << std::endl;
+			TS_LOG_INFO("[DebugUI] Toggled debugger visibility.");
 		}
 	}
 
@@ -780,7 +791,7 @@ namespace Debug {
 			return;  // Not ready yet, try next frame
 		}
 
-		std::cout << "Setting up default ImGui layout...\n";
+		TS_LOG_INFO("[DebugUI] Setting up default ImGui layout.");
 
 		// Clear any existing layout
 		ImGui::DockBuilderRemoveNode(dockspaceID);
@@ -815,7 +826,7 @@ namespace Debug {
 		ImGui::DockBuilderFinish(dockspaceID);
 
 		layoutInitialized = true;
-		std::cout << "Default ImGui layout initialized successfully!\n";
+		TS_LOG_INFO("[DebugUI] Default ImGui layout initialized successfully.");
 	}
 
 	void DebuggerApp::DrawTransitionPanel() {

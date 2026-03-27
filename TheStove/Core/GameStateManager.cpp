@@ -24,12 +24,32 @@
 #include "EngineRng.hpp"
 #include "GameStateManager.hpp"
 #include "LevelSerializer.hpp"
+#include "Logger.hpp"
 #include "RuntimeLevel.hpp"
 
 #include <unordered_set>
 #include <vector>
 
 namespace Framework {
+	/**
+	 * @brief Returns a stable display name for a game state identifier.
+	 * @param state State identifier to stringify.
+	 * @return Null-terminated name for logs and debugging.
+	 */
+	const char* ToString(GameState state) {
+		switch (state) {
+		case GameState::MainMenu:
+			return "MainMenu";
+		case GameState::Tutorial:
+			return "Tutorial";
+		case GameState::Kitchen01:
+			return "Kitchen01";
+		case GameState::Quit:
+			return "Quit";
+		default:
+			return "Unknown";
+		}
+	}
 
 	namespace {
 		// Fixed seed for tutorial levels to ensure consistent RNG behavior 
@@ -85,7 +105,7 @@ namespace Framework {
 	 * @return Result produced by this operation.
 	 */
 	void GameStateManager::Initialize() {
-		std::cout << "GameStateManager system initialized." << std::endl;
+		TS_LOG_INFO("[GameStateManager] System initialized.");
 	}
 
 	/**
@@ -242,19 +262,19 @@ namespace Framework {
 			return false;
 		}
 		if (!scene) {
-			std::cerr << "[GameStateManager] Scene not set; cannot load JSON level for state " << static_cast<int>(state) << std::endl;
+			TS_LOG_ERROR("[GameStateManager] Scene not set; cannot load JSON level for state " << ToString(state));
 			return false;
 		}
 
 		// Force deterministic RNG only for tutorial state.
 		if (state == Framework::GameState::Tutorial) {
 			EngineRng::SetSeed(kTutorialFixedSeed);
-			std::cout << "[GameStateManager] Tutorial fixed seed set to " << kTutorialFixedSeed << std::endl;
+			TS_LOG_INFO("[GameStateManager] Tutorial fixed seed set to " << kTutorialFixedSeed);
 		}
 
 		const std::string& path = it->second;
 		if (!RuntimeLevel::LoadAndBuild(path, *scene)) {
-			std::cerr << "[GameStateManager] Failed to build level from JSON: " << path << std::endl;
+			TS_LOG_ERROR("[GameStateManager] Failed to build level from JSON: " << path);
 			return false;
 		}
 

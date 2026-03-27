@@ -15,6 +15,7 @@
 
 #include "Graphics/SceneManager.hpp"
 
+#include "Core/Logger.hpp"
 #include "PlateLogic.hpp"
 
 static const char* GetDishTexturePath(DishType t) {
@@ -53,7 +54,7 @@ void PlateLogic::Start(Scene& /*scene*/) {
 	dishPrepared_ = false;
 	dishType_ = DishType::PoopDish;
 
-	std::cout << "[PlateLogic] Start owner=" << GetOwnerID() << "\n";
+	TS_LOG_DEBUG("[PlateLogic] Start owner=" << GetOwnerID());
 }
 
 void PlateLogic::Update(float /*dt*/, Scene& /*scene*/, InputManager& /*input*/) {

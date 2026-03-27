@@ -128,7 +128,7 @@ namespace Economy {
 
 		// If no frames, go straight to MAIN MENU
 		if (frames.empty()) {
-			scene.RequestStateChange(Framework::GameState::MainMenu);
+			scene.RequestMainMenuStateChange();
 			return;
 		}
 
@@ -190,7 +190,7 @@ namespace Economy {
 		);
 
 		if (frames.empty()) {
-			scene.RequestStateChange(Framework::GameState::MainMenu);
+			scene.RequestMainMenuStateChange();
 			return;
 		}
 

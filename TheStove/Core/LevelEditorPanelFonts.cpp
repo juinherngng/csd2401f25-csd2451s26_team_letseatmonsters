@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 #include <filesystem>
-#include <iostream>
 #include <algorithm>
 #include <cstdio> // snprintf
 
@@ -27,6 +26,7 @@
 #include "LevelEditor.hpp"
 #include "FontSystem.hpp"
 #include "FilePaths.hpp"
+#include "Logger.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/SceneManager.hpp"
@@ -44,8 +44,8 @@ namespace {
 		OutputDebugStringA((msg + "\n").c_str());
 #endif
 
-		// 2) Also try stderr (works if you have a console attached)
-		std::cerr << msg << std::endl;
+		// 2) Mirror into the shared engine logger for consistent diagnostics.
+		TS_LOG_INFO(msg);
 
 		// 3) Always log to a file next to the exe working directory
 		static std::ofstream file("font_debug.log", std::ios::app);
@@ -182,7 +182,7 @@ namespace LEPANELFONTS {
 	static std::vector<std::string> ListTTFFiles(const std::string& directory) {
 		std::vector<std::string> files;
 		if (!fs::exists(directory) || !fs::is_directory(directory)) {
-			std::cerr << "[FontPanel] Directory not found: " << directory << std::endl;
+			TS_LOG_WARN("[FontPanel] Directory not found: " << directory);
 			return files;
 		}
 
@@ -198,10 +198,10 @@ namespace LEPANELFONTS {
 			}
 
 			std::sort(files.begin(), files.end());
-			std::cout << "[FontPanel] Found " << files.size() << " TTF files in " << directory << std::endl;
+			TS_LOG_INFO("[FontPanel] Found " << files.size() << " TTF files in " << directory);
 		}
 		catch (const std::exception& e) {
-			std::cerr << "[FontPanel] Error listing TTF files: " << e.what() << std::endl;
+			TS_LOG_ERROR("[FontPanel] Error listing TTF files: " << e.what());
 		}
 
 		return files;
@@ -266,8 +266,8 @@ namespace LEPANELFONTS {
 			}
 		}
 
-		std::cout << "[FontPanel] Loaded " << textObjects.size()
-			<< " text objects with scene layer registration\n";
+		TS_LOG_INFO("[FontPanel] Loaded " << textObjects.size()
+			<< " text objects with scene layer registration");
 #endif
 	}
 
@@ -283,7 +283,7 @@ namespace LEPANELFONTS {
 		}
 
 #ifdef _DEBUG
-		std::cerr << "[LEPANELFONTS] SetTextByName failed: '" << name << "' not found\n";
+		TS_LOG_WARN("[LEPANELFONTS] SetTextByName failed: '" << name << "' not found");
 #endif
 		return false;
 	}

@@ -19,40 +19,42 @@
 #pragma once
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "../Core/CollisionManager.hpp"
 #include "../Core/DebugVisualizer.hpp"
+#include "../Core/GameStateManager.hpp"
 #include "../Core/InputCommandHandler.hpp"
-#include "../Core/InputManager.hpp"
 #include "../Core/LevelEditor.hpp"
 #include "../Core/LogicManager.hpp"
 #include "../Core/Math.hpp"
-#include "../Core/MovementManager.hpp" 
 #include "../Core/NPCSystem.hpp"
 #include "../Core/Physics.hpp"
-#include "../Core/PhysicsManager.hpp"
 #include "../Core/PlayerController.hpp"
 #include "../Core/ReplayManager.hpp"
 #include "../Core/GridPathfinder.hpp"
-#include "../Core/GameStateManager.hpp"
 
-#include "AnimationManager.hpp"
-#include "Animator.hpp"
 #include "EntityManager.hpp"
-#include "GraphicsEngine.hpp"
 #include "Layer.hpp"
 #include "ParticleSystem.hpp"
 #include "SceneObjectMetadata.hpp"
 #include "../Core/FontSystem.hpp"
 
 class AudioManager;
+class GameObject;
+class GraphicsEngine;
+class InputManager;
+class AnimationManager;
+class MovementManager;
+class CollisionManager;
+class PhysicsManager;
+struct GLFWwindow;
 namespace CoreFramework {
 	class MessageBus;
 }
-
 /**
  * @class Scene
  * @brief Manages the lifecycle of a game scene, including objects, animations, and input.
@@ -843,6 +845,21 @@ public:
 	void RequestStateChange(Framework::GameState newState);
 
 	/**
+	 * @brief Queues a transition back to the main menu state.
+	 */
+	void RequestMainMenuStateChange();
+
+	/**
+	 * @brief Queues a transition into the tutorial state.
+	 */
+	void RequestTutorialStateChange();
+
+	/**
+	 * @brief Queues a transition into the first kitchen gameplay state.
+	 */
+	void RequestKitchen01StateChange();
+
+	/**
 	 * @brief Returns whether pending state change.
 	 * @return True when the operation succeeds or the condition is met.
 	 */
@@ -859,11 +876,10 @@ public:
 	}
 
 	/**
-	 * @brief Clears pending state change.
+	 * @brief Returns and clears the currently queued state transition if one exists.
+	 * @return Pending state change when queued; otherwise no value.
 	 */
-	void ClearPendingStateChange() {
-		hasPendingStateChange_ = false;
-	}
+	std::optional<Framework::GameState> ConsumePendingStateChange();
 
 	/**
 	 * @brief Performs show pause overlay.

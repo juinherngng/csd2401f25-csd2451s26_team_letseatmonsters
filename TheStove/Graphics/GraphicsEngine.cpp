@@ -16,6 +16,7 @@
 #include "../Core/FontSystem.hpp"
 #include "../Core/InputManager.hpp"
 #include "../Core/LevelEditorPanelFonts.hpp"
+#include "../Core/Logger.hpp"
 
 #include "GraphicsEngine.hpp"
 #include "MeshLoader.hpp"
@@ -26,7 +27,6 @@
 #include <glad/glad.h> 
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 
 // File-scoped state
 static bool _imguiInitialized = false;
@@ -126,7 +126,7 @@ namespace {
 		// Print working directory only once
 		static bool printedCwd = false;
 		if (!printedCwd) {
-			std::cout << "[ShaderPath] Current working directory: " << std::filesystem::current_path() << std::endl;
+			TS_LOG_DEBUG("[ShaderPath] Current working directory: " << std::filesystem::current_path());
 			printedCwd = true;
 		}
 
@@ -145,14 +145,14 @@ namespace {
 
 		for (const auto& path : possiblePaths) {
 			if (std::filesystem::exists(path)) {
-				std::cout << "[ShaderPath] Found '" << filename << "' at: " << path << std::endl;
+				TS_LOG_DEBUG("[ShaderPath] Found '" << filename << "' at: " << path);
 				return path;
 			}
 		}
 
 		// If not found, return original path and let error handling catch it
-		std::cerr << "[ShaderPath] ERROR: Shader '" << filename << "' not found in any expected location!" << std::endl;
-		std::cerr << "[ShaderPath] Tried paths relative to: " << std::filesystem::current_path() << std::endl;
+		TS_LOG_ERROR("[ShaderPath] Shader '" << filename << "' not found in any expected location.");
+		TS_LOG_ERROR("[ShaderPath] Tried paths relative to: " << std::filesystem::current_path());
 		return relativePathFromProjectRoot;
 	}
 
@@ -163,7 +163,7 @@ namespace {
 	void LogOpenGLErrors(const char* prefix = kOpenGLErrorPrefixDefault) {
 		GLenum error;
 		while ((error = glGetError()) != GL_NO_ERROR) {
-			std::cerr << prefix << ": " << error << std::endl;
+			TS_LOG_ERROR(prefix << ": " << error);
 		}
 	}
 
@@ -208,13 +208,13 @@ void GraphicsEngine::Initialize() {
 	// Ensure there's a current GLFW OpenGL context before calling any GL functions.
 	GLFWwindow* ctx = glfwGetCurrentContext();
 	if (ctx == nullptr) {
-		std::cerr << "[GraphicsEngine] ERROR: No current OpenGL context. Initialize must be called after creating/making context current.\n";
+		TS_LOG_ERROR("[GraphicsEngine] No current OpenGL context. Initialize must be called after creating/making context current.");
 		return;
 	}
 
 	// Load GL function pointers as early as possible (must succeed before any gl* calls).
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-		std::cerr << "[GraphicsEngine] ERROR: gladLoadGLLoader failed - no GL functions available\n";
+		TS_LOG_ERROR("[GraphicsEngine] gladLoadGLLoader failed; no GL functions available.");
 		return;
 	}
 
@@ -229,11 +229,11 @@ void GraphicsEngine::Initialize() {
 
 	// Initialize FontSystem
 	if (!FontSystem::FontManager::Instance().Initialize()) {
-		std::cerr << "[GraphicsEngine] ERROR: Failed to initialize FontManager\n";
+		TS_LOG_ERROR("[GraphicsEngine] Failed to initialize FontManager.");
 	}
 
 	if (!FontSystem::TextRenderer::Instance().Initialize()) {
-		std::cerr << "[GraphicsEngine] ERROR: Failed to initialize TextRenderer\n";
+		TS_LOG_ERROR("[GraphicsEngine] Failed to initialize TextRenderer.");
 	}
 
 	DebugRenderer::Init();
@@ -529,7 +529,7 @@ void GraphicsEngine::SetBackground(const std::string& texturePath) {
 
 	Texture* bgTexture = resourceManager.LoadTexture(key, texturePath);
 	if (!bgTexture) {
-		std::cerr << "Failed to load background texture: " << texturePath << std::endl;
+		TS_LOG_ERROR("[GraphicsEngine] Failed to load background texture: " << texturePath);
 		return;
 	}
 
@@ -561,7 +561,7 @@ void GraphicsEngine::SetBackgroundOverlay(const std::string& texturePath) {
 
 	Texture* overlayTexture = resourceManager.LoadTexture(key, texturePath);
 	if (!overlayTexture) {
-		std::cerr << "Failed to load background overlay texture: " << texturePath << std::endl;
+		TS_LOG_ERROR("[GraphicsEngine] Failed to load background overlay texture: " << texturePath);
 		return;
 	}
 

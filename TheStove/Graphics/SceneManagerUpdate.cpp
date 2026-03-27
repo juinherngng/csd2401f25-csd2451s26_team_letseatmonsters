@@ -13,25 +13,30 @@
 
 #include "../Core/AudioManager.hpp"
 #include "../Core/FilePaths.hpp"
+#include "../Core/InputManager.hpp"
 #include "../Core/Logger.hpp"
+#include "../Core/PhysicsManager.hpp"
 
+#include "GraphicsEngine.hpp"
 #include "ResourceManager.hpp"
 #include "SceneManager.hpp"
 
-// -------------------------------------------------------------------------------------------------
-// Top-Level Frame Driver
-// -------------------------------------------------------------------------------------------------
+ // -------------------------------------------------------------------------------------------------
+ // Top-Level Frame Driver
+ // -------------------------------------------------------------------------------------------------
 
-/**
- * @brief Advances the Scene by one frame.
- * @param deltaTime Frame delta time in seconds.
- * @param window Window used by editor/debug UI helpers.
- */
+ /**
+  * @brief Advances the Scene by one frame.
+  * @param deltaTime Frame delta time in seconds.
+  * @param window Window used by editor/debug UI helpers.
+  */
 void Scene::Update(float deltaTime, GLFWwindow* window) {
 #ifdef _DEBUG
+	// Debug-only animation controls run before any other scene work so later phases see updated state.
 	UpdateAnimationControls();
 #endif
 
+	// Advance the frame in ordered phases so transitions and gameplay stay predictable.
 	UpdateCutscenePhase(deltaTime);
 	if (!UpdateInputPhase(deltaTime)) {
 		return;
@@ -92,6 +97,7 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 #endif
 
 	if (pendingClear_) {
+		// Abort the rest of the frame once the scene has been rebuilt from an empty state.
 		ClearAll();
 		RebuildColliders();
 		pendingClear_ = false;
@@ -133,6 +139,7 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 			}
 
 			if (font) {
+				// Reinitialize the overlay text so the newly enabled FPS display starts from sane defaults.
 				fpsText_.SetFont(font);
 				fpsText_.SetColor(glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
 				fpsText_.SetScale(1.5f);
@@ -180,6 +187,7 @@ void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 
 	if (simulationActive) {
 		if (useForces_) {
+			// Physics integration is optional so designers can toggle force-driven movement live.
 			physicsManager.UpdatePhysics(physicsDt, entityManager, inputManager);
 		}
 
@@ -189,6 +197,7 @@ void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 		ApplyFinalConstraints(entityManager);
 
 		if (audioManager_) {
+			// Keep the 2D listener centered on the authored scene reference frame.
 			const float listenerX = static_cast<float>(GraphicsEngine::kRefW) * 0.5f;
 			const float listenerY = static_cast<float>(GraphicsEngine::kRefH) * 0.5f;
 			audioManager_->SetListenerPosition(listenerX, listenerY, 0.0f);
@@ -202,12 +211,14 @@ void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
  * @param window Window passed through for debug/editor integrations.
  */
 void Scene::UpdateUiPhase(float deltaTime, GLFWwindow* window) {
+	// Update transient UI and effect systems after gameplay has produced the current frame state.
 	particleSystem_.Update(deltaTime, entityManager);
 	UpdateUiSlides(deltaTime);
 	UpdateRuntimeAnimatedFx(deltaTime);
 	UpdateFloatingWorldTextFx(deltaTime);
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	// Draw developer overlays last so they reflect the fully updated frame state.
 	debugVisualizer.DrawDebugInfo(entityManager, collisionManager, movementManager, spriteID, showAuxDebug_);
 #endif
 
@@ -227,6 +238,7 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 	(void)deltaTime;
 #endif
 
+	// Apply deferred despawns after all gameplay iteration has completed for the frame.
 	for (int id : pendingDespawns_) {
 		DespawnByID(id);
 	}
@@ -234,6 +246,7 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 
 #ifndef _DEBUG
 	if (showFPS_) {
+		// Smooth the displayed FPS value by updating it at a fixed reporting cadence.
 		fpsAccumTime_ += deltaTime;
 		fpsAccumFrames_ += 1;
 		if (fpsAccumTime_ >= fpsUpdateInterval_) {
@@ -253,6 +266,7 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 	}
 
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
+		// Use ESC as a pause toggle only outside debug builds where the pause overlay is available.
 		if (IsPauseOverlayActive()) {
 			HidePauseOverlay();
 			RequestResumeFromPauseOverlay();
@@ -266,6 +280,7 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 
 	// Resume simulation only after the overlay has been fully torn down.
 	if (resumeFromPausePending_ && !pauseOverlayActive_) {
+		// Reactivate gameplay one frame after the pause UI finishes despawning.
 		SetSimulationActive(true);
 		resumeFromPausePending_ = false;
 		RefreshFlowState();

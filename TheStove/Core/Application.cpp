@@ -15,6 +15,7 @@
 
 #include "Application.hpp"
 
+#include "../Graphics/AnimationManager.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
@@ -27,11 +28,9 @@
 #include "FilePaths.hpp"
 #include "GameBootstrap.hpp"
 #include "GameStateManager.hpp"
-#include "LevelEditorFileIO.hpp"
 #include "Logger.hpp"
 #include "MovementManager.hpp"
 #include "Precompiled.hpp"
-#include "TileMap.hpp"
 
 #include <csignal>
 #include <filesystem>
@@ -584,9 +583,8 @@ bool Application::Initialize(int width, int height, const std::string& title, bo
 		state_.currentScene->SetAudioManager(audioMgr);
 	}
 
-	// Connect the scene to the message bus and seed its initial load state.
+	// Connect the scene to the message bus; the GameStateManager will load the first real state next.
 	state_.currentScene->SetMessageBus(&state_.coreEngine->GetMessageBus());
-	state_.currentScene->LoadScene("LoadTest");
 
 	// Wire the scene entity manager into each system that operates on scene objects.
 	animMgr->SetEntityManager(&state_.currentScene->GetEntityManager());
@@ -673,25 +671,22 @@ void Application::Update() {
 
 	auto* graphicsEngine = state_.coreEngine->GetSystem<GraphicsEngine>();
 
-	if (state_.currentScene->HasPendingStateChange()) {
+	if (std::optional<Framework::GameState> newState = state_.currentScene->ConsumePendingStateChange()) {
 		// Queue scene changes behind a fade transition to avoid popping between states.
-		Framework::GameState newState = state_.currentScene->GetPendingState();
-		state_.currentScene->ClearPendingStateChange();
-
 		if (graphicsEngine && !graphicsEngine->IsTransitionActive()) {
 			graphicsEngine->StartSceneTransition(0.35f, 0.35f);
-			state_.pendingStateAfterFade = newState;
-			TS_LOG_DEBUG("[Application] Queued state change " << static_cast<int>(newState) << " to run at blackout");
+			state_.pendingStateAfterFade = *newState;
+			TS_LOG_DEBUG("[Application] Queued state change " << Framework::ToString(*newState) << " to run at blackout");
 		}
 		else {
-			state_.pendingStateAfterFade = newState;
+			state_.pendingStateAfterFade = *newState;
 		}
 	}
 
 	if (graphicsEngine && graphicsEngine->IsAtBlackout() && state_.pendingStateAfterFade.has_value()) {
 		// Apply the queued state change only when the transition has fully blacked out.
 		if (auto* gsm = state_.coreEngine->GetSystem<Framework::GameStateManager>()) {
-			TS_LOG_INFO("[Application] Blackout reached; switching to state " << static_cast<int>(*state_.pendingStateAfterFade));
+			TS_LOG_INFO("[Application] Blackout reached; switching to state " << Framework::ToString(*state_.pendingStateAfterFade));
 			gsm->UpdateGameState(*state_.pendingStateAfterFade, frameDt);
 		}
 		else {

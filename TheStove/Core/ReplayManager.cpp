@@ -32,10 +32,10 @@
 
 #include "EngineRng.hpp"
 #include "JSONInclude.hpp"
+#include "Logger.hpp"
 
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 
 using nlohmann::json;
 
@@ -52,12 +52,12 @@ void ReplayManager::StartRecording(const std::string& levelPath, bool simulation
 	seed_ = EngineRng::CreateSeed();
 	EngineRng::SetSeed(seed_);
 
-	std::cout << "[Replay] Recording started (seed=" << seed_ << ")\n";
+	TS_LOG_INFO("[Replay] Recording started (seed=" << seed_ << ")");
 }
 
 bool ReplayManager::StopRecording(const std::string& path) {
 	if (!recording_) {
-		std::cout << "[Replay] StopRecording ignored (not recording)\n";
+		TS_LOG_WARN("[Replay] StopRecording ignored (not recording)");
 		return false;
 	}
 
@@ -89,13 +89,12 @@ bool ReplayManager::StopRecording(const std::string& path) {
 
 	std::ofstream file(path);
 	if (!file.is_open()) {
-		std::cout << "[Replay] Failed to write replay: " << path << "\n";
+		TS_LOG_ERROR("[Replay] Failed to write replay: " << path);
 		return false;
 	}
 
 	file << root.dump(2);
-	std::cout << "[Replay] Recording saved: " << path
-		<< " (frames=" << frames_.size() << ")\n";
+	TS_LOG_INFO("[Replay] Recording saved: " << path << " (frames=" << frames_.size() << ")");
 	return true;
 }
 
@@ -104,7 +103,7 @@ bool ReplayManager::StartPlayback(const std::string& path) {
 
 	std::ifstream file(path);
 	if (!file.is_open()) {
-		std::cout << "[Replay] Failed to open replay: " << path << "\n";
+		TS_LOG_ERROR("[Replay] Failed to open replay: " << path);
 		return false;
 	}
 
@@ -140,18 +139,18 @@ bool ReplayManager::StartPlayback(const std::string& path) {
 	playback_ = !frames_.empty();
 
 	if (wasRecording) {
-		std::cout << "[Replay] Recording aborted due to playback start\n";
+		TS_LOG_WARN("[Replay] Recording aborted due to playback start");
 	}
 
 	if (!playback_) {
-		std::cout << "[Replay] Playback failed (no frames): " << path << "\n";
+		TS_LOG_ERROR("[Replay] Playback failed (no frames): " << path);
 		return false;
 	}
 
-	std::cout << "[Replay] Playback started: " << path
+	TS_LOG_INFO("[Replay] Playback started: " << path
 		<< " (frames=" << frames_.size() << ", seed=" << seed_
 		<< ", levelPath=" << recordedLevelPath_
-		<< ", simulationActive=" << (recordedSimulationActive_ ? "true" : "false") << ")\n";
+		<< ", simulationActive=" << (recordedSimulationActive_ ? "true" : "false") << ")");
 	return true;
 }
 
@@ -162,7 +161,7 @@ void ReplayManager::StopPlayback() {
 
 	playback_ = false;
 	playbackIndex_ = 0;
-	std::cout << "[Replay] Playback stopped\n";
+	TS_LOG_INFO("[Replay] Playback stopped");
 }
 
 bool ReplayManager::IsRecording() const {

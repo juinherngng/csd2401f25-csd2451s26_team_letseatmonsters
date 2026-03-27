@@ -19,8 +19,9 @@
 
 #include <functional> 
 #include <memory>
-#include <unordered_map>
+#include <optional>
 #include <string>
+#include <unordered_map>
 
 #include "MessageBus.hpp"
 #include "System.hpp"
@@ -37,6 +38,13 @@ namespace Framework {
 		Kitchen01,
 		Quit
 	};
+
+	/**
+	 * @brief Returns a stable display name for a game state identifier.
+	 * @param state State identifier to stringify.
+	 * @return Null-terminated name for logs and debugging.
+	 */
+	const char* ToString(GameState state);
 
 	class GameStateManager : public CoreFramework::SystemInterface {
 	public:

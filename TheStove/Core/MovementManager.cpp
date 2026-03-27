@@ -18,19 +18,19 @@
 #include "../Graphics/EntityManager.hpp"
 #include "../Graphics/GameObject.hpp"
 
+#include "Logger.hpp"
 #include "MovementManager.hpp"
 #include "NPCSystem.hpp"
 
 #include <cmath>
-#include <iostream>
 #include <vector>
 
-/**
- * @brief Initializes this object.
- * @return Result produced by this operation.
- */
+ /**
+  * @brief Initializes this object.
+  * @return Result produced by this operation.
+  */
 void MovementManager::Initialize() {
-	std::cout << "MovementManager initialized" << std::endl;
+	TS_LOG_INFO("MovementManager initialized");
 }
 
 /**

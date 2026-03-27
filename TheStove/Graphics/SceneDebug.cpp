@@ -13,19 +13,22 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "../Core/InputManager.hpp"
+#include "../Core/Logger.hpp"
+
+#include "AnimationManager.hpp"
 #include "SceneManager.hpp"
 
 #include <imgui.h>
-#include <iostream>
 #include <random>
 
-/**
- * @brief Generates stress test.
- * @param objectCount Parameter for object count.
- * @return Result produced by this operation.
- */
+ /**
+  * @brief Generates stress test.
+  * @param objectCount Parameter for object count.
+  * @return Result produced by this operation.
+  */
 void Scene::GenerateStressTest(int objectCount) {
-	std::cout << "[Scene] Generating stress test with " << objectCount << " objects...\n";
+	TS_LOG_INFO("[Scene] Generating stress test with " << objectCount << " objects...");
 
 	std::random_device rd;
 	std::mt19937 gen(rd());
@@ -63,7 +66,7 @@ void Scene::GenerateStressTest(int objectCount) {
 		}
 	}
 
-	std::cout << "[Scene] Stress test loaded\n";
+	TS_LOG_INFO("[Scene] Stress test loaded");
 }
 
 /**
@@ -107,8 +110,8 @@ void Scene::UpdateAnimationControls() {
 		}
 
 		animationManager.SetAnimation(id, anim);
-		std::cout << "[Scene] Playing animation " << anim
-			<< " for dino id=" << id << "\n";
+		TS_LOG_INFO("[Scene] Playing animation " << anim
+			<< " for dino id=" << id);
 	}
 }
 

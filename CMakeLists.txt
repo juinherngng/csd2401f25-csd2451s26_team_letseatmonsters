@@ -12,6 +12,15 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 include(ImportDependencies)
 importDependencies()
 
+function(copy_runtime_directory target source_dir destination_dir description)
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${source_dir}"
+        "${CMAKE_BINARY_DIR}/${destination_dir}"
+        COMMENT "${description}"
+    )
+endfunction()
+
 # List of external libraries
 set(ALL_LIBS
    glfw
@@ -123,7 +132,11 @@ target_include_directories(MyoonchiDiner PUBLIC
 target_link_libraries(MyoonchiDiner PUBLIC TheStove)
 
 # Create executable target, typically with only main.cpp or launcher
-add_executable(LetsEatMonsters ${CMAKE_CURRENT_LIST_DIR}/TheStove/Main.cpp)
+set(LETS_EAT_MONSTERS_SOURCES
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Main.cpp
+)
+
+add_executable(LetsEatMonsters ${LETS_EAT_MONSTERS_SOURCES})
 
 target_link_libraries(LetsEatMonsters PRIVATE MyoonchiDiner)
 
@@ -145,37 +158,10 @@ set_property(TARGET LetsEatMonsters PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CM
 # Copy FMOD DLL to the executable's output directory
 copy_fmod_dll_to_target(LetsEatMonsters)
 
-# Copy assets folder to the executable's output directory for run.bat
-add_custom_command(TARGET LetsEatMonsters POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_SOURCE_DIR}/assets"
-    "${CMAKE_BINARY_DIR}/assets"
-    COMMENT "Copying assets to build directory"
-)
-
-# Copy shader files to the build directory for run.bat
-add_custom_command(TARGET LetsEatMonsters POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_SOURCE_DIR}/TheStove/Graphics/shaders"
-    "${CMAKE_BINARY_DIR}/shaders"
-    COMMENT "Copying shader files to build directory"
-)
-
-# Copy level files to the build directory for run.bat
-add_custom_command(TARGET LetsEatMonsters POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_SOURCE_DIR}/levels"
-    "${CMAKE_BINARY_DIR}/levels"
-    COMMENT "Copying shader files to build directory"
-)
-
-# Copy prefab files to the build directory for run.bat
-add_custom_command(TARGET LetsEatMonsters POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_SOURCE_DIR}/prefabs"
-    "${CMAKE_BINARY_DIR}/prefabs"
-    COMMENT "Copying prefab files to build directory"
-)
+copy_runtime_directory(LetsEatMonsters "${CMAKE_SOURCE_DIR}/assets" "assets" "Copying assets to build directory")
+copy_runtime_directory(LetsEatMonsters "${CMAKE_SOURCE_DIR}/TheStove/Graphics/shaders" "shaders" "Copying shader files to build directory")
+copy_runtime_directory(LetsEatMonsters "${CMAKE_SOURCE_DIR}/levels" "levels" "Copying level files to build directory")
+copy_runtime_directory(LetsEatMonsters "${CMAKE_SOURCE_DIR}/prefabs" "prefabs" "Copying prefab files to build directory")
 
 # Add compiler warnings and flags based on compiler
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

@@ -25,6 +25,7 @@
 #include "Core.hpp"
 #include "Message.hpp"
 #include "FilePaths.hpp"
+#include "Logger.hpp"
 
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/GraphicsEngine.hpp"
@@ -246,7 +247,7 @@ namespace LEPANELASSETS {
 				OpenFileDialog("Audio Files\0*.wav;*.mp3\0WAV Files\0*.wav\0MP3 Files\0*.mp3\0All Files\0*.*\0");
 
 			if (!picked.empty()) {
-				std::cout << "[Assets Panel] Selected file: " << picked << std::endl;
+				TS_LOG_INFO("[Assets Panel] Selected file: " << picked);
 
 				// Extract extension from picked path
 				std::string ext;
@@ -268,21 +269,21 @@ namespace LEPANELASSETS {
 				else {
 					// Use ../../assets/Audio to go from build/Release up to project root, then into source assets
 					const std::string targetDir = FilePaths::Dirs::AUDIO_EDITOR;
-					std::cout << "[Assets Panel] Copying to: " << targetDir << std::endl;
+					TS_LOG_INFO("[Assets Panel] Copying to: " << targetDir);
 
 					// Copy into project audio folder (SOURCE directory, not build)
 					const std::string projPath =
 						CopyFileIntoProjectUnique(picked, targetDir);
 
 					if (projPath.empty()) {
-						std::cerr << "[Assets Panel] ERROR: Failed to copy file!" << std::endl;
+						TS_LOG_ERROR("[Assets Panel] Failed to copy file!");
 					}
 					else {
-						std::cout << "[Assets Panel] File copied to: " << projPath << std::endl;
+						TS_LOG_INFO("[Assets Panel] File copied to: " << projPath);
 
 						// Normalize the path for FMOD (convert backslashes to forward slashes)
 						const std::string normalizedPath = NormalizeAudioPath(projPath);
-						std::cout << "[Assets Panel] Normalized path: " << normalizedPath << std::endl;
+						TS_LOG_DEBUG("[Assets Panel] Normalized path: " << normalizedPath);
 
 						// Refresh audio list after copy
 						QueueAudioRefresh();
@@ -305,7 +306,7 @@ namespace LEPANELASSETS {
 								newAsset.name = "audio_" + std::to_string(assets.size());
 							}
 
-							std::cout << "[Assets Panel] Adding to catalog as: " << newAsset.name << std::endl;
+							TS_LOG_INFO("[Assets Panel] Adding to catalog as: " << newAsset.name);
 
 							// Default properties
 							newAsset.loop = false;
@@ -315,7 +316,7 @@ namespace LEPANELASSETS {
 
 							// Add to catalog
 							if (Audio::AudioCatalog::AddAudioAsset(newAsset)) {
-								std::cout << "[Assets Panel] Successfully added to catalog" << std::endl;
+								TS_LOG_INFO("[Assets Panel] Successfully added to catalog");
 
 								// Load the audio
 								ResourceManager::Instance().LoadAudio(
@@ -328,24 +329,24 @@ namespace LEPANELASSETS {
 								// Save catalog to SOURCE directory (../../assets from build/Release)
 								const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
 								if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
-									std::cout << "[Assets Panel] Catalog auto-saved to: " << catalogPath << std::endl;
+									TS_LOG_INFO("[Assets Panel] Catalog auto-saved to: " << catalogPath);
 								}
 								else {
-									std::cerr << "[Assets Panel] WARNING: Failed to auto-save catalog!" << std::endl;
+									TS_LOG_WARN("[Assets Panel] Failed to auto-save catalog!");
 								}
 							}
 							else {
-								std::cerr << "[Assets Panel] ERROR: Failed to add to catalog!" << std::endl;
+								TS_LOG_ERROR("[Assets Panel] Failed to add to catalog!");
 							}
 						}
 						else {
-							std::cerr << "[Assets Panel] ERROR: Invalid audio file format!" << std::endl;
+							TS_LOG_ERROR("[Assets Panel] Invalid audio file format!");
 						}
 					}
 				}
 			}
 			else {
-				std::cout << "[Assets Panel] File selection cancelled" << std::endl;
+				TS_LOG_INFO("[Assets Panel] File selection cancelled");
 			}
 		}
 
@@ -713,7 +714,7 @@ namespace LEPANELASSETS {
 									if (g_AppState && g_AppState->coreEngine) {
 										g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
 										currentlyPlaying = "";
-										std::cout << "[Assets Panel] Stopped preview: " << asset.name << std::endl;
+										TS_LOG_INFO("[Assets Panel] Stopped preview: " << asset.name);
 									}
 								}
 							}
@@ -733,7 +734,7 @@ namespace LEPANELASSETS {
 											false  // Don't pause
 										);
 										currentlyPlaying = asset.name;
-										std::cout << "[Assets Panel] Playing preview: " << asset.name << std::endl;
+										TS_LOG_INFO("[Assets Panel] Playing preview: " << asset.name);
 									}
 								}
 							}
@@ -897,7 +898,7 @@ namespace LEPANELASSETS {
 							// Auto-save catalog to SOURCE directory after successful addition
 							const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
 							if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
-								std::cout << "[Assets Panel] Catalog auto-saved after double-click add to: " << catalogPath << std::endl;
+								TS_LOG_INFO("[Assets Panel] Catalog auto-saved after double-click add to: " << catalogPath);
 							}
 						}
 					}

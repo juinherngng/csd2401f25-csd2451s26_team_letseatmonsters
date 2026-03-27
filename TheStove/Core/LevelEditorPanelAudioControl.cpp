@@ -18,13 +18,14 @@
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
 
+#include "ApplicationState.hpp"
 #include "AudioLoading.hpp"
 #include "AudioManager.hpp"
-#include "ApplicationState.hpp"
 #include "ConfigManager.hpp"
 #include "Core.hpp"
 #include "LevelEditor.hpp"
 #include "LevelEditorPanelAudioControl.hpp"
+#include "Logger.hpp"
 #include "Message.hpp"
 
 #ifdef _DEBUG
@@ -32,7 +33,6 @@
 #endif
 
 #include <algorithm>
-#include <iostream>
 #include <string>
 #include <unordered_map>
 
@@ -112,11 +112,11 @@ namespace LEPANELAUDIOCONTROL {
 			// Save to SOURCE config file (../../assets from build/Release)
 			const std::string configPath = "../../assets/config.txt";
 			if (ConfigManager::Save(configPath, settings)) {
-				std::cout << "[Audio Control] Master volume saved to config: " << masterVolume << std::endl;
+				TS_LOG_INFO("[Audio Control] Master volume saved to config: " << masterVolume);
 				ImGui::OpenPopup("Config Saved");
 			}
 			else {
-				std::cerr << "[Audio Control] ERROR: Failed to save config!" << std::endl;
+				TS_LOG_ERROR("[Audio Control] Failed to save config!");
 				ImGui::OpenPopup("Config Save Failed");
 			}
 		}
@@ -154,11 +154,11 @@ namespace LEPANELAUDIOCONTROL {
 			// Persist per-asset volume edits back into the source audio catalog.
 			const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
 			if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
-				std::cout << "[Audio Control] Volume settings saved to: " << catalogPath << std::endl;
+				TS_LOG_INFO("[Audio Control] Volume settings saved to: " << catalogPath);
 				ImGui::OpenPopup("Volume Settings Saved");
 			}
 			else {
-				std::cerr << "[Audio Control] ERROR: Failed to save volume settings!" << std::endl;
+				TS_LOG_ERROR("[Audio Control] Failed to save volume settings!");
 				ImGui::OpenPopup("Volume Save Failed");
 			}
 		}
@@ -176,11 +176,11 @@ namespace LEPANELAUDIOCONTROL {
 				// Set flag to force volume cache reload on next frame
 				forceReloadCache = true;
 
-				std::cout << "[Audio Control] Catalog reloaded. Volume cache will reinitialize." << std::endl;
+				TS_LOG_INFO("[Audio Control] Catalog reloaded. Volume cache will reinitialize.");
 				ImGui::OpenPopup("Volumes Reloaded");
 			}
 			else {
-				std::cerr << "[Audio Control] ERROR: Failed to reload catalog!" << std::endl;
+				TS_LOG_ERROR("[Audio Control] Failed to reload catalog!");
 				ImGui::OpenPopup("Reload Failed");
 			}
 		}
@@ -226,7 +226,7 @@ namespace LEPANELAUDIOCONTROL {
 			}
 			volumeCacheInitialized = true;
 			forceReloadCache = false;
-			std::cout << "[Audio Control] Volume cache initialized/updated with " << volumeCache.size() << " entries" << std::endl;
+			TS_LOG_DEBUG("[Audio Control] Volume cache initialized/updated with " << volumeCache.size() << " entries");
 		}
 
 		// Group audio by category
@@ -294,7 +294,7 @@ namespace LEPANELAUDIOCONTROL {
 							if (g_AppState && g_AppState->coreEngine) {
 								g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset->name);
 								currentlyPlaying = "";
-								std::cout << "[Audio Control] Stopped: " << asset->name << std::endl;
+								TS_LOG_INFO("[Audio Control] Stopped: " << asset->name);
 							}
 						}
 					}
@@ -313,7 +313,7 @@ namespace LEPANELAUDIOCONTROL {
 									false
 								);
 								currentlyPlaying = asset->name;
-								std::cout << "[Audio Control] Playing: " << asset->name << std::endl;
+								TS_LOG_INFO("[Audio Control] Playing: " << asset->name);
 							}
 						}
 					}

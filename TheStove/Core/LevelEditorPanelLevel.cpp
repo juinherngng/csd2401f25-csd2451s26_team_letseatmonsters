@@ -29,7 +29,6 @@
 #include <filesystem>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -48,6 +47,7 @@
 #include "AudioLoading.hpp"
 #include "InputManager.hpp"
 #include "LevelEditor.hpp"
+#include "Logger.hpp"
 #include "LevelEditorActions.hpp"
 #include "LevelEditorCommandSystem.hpp"
 #include "LevelEditorFileIO.hpp"
@@ -209,7 +209,7 @@ namespace {
 				if (!font) {
 					// Try to load with a default path - this won't work without the actual path
 					// In practice, fonts should be pre-loaded or the path should be stored
-					std::cout << "[SyncTextObjects] Font '" << levelText.fontName << "' not loaded, text may not render\n";
+					TS_LOG_WARN("[SyncTextObjects] Font '" << levelText.fontName << "' not loaded, text may not render");
 				}
 			}
 
@@ -363,7 +363,7 @@ namespace {
 			}
 
 			if (!g) {
-				std::cerr << "Spawn failed: " << obj.texture << std::endl;
+				TS_LOG_ERROR("Spawn failed: " << obj.texture);
 				continue;
 			}
 
@@ -844,10 +844,10 @@ namespace LEPANELLEVEL {
 													  if (LevelSerializer::Load(editor.levelPath, work)) {
 														  sLastValidationReport = RuntimeLevel::ValidateLevelData(editor.levelPath, work);
 														  if (sLastValidationReport.HasWarnings()) {
-															  std::cerr << "[LevelEditor] Validation warnings for '" << editor.levelPath
-																		<< "' (" << sLastValidationReport.warnings.size() << "):" << std::endl;
+															  TS_LOG_WARN("[LevelEditor] Validation warnings for '" << editor.levelPath
+																	<< "' (" << sLastValidationReport.warnings.size() << "):");
 															  for (const std::string& warning : sLastValidationReport.warnings) {
-																  std::cerr << "  - " << warning << std::endl;
+																  TS_LOG_WARN("  - " << warning);
 															  }
 														  }
 

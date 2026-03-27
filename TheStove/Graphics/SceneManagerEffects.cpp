@@ -14,6 +14,7 @@
 #include "../Core/FilePaths.hpp"
 #include "../Core/FontSystem.hpp"
 
+#include "GraphicsEngine.hpp"
 #include "ResourceManager.hpp"
 #include "SceneManager.hpp"
 
