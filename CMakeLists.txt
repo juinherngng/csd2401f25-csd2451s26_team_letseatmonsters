@@ -39,41 +39,41 @@ file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
 )
 
 set(GAME_FILES_IN_THESTOVE
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PlayerLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PlayerLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/TableLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/TableLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/WorkTableLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/WorkTableLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerTableLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerTableLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/IngredientBoxLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/IngredientBoxLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/ExitGateLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/ExitGateLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/TrashCanLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/TrashCanLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/OrderUILogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/OrderUILogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/MenuButtonLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/MenuButtonLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/HowToPlayButtonLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/HowToPlayButtonLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PauseButtonLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PauseButtonLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PlateLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/PlateLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/IngredientLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/IngredientLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerManagerLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerManagerLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/SimpleNpcLogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/SimpleNpcLogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerOrderUILogic.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/CustomerOrderUILogic.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/Quota.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/Quota.hpp
-    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/Core/FoodTypes.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/PlayerLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/PlayerLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/TableLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/TableLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/WorkTableLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/WorkTableLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/CustomerTableLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/CustomerTableLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/IngredientBoxLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/IngredientBoxLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/ExitGateLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/ExitGateLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/TrashCanLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/TrashCanLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/OrderUILogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/OrderUILogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/MenuButtonLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/MenuButtonLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/HowToPlayButtonLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/HowToPlayButtonLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/PauseButtonLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/PauseButtonLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/PlateLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/PlateLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/IngredientLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/IngredientLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/CustomerManagerLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/CustomerManagerLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/SimpleNpcLogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/SimpleNpcLogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/CustomerOrderUILogic.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/CustomerOrderUILogic.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/Quota.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/Quota.hpp
+    ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner/GameCore/FoodTypes.hpp
 )
 
 list(REMOVE_ITEM SOURCE_FILES ${GAME_FILES_IN_THESTOVE})
@@ -97,7 +97,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
         # Keep MSVC builds deterministic by disabling CMake PCH for this target.
     else()
         target_precompile_headers(TheStove PRIVATE
-            ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core/Precompiled.hpp
+            ${CMAKE_CURRENT_LIST_DIR}/TheStove/EngineCore/Precompiled.hpp
         )
     endif()
 endif()
@@ -121,7 +121,7 @@ target_sources(MyoonchiDiner PRIVATE
 target_include_directories(MyoonchiDiner PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/MyoonchiDiner
-    ${CMAKE_CURRENT_LIST_DIR}/TheStove/Core
+    ${CMAKE_CURRENT_LIST_DIR}/TheStove/EngineCore
     ${CMAKE_CURRENT_LIST_DIR}/TheStove
     ${glm_SOURCE_DIR}
 )
@@ -175,7 +175,7 @@ set_property(TARGET LetsEatMonsters PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CM
 copy_fmod_dll_to_target(LetsEatMonsters)
 
 copy_runtime_directory(LetsEatMonsters "${CMAKE_SOURCE_DIR}/assets" "assets" "Copying assets to build directory")
-copy_runtime_directory(LetsEatMonsters "${CMAKE_SOURCE_DIR}/TheStove/Graphics/shaders" "shaders" "Copying shader files to build directory")
+copy_runtime_directory(LetsEatMonsters "${CMAKE_SOURCE_DIR}/TheStove/EngineGraphics/shaders" "shaders" "Copying shader files to build directory")
 copy_runtime_directory(LetsEatMonsters "${CMAKE_SOURCE_DIR}/levels" "levels" "Copying level files to build directory")
 copy_runtime_directory(LetsEatMonsters "${CMAKE_SOURCE_DIR}/prefabs" "prefabs" "Copying prefab files to build directory")
 

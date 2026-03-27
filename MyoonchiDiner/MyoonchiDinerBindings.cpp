@@ -47,41 +47,39 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include "MyoonchiDinerBindings.hpp"
-
-#include "Core/AudioManager.hpp"
-#include "Core/HowtoPlayButtonLogic.hpp"
-#include "Core/IngredientBoxLogic.hpp"
-#include "Core/MenuButtonLogic.hpp"
-#include "Core/OrderUILogic.hpp"
-#include "Core/PauseButtonLogic.hpp"
-#include "Core/PlayerLogic.hpp"
-#include "Core/TableLogic.hpp"
-#include "Core/TrashCanLogic.hpp"
-#include "Core/WorkTableLogic.hpp"
-#include "Core/CustomerTableLogic.hpp"
-#include "Core/ExitGateLogic.hpp"
-#include "Core/CustomerManagerLogic.hpp"
-#include "Core/SimpleNpcLogic.hpp"
-#include "Core/Quota.hpp"
-#include "Core/StartGamePromptLogic.hpp"
-#include "Core/IngredientLogic.hpp"
-#include "Core/PlateLogic.hpp"
-#include "Graphics/SceneManager.hpp"
-#include "FilePaths.hpp"
-#include "Graphics/ResourceManager.hpp"
-#include "Core/LevelEditorPanelFonts.hpp"
-#include "Core/FilePaths.hpp"
-#include "Core/InputManager.hpp"
-#include "Graphics/GraphicsEngine.hpp"
-#include "GamePaths.hpp"
-#include "EngineRng.hpp"
-
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
-#include <optional>
+
+#include "EngineCore/AudioManager.hpp"
+#include "EngineCore/EngineRng.hpp"
+#include "EngineCore/FilePaths.hpp"
+#include "EngineCore/InputManager.hpp"
+#include "EngineCore/LevelEditorPanelFonts.hpp"
+#include "EngineGraphics/GraphicsEngine.hpp"
+#include "EngineGraphics/ResourceManager.hpp"
+#include "EngineGraphics/SceneManager.hpp"
+#include "GameCore/CustomerManagerLogic.hpp"
+#include "GameCore/CustomerTableLogic.hpp"
+#include "GameCore/ExitGateLogic.hpp"
+#include "GameCore/HowToPlayButtonLogic.hpp"
+#include "GameCore/IngredientBoxLogic.hpp"
+#include "GameCore/IngredientLogic.hpp"
+#include "GameCore/MenuButtonLogic.hpp"
+#include "GameCore/OrderUILogic.hpp"
+#include "GameCore/PauseButtonLogic.hpp"
+#include "GameCore/PlateLogic.hpp"
+#include "GameCore/PlayerLogic.hpp"
+#include "GameCore/Quota.hpp"
+#include "GameCore/SimpleNpcLogic.hpp"
+#include "GameCore/StartGamePromptLogic.hpp"
+#include "GameCore/TableLogic.hpp"
+#include "GameCore/TrashCanLogic.hpp"
+#include "GameCore/WorkTableLogic.hpp"
+#include "GamePaths.hpp"
+#include "MyoonchiDinerBindings.hpp"
 
 namespace {
 	constexpr int kAmbientVfxRows = 6;
@@ -1976,4 +1974,3 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		return (tag == "npc1" || tag == "npc2" || tag == "dino");
 		});
 }
-

@@ -29,4 +29,3 @@ class Scene;
 */
 /************************************************************************/
 void RegisterMyoonchiDinerBindings(Scene& scene);
-

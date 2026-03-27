@@ -12,8 +12,8 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "Core/Application.hpp"
-#include "Core/Logger.hpp"
+#include "EngineCore/Application.hpp"
+#include "EngineCore/Logger.hpp"
 
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC

@@ -14,14 +14,13 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include "Core/AudioManager.hpp"
-#include "Core/GameBootstrap.hpp"
-#include "Core/GameStateManager.hpp"
+#include <string>
 
+#include "EngineCore/AudioManager.hpp"
+#include "EngineCore/GameBootstrap.hpp"
+#include "EngineCore/GameStateManager.hpp"
 #include "GamePaths.hpp"
 #include "MyoonchiDinerBindings.hpp"
-
-#include <string>
 
 namespace {
 	// Tracks the currently playing background music channel name so it can be
@@ -121,4 +120,3 @@ void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 		}
 		});
 }
-

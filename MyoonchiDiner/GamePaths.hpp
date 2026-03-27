@@ -55,4 +55,3 @@ namespace MyoonchiPaths {
 		constexpr const char* SFX_SKIP_INTRO_CUTSCENE = "sfx_skip_intro_cutscene";
 	}
 }
-
