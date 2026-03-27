@@ -2021,11 +2021,11 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 			return;
 		}
 		// ------------------------------------------------------------
-// CASE 3C: player is holding a PLATE with 1 ingredient,
-// table has another PLATE with 1 ingredient.
-// Transfer the ingredient from the table plate to the held plate.
-// Leave the table plate behind as an empty plate.
-// ------------------------------------------------------------
+		// CASE 3C: player is holding a PLATE with 1 ingredient,
+		// table has another PLATE with 1 ingredient.
+		// Transfer the ingredient from the table plate to the held plate.
+		// Leave the table plate behind as an empty plate.
+		// ------------------------------------------------------------
 		if (heldPlate && tablePlate) {
 			// Do not allow combining already-finished dishes
 			if (heldPlate->HasPreparedDish() || tablePlate->HasPreparedDish()) {
@@ -2073,6 +2073,88 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 				}
 
 				heldPlate->SetFirstIngredientObjectID(-1);
+			}
+
+#ifndef _DEBUG
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				glm::vec3 playerPos = player->GetPositionGLM();
+				audioMgr->PlaySound3D("sfx_put_down", playerPos.x, playerPos.y, playerPos.z,
+					audioMgr->GetVfxVolume() * 0.8f);
+			}
+#endif
+			return;
+		}
+		// ------------------------------------------------------------
+		// CASE 3D: fallback swap
+		// player holds an ingredient, table holds something else,
+		// and no combine rule was used -> swap hand item with table item.
+		// ------------------------------------------------------------
+		if (heldIngredient) {
+			WorkTableLogic* wt = logicMgr.GetLogicForObject<WorkTableLogic>(tableObjectID);
+			if (logicMgr.GetLogicForObject<WorkTableLogic>(tableObjectID)) {
+				return;
+			}
+
+			// Special rule for work tables:
+			// Never remove the station's current item unless the held item
+			// is ALSO valid to place onto that station.
+			if (wt) {
+				// Can't take locked / invalid station item
+				if (!wt->CanTakeHeldItem(scene)) {
+					return;
+				}
+
+				// IMPORTANT:
+				// If held item cannot be accepted by this workstation,
+				// do nothing. Do NOT take the current processed item off first.
+				if (!wt->CanAcceptItem(scene, carriedItemID)) {
+					return;
+				}
+			}
+
+			const int heldItemID = carriedItemID;
+
+			// Take current table item first
+			const int takenItemID = table->TakeItem(scene);
+			if (takenItemID < 0) {
+				return;
+			}
+
+			// Normal safety check for non-work tables
+			if (!wt && !table->CanAcceptItem(scene, heldItemID)) {
+				table->PlaceItem(scene, takenItemID);
+				return;
+			}
+
+			// Put held item onto the table
+			if (!table->PlaceItem(scene, heldItemID)) {
+				// Revert only really works on normal tables.
+				// On work tables this should never fail now because we pre-checked above.
+				if (!wt) {
+					table->PlaceItem(scene, takenItemID);
+				}
+				return;
+			}
+
+			// Held item is no longer carried, restore its normal collider/layer
+			if (hasCarriedItemOriginalColliderSize) {
+				if (GameObject* item = scene.GetGameObjectByID(heldItemID)) {
+					item->SetColliderSize(carriedItemOriginalColliderSize);
+				}
+				hasCarriedItemOriginalColliderSize = false;
+			}
+
+			RestoreCarriedItemLayer(scene, heldItemID);
+			carriedItemID = -1;
+
+			// Pick up the old table item
+			PickUp(scene, takenItemID);
+
+			// If the swapped-in item started a locking workstation, lock player
+			if (wt) {
+				if (wt->LocksPlayerMovementWhileProcessing() && wt->IsProcessing()) {
+					BeginStationLock(scene, tableObjectID);
+				}
 			}
 
 #ifndef _DEBUG
