@@ -22,6 +22,7 @@
 
 #include "GOC.hpp"
 #include "Factory.hpp"
+#include "Logger.hpp"
 
 //template<typename T>
 //std::optional<T*> GOC::Get() const
@@ -57,7 +58,7 @@ void GOC::Initialize() {
 //Let the factory handle it
 void GOC::Destroy() {
 	//FACTORY->AddDestroy(this);
-	std::cout << "Deleting " << name << " game Object" << std::endl;
+	TS_LOG_INFO("[GOC] Deleting game object: " << name);
 	delete this;
 }
 

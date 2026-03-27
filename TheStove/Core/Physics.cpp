@@ -16,11 +16,11 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "Logger.hpp"
 #include "Physics.hpp"
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 
 namespace {
 
@@ -106,7 +106,7 @@ namespace physics {
 		// Toggle step mode with P (edge)
 		if (input.IsKeyJustPressed(GLFW_KEY_P)) {
 			enabled = !enabled;
-			std::cout << "[Physics] Step mode " << (enabled ? "ON" : "OFF") << "\n";
+			TS_LOG_INFO("[Physics] Step mode " << (enabled ? "ON" : "OFF"));
 		}
 
 		// While in step mode, queue steps on input edges

@@ -11,9 +11,9 @@
 */
 
 #include "Core/ISerializer.hpp"
+#include "Core/Logger.hpp"
 
 #include <fstream>
-#include <iostream>
 #include <sstream>
 
 bool ISerializer::Load(const std::string& filename) {
@@ -21,7 +21,7 @@ bool ISerializer::Load(const std::string& filename) {
 
 	std::ifstream file(filename);
 	if (!file.is_open()) {
-		std::cerr << "Failed to open file: " << filename << std::endl;
+		TS_LOG_ERROR("[ISerializer] Failed to open file: " << filename);
 		return false;
 	}
 

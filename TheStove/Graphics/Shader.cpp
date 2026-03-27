@@ -10,6 +10,8 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include "../Core/Logger.hpp"
+
 #include "Shader.hpp"
 
 #include <filesystem>
@@ -17,7 +19,6 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <iostream>
 #include <sstream>
 
 Shader::Shader(const std::string& vertexFile, const std::string& fragmentFile) {
@@ -42,8 +43,8 @@ Shader::~Shader() {
 std::string Shader::ReadFile(const std::string& filepath) {
 	std::ifstream file(filepath);
 	if (!file.is_open()) {
-		std::cerr << "[Shader] ERROR: Failed to open shader file: " << filepath << std::endl;
-		std::cerr << "[Shader] Current working directory: " << std::filesystem::current_path() << std::endl;
+		TS_LOG_ERROR("[Shader] Failed to open shader file: " << filepath);
+		TS_LOG_ERROR("[Shader] Current working directory: " << std::filesystem::current_path());
 		return "";
 	}
 	std::stringstream buffer;
@@ -51,7 +52,7 @@ std::string Shader::ReadFile(const std::string& filepath) {
 	std::string content = buffer.str();
 
 	if (content.empty()) {
-		std::cerr << "[Shader] WARNING: Shader file is empty: " << filepath << std::endl;
+		TS_LOG_WARN("[Shader] Shader file is empty: " << filepath);
 	}
 
 	return content;
@@ -59,8 +60,8 @@ std::string Shader::ReadFile(const std::string& filepath) {
 
 GLuint Shader::CompileShader(GLenum type, const std::string& source) {
 	if (source.empty()) {
-		std::cerr << "[Shader] ERROR: Attempting to compile empty shader source!" << std::endl;
-		std::cerr << "[Shader] Shader type: " << (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") << std::endl;
+		TS_LOG_ERROR("[Shader] Attempting to compile empty shader source.");
+		TS_LOG_ERROR("[Shader] Shader type: " << (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT"));
 	}
 
 	GLuint shader = glCreateShader(type);
@@ -73,7 +74,7 @@ GLuint Shader::CompileShader(GLenum type, const std::string& source) {
 	if (!success) {
 		char infoLog[512];
 		glGetShaderInfoLog(shader, 512, nullptr, infoLog);
-		std::cerr << "[Shader] ERROR compiling shader (" << (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") << "): " << infoLog << std::endl;
+		TS_LOG_ERROR("[Shader] Error compiling shader (" << (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") << "): " << infoLog);
 	}
 	return shader;
 }
@@ -89,7 +90,7 @@ GLuint Shader::LinkProgram(GLuint vertexShader, GLuint fragmentShader) {
 	if (!success) {
 		char infoLog[512];
 		glGetProgramInfoLog(program, 512, nullptr, infoLog);
-		std::cerr << "Error linking program: " << infoLog << std::endl;
+		TS_LOG_ERROR("[Shader] Error linking program: " << infoLog);
 	}
 	return program;
 }
@@ -101,36 +102,20 @@ void Shader::InitUniforms() {
 	uniformViewMatrix = glGetUniformLocation(programID, "u_View");
 	uniformProjMatrix = glGetUniformLocation(programID, "u_Projection");
 
-	// Debug uniform locations
-	/*std::cout << "u_Model location: " << uniformModelMatrix << std::endl;
-	std::cout << "u_View location: " << uniformViewMatrix << std::endl;
-	std::cout << "u_Projection location: " << uniformProjMatrix << std::endl*/;
-
 	if (uniformModelMatrix == -1 || uniformViewMatrix == -1 || uniformProjMatrix == -1) {
-		std::cerr << "ERROR: One or more uniform locations are invalid! (ignore if using instanced shader)" << std::endl;
+		TS_LOG_WARN("[Shader] One or more uniform locations are invalid (ignore if using instanced shader).");
 	}
 
 }
 
 void Shader::Use() const {
-	//std::cout << "Attempting to bind program ID: " << programID << std::endl;
-
-	// Check if program exists and is valid
-	//GLboolean isProgram = glIsProgram(programID);
-	//std::cout << "glIsProgram(" << programID << ") = " << (isProgram ? "true" : "false") << std::endl;
-
 	glUseProgram(programID);
 
-	// Check for errors
+	// Surface GL program-binding failures through the shared logger.
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
-		std::cerr << "glUseProgram error: " << error << std::endl;
+		TS_LOG_ERROR("[Shader] glUseProgram error: " << error);
 	}
-
-	// Verify binding worked
-	GLint currentProgram;
-	glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
-	//std::cout << "Current program after glUseProgram: " << currentProgram << std::endl;
 }
 
 void Shader::SetModelMatrix(const glm::mat4& mat) const {

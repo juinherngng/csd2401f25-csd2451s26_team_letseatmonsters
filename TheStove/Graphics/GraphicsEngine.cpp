@@ -14,12 +14,18 @@
 */
 
 #include "../Core/FontSystem.hpp"
-#include "../Core/InputManager.hpp"
 #include "../Core/LevelEditorPanelFonts.hpp"
 #include "../Core/Logger.hpp"
 
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+#include "GameObject.hpp"
 #include "GraphicsEngine.hpp"
+#include "Mesh.hpp"
 #include "MeshLoader.hpp"
+#include "ResourceManager.hpp"
+#include "Shader.hpp"
+#include "Texture.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -28,8 +34,8 @@
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-// File-scoped state
-static bool _imguiInitialized = false;
+// Shared debug-editor initialization state for the ImGui backends.
+bool g_GraphicsEngineImGuiInitialized = false;
 
 GraphicsEngine* GraphicsEngine::activeInstance_ = nullptr;
 
@@ -201,6 +207,11 @@ GraphicsEngine::GraphicsEngine()
 }
 
 /**
+ * @brief Destroys the `GraphicsEngine` instance.
+ */
+GraphicsEngine::~GraphicsEngine() = default;
+
+/**
  * @brief Initializes this object.
  * @return Result produced by this operation.
  */
@@ -241,7 +252,7 @@ void GraphicsEngine::Initialize() {
 
 #ifdef _DEBUG
 	// Initialize ImGui only after GL loader succeeded and we have a valid context.
-	if (!_imguiInitialized) {
+	if (!g_GraphicsEngineImGuiInitialized) {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 
@@ -260,7 +271,7 @@ void GraphicsEngine::Initialize() {
 
 		ImGui_ImplGlfw_InitForOpenGL(ctx, true);
 		ImGui_ImplOpenGL3_Init("#version 330 core");
-		_imguiInitialized = true;
+		g_GraphicsEngineImGuiInitialized = true;
 	}
 #endif
 }
@@ -282,171 +293,6 @@ void GraphicsEngine::Update(float dt) {
 	(void)dt; // Suppress unused parameter warning if no other logic needed
 }
 
-/**
- * @brief Performs destroy scene fbo.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::DestroySceneFBO() {
-	if (mSceneDepth) {
-		glDeleteRenderbuffers(1, &mSceneDepth);
-		mSceneDepth = 0;
-	}
-
-	if (mSceneColor) {
-		glDeleteTextures(1, &mSceneColor);
-		mSceneColor = 0;
-	}
-
-	if (mSceneFBO) {
-		glDeleteFramebuffers(1, &mSceneFBO);
-		mSceneFBO = 0;
-	}
-}
-
-/**
- * @brief Creates scene fbo.
- * @param w Parameter for w.
- * @param h Parameter for h.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::CreateSceneFBO(int w, int h) {
-	DestroySceneFBO();
-
-	glGenFramebuffers(1, &mSceneFBO);
-	glBindFramebuffer(GL_FRAMEBUFFER, mSceneFBO);
-
-	glGenTextures(1, &mSceneColor);
-	glBindTexture(GL_TEXTURE_2D, mSceneColor);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mSceneColor, 0);
-
-	glGenRenderbuffers(1, &mSceneDepth);
-	glBindRenderbuffer(GL_RENDERBUFFER, mSceneDepth);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mSceneDepth);
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		// std::cerr << "[GraphicsEngine] Scene FBO incomplete\n";
-	}
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	mSceneWidth = w;
-	mSceneHeight = h;
-}
-
-/**
- * @brief Performs resize scene fbo.
- * @param w Parameter for w.
- * @param h Parameter for h.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::ResizeSceneFBO(int w, int h) {
-	if (w <= 0 || h <= 0) {
-		return;
-	}
-
-	CreateSceneFBO(w, h);
-}
-
-/**
- * @brief Begins scene render.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::BeginSceneRender() {
-	glBindFramebuffer(GL_FRAMEBUFFER, mSceneFBO);
-	glViewport(0, 0, mSceneWidth, mSceneHeight);
-	glClearColor(0.f, 0.f, 0.f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-}
-
-/**
- * @brief Ends scene render.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::EndSceneRender() {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-/**
- * @brief Returns projection.
- * @return Requested value.
- */
-const glm::mat4& GraphicsEngine::GetProjection() const {
-	return projection;
-}
-
-/**
- * @brief Returns view.
- * @return Requested value.
- */
-const glm::mat4& GraphicsEngine::GetView() const {
-	return view;
-}
-
-/**
- * @brief Returns main dockspace id.
- * @return Requested value.
- */
-ImGuiID GraphicsEngine::GetMainDockspaceID() const {
-	return mMainDockspaceId;
-}
-
-/**
- * @brief Performs resize.
- * @param width Width value in pixels.
- * @param height Height value in pixels.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::Resize(int width, int height) {
-	if (width <= 0 || height <= 0) {
-		return;
-	}
-
-	screenWidth = width;
-	screenHeight = height;
-
-	// Fixed pixel-space ortho (origin top-left)
-	projection = glm::ortho(
-		0.0f, static_cast<float>(kRefW),
-		static_cast<float>(kRefH), 0.0f,
-		-1.0f, 1.0f
-	);
-
-	// Fullscreen viewport without letterboxing
-	viewportW_ = width;
-	viewportH_ = height;
-	viewportX_ = 0;
-	viewportY_ = 0;
-	viewportScale_ = std::min(
-		static_cast<float>(width) / static_cast<float>(kRefW),
-		static_cast<float>(height) / static_cast<float>(kRefH)
-	);
-
-	// Apply the viewport now
-	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
-
-	// Keep background quad aligned to the reference canvas
-	if (backgroundObject) {
-		backgroundObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
-		backgroundObject->SetScale(glm::vec3(static_cast<float>(kRefW),
-			static_cast<float>(kRefH), 1.0f));
-	}
-	if (backgroundOverlayObject) {
-		backgroundOverlayObject->SetPosition(glm::vec3(kRefW * 0.5f, kRefH * 0.5f, 0.0f));
-		backgroundOverlayObject->SetScale(glm::vec3(static_cast<float>(kRefW),
-			static_cast<float>(kRefH), 1.0f));
-	}
-}
-
-/**
- * @brief Applies viewport.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::ApplyViewport() const {
-	glViewport(viewportX_, viewportY_, viewportW_, viewportH_);
-}
 
 /**
  * @brief Loads default resources.
@@ -597,62 +443,6 @@ void GraphicsEngine::ClearBackgroundOverlay() {
 	backgroundOverlayObject.reset();
 }
 
-/**
- * @brief Begins im gui frame.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::BeginImGuiFrame() {
-#ifdef _DEBUG
-	// Guard: only call backend frame functions if ImGui was initialized
-	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
-		return;
-	}
-
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-	sceneViewportPresenter_.BeginDockspaceFrame(mMainDockspaceId);
-#endif
-}
-
-/**
- * @brief Performs parse layer number.
- * @param layerName Parameter for layer name.
- * @return Result produced by this operation.
- */
-int GraphicsEngine::ParseLayerNumber(const std::string& layerName) {
-	if (layerName.empty()) {
-		return 1;
-	}
-
-	int result = 0;
-	for (char c : layerName) {
-		if (!std::isdigit(static_cast<unsigned char>(c))) {
-			return kInvalidLayerValue;
-		}
-
-		result = result * 10 + (c - '0');
-	}
-
-	return result;
-}
-
-/**
- * @brief Computes scene image rect.
- * @param outPos Output value for out pos.
- * @param outSize Output value for out size.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::ComputeSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
-	sceneViewportPresenter_.ComputeSceneImageRect(
-		sceneImagePos_,
-		sceneImageSize_,
-		kRefW,
-		kRefH,
-		outPos,
-		outSize
-	);
-}
 
 /**
  * @brief Renders background.
@@ -728,321 +518,6 @@ void GraphicsEngine::RenderBackgroundOverlay(const glm::mat4& viewMatrix, const 
 	}
 }
 
-/**
- * @brief Performs present scene to default framebuffer.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::PresentSceneToDefaultFramebuffer() {
-	if (mSceneFBO == 0 || mSceneColor == 0 || screenWidth <= 0 || screenHeight <= 0) {
-		return;
-	}
-
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, mSceneFBO);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-	const int dstX0 = viewportX_;
-	const int dstY0 = viewportY_;
-	const int dstX1 = viewportX_ + viewportW_;
-	const int dstY1 = viewportY_ + viewportH_;
-
-	glViewport(0, 0, screenWidth, screenHeight);
-	glClearColor(0.f, 0.f, 0.f, 1.f);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glBlitFramebuffer(
-		0, 0, mSceneWidth, mSceneHeight,
-		dstX0, dstY0, dstX1, dstY1,
-		GL_COLOR_BUFFER_BIT,
-		GL_LINEAR
-	);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-/**
- * @brief Draws scene dock window.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::DrawSceneDockWindow() {
-#ifdef _DEBUG
-	// Guard: bail if ImGui not initialized or no context
-	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
-		return;
-	}
-
-	sceneViewportPresenter_.DrawSceneWindow(
-		mSceneColor,
-		kRefW,
-		kRefH,
-		mMainDockspaceId,
-		sceneImagePos_,
-		sceneImageSize_
-	);
-#endif
-}
-
-/**
- * @brief Ends scene and present.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::EndSceneAndPresent() {
-	EndSceneRender();
-#ifdef _DEBUG
-	DrawSceneDockWindow();
-	EndImGuiFrame();
-#else
-	PresentSceneToDefaultFramebuffer();
-#endif
-}
-
-/**
- * @brief Ends im gui frame.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::EndImGuiFrame() {
-#ifdef _DEBUG
-	// Guard: only render if initialized & valid ImGui context
-	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
-		return;
-	}
-
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-#endif
-}
-
-/**
- * @brief Begins frame.
- * @return Result produced by this operation.
- */
-void GraphicsEngine::BeginFrame() {
-	glViewport(0, 0, screenWidth, screenHeight);
-	renderer.Clear();
-
-	ApplyViewport();
-	BeginSceneRender();
-	BeginImGuiFrame();
-}
-
-/**
- * @brief Returns mouse world in scene.
- * @param outWorld Output value for out world.
- * @param mousePosOverride Parameter for mouse pos override.
- * @return Requested value.
- */
-bool GraphicsEngine::GetMouseWorldInScene(glm::vec2& outWorld, const glm::dvec2* mousePosOverride) const {
-
-	if (mousePosOverride == nullptr) {
-		ImVec2 localPos{}, sceneSize{};
-		if (!TryGetMousePositionInScene(localPos, sceneSize)) {
-			return false;
-		}
-		outWorld = ScenePixelToWorld(localPos, sceneSize);
-		return true;
-	}
-
-	const glm::dvec2 mousePos = mousePosOverride ? *mousePosOverride : InputManager::Get().GetMousePosition();
-
-#ifdef _DEBUG
-	if (_imguiInitialized && ImGui::GetCurrentContext() != nullptr) {
-		ImVec2 scenePos{}, sceneSize{};
-		ComputeSceneImageRect(scenePos, sceneSize);
-
-		if (sceneSize.x <= 0.0f || sceneSize.y <= 0.0f) {
-			return false;
-		}
-
-		const float localX = static_cast<float>(mousePos.x) - scenePos.x;
-		const float localY = static_cast<float>(mousePos.y) - scenePos.y;
-
-		if (localX < 0.0f || localY < 0.0f || localX > sceneSize.x || localY > sceneSize.y) {
-			return false;
-		}
-
-		outWorld = ScenePixelToWorld(ImVec2(localX, localY), sceneSize);
-		return true;
-	}
-#endif
-
-	// Release / no-ImGui-safe path (viewport space)
-	const float vx = static_cast<float>(viewportX_);
-	const float vy = static_cast<float>(viewportY_);
-	const float vw = static_cast<float>(viewportW_);
-	const float vh = static_cast<float>(viewportH_);
-	if (vw <= 0.0f || vh <= 0.0f) {
-		return false;
-	}
-
-	const float localX = static_cast<float>(mousePos.x) - vx;
-	const float localY = static_cast<float>(mousePos.y) - vy;
-	if (localX < 0.0f || localY < 0.0f || localX > vw || localY > vh) {
-		return false;
-	}
-
-	outWorld = ScenePixelToWorld(ImVec2(localX, localY), ImVec2(vw, vh));
-	return true;
-}
-
-/**
- * @brief Returns scene image rect.
- * @param outPos Output value for out pos.
- * @param outSize Output value for out size.
- * @return Requested value.
- */
-void GraphicsEngine::GetSceneImageRect(ImVec2& outPos, ImVec2& outSize) const {
-#ifdef _DEBUG
-	ComputeSceneImageRect(outPos, outSize);
-#else
-	// In release we render directly to the GLFW window. Keep it simple:
-	outPos = ImVec2(0.0f, 0.0f);
-	outSize = ImVec2(static_cast<float>(viewportW_),
-		static_cast<float>(viewportH_));
-#endif
-}
-
-/**
- * @brief Attempts to get mouse position in scene.
- * @param outLocalPos Output value for out local pos.
- * @param outSceneSize Output value for out scene size.
- * @return Result produced by this operation.
- */
-bool GraphicsEngine::TryGetMousePositionInScene(ImVec2& outLocalPos, ImVec2& outSceneSize) const {
-#ifdef _DEBUG
-	if (!_imguiInitialized || ImGui::GetCurrentContext() == nullptr) {
-		return false;
-	}
-
-	ImVec2 scenePos;
-	ComputeSceneImageRect(scenePos, outSceneSize);
-
-	// First try ImGui's mouse position (which accounts for multiple viewports and should be more robust), but fall back to InputManager if it's not finite (can happen during docking/layout changes).
-	ImVec2 mouse = ImGui::GetMousePos();
-	if (!std::isfinite(mouse.x) || !std::isfinite(mouse.y)) {
-		const glm::dvec2 mousePos = InputManager::Get().GetMousePosition();
-		mouse = ImVec2(static_cast<float>(mousePos.x), static_cast<float>(mousePos.y));
-	}
-
-	if (outSceneSize.x <= 0.0f || outSceneSize.y <= 0.0f) {
-		// Fallback to the runtime viewport bounds when the scene tab has not produced a
-		// valid image rect yet (e.g. first frame after docking/layout changes).
-		const float vx = static_cast<float>(viewportX_);
-		const float vy = static_cast<float>(viewportY_);
-		const float vw = static_cast<float>(viewportW_);
-		const float vh = static_cast<float>(viewportH_);
-		if (vw <= 0.0f || vh <= 0.0f || mouse.x < vx || mouse.y < vy ||
-			mouse.x >(vx + vw) || mouse.y >(vy + vh)) {
-			return false;
-		}
-
-		outSceneSize = ImVec2(vw, vh);
-		outLocalPos = ImVec2(mouse.x - vx, mouse.y - vy);
-		return true;
-	}
-
-	if (mouse.x < scenePos.x || mouse.y < scenePos.y ||
-		mouse.x > scenePos.x + outSceneSize.x || mouse.y > scenePos.y + outSceneSize.y) {
-		return false;
-	}
-
-	outLocalPos = ImVec2(mouse.x - scenePos.x, mouse.y - scenePos.y);
-	return true;
-#else
-	GLFWwindow* win = glfwGetCurrentContext();
-	if (!win) {
-		return false;
-	}
-
-	double mouseX = 0.0;
-	double mouseY = 0.0;
-	if (InputManager::Get().IsReplayOverride()) {
-		const glm::dvec2 replayMouse = InputManager::Get().GetMousePosition();
-		mouseX = replayMouse.x;
-		mouseY = replayMouse.y;
-	}
-	else {
-		glfwGetCursorPos(win, &mouseX, &mouseY);
-	}
-
-	const float vx = static_cast<float>(viewportX_);
-	const float vy = static_cast<float>(viewportY_);
-	const float vw = static_cast<float>(viewportW_);
-	const float vh = static_cast<float>(viewportH_);
-	if (vw <= 0.0f || vh <= 0.0f || mouseX < vx || mouseY < vy ||
-		mouseX >(vx + vw) || mouseY >(vy + vh)) {
-		return false;
-	}
-
-	outSceneSize = ImVec2(vw, vh);
-	outLocalPos = ImVec2(static_cast<float>(mouseX) - vx, static_cast<float>(mouseY) - vy);
-	return true;
-#endif
-}
-
-/**
- * @brief Performs scene pixel to world.
- * @param localPixel Parameter for local pixel.
- * @param sceneSize Parameter for scene size.
- * @return Result produced by this operation.
- */
-glm::vec2 GraphicsEngine::ScenePixelToWorld(const ImVec2& localPixel, const ImVec2& sceneSize) const {
-	const float u = localPixel.x / sceneSize.x;
-	const float v = localPixel.y / sceneSize.y;
-
-	const float px = u * static_cast<float>(kRefW);
-	const float py = v * static_cast<float>(kRefH);
-
-	glm::vec4 clip;
-	clip.x = (px / static_cast<float>(kRefW)) * 2.0f - 1.0f;
-	clip.y = 1.0f - (py / static_cast<float>(kRefH)) * 2.0f;
-	clip.z = 0.0f;
-	clip.w = 1.0f;
-
-	const glm::mat4 invVP = glm::inverse(projection * view);
-	const glm::vec4 world4 = invVP * clip;
-	return glm::vec2(world4.x, world4.y);
-}
-
-/**
- * @brief Performs world to scene pixel.
- * @param world Parameter for world.
- * @param scenePos Parameter for scene pos.
- * @param sceneSize Parameter for scene size.
- * @return Result produced by this operation.
- */
-ImVec2 GraphicsEngine::WorldToScenePixel(const glm::vec2& world, const ImVec2& scenePos, const ImVec2& sceneSize) const {
-	glm::vec4 world4(world.x, world.y, 0.0f, 1.0f);
-	const glm::vec4 clip = projection * view * world4;
-	if (clip.w == 0.0f) {
-		return ImVec2(-10000.0f, -10000.0f);
-	}
-
-	const glm::vec3 ndc = glm::vec3(clip) / clip.w;
-	const float u = (ndc.x * 0.5f) + 0.5f;
-	const float v = (-ndc.y * 0.5f) + 0.5f;
-
-	return ImVec2(
-		scenePos.x + (u * sceneSize.x),
-		scenePos.y + (v * sceneSize.y)
-	);
-}
-
-/**
- * @brief Performs world to scene image.
- * @param world Parameter for world.
- * @return Result produced by this operation.
- */
-ImVec2 GraphicsEngine::WorldToSceneImage(const glm::vec2& world) const {
-#ifdef _DEBUG
-	ImVec2 imgPos;
-	ImVec2 imgSize;
-	ComputeSceneImageRect(imgPos, imgSize);
-	return WorldToScenePixel(world, imgPos, imgSize);
-#else
-	// In release builds the editor UI is disabled; this is only used in Debug.
-	(void)world;
-	return ImVec2(0.0f, 0.0f);
-#endif
-}
 
 /**
  * @brief Renders this object.
@@ -1508,11 +983,11 @@ void GraphicsEngine::Shutdown() {
 
 #ifdef _DEBUG
 	// ImGui cleanup
-	if (_imguiInitialized) {
+	if (g_GraphicsEngineImGuiInitialized) {
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
-		_imguiInitialized = false;
+		g_GraphicsEngineImGuiInitialized = false;
 	}
 #endif
 

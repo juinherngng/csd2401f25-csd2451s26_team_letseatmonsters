@@ -10,17 +10,17 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include "../Core/Logger.hpp"
+
 #include "Texture.hpp"
 
 #include <algorithm>
-#include <iostream>
 #include <vector>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../extern/stb_image/stb_image.h"
 
-Texture::Texture() : textureID(0), width(0), height(0), channels(0) {
-}
+Texture::Texture() : textureID(0), width(0), height(0), channels(0) {}
 
 Texture::~Texture() {
 	if (textureID != 0) {
@@ -65,8 +65,8 @@ bool Texture::DecodeFile(const std::string& filePath,
 	int& outChannels) {
 	unsigned char* raw = stbi_load(filePath.c_str(), &outWidth, &outHeight, &outChannels, 0);
 	if (!raw) {
-		std::cerr << "Failed to decode texture: " << filePath << std::endl;
-		std::cerr << "STB Error: " << stbi_failure_reason() << std::endl;
+		TS_LOG_ERROR("[Texture] Failed to decode texture: " << filePath);
+		TS_LOG_ERROR("[Texture] STB Error: " << stbi_failure_reason());
 		return false;
 	}
 
@@ -140,7 +140,7 @@ bool Texture::LoadFromFile(const std::string& filePath) {
 	}
 
 #ifndef NDEBUG
-	std::cout << "Loaded texture: " << filePath << " (" << width << "x" << height << ", " << channels << " channels)" << std::endl;
+	TS_LOG_DEBUG("[Texture] Loaded texture: " << filePath << " (" << width << "x" << height << ", " << channels << " channels)");
 #endif
 	return true;
 }
@@ -149,7 +149,7 @@ bool Texture::LoadFromFile(const std::string& filePath) {
 void Texture::Bind(unsigned int slot) const {
 
 	if (textureID == 0) {
-		std::cerr << "Warning: Trying to bind invalid texture (ID = 0)" << std::endl;
+		TS_LOG_WARN("[Texture] Trying to bind invalid texture (ID = 0)");
 		return;  // Don't bind invalid texture
 	}
 

@@ -18,10 +18,10 @@
 
 #include "../Graphics/SceneManager.hpp"
 
+#include "Logger.hpp"
 #include "PhysicsManager.hpp"
 
 #include <cmath>
-#include <iostream>
 
  // SystemInterface implementation
 
@@ -30,7 +30,7 @@
  * @return Result produced by this operation.
  */
 void PhysicsManager::Initialize() {
-	std::cout << "PhysicsManager system initialized.\n";
+	TS_LOG_INFO("PhysicsManager system initialized.");
 }
 
 /**

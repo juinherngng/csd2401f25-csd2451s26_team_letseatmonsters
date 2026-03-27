@@ -180,15 +180,12 @@ private:
 	/**
 	 * @brief Constructs a `ResourceManager` instance.
 	 */
-	ResourceManager() : isCleared(false), audioManager(nullptr) {
-	}
+	ResourceManager() : isCleared(false), audioManager(nullptr) {}
 
 	/**
 	 * @brief Destroys the `ResourceManager` instance and releases owned resources.
 	 */
-	~ResourceManager() {
-		Clear();
-	}
+	~ResourceManager();
 
 	/**
 	 * @brief Constructs a `ResourceManager` instance.

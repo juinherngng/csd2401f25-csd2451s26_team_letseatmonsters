@@ -16,14 +16,8 @@
 #pragma once
 
 #include "../Core/System.hpp"
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_opengl3.h"
-
-#include "DebugRenderer.hpp"
-#include "GameObject.hpp"
 #include "imgui.h"
 #include "Renderer.hpp"
-#include "ResourceManager.hpp"
 #include "SceneViewportPresenter.hpp"
 
 #include <glm/glm.hpp>
@@ -35,7 +29,12 @@ namespace LEPANELFONTS {
 	struct TextObjectData;
 }
 
-// Forward declare Scene to avoid circular dependency
+class GameObject;
+class ResourceManager;
+class Mesh;
+class Shader;
+class Texture;
+
 class GraphicsEngine : public CoreFramework::SystemInterface {
 public:
 
@@ -43,6 +42,11 @@ public:
 	 * @brief Constructs a `GraphicsEngine` instance.
 	 */
 	GraphicsEngine();
+
+	/**
+	 * @brief Destroys the `GraphicsEngine` instance.
+	 */
+	~GraphicsEngine() override;
 
 	/**
 	 * @brief Initializes this object.

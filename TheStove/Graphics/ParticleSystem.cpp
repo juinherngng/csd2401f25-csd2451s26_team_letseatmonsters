@@ -12,13 +12,14 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include "../Core/Logger.hpp"
+
 #include "EntityManager.hpp"
 #include "GameObject.hpp"
 #include "ParticleSystem.hpp"
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 
 // Sparkle row (3 frames) - V corrected for OpenGL (bottom-left origin)
 static const std::vector<glm::vec4> kSparkleFrames = {
@@ -157,7 +158,7 @@ void ParticleSystem::InitPool_(const Preset& preset, EntityManager& em) {
 			pool.p.clear();
 			pool.freeList.clear();
 			pool.initialized = false;
-			std::cerr << "ParticleSystem::InitPool_ failed to spawn animated sprite for preset '" << preset.name << "'\n";
+			TS_LOG_ERROR("[ParticleSystem] InitPool_ failed to spawn animated sprite for preset '" << preset.name << "'");
 			return;
 		}
 

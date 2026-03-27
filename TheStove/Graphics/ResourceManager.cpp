@@ -48,6 +48,14 @@ namespace {
 }
 
 /**
+ * @brief Destroys the `ResourceManager` instance and releases owned resources.
+ */
+ResourceManager::~ResourceManager() {
+	// Reuse the normal cache teardown path so shutdown behavior stays centralized.
+	Clear();
+}
+
+/**
  * @brief Normalizes path cached.
  * @param path Path to process.
  * @return Result produced by this operation.
@@ -57,6 +65,7 @@ std::string ResourceManager::NormalizePathCached(const std::string& path) {
 		return path;
 	}
 
+	// Reuse previously normalized values to avoid repeated filesystem work on hot paths.
 	auto cached = normalizedPathCache.find(path);
 	if (cached != normalizedPathCache.end()) {
 		return cached->second;
@@ -73,6 +82,7 @@ std::string ResourceManager::NormalizePathCached(const std::string& path) {
  * @return Result produced by this operation.
  */
 void ResourceManager::SetAudioManager(AudioManager* audioMgr) {
+	// Store the non-owning bridge to the audio system for shared load/unload calls.
 	audioManager = audioMgr;
 	if (audioManager) {
 		TS_LOG_INFO("[ResourceManager] AudioManager registered.");
@@ -87,6 +97,7 @@ void ResourceManager::SetAudioManager(AudioManager* audioMgr) {
  * @return Result produced by this operation.
  */
 Shader* ResourceManager::LoadShader(const std::string& name, const std::string& vertexPath, const std::string& fragmentPath) {
+	// Return the cached shader immediately when the logical name is already registered.
 	auto it = shaders.find(name);
 	if (it != shaders.end()) {
 		TS_LOG_DEBUG("[ResourceManager] Shader '" << name << "' already loaded, returning cached version.");
@@ -98,6 +109,7 @@ Shader* ResourceManager::LoadShader(const std::string& name, const std::string& 
 
 	auto shader = std::make_unique<Shader>(vertexPath, fragmentPath);
 	Shader* shaderPtr = shader.get();
+	// Promote the newly created shader into the cache before returning the raw pointer.
 	shaders[name] = std::move(shader);
 
 	TS_LOG_INFO("[ResourceManager] Successfully loaded shader: " << name);
@@ -110,6 +122,7 @@ Shader* ResourceManager::LoadShader(const std::string& name, const std::string& 
  * @return Requested value.
  */
 Shader* ResourceManager::GetShader(const std::string& name) {
+	// Look up shaders by their logical cache name rather than path.
 	auto it = shaders.find(name);
 	if (it != shaders.end()) {
 		return it->second.get();
@@ -131,12 +144,12 @@ Shader* ResourceManager::GetShader(const std::string& name) {
 Mesh* ResourceManager::LoadMesh(const std::string& name, const std::vector<float>& vertices, GLsizei vertexCount, GLsizei vertexSize, Mesh::VertexLayout layout) {
 	auto it = meshes.find(name);
 	if (it != meshes.end()) {
-		//std::cout << "Mesh '" << name << "' already loaded, returning existing." << std::endl;
 		return it->second.get();
 	}
 
 	auto mesh = std::make_unique<Mesh>(vertices.data(), vertexCount, vertexSize, layout);
 	Mesh* meshPtr = mesh.get();
+	// Cache the uploaded mesh once so subsequent calls can share the GPU buffers.
 	meshes[name] = std::move(mesh);
 
 	TS_LOG_DEBUG("[ResourceManager] Loaded mesh: " << name);
@@ -149,6 +162,7 @@ Mesh* ResourceManager::LoadMesh(const std::string& name, const std::vector<float
  * @return Requested value.
  */
 Mesh* ResourceManager::GetMesh(const std::string& name) {
+	// Resolve meshes by logical name from the shared cache.
 	auto it = meshes.find(name);
 	if (it != meshes.end()) {
 		return it->second.get();
@@ -165,6 +179,7 @@ Mesh* ResourceManager::GetMesh(const std::string& name) {
  * @return Result produced by this operation.
  */
 Texture* ResourceManager::LoadTexture(const std::string& name, const std::string& filePath) {
+	// Prefer an existing logical texture binding before doing any path-based work.
 	auto it = textures.find(name);
 	if (it != textures.end()) {
 		return it->second.get();
@@ -175,15 +190,18 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 		return aliasIt->second;
 	}
 
+	// Normalize paths so duplicate relative spellings still share the same GPU texture.
 	const std::string normalizedPath = NormalizePathCached(filePath);
 	auto pathIt = texturePaths.find(normalizedPath);
 	if (pathIt != texturePaths.end()) {
+		// Record an alias from the requested logical name to the already loaded texture instance.
 		textureAliases[name] = pathIt->second;
 		TS_LOG_DEBUG("[ResourceManager] Reusing texture '" << filePath << "' as alias '" << name << "'.");
 		return pathIt->second;
 	}
 
 	if (failedTexturePaths.find(normalizedPath) != failedTexturePaths.end()) {
+		// Skip repeated disk attempts for textures that already failed earlier in the run.
 		return nullptr;
 	}
 
@@ -194,6 +212,7 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 	}
 
 	Texture* texturePtr = texture.get();
+	// Store both the logical name and normalized file path so later aliases can share this texture.
 	textures[name] = std::move(texture);
 	texturePaths[normalizedPath] = texturePtr;
 	failedTexturePaths.erase(normalizedPath);
@@ -210,6 +229,7 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
  * @return Requested value.
  */
 Texture* ResourceManager::GetTexture(const std::string& name) {
+	// Check both canonical textures and logical aliases before reporting a miss.
 	auto it = textures.find(name);
 	if (it != textures.end()) {
 		return it->second.get();
@@ -234,6 +254,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 		return;
 	}
 
+	// Measure the preload pass so we can track how much time decode and upload take.
 	const auto preloadStart = std::chrono::steady_clock::now();
 	double uploadMs = 0.0;
 	size_t loadedCount = 0;
@@ -249,6 +270,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 	std::unordered_set<std::string> seen;
 
 	for (const auto& filePath : filePaths) {
+		// Skip empty, already-loaded, and previously failed paths before scheduling decode work.
 		if (filePath.empty()) {
 			continue;
 		}
@@ -302,6 +324,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 			return;
 		}
 
+		// Upload decoded image data on the main thread so the OpenGL calls remain valid.
 		auto texture = std::make_unique<Texture>();
 		const auto uploadStart = std::chrono::steady_clock::now();
 		if (!texture->LoadFromMemory(decoded.data.data(), decoded.width, decoded.height, decoded.channels)) {
@@ -315,6 +338,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 
 		Texture* texturePtr = texture.get();
 		const std::string cacheKey = "preload_" + decoded.path;
+		// Cache the preload result under a synthetic key and the normalized disk path.
 		textures[cacheKey] = std::move(texture);
 		texturePaths[decoded.normalizedPath] = texturePtr;
 		failedTexturePaths.erase(decoded.normalizedPath);
@@ -352,6 +376,7 @@ bool ResourceManager::LoadAudio(const std::string& name, const std::string& file
 		return false;
 	}
 
+	// Delegate actual sound creation to the audio system and return success as a simple boolean.
 	auto* sound = audioManager->LoadSound(name, filePath, loop, stream);
 	return sound != nullptr;
 }
@@ -370,6 +395,7 @@ bool ResourceManager::LoadAudio3D(const std::string& name, const std::string& fi
 		return false;
 	}
 
+	// Delegate 3D sound creation to the audio system once the bridge is available.
 	auto* sound = audioManager->LoadSound3D(name, filePath, loop, stream);
 	return sound != nullptr;
 }
@@ -385,6 +411,7 @@ bool ResourceManager::HasAudio(const std::string& name) const {
 		return false;
 	}
 
+	// Ask the audio manager directly because it owns the actual sound cache.
 	return audioManager->HasSound(name);
 }
 
@@ -399,6 +426,7 @@ void ResourceManager::UnloadAudio(const std::string& name) {
 		return;
 	}
 
+	// Forward the unload request to the central audio manager.
 	audioManager->UnloadSound(name);
 }
 
@@ -417,6 +445,7 @@ bool ResourceManager::GetAudioInfo(const std::string& name, unsigned int& length
 		return false;
 	}
 
+	// Forward metadata queries so this wrapper stays thin over the audio subsystem.
 	return audioManager->GetSoundInfo(name, lengthMs, channels, bits, freq);
 }
 
@@ -428,6 +457,7 @@ bool ResourceManager::GetAudioInfo(const std::string& name, unsigned int& length
  * @return Result produced by this operation.
  */
 FontSystem::Font* ResourceManager::LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize) {
+	// Fonts are owned by FontManager, so ResourceManager simply forwards the request.
 	return FontSystem::FontManager::Instance().LoadFont(name, fontPath, fontSize);
 }
 
@@ -437,6 +467,7 @@ FontSystem::Font* ResourceManager::LoadFont(const std::string& name, const std::
  * @return Requested value.
  */
 FontSystem::Font* ResourceManager::GetFont(const std::string& name) {
+	// Read font handles directly from the shared font manager cache.
 	return FontSystem::FontManager::Instance().GetFont(name);
 }
 
@@ -447,6 +478,7 @@ FontSystem::Font* ResourceManager::GetFont(const std::string& name) {
 void ResourceManager::Clear() {
 	if (!isCleared) {
 		TS_LOG_INFO("[ResourceManager] Clearing cached resources.");
+		// Release GPU-side caches first, then clear path/alias bookkeeping maps.
 		shaders.clear();
 		meshes.clear();
 		textureAliases.clear();

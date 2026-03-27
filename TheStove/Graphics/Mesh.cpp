@@ -10,9 +10,9 @@
 ----------------------------------------------------------------------------------------------------
 */
 
-#include "Mesh.hpp"
+#include "../Core/Logger.hpp"
 
-#include <iostream>
+#include "Mesh.hpp"
 
 // Constructs a mesh by uploading vertex data and configuring a VAO
 Mesh::Mesh(const float* vertices, GLsizei vertexCount, GLsizei vertexSize, VertexLayout layout)
@@ -39,14 +39,14 @@ void Mesh::Draw() const {
 	// Check for errors before drawing
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
-		std::cerr << "OpenGL error after VAO bind: " << error << std::endl;
+		TS_LOG_ERROR("[Mesh] OpenGL error after VAO bind: " << error);
 	}
 
 	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)vertexCount);
 
 	error = glGetError();
 	if (error != GL_NO_ERROR) {
-		std::cerr << "OpenGL error after glDrawArrays: " << error << std::endl;
+		TS_LOG_ERROR("[Mesh] OpenGL error after glDrawArrays: " << error);
 	}
 
 	vao.Unbind();

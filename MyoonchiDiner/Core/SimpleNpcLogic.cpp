@@ -444,7 +444,6 @@ void SimpleNpcLogic::UpdateCustomerLogic(float dt, Scene& scene) {
 
 	if (behaviourState_ == BehaviourState::Eating) {
 		eatTimer_ += dt;
-		//std::cout << "SimpleNpcLogic] Eating... timer= " << eatTimer_ << "/" << eatDuration_ << "\n";
 
 		if (eatTimer_ >= eatDuration_) {
 			eatTimer_ = eatDuration_;
@@ -523,10 +522,6 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene) {
 			<< DishTypeName(desiredDishType_)
 			<< " (" << static_cast<int>(desiredDishType_) << ")");
 	}
-
-	//std::cout << "[SimpleNpcLogic] OnSeatedAtTable, npcID="
-	//    << npcID << " state="
-	//    << static_cast<int>(behaviourState_) << "\n";
 
 	// When NPC reaches its assigned table, it should start ordering.
 	if (behaviourState_ == BehaviourState::FindingTable ||
@@ -610,9 +605,6 @@ void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType) {
 }
 
 void SimpleNpcLogic::TakePayment(Scene& scene) {
-	//std::cout << "[SimpleNpcLogic] TakePayment, state="
-	//    << static_cast<int>(behaviourState_) << "\n";
-
 	if (behaviourState_ != BehaviourState::Paying)
 		return;
 
@@ -664,8 +656,6 @@ void SimpleNpcLogic::SetCustomerTableTarget(int tableObjectID, const Math::Vecto
 	behaviourState_ = BehaviourState::WalkingToTable;
 	ClearNavigationMove();
 
-	//std::cout << "[SimpleNpcLogic] SetCustomerTableTarget tableID=" << tableObjectID
-	//    << " seat=(" << seatWorldPos.x << ", " << seatWorldPos.y << ")\n";
 }
 
 void SimpleNpcLogic::SetLeaveTarget(const Math::Vector2D& leaveWorldPos) {
@@ -674,9 +664,6 @@ void SimpleNpcLogic::SetLeaveTarget(const Math::Vector2D& leaveWorldPos) {
 }
 
 void SimpleNpcLogic::ClearCustomerTableTarget() {
-	//std::cout << "[SimpleNpcLogic] ClearCustomerTableTarget (was "
-	//    << customerTableID_ << ")\n";
-
 	hasCustomerTarget_ = false;
 	customerTableID_ = kInvalidID;
 	customerSeatTarget_ = Math::Vector2D(0.0f, 0.0f);
@@ -806,7 +793,6 @@ void SimpleNpcLogic::OnPatienceExpired(Scene& scene) {
 		}
 	}
 
-	// std::cout << "[SimpleNpcLogic] Patience expired. Switching to Paying (will pay $0)\n";
 }
 
 void SimpleNpcLogic::UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm::vec2& moveDelta) {

@@ -24,6 +24,7 @@
 
 #include "Factory.hpp"
 #include "ISerializer.hpp"
+#include "Logger.hpp"
 #include "RigidBody2D.hpp"
 #include "Transform.hpp"
 
@@ -167,7 +168,7 @@ void Factory::IdGameObject(GOC* gameObject) {
 
 //Add a component creator enabling data driven composition
 void Factory::AddComponentCreator(const std::string& name, ComponentCreator* creator) {
-	std::cout << "Adding component " << name << std::endl;
+	TS_LOG_INFO("[Factory] Adding component creator: " << name);
 	creatorsMap[name] = creator;
 }
 

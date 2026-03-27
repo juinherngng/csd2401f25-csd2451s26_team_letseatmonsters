@@ -18,12 +18,12 @@
 */
 
 #include "Transform.hpp"
+#include "Logger.hpp"
 
 void Transform::Initialize() {
-	// For now, just a debug message
-	std::cout << "Transform initialized at ("
+	TS_LOG_DEBUG("Transform initialized at ("
 		<< position.x << ", " << position.y
-		<< "), rotation " << rotation << "\n";
+		<< "), rotation " << rotation);
 }
 
 void Transform::Translate(float x, float y) {
@@ -77,15 +77,11 @@ std::string Transform::ToString() const {
 }
 
 void Transform::OnEnable() {
-	{
-		std::cout << "Transform enabled\n";
-	}
+	TS_LOG_DEBUG("Transform enabled");
 }
 
 void Transform::OnDisable() {
-	{
-		std::cout << "Transform disabled\n";
-	}
+	TS_LOG_DEBUG("Transform disabled");
 }
 
 GameComponent* Transform::Clone() const {

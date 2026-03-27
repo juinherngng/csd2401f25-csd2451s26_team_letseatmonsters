@@ -74,8 +74,6 @@ WorkTableLogic::WorkTableLogic(int ownerID) : TableLogic(ownerID) {
 }
 
 void WorkTableLogic::Start(Scene& scene) {
-	//std::cout << "[WorkTableLogic] Start ownerID=" << GetOwnerID() << "\n";
-
 	TableLogic::Start(scene);
 
 	//Figure out what kind of station THIS table is, from its texture
@@ -116,9 +114,6 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&) {
 		FollowCookingTimerBar(scene);
 		UpdateCookingTimerFill(scene, 1.0f - GetProcessingProgress());
 	}
-
-	//std::cout << "[WorkTableLogic] processing... t=" << timer_
-	//    << "/" << processingTime_ << "\n";
 
 	if (timer_ >= processingTime_) {
 		timer_ = processingTime_;
@@ -257,10 +252,6 @@ void WorkTableLogic::CancelProcessing(Scene& scene) {
 // ------------------- TableLogic hooks -------------------
 
 void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item) {
-	//IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
-	//std::cout << "[WorkTable] placed item=" << item.GetID()
-	//    << " hasIngredientLogic=" << (ing ? "YES" : "NO") << "\n";
-
 	CancelProcessing(scene); // always reset
 	if (IsItemProcessable(scene, item)) {
 		if (IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID())) {
@@ -294,9 +285,6 @@ void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& item) {
 	(void)item;
 	// If the player removes the item mid-process, cancel.
 	if (isProcessing_) {
-		//std::cout << "[WorkTableLogic] Item " << item.GetID()
-		//    << " TAKEN while still processing! t=" << processingTime_
-		//    << "/" << timer_ << "\n";
 		CancelProcessing(scene);
 	}
 }
@@ -320,16 +308,11 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item) {
 		// Look up the IngredientLogic for this item.
 	IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID());
 	if (!ing) {
-		//// Not an ingredient nothing to do.
-		//std::cout << "[WorkTableLogic] OnProcessingComplete: item "
-		//    << item.GetID() << " has no IngredientLogic\n";
 		return;
 	}
 
 	// If your rule is only raw gets processed, respect that:
 	if (!CanProcessIngredient(*ing)) {
-		//std::cout << "[WorkTableLogic] OnProcessingComplete: ingredient "
-		//    << item.GetID() << " is not processable\n";
 		return;
 	}
 
@@ -346,8 +329,6 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item) {
 	//  - internally flips Vegetable -> Refined_Veg, Meat -> Refined_Meat, etc.
 	CompleteProcessingForIngredient(*ing);
 
-	//std::cout << "[WorkTableLogic] Finished processing item " << item.GetID()
-	//    << ", new type=" << static_cast<int>(ing->GetType()) << "\n";
 }
 
 bool WorkTableLogic::CanProcessIngredient(const IngredientLogic& ingredient) const {
