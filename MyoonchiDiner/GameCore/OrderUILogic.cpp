@@ -144,9 +144,9 @@ void OrderUILogic::OnDestroy(Scene& scene) {
 }
 
 glm::vec2 OrderUILogic::SlotTargetPos(int slotIndex) const {
-	// Anchor the first order beside the quota UI, then grow additional tickets leftward.
+	// Anchor the first order beside the quota UI, then grow additional tickets rightward.
 	return glm::vec2(
-		panelTargetPos_.x - slotIndex * (panelSize_.x + ticketGapY_),
+		panelTargetPos_.x + slotIndex * (panelSize_.x + ticketGapY_),
 		panelTargetPos_.y
 	);
 }

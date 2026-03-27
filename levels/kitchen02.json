@@ -736,7 +736,7 @@
       "customer_seat_offy": 0.0,
       "h": 155.0,
       "has_collider": false,
-      "layer": "10",
+      "layer": "99",
       "prefab_path": "",
       "rotation": 0.0,
       "shadow": false,
