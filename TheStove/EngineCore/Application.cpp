@@ -773,6 +773,9 @@ void Application::Draw() {
 		state_.currentScene->RenderLevelTextObjects();
 	}
 
+	// Present only after scene overlays and authored text have been rendered into the scene target.
+	graphicsEngine->PresentFrame();
+
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (state_.debugApp) {
 		state_.debugApp->SetRenderStats(

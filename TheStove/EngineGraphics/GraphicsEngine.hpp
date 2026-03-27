@@ -219,6 +219,11 @@ public:
 	void DrawSceneDockWindow();                           // Draws Scene window with FBO image
 
 	/**
+	 * @brief Presents the completed scene framebuffer to the final runtime/editor target.
+	 */
+	void PresentFrame();
+
+	/**
 	 * @brief Returns mouse world in scene.
 	 * @param outWorld Output value for out world.
 	 * @param mousePosOverride Parameter for mouse pos override.

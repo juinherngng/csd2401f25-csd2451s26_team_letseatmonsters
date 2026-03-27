@@ -25,6 +25,8 @@
 #include "EngineGraphics/Texture.hpp"
 
 namespace {
+	constexpr int kForegroundUiLayerThreshold = 99;
+
 	/**
 	 * @brief Describes the GL state required for one render pass.
 	 */
@@ -227,8 +229,27 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	renderStats = RenderStats();
 	renderStats.totalObjects = static_cast<int>(objects.size());
 
+	std::vector<GameObject*> worldObjects;
+	std::vector<GameObject*> foregroundUiObjects;
+	worldObjects.reserve(objects.size());
+	foregroundUiObjects.reserve(objects.size());
+
+	// Keep high-layer HUD sprites above the authored foreground overlay.
+	for (GameObject* obj : objects) {
+		if (obj == nullptr) {
+			continue;
+		}
+
+		if (obj->GetRenderLayer() >= kForegroundUiLayerThreshold) {
+			foregroundUiObjects.push_back(obj);
+		}
+		else {
+			worldObjects.push_back(obj);
+		}
+	}
+
 	RenderBackground(view, projection);
-	DrawSpriteShadows(objects, view, projection);
+	DrawSpriteShadows(worldObjects, view, projection);
 
 	const ScopedRenderPassState spriteBatchPassState({
 		.depthTestEnabled = false,
@@ -237,11 +258,10 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		});
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	// Even empty scenes still need overlays and editor text to render correctly.
+	// Even empty scenes still need overlays to render correctly.
 	if (objects.empty()) {
 		RenderBackgroundOverlay(view, projection);
 		DrawTransitionOverlay();
-		EndSceneAndPresent();
 		return;
 	}
 
@@ -315,40 +335,48 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		renderStats.totalBatches++;
 		};
 
-	// Preserve scene layering by only batching contiguous runs with the same render key.
-	for (GameObject* obj : objects) {
-		if (obj == nullptr) {
-			continue;
+	const auto renderSubset = [&](const std::vector<GameObject*>& subset) {
+		instanceBatch.clear();
+		currentKey = RenderKey{ nullptr, nullptr, nullptr };
+
+		// Preserve scene layering by only batching contiguous runs with the same render key.
+		for (GameObject* obj : subset) {
+			if (obj == nullptr) {
+				continue;
+			}
+
+			Mesh* mesh = obj->GetMesh();
+			Shader* shader = obj->GetShader();
+			if (mesh == nullptr || shader == nullptr) {
+				continue;
+			}
+
+			RenderKey key{ mesh, shader, obj->GetTexture() };
+			if (key != currentKey && !instanceBatch.empty()) {
+				flushBatch(instanceBatch, currentKey);
+				instanceBatch.clear();
+			}
+
+			currentKey = key;
+
+			// Capture every object's transform, UV window, and tint so the flush path can choose how to draw it.
+			instanceBatch.emplace_back();
+			Mesh::InstanceData& inst = instanceBatch.back();
+			inst.modelMatrix = obj->GetModelMatrix();
+			inst.uvOffsetScale = obj->GetUVRect();
+			inst.colorTint = obj->GetColorTint();
 		}
 
-		Mesh* mesh = obj->GetMesh();
-		Shader* shader = obj->GetShader();
-		if (mesh == nullptr || shader == nullptr) {
-			continue;
-		}
-
-		RenderKey key{ mesh, shader, obj->GetTexture() };
-		if (key != currentKey && !instanceBatch.empty()) {
+		if (!instanceBatch.empty()) {
 			flushBatch(instanceBatch, currentKey);
-			instanceBatch.clear();
 		}
+	};
 
-		currentKey = key;
-
-		// Capture every object's transform, UV window, and tint so the flush path can choose how to draw it.
-		instanceBatch.emplace_back();
-		Mesh::InstanceData& inst = instanceBatch.back();
-		inst.modelMatrix = obj->GetModelMatrix();
-		inst.uvOffsetScale = obj->GetUVRect();
-		inst.colorTint = obj->GetColorTint();
-	}
-
-	if (!instanceBatch.empty()) {
-		flushBatch(instanceBatch, currentKey);
-	}
+	renderSubset(worldObjects);
 
 	// Foreground art should still sit above the batched world content.
 	RenderBackgroundOverlay(view, projection);
+	renderSubset(foregroundUiObjects);
 
 	if (DebugRenderer::IsEnabled()) {
 		const ScopedRenderPassState debugPassState({
@@ -367,7 +395,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	}
 
 	DrawTransitionOverlay();
-	EndSceneAndPresent();
 	LogOpenGLErrors("[GraphicsEngine] OpenGL error in batched rendering");
 }
 

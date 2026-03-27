@@ -25,6 +25,25 @@
 std::unordered_map<int, glm::vec2> OrderUILogic::sCustomerPanelCenters_{};
 std::unordered_set<int> OrderUILogic::sPendingStampCustomers_{};
 
+namespace {
+	int ParseNumericLayerOrFallback(const std::string& layerName, int fallback) {
+		if (layerName.empty()) {
+			return fallback;
+		}
+
+		int value = 0;
+		for (char c : layerName) {
+			if (c < '0' || c > '9') {
+				return fallback;
+			}
+			value = value * 10 + (c - '0');
+		}
+
+		return value;
+	}
+
+}
+
 bool OrderUILogic::TryGetPanelCenterForCustomer(int customerId, glm::vec2& outPos) {
 	auto it = sCustomerPanelCenters_.find(customerId);
 	if (it == sCustomerPanelCenters_.end()) {
@@ -83,7 +102,7 @@ const char* OrderUILogic::DishToIconPath(DishType t) const {
 	}
 }
 
-void OrderUILogic::Start(Scene& /*scene*/) {
+void OrderUILogic::Start(Scene& scene) {
 	slots_.clear();
 	slots_.resize(kMaxOrders);
 
@@ -101,6 +120,22 @@ void OrderUILogic::Start(Scene& /*scene*/) {
 		slot.stampActive = false;
 		slot.stampTimer = 0.0f;
 	}
+
+	// Use the authored level anchor so each level can place the order HUD where it fits best.
+	if (GameObject* anchor = scene.GetGameObjectByID(GetOwnerID())) {
+		const glm::vec3 anchorPos = anchor->GetPositionGLM();
+		panelTargetPos_ = { anchorPos.x, anchorPos.y };
+	}
+
+	const Scene::Defaults defaults = scene.GetDefaults(GetOwnerID());
+	const int baseLayer = ParseNumericLayerOrFallback(defaults.layer, 99);
+
+	// Keep the full ticket stack above the authored HUD layer by default.
+	panelLayer_ = std::to_string(baseLayer);
+	dishLayer_ = std::to_string(baseLayer + 1);
+	ingredientLayer_ = std::to_string(baseLayer + 1);
+	stationLayer_ = std::to_string(baseLayer + 1);
+	stampLayer_ = std::to_string(baseLayer + 2);
 }
 
 void OrderUILogic::OnDestroy(Scene& scene) {
@@ -109,10 +144,9 @@ void OrderUILogic::OnDestroy(Scene& scene) {
 }
 
 glm::vec2 OrderUILogic::SlotTargetPos(int slotIndex) const {
-	// NOTE: you used panelSize_.y for x spacing before.
-	// Usually you want panelSize_.x for horizontal spacing.
+	// Anchor the first order beside the quota UI, then grow additional tickets leftward.
 	return glm::vec2(
-		panelTargetPos_.x + slotIndex * (panelSize_.x + ticketGapY_),
+		panelTargetPos_.x - slotIndex * (panelSize_.x + ticketGapY_),
 		panelTargetPos_.y
 	);
 }

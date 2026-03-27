@@ -141,6 +141,13 @@ void GraphicsEngine::DrawSceneDockWindow() {
 }
 
 /**
+ * @brief Presents the already-rendered scene framebuffer to the editor or runtime window.
+ */
+void GraphicsEngine::PresentFrame() {
+	EndSceneAndPresent();
+}
+
+/**
  * @brief Finalizes scene rendering and presents the frame to its final target.
  */
 void GraphicsEngine::EndSceneAndPresent() {
