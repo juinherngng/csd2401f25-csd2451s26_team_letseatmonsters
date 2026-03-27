@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include "ApplicationFlowCoordinator.hpp"
 #include "ApplicationState.hpp"
 
 #include <string>
@@ -56,4 +57,6 @@ private:
 
 	// Stores the mutable runtime state owned by the application.
 	ApplicationState state_;
+	// Owns app-level game-flow transitions between scene requests and state switches.
+	ApplicationFlowCoordinator flowCoordinator_;
 };

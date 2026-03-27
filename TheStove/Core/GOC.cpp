@@ -41,9 +41,6 @@
 //}
 
 GOC::~GOC() {
-	for (auto& kv : m_components) {
-		delete kv.second; // will call ~Transform, ~RigidBody2D, etc.
-	}
 	m_components.clear();
 }
 
@@ -57,35 +54,48 @@ void GOC::Initialize() {
 
 //Let the factory handle it
 void GOC::Destroy() {
-	//FACTORY->AddDestroy(this);
-	TS_LOG_INFO("[GOC] Deleting game object: " << name);
+	// Prefer deferred destruction through the factory so external id maps do not keep dangling pointers.
+	if (FACTORY) {
+		TS_LOG_INFO("[GOC] Queueing game object for destruction: " << name);
+		FACTORY->AddDestroy(this);
+		return;
+	}
+
+	// Fall back to direct deletion only when no factory exists to own lifetime.
+	TS_LOG_WARN("[GOC] Destroy called without Factory; deleting directly: " << name);
 	delete this;
 }
 
 
-void GOC::AddComponent(std::type_index id, GameComponent* c) {
+GameComponent* GOC::AddComponent(std::type_index id, std::unique_ptr<GameComponent> c) {
+	if (!c) {
+		return nullptr;
+	}
+
 	c->SetOwner(this);
-	m_components[id] = c;
+	GameComponent* component = c.get();
+	m_components[id] = std::move(c);
+	return component;
 }
 
 template <typename T, typename ... Args>
 T* GOC::AddComponent(Args&&... args) {
-	auto* component = new T(std::forward<Args>(args)...);
+	auto component = std::make_unique<T>(std::forward<Args>(args)...);
 	component->SetOwner(this);
-	m_components[typeid(T)] = component;
-	return component;
+	T* componentPtr = component.get();
+	m_components[typeid(T)] = std::move(component);
+	return componentPtr;
 }
 
 GOC* GOC::Clone() const {
 	GOC* clone = new GOC();
 	for (auto& c : m_components) {
-		GameComponent* copy = c.second->Clone();
+		std::unique_ptr<GameComponent> copy(c.second->Clone());
 		copy->SetOwner(clone);
-		clone->m_components[c.first] = copy;
+		clone->m_components[c.first] = std::move(copy);
 	}
 	if (FACTORY) {
 		FACTORY->IdGameObject(clone);
-		FACTORY->AddDestroy(clone);
 	}
 	clone->name = this->name + " clone";
 	return clone;

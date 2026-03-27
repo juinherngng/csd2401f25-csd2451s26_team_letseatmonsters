@@ -21,6 +21,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <unordered_map>
 #include <vector>
 
@@ -28,7 +29,6 @@
 #include "../Core/DebugVisualizer.hpp"
 #include "../Core/GameStateManager.hpp"
 #include "../Core/InputCommandHandler.hpp"
-#include "../Core/LevelEditor.hpp"
 #include "../Core/LogicManager.hpp"
 #include "../Core/Math.hpp"
 #include "../Core/NPCSystem.hpp"
@@ -42,6 +42,7 @@
 #include "ParticleSystem.hpp"
 #include "SceneObjectMetadata.hpp"
 #include "../Core/FontSystem.hpp"
+#include "../Core/RuntimeTextData.hpp"
 
 class AudioManager;
 class GameObject;
@@ -155,6 +156,22 @@ public:
 	void ClearAll();
 	void RequestClearAll();
 	void RenderLevelTextObjects();
+	const std::vector<RuntimeTextData>& GetRuntimeTextObjects() const {
+		return runtimeTextObjects_;
+	}
+	void SetRuntimeTextObjects(const std::vector<RuntimeTextData>& textObjects);
+	bool SetRuntimeTextByName(const std::string& name, const std::string& newText);
+	void ClearRuntimeTextObjects();
+	void SetPauseSuppressedRuntimeTextNames(std::vector<std::string> textNames);
+	void SetEditorUiHook(std::function<void(Scene&)> hook) {
+		editorUiHook_ = std::move(hook);
+	}
+	void SetEditorToggleHook(std::function<void()> hook) {
+		editorToggleHook_ = std::move(hook);
+	}
+	void SetEditorEnabledQuery(std::function<bool()> query) {
+		editorEnabledQuery_ = std::move(query);
+	}
 	/// @}
 
 	/**
@@ -835,7 +852,7 @@ public:
 	 * @return True when the operation succeeds or the condition is met.
 	 */
 	bool HasPendingLevel() const {
-		return hasPendingLevel_;
+		return pendingLevelLoad_.has_value();
 	}
 
 	/**
@@ -1135,9 +1152,11 @@ private:
 	std::string sceneBackgroundOverlayPath_;
 
 	// Pending level load state
-	std::string pendingLevelPath_;
-	bool pendingLevelSimActive_ = false;
-	bool hasPendingLevel_ = false;
+	struct DeferredLevelLoadRequest {
+		std::string path;
+		bool activateSimulation = false;
+	};
+	std::optional<DeferredLevelLoadRequest> pendingLevelLoad_;
 
 	// Pending game state change
 	Framework::GameState pendingState_ = Framework::GameState::MainMenu;
@@ -1149,6 +1168,8 @@ private:
 	std::vector<int> pauseOverlayObjectIds_;
 	FlowState flowState_ = FlowState::Bootstrapping;
 	FlowState flowStateBeforePause_ = FlowState::Gameplay;
+	std::vector<RuntimeTextData> runtimeTextObjects_;
+	std::unordered_set<std::string> pauseSuppressedRuntimeTextNames_;
 
 	// Pause audio fade state
 	bool pauseAudioPending_ = false;
@@ -1172,7 +1193,6 @@ private:
 	int fpsValue_ = 0;
 	const float fpsUpdateInterval_ = 0.25f; // update every 0.25s
 
-	LevelEditor mLevelEditor;
 	TagLogicBinder tagLogicBinder_;
 	TagRuleHook tagRuleHook_;
 	PauseOverlayButtonBinder pauseOverlayButtonBinder_;
@@ -1199,6 +1219,10 @@ private:
 	bool cutsceneSkipSpaceHeld_ = false;
 	// Ensure skip only runs once for the currently active cutscene sequence.
 	bool cutsceneSkipConsumed_ = false;
+
+	std::function<void(Scene&)> editorUiHook_;
+	std::function<void()> editorToggleHook_;
+	std::function<bool()> editorEnabledQuery_;
 
 	// -------------------------------------------------------------------------------------------------
 	// Cutscene, Transition, And Runtime UI Animation State

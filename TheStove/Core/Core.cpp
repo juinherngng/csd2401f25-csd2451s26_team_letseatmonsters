@@ -19,18 +19,8 @@
 
 namespace CoreFramework {
 	CoreEngine::CoreEngine() {
-		gameActive = true;	// game is running
-
 		// Initialize lastTime so the first deltaTime is ~0
 		lastTime = std::chrono::high_resolution_clock::now();
-
-		// Subscribe to QUIT messages to handle application shutdown
-		messageBus.Subscribe(MessageType::QUIT,
-			[this](const Message& msg) {
-				(void)msg; // suppress unused parameter warning
-				TS_LOG_INFO("[Core] QUIT message received, shutting down...");
-				gameActive = false;
-			});
 
 		// Subscribe to PLAY_AUDIO messages for logging purposes (optional)
 		// This allows Core to see audio message traffic for debugging

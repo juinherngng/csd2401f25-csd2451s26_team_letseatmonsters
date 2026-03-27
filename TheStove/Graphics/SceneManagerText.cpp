@@ -11,8 +11,6 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/LevelEditorPanelFonts.hpp"
-
 #include "GraphicsEngine.hpp"
 #include "ResourceManager.hpp"
 #include "SceneManager.hpp"
@@ -63,7 +61,7 @@ void Scene::RenderFPSText() {
  */
 void Scene::RenderLevelTextObjects() {
 	// Skip the pass entirely when there are no authored text objects to draw.
-	const auto& objs = LEPANELFONTS::GetTextObjects();
+	const auto& objs = runtimeTextObjects_;
 	if (objs.empty()) {
 		return;
 	}
@@ -75,9 +73,6 @@ void Scene::RenderLevelTextObjects() {
 	}
 
 	const bool pauseActive = IsPauseOverlayActive();
-	static const std::unordered_set<std::string> kHudTextNames = {
-		"MoneyText", "QuotaText", "TimerText"
-	};
 
 	glm::mat4 projection = graphicsEngine.GetProjection();
 
@@ -102,7 +97,7 @@ void Scene::RenderLevelTextObjects() {
 
 	for (const auto& o : objs) {
 		// Hide gameplay HUD text while cutscene or pause overlays own the top-level presentation.
-		if ((cutsceneActive || pauseActive) && kHudTextNames.count(o.name)) {
+		if ((cutsceneActive || pauseActive) && pauseSuppressedRuntimeTextNames_.count(o.name)) {
 			continue;
 		}
 
@@ -142,4 +137,59 @@ void Scene::RenderLevelTextObjects() {
 
 	glDisable(GL_BLEND);
 	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+}
+
+/**
+ * @brief Replaces the scene-owned runtime text collection and ensures referenced layers and fonts exist.
+ * @param textObjects New authored/runtime text objects for the active scene.
+ */
+void Scene::SetRuntimeTextObjects(const std::vector<RuntimeTextData>& textObjects) {
+	// Replace the runtime text snapshot atomically so game/UI code always sees a consistent list.
+	runtimeTextObjects_ = textObjects;
+
+	for (const RuntimeTextData& textObj : runtimeTextObjects_) {
+		if (!textObj.layer.empty()) {
+			AddLayer(textObj.layer);
+		}
+
+		if (textObj.fontName.empty() || ResourceManager::Instance().GetFont(textObj.fontName)) {
+			continue;
+		}
+
+		// Runtime text references fonts by logical name; missing fonts are allowed but logged once elsewhere.
+	}
+}
+
+/**
+ * @brief Updates the displayed text for one scene-owned runtime text object.
+ * @param name Name of the text object to update.
+ * @param newText Replacement text string.
+ * @return `true` when a matching text object was found and updated.
+ */
+bool Scene::SetRuntimeTextByName(const std::string& name, const std::string& newText) {
+	for (RuntimeTextData& textObj : runtimeTextObjects_) {
+		if (textObj.name == name) {
+			textObj.text = newText;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * @brief Clears all scene-owned runtime text objects.
+ */
+void Scene::ClearRuntimeTextObjects() {
+	runtimeTextObjects_.clear();
+}
+
+/**
+ * @brief Defines which runtime text names should be suppressed while pause/cutscene overlays are active.
+ * @param textNames Text object names that gameplay overlays temporarily hide.
+ */
+void Scene::SetPauseSuppressedRuntimeTextNames(std::vector<std::string> textNames) {
+	// Replace the suppression set so game-specific HUD policies stay outside the engine core.
+	pauseSuppressedRuntimeTextNames_.clear();
+	pauseSuppressedRuntimeTextNames_.insert(textNames.begin(), textNames.end());
 }

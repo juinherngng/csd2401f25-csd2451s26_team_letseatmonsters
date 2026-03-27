@@ -1027,14 +1027,14 @@ namespace {
 			moveStartCaptured = false;
 			lastMoney = Economy::gPlayerMoney;
 			paymentsCollected_ = 0;
-			LEPANELFONTS::SetTextByName("TutorialText", active ? "Click anywhere to move." : "");
+			scene.SetRuntimeTextByName("TutorialText", active ? "Click anywhere to move." : "");
 		}
 
-		void Advance(const std::string& nextText) {
+		void Advance(Scene& scene, const std::string& nextText) {
 			if (step != TutorialStep::Done) {
 				step = static_cast<TutorialStep>(static_cast<int>(step) + 1);
 			}
-			LEPANELFONTS::SetTextByName("TutorialText", nextText);
+			scene.SetRuntimeTextByName("TutorialText", nextText);
 		}
 
 		void Update(Scene& scene, float dt) {
@@ -1075,7 +1075,7 @@ namespace {
 				}
 				glm::vec2 d = glm::vec2(p.x, p.y) - moveStart;
 				if (glm::dot(d, d) > (40.0f * 40.0f)) {
-					Advance("Wait for a customer to arrive.");
+					Advance(scene, "Wait for a customer to arrive.");
 				}
 				break;
 			}
@@ -1083,13 +1083,13 @@ namespace {
 			case TutorialStep::WaitForFirstCustomerOrder:
 			{
 				if (!HasAnySeatedCustomer(scene)) {
-					LEPANELFONTS::SetTextByName("TutorialText", "Wait for a customer to arrive.");
+					scene.SetRuntimeTextByName("TutorialText", "Wait for a customer to arrive.");
 				}
 				else if (!HasActiveOrderUi(scene)) {
-					LEPANELFONTS::SetTextByName("TutorialText", "Wait for a customer to arrive.");
+					scene.SetRuntimeTextByName("TutorialText", "Wait for a customer to arrive.");
 				}
 				else {
-					Advance("Pick the first ingredient from the correct ingredient box as seen in the Order.");
+					Advance(scene, "Pick the first ingredient from the correct ingredient box as seen in the Order.");
 				}
 				break;
 			}
@@ -1099,7 +1099,7 @@ namespace {
 				if (playerLogic->IsHolding()) {
 					const int heldId = playerLogic->GetCarriedItemID();
 					if (auto* ing = logic.GetLogicForObject<IngredientLogic>(heldId); ing && ing->IsRaw()) {
-						Advance("Bring it to the correct workstation as seen in the Order.");
+						Advance(scene, "Bring it to the correct workstation as seen in the Order.");
 					}
 				}
 				break;
@@ -1125,7 +1125,7 @@ namespace {
 				}
 
 				if (startedProcessing || holdingProcessed) {
-					Advance("Take a plate from the plate box, place it on any empty table.");
+					Advance(scene, "Take a plate from the plate box, place it on any empty table.");
 				}
 				break;
 			}
@@ -1142,7 +1142,7 @@ namespace {
 					}
 				}
 				if (FindFirstTableHoldingAnyPlate(scene) >= 0) {
-					Advance("Pick the second ingredient from the correct ingredient box as seen in the Order.");
+					Advance(scene, "Pick the second ingredient from the correct ingredient box as seen in the Order.");
 				}
 				break;
 			}
@@ -1152,7 +1152,7 @@ namespace {
 				if (playerLogic->IsHolding()) {
 					const int heldId = playerLogic->GetCarriedItemID();
 					if (auto* ing = logic.GetLogicForObject<IngredientLogic>(heldId); ing && ing->IsRaw()) {
-						Advance("Bring the second ingredient to its workstation.");
+						Advance(scene, "Bring the second ingredient to its workstation.");
 					}
 				}
 				break;
@@ -1178,7 +1178,7 @@ namespace {
 				}
 
 				if (startedProcessing || holdingProcessed) {
-					Advance("Collect a plate and place it on any empty table.");
+					Advance(scene, "Collect a plate and place it on any empty table.");
 				}
 				break;
 			}
@@ -1186,7 +1186,7 @@ namespace {
 			case TutorialStep::GetPlateAndPlaceOnTable:
 			{
 				if (FindFirstTableHoldingAnyPlate(scene) >= 0) {
-					Advance("Place both processed ingredients on the same plate to combine and make the dish.");
+					Advance(scene, "Place both processed ingredients on the same plate to combine and make the dish.");
 				}
 				break;
 			}
@@ -1202,7 +1202,7 @@ namespace {
 					}
 				}
 				if (dishReady) {
-					Advance("Serve the completed dish to a customer table.");
+					Advance(scene, "Serve the completed dish to a customer table.");
 				}
 				break;
 			}
@@ -1229,7 +1229,7 @@ namespace {
 					}
 
 					if (dishServed) {
-						Advance("Wait for customer to finish food.");
+						Advance(scene, "Wait for customer to finish food.");
 					}
 					break;
 				}
@@ -1258,7 +1258,7 @@ namespace {
 					}
 
 					if (readyForPayment) {
-						Advance("Collect money from customer.");
+						Advance(scene, "Collect money from customer.");
 					}
 					break;
 				}
@@ -1274,13 +1274,13 @@ namespace {
 
 					if (paymentsCollected_ >= 2) {
 						step = TutorialStep::Done;
-						LEPANELFONTS::SetTextByName("TutorialText", "");
+						scene.SetRuntimeTextByName("TutorialText", "");
 						ShowCompletionPopup(scene);
 					}
 					else {
 						// No walkthrough for customer 2; just show one final objective line.
 						step = TutorialStep::FinalCustomerFreePlay;
-						LEPANELFONTS::SetTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
+						scene.SetRuntimeTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
 					}
 				}
 				break;
@@ -1295,7 +1295,7 @@ namespace {
 
 					if (paymentsCollected_ >= 2) {
 						step = TutorialStep::Done;
-						LEPANELFONTS::SetTextByName("TutorialText", "");
+						scene.SetRuntimeTextByName("TutorialText", "");
 						ShowCompletionPopup(scene);
 					}
 				}
@@ -1510,72 +1510,73 @@ namespace {
 	*/
 	/************************************************************************/
 	void OnPostLevelLoaded(Scene& scene, bool simulationActive, CustomerManagerSystem& customerManager) {
-	const bool isTutorial = simulationActive && IsTutorialLevelLoaded(scene);
-	gTutorialFlow.Reset(scene, isTutorial);
+		const bool isTutorial = simulationActive && IsTutorialLevelLoaded(scene);
+		gTutorialFlow.Reset(scene, isTutorial);
+		Economy::BindUIScene(scene);
 
-	if (isTutorial) {
-		customerManager.SetMaxCustomers(2);
-		customerManager.SetTotalSpawnLimit(2);
-		customerManager.SetSpawnedCustomersInfinitePatience(true);
+		if (isTutorial) {
+			customerManager.SetMaxCustomers(2);
+			customerManager.SetTotalSpawnLimit(2);
+			customerManager.SetSpawnedCustomersInfinitePatience(true);
 
-		// Tutorial timer: 20 minutes
-		Economy::SetTimeLimitSeconds(20.0f * 60.0f);
-		Economy::gTimeRemaining = Economy::kTimeLimitSeconds;
+			// Tutorial timer: 20 minutes
+			Economy::SetTimeLimitSeconds(20.0f * 60.0f);
+			Economy::gTimeRemaining = Economy::kTimeLimitSeconds;
 
-		// Prevent normal quota win cutscene during tutorial.
-		Economy::SetQuota(999);
-		Economy::gQuotaReached = false;
-		Economy::SyncUI();
-	}
-	else {
-		customerManager.SetMaxCustomers(4);
-		customerManager.ClearTotalSpawnLimit();
-		customerManager.SetSpawnedCustomersInfinitePatience(false);
-	}
-
-	if (AudioManager* audioManager = scene.GetAudioManager()) {
-		for (GameObject* obj : scene.GetAllObjectsRaw()) {
-			if (!obj) continue;
-			if (scene.GetObjectTag(obj->GetID()) != "btn_play") continue;
-			if (auto* logic = scene.GetLogicManager().GetLogicForObject<StartGamePromptLogic>(obj->GetID())) {
-				logic->SetAudioManager(audioManager);
-			}
-		}
-	}
-
-#ifndef _DEBUG
-	// existing audio/UI logic unchanged...
-	if (!simulationActive || IsDayClearLevelLoaded(scene)) {
-		if (Layer* menuLayer = scene.GetLayer("10")) {
-			menuLayer->SetVisible(true);
-			menuLayer->SetEnabled(true);
-			menuLayer->SetCollidable(false);
-		}
-	}
-
-	if (AudioManager* audioManager = scene.GetAudioManager()) {
-		const bool useMenuBgm = !simulationActive || IsDayClearLevelLoaded(scene);
-		if (useMenuBgm) {
-			audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
-			audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
-			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
-			audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
-			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
+			// Prevent normal quota win cutscene during tutorial.
+			Economy::SetQuota(999);
+			Economy::gQuotaReached = false;
+			Economy::SyncUI(&scene);
 		}
 		else {
-			const float fadeIn = 1.0f;
-			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
-			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
-
-			audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
-			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
+			customerManager.SetMaxCustomers(4);
+			customerManager.ClearTotalSpawnLimit();
+			customerManager.SetSpawnedCustomersInfinitePatience(false);
 		}
-	}
+
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			for (GameObject* obj : scene.GetAllObjectsRaw()) {
+				if (!obj) continue;
+				if (scene.GetObjectTag(obj->GetID()) != "btn_play") continue;
+				if (auto* logic = scene.GetLogicManager().GetLogicForObject<StartGamePromptLogic>(obj->GetID())) {
+					logic->SetAudioManager(audioManager);
+				}
+			}
+		}
+
+#ifndef _DEBUG
+		// existing audio/UI logic unchanged...
+		if (!simulationActive || IsDayClearLevelLoaded(scene)) {
+			if (Layer* menuLayer = scene.GetLayer("10")) {
+				menuLayer->SetVisible(true);
+				menuLayer->SetEnabled(true);
+				menuLayer->SetCollidable(false);
+			}
+		}
+
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			const bool useMenuBgm = !simulationActive || IsDayClearLevelLoaded(scene);
+			if (useMenuBgm) {
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
+				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
+			}
+			else {
+				const float fadeIn = 1.0f;
+				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
+				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
+
+				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
+				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
+			}
+		}
 #else
-	(void)scene;
-	(void)simulationActive;
+		(void)scene;
+		(void)simulationActive;
 #endif
-}
+	}
 
 	/************************************************************************/
 	/*!
@@ -1932,6 +1933,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	// Pause overlay: tell engine which audio channels to fade on pause
 	scene.SetPauseOverlayAudioChannels(MyoonchiPaths::Audio::BGM_LEVEL_THEME, MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+	scene.SetPauseSuppressedRuntimeTextNames({ "MoneyText", "QuotaText", "TimerText", "TutorialText" });
 
 	// Logic / UI binders
 	scene.SetTagLogicBinder(AttachTagLogic);

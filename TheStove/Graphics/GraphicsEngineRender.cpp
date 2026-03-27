@@ -12,7 +12,6 @@
 */
 
 #include "../Core/FontSystem.hpp"
-#include "../Core/LevelEditorPanelFonts.hpp"
 #include "../Core/Logger.hpp"
 
 #include "GameObject.hpp"
@@ -132,7 +131,7 @@ namespace {
 		return std::any_of(batch.begin(), batch.end(), [](const Mesh::InstanceData& inst) {
 			return inst.colorTint.x != 1.0f || inst.colorTint.y != 1.0f ||
 				inst.colorTint.z != 1.0f || inst.colorTint.w < 0.999f;
-		});
+			});
 	}
 }
 
@@ -239,46 +238,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		});
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-#ifdef _DEBUG
-	// Pre-sort editor text once so it can render above world content in deterministic order.
-	const auto& textObjects = LEPANELFONTS::GetTextObjects();
-	const bool renderDebugText = !suppressDebugTextRendering_;
-	struct SortedTextEntry {
-		const LEPANELFONTS::TextObjectData* data;
-		int layer;
-	};
-	std::vector<SortedTextEntry> sortedTextObjects;
-	sortedTextObjects.reserve(textObjects.size());
-	if (renderDebugText) {
-		for (const auto& data : textObjects) {
-			sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
-		}
-
-		std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
-			[](const SortedTextEntry& a, const SortedTextEntry& b) {
-				if (a.layer != b.layer) {
-					return a.layer < b.layer;
-				}
-
-				if (a.data->depth != b.data->depth) {
-					return a.data->depth < b.data->depth;
-				}
-
-				return a.data->y < b.data->y;
-			});
-	}
-#endif
-
 	// Even empty scenes still need overlays and editor text to render correctly.
 	if (objects.empty()) {
 		RenderBackgroundOverlay(view, projection);
-#ifdef _DEBUG
-		if (renderDebugText) {
-			for (const SortedTextEntry& entry : sortedTextObjects) {
-				RenderSingleTextObject(*entry.data);
-			}
-		}
-#endif
 		DrawTransitionOverlay();
 		EndSceneAndPresent();
 		return;
@@ -389,14 +351,6 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 	// Foreground art should still sit above the batched world content.
 	RenderBackgroundOverlay(view, projection);
 
-#ifdef _DEBUG
-	if (renderDebugText) {
-		for (const SortedTextEntry& entry : sortedTextObjects) {
-			RenderSingleTextObject(*entry.data);
-		}
-	}
-#endif
-
 	if (DebugRenderer::IsEnabled()) {
 		const ScopedRenderPassState debugPassState({
 			.depthTestEnabled = false,
@@ -420,9 +374,9 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 
 /**
  * @brief Renders one debug/editor text object into the current scene target.
- * @param data Text object description sourced from the editor panel state.
+ * @param data Text object description sourced from scene/runtime authored text state.
  */
-void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& data) {
+void GraphicsEngine::RenderSingleTextObject(const RuntimeTextData& data) {
 	// Ignore hidden or empty entries so the editor can leave placeholder rows in the list.
 	if (!data.visible || data.text.empty()) {
 		return;
@@ -458,40 +412,7 @@ void GraphicsEngine::RenderSingleTextObject(const LEPANELFONTS::TextObjectData& 
  * @brief Renders all editor-managed text objects in sorted layer order.
  */
 void GraphicsEngine::RenderTextObjects() {
-#ifdef _DEBUG
-	if (suppressDebugTextRendering_) {
-		return;
-	}
-
-	const auto& textObjects = LEPANELFONTS::GetTextObjects();
-	if (textObjects.empty()) {
-		return;
-	}
-
-	struct SortedTextEntry {
-		const LEPANELFONTS::TextObjectData* data;
-		int layer;
-	};
-
-	std::vector<SortedTextEntry> sortedTextObjects;
-	sortedTextObjects.reserve(textObjects.size());
-	for (const auto& data : textObjects) {
-		sortedTextObjects.emplace_back(SortedTextEntry{ &data, ParseLayerNumber(data.layer) });
-	}
-
-	std::sort(sortedTextObjects.begin(), sortedTextObjects.end(),
-		[](const SortedTextEntry& a, const SortedTextEntry& b) {
-			if (a.layer != b.layer) {
-				return a.layer < b.layer;
-			}
-
-			return a.data->y < b.data->y;
-		});
-
-	for (const SortedTextEntry& entry : sortedTextObjects) {
-		RenderSingleTextObject(*entry.data);
-	}
-#endif
+	// Runtime/authored text rendering is scene-owned; GraphicsEngine no longer pulls it from editor globals.
 }
 
 /**

@@ -15,7 +15,9 @@
 
 #pragma once
 
+#include "../Core/RuntimeTextData.hpp"
 #include "../Core/System.hpp"
+
 #include "imgui.h"
 #include "Renderer.hpp"
 #include "SceneViewportPresenter.hpp"
@@ -23,11 +25,6 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <vector>
-
-// Forward declare text object data struct
-namespace LEPANELFONTS {
-	struct TextObjectData;
-}
 
 class GameObject;
 class ResourceManager;
@@ -469,7 +466,7 @@ private:
 	 * @brief Renders single text object.
 	 * @param textData Parameter for text data.
 	 */
-	void RenderSingleTextObject(const LEPANELFONTS::TextObjectData& textData);
+	void RenderSingleTextObject(const RuntimeTextData& textData);
 
 	/**
 	 * @brief Ends scene and present.

@@ -11,25 +11,24 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/LevelEditorPanelFonts.hpp"
 #include "../Core/InputManager.hpp"
 #include "../Core/Logger.hpp"
 #include "../Core/MessageBus.hpp"
 #include "../Core/MovementManager.hpp"
-#include "../Core/RuntimeLevel.hpp"
+#include "../Core/RuntimeLevelPipeline.hpp"
 
 #include "AnimationManager.hpp"
 #include "GraphicsEngine.hpp"
 #include "SceneManager.hpp"
 
-// -------------------------------------------------------------------------------------------------
-// Scene Flow State Helpers
-// -------------------------------------------------------------------------------------------------
+ // -------------------------------------------------------------------------------------------------
+ // Scene Flow State Helpers
+ // -------------------------------------------------------------------------------------------------
 
-/**
- * @brief Updates the externally visible scene flow state and publishes change notifications.
- * @param newState New steady or transitional flow state for the Scene.
- */
+ /**
+  * @brief Updates the externally visible scene flow state and publishes change notifications.
+  * @param newState New steady or transitional flow state for the Scene.
+  */
 void Scene::SetFlowState(FlowState newState) {
 	if (flowState_ == newState) {
 		return;
@@ -69,7 +68,7 @@ Scene::FlowState Scene::ComputeSteadyFlowState() const {
  */
 void Scene::RefreshFlowState() {
 	// Pending work takes precedence over the steady-state flags so external systems see transitions.
-	if (hasPendingLevel_) {
+	if (pendingLevelLoad_.has_value()) {
 		SetFlowState(FlowState::LoadingLevel);
 		return;
 	}
@@ -116,19 +115,28 @@ void Scene::LoadScene(const std::string& sceneName) {
  */
 void Scene::HandleDeferredLoads() {
 	// Process deferred level load after logic iteration completes.
-	if (!hasPendingLevel_) {
+	if (!pendingLevelLoad_.has_value()) {
 		return;
 	}
 
-	if (!pendingLevelPath_.empty()) {
-		if (!RuntimeLevel::LoadAndBuild(pendingLevelPath_, *this)) {
-			TS_LOG_ERROR("[Scene] Deferred level load failed: " << pendingLevelPath_);
+	const DeferredLevelLoadRequest request = *pendingLevelLoad_;
+	if (!request.path.empty()) {
+		const RuntimeLevelPipeline::LevelLoadResult loadResult = RuntimeLevelPipeline::LoadLevelIntoSceneDetailed(request.path, *this);
+		if (!loadResult.success) {
+			TS_LOG_ERROR("[Scene] Deferred level load failed: " << request.path << " (" << loadResult.failureReason << ")");
+
+			// Recover from a failed blackout transition so the app does not remain visually stranded.
+			auto& gfx = GetGraphicsEngine();
+			if (gfx.IsTransitionActive() && gfx.IsAtBlackout()) {
+				gfx.ContinueTransitionFadeIn();
+			}
+			cutTrans_.fadeInAfterLoad = false;
 		}
 		else {
 			// Promote the pending level to active state only after the build succeeds.
-			SetCurrentLevelPath(pendingLevelPath_);
+			SetCurrentLevelPath(request.path);
 			RebuildColliders();
-			SetSimulationActive(pendingLevelSimActive_);
+			SetSimulationActive(request.activateSimulation);
 			inputManager.ClearState(); // Avoid stale click replay.
 
 			// If we are coming from a cutscene, fade in the new level now.
@@ -144,23 +152,20 @@ void Scene::HandleDeferredLoads() {
 				cutTrans_.fadeInAfterLoad = false;
 
 				if (postLevelLoadHook_) {
-					postLevelLoadHook_(*this, pendingLevelSimActive_);
+					postLevelLoadHook_(*this, request.activateSimulation);
 				}
 			}
 
-			LEPANELFONTS::EnsureFontsForTextObjectsLoaded();
-
 			if (messageBus_) {
 				// Broadcast the completed load once runtime state is consistent again.
-				messageBus_->Post<CoreFramework::LevelLoadedMessage>(pendingLevelPath_, pendingLevelSimActive_);
+				messageBus_->Post<CoreFramework::LevelLoadedMessage>(request.path, request.activateSimulation);
 			}
 
 			RefreshFlowState();
 		}
 	}
 
-	hasPendingLevel_ = false;
-	pendingLevelPath_.clear();
+	pendingLevelLoad_.reset();
 	RefreshFlowState();
 }
 
@@ -195,6 +200,7 @@ void Scene::ResetLevelObjectState() {
 	// level transitions, including cutscene skip flows that still need to finish.
 	runtimeAnimatedFx_.clear();
 	floatingWorldTextFx_.clear();
+	ClearRuntimeTextObjects();
 	uiSlides_.clear();
 	pauseOverlayObjectIds_.clear();
 	pendingDespawns_.clear();
@@ -231,9 +237,7 @@ void Scene::RequestClearAll() {
  */
 void Scene::QueueLevelLoad(const std::string& path, bool activateSimulation) {
 	// Cache the load request so the actual rebuild can happen after active iteration completes.
-	pendingLevelPath_ = path;
-	pendingLevelSimActive_ = activateSimulation;
-	hasPendingLevel_ = true;
+	pendingLevelLoad_ = DeferredLevelLoadRequest{ path, activateSimulation };
 	SetFlowState(FlowState::LoadingLevel);
 
 	if (messageBus_) {

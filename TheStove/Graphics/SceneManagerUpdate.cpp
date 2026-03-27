@@ -125,7 +125,9 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_L)) {
-		mLevelEditor.Toggle();
+		if (editorToggleHook_) {
+			editorToggleHook_();
+		}
 	}
 #endif
 

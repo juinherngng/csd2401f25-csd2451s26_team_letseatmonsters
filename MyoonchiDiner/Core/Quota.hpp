@@ -15,12 +15,11 @@
 
 #pragma once
 
-#include "LevelEditorPanelFonts.hpp"
+#include "Graphics/SceneManager.hpp"
 
 #include <iomanip>
 #include <sstream>
 
-class Scene;
 class AudioManager;
 
 namespace Economy {
@@ -60,6 +59,7 @@ namespace Economy {
 	// Determines what "Next" on the win screen should do.
 	// false: continue to level 2, true: return to main menu.
 	inline bool gWinScreenNextGoesToMainMenu = false;
+	inline Scene* gBoundUIScene = nullptr;
 
 	// Track which time-based sounds have been played
 	inline bool gPlayed10SecWarning = false;
@@ -69,12 +69,24 @@ namespace Economy {
 	inline bool gPlayedTimeUp = false;
 
 	// Put near the top of Economy.hpp/cpp (where Economy lives)
-	inline void SyncUI() {
+	inline void BindUIScene(Scene& scene) {
+		gBoundUIScene = &scene;
+	}
+
+	inline void SyncUI(Scene* scene = nullptr) {
+		if (scene != nullptr) {
+			gBoundUIScene = scene;
+		}
+
+		if (gBoundUIScene == nullptr) {
+			return;
+		}
+
 		// Money
-		LEPANELFONTS::SetTextByName("MoneyText", "$" + std::to_string(gPlayerMoney));
+		gBoundUIScene->SetRuntimeTextByName("MoneyText", "$" + std::to_string(gPlayerMoney));
 
 		// Quota: "current / target"
-		LEPANELFONTS::SetTextByName("QuotaText", "$" + std::to_string(kQuota));
+		gBoundUIScene->SetRuntimeTextByName("QuotaText", "$" + std::to_string(kQuota));
 
 		// Timer: format mm:ss
 		int total = static_cast<int>(gTimeRemaining + 0.999f); // ceil-ish
@@ -85,7 +97,7 @@ namespace Economy {
 		oss << std::setw(2) << std::setfill('0') << mm
 			<< ":" << std::setw(2) << std::setfill('0') << ss;
 
-		LEPANELFONTS::SetTextByName("TimerText", oss.str());
+		gBoundUIScene->SetRuntimeTextByName("TimerText", oss.str());
 	}
 
 	// Call this to reset all economy values to their initial state (e.g., at level start or retry)
@@ -118,7 +130,7 @@ namespace Economy {
 
 		gPlayerMoney += amount;
 
-		SyncUI(); // <--- update UI immediately
+		SyncUI(&scene); // <--- update UI immediately
 
 		if (!gQuotaReached && gPlayerMoney >= kQuota) {
 			gQuotaReached = true;
@@ -141,7 +153,7 @@ namespace Economy {
 			OnTimeUp(scene);
 		}
 
-		SyncUI(); // <--- update timer every frame (and quota/money too)
+		SyncUI(&scene); // <--- update timer every frame (and quota/money too)
 	}
 
 	// Helpers (optional)

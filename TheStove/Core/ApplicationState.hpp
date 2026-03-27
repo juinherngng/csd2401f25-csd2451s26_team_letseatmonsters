@@ -15,10 +15,7 @@
 
 #pragma once
 
-#include "GameStateManager.hpp"
-
 #include <memory>
-#include <optional>
 
 struct GLFWwindow;
 
@@ -27,6 +24,7 @@ namespace CoreFramework {
 }
 
 class Scene;
+class LevelEditor;
 
 namespace Debug {
 	class DebuggerApp;
@@ -86,8 +84,8 @@ struct ApplicationState {
 	// Tracks the previous F11 key state for edge-trigger fullscreen toggling.
 	bool f11WasDown = false;
 
-	// Queued state transition to apply once the screen fade reaches blackout.
-	std::optional<Framework::GameState> pendingStateAfterFade;
+	// Owns the editor controller used to draw editor UI outside of runtime scene ownership.
+	std::unique_ptr<LevelEditor> levelEditor;
 };
 
 // Global pointer used by callbacks that cannot capture the application instance directly.

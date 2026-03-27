@@ -21,14 +21,12 @@
 #include "../Graphics/SceneManager.hpp"
 
 #include "AudioManager.hpp"
+#include "ApplicationShutdown.hpp"
 #include "EngineRng.hpp"
 #include "GameStateManager.hpp"
 #include "LevelSerializer.hpp"
 #include "Logger.hpp"
-#include "RuntimeLevel.hpp"
-
-#include <unordered_set>
-#include <vector>
+#include "RuntimeLevelPipeline.hpp"
 
 namespace Framework {
 	/**
@@ -54,29 +52,6 @@ namespace Framework {
 	namespace {
 		// Fixed seed for tutorial levels to ensure consistent RNG behavior 
 		constexpr std::uint32_t kTutorialFixedSeed = 0x00C0FFEEu;
-
-		/**
-		 * @brief Appends level textures.
-		 * @param levelPath Path to the level resource.
-		 * @param inOutPaths Output value for in out paths.
-		 * @param seen Parameter for seen.
-		 */
-		void AppendLevelTextures(const std::string& levelPath, std::vector<std::string>& inOutPaths, std::unordered_set<std::string>& seen) {
-			LevelData levelData;
-			if (!LevelSerializer::Load(levelPath, levelData)) {
-				return;
-			}
-
-			if (!levelData.background.empty() && seen.insert(levelData.background).second) {
-				inOutPaths.push_back(levelData.background);
-			}
-
-			for (const LevelObject& object : levelData.objects) {
-				if (!object.texture.empty() && seen.insert(object.texture).second) {
-					inOutPaths.push_back(object.texture);
-				}
-			}
-		}
 	}
 
 	/**
@@ -148,6 +123,7 @@ namespace Framework {
 	void GameStateManager::OnQuit(const CoreFramework::Message& msg) {
 		(void)msg;
 		nextState = GameState::Quit;
+		RequestApplicationShutdown();
 	}
 
 	/**
@@ -169,12 +145,7 @@ namespace Framework {
 
 		// Warm up target-state textures before switching (menu->level, level->cutscene).
 		if (jsonStatePaths.find(state) != jsonStatePaths.end()) {
-			std::vector<std::string> targetTextures;
-			std::unordered_set<std::string> seen;
-			AppendLevelTextures(jsonStatePaths[state], targetTextures, seen);
-			if (!targetTextures.empty()) {
-				ResourceManager::Instance().PreloadTextures(targetTextures);
-			}
+			RuntimeLevelPipeline::PreloadLevelDependencies(jsonStatePaths[state]);
 		}
 
 		// Prefer JSON mapping if available
@@ -212,12 +183,7 @@ namespace Framework {
 
 		// Warm up textures for the destination state before scene build.
 		if (jsonStatePaths.find(currentState) != jsonStatePaths.end()) {
-			std::vector<std::string> targetTextures;
-			std::unordered_set<std::string> seen;
-			AppendLevelTextures(jsonStatePaths[currentState], targetTextures, seen);
-			if (!targetTextures.empty()) {
-				ResourceManager::Instance().PreloadTextures(targetTextures);
-			}
+			RuntimeLevelPipeline::PreloadLevelDependencies(jsonStatePaths[currentState]);
 		}
 
 		// Prefer JSON mapping if available
@@ -273,9 +239,14 @@ namespace Framework {
 		}
 
 		const std::string& path = it->second;
-		if (!RuntimeLevel::LoadAndBuild(path, *scene)) {
-			TS_LOG_ERROR("[GameStateManager] Failed to build level from JSON: " << path);
+		const RuntimeLevelPipeline::LevelLoadResult loadResult = RuntimeLevelPipeline::LoadLevelIntoSceneDetailed(path, *scene);
+		if (!loadResult.success) {
+			TS_LOG_ERROR("[GameStateManager] Failed to build level from JSON: " << path << " (" << loadResult.failureReason << ")");
 			return false;
+		}
+
+		if (!loadResult.validationWarnings.empty()) {
+			TS_LOG_WARN("[GameStateManager] Loaded '" << path << "' with " << loadResult.validationWarnings.size() << " validation warning(s).");
 		}
 
 		// Auto-start simulation for gameplay only
@@ -305,19 +276,12 @@ namespace Framework {
 	 * @return Result produced by this operation.
 	 */
 	void GameStateManager::PreloadJsonStateAssets(GameState activeState) {
-		std::vector<std::string> texturePaths;
-		std::unordered_set<std::string> seen;
-
 		for (const auto& [state, levelPath] : jsonStatePaths) {
 			if (state == activeState) {
 				continue;
 			}
 
-			AppendLevelTextures(levelPath, texturePaths, seen);
-		}
-
-		if (!texturePaths.empty()) {
-			ResourceManager::Instance().PreloadTextures(texturePaths);
+			RuntimeLevelPipeline::PreloadLevelDependencies(levelPath);
 		}
 	}
 

@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "ApplicationShutdown.hpp"
 #include "MessageBus.hpp"
 #include "System.hpp"
 
@@ -156,7 +157,7 @@ namespace CoreFramework {
 		*/
 		/************************************************************************/
 		bool IsGameActive() const {
-			return gameActive;
+			return !IsApplicationShutdownRequested();
 		}
 
 		/************************************************************************/
@@ -191,7 +192,6 @@ namespace CoreFramework {
 
 		float deltaTime = 0.f;	// delta time (per frame)
 		float fps = 0.f;		// fps counter
-		bool gameActive;		// game running (true), game shutting down (false)
 		std::chrono::high_resolution_clock::time_point lastTime; // time of last frame
 	};
 }

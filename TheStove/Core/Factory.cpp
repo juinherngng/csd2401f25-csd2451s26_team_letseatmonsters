@@ -19,6 +19,7 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -28,19 +29,23 @@
 #include "RigidBody2D.hpp"
 #include "Transform.hpp"
 
-Factory* FACTORY = NULL;
+Factory* FACTORY = nullptr;
 
 Factory::Factory() {
-	if (FACTORY != NULL) {
-		throw "Factory already created";
+	if (FACTORY != nullptr) {
+		throw std::runtime_error("Factory already created");
 	}
 	FACTORY = this;
 	lastId = 0;
 }
 Factory::~Factory() {
+	DestroyAllObjects();
+
 	for (auto c : creatorsMap) {
 		delete c.second;
 	}
+	creatorsMap.clear();
+	FACTORY = nullptr;
 }
 
 GOC* Factory::Create() {
@@ -52,6 +57,10 @@ GOC* Factory::Create() {
 }
 
 void Factory::AddDestroy(GOC* g) {
+	if (g == nullptr) {
+		return;
+	}
+
 	toDelete.insert(g);
 }
 
@@ -70,7 +79,7 @@ void Factory::Update(float dt) {
 		GOC* g = kv.second;
 
 		for (auto& list : g->GetComponentList()) {
-			GameComponent* c = list.second;
+			GameComponent* c = list.second.get();
 			if (c->IsEnabled()) {
 				if (!c->IsStarted()) {
 					c->SetStarted(true);
@@ -93,16 +102,16 @@ void Factory::DestroyAllObjects() {
 //Create and Id a GOC at runtime. Used to dynamically build GOC.
 //After components have been added call GOC->Initialize().
 GOC* Factory::CreateEmptyComposition() {
-	GOC* gameObject = new GOC();
-	IdGameObject(gameObject);
-	return gameObject;
+	auto gameObject = std::make_unique<GOC>();
+	IdGameObject(gameObject.get());
+	return gameObject.release();
 }
 
 //Build a composition and serialize from the data file but do not initialize the GOC.
 //Used to create a composition and then adjust its data before initialization
 //see GameObjectComposition::Initialize for details.
 GOC* Factory::BuildAndSerialize(const std::string& filename) {
-	GOC* gameObject = new GOC();
+	auto gameObject = std::make_unique<GOC>();
 	gameObject->name = filename;
 
 	ISerializer serializer;
@@ -118,8 +127,7 @@ GOC* Factory::BuildAndSerialize(const std::string& filename) {
 		}
 
 		ComponentCreator* creator = it->second;
-		GameComponent* component = creator->Create();
-		gameObject->AddComponent(creator->type, component);
+		GameComponent* component = gameObject->AddComponent(creator->type, creator->Create());
 
 		// Deserialize Transform
 		if (compData.type == "Transform") {
@@ -149,9 +157,8 @@ GOC* Factory::BuildAndSerialize(const std::string& filename) {
 	}
 
 	//Id and initialize the game object composition
-	IdGameObject(gameObject);
-
-	return gameObject;
+	IdGameObject(gameObject.get());
+	return gameObject.release();
 }
 
 //Id object and store it in the object map.
@@ -179,5 +186,5 @@ GOC* Factory::GetObjectWithId(unsigned int id) {
 	if (it != idMap.end()) {
 		return it->second;
 	}
-	return NULL;
+	return nullptr;
 }

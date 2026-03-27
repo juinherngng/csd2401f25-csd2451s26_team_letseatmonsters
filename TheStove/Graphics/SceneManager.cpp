@@ -67,6 +67,9 @@ void Scene::SetSimulationActive(bool active) {
 			animationManager.Stop();
 		}
 	}
+
+	// Keep external scene-flow observers synchronized with direct simulation toggles.
+	RefreshFlowState();
 }
 
 /**
@@ -149,9 +152,9 @@ void Scene::ResetResizeBaseline() {
  * @return Result produced by this operation.
  */
 void Scene::DrawUI() {
-	// Forward scene-owned editor UI only when the editor is currently enabled.
-	if (mLevelEditor.IsEnabled()) {
-		mLevelEditor.DrawUI(*this);
+	// Let the application-owned editor bridge render scene tooling when available.
+	if (editorUiHook_ && (!editorEnabledQuery_ || editorEnabledQuery_())) {
+		editorUiHook_(*this);
 	}
 }
 

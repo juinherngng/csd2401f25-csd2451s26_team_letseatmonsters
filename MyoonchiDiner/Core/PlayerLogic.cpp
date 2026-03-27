@@ -1391,7 +1391,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 
 	if (forceClearShortcut && !Economy::gQuotaReached) {
 		Economy::gPlayerMoney = Economy::kQuota;
-		Economy::SyncUI();
+		Economy::SyncUI(&scene);
 		Economy::gQuotaReached = true;
 		Economy::OnQuotaReached(scene);
 		return;

@@ -14,14 +14,15 @@
  ----------------------------------------------------------------------------------------------------
  */
 
-#include "../Core/LevelEditorPanelFonts.hpp"
+#include "../Core/FilePaths.hpp"
+#include "../Core/RuntimeTextData.hpp"
 #include "../Graphics/GameObject.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
-#include "AudioLoading.hpp"
-#include "Logger.hpp"
 
+#include "AudioLoading.hpp"
 #include "LevelSerializer.hpp"
+#include "Logger.hpp"
 #include "RuntimeLevel.hpp"
 
 #include <chrono>
@@ -90,6 +91,43 @@ namespace {
 	 */
 	bool IsFinite(float value) {
 		return std::isfinite(value);
+	}
+
+	/**
+	 * @brief Resolves the default runtime font path used by authored HUD text.
+	 * @return Best-effort filesystem path to the bundled default font.
+	 */
+	std::string ResolveDefaultRuntimeFontPath() {
+		const std::vector<std::string> candidates = {
+			FilePaths::Fonts::AGENCYB,
+			"assets/Font/AGENCYB.ttf",
+			std::string(FilePaths::Dirs::FONTS) + "AGENCYB.ttf"
+		};
+
+		for (const std::string& candidate : candidates) {
+			if (!candidate.empty() && fs::exists(candidate)) {
+				return candidate;
+			}
+		}
+
+		return {};
+	}
+
+	/**
+	 * @brief Ensures commonly-authored runtime fonts are loaded before scene text is rendered.
+	 * @param fontName Logical font name referenced by the level data.
+	 */
+	void EnsureRuntimeFontLoaded(const std::string& fontName) {
+		if (fontName.empty() || ResourceManager::Instance().GetFont(fontName)) {
+			return;
+		}
+
+		if (fontName == "font1" || fontName == "font2") {
+			const std::string resolvedPath = ResolveDefaultRuntimeFontPath();
+			if (!resolvedPath.empty()) {
+				ResourceManager::Instance().LoadFont(fontName, resolvedPath, 48);
+			}
+		}
 	}
 
 	/**
@@ -417,7 +455,8 @@ namespace RuntimeLevel {
 			defs.vel = { obj.speedX, obj.speedY };
 			defs.texture = obj.texture;
 			defs.tag = obj.tag;
-			defs.layer = obj.layer;
+			// Persist the effective layer, including the fallback base layer for blank authoring values.
+			defs.layer = layerName;
 			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
 			defs.hasApproachOffset2 = obj.hasApproachOffset2;
 			defs.approachOffset2 = { obj.approachOffset2X, obj.approachOffset2Y };
@@ -496,7 +535,7 @@ namespace RuntimeLevel {
 		BuildSceneFromLevel(data, scene);
 		scene.RebuildColliders();
 
-		std::vector<LEPANELFONTS::TextObjectData> parsedTexts;
+		std::vector<RuntimeTextData> parsedTexts;
 		parsedTexts.reserve(data.textObjects.size());
 
 		for (const auto& t : data.textObjects) {
@@ -518,9 +557,13 @@ namespace RuntimeLevel {
 			d.colorA = t.colorA;
 
 			d.layer = t.layer;
+			d.visible = t.visible;
+
+			// Runtime text owns its own font loading path and no longer depends on editor panel state.
+			EnsureRuntimeFontLoaded(d.fontName);
 		}
 
-		LEPANELFONTS::SetTextObjectsWithScene(parsedTexts, scene);
+		scene.SetRuntimeTextObjects(parsedTexts);
 
 #ifndef NDEBUG
 		const double buildMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - buildStart).count();

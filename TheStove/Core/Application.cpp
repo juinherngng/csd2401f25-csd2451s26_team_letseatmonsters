@@ -19,6 +19,8 @@
 #include "../Graphics/GraphicsEngine.hpp"
 #include "../Graphics/ResourceManager.hpp"
 #include "../Graphics/SceneManager.hpp"
+
+#include "ApplicationShutdown.hpp"
 #include "AudioLoading.hpp"
 #include "AudioManager.hpp"
 #include "ConfigManager.hpp"
@@ -28,6 +30,7 @@
 #include "FilePaths.hpp"
 #include "GameBootstrap.hpp"
 #include "GameStateManager.hpp"
+#include "LevelEditor.hpp"
 #include "Logger.hpp"
 #include "MovementManager.hpp"
 #include "Precompiled.hpp"
@@ -41,6 +44,26 @@
 #endif
 
 ApplicationState* g_AppState = nullptr;
+
+/**
+ * @brief Requests orderly desktop application shutdown through the app-owned state container.
+ */
+void RequestApplicationShutdown() {
+	if (g_AppState) {
+		g_AppState->shouldExit = true;
+		if (g_AppState->window) {
+			glfwSetWindowShouldClose(g_AppState->window, GLFW_TRUE);
+		}
+	}
+}
+
+/**
+ * @brief Returns whether the desktop application has been asked to exit.
+ * @return `true` when the application loop should stop.
+ */
+bool IsApplicationShutdownRequested() {
+	return g_AppState != nullptr && g_AppState->shouldExit;
+}
 
 /**
  * @brief Constructs the runtime state container with default-initialized members.
@@ -65,10 +88,7 @@ namespace {
 		TS_LOG_WARN("Received signal " << signal << ", cleaning up...");
 
 		if (g_AppState) {
-			g_AppState->shouldExit = true;
-			if (g_AppState->window) {
-				glfwSetWindowShouldClose(g_AppState->window, GLFW_TRUE);
-			}
+			RequestApplicationShutdown();
 		}
 	}
 
@@ -231,12 +251,7 @@ namespace {
 		case CTRL_LOGOFF_EVENT:
 		case CTRL_SHUTDOWN_EVENT:
 			TS_LOG_WARN("Console event detected, cleaning up...");
-			if (g_AppState) {
-				g_AppState->shouldExit = true;
-				if (g_AppState->window) {
-					glfwSetWindowShouldClose(g_AppState->window, GLFW_TRUE);
-				}
-			}
+			RequestApplicationShutdown();
 
 			return TRUE;
 		default:
@@ -429,9 +444,7 @@ bool Application::Initialize(int width, int height, const std::string& title, bo
 		(void)win;
 		// Defer the actual teardown to the main loop so cleanup order stays centralized.
 		TS_LOG_INFO("Window close requested, cleaning up...");
-		if (g_AppState) {
-			g_AppState->shouldExit = true;
-		}
+		RequestApplicationShutdown();
 		});
 
 	glfwSetCharCallback(state_.window, [](GLFWwindow* win, unsigned int c) {
@@ -622,6 +635,22 @@ bool Application::Initialize(int width, int height, const std::string& title, bo
 	state_.debugApp->SetScene(state_.currentScene.get());
 #endif
 
+	// Keep editor ownership at the application layer rather than inside Scene runtime state.
+	state_.levelEditor = std::make_unique<LevelEditor>();
+	state_.currentScene->SetEditorUiHook([this](Scene& scene) {
+		if (state_.levelEditor) {
+			state_.levelEditor->DrawUI(scene);
+		}
+		});
+	state_.currentScene->SetEditorToggleHook([this]() {
+		if (state_.levelEditor) {
+			state_.levelEditor->Toggle();
+		}
+		});
+	state_.currentScene->SetEditorEnabledQuery([this]() {
+		return state_.levelEditor && state_.levelEditor->IsEnabled();
+		});
+
 	return true;
 }
 
@@ -672,33 +701,19 @@ void Application::Update() {
 	auto* graphicsEngine = state_.coreEngine->GetSystem<GraphicsEngine>();
 
 	if (std::optional<Framework::GameState> newState = state_.currentScene->ConsumePendingStateChange()) {
-		// Queue scene changes behind a fade transition to avoid popping between states.
-		if (graphicsEngine && !graphicsEngine->IsTransitionActive()) {
-			graphicsEngine->StartSceneTransition(0.35f, 0.35f);
-			state_.pendingStateAfterFade = *newState;
-			TS_LOG_DEBUG("[Application] Queued state change " << Framework::ToString(*newState) << " to run at blackout");
-		}
-		else {
-			state_.pendingStateAfterFade = *newState;
+		// Centralize cross-state fade orchestration behind the application-owned flow coordinator.
+		if (graphicsEngine) {
+			flowCoordinator_.QueueStateChange(*newState, *graphicsEngine);
 		}
 	}
 
-	if (graphicsEngine && graphicsEngine->IsAtBlackout() && state_.pendingStateAfterFade.has_value()) {
-		// Apply the queued state change only when the transition has fully blacked out.
+	if (graphicsEngine) {
 		if (auto* gsm = state_.coreEngine->GetSystem<Framework::GameStateManager>()) {
-			TS_LOG_INFO("[Application] Blackout reached; switching to state " << Framework::ToString(*state_.pendingStateAfterFade));
-			gsm->UpdateGameState(*state_.pendingStateAfterFade, frameDt);
+			flowCoordinator_.Update(*gsm, *graphicsEngine, state_.coreEngine->GetSystem<InputManager>(), frameDt);
 		}
-		else {
+		else if (flowCoordinator_.HasPendingTransition()) {
 			TS_LOG_ERROR("[Application] GameStateManager not found!");
-		}
-
-		graphicsEngine->ContinueTransitionFadeIn();
-		state_.pendingStateAfterFade.reset();
-
-		// Clear carry-over input so menu clicks do not leak into the next state.
-		if (auto* inputMgr = state_.coreEngine->GetSystem<InputManager>()) {
-			inputMgr->ClearState();
+			flowCoordinator_.Reset();
 		}
 	}
 
@@ -745,24 +760,20 @@ void Application::Draw() {
 	}
 #endif
 
-#ifndef _DEBUG
 	const bool pauseOverlayActive = state_.currentScene->IsPauseOverlayActive();
 	if (pauseOverlayActive) {
 		// Keep pause text above the gameplay frame when the overlay is active.
 		state_.currentScene->RenderLevelTextObjects();
 	}
-#endif
 
 	// Suppress debug text during cutscenes so HUD labels do not overlap full-screen art.
 	graphicsEngine->SetSuppressDebugTextRendering(state_.currentScene->IsAnyCutsceneActive());
 	graphicsEngine->RenderBatched(drawList);
 	state_.currentScene->RenderFPSText();
 
-#ifndef _DEBUG
 	if (!pauseOverlayActive) {
 		state_.currentScene->RenderLevelTextObjects();
 	}
-#endif
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (state_.debugApp) {
@@ -833,8 +844,11 @@ void Application::Cleanup() {
 	}
 #endif
 
+	state_.levelEditor.reset();
+
 	// Destroy scene-owned objects before shutting down rendering systems.
 	state_.currentScene.reset();
+	flowCoordinator_.Reset();
 
 	if (state_.coreEngine) {
 		if (auto* gfxEngine = state_.coreEngine->GetSystem<GraphicsEngine>()) {

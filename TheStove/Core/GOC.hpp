@@ -24,6 +24,7 @@
 
 #include <typeinfo>
 #include <typeindex>
+#include <memory>
 #include <unordered_map>
 #include <optional>
 #include <string>
@@ -46,7 +47,7 @@ public:
 
 		if (it == m_components.end())
 			return std::nullopt;
-		return static_cast<T*>(it->second);
+		return static_cast<T*>(it->second.get());
 	}
 
 	template <typename T>
@@ -61,7 +62,7 @@ public:
 	void Destroy();
 
 	//This function attach the component to this GameObject
-	void AddComponent(std::type_index id, GameComponent* c);
+	GameComponent* AddComponent(std::type_index id, std::unique_ptr<GameComponent> c);
 
 	//Add Component to GameObject with value
 	//for eg: player->AddComponent<Transform>(0.0f, 0.0f, 0.0f);
@@ -75,7 +76,6 @@ public:
 	void RemoveComponent() {
 		auto it = m_components.find(typeid(T));
 		if (it != m_components.end()) {
-			delete it->second;
 			m_components.erase(it);
 		}
 	}
@@ -85,7 +85,7 @@ public:
 		return ObjectId;
 	}
 
-	const std::unordered_map<std::type_index, GameComponent*> GetComponentList() const {
+	const std::unordered_map<std::type_index, std::unique_ptr<GameComponent>>& GetComponentList() const {
 		return m_components;
 	}
 
@@ -99,7 +99,7 @@ private:
 	//while using a vector will need to scan if it has the same componet or not before adding
 	//Std::type_index is just to look up what is the component
 	//Honestly Im only using std::type_index cause I can just auto it lmao
-	std::unordered_map<std::type_index, GameComponent*> m_components;
+	std::unordered_map<std::type_index, std::unique_ptr<GameComponent>> m_components;
 
 	//example:
 

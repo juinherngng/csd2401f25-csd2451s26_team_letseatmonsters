@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <memory>
 #include <typeindex>
 
 #include "GameComponent.hpp"
@@ -26,18 +27,16 @@
 class ComponentCreator {
 public:
 	// ctor
-	explicit ComponentCreator(std::type_index _type) : type(_type) {
-	}
+	explicit ComponentCreator(std::type_index _type) : type(_type) {}
 
 	// the key to access the Component in GOC
 	std::type_index type;
 
 	// Creating a new Component instance
-	virtual GameComponent* Create() = 0;
+	virtual std::unique_ptr<GameComponent> Create() = 0;
 
 	// dtor
-	virtual ~ComponentCreator() {
-	};
+	virtual ~ComponentCreator() {};
 };
 
 // Templated Creator
@@ -45,12 +44,11 @@ template <typename T>
 class TCreator : public ComponentCreator {
 public:
 	// default ctor
-	explicit TCreator(std::type_index id) : ComponentCreator(id) {
-	}
+	explicit TCreator(std::type_index id) : ComponentCreator(id) {}
 
 	// Creating a new Component instace
-	virtual GameComponent* Create() override {
-		return new T();
+	virtual std::unique_ptr<GameComponent> Create() override {
+		return std::make_unique<T>();
 	}
 };
 

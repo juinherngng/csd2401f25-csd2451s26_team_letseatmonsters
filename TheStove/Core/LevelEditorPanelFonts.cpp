@@ -244,14 +244,8 @@ namespace LEPANELFONTS {
 		sTextObjects = textObjects;
 		sSelectedTextIndex = -1;
 
-		// Register layers (works in both builds)
-		for (const auto& textObj : textObjects) {
-			if (!textObj.layer.empty()) {
-				scene.AddLayer(textObj.layer);
-			}
-		}
-
 		EnsureFontsForTextObjectsLoaded();
+		scene.SetRuntimeTextObjects(textObjects);
 
 #ifdef _DEBUG
 		// Track fonts for editor UI
@@ -307,6 +301,9 @@ namespace LEPANELFONTS {
 
 	void DrawFontsPanel(LevelEditor& editor, Scene& scene) {
 #ifdef _DEBUG
+		// Mirror the editor cache into the live scene every frame so text preview stays runtime-driven.
+		scene.SetRuntimeTextObjects(sTextObjects);
+
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 
 		if (!ImGui::Begin("Fonts###LE_Fonts")) {
