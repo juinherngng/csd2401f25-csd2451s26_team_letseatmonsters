@@ -16,6 +16,7 @@
 #include "../Graphics/GraphicsEngine.hpp"
 
 #include "AudioManager.hpp"
+#include "ApplicationState.hpp"
 #include "ConfigManager.hpp"
 #include "Core.hpp"
 #include "LevelEditor.hpp"
@@ -31,16 +32,6 @@
 #include <imgui.h>
 #endif
 
-namespace CoreFramework {
-	class CoreEngine;
-}
-
-struct ApplicationState {
-	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
-};
-
-extern ApplicationState* g_AppState;
-
 namespace {
 
 	/**
@@ -48,6 +39,7 @@ namespace {
 	 * @return Path to the config file used by the editor panel.
 	 */
 	std::string ResolveConfigPath() {
+		// Prefer the same resolved asset path used by runtime config loading.
 		std::string resolvedPath;
 		if (ConfigManager::ResolveAssetPath(resolvedPath)) {
 			return resolvedPath;
@@ -66,6 +58,7 @@ namespace {
 	std::vector<std::string> CollectConfigSaveTargets(const std::string& primaryPath) {
 		namespace fs = std::filesystem;
 		const fs::path cwd = fs::current_path();
+		// Save to several likely source/runtime locations so editor and game stay in sync.
 		std::vector<fs::path> candidates;
 		candidates.emplace_back(primaryPath);
 		candidates.emplace_back(cwd / "../../assets/config.txt");
@@ -76,6 +69,7 @@ namespace {
 		std::set<std::string> seen;
 		std::vector<std::string> targets;
 		for (const auto& candidate : candidates) {
+			// Deduplicate normalized paths before attempting to save.
 			const std::string normalized = candidate.lexically_normal().string();
 			if (seen.insert(normalized).second) {
 				targets.push_back(normalized);
@@ -97,6 +91,7 @@ namespace LEPANELCONFIG {
 		(void)editor;
 		(void)scene;
 
+		// Dock the panel into the editor's main dockspace on first use.
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 
 		if (!ImGui::Begin("Config###LE_Config")) {
@@ -109,6 +104,7 @@ namespace LEPANELCONFIG {
 		static ConfigManager::Settings settings{};
 
 		if (!loaded) {
+			// Lazy-load once so the panel reflects the current persisted config.
 			configPath = ResolveConfigPath();
 			settings = ConfigManager::LoadFromAssetsOrDefaults();
 			ConfigManager::Validate(settings);
@@ -119,6 +115,7 @@ namespace LEPANELCONFIG {
 		ImGui::TextWrapped("Path: %s", configPath.c_str());
 
 		if (ImGui::Button("Reload From File")) {
+			// Re-read from disk and revalidate before refreshing the editor fields.
 			configPath = ResolveConfigPath();
 			ConfigManager::Settings reloaded = settings;
 			if (ConfigManager::Load(configPath, reloaded)) {
@@ -179,6 +176,7 @@ namespace LEPANELCONFIG {
 		ConfigManager::Validate(settings);
 
 		if (ImGui::Button("Save Config", ImVec2(140, 0))) {
+			// Save to all discovered targets so editor and packaged runtime configs stay aligned.
 			configPath = ResolveConfigPath();
 			const std::vector<std::string> saveTargets = CollectConfigSaveTargets(configPath);
 			bool savedPrimary = false;
@@ -199,6 +197,7 @@ namespace LEPANELCONFIG {
 
 		ImGui::SameLine();
 		if (ImGui::Button("Apply Audio", ImVec2(140, 0))) {
+			// Apply audio values immediately without waiting for the next app restart.
 			if (g_AppState && g_AppState->coreEngine) {
 				if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
 					audioMgr->ApplySettings(settings);
@@ -266,6 +265,7 @@ namespace LEPANELCONFIG {
 	void DrawConfigPanel(LevelEditor& editor, Scene& scene) {
 		(void)editor;
 		(void)scene;
+		// Release builds omit the editor UI, so this becomes an intentional no-op.
 	}
 #endif
 }

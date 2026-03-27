@@ -20,6 +20,7 @@
 
 #include "AudioLoading.hpp"
 #include "AudioManager.hpp"
+#include "ApplicationState.hpp"
 #include "ConfigManager.hpp"
 #include "Core.hpp"
 #include "LevelEditor.hpp"
@@ -34,17 +35,6 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
-
- // Forward declaration and external declaration for ApplicationState from Main.cpp
-namespace CoreFramework {
-	class CoreEngine;
-}
-
-struct ApplicationState {
-	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
-};
-
-extern ApplicationState* g_AppState;
 
 namespace LEPANELAUDIOCONTROL {
 #ifdef _DEBUG
@@ -92,6 +82,7 @@ namespace LEPANELAUDIOCONTROL {
 		// Initialize master volume from AudioManager on first frame
 		static bool masterVolumeInitialized = false;
 		if (!masterVolumeInitialized && g_AppState && g_AppState->coreEngine) {
+			// Pull the live master volume once so the slider starts from the runtime value.
 			if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
 				masterVolume = audioMgr->GetMasterVolume();
 				masterVolumeInitialized = true;
@@ -101,7 +92,7 @@ namespace LEPANELAUDIOCONTROL {
 		ImGui::Text("Master Volume");
 		ImGui::SetNextItemWidth(-FLT_MIN);
 		if (ImGui::SliderFloat("##MasterVolume", &masterVolume, 0.0f, 1.0f, "%.2f")) {
-			// Apply master volume to audio manager
+			// Push slider changes directly into the live audio manager.
 			if (g_AppState && g_AppState->coreEngine) {
 				if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
 					audioMgr->SetMasterVolume(masterVolume);
@@ -114,7 +105,7 @@ namespace LEPANELAUDIOCONTROL {
 		// Save master volume to config file
 		const float smallButtonWidth = std::max(110.0f, ImGui::GetContentRegionAvail().x);
 		if (ImGui::Button("Save to Config", ImVec2(smallButtonWidth, 0.0f))) {
-			// Load current config, update master volume, and save
+			// Persist the current master volume so the next launch uses the same default.
 			ConfigManager::Settings settings = ConfigManager::LoadFromAssetsOrDefaults();
 			settings.masterVolume = masterVolume;
 
@@ -160,7 +151,7 @@ namespace LEPANELAUDIOCONTROL {
 		const float actionAvailWidth = ImGui::GetContentRegionAvail().x;
 		const float actionButtonWidth = std::max(120.0f, (actionAvailWidth - actionSpacing) * 0.5f);
 		if (ImGui::Button("Save Volume Settings", ImVec2(actionButtonWidth, 0.0f))) {
-			// Save the catalog with updated volume values to SOURCE directory
+			// Persist per-asset volume edits back into the source audio catalog.
 			const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
 			if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
 				std::cout << "[Audio Control] Volume settings saved to: " << catalogPath << std::endl;
@@ -176,7 +167,7 @@ namespace LEPANELAUDIOCONTROL {
 
 		// Reload Volumes button
 		if (ImGui::Button("Reload Volumes", ImVec2(actionButtonWidth, 0.0f))) {
-			// Reload catalog from file
+			// Reload the catalog from disk and rebuild the cache on the next frame.
 			const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
 			Audio::AudioCatalog::UnloadAllAudio();
 			if (Audio::AudioCatalog::LoadCatalogFromFile(catalogPath)) {
@@ -228,6 +219,7 @@ namespace LEPANELAUDIOCONTROL {
 		// Initialize/update volume cache from catalog on first frame, when catalog changes, or when forced
 		// This ensures loaded volumes from file are reflected in the UI
 		if (!volumeCacheInitialized || volumeCache.size() != catalogAssets.size() || forceReloadCache) {
+			// Mirror catalog values into UI-owned storage so sliders can edit them in-place.
 			volumeCache.clear();
 			for (const auto& asset : catalogAssets) {
 				volumeCache[asset.name] = asset.volume;
@@ -240,6 +232,7 @@ namespace LEPANELAUDIOCONTROL {
 		// Group audio by category
 		std::unordered_map<std::string, std::vector<const Audio::AudioAsset*>> audioByCategory;
 		for (const auto& asset : catalogAssets) {
+			// Group by category first so the panel stays easy to scan as the catalog grows.
 			audioByCategory[asset.category].push_back(&asset);
 		}
 
@@ -297,6 +290,7 @@ namespace LEPANELAUDIOCONTROL {
 					// Play/Stop button
 					if (isPlaying) {
 						if (ImGui::Button("Stop", ImVec2(60, 0))) {
+							// Stop preview playback through the shared message bus.
 							if (g_AppState && g_AppState->coreEngine) {
 								g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset->name);
 								currentlyPlaying = "";
@@ -306,7 +300,7 @@ namespace LEPANELAUDIOCONTROL {
 					}
 					else {
 						if (ImGui::Button("Play", ImVec2(60, 0))) {
-							// Stop any currently playing preview first
+							// Ensure only one preview plays at a time.
 							if (!currentlyPlaying.empty() && g_AppState && g_AppState->coreEngine) {
 								g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(currentlyPlaying);
 							}
@@ -330,7 +324,7 @@ namespace LEPANELAUDIOCONTROL {
 					float& vol = volumeCache[asset->name];
 					ImGui::SetNextItemWidth(-FLT_MIN);
 					if (ImGui::SliderFloat(("##Volume" + asset->name).c_str(), &vol, 0.0f, 1.0f, "%.2f")) {
-						// Update volume in real-time if playing
+						// Update preview playback immediately when the active asset is being adjusted.
 						if (isPlaying && g_AppState && g_AppState->coreEngine) {
 							if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
 								audioMgr->SetVolume(asset->name, vol);
@@ -369,6 +363,11 @@ namespace LEPANELAUDIOCONTROL {
 		(void)scene;  // Suppress unused parameter warning
 	}
 #else
+	/**
+	 * @brief Stub implementation used when the editor UI is compiled out.
+	 * @param editor Unused level editor reference.
+	 * @param scene Unused scene reference.
+	 */
 	void DrawAudioControlPanel(LevelEditor& /*editor*/, Scene& /*scene*/) {
 		// No-op in Release builds audio control editor disabled.
 	}

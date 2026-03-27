@@ -18,6 +18,7 @@
  */
 
 #include "LevelEditorPanelAssets.hpp"
+#include "ApplicationState.hpp"
 #include "LevelEditor.hpp"
 #include "LevelEditorFileIO.hpp"
 #include "AudioLoading.hpp"
@@ -42,18 +43,6 @@ namespace fs = std::filesystem;
 
 using namespace LEFILEIO;
 
-// Forward declaration and external declaration for ApplicationState from Main.cpp
-namespace CoreFramework {
-	class CoreEngine;
-}
-
-struct ApplicationState {
-	std::unique_ptr<CoreFramework::CoreEngine> coreEngine;
-	// Other members not needed here
-};
-
-extern ApplicationState* g_AppState;
-
 namespace {
 
 	/**
@@ -64,7 +53,7 @@ namespace {
 	std::string NormalizeAudioPath(const std::string& path) {
 		std::string normalized = path;
 
-		// Convert backslashes to forward slashes
+		// Convert backslashes to forward slashes for FMOD-friendly relative paths.
 		std::replace(normalized.begin(), normalized.end(), '\\', '/');
 
 		// Keep relative paths as-is (don't try to make them absolute)
@@ -79,7 +68,7 @@ namespace {
 	 * @return Detected category label, or `"other"` when no known prefix matches.
 	 */
 	std::string DetectCategoryFromName(const std::string& name) {
-		// Convert to lowercase for comparison
+		// Normalize to lowercase so prefix checks are case-insensitive.
 		std::string lowerName = name;
 		std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(),
 			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
@@ -950,7 +939,10 @@ namespace LEPANELASSETS {
 #else
 	/**
 	 * @brief Draws assets panel.
-	 * @param int Parameter for int.
+	 * @param editor Level editor state to operate on.
+	 * @param scene Scene being processed.
+	 * @param selectedIndex Hierarchy selection tracked by the editor.
+	 * @param selectedObjectId Selected game object identifier.
 	 */
 	void DrawAssetsPanel(LevelEditor& /*editor*/, Scene& /*scene*/, int& /*selectedIndex*/, int /*selectedObjectId*/) {
 		// Editor UI disabled in Release.
