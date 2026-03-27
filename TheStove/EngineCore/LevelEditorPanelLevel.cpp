@@ -42,6 +42,8 @@
 #include "EngineCore/LevelEditorPrefabLinks.hpp"
 #include "EngineCore/Logger.hpp"
 #include "EngineCore/RuntimeLevel.hpp"
+#include "EngineCore/RuntimeLevelPipeline.hpp"
+#include "EngineCore/RuntimeTextData.hpp"
 #include "EngineGraphics/GameObject.hpp"
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/Layer.hpp"
@@ -255,6 +257,31 @@ namespace {
 		}
 	}
 
+#ifdef _DEBUG
+	/**
+	 * @brief Rebuilds the editor-only prefab link cache from serialized level data.
+	 * @param levelIn Level snapshot containing authored prefab references.
+	 * @param scene Scene whose rebuilt object IDs should receive the links.
+	 */
+	static void SyncPrefabLinksToEditor(const LevelData& levelIn, Scene& scene) {
+		LELINKS::PrefabLinkByID.clear();
+
+		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
+		const std::size_t count = (std::min)(objectList.size(), levelIn.objects.size());
+		for (std::size_t index = 0; index < count; ++index) {
+			GameObject* gameObject = objectList[index];
+			if (!gameObject) {
+				continue;
+			}
+
+			const LevelObject& obj = levelIn.objects[index];
+			if (!obj.prefabPath.empty()) {
+				LELINKS::PrefabLinkByID[gameObject->GetID()] = obj.prefabPath;
+			}
+		}
+	}
+#endif
+
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	/**
 	 * @brief Captures the full editor state into a serializable snapshot.
@@ -279,6 +306,7 @@ namespace {
 		SyncLevelToScene(state, scene);
 		scene.RebuildColliders();
 		scene.SetSimulationActive(false);
+		scene.RunPostLevelLoadSetup(false);
 
 		editor.SetPlaying(false);
 		SyncTextObjectsToEditor(state);
@@ -339,119 +367,43 @@ namespace {
 			scene.ClearSceneBackgroundOverlay();
 		}
 
-		for (const auto& obj : levelIn.objects) {
-			GameObject* g = nullptr;
+		RuntimeLevel::BuildSceneFromLevel(levelIn, scene);
 
-			// Use "Default" when the saved layer name is empty
-			std::string layerName = obj.layer.empty() ? "1" : obj.layer;
-
-			// Spawn animated or static
-			if (obj.animated) {
-				const std::vector<glm::vec4> fullFrame = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
-				g = scene.SpawnAnimatedSprite(obj.texture, { obj.x, obj.y, obj.z }, { obj.w, obj.h },
-					fullFrame, 0.25f, true, layerName);
-
-				if (g && obj.texture.find("dino") != std::string::npos) {
-					scene.AttachDinoAnimations(g->GetID());
-
-					const std::string clip = obj.animName.empty() ? "IDLE" : obj.animName;
-					scene.SetAnimation(g->GetID(), clip);
-				}
-			}
-			else {
-				g = scene.SpawnStaticSprite(obj.texture, { obj.x, obj.y, obj.z }, { obj.w, obj.h }, layerName);
-			}
-
+		std::vector<GameObject*> objectList = scene.GetAllObjectsRaw();
+		const std::size_t count = (std::min)(objectList.size(), levelIn.objects.size());
+		for (std::size_t index = 0; index < count; ++index) {
+			GameObject* g = objectList[index];
 			if (!g) {
-				TS_LOG_ERROR("Spawn failed: " << obj.texture);
 				continue;
 			}
 
-			float rotDeg = obj.rotation;
-
-			// Clean up any old bad data that was saved previously
-			if (!std::isfinite(rotDeg)) {
-				rotDeg = 0.0f;
-			}
-
-			// Optional: keep it within [0, 360) if you want
-			rotDeg = std::fmod(rotDeg, 360.0f);
-			if (rotDeg < 0.0f)
-				rotDeg += 360.0f;
-
-			// Apply to object
-			g->SetRotation(glm::radians(rotDeg), { 0, 0, 1 });
-			g->EnableShadow(obj.shadow);
-
-			// Collider data
-			if (!obj.hasCollider) {
-				g->SetColliderSize({ 0.f, 0.f });
-				g->SetColliderOffset({ 0.f, 0.f });
-			}
-			else {
-				g->SetColliderSize({ obj.colWidth, obj.colHeight });
-				g->SetColliderOffset({ obj.colOffsetX, obj.colOffsetY });
-
-				// Fallback only for legacy/bad data (when collider is supposed to exist)
-				if (obj.colWidth <= 0.f || obj.colHeight <= 0.f) {
-					const glm::vec3 s = g->GetScaleGLM();
-					g->SetColliderSize({ s.x, s.y });
-					g->SetColliderOffset({ 0.f, 0.f });
-				}
-			}
-
-			// Track texture path
-			scene.SetObjectTexturePath(g->GetID(), obj.texture);
-
-			// Tag-based special IDs and velocity
-			scene.SetObjectTag(g->GetID(), obj.tag);
-			scene.ApplyTagRules(g->GetID(), obj.tag, obj.speedX, obj.speedY);
-
-			// Store transform and defaults
-			scene.SetTransformFromLevel(g->GetID(), { obj.x, obj.y, obj.z }, { obj.w, obj.h, 1.0f }, obj.rotation);
-
-			// Store defaults for saving later
-			Scene::Defaults defs{};
-			defs.pos = { obj.x, obj.y, obj.z };
-			defs.size = { obj.w, obj.h, 1.0f };
-			defs.rot = obj.rotation;
-			defs.colSize = { obj.colWidth, obj.colHeight };
-			defs.colOff = { obj.colOffsetX, obj.colOffsetY };
-			defs.vel = { obj.speedX, obj.speedY };
-			defs.texture = obj.texture;
-			defs.tag = obj.tag;
-			defs.layer = obj.layer;
-
-			// Approach offset
-			defs.approachOffset = { obj.approachOffsetX, obj.approachOffsetY };
-			defs.hasApproachOffset2 = obj.hasApproachOffset2;
-			defs.approachOffset2 = { obj.approachOffset2X, obj.approachOffset2Y };
-			defs.hasCustomerSeatOffset = obj.hasCustomerSeatOffset;
-			defs.customerSeatOffset = { obj.customerSeatOffsetX, obj.customerSeatOffsetY };
-
-			// Audio bindings
-			defs.audioOnSpawn = obj.audioOnSpawn;
-			defs.audioOnInteract = obj.audioOnInteract;
-			defs.audioOnDestroy = obj.audioOnDestroy;
-			defs.audioOnProcessing = obj.audioOnProcessing;
-			defs.audioLoop = obj.audioLoop;
-
-			defs.visible = obj.visible;
-
-			scene.SetDefaults(g->GetID(), defs);
-			scene.SetObjectVisible(g->GetID(), obj.visible);
-			scene.AttachLogicForTag(g->GetID(), obj.tag);
-			scene.ClampToWalkArea(g);
-
+			const LevelObject& obj = levelIn.objects[index];
 			if (!obj.prefabPath.empty()) {
 				LELINKS::PrefabLinkByID[g->GetID()] = obj.prefabPath;
 			}
-
-			// Play spawn audio if configured (only during simulation/play mode)
-			if (scene.IsSimulationActive() && !obj.audioOnSpawn.empty()) {
-				scene.PlaySpawnAudio(g->GetID());
-			}
 		}
+
+		std::vector<RuntimeTextData> parsedTexts;
+		parsedTexts.reserve(levelIn.textObjects.size());
+		for (const auto& t : levelIn.textObjects) {
+			auto& d = parsedTexts.emplace_back();
+			d.name = t.name;
+			d.fontName = t.fontName;
+			d.text = t.text;
+			d.x = t.x;
+			d.y = t.y;
+			d.scale = t.scale;
+			d.rotation = t.rotation;
+			d.useBlockRotation = t.useBlockRotation;
+			d.colorR = t.colorR;
+			d.colorG = t.colorG;
+			d.colorB = t.colorB;
+			d.colorA = t.colorA;
+			d.layer = t.layer;
+			d.visible = t.visible;
+		}
+
+		scene.SetRuntimeTextObjects(parsedTexts);
 	}
 
 	/**
@@ -841,24 +793,32 @@ namespace LEPANELLEVEL {
 													  editor.SetPlaying(false);
 
 													  LevelData& work = editor.MutableLevel();
-													  if (LevelSerializer::Load(editor.levelPath, work)) {
-														  sLastValidationReport = RuntimeLevel::ValidateLevelData(editor.levelPath, work);
-														  if (sLastValidationReport.HasWarnings()) {
+											  if (LevelSerializer::Load(editor.levelPath, work)) {
+												  const RuntimeLevelPipeline::LevelLoadResult loadResult =
+													  RuntimeLevelPipeline::LoadLevelIntoSceneDetailed(editor.levelPath, scene);
+												  if (!loadResult.success) {
+													  TS_LOG_ERROR("[LevelEditor] Runtime load failed for '" << editor.levelPath
+															<< "': " << loadResult.failureReason);
+													  return;
+												  }
+
+												  sLastValidationReport.warnings = loadResult.validationWarnings;
+												  if (sLastValidationReport.HasWarnings()) {
 															  TS_LOG_WARN("[LevelEditor] Validation warnings for '" << editor.levelPath
 																	<< "' (" << sLastValidationReport.warnings.size() << "):");
 															  for (const std::string& warning : sLastValidationReport.warnings) {
 																  TS_LOG_WARN("  - " << warning);
 															  }
-														  }
+												  }
 
-														  scene.SetCurrentLevelPath(editor.levelPath);
-														  scene.ClearAll();
-														  LEPANELFONTS::ClearTextObjects();
-														  SyncLevelToScene(work, scene);
-														  SyncTextObjectsToEditor(work);
-														  scene.RebuildColliders();
-														  scene.SetSimulationActive(false);
-														  scene.ResetResizeBaseline();
+												  scene.SetCurrentLevelPath(editor.levelPath);
+												  scene.SetSimulationActive(false);
+												  scene.RunPostLevelLoadSetup(false);
+												  scene.ResetResizeBaseline();
+
+												  // Keep editor-only metadata in sync after the runtime pipeline rebuilds the scene.
+												  SyncPrefabLinksToEditor(work, scene);
+												  SyncTextObjectsToEditor(work);
 
 														  selectedIndex = -1;
 														  selectedObjectId = -1;
@@ -905,6 +865,7 @@ namespace LEPANELLEVEL {
 						LevelData& snap = editor.MutablePlaySnapshot();
 						SyncSceneToLevel(scene, snap);
 						SyncTextObjectsToLevel(snap);
+						const bool useRuntimeFileLoad = !editor.levelPath.empty();
 
 						editor.SetPlaying(true);
 						selectedIndex = -1;
@@ -912,16 +873,61 @@ namespace LEPANELLEVEL {
 
 						scene.SetSimulationActive(true);
 						scene.ClearAll();
-						SyncLevelToScene(snap, scene);
-						scene.RebuildColliders();
+						scene.SetCurrentLevelPath(editor.levelPath);
+						if (useRuntimeFileLoad) {
+							const RuntimeLevelPipeline::LevelLoadResult loadResult =
+								RuntimeLevelPipeline::LoadLevelIntoSceneDetailed(editor.levelPath, scene);
+							if (!loadResult.success) {
+								TS_LOG_ERROR("[LevelEditor] Runtime play load failed for '" << editor.levelPath
+									<< "': " << loadResult.failureReason);
+								editor.SetPlaying(false);
+								return;
+							}
+						}
+						else {
+							SyncLevelToScene(snap, scene);
+							scene.RebuildColliders();
+						}
+
+						scene.RunPostLevelLoadSetup(true);
 						scene.ResolveInitialStaticOverlaps(); }, [&]() {
 						scene.StopAllObjectAudio();
 						scene.SetSimulationActive(false);
 
+						LevelData& playSnapshot = editor.MutablePlaySnapshot();
+
+						if (!editor.levelPath.empty()) {
+							LevelData restoredLevel;
+							if (LevelSerializer::Load(editor.levelPath, restoredLevel)) {
+								const RuntimeLevelPipeline::LevelLoadResult loadResult =
+									RuntimeLevelPipeline::LoadLevelIntoSceneDetailed(editor.levelPath, scene);
+								if (loadResult.success) {
+									sLastValidationReport.warnings = loadResult.validationWarnings;
+									scene.SetCurrentLevelPath(editor.levelPath);
+									scene.SetSimulationActive(false);
+									scene.RunPostLevelLoadSetup(false);
+									scene.ResetResizeBaseline();
+									SyncPrefabLinksToEditor(restoredLevel, scene);
+									SyncTextObjectsToEditor(restoredLevel);
+									selectedIndex = -1;
+									selectedObjectId = -1;
+									LEHIERARCHY::InvalidateCache();
+									editor.SetPlaying(false);
+									return;
+								}
+
+								TS_LOG_ERROR("[LevelEditor] Runtime stop restore failed for '" << editor.levelPath
+									<< "': " << loadResult.failureReason);
+							}
+						}
+
 						scene.ClearAll();
-						SyncLevelToScene(editor.MutablePlaySnapshot(), scene);
-						SyncTextObjectsToEditor(editor.MutablePlaySnapshot());
+						scene.SetCurrentLevelPath(editor.levelPath);
+						SyncLevelToScene(playSnapshot, scene);
+						SyncTextObjectsToEditor(playSnapshot);
 						scene.RebuildColliders();
+						scene.RunPostLevelLoadSetup(false);
+						scene.ResetResizeBaseline();
 						editor.SetPlaying(false); } });
 
 		if (sLastValidationReport.HasWarnings() && ImGui::CollapsingHeader("Validation Warnings", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -1171,7 +1177,9 @@ namespace LEPANELLEVEL {
 				defs.layer = proto.layer;
 				scene.SetDefaults(obj->GetID(), defs);
 
-				scene.ClampToWalkArea(obj);
+				if (proto.hasCollider) {
+					scene.ClampToWalkArea(obj);
+				}
 				scene.RebuildColliders();
 			}
 		}
@@ -1427,7 +1435,9 @@ namespace LEPANELLEVEL {
 			DragVec2WithReset("##pos", &position.x, ImVec2(defaults.pos.x, defaults.pos.y), 1.0f, [&](bool) {
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
-				scene.ClampToWalkArea(obj);
+				if (colliderEnabled) {
+					scene.ClampToWalkArea(obj);
+				}
 				});
 			ImGui::NextColumn();
 
@@ -1438,7 +1448,9 @@ namespace LEPANELLEVEL {
 			DragVec2WithReset("##size", &size.x, ImVec2(defaults.size.x, defaults.size.y), 1.0f, [&](bool) {
 				obj->SetRotation(glm::radians(rotationDeg), { 0, 0, 1 });
 				scene.SetTransformFromLevel(id, position, { size.x, size.y, 1.0f }, rotationDeg);
-				scene.ClampToWalkArea(obj);
+				if (colliderEnabled) {
+					scene.ClampToWalkArea(obj);
+				}
 
 				if (colliderEnabled) {
 					colliderSize.x = size.x;
@@ -2013,7 +2025,9 @@ namespace LEPANELLEVEL {
 							{ data.w, data.h, 1.0f },
 							data.rotation);
 						scene.SetNPCVelocity(g->GetID(), data.speedX, data.speedY);
-						scene.ClampToWalkArea(g);
+						if (data.hasCollider) {
+							scene.ClampToWalkArea(g);
+						}
 
 						scene.RebuildColliders();
 					}

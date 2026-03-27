@@ -243,3 +243,15 @@ void Scene::QueueLevelLoad(const std::string& path, bool activateSimulation) {
 		messageBus_->Post<CoreFramework::LevelLoadQueuedMessage>(path, activateSimulation);
 	}
 }
+
+/**
+ * @brief Executes the optional post-level-load hook for editor/runtime paths that load immediately.
+ * @param activeSimulation Whether the scene should be treated as gameplay-active.
+ */
+void Scene::RunPostLevelLoadSetup(bool activeSimulation) {
+	if (postLevelLoadHook_) {
+		postLevelLoadHook_(*this, activeSimulation);
+	}
+
+	RefreshFlowState();
+}

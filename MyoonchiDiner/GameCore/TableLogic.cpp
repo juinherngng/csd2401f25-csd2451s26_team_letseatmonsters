@@ -80,7 +80,7 @@ GameObject* TableLogic::GetOwnerChecked(Scene& scene) const {
 // ------------------- Item occupancy -------------------
 
 bool TableLogic::CanAcceptItem(Scene& scene, int itemID) const {
-	if (HasItem())
+	if (heldItemID_ != kInvalidID && scene.GetGameObjectByID(heldItemID_) != nullptr)
 		return false;
 
 	if (itemID == kInvalidID)
@@ -97,6 +97,11 @@ bool TableLogic::CanAcceptItem(Scene& scene, int itemID) const {
 }
 
 bool TableLogic::PlaceItem(Scene& scene, int itemID) {
+	if (heldItemID_ != kInvalidID && scene.GetGameObjectByID(heldItemID_) == nullptr) {
+		// Recover from stale occupancy when the previous item was despawned externally.
+		heldItemID_ = kInvalidID;
+	}
+
 	if (!CanAcceptItem(scene, itemID)) {
 		return false;
 	}
@@ -132,6 +137,12 @@ bool TableLogic::PlaceItem(Scene& scene, int itemID) {
 
 int TableLogic::TakeItem(Scene& scene) {
 	if (!HasItem()) {
+		return kInvalidID;
+	}
+
+	if (!scene.GetGameObjectByID(heldItemID_)) {
+		// Stale references should not permanently lock the table.
+		heldItemID_ = kInvalidID;
 		return kInvalidID;
 	}
 

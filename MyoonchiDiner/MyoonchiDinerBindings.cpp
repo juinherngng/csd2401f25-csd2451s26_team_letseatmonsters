@@ -1919,9 +1919,9 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	scene.SetPostLevelLoadHook([customerManager, ambientVfx, applyLevelGameplayTuning](Scene& s, bool simulationActive) {
 		ambientVfx->Reset(s);
 		OnPostLevelLoaded(s, simulationActive, *customerManager);
-		if (simulationActive) {
-			applyLevelGameplayTuning(s);
-		}
+		// Apply level-authored quota/timer tuning for both editor loads and live gameplay so
+		// the HUD matches the selected kitchen immediately after Load, Play, and Stop.
+		applyLevelGameplayTuning(s);
 		});
 
 	// Cutscene audio hooks

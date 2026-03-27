@@ -443,6 +443,12 @@ public:
 	void SetPostLevelLoadHook(PostLevelLoadHook hook) {
 		postLevelLoadHook_ = std::move(hook);
 	}
+
+	/**
+	 * @brief Runs the configured post-level-load setup hook immediately.
+	 * @param activeSimulation Whether the freshly loaded scene should be treated as gameplay-active.
+	 */
+	void RunPostLevelLoadSetup(bool activeSimulation);
 	void SetCutsceneFadeOutHook(CutsceneFadeOutHook hook) {
 		cutsceneFadeOutHook_ = std::move(hook);
 	}
