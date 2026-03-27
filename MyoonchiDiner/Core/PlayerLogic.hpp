@@ -1,4 +1,4 @@
-/*
+﻿/*
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			PlayerLogic.hpp
  PROJECT NAME:		Project GAM200
@@ -6,8 +6,12 @@
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu   (40%)
 
  DESCRIPTION:		Declares the PlayerLogic script that handles player movement, click-to-move
-					navigation, arrival callbacks, item pick-up/drop behaviour, and sprite facing
-					updates. Provides the public interface used by the Scene and LogicManager.
+					navigation, arrival callbacks, item pick-up/drop behavior, and sprite facing
+					updates.
+					- Exposes the public player gameplay interface used by Scene and LogicManager
+					- Declares helper methods for movement, interaction, hover, and carry handling
+					- Tracks runtime state for queued actions, pathfinding, and carried items
+					- Centralizes player-specific gameplay behavior in a single logic component
 
 		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -25,7 +29,8 @@
 #include <unordered_set>
 
  // Forward declarations to avoid circular dependencies
-	class TableLogic;
+class LogicManager;
+class TableLogic;
 class PlayerLogic : public GameObjectLogic {
 public:
 	// Inherit constructor from GameObjectLogic
@@ -50,6 +55,7 @@ public:
 	 * @return Stable script name for this logic component.
 	 */
 	std::string GetName() const override {
+		// Return the stable logic identifier used by the runtime logic registry.
 		return "PlayerLogic";
 	}
 
@@ -58,6 +64,7 @@ public:
 	 * @return True when a carried item ID is assigned.
 	 */
 	bool IsHolding() const {
+		// Carry state is represented by whether a valid carried item ID is assigned.
 		return carriedItemID >= 0;
 	}
 
@@ -65,7 +72,8 @@ public:
 	 * @brief Returns the object ID of the currently carried item.
 	 * @return Carried object ID, or `-1` when empty-handed.
 	 */
-	int  GetCarriedItemID() const {
+	int GetCarriedItemID() const {
+		// Expose the raw carried object ID for table, UI, and debug queries.
 		return carriedItemID;
 	}
 
@@ -96,6 +104,7 @@ public:
 	 * @return True when a destination is pending.
 	 */
 	bool HasDestination() const {
+		// Movement remains active while a destination is still pending.
 		return hasMoveTarget;
 	}
 
@@ -103,7 +112,8 @@ public:
 	 * @brief Returns whether the player is currently idle at its destination.
 	 * @return True when no movement target remains.
 	 */
-	bool HasArrived()   const {
+	bool HasArrived() const {
+		// Arrival is the inverse of having a live movement target.
 		return !hasMoveTarget;
 	}
 
@@ -137,18 +147,21 @@ private:
 
 	// Movement state
 	glm::vec2 moveTarget{ 0.f, 0.f };
-	bool  hasMoveTarget{ false };
-	float moveSpeed{ 400.f };  // pixels/sec
+	bool hasMoveTarget{ false };
+	float moveSpeed{ 400.f }; // pixels/sec
 
 	// Facing / sprite state
 	enum class FacingDir {
-		Front, Back, Left, Right
+		Front,
+		Back,
+		Left,
+		Right
 	};
 	FacingDir facingDir{ FacingDir::Front };
 
 	// Interaction state
 	int carriedItemID{ -1 };
-	int pendingTableID = -1;   // table we intend to interact with after moving
+	int pendingTableID = -1; // table we intend to interact with after moving
 
 	// Offset where the carried item should appear relative to the player
 	// X: positive = right, negative = left.
@@ -180,13 +193,13 @@ private:
 	 * @param dt Frame delta time in seconds.
 	 * @param scene Scene being processed.
 	 */
-	void UpdateMovement(float dt, Scene& scene);						// Unity: NavMeshAgent movement
+	void UpdateMovement(float dt, Scene& scene); // Unity: NavMeshAgent movement
 
 	/**
 	 * @brief Performs on arrived.
 	 * @param scene Scene being processed.
 	 */
-	void OnArrived(Scene& scene);										// Unity: OnArrived() hook
+	void OnArrived(Scene& scene); // Unity: OnArrived() hook
 
 	/**
 	 * @brief Updates sprite.
@@ -327,6 +340,104 @@ private:
 	void ClearMovementTarget(Scene& scene);
 
 	/**
+	 * @brief Finalizes the current movement operation and resets navigation state.
+	 * @param scene Scene being processed.
+	 * @param clearPendingTable True to clear any queued table interaction target.
+	 */
+	void FinishMovement(Scene& scene, bool clearPendingTable);
+
+	/**
+	 * @brief Advances past path waypoints that are already within the arrival radius.
+	 * @param currentPos Current player world position.
+	 * @param arriveRadiusSq Squared distance threshold used to treat a waypoint as reached.
+	 * @return True when all remaining waypoints have been consumed.
+	 */
+	bool AdvancePathWaypoints(const glm::vec2& currentPos, float arriveRadiusSq);
+
+	/**
+	 * @brief Attempts to rebuild a path from the current player position to the final destination.
+	 * @param scene Scene used for path queries.
+	 * @param player Owning player object.
+	 * @param currentPos Current player world position.
+	 * @param arriveRadiusSq Squared distance threshold used for waypoint skipping.
+	 * @param switchToPathMode True to switch the active move mode back to pathfinding.
+	 * @return True when a replacement path was found and movement can continue.
+	 */
+	bool TryRepathToFinalTarget(Scene& scene, GameObject* player, const glm::vec2& currentPos, float arriveRadiusSq, bool switchToPathMode);
+
+	/**
+	 * @brief Checks whether the direct movement goal has been reached and handles arrival.
+	 * @param scene Scene being processed.
+	 * @param player Owning player object.
+	 * @param currentPos Current player world position.
+	 * @param arriveRadiusSq Squared distance threshold used for arrival.
+	 * @return True when the player has finished the direct move.
+	 */
+	bool TryFinishDirectMovement(Scene& scene, GameObject* player, const glm::vec2& currentPos, float arriveRadiusSq);
+
+	/**
+	 * @brief Updates one frame of direct movement toward the current target.
+	 * @param dt Frame delta time in seconds.
+	 * @param scene Scene being processed.
+	 * @param player Owning player object.
+	 * @param playerPos3 Current player position in 3D space.
+	 * @param currentPos Current player position in 2D space.
+	 * @param arriveRadiusSq Squared distance threshold used for arrival.
+	 * @return True when this function handled the movement update for the frame.
+	 */
+	bool TryUpdateDirectMovement(float dt, Scene& scene, GameObject* player, const glm::vec3& playerPos3, const glm::vec2& currentPos, float arriveRadiusSq);
+
+	/**
+	 * @brief Updates one frame of waypoint-based path movement.
+	 * @param dt Frame delta time in seconds.
+	 * @param scene Scene being processed.
+	 * @param player Owning player object.
+	 * @param playerPos3 Current player position in 3D space.
+	 * @param currentPos Current player position in 2D space.
+	 * @param arriveRadiusSq Squared distance threshold used for waypoint arrival.
+	 * @return True when this function handled the movement update for the frame.
+	 */
+	bool TryUpdatePathMovement(float dt, Scene& scene, GameObject* player, const glm::vec3& playerPos3, const glm::vec2& currentPos, float arriveRadiusSq);
+
+	/**
+	 * @brief Processes held-mouse drag retargeting for click-and-drag movement.
+	 * @param scene Scene being processed.
+	 * @param dt Frame delta time in seconds.
+	 * @param mouseWorld Mouse position in world space.
+	 * @return True when a new drag destination was issued.
+	 */
+	bool TryProcessHeldDragRetarget(Scene& scene, float dt, const glm::vec2& mouseWorld);
+
+	/**
+	 * @brief Queues a follow-up click action while a table interaction is about to commit.
+	 * @param scene Scene being processed.
+	 * @param player Owning player object.
+	 * @param mouseWorld Mouse position in world space.
+	 * @param clickedTableID Table object ID under the cursor, if any.
+	 * @param clickedTableLogic Table logic for the clicked table, if any.
+	 * @param clickedTable True when the click resolved to a table target.
+	 * @return True when the click was captured as a queued follow-up action.
+	 */
+	bool TryQueuePostCommitClick(Scene& scene, GameObject* player, const glm::vec2& mouseWorld, int clickedTableID, TableLogic* clickedTableLogic, bool clickedTable);
+
+	/**
+	 * @brief Handles a click that resolved to a table target.
+	 * @param scene Scene being processed.
+	 * @param player Owning player object.
+	 * @param clickedTableID Object ID of the clicked table.
+	 * @param clickedTableLogic Logic attached to the clicked table.
+	 * @return True when the click was consumed as a table interaction request.
+	 */
+	bool TryHandleTableClick(Scene& scene, GameObject* player, int clickedTableID, TableLogic* clickedTableLogic);
+
+	/**
+	 * @brief Handles a plain move click on walkable world space.
+	 * @param scene Scene being processed.
+	 * @param mouseWorld Mouse position in world space.
+	 */
+	void HandleMoveClick(Scene& scene, const glm::vec2& mouseWorld);
+
+	/**
 	 * @brief Returns whether in table interaction range.
 	 * @param scene Scene being processed.
 	 * @param tableObjectID Parameter for table object id.
@@ -389,7 +500,7 @@ private:
 
 	// PlayerLogic.hpp
 	bool movementLocked_ = false;
-	int  lockedTableID_ = -1;
+	int lockedTableID_ = -1;
 
 	/**
 	 * @brief Begins station lock.
@@ -490,5 +601,64 @@ private:
 	 * @param scene Scene being processed.
 	 */
 	void ExecuteQueuedAction(Scene& scene);
+
+	/**
+	 * @brief Handles ingredient box interaction, including plate-box special cases.
+	 * @param scene Scene being processed.
+	 * @param player Owning player object.
+	 * @param logicMgr Logic manager used to query related scripts.
+	 * @param tableObjectID Object ID of the interacted ingredient box.
+	 * @return True when the interaction was handled by an ingredient box flow.
+	 */
+	bool TryHandleIngredientBoxInteraction(Scene& scene, GameObject* player, LogicManager& logicMgr, int tableObjectID);
+
+	/**
+	 * @brief Handles customer-table payment collection.
+	 * @param scene Scene being processed.
+	 * @param logicMgr Logic manager used to query related scripts.
+	 * @param tableObjectID Object ID of the interacted customer table.
+	 * @return True when the interaction was handled by a customer table flow.
+	 */
+	bool TryHandleCustomerTableInteraction(Scene& scene, LogicManager& logicMgr, int tableObjectID);
+
+	/**
+	 * @brief Handles trash-can disposal of the currently carried item.
+	 * @param scene Scene being processed.
+	 * @param logicMgr Logic manager used to query related scripts.
+	 * @param tableObjectID Object ID of the interacted trash can.
+	 * @return True when the interaction was handled by a trash-can flow.
+	 */
+	bool TryHandleTrashCanInteraction(Scene& scene, LogicManager& logicMgr, int tableObjectID);
+
+	/**
+	 * @brief Attempts to pick up an item currently resting on a table.
+	 * @param scene Scene being processed.
+	 * @param logicMgr Logic manager used to query related scripts.
+	 * @param table Target table logic.
+	 * @param tableObjectID Object ID of the interacted table.
+	 * @return True when an item was successfully removed from the table and picked up.
+	 */
+	bool TryPickUpItemFromTable(Scene& scene, LogicManager& logicMgr, TableLogic& table, int tableObjectID);
+
+	/**
+	 * @brief Attempts to place the carried item onto an empty table.
+	 * @param scene Scene being processed.
+	 * @param player Owning player object.
+	 * @param logicMgr Logic manager used to query related scripts.
+	 * @param table Target table logic.
+	 * @param tableObjectID Object ID of the interacted table.
+	 * @return True when the carried item was placed successfully.
+	 */
+	bool TryPlaceHeldItemOnEmptyTable(Scene& scene, GameObject* player, LogicManager& logicMgr, TableLogic& table, int tableObjectID);
+
+	/**
+	 * @brief Attempts to combine the carried item with the item currently on a table.
+	 * @param scene Scene being processed.
+	 * @param player Owning player object.
+	 * @param logicMgr Logic manager used to query related scripts.
+	 * @param table Target table logic.
+	 * @return True when the carried and table items were combined successfully.
+	 */
+	bool TryCombineHeldAndTableItems(Scene& scene, GameObject* player, LogicManager& logicMgr, TableLogic& table);
 };
 
