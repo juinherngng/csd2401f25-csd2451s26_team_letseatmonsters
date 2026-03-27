@@ -322,6 +322,9 @@ std::vector<GameObject*> CollisionManager::QueryNearby(const collision::AABB& qu
 	std::vector<GameObject*> candidates;
 	spatialGrid_.Query(queryBox, candidates);
 
+	std::vector<GameObject*> overlaps;
+	overlaps.reserve(candidates.size());
+
 	for (GameObject* obj : candidates) {
 		if (!obj) {
 			continue;
@@ -333,10 +336,11 @@ std::vector<GameObject*> CollisionManager::QueryNearby(const collision::AABB& qu
 			pos, Math::Vector3D(scale.x, scale.y, scale.z));
 		if (OverlapsAABB(candidate, queryBox)) {
 			++profile_.narrowPhaseCollisions;
+			overlaps.push_back(obj);
 		}
 	}
 
-	return candidates;
+	return overlaps;
 }
 
 /**

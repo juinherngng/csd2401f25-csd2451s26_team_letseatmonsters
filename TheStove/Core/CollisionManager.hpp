@@ -81,7 +81,7 @@ public:
 		const collision::StageEndGateVertical& endGate);
 
 	/**
-	 * @brief Performs query nearby.
+	 * @brief Returns nearby objects whose world AABBs actually overlap the query box.
 	 * @param queryBox Parameter for query box.
 	 * @return Result produced by this operation.
 	 */

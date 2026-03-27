@@ -90,7 +90,14 @@ void AudioManager::Update(float dt) {
 	if (!activeFades.empty()) {
 		for (auto it = activeFades.begin(); it != activeFades.end(); ) {
 			auto chanIt = channels.find(it->first);
-			if (chanIt == channels.end() || !chanIt->second) {
+			if (chanIt == channels.end()) {
+				it = activeFades.erase(it);
+				continue;
+			}
+
+			RemoveStoppedChannels(chanIt->second);
+			if (chanIt->second.empty()) {
+				channels.erase(chanIt);
 				it = activeFades.erase(it);
 				continue;
 			}
@@ -100,7 +107,11 @@ void AudioManager::Update(float dt) {
 
 			float t = (f.duration > 0.f) ? std::min(f.elapsed / f.duration, 1.f) : 1.f;
 			float newVol = f.fromVolume + (f.toVolume - f.fromVolume) * t;
-			chanIt->second->setVolume(newVol);
+			for (FMOD::Channel* channel : chanIt->second) {
+				if (channel) {
+					channel->setVolume(newVol);
+				}
+			}
 
 			if (t >= 1.f)
 				it = activeFades.erase(it);
@@ -121,24 +132,7 @@ void AudioManager::Update(float dt) {
 	}
 	pendingStops.clear();
 
-	// Clean up finished channels
-	for (auto it = channels.begin(); it != channels.end(); ) {
-		bool playing = false;
-
-		if (it->second)
-			it->second->isPlaying(&playing);
-
-		if (!playing) // remove finished
-			it = channels.erase(it);
-		else
-			++it;
-	}
-
-	// Perform deferred stop on channels
-	for (auto& channel : pendingStops) {
-		channel->stop();
-	}
-	pendingStops.clear();
+	PruneFinishedChannels();
 }
 
 void AudioManager::OnToggleDebugInfo(const CoreFramework::Message& msg) {
@@ -371,21 +365,10 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 	// If caller provided a specific volume (not default 1.0f), use it directly
 	// Otherwise, use category-based volume
 	if (result == FMOD_OK && channel) {
-		float finalVolume = volume * masterVolume;
-
-		// Only override with category volume if caller used default volume (1.0f)
-		// This allows explicit volume control when needed (e.g., sfx_gameover at 50%)
-		if (volume >= 0.999f && volume <= 1.001f) {
-			if (name.find("bgm") != std::string::npos) {
-				finalVolume = bgmVolume * masterVolume;
-			}
-			else if (name.find("sfx") != std::string::npos || name.find("vfx") != std::string::npos) {
-				finalVolume = vfxVolume * masterVolume;
-			}
-		}
+		const float finalVolume = ComputePlaybackVolume(name, volume);
 
 		channel->setVolume(finalVolume);
-		channels[name] = channel;
+		channels[name].push_back(channel);
 
 		// Unpause now that volume is set, unless caller requested paused start
 		if (!paused) {
@@ -400,14 +383,8 @@ void AudioManager::StopSound(std::string const& name) {
 	// Stop and remove channel if exists
 	auto it = channels.find(name);
 
-	if (it != channels.end() && it->second) {
-		// Silence the channel immediately and defer the actual stop to the
-		// next Update() so FMOD's mixer processes at least one silent block
-		// before the channel is destroyed, this prevents an audible click
-		// from cutting the waveform at a non-zero sample.
-		it->second->setVolume(0.0f);
-		pendingStops.push_back(it->second);
-		// Clear any pending software fade
+	if (it != channels.end()) {
+		StopTrackedChannels(it->second);
 		activeFades.erase(name);
 		channels.erase(it);
 	}
@@ -415,11 +392,8 @@ void AudioManager::StopSound(std::string const& name) {
 
 void AudioManager::StopAllSounds() {
 	// Silence all tracked channels and defer stop (same as StopSound)
-	for (auto& [name, channel] : channels) {
-		if (channel) {
-			channel->setVolume(0.0f);
-			pendingStops.push_back(channel);
-		}
+	for (auto& [name, channelList] : channels) {
+		StopTrackedChannels(channelList);
 	}
 
 	activeFades.clear();
@@ -443,8 +417,12 @@ void AudioManager::ResumeAll() {
 // Pause a specific channel by name
 void AudioManager::PauseChannel(std::string const& name) {
 	auto it = channels.find(name);
-	if (it != channels.end() && it->second) {
-		it->second->setPaused(true);
+	if (it != channels.end()) {
+		for (FMOD::Channel* channel : it->second) {
+			if (channel) {
+				channel->setPaused(true);
+			}
+		}
 		TS_LOG_DEBUG("[AudioManager] Paused channel: " << name);
 	}
 }
@@ -452,8 +430,12 @@ void AudioManager::PauseChannel(std::string const& name) {
 // Resume a specific channel by name
 void AudioManager::ResumeChannel(std::string const& name) {
 	auto it = channels.find(name);
-	if (it != channels.end() && it->second) {
-		it->second->setPaused(false);
+	if (it != channels.end()) {
+		for (FMOD::Channel* channel : it->second) {
+			if (channel) {
+				channel->setPaused(false);
+			}
+		}
 		TS_LOG_DEBUG("[AudioManager] Resumed channel: " << name);
 	}
 }
@@ -497,9 +479,13 @@ float AudioManager::GetVfxVolume() const {
 void AudioManager::SetVolume(std::string const& name, float volume) {
 	// Find the channel and set its volume
 	auto it = channels.find(name);
-	if (it != channels.end() && it->second) {
+	if (it != channels.end()) {
 		float clampedVolume = std::clamp(volume, 0.0f, 1.0f);
-		it->second->setVolume(clampedVolume);
+		for (FMOD::Channel* channel : it->second) {
+			if (channel) {
+				channel->setVolume(clampedVolume);
+			}
+		}
 	}
 }
 
@@ -540,11 +526,14 @@ void AudioManager::FadeChannel(std::string const& name, float toVolume, float du
 	// Start volume fade on channel if exists
 	auto it = channels.find(name);
 
-	if (it == channels.end() || !it->second || duration <= 0.f) return;
+	if (it == channels.end() || duration <= 0.f) return;
+
+	RemoveStoppedChannels(it->second);
+	if (it->second.empty()) return;
 
 	// get current volume
 	float currentVolume = 0.f;
-	it->second->getVolume(&currentVolume);
+	it->second.front()->getVolume(&currentVolume);
 
 	// set up fade
 	activeFades[name] = VolumeFade{ currentVolume, toVolume, duration, 0.f };
@@ -632,18 +621,10 @@ void AudioManager::PlaySound3D(std::string const& name, float posX, float posY, 
 		channel->set3DMinMaxDistance(minDistance, maxDistance);
 
 		// Set volume with category and master scaling
-		float finalVolume = volume * masterVolume;
-		if (volume >= 0.999f && volume <= 1.001f) {
-			if (name.find("bgm") != std::string::npos) {
-				finalVolume = bgmVolume * masterVolume;
-			}
-			else if (name.find("sfx") != std::string::npos || name.find("vfx") != std::string::npos) {
-				finalVolume = vfxVolume * masterVolume;
-			}
-		}
+		const float finalVolume = ComputePlaybackVolume(name, volume);
 
 		channel->setVolume(finalVolume);
-		channels[name] = channel;
+		channels[name].push_back(channel);
 
 		// Unpause now that 3D attributes and volume are set
 		if (!paused) {
@@ -669,15 +650,86 @@ void AudioManager::SetListenerPosition(float posX, float posY, float posZ) {
 
 void AudioManager::Set3DChannelPosition(std::string const& name, float posX, float posY, float posZ) {
 	auto it = channels.find(name);
-	if (it == channels.end() || !it->second) return;
+	if (it == channels.end()) return;
 
 	FMOD_VECTOR pos = { posX, posY, posZ };
 	FMOD_VECTOR vel = { 0.0f, 0.0f, 0.0f };
-	it->second->set3DAttributes(&pos, &vel);
+	for (FMOD::Channel* channel : it->second) {
+		if (channel) {
+			channel->set3DAttributes(&pos, &vel);
+		}
+	}
 }
 
 void AudioManager::EnqueuePlay3D(std::string const& name, float posX, float posY, float posZ,
 	float volume, float minDistance, float maxDistance, bool paused) {
 	pendingPlays3D.push_back({ name, posX, posY, posZ, volume, minDistance, maxDistance, paused });
+}
+
+float AudioManager::ComputePlaybackVolume(const std::string& name, float requestedVolume) const {
+	float finalVolume = requestedVolume * masterVolume;
+
+	if (requestedVolume >= 0.999f && requestedVolume <= 1.001f) {
+		if (name.find("bgm") != std::string::npos) {
+			finalVolume = bgmVolume * masterVolume;
+		}
+		else if (name.find("sfx") != std::string::npos || name.find("vfx") != std::string::npos) {
+			finalVolume = vfxVolume * masterVolume;
+		}
+	}
+
+	return finalVolume;
+}
+
+void AudioManager::QueueDeferredStop(FMOD::Channel* channel) {
+	if (!channel) {
+		return;
+	}
+
+	if (std::find(pendingStops.begin(), pendingStops.end(), channel) == pendingStops.end()) {
+		pendingStops.push_back(channel);
+	}
+}
+
+void AudioManager::StopTrackedChannels(ChannelList& channelList) {
+	for (FMOD::Channel* channel : channelList) {
+		if (!channel) {
+			continue;
+		}
+
+		channel->setVolume(0.0f);
+		QueueDeferredStop(channel);
+	}
+}
+
+void AudioManager::RemoveStoppedChannels(ChannelList& channelList) const {
+	channelList.erase(
+		std::remove_if(channelList.begin(), channelList.end(),
+			[](FMOD::Channel* channel) {
+				if (!channel) {
+					return true;
+				}
+
+				bool playing = false;
+				if (channel->isPlaying(&playing) != FMOD_OK) {
+					return true;
+				}
+
+				return !playing;
+			}),
+		channelList.end());
+}
+
+void AudioManager::PruneFinishedChannels() {
+	for (auto it = channels.begin(); it != channels.end(); ) {
+		RemoveStoppedChannels(it->second);
+		if (it->second.empty()) {
+			activeFades.erase(it->first);
+			it = channels.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
 }
 

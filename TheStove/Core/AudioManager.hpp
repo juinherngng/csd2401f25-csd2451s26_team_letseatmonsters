@@ -473,6 +473,8 @@ public:
 	void ResumeChannel(std::string const& name);
 
 private:
+	using ChannelList = std::vector<FMOD::Channel*>;
+
 	/************************************************************************/
 	/*!
 	\brief
@@ -490,12 +492,17 @@ private:
 	void OnPlayAudio(const CoreFramework::Message& msg);
 	void OnStopAudio(const CoreFramework::Message& msg);
 	void OnPlayAudio3D(const CoreFramework::Message& msg);
+	float ComputePlaybackVolume(const std::string& name, float requestedVolume) const;
+	void QueueDeferredStop(FMOD::Channel* channel);
+	void StopTrackedChannels(ChannelList& channelList);
+	void RemoveStoppedChannels(ChannelList& channelList) const;
+	void PruneFinishedChannels();
 
 	// FMOD System and resources
 	FMOD::System* system;
 	FMOD::ChannelGroup* masterGroup;
 	std::map<std::string, FMOD::Sound*>   sounds;
-	std::map<std::string, FMOD::Channel*> channels;
+	std::map<std::string, ChannelList>    channels;
 	float                                 masterVolume, bgmVolume, vfxVolume;
 	bool                                  muted;
 

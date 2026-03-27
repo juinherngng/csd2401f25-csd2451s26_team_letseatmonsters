@@ -18,8 +18,29 @@ VertexBuffer::VertexBuffer(const void* data, size_t size) {
 	glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
 }
 
+VertexBuffer::VertexBuffer(VertexBuffer&& other) noexcept
+	: ID(other.ID) {
+	other.ID = 0;
+}
+
+VertexBuffer& VertexBuffer::operator=(VertexBuffer&& other) noexcept {
+	if (this == &other) {
+		return *this;
+	}
+
+	if (ID != 0) {
+		glDeleteBuffers(1, &ID);
+	}
+
+	ID = other.ID;
+	other.ID = 0;
+	return *this;
+}
+
 VertexBuffer::~VertexBuffer() {
-	glDeleteBuffers(1, &ID);
+	if (ID != 0) {
+		glDeleteBuffers(1, &ID);
+	}
 }
 
 void VertexBuffer::Bind() const {
