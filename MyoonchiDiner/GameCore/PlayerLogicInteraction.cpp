@@ -123,31 +123,14 @@ bool PlayerLogic::TryResolveClickedTableTarget(Scene& scene,
  * @return True when the player is within the tighter interaction commit radius.
  */
 bool PlayerLogic::IsInTableCommitRange(Scene& scene, int tableObjectID) {
-	// Use authored approach points when available so post-commit clicks feel consistent around stations.
+	// Use the same snapped-target logic as movement so commit checks stay consistent after pathfinding.
 	GameObject* player = GetOwner(scene);
 	if (!player) {
 		return false;
 	}
 
-	LogicManager& logicMgr = scene.GetLogicManager();
-	TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableObjectID);
-	if (!tableLogic) {
-		return false;
-	}
-
-	if (tableLogic->GetLocalApproachOffsets().empty()) {
-		return IsInTableInteractionRange(scene, tableObjectID);
-	}
-
 	const glm::vec2 playerPos = PlayerLogicDetail::ToVec2(player->GetPositionGLM());
-	Math::Vector2D from(playerPos.x, playerPos.y);
-	Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
-
-	const float dx = playerPos.x - approach.x;
-	const float dy = playerPos.y - approach.y;
-	const float distSq = dx * dx + dy * dy;
-
-	return distSq <= kInteractionCommitRadius * kInteractionCommitRadius;
+	return IsTableInRangeAtPosition(scene, tableObjectID, playerPos, kInteractionCommitRadius);
 }
 
 /**
@@ -222,9 +205,10 @@ void PlayerLogic::ExecuteQueuedAction(Scene& scene) {
 	}
 
 	const glm::vec2 playerPos = PlayerLogicDetail::ToVec2(player->GetPositionGLM());
-	Math::Vector2D from(playerPos.x, playerPos.y);
-	Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
-	const glm::vec2 target(approach.x, approach.y);
+	glm::vec2 target = playerPos;
+	if (!TryGetTableMoveTarget(scene, action.tableID, playerPos, target)) {
+		return;
+	}
 
 	pendingTableID = action.tableID;
 	MoveTo(scene, target);
@@ -295,6 +279,7 @@ bool PlayerLogic::TryProcessHeldDragRetarget(Scene& scene, float dt, const glm::
  */
 bool PlayerLogic::TryQueuePostCommitClick(Scene& scene, GameObject* player, const glm::vec2& mouseWorld, int clickedTableID, TableLogic* clickedTableLogic, bool clickedTable) {
 	// Queue follow-up input while the player is already close enough to finish a table commit.
+	(void)clickedTableLogic;
 	if (clickedTable) {
 		if (clickedTableID == pendingTableID) {
 			ClearQueuedAction();
@@ -302,11 +287,12 @@ bool PlayerLogic::TryQueuePostCommitClick(Scene& scene, GameObject* player, cons
 		}
 
 		QueueTableAction(clickedTableID);
-		// Show feedback at the eventual interaction approach point, not the raw click location.
 		const glm::vec2 playerPos = PlayerLogicDetail::ToVec2(player->GetPositionGLM());
-		Math::Vector2D from(playerPos.x, playerPos.y);
-		Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
-		ShowClickMoveIndicator(scene, glm::vec2(approach.x, approach.y));
+		glm::vec2 indicatorTarget = playerPos;
+		if (TryGetTableMoveTarget(scene, clickedTableID, playerPos, indicatorTarget)) {
+			// Show feedback at the actual snapped interaction target instead of the raw click location.
+			ShowClickMoveIndicator(scene, indicatorTarget);
+		}
 		return true;
 	}
 
@@ -324,7 +310,8 @@ bool PlayerLogic::TryQueuePostCommitClick(Scene& scene, GameObject* player, cons
  * @return True when the click was consumed as a table interaction request.
  */
 bool PlayerLogic::TryHandleTableClick(Scene& scene, GameObject* player, int clickedTableID, TableLogic* clickedTableLogic) {
-	// Either interact immediately or move to the closest authored approach point for the table.
+	// Either interact immediately or move to a nav-safe interaction point for the table.
+	(void)clickedTableLogic;
 	ClearQueuedAction();
 
 	if (IsInTableInteractionRange(scene, clickedTableID)) {
@@ -335,12 +322,80 @@ bool PlayerLogic::TryHandleTableClick(Scene& scene, GameObject* player, int clic
 
 	pendingTableID = clickedTableID;
 	const glm::vec2 playerPos = PlayerLogicDetail::ToVec2(player->GetPositionGLM());
-	Math::Vector2D from(playerPos.x, playerPos.y);
-	Math::Vector2D approach = clickedTableLogic->GetClosestApproachPoint(scene, from);
-	const glm::vec2 target(approach.x, approach.y);
+	glm::vec2 target = playerPos;
+	if (!TryGetTableMoveTarget(scene, clickedTableID, playerPos, target)) {
+		pendingTableID = -1;
+		return false;
+	}
 	MoveTo(scene, target);
 	ShowClickMoveIndicator(scene, target);
 	return true;
+}
+
+bool PlayerLogic::TryGetTableMoveTarget(Scene& scene, int tableObjectID, const glm::vec2& fromWorld, glm::vec2& outTarget) {
+	GameObject* player = GetOwner(scene);
+	if (!player) {
+		return false;
+	}
+
+	LogicManager& logicMgr = scene.GetLogicManager();
+	TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableObjectID);
+	if (!tableLogic) {
+		return false;
+	}
+
+	const std::vector<Math::Vector2D> approachPoints = tableLogic->GetApproachPointsWorld(scene);
+	if (approachPoints.empty()) {
+		GameObject* tableObj = scene.GetGameObjectByID(tableObjectID);
+		if (!tableObj) {
+			return false;
+		}
+
+		outTarget = PlayerLogicDetail::ToVec2(tableObj->GetPositionGLM());
+		scene.GetNearestNavigationCellCenterForObject(player->GetID(), outTarget, outTarget);
+		return true;
+	}
+
+	float bestReachableDistSq = std::numeric_limits<float>::max();
+	float bestFallbackDistSq = std::numeric_limits<float>::max();
+	glm::vec2 bestReachableTarget = fromWorld;
+	glm::vec2 bestFallbackTarget = fromWorld;
+	bool foundReachable = false;
+	bool foundFallback = false;
+
+	for (const Math::Vector2D& point : approachPoints) {
+		glm::vec2 candidate(point.x, point.y);
+		scene.GetNearestNavigationCellCenterForObject(player->GetID(), candidate, candidate);
+
+		const float distSq = PlayerLogicDetail::DistanceSquared(candidate, fromWorld);
+		if (distSq < bestFallbackDistSq) {
+			bestFallbackDistSq = distSq;
+			bestFallbackTarget = candidate;
+			foundFallback = true;
+		}
+
+		if (!IsTableInRangeAtPosition(scene, tableObjectID, candidate, PlayerLogicDetail::kPlayerInteractRadius)) {
+			continue;
+		}
+
+		if (distSq < bestReachableDistSq) {
+			bestReachableDistSq = distSq;
+			bestReachableTarget = candidate;
+			foundReachable = true;
+		}
+	}
+
+	if (foundReachable) {
+		outTarget = bestReachableTarget;
+		return true;
+	}
+
+	if (foundFallback) {
+		outTarget = bestFallbackTarget;
+		return true;
+	}
+
+	return false;
 }
 
 /**
@@ -363,7 +418,17 @@ void PlayerLogic::HandleMoveClick(Scene& scene, const glm::vec2& mouseWorld) {
  * @return True when the player can interact immediately.
  */
 bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID) {
-	// Support both authored approach points and a body-overlap fallback for loose table geometry.
+	// Support both authored approach points, nav-snapped targets, and a body-overlap fallback.
+	GameObject* player = GetOwner(scene);
+	if (!player) {
+		return false;
+	}
+
+	const glm::vec2 playerPos = PlayerLogicDetail::ToVec2(player->GetPositionGLM());
+	return IsTableInRangeAtPosition(scene, tableObjectID, playerPos, PlayerLogicDetail::kPlayerInteractRadius);
+}
+
+bool PlayerLogic::IsTableInRangeAtPosition(Scene& scene, int tableObjectID, const glm::vec2& playerPos, float radius) {
 	GameObject* player = GetOwner(scene);
 	GameObject* tableObj = scene.GetGameObjectByID(tableObjectID);
 	if (!player || !tableObj) {
@@ -372,27 +437,38 @@ bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID) {
 
 	LogicManager& logicMgr = scene.GetLogicManager();
 	TableLogic* tableLogic = logicMgr.GetLogicForObject<TableLogic>(tableObjectID);
-
-	const glm::vec3 playerPos3 = player->GetPositionGLM();
-	const glm::vec2 playerPos(playerPos3.x, playerPos3.y);
+	const float radiusSq = radius * radius;
 
 	if (tableLogic) {
-		// Prefer the closest approach point when the table provides explicit interaction anchors.
-		Math::Vector2D from(playerPos.x, playerPos.y);
-		Math::Vector2D approach = tableLogic->GetClosestApproachPoint(scene, from);
+		// Check both the authored approach points and the nav-snapped cells movement actually uses.
+		const std::vector<Math::Vector2D> approachPoints = tableLogic->GetApproachPointsWorld(scene);
+		for (const Math::Vector2D& point : approachPoints) {
+			const glm::vec2 rawPoint(point.x, point.y);
+			if (PlayerLogicDetail::DistanceSquared(playerPos, rawPoint) <= radiusSq) {
+				return true;
+			}
 
-		const float dx = playerPos.x - approach.x;
-		const float dy = playerPos.y - approach.y;
-		const float distSq = dx * dx + dy * dy;
-		if (distSq <= PlayerLogicDetail::kPlayerInteractRadius * PlayerLogicDetail::kPlayerInteractRadius) {
-			return true;
+			glm::vec2 snappedPoint = rawPoint;
+			scene.GetNearestNavigationCellCenterForObject(player->GetID(), rawPoint, snappedPoint);
+			if (PlayerLogicDetail::DistanceSquared(playerPos, snappedPoint) <= radiusSq) {
+				return true;
+			}
 		}
 	}
 
-	glm::vec2 playerCenter, playerHalf;
+	glm::vec2 playerHalf;
 	glm::vec2 tableCenter, tableHalf;
-	if (PlayerLogicDetail::GetObjectRect(player, playerCenter, playerHalf) &&
+	Math::Vector2D playerColSize = player->GetColliderSize();
+	Math::Vector2D playerColOffset = player->GetColliderOffset();
+	glm::vec3 playerScale = player->GetScaleGLM();
+	const float playerWidth = (playerColSize.x > 0.0f) ? playerColSize.x : playerScale.x;
+	const float playerHeight = (playerColSize.y > 0.0f) ? playerColSize.y : playerScale.y;
+	if (playerWidth > 0.0f &&
+		playerHeight > 0.0f &&
 		PlayerLogicDetail::GetObjectRect(tableObj, tableCenter, tableHalf)) {
+		const glm::vec2 playerCenter(playerPos.x + playerColOffset.x, playerPos.y + playerColOffset.y);
+		playerHalf = glm::vec2(playerWidth * 0.5f, playerHeight * 0.5f);
+
 		// Fallback: allow interaction when the player collider is effectively touching the table body.
 		constexpr float kTouchPadding = 14.0f;
 		glm::vec2 expandedHalf(

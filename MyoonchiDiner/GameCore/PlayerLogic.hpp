@@ -430,6 +430,16 @@ private:
 	bool TryHandleTableClick(Scene& scene, GameObject* player, int clickedTableID, TableLogic* clickedTableLogic);
 
 	/**
+	 * @brief Resolves a navigation-safe movement target for a table interaction.
+	 * @param scene Scene being processed.
+	 * @param tableObjectID Object ID of the target table.
+	 * @param fromWorld Current player position used to rank candidate approach points.
+	 * @param outTarget Receives the best snapped interaction target.
+	 * @return True when a usable target was found.
+	 */
+	bool TryGetTableMoveTarget(Scene& scene, int tableObjectID, const glm::vec2& fromWorld, glm::vec2& outTarget);
+
+	/**
 	 * @brief Handles a plain move click on walkable world space.
 	 * @param scene Scene being processed.
 	 * @param mouseWorld Mouse position in world space.
@@ -443,6 +453,16 @@ private:
 	 * @return True when the operation succeeds or the condition is met.
 	 */
 	bool IsInTableInteractionRange(Scene& scene, int tableObjectID);
+
+	/**
+	 * @brief Returns whether a hypothetical player position can interact with a table.
+	 * @param scene Scene being processed.
+	 * @param tableObjectID Object ID of the target table.
+	 * @param playerPos World-space player position to test.
+	 * @param radius Allowed interaction radius for authored or snapped approach points.
+	 * @return True when the tested position can commit the interaction.
+	 */
+	bool IsTableInRangeAtPosition(Scene& scene, int tableObjectID, const glm::vec2& playerPos, float radius);
 
 	/**
 	 * @brief Performs cancel queued table move.
