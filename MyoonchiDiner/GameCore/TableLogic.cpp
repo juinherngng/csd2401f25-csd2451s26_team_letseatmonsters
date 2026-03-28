@@ -19,6 +19,26 @@
 #include "GameCore/PlateLogic.hpp"
 #include "GameCore/TableLogic.hpp"
 
+namespace {
+	/**
+	 * @brief Resolves the visual tabletop anchor used when dropping an item onto a table.
+	 * @param scene Active scene used to inspect authored texture metadata.
+	 * @param owner Owning table object.
+	 * @return World-space placement position for the table's held item.
+	 */
+	Math::Vector3D ResolveTableItemPlacementPos(Scene& scene, GameObject& owner) {
+		Math::Vector3D tablePos = owner.GetPosition();
+		const std::string& texturePath = scene.GetObjectTexturePath(owner.GetID());
+
+		// Table_Leg has its visible tabletop slightly above the sprite origin in both kitchen layouts.
+		if (texturePath.find("Table_Leg.png") != std::string::npos) {
+			tablePos.y -= 10.0f;
+		}
+
+		return tablePos;
+	}
+}
+
  // ------------------- Constructor / lifecycle -------------------
 
 TableLogic::TableLogic(int ownerID) : GameObjectLogic(ownerID), heldItemID_(kInvalidID) {
@@ -115,10 +135,8 @@ bool TableLogic::PlaceItem(Scene& scene, int itemID) {
 	// Record that this table now holds this item.
 	heldItemID_ = itemID;
 
-	// Optionally snap the item onto the table top.
-	// For now we just align the item's X/Y to the table's position.
-	Math::Vector3D tablePos = owner->GetPosition();
-	Math::Vector3D newPos(tablePos.x, tablePos.y, tablePos.z);
+	// Snap the item to the visual tabletop, not just the raw object origin.
+	Math::Vector3D newPos = ResolveTableItemPlacementPos(scene, *owner);
 	item->SetPosition(newPos);
 	// If this item is a plate with an attached ingredient visual, move it too.
 	if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(itemID)) {
