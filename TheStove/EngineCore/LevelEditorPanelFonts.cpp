@@ -57,6 +57,7 @@ namespace {
 	std::string BoolStr(bool v) {
 		return v ? "true" : "false";
 	}
+
 }
 
 namespace fs = std::filesystem;
@@ -300,8 +301,27 @@ namespace LEPANELFONTS {
 
 	void DrawFontsPanel(LevelEditor& editor, Scene& scene) {
 #ifdef _DEBUG
-		// Mirror the editor cache into the live scene every frame so text preview stays runtime-driven.
-		scene.SetRuntimeTextObjects(sTextObjects);
+		// Keep edit-mode text preview in sync, but do not overwrite live gameplay HUD text while playing.
+		if (!editor.IsPlaying()) {
+			std::vector<RuntimeTextData> previewTexts = sTextObjects;
+			const auto& liveTexts = scene.GetRuntimeTextObjects();
+			const auto& preservedTextNames = scene.GetEditorPreservedRuntimeTextNames();
+
+			for (RuntimeTextData& previewText : previewTexts) {
+				if (!preservedTextNames.contains(previewText.name)) {
+					continue;
+				}
+
+				for (const RuntimeTextData& liveText : liveTexts) {
+					if (liveText.name == previewText.name) {
+						previewText.text = liveText.text;
+						break;
+					}
+				}
+			}
+
+			scene.SetRuntimeTextObjects(previewTexts);
+		}
 
 		ImGui::SetNextWindowDockID(GraphicsEngine::Instance().GetMainDockspaceID(), ImGuiCond_FirstUseEver);
 

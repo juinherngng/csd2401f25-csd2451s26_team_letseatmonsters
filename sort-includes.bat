@@ -1,6 +1,10 @@
 @echo off
 setlocal
 
-powershell -ExecutionPolicy Bypass -File "%~dp0sort-includes.ps1" %*
+rem Canonical entry point for include normalization.
+set "SCRIPT_DIR=%~dp0"
+set "SORTER_SCRIPT=%SCRIPT_DIR%sort-includes.ps1"
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SORTER_SCRIPT%" %*
 
 endlocal

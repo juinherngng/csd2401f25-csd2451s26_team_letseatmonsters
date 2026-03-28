@@ -30,7 +30,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "EngineCore/ApplicationState.hpp"
 #include "EngineCore/AudioLoading.hpp"
+#include "EngineCore/Core.hpp"
 #include "EngineCore/InputManager.hpp"
 #include "EngineCore/LevelEditor.hpp"
 #include "EngineCore/LevelEditorActions.hpp"
@@ -41,6 +43,7 @@
 #include "EngineCore/LevelEditorPanelLevel.hpp"
 #include "EngineCore/LevelEditorPrefabLinks.hpp"
 #include "EngineCore/Logger.hpp"
+#include "EngineCore/Message.hpp"
 #include "EngineCore/RuntimeLevel.hpp"
 #include "EngineCore/RuntimeLevelPipeline.hpp"
 #include "EngineCore/RuntimeTextData.hpp"
@@ -283,6 +286,8 @@ namespace {
 #endif
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	static void ApplyLevelToEditorScene(Scene& scene, const std::string& levelPath, const LevelData& levelIn, bool activeSimulation);
+
 	/**
 	 * @brief Captures the full editor state into a serializable snapshot.
 	 * @param scene Scene currently being edited.
@@ -302,11 +307,7 @@ namespace {
 	 * @param state Snapshot to restore.
 	 */
 	static void RestoreEditorState(LevelEditor& editor, Scene& scene, const LevelData& state) {
-		scene.ClearAll();
-		SyncLevelToScene(state, scene);
-		scene.RebuildColliders();
-		scene.SetSimulationActive(false);
-		scene.RunPostLevelLoadSetup(false);
+		ApplyLevelToEditorScene(scene, editor.levelPath, state, false);
 
 		editor.SetPlaying(false);
 		SyncTextObjectsToEditor(state);
@@ -404,6 +405,33 @@ namespace {
 		}
 
 		scene.SetRuntimeTextObjects(parsedTexts);
+	}
+
+	/**
+	 * @brief Rebuilds the editor scene from serialized level data using the exact selected file path.
+	 * @param scene Scene to rebuild.
+	 * @param levelPath Exact level path selected in the editor.
+	 * @param levelIn Serialized level snapshot to apply.
+	 * @param activeSimulation True when the rebuilt scene should enter play mode.
+	 */
+	static void ApplyLevelToEditorScene(Scene& scene, const std::string& levelPath, const LevelData& levelIn, bool activeSimulation) {
+		// Set the target level path before clearing so reset hooks can apply level-specific gameplay tuning.
+		scene.SetCurrentLevelPath(levelPath);
+		scene.ClearAll();
+		scene.SetCurrentLevelPath(levelPath);
+		SyncLevelToScene(levelIn, scene);
+		scene.RebuildColliders();
+		scene.SetSimulationActive(activeSimulation);
+		scene.RunPostLevelLoadSetup(activeSimulation);
+
+		// Editor-triggered loads happen during UI rendering, so start the new logic immediately.
+		scene.GetLogicManager().StartAll(scene);
+
+		if (activeSimulation) {
+			scene.ResolveInitialStaticOverlaps();
+		}
+
+		scene.ResetResizeBaseline();
 	}
 
 	/**
@@ -793,32 +821,20 @@ namespace LEPANELLEVEL {
 													  editor.SetPlaying(false);
 
 													  LevelData& work = editor.MutableLevel();
-											  if (LevelSerializer::Load(editor.levelPath, work)) {
-												  const RuntimeLevelPipeline::LevelLoadResult loadResult =
-													  RuntimeLevelPipeline::LoadLevelIntoSceneDetailed(editor.levelPath, scene);
-												  if (!loadResult.success) {
-													  TS_LOG_ERROR("[LevelEditor] Runtime load failed for '" << editor.levelPath
-															<< "': " << loadResult.failureReason);
-													  return;
-												  }
-
-												  sLastValidationReport.warnings = loadResult.validationWarnings;
-												  if (sLastValidationReport.HasWarnings()) {
+													  if (LevelSerializer::LoadExact(editor.levelPath, work)) {
+														  sLastValidationReport = RuntimeLevel::ValidateLevelData(editor.levelPath, work);
+														  if (sLastValidationReport.HasWarnings()) {
 															  TS_LOG_WARN("[LevelEditor] Validation warnings for '" << editor.levelPath
 																	<< "' (" << sLastValidationReport.warnings.size() << "):");
 															  for (const std::string& warning : sLastValidationReport.warnings) {
 																  TS_LOG_WARN("  - " << warning);
 															  }
-												  }
+														  }
 
-												  scene.SetCurrentLevelPath(editor.levelPath);
-												  scene.SetSimulationActive(false);
-												  scene.RunPostLevelLoadSetup(false);
-												  scene.ResetResizeBaseline();
+														  ApplyLevelToEditorScene(scene, editor.levelPath, work, false);
 
-												  // Keep editor-only metadata in sync after the runtime pipeline rebuilds the scene.
-												  SyncPrefabLinksToEditor(work, scene);
-												  SyncTextObjectsToEditor(work);
+														  SyncPrefabLinksToEditor(work, scene);
+														  SyncTextObjectsToEditor(work);
 
 														  selectedIndex = -1;
 														  selectedObjectId = -1;
@@ -826,6 +842,9 @@ namespace LEPANELLEVEL {
 														  sLastSavedHash = HashLevelData(work);
 														  sLastSavedPath = editor.levelPath;
 														  ClearUndoHistory();
+													  }
+													  else {
+														  TS_LOG_ERROR("[LevelEditor] Exact editor load failed for '" << editor.levelPath << "'");
 													  }
 												  },
 												  [&]() {
@@ -865,32 +884,26 @@ namespace LEPANELLEVEL {
 						LevelData& snap = editor.MutablePlaySnapshot();
 						SyncSceneToLevel(scene, snap);
 						SyncTextObjectsToLevel(snap);
-						const bool useRuntimeFileLoad = !editor.levelPath.empty();
+						const bool useExactFileLoad = !editor.levelPath.empty();
 
 						editor.SetPlaying(true);
 						selectedIndex = -1;
 						selectedObjectId = -1;
 
-						scene.SetSimulationActive(true);
-						scene.ClearAll();
-						scene.SetCurrentLevelPath(editor.levelPath);
-						if (useRuntimeFileLoad) {
-							const RuntimeLevelPipeline::LevelLoadResult loadResult =
-								RuntimeLevelPipeline::LoadLevelIntoSceneDetailed(editor.levelPath, scene);
-							if (!loadResult.success) {
-								TS_LOG_ERROR("[LevelEditor] Runtime play load failed for '" << editor.levelPath
-									<< "': " << loadResult.failureReason);
+						if (useExactFileLoad) {
+							LevelData playLevel;
+							if (!LevelSerializer::LoadExact(editor.levelPath, playLevel)) {
+								TS_LOG_ERROR("[LevelEditor] Exact editor play load failed for '" << editor.levelPath << "'");
 								editor.SetPlaying(false);
 								return;
 							}
+
+							ApplyLevelToEditorScene(scene, editor.levelPath, playLevel, true);
 						}
 						else {
-							SyncLevelToScene(snap, scene);
-							scene.RebuildColliders();
+							ApplyLevelToEditorScene(scene, editor.levelPath, snap, true);
 						}
-
-						scene.RunPostLevelLoadSetup(true);
-						scene.ResolveInitialStaticOverlaps(); }, [&]() {
+						}, [&]() {
 						scene.StopAllObjectAudio();
 						scene.SetSimulationActive(false);
 
@@ -898,36 +911,23 @@ namespace LEPANELLEVEL {
 
 						if (!editor.levelPath.empty()) {
 							LevelData restoredLevel;
-							if (LevelSerializer::Load(editor.levelPath, restoredLevel)) {
-								const RuntimeLevelPipeline::LevelLoadResult loadResult =
-									RuntimeLevelPipeline::LoadLevelIntoSceneDetailed(editor.levelPath, scene);
-								if (loadResult.success) {
-									sLastValidationReport.warnings = loadResult.validationWarnings;
-									scene.SetCurrentLevelPath(editor.levelPath);
-									scene.SetSimulationActive(false);
-									scene.RunPostLevelLoadSetup(false);
-									scene.ResetResizeBaseline();
-									SyncPrefabLinksToEditor(restoredLevel, scene);
-									SyncTextObjectsToEditor(restoredLevel);
-									selectedIndex = -1;
-									selectedObjectId = -1;
-									LEHIERARCHY::InvalidateCache();
-									editor.SetPlaying(false);
-									return;
-								}
-
-								TS_LOG_ERROR("[LevelEditor] Runtime stop restore failed for '" << editor.levelPath
-									<< "': " << loadResult.failureReason);
+							if (LevelSerializer::LoadExact(editor.levelPath, restoredLevel)) {
+								sLastValidationReport = RuntimeLevel::ValidateLevelData(editor.levelPath, restoredLevel);
+								ApplyLevelToEditorScene(scene, editor.levelPath, restoredLevel, false);
+								SyncPrefabLinksToEditor(restoredLevel, scene);
+								SyncTextObjectsToEditor(restoredLevel);
+								selectedIndex = -1;
+								selectedObjectId = -1;
+								LEHIERARCHY::InvalidateCache();
+								editor.SetPlaying(false);
+								return;
 							}
+
+							TS_LOG_ERROR("[LevelEditor] Exact editor stop restore failed for '" << editor.levelPath << "'");
 						}
 
-						scene.ClearAll();
-						scene.SetCurrentLevelPath(editor.levelPath);
-						SyncLevelToScene(playSnapshot, scene);
+						ApplyLevelToEditorScene(scene, editor.levelPath, playSnapshot, false);
 						SyncTextObjectsToEditor(playSnapshot);
-						scene.RebuildColliders();
-						scene.RunPostLevelLoadSetup(false);
-						scene.ResetResizeBaseline();
 						editor.SetPlaying(false); } });
 
 		if (sLastValidationReport.HasWarnings() && ImGui::CollapsingHeader("Validation Warnings", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -1713,8 +1713,22 @@ namespace LEPANELLEVEL {
 						ImGui::SameLine();
 						std::string previewBtnId = std::string(">##preview_") + label;
 						if (ImGui::Button(previewBtnId.c_str(), ImVec2(20, 0))) {
-							// Play preview through AudioCatalog
-							// Note: This would need AudioManager access, simplified here
+							if (g_AppState && g_AppState->coreEngine) {
+								static std::string sPreviewAudioName;
+								const Audio::AudioAsset* previewAsset = Audio::AudioCatalog::GetAudioAsset(audioBinding);
+								const float previewVolume = previewAsset ? previewAsset->volume : 1.0f;
+
+								if (!sPreviewAudioName.empty()) {
+									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(sPreviewAudioName);
+								}
+
+								g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>(
+									audioBinding,
+									previewVolume,
+									false
+								);
+								sPreviewAudioName = audioBinding;
+							}
 						}
 						if (ImGui::IsItemHovered()) {
 							ImGui::SetTooltip("Preview audio");

@@ -32,7 +32,7 @@
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/StartGamePromptLogic.hpp"
-#include "GamePaths.hpp"
+#include "MyoonchiDiner/GamePaths.hpp"
 
 namespace {
 	// Popup + decision button textures.

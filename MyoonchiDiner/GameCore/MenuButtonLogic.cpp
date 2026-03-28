@@ -20,7 +20,7 @@
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/MenuButtonLogic.hpp"
-#include "GamePaths.hpp"
+#include "MyoonchiDiner/GamePaths.hpp"
 
 #ifndef _DEBUG
 namespace {

@@ -163,6 +163,10 @@ public:
 	bool SetRuntimeTextByName(const std::string& name, const std::string& newText);
 	void ClearRuntimeTextObjects();
 	void SetPauseSuppressedRuntimeTextNames(std::vector<std::string> textNames);
+	const std::unordered_set<std::string>& GetEditorPreservedRuntimeTextNames() const {
+		return editorPreservedRuntimeTextNames_;
+	}
+	void SetEditorPreservedRuntimeTextNames(std::vector<std::string> textNames);
 	void SetEditorUiHook(std::function<void(Scene&)> hook) {
 		editorUiHook_ = std::move(hook);
 	}
@@ -1176,6 +1180,7 @@ private:
 	FlowState flowStateBeforePause_ = FlowState::Gameplay;
 	std::vector<RuntimeTextData> runtimeTextObjects_;
 	std::unordered_set<std::string> pauseSuppressedRuntimeTextNames_;
+	std::unordered_set<std::string> editorPreservedRuntimeTextNames_;
 
 	// Pause audio fade state
 	bool pauseAudioPending_ = false;

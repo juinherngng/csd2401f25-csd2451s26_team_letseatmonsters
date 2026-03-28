@@ -193,3 +193,12 @@ void Scene::SetPauseSuppressedRuntimeTextNames(std::vector<std::string> textName
 	pauseSuppressedRuntimeTextNames_.clear();
 	pauseSuppressedRuntimeTextNames_.insert(textNames.begin(), textNames.end());
 }
+
+/**
+ * @brief Defines which runtime text names the editor should preserve from live scene state.
+ * @param textNames Text object names whose current runtime values should win over authored defaults in edit mode.
+ */
+void Scene::SetEditorPreservedRuntimeTextNames(std::vector<std::string> textNames) {
+	editorPreservedRuntimeTextNames_.clear();
+	editorPreservedRuntimeTextNames_.insert(textNames.begin(), textNames.end());
+}

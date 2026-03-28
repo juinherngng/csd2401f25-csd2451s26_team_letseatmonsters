@@ -565,6 +565,7 @@ namespace LEPANELASSETS {
 			if (ImGui::BeginDragDropTarget()) {
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AUDIO_PATH")) {
 					std::string droppedPath(static_cast<const char*>(payload->Data));
+					static std::string sPreviewAudioName;
 
 					// Find in catalog and play
 					const auto& previewCatalog = Audio::AudioCatalog::GetAllAssets();
@@ -572,32 +573,35 @@ namespace LEPANELASSETS {
 
 					for (const auto& asset : previewCatalog) {
 						if (asset.filepath == droppedPath) {
-							// Stop any currently playing preview
-							ResourceManager::Instance().LoadAudio(
-								"__preview__",
-								asset.filepath,
-								false,  // Don't loop preview
-								false   // Load into memory for quick playback
-							);
+							if (g_AppState && g_AppState->coreEngine) {
+								if (!sPreviewAudioName.empty()) {
+									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(sPreviewAudioName);
+								}
 
-							// Use the AudioManager to play
-							// Note: You'll need to get AudioManager from CoreEngine
-							// For now, just indicate success
-							ImGui::OpenPopup("Preview Playing");
+								g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>(
+									asset.name,
+									asset.volume,
+									false
+								);
+								sPreviewAudioName = asset.name;
+								ImGui::OpenPopup("Preview Playing");
+							}
 							foundInCatalog = true;
 							break;
 						}
 					}
 
-					if (!foundInCatalog) {
-						// Not in catalog, try to play directly
-						ResourceManager::Instance().LoadAudio(
-							"__preview__",
-							droppedPath,
-							false,
-							false
-						);
-						ImGui::OpenPopup("Preview Playing");
+					if (!foundInCatalog && g_AppState && g_AppState->coreEngine) {
+						if (!sPreviewAudioName.empty()) {
+							g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(sPreviewAudioName);
+						}
+
+						ResourceManager::Instance().UnloadAudio("__preview__");
+						if (ResourceManager::Instance().LoadAudio("__preview__", droppedPath, false, false)) {
+							g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>("__preview__", 1.0f, false);
+							sPreviewAudioName = "__preview__";
+							ImGui::OpenPopup("Preview Playing");
+						}
 					}
 				}
 				ImGui::EndDragDropTarget();
@@ -608,7 +612,6 @@ namespace LEPANELASSETS {
 			if (ImGui::BeginPopupModal("Preview Playing", nullptr,
 				ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
 				ImGui::Text("Playing audio preview...");
-				ImGui::TextDisabled("(Feature requires AudioManager integration)");
 				if (ImGui::Button("OK", ImVec2(120, 0))) {
 					ImGui::CloseCurrentPopup();
 				}

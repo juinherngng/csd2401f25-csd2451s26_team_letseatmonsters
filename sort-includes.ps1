@@ -59,7 +59,7 @@ function Get-CanonicalIncludeFromResolvedPath {
         return 'GameCore/{0}' -f (Split-Path $ResolvedPath -Leaf)
     }
     if ($ResolvedPath.StartsWith($GameRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-        return (Split-Path $ResolvedPath -Leaf)
+        return 'MyoonchiDiner/{0}' -f (Split-Path $ResolvedPath -Leaf)
     }
 
     return $null
@@ -91,7 +91,7 @@ function Get-CanonicalIncludeFromLeaf {
 
     $gameRootCandidate = Join-Path $GameRoot $Leaf
     if (Test-Path $gameRootCandidate) {
-        return $Leaf
+        return 'MyoonchiDiner/{0}' -f $Leaf
     }
 
     return $null
@@ -220,7 +220,7 @@ function Normalize-IncludeBlock {
         if ($newBlock.Count -gt 0) {
             $newBlock.Add('')
         }
-        foreach ($include in $quoteIncludes) {
+        foreach ($include in ($quoteIncludes | Sort-Object -Unique)) {
             $newBlock.Add($include)
         }
     }

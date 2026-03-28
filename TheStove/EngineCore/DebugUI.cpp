@@ -515,10 +515,10 @@ namespace Debug {
 						bgm = audioMgr->GetBgmVolume();
 
 						// Publish via MessageBus instead of calling AudioManager directly
-						coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>("boiling_sound", 1.0f, false);
-						// audioMgr->PlaySound("boiling_sound", bgm, false); // Direct call (not via MessageBus)
+						coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>("sfx_boiling_sound", 1.0f, false);
+						// audioMgr->PlaySound("sfx_boiling_sound", bgm, false); // Direct call (not via MessageBus)
 						DebuggerApp::AddDebugLine("Playing: boiling sound (via MessageBus)\n");
-						AddDebugLine("Published PLAY_AUDIO message for boiling_sound\n");
+						AddDebugLine("Published PLAY_AUDIO message for sfx_boiling_sound\n");
 					}
 				}
 			}
@@ -532,9 +532,9 @@ namespace Debug {
 					}
 
 					// Publish stop message via MessageBus
-					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("boiling_sound");
+					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("sfx_boiling_sound");
 					DebuggerApp::AddDebugLine("Stopping: boiling sound (via MessageBus)\n");
-					AddDebugLine("Published STOP_AUDIO message for boiling_sound\n");
+					AddDebugLine("Published STOP_AUDIO message for sfx_boiling_sound\n");
 				}
 			}
 
@@ -546,9 +546,9 @@ namespace Debug {
 					}
 
 					// Publish via MessageBus instead of calling AudioManager directly
-					coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>("grilling_sound", 1.0f, false);
+					coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>("sfx_grilling_sound", 1.0f, false);
 					DebuggerApp::AddDebugLine("Playing: grilling sound (via MessageBus)\n");
-					AddDebugLine("Published PLAY_AUDIO message for grilling_sound\n");
+					AddDebugLine("Published PLAY_AUDIO message for sfx_grilling_sound\n");
 				}
 			}
 
@@ -561,9 +561,9 @@ namespace Debug {
 					}
 
 					// Publish stop message via MessageBus
-					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("grilling_sound");
+					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("sfx_grilling_sound");
 					DebuggerApp::AddDebugLine("Stopping: grilling sound (via MessageBus)\n");
-					AddDebugLine("Published STOP_AUDIO message for grilling_sound\n");
+					AddDebugLine("Published STOP_AUDIO message for sfx_grilling_sound\n");
 				}
 			}
 
@@ -575,9 +575,9 @@ namespace Debug {
 					}
 
 					// Publish via MessageBus instead of calling AudioManager directly
-					coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>("background_music", 1.0f, false);
+					coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>("bgm_MyoonchiDiner_LevelTheme", 1.0f, false);
 					DebuggerApp::AddDebugLine("Playing: background music (via MessageBus)\n");
-					AddDebugLine("Published PLAY_AUDIO message for background_music\n");
+					AddDebugLine("Published PLAY_AUDIO message for bgm_MyoonchiDiner_LevelTheme\n");
 				}
 			}
 
@@ -590,9 +590,9 @@ namespace Debug {
 					}
 
 					// Publish stop message via MessageBus
-					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("background_music");
+					coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>("bgm_MyoonchiDiner_LevelTheme");
 					DebuggerApp::AddDebugLine("Stopping: background music (via MessageBus)\n");
-					AddDebugLine("Published STOP_AUDIO message for background_music\n");
+					AddDebugLine("Published STOP_AUDIO message for bgm_MyoonchiDiner_LevelTheme\n");
 				}
 			}
 

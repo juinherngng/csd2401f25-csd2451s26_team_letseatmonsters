@@ -302,18 +302,13 @@ static json WriteTextObject(const LevelTextObject& obj) {
 }
 
 /**
- * @brief Loads this object.
- * @param path Path to process.
+ * @brief Loads level data from an already-resolved path.
+ * @param resolvedPath Concrete filesystem path to parse.
  * @param outLevel Output value for out level.
- * @return Result produced by this operation.
+ * @return True when the file exists and parses into level data.
  */
-bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
-	const std::optional<fs::path> resolvedPath = ResolveFreshestLevelPath(path);
-	if (!resolvedPath) {
-		return false;
-	}
-
-	std::ifstream file(*resolvedPath);
+static bool LoadFromResolvedPath(const fs::path& resolvedPath, LevelData& outLevel) {
+	std::ifstream file(resolvedPath);
 	if (!file) {
 		return false;
 	}
@@ -360,6 +355,31 @@ bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
 	}
 
 	return true;
+}
+
+/**
+ * @brief Loads this object.
+ * @param path Path to process.
+ * @param outLevel Output value for out level.
+ * @return Result produced by this operation.
+ */
+bool LevelSerializer::Load(const std::string& path, LevelData& outLevel) {
+	const std::optional<fs::path> resolvedPath = ResolveFreshestLevelPath(path);
+	if (!resolvedPath) {
+		return false;
+	}
+
+	return LoadFromResolvedPath(*resolvedPath, outLevel);
+}
+
+/**
+ * @brief Loads exactly the file at the requested path.
+ * @param path Path to process.
+ * @param outLevel Output value for out level.
+ * @return True when the exact file could be parsed.
+ */
+bool LevelSerializer::LoadExact(const std::string& path, LevelData& outLevel) {
+	return LoadFromResolvedPath(fs::path(path), outLevel);
 }
 
 /**

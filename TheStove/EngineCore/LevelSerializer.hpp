@@ -142,6 +142,14 @@ struct LevelSerializer {
 	static bool Load(const std::string& path, LevelData& outLevel);
 
 	/**
+	 * @brief Loads exactly the file at the requested path without redirecting to fresher copies.
+	 * @param path Filesystem path chosen by the caller.
+	 * @param outLevel Output value for out level.
+	 * @return True when the exact file could be parsed successfully.
+	 */
+	static bool LoadExact(const std::string& path, LevelData& outLevel);
+
+	/**
 	 * @brief Saves this object.
 	 * @param path Path to process.
 	 * @param inLevel Parameter for in level.

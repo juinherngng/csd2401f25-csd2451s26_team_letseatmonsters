@@ -78,8 +78,8 @@
 #include "GameCore/TableLogic.hpp"
 #include "GameCore/TrashCanLogic.hpp"
 #include "GameCore/WorkTableLogic.hpp"
-#include "GamePaths.hpp"
-#include "MyoonchiDinerBindings.hpp"
+#include "MyoonchiDiner/GamePaths.hpp"
+#include "MyoonchiDiner/MyoonchiDinerBindings.hpp"
 
 namespace {
 	constexpr int kAmbientVfxRows = 6;
@@ -1922,6 +1922,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		// Apply level-authored quota/timer tuning for both editor loads and live gameplay so
 		// the HUD matches the selected kitchen immediately after Load, Play, and Stop.
 		applyLevelGameplayTuning(s);
+		Economy::SyncUI(&s);
 		});
 
 	// Cutscene audio hooks
@@ -1932,6 +1933,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	// Pause overlay: tell engine which audio channels to fade on pause
 	scene.SetPauseOverlayAudioChannels(MyoonchiPaths::Audio::BGM_LEVEL_THEME, MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
 	scene.SetPauseSuppressedRuntimeTextNames({ "MoneyText", "QuotaText", "TimerText", "TutorialText" });
+	scene.SetEditorPreservedRuntimeTextNames({ "MoneyText", "QuotaText", "TimerText", "TutorialText" });
 
 	// Logic / UI binders
 	scene.SetTagLogicBinder(AttachTagLogic);

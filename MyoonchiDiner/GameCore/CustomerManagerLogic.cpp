@@ -30,7 +30,7 @@
 #include "GameCore/CustomerOrderUILogic.hpp"
 #include "GameCore/CustomerTableLogic.hpp"
 #include "GameCore/SimpleNpcLogic.hpp"
-#include "GamePaths.hpp"
+#include "MyoonchiDiner/GamePaths.hpp"
 
 namespace {
 	std::string PickRandomCustomerTexture() {

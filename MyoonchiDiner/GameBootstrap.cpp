@@ -19,8 +19,8 @@
 #include "EngineCore/AudioManager.hpp"
 #include "EngineCore/GameBootstrap.hpp"
 #include "EngineCore/GameStateManager.hpp"
-#include "GamePaths.hpp"
-#include "MyoonchiDinerBindings.hpp"
+#include "MyoonchiDiner/GamePaths.hpp"
+#include "MyoonchiDiner/MyoonchiDinerBindings.hpp"
 
 namespace {
 	// Tracks the currently playing background music channel name so it can be
