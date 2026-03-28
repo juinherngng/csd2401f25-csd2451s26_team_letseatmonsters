@@ -14,8 +14,10 @@
 */
 
 #include <algorithm>
+#include <filesystem>
 
 #include "EngineCore/AudioLoading.hpp"
+#include "EngineCore/FilePaths.hpp"
 #include "EngineCore/FileDropHandler.hpp"
 #include "EngineCore/LevelEditorFileIO.hpp"
 #include "EngineCore/Logger.hpp"
@@ -88,9 +90,8 @@ bool FileDropHandler::ProcessDroppedFile(const std::string& droppedPath) {
 bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 	TS_LOG_INFO("[FileDropHandler] Processing audio file: " << droppedPath);
 
-	// Target directory: ../../assets/Audio (relative to build/Release)
-	// This goes from build/Release ? project root ? assets/Audio (SOURCE directory)
-	const std::string targetDir = "../../assets/Audio";
+	// Target directory: editor-facing source audio directory.
+	const std::string targetDir = FilePaths::Dirs::AUDIO_EDITOR;
 
 	// Copy file to project using helper function (handles duplicate filenames)
 	const std::string projPath = LEFILEIO::CopyFileIntoProjectUnique(droppedPath, targetDir);
@@ -155,7 +156,7 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 	);
 
 	// Auto-save catalog to SOURCE directory (../../assets from build/Release)
-	const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
+	const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
 	if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
 		TS_LOG_INFO("[FileDropHandler] Catalog auto-saved to: " << catalogPath);
 	}
@@ -168,14 +169,36 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 
 
 bool FileDropHandler::ProcessTextureFile(const std::string& droppedPath) {
-	TS_LOG_INFO("[FileDropHandler] Texture import not yet implemented: " << droppedPath);
-	return false;
+	TS_LOG_INFO("[FileDropHandler] Processing texture file: " << droppedPath);
+
+	const std::string projectPath = LEFILEIO::CopyFileIntoProjectUnique(droppedPath, FilePaths::Dirs::ASSETS_EDITOR);
+	if (projectPath.empty()) {
+		TS_LOG_ERROR("[FileDropHandler] Failed to copy texture file!");
+		return false;
+	}
+
+	if (Texture* texture = LEFILEIO::LoadTextureBypassingCache(projectPath)) {
+		TS_LOG_INFO("[FileDropHandler] Texture imported and loaded: " << projectPath);
+		(void)texture;
+		return true;
+	}
+
+	TS_LOG_WARN("[FileDropHandler] Texture copied but failed to load immediately: " << projectPath);
+	return true;
 }
 
 
 bool FileDropHandler::ProcessPrefabFile(const std::string& droppedPath) {
-	TS_LOG_INFO("[FileDropHandler] Prefab import not yet implemented: " << droppedPath);
-	return false;
+	TS_LOG_INFO("[FileDropHandler] Processing prefab file: " << droppedPath);
+
+	const std::string projectPath = LEFILEIO::CopyFileIntoProjectUnique(droppedPath, FilePaths::Dirs::PREFABS_EDITOR);
+	if (projectPath.empty()) {
+		TS_LOG_ERROR("[FileDropHandler] Failed to copy prefab file!");
+		return false;
+	}
+
+	TS_LOG_INFO("[FileDropHandler] Prefab imported: " << projectPath);
+	return true;
 }
 
 

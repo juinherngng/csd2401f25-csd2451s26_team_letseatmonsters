@@ -105,25 +105,80 @@ static std::filesystem::path FindRepoRoot() {
 
 namespace {
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+	template <typename T>
+	void HashCombine(std::size_t& seed, const T& value) {
+		seed ^= std::hash<T>{}(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+	}
+
 	/**
 	 * @brief Builds a hash of level data for editor-side change detection.
 	 * @param level Level snapshot to hash.
 	 * @return Hash representing the supplied level state.
 	 */
 	static std::size_t HashLevelData(const LevelData& level) {
-		std::size_t seed = std::hash<std::string>{}(level.background);
-		seed ^= std::hash<std::string>{}(level.backgroundOverlay) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-		seed ^= std::hash<std::size_t>{}(level.objects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-		seed ^= std::hash<std::size_t>{}(level.textObjects.size()) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		std::size_t seed = 0;
+		HashCombine(seed, level.background);
+		HashCombine(seed, level.backgroundOverlay);
+		HashCombine(seed, level.objects.size());
+		HashCombine(seed, level.textObjects.size());
 
 		for (const auto& o : level.objects) {
-			seed ^= std::hash<std::string>{}(o.texture + o.tag + o.layer + o.prefabPath) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-			seed ^= std::hash<int>{}(static_cast<int>(o.x + o.y + o.w + o.h + o.rotation + o.colWidth + o.colHeight + o.colOffsetX + o.colOffsetY));
+			HashCombine(seed, o.texture);
+			HashCombine(seed, o.tag);
+			HashCombine(seed, o.layer);
+			HashCombine(seed, o.prefabPath);
+			HashCombine(seed, o.x);
+			HashCombine(seed, o.y);
+			HashCombine(seed, o.z);
+			HashCombine(seed, o.w);
+			HashCombine(seed, o.h);
+			HashCombine(seed, o.rotation);
+			HashCombine(seed, o.hasCollider);
+			HashCombine(seed, o.colWidth);
+			HashCombine(seed, o.colHeight);
+			HashCombine(seed, o.colOffsetX);
+			HashCombine(seed, o.colOffsetY);
+			HashCombine(seed, o.speedX);
+			HashCombine(seed, o.speedY);
+			HashCombine(seed, o.approachOffsetX);
+			HashCombine(seed, o.approachOffsetY);
+			HashCombine(seed, o.hasApproachOffset2);
+			HashCombine(seed, o.approachOffset2X);
+			HashCombine(seed, o.approachOffset2Y);
+			HashCombine(seed, o.customerSeatCapacity);
+			HashCombine(seed, o.hasCustomerSeatOffset);
+			HashCombine(seed, o.customerSeatOffsetX);
+			HashCombine(seed, o.customerSeatOffsetY);
+			HashCombine(seed, o.hasCustomerSeatOffset2);
+			HashCombine(seed, o.customerSeatOffset2X);
+			HashCombine(seed, o.customerSeatOffset2Y);
+			HashCombine(seed, o.animated);
+			HashCombine(seed, o.animName);
+			HashCombine(seed, o.audioOnSpawn);
+			HashCombine(seed, o.audioOnInteract);
+			HashCombine(seed, o.audioOnDestroy);
+			HashCombine(seed, o.audioOnProcessing);
+			HashCombine(seed, o.audioLoop);
+			HashCombine(seed, o.shadow);
+			HashCombine(seed, o.visible);
 		}
 
 		for (const auto& t : level.textObjects) {
-			seed ^= std::hash<std::string>{}(t.name + t.fontName + t.text + t.layer) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-			seed ^= std::hash<int>{}(static_cast<int>(t.x + t.y + t.scale + t.rotation));
+			HashCombine(seed, t.name);
+			HashCombine(seed, t.text);
+			HashCombine(seed, t.fontName);
+			HashCombine(seed, t.fontSize);
+			HashCombine(seed, t.x);
+			HashCombine(seed, t.y);
+			HashCombine(seed, t.scale);
+			HashCombine(seed, t.rotation);
+			HashCombine(seed, t.useBlockRotation);
+			HashCombine(seed, t.colorR);
+			HashCombine(seed, t.colorG);
+			HashCombine(seed, t.colorB);
+			HashCombine(seed, t.colorA);
+			HashCombine(seed, t.layer);
+			HashCombine(seed, t.visible);
 		}
 
 		return seed;
@@ -502,6 +557,10 @@ namespace {
 			out.hasCustomerSeatOffset = defs.hasCustomerSeatOffset;
 			out.customerSeatOffsetX = defs.customerSeatOffset.x;
 			out.customerSeatOffsetY = defs.customerSeatOffset.y;
+			out.customerSeatCapacity = defs.customerSeatCapacity;
+			out.hasCustomerSeatOffset2 = defs.hasCustomerSeatOffset2;
+			out.customerSeatOffset2X = defs.customerSeatOffset2.x;
+			out.customerSeatOffset2Y = defs.customerSeatOffset2.y;
 
 			// Audio bindings from defaults
 			out.audioOnSpawn = defs.audioOnSpawn;
@@ -870,8 +929,7 @@ namespace LEPANELLEVEL {
 												  },
 												  [&]() {
 													  LevelData& dst = editor.MutableLevel();
-													  SyncSceneToLevel(scene, dst);
-													  SyncTextObjectsToLevel(dst);
+													  CaptureEditorState(scene, dst);
 													  const std::size_t currentHash = HashLevelData(dst);
 													  const bool savePathChanged = (editor.levelPath != sLastSavedPath);
 
@@ -882,8 +940,7 @@ namespace LEPANELLEVEL {
 												  },
 												  [&]() { return PerformUndo(editor, scene); }, [&]() { return PerformRedo(editor, scene); }, [&]() {
 						LevelData& snap = editor.MutablePlaySnapshot();
-						SyncSceneToLevel(scene, snap);
-						SyncTextObjectsToLevel(snap);
+						CaptureEditorState(scene, snap);
 						const bool useExactFileLoad = !editor.levelPath.empty();
 
 						editor.SetPlaying(true);

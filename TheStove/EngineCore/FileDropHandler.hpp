@@ -147,11 +147,11 @@ private:
 	/*!
 	\brief
 		Processes texture files (.png, .jpg, .jpeg).
-		Currently not implemented - returns false.
+		Copies into the project assets folder and primes a texture load.
 	\param droppedPath
 		Absolute path to the texture file.
 	\return
-		False (not yet implemented).
+		True if the texture was imported successfully.
 	*/
 	/************************************************************************/
 	bool ProcessTextureFile(const std::string& droppedPath);
@@ -160,11 +160,11 @@ private:
 	/*!
 	\brief
 		Processes prefab files (.json).
-		Currently not implemented - returns false.
+		Copies into the project prefabs folder.
 	\param droppedPath
 		Absolute path to the prefab file.
 	\return
-		False (not yet implemented).
+		True if the prefab was imported successfully.
 	*/
 	/************************************************************************/
 	bool ProcessPrefabFile(const std::string& droppedPath);

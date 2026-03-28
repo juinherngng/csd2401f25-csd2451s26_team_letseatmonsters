@@ -55,8 +55,13 @@ namespace LEPANELPREFABS {
 	 */
 	static LevelObject BuildPrefabFromObject(Scene& scene, GameObject* g) {
 		LevelObject out{};
+		const int id = g->GetID();
+		Scene::Defaults defaults = scene.GetDefaults(id);
 
-		out.texture = scene.GetObjectTexturePath(g->GetID());
+		out.texture = scene.GetObjectTexturePath(id);
+		if (out.texture.empty()) {
+			out.texture = defaults.texture;
+		}
 
 		const glm::vec3 p = g->GetPositionGLM();
 		const glm::vec3 s = g->GetScaleGLM();
@@ -72,15 +77,44 @@ namespace LEPANELPREFABS {
 		const auto csz = g->GetColliderSize();
 		const auto cof = g->GetColliderOffset();
 
+		out.hasCollider = (csz.x > 0.0f && csz.y > 0.0f);
 		out.colWidth = csz.x;
 		out.colHeight = csz.y;
 		out.colOffsetX = cof.x;
 		out.colOffsetY = cof.y;
 
-		out.animated = scene.HasAnimations(g->GetID());
-		out.layer = scene.GetObjectLayer(g->GetID());
+		out.layer = scene.GetObjectLayer(id);
+		if (out.layer.empty()) {
+			out.layer = defaults.layer.empty() ? "1" : defaults.layer;
+		}
 
-		const glm::vec2 v = scene.GetNPCVelocity(g->GetID());
+		const std::string objectTag = scene.GetObjectTag(id);
+		out.tag = objectTag.empty() ? defaults.tag : objectTag;
+
+		out.approachOffsetX = defaults.approachOffset.x;
+		out.approachOffsetY = defaults.approachOffset.y;
+		out.hasApproachOffset2 = defaults.hasApproachOffset2;
+		out.approachOffset2X = defaults.approachOffset2.x;
+		out.approachOffset2Y = defaults.approachOffset2.y;
+		out.hasCustomerSeatOffset = defaults.hasCustomerSeatOffset;
+		out.customerSeatOffsetX = defaults.customerSeatOffset.x;
+		out.customerSeatOffsetY = defaults.customerSeatOffset.y;
+		out.customerSeatCapacity = defaults.customerSeatCapacity;
+		out.hasCustomerSeatOffset2 = defaults.hasCustomerSeatOffset2;
+		out.customerSeatOffset2X = defaults.customerSeatOffset2.x;
+		out.customerSeatOffset2Y = defaults.customerSeatOffset2.y;
+
+		out.animated = scene.HasAnimations(id);
+		out.animName = scene.GetCurrentAnimationName(id);
+		out.audioOnSpawn = defaults.audioOnSpawn;
+		out.audioOnInteract = defaults.audioOnInteract;
+		out.audioOnDestroy = defaults.audioOnDestroy;
+		out.audioOnProcessing = defaults.audioOnProcessing;
+		out.audioLoop = defaults.audioLoop;
+		out.shadow = g->HasShadow();
+		out.visible = scene.IsObjectVisible(id);
+
+		const glm::vec2 v = scene.GetNPCVelocity(id);
 		out.speedX = v.x;
 		out.speedY = v.y;
 
@@ -120,7 +154,27 @@ namespace LEPANELPREFABS {
 			NearlyEqual(lhs.colOffsetY, rhs.colOffsetY) &&
 			NearlyEqual(lhs.speedX, rhs.speedX) &&
 			NearlyEqual(lhs.speedY, rhs.speedY) &&
-			(lhs.animated == rhs.animated);
+			NearlyEqual(lhs.approachOffsetX, rhs.approachOffsetX) &&
+			NearlyEqual(lhs.approachOffsetY, rhs.approachOffsetY) &&
+			(lhs.hasApproachOffset2 == rhs.hasApproachOffset2) &&
+			NearlyEqual(lhs.approachOffset2X, rhs.approachOffset2X) &&
+			NearlyEqual(lhs.approachOffset2Y, rhs.approachOffset2Y) &&
+			(lhs.hasCustomerSeatOffset == rhs.hasCustomerSeatOffset) &&
+			NearlyEqual(lhs.customerSeatOffsetX, rhs.customerSeatOffsetX) &&
+			NearlyEqual(lhs.customerSeatOffsetY, rhs.customerSeatOffsetY) &&
+			(lhs.customerSeatCapacity == rhs.customerSeatCapacity) &&
+			(lhs.hasCustomerSeatOffset2 == rhs.hasCustomerSeatOffset2) &&
+			NearlyEqual(lhs.customerSeatOffset2X, rhs.customerSeatOffset2X) &&
+			NearlyEqual(lhs.customerSeatOffset2Y, rhs.customerSeatOffset2Y) &&
+			(lhs.animated == rhs.animated) &&
+			(lhs.animName == rhs.animName) &&
+			(lhs.audioOnSpawn == rhs.audioOnSpawn) &&
+			(lhs.audioOnInteract == rhs.audioOnInteract) &&
+			(lhs.audioOnDestroy == rhs.audioOnDestroy) &&
+			(lhs.audioOnProcessing == rhs.audioOnProcessing) &&
+			(lhs.audioLoop == rhs.audioLoop) &&
+			(lhs.shadow == rhs.shadow) &&
+			(lhs.visible == rhs.visible);
 	}
 
 	/**
@@ -513,53 +567,7 @@ namespace LEPANELPREFABS {
 				// Find the selected GameObject
 				GameObject* gSel = scene.GetGameObjectByID(selectedObjectId);
 				if (gSel) {
-					LevelObject out{};
-
-					// Texture path
-					out.texture = scene.GetObjectTexturePath(selectedObjectId);
-
-					// Transform (position/scale) store rotation in DEGREES for JSON
-					const glm::vec3 p = gSel->GetPositionGLM();
-					const glm::vec3 s = gSel->GetScaleGLM();
-
-					out.x = p.x; out.y = p.y; out.z = p.z;
-					out.w = s.x; out.h = s.y;
-
-					out.rotation = glm::degrees(gSel->GetRotationAngleZ());
-
-					// Collider
-					const auto csz = gSel->GetColliderSize();
-					const auto cof = gSel->GetColliderOffset();
-
-					out.colWidth = csz.x;
-					out.colHeight = csz.y;
-					out.colOffsetX = cof.x;
-					out.colOffsetY = cof.y;
-
-					// Tagging by special IDs (project-specific convenience)
-					if (selectedObjectId == scene.GetPlayerID()) {
-						out.tag = "player";
-					}
-					else if (selectedObjectId == scene.GetNPC1ID()) {
-						out.tag = "npc1";
-					}
-					else if (selectedObjectId == scene.GetNPC2ID()) {
-						out.tag = "npc2";
-					}
-					else if (selectedObjectId == scene.GetDinoID()) {
-						out.tag = "dino";
-					}
-
-					// NPC velocity (store even if unused by static objects)
-					const glm::vec2 v = scene.GetNPCVelocity(selectedObjectId);
-					out.speedX = v.x;
-					out.speedY = v.y;
-
-					// Animation flag
-					out.animated = scene.HasAnimations(selectedObjectId);
-
-					// Layer
-					out.layer = scene.GetObjectLayer(selectedObjectId);
+					LevelObject out = BuildPrefabFromObject(scene, gSel);
 
 					// Save and refresh list
 					std::string savePath = prefabPath;

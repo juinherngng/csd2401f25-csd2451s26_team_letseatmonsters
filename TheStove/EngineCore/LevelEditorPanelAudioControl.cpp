@@ -23,6 +23,7 @@
 #include "EngineCore/AudioManager.hpp"
 #include "EngineCore/ConfigManager.hpp"
 #include "EngineCore/Core.hpp"
+#include "EngineCore/FilePaths.hpp"
 #include "EngineCore/LevelEditor.hpp"
 #include "EngineCore/LevelEditorPanelAudioControl.hpp"
 #include "EngineCore/Logger.hpp"
@@ -151,7 +152,7 @@ namespace LEPANELAUDIOCONTROL {
 		const float actionButtonWidth = std::max(120.0f, (actionAvailWidth - actionSpacing) * 0.5f);
 		if (ImGui::Button("Save Volume Settings", ImVec2(actionButtonWidth, 0.0f))) {
 			// Persist per-asset volume edits back into the source audio catalog.
-			const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
+			const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
 			if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
 				TS_LOG_INFO("[Audio Control] Volume settings saved to: " << catalogPath);
 				ImGui::OpenPopup("Volume Settings Saved");
@@ -167,7 +168,7 @@ namespace LEPANELAUDIOCONTROL {
 		// Reload Volumes button
 		if (ImGui::Button("Reload Volumes", ImVec2(actionButtonWidth, 0.0f))) {
 			// Reload the catalog from disk and rebuild the cache on the next frame.
-			const std::string catalogPath = "../../assets/Audio/AudioCatalog.json";
+			const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
 			Audio::AudioCatalog::UnloadAllAudio();
 			if (Audio::AudioCatalog::LoadCatalogFromFile(catalogPath)) {
 				Audio::AudioCatalog::LoadAllAudio();

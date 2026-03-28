@@ -564,7 +564,7 @@ namespace LEPANELASSETS {
 			// Accept dropped audio for preview
 			if (ImGui::BeginDragDropTarget()) {
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("AUDIO_PATH")) {
-					std::string droppedPath(static_cast<const char*>(payload->Data));
+					const std::string droppedPath = NormalizeAudioPath(static_cast<const char*>(payload->Data));
 					static std::string sPreviewAudioName;
 
 					// Find in catalog and play
@@ -572,7 +572,7 @@ namespace LEPANELASSETS {
 					bool foundInCatalog = false;
 
 					for (const auto& asset : previewCatalog) {
-						if (asset.filepath == droppedPath) {
+						if (NormalizeAudioPath(asset.filepath) == droppedPath) {
 							if (g_AppState && g_AppState->coreEngine) {
 								if (!sPreviewAudioName.empty()) {
 									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(sPreviewAudioName);
@@ -803,6 +803,11 @@ namespace LEPANELASSETS {
 				}
 
 				if (applyEdit) {
+					if (currentlyPlaying == originalEditName && g_AppState && g_AppState->coreEngine) {
+						g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(originalEditName);
+						currentlyPlaying.clear();
+					}
+
 					Audio::AudioCatalog::RemoveAudioAsset(originalEditName);
 					Audio::AudioCatalog::AddAudioAsset(pendingEditBuffer);
 

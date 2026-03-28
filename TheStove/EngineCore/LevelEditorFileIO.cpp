@@ -450,24 +450,72 @@ namespace LEFILEIO {
 
 		const int id = obj->GetID();
 		const glm::vec3 keepPos = obj->GetPositionGLM();
+		const std::string resolvedLayer = prefab.layer.empty() ? "1" : prefab.layer;
 
 		const float w = prefab.w;
 		const float h = prefab.h;
 
 		obj->SetScale(glm::vec3(w, h, 1.0f));
-		obj->SetColliderSize({ prefab.colWidth, prefab.colHeight });
-		obj->SetColliderOffset({ prefab.colOffsetX, prefab.colOffsetY });
+		if (prefab.hasCollider) {
+			obj->SetColliderSize({ prefab.colWidth, prefab.colHeight });
+			obj->SetColliderOffset({ prefab.colOffsetX, prefab.colOffsetY });
+		}
+		else {
+			obj->SetColliderSize({ 0.0f, 0.0f });
+			obj->SetColliderOffset({ 0.0f, 0.0f });
+		}
 
 		// Reapply the transform using editor rotation units so runtime state matches serialized data.
 		scene.SetTransformFromLevel(id, obj->GetPositionGLM(), { w, h, 1.0f }, prefab.rotation);
 		scene.SetObjectTexturePath(id, prefab.texture);
+		scene.AssignObjectToLayer(id, resolvedLayer);
 
 		if (auto* tex = ResourceManager::Instance().LoadTexture("sprite_" + prefab.texture, prefab.texture)) {
 			obj->SetTexture(tex);
 		}
 
+		Scene::Defaults defaults = scene.GetDefaults(id);
+		defaults.pos = keepPos;
+		defaults.size = { prefab.w, prefab.h, 1.0f };
+		defaults.rot = prefab.rotation;
+		defaults.colSize = prefab.hasCollider ? Math::Vector2D{ prefab.colWidth, prefab.colHeight } : Math::Vector2D{ 0.0f, 0.0f };
+		defaults.colOff = prefab.hasCollider ? Math::Vector2D{ prefab.colOffsetX, prefab.colOffsetY } : Math::Vector2D{ 0.0f, 0.0f };
+		defaults.vel = { prefab.speedX, prefab.speedY };
+		defaults.approachOffset = { prefab.approachOffsetX, prefab.approachOffsetY };
+		defaults.hasApproachOffset2 = prefab.hasApproachOffset2;
+		defaults.approachOffset2 = { prefab.approachOffset2X, prefab.approachOffset2Y };
+		defaults.hasCustomerSeatOffset = prefab.hasCustomerSeatOffset;
+		defaults.customerSeatOffset = { prefab.customerSeatOffsetX, prefab.customerSeatOffsetY };
+		defaults.customerSeatCapacity = prefab.customerSeatCapacity;
+		defaults.hasCustomerSeatOffset2 = prefab.hasCustomerSeatOffset2;
+		defaults.customerSeatOffset2 = { prefab.customerSeatOffset2X, prefab.customerSeatOffset2Y };
+		defaults.texture = prefab.texture;
+		defaults.tag = prefab.tag;
+		defaults.layer = resolvedLayer;
+		defaults.audioOnSpawn = prefab.audioOnSpawn;
+		defaults.audioOnInteract = prefab.audioOnInteract;
+		defaults.audioOnDestroy = prefab.audioOnDestroy;
+		defaults.audioOnProcessing = prefab.audioOnProcessing;
+		defaults.audioLoop = prefab.audioLoop;
+		defaults.visible = prefab.visible;
+		scene.SetDefaults(id, defaults);
+
+		scene.SetObjectTag(id, prefab.tag);
+		scene.SetNPCVelocity(id, prefab.speedX, prefab.speedY);
+		scene.SetObjectVisible(id, prefab.visible);
+		scene.ApplyTagRules(id, prefab.tag, prefab.speedX, prefab.speedY);
+		scene.AttachLogicForTag(id, prefab.tag);
+		scene.MarkAnimated(id, prefab.animated);
+		if (prefab.animated && !prefab.animName.empty() && scene.HasAnimations(id)) {
+			scene.SetAnimation(id, prefab.animName);
+		}
+		else if (!prefab.animated) {
+			obj->SetUVRect({ 0.0f, 0.0f, 1.0f, 1.0f });
+		}
+
 		obj->SetPosition(keepPos);
 		scene.ClampToWalkArea(obj);
+		scene.RebuildColliders();
 	}
 
 	/**
