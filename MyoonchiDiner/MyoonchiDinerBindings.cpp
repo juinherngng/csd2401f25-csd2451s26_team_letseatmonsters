@@ -52,6 +52,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "EngineCore/AudioManager.hpp"
 #include "EngineCore/EngineRng.hpp"
@@ -616,6 +617,7 @@ namespace {
 		bool moveStartCaptured = false;
 		int lastMoney = 0;
 		int paymentsCollected_ = 0;
+		std::unordered_set<int> paidCustomerIDs_{};
 		bool completionPopupShown_ = false;
 		std::vector<int> completionPopupIDs_{};
 
@@ -663,6 +665,41 @@ namespace {
 			const glm::vec2 max(pos.x + sz.x * 0.5f, pos.y + sz.y * 0.5f);
 
 			return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y;
+		}
+
+		void RefreshPaymentProgress(Scene& scene, LogicManager& logic) {
+			int newlyPaidCount = 0;
+
+			for (GameObject* obj : scene.GetAllObjectsRaw()) {
+				if (!obj) continue;
+
+				const int id = obj->GetID();
+				auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(id);
+				if (!npc || !npc->HasPaid()) continue;
+
+				if (paidCustomerIDs_.insert(id).second) {
+					++newlyPaidCount;
+				}
+			}
+
+			if (newlyPaidCount <= 0) {
+				return;
+			}
+
+			paymentsCollected_ += newlyPaidCount;
+			lastMoney = Economy::gPlayerMoney;
+
+			if (paymentsCollected_ >= 2) {
+				step = TutorialStep::Done;
+				scene.SetRuntimeTextByName("TutorialText", "");
+				ShowCompletionPopup(scene);
+				return;
+			}
+
+			if (step != TutorialStep::Done && step != TutorialStep::FinalCustomerFreePlay) {
+				step = TutorialStep::FinalCustomerFreePlay;
+				scene.SetRuntimeTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
+			}
 		}
 
 		void UpdateCompletionButtonHoverVisual(Scene& scene, const glm::vec2& mouseWorld) {
@@ -1025,6 +1062,7 @@ namespace {
 			moveStartCaptured = false;
 			lastMoney = Economy::gPlayerMoney;
 			paymentsCollected_ = 0;
+			paidCustomerIDs_.clear();
 			scene.SetRuntimeTextByName("TutorialText", active ? "Click anywhere to move." : "");
 		}
 
@@ -1062,6 +1100,8 @@ namespace {
 			LogicManager& logic = scene.GetLogicManager();
 			PlayerLogic* playerLogic = logic.GetLogicForObject<PlayerLogic>(playerId);
 			if (!playerLogic) return;
+
+			RefreshPaymentProgress(scene, logic);
 
 			switch (step) {
 			case TutorialStep::Move:
@@ -1266,37 +1306,13 @@ namespace {
 
 			case TutorialStep::CollectMoneyFromCustomer:
 			{
-				if (Economy::gPlayerMoney > lastMoney) {
-					lastMoney = Economy::gPlayerMoney;
-					++paymentsCollected_;
-
-					if (paymentsCollected_ >= 2) {
-						step = TutorialStep::Done;
-						scene.SetRuntimeTextByName("TutorialText", "");
-						ShowCompletionPopup(scene);
-					}
-					else {
-						// No walkthrough for customer 2; just show one final objective line.
-						step = TutorialStep::FinalCustomerFreePlay;
-						scene.SetRuntimeTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
-					}
-				}
+				scene.SetRuntimeTextByName("TutorialText", "Collect money from customer.");
 				break;
 			}
 
 			case TutorialStep::FinalCustomerFreePlay:
 			{
-				// Free-play phase: no step-by-step gating/highlights, only wait for final payment.
-				if (Economy::gPlayerMoney > lastMoney) {
-					lastMoney = Economy::gPlayerMoney;
-					++paymentsCollected_;
-
-					if (paymentsCollected_ >= 2) {
-						step = TutorialStep::Done;
-						scene.SetRuntimeTextByName("TutorialText", "");
-						ShowCompletionPopup(scene);
-					}
-				}
+				scene.SetRuntimeTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
 				break;
 			}
 
