@@ -18,6 +18,8 @@
 
 #include <glm/vec4.hpp>
 
+#include <unordered_map>
+
 #include "EngineCore/AudioManager.hpp"
 #include "EngineGraphics/GameObject.hpp"
 #include "EngineGraphics/SceneManager.hpp"
@@ -39,6 +41,8 @@ static float Clamp01Value(float v) {
 	if (v > 1.f) return 1.f;
 	return v;
 }
+
+static std::unordered_map<std::string, int> g_processingSoundRefCounts;
 
 WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const std::string& texPath) const {
 	// Detect by the workstation sprite (the table's texture)
@@ -91,6 +95,7 @@ void WorkTableLogic::Start(Scene& scene) {
 }
 
 void WorkTableLogic::OnDestroy(Scene& scene) {
+	StopProcessingSound(scene);
 	DestroyCookingTimerBar(scene);
 	DespawnProcessingVfx(scene);
 	TableLogic::OnDestroy(scene);
@@ -101,8 +106,15 @@ void WorkTableLogic::OnDestroy(Scene& scene) {
 void WorkTableLogic::Update(float dt, Scene& scene, InputManager&) {
 	if (!scene.IsSimulationActive()) return;
 
-	// Only do anything if we have an item and are currently processing
-	if (!isProcessing_ || !HasItem()) {
+	if (!HasItem()) {
+		if (isProcessing_) {
+			CancelProcessing(scene);
+		}
+		DestroyCookingTimerBar(scene);
+		return;
+	}
+
+	if (!isProcessing_) {
 		DestroyCookingTimerBar(scene);
 		return;
 	}
@@ -124,12 +136,7 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&) {
 
 		// Stop station-specific processing sound when complete (release mode only)
 #ifndef _DEBUG
-		if (AudioManager* audioMgr = scene.GetAudioManager()) {
-			const char* soundName = GetProcessingSoundName();
-			if (soundName && audioMgr->HasSound(soundName)) {
-				audioMgr->StopSound(soundName);
-			}
-		}
+		StopProcessingSound(scene);
 #endif
 
 		GameObject* item = scene.GetGameObjectByID(GetHeldItemID());
@@ -233,12 +240,7 @@ void WorkTableLogic::CancelProcessing(Scene& scene) {
 	if (isProcessing_) {
 		// Stop station-specific processing sound when cancelled (release mode only)
 #ifndef _DEBUG
-		if (AudioManager* audioMgr = scene.GetAudioManager()) {
-			const char* soundName = GetProcessingSoundName();
-			if (soundName && audioMgr->HasSound(soundName)) {
-				audioMgr->StopSound(soundName);
-			}
-		}
+		StopProcessingSound(scene);
 #endif
 	}
 	isProcessing_ = false;
@@ -268,17 +270,69 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item) {
 		SpawnProcessingVfx(scene);
 		// Play station-specific processing sound (release mode only)
 #ifndef _DEBUG
-		if (AudioManager* audioMgr = scene.GetAudioManager()) {
-			const char* soundName = GetProcessingSoundName();
-			if (soundName && audioMgr->HasSound(soundName)) {
-				audioMgr->PlaySound(soundName, audioMgr->GetVfxVolume(), false);
-				// Lower volume specifically for cutting board sound
-				if (stationType_ == StationType::CuttingBoard) {
-					audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.2f);
-				}
-			}
-		}
+		StartProcessingSound(scene);
 #endif
+	}
+}
+
+void WorkTableLogic::StartProcessingSound(Scene& scene) {
+	if (processingSoundActive_) {
+		return;
+	}
+
+	AudioManager* audioMgr = scene.GetAudioManager();
+	if (!audioMgr) {
+		return;
+	}
+
+	const char* soundName = GetProcessingSoundName();
+	if (!soundName || !audioMgr->HasSound(soundName)) {
+		return;
+	}
+
+	int& refCount = g_processingSoundRefCounts[soundName];
+	if (refCount == 0) {
+		audioMgr->PlaySound(soundName, audioMgr->GetVfxVolume(), false);
+		if (stationType_ == StationType::CuttingBoard) {
+			audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.2f);
+		}
+	}
+
+	++refCount;
+	processingSoundActive_ = true;
+}
+
+void WorkTableLogic::StopProcessingSound(Scene& scene) {
+	if (!processingSoundActive_) {
+		return;
+	}
+
+	processingSoundActive_ = false;
+
+	AudioManager* audioMgr = scene.GetAudioManager();
+	if (!audioMgr) {
+		return;
+	}
+
+	const char* soundName = GetProcessingSoundName();
+	if (!soundName) {
+		return;
+	}
+
+	auto it = g_processingSoundRefCounts.find(soundName);
+	if (it == g_processingSoundRefCounts.end()) {
+		return;
+	}
+
+	if (it->second > 0) {
+		--it->second;
+	}
+
+	if (it->second <= 0) {
+		if (audioMgr->HasSound(soundName)) {
+			audioMgr->StopSound(soundName);
+		}
+		g_processingSoundRefCounts.erase(it);
 	}
 }
 

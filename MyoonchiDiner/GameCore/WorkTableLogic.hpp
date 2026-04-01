@@ -137,6 +137,10 @@ protected:
 	void FollowCookingTimerBar(Scene& scene);
 	void UpdateCookingTimerFill(Scene& scene, float ratio01);
 
+	void StartProcessingSound(Scene& scene);
+	void StopProcessingSound(Scene& scene);
+	bool processingSoundActive_ = false;
+
 	int timerBarBG_ID_ = -1;
 	int timerBarFill_ID_ = -1;
 
