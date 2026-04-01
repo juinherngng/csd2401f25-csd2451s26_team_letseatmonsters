@@ -2252,6 +2252,10 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		// Apply level-authored quota/timer tuning for both editor loads and live gameplay so
 		// the HUD matches the selected kitchen immediately after Load, Play, and Stop.
 		applyLevelGameplayTuning(s);
+
+		// Prevent timer carry-over (from tutorial -> kitchen01).
+		// Ensures remaining time always matches the configured level time limit after load.
+		Economy::gTimeRemaining = Economy::kTimeLimitSeconds;
 		Economy::SyncUI(&s);
 		});
 
