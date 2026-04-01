@@ -478,15 +478,17 @@ namespace {
 			levelPath.find("tutorial") != std::string::npos;
 	}
 
-#ifndef _DEBUG
-	static bool IsDayClearLevelLoaded(Scene& scene) {
-		const std::string levelPath = scene.GetCurrentLevelPath();
+	static bool IsDayClearLevelPath(const std::string& levelPath) {
 		return levelPath == FilePaths::Levels::WIN ||
 			levelPath.find("win") != std::string::npos ||
 			levelPath.find("dayclear") != std::string::npos ||
 			levelPath.find("day_clear") != std::string::npos;
 	}
-#endif
+
+	static bool IsDayClearLevelLoaded(Scene& scene) {
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		return IsDayClearLevelPath(levelPath);
+	}
 
 	static const char* IngredientBoxTokenForDish(DishType d) {
 		switch (d) {
@@ -1442,6 +1444,10 @@ namespace {
 	*/
 	/************************************************************************/
 	void UpdateSimulationPolicy(float dt, Scene& scene) {
+		if (IsDayClearLevelLoaded(scene)) {
+			return;
+		}
+
 		float prevTime = Economy::gTimeRemaining;
 		Economy::Update(dt, scene);
 
