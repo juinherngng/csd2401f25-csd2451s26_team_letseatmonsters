@@ -52,6 +52,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "EngineCore/AudioManager.hpp"
 #include "EngineCore/EngineRng.hpp"
@@ -350,6 +351,319 @@ namespace {
 			}
 		}
 	};
+
+	enum class QuitPopupYesAction {
+		QuitApplication,
+		ReturnToMainMenu
+	};
+
+	struct QuitPopupState {
+		bool shown_ = false;
+		std::vector<int> objectIDs_{};
+
+		int yesButtonID_ = -1;
+		int noButtonID_ = -1;
+
+		bool mouseHeld_ = false;
+		bool yesHovered_ = false;
+		bool noHovered_ = false;
+		QuitPopupYesAction yesAction_ = QuitPopupYesAction::QuitApplication;
+
+		static constexpr const char* kQuitPopupTexture_ = "../assets/quit_popup.png";
+		static constexpr const char* kReturnPopupTexture_ = "../assets/return_popup.png";
+
+		static constexpr const char* kYesTexture_ = "../assets/yes_s.png";
+		static constexpr const char* kYesHoverTexture_ = "../assets/yes_h.png";
+
+		static constexpr const char* kNoTexture_ = "../assets/no_s.png";
+		static constexpr const char* kNoHoverTexture_ = "../assets/no_h.png";
+
+		// Match tutorial popup layering behavior, but force highest sort order too.
+		static constexpr const char* kUiLayer_ = "999999";
+		static constexpr int kPopupSortOrder_ = 1000000;
+		static constexpr int kButtonSortOrder_ = 1000001;
+
+		static bool GetMouseWorld(InputManager& input, glm::vec2& outWorld) {
+			if (GraphicsEngine::Instance().GetMouseWorldInScene(outWorld)) {
+				return true;
+			}
+			const glm::vec3 w = input.ScreenToWorld(
+				static_cast<float>(input.GetMousePosition().x),
+				static_cast<float>(input.GetMousePosition().y));
+			outWorld = glm::vec2(w.x, w.y);
+			return true;
+		}
+
+		static bool IsPointInObject(Scene& scene, int objectID, const glm::vec2& p) {
+			GameObject* obj = scene.GetGameObjectByID(objectID);
+			if (!obj) return false;
+
+			const glm::vec3 pos = obj->GetPositionGLM();
+			const glm::vec3 sz = obj->GetScaleGLM();
+			const glm::vec2 min(pos.x - sz.x * 0.5f, pos.y - sz.y * 0.5f);
+			const glm::vec2 max(pos.x + sz.x * 0.5f, pos.y + sz.y * 0.5f);
+
+			return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y;
+		}
+
+		static void TrySetObjectTexture(Scene& scene, int objectID, const char* texturePath, const std::string& cacheKey) {
+			if (objectID < 0 || !texturePath) {
+				return;
+			}
+
+			GameObject* obj = scene.GetGameObjectByID(objectID);
+			if (!obj) {
+				return;
+			}
+
+			if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheKey, texturePath)) {
+				obj->SetTexture(tex);
+				scene.SetObjectTexturePath(objectID, texturePath);
+			}
+		}
+
+		void Clear(Scene& scene) {
+			for (int id : objectIDs_) {
+				if (id >= 0 && scene.GetGameObjectByID(id)) {
+					scene.DespawnByID(id);
+				}
+			}
+
+			objectIDs_.clear();
+			yesButtonID_ = -1;
+			noButtonID_ = -1;
+
+			shown_ = false;
+			mouseHeld_ = false;
+			yesHovered_ = false;
+			noHovered_ = false;
+		}
+
+		void Show(Scene& scene, QuitPopupYesAction yesAction) {
+			if (shown_) {
+				return;
+			}
+			shown_ = true;
+			yesAction_ = yesAction;
+
+			const glm::vec3 center{
+				static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
+				static_cast<float>(GraphicsEngine::kRefH) * 0.5f,
+				0.0f
+			};
+
+			const char* popupTexture = (yesAction_ == QuitPopupYesAction::ReturnToMainMenu)
+				? kReturnPopupTexture_
+				: kQuitPopupTexture_;
+
+			if (GameObject* popup = scene.SpawnStaticSprite(
+				popupTexture,
+				center,
+				glm::vec2(1152.0f, 648.0f),
+				kUiLayer_)) {
+				popup->SetRenderSortOrder(kPopupSortOrder_);
+				objectIDs_.push_back(popup->GetID());
+			}
+
+			const glm::vec2 buttonSize(280.0f, 80.0f);
+
+			if (GameObject* yes = scene.SpawnStaticSprite(
+				kYesTexture_,
+				glm::vec3(center.x, center.y + 120.0f, 0.0f),
+				buttonSize,
+				kUiLayer_)) {
+				yes->SetRenderSortOrder(kButtonSortOrder_);
+				yesButtonID_ = yes->GetID();
+				objectIDs_.push_back(yesButtonID_);
+				scene.SetObjectTexturePath(yesButtonID_, kYesTexture_);
+			}
+
+			if (GameObject* no = scene.SpawnStaticSprite(
+				kNoTexture_,
+				glm::vec3(center.x, center.y + 210.0f, 0.0f),
+				buttonSize,
+				kUiLayer_)) {
+				no->SetRenderSortOrder(kButtonSortOrder_);
+				noButtonID_ = no->GetID();
+				objectIDs_.push_back(noButtonID_);
+				scene.SetObjectTexturePath(noButtonID_, kNoTexture_);
+			}
+
+			yesHovered_ = false;
+			noHovered_ = false;
+		}
+
+		void UpdateHoverVisuals(Scene& scene, const glm::vec2& mouseWorld) {
+			if (yesButtonID_ >= 0) {
+				const bool hoveredNow = IsPointInObject(scene, yesButtonID_, mouseWorld);
+				if (hoveredNow != yesHovered_) {
+					yesHovered_ = hoveredNow;
+					TrySetObjectTexture(
+						scene,
+						yesButtonID_,
+						yesHovered_ ? kYesHoverTexture_ : kYesTexture_,
+						yesHovered_ ? "quit_popup_yes_h" : "quit_popup_yes");
+				}
+			}
+
+			if (noButtonID_ >= 0) {
+				const bool hoveredNow = IsPointInObject(scene, noButtonID_, mouseWorld);
+				if (hoveredNow != noHovered_) {
+					noHovered_ = hoveredNow;
+					TrySetObjectTexture(
+						scene,
+						noButtonID_,
+						noHovered_ ? kNoHoverTexture_ : kNoTexture_,
+						noHovered_ ? "quit_popup_no_h" : "quit_popup_no");
+				}
+			}
+		}
+
+		void SuppressPauseToggle(InputManager& input) const {
+			if (!shown_) {
+				return;
+			}
+
+			// Prevent pause-overlay ESC toggle while quit popup is up.
+			input.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
+		}
+
+		void Update(Scene& scene, InputManager& input) {
+			if (!shown_) {
+				return;
+			}
+
+			// Keep consuming ESC while popup is active.
+			SuppressPauseToggle(input);
+
+			GLFWwindow* window = glfwGetCurrentContext();
+			if (!window) {
+				return;
+			}
+
+			glm::vec2 mouseWorld{};
+			GetMouseWorld(input, mouseWorld);
+			UpdateHoverVisuals(scene, mouseWorld);
+
+			const bool mouseDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+			const bool clickEdge = mouseDown && !mouseHeld_;
+			mouseHeld_ = mouseDown;
+
+			if (!clickEdge) {
+				return;
+			}
+
+			if (yesButtonID_ >= 0 && IsPointInObject(scene, yesButtonID_, mouseWorld)) {
+				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+				
+				if (yesAction_ == QuitPopupYesAction::ReturnToMainMenu) {
+					Clear(scene);
+					scene.HidePauseOverlay();
+					scene.RequestResumeFromPauseOverlay();
+					scene.StartLevelTransition(MyoonchiPaths::Levels::MAIN_MENU, false);
+				}
+				else {
+					if (GLFWwindow* win = glfwGetCurrentContext()) {
+						glfwSetWindowShouldClose(win, GLFW_TRUE);
+					}
+				}
+				return;
+			}
+
+			if (noButtonID_ >= 0 && IsPointInObject(scene, noButtonID_, mouseWorld)) {
+				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+				Clear(scene);
+			}
+		}
+	};
+
+	static QuitPopupState gQuitPopup;
+
+	class QuitPopupOpenButtonLogic final : public GameObjectLogic {
+	public:
+		explicit QuitPopupOpenButtonLogic(int ownerID, QuitPopupYesAction yesAction)
+			: GameObjectLogic(ownerID), yesActionOnOpen_(yesAction) {
+		}
+
+		void Update(float dt, Scene& scene, InputManager& input) override {
+			(void)dt;
+
+			if (gQuitPopup.shown_) {
+				gQuitPopup.Update(scene, input);
+				return;
+			}
+
+			if (!initialized_) {
+				normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
+				hoverTexturePath_ = BuildHoverTexturePath(normalTexturePath_);
+				initialized_ = true;
+			}
+
+			GLFWwindow* window = glfwGetCurrentContext();
+			if (!window) {
+				return;
+			}
+
+			glm::vec2 mouseWorld{};
+			QuitPopupState::GetMouseWorld(input, mouseWorld);
+
+			const bool hoveredNow = QuitPopupState::IsPointInObject(scene, GetOwnerID(), mouseWorld);
+			if (hoveredNow != hovered_) {
+				hovered_ = hoveredNow;
+
+				const std::string cacheKey = hovered_
+					? ("pause_quit_hover_" + std::to_string(GetOwnerID()))
+					: ("pause_quit_normal_" + std::to_string(GetOwnerID()));
+
+				QuitPopupState::TrySetObjectTexture(
+					scene,
+					GetOwnerID(),
+					hovered_ ? hoverTexturePath_.c_str() : normalTexturePath_.c_str(),
+					cacheKey);
+			}
+
+			const bool mouseDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
+			const bool clickEdge = mouseDown && !mouseHeld_;
+			mouseHeld_ = mouseDown;
+
+			if (hoveredNow && clickEdge) {
+				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+				gQuitPopup.Show(scene, yesActionOnOpen_);
+			}
+		}
+
+	private:
+		static std::string BuildHoverTexturePath(const std::string& normalPath) {
+			if (normalPath.empty()) {
+				return normalPath;
+			}
+
+			const std::string suffix = "_s.png";
+			if (normalPath.size() >= suffix.size() &&
+				normalPath.compare(normalPath.size() - suffix.size(), suffix.size(), suffix) == 0) {
+				std::string p = normalPath;
+				p.replace(p.size() - suffix.size(), suffix.size(), "_h.png");
+				return p;
+			}
+
+			const std::string ext = ".png";
+			if (normalPath.size() >= ext.size() &&
+				normalPath.compare(normalPath.size() - ext.size(), ext.size(), ext) == 0) {
+				std::string p = normalPath;
+				p.insert(p.size() - ext.size(), "_h");
+				return p;
+			}
+
+			return normalPath;
+		}
+
+		bool mouseHeld_ = false;
+		bool initialized_ = false;
+		bool hovered_ = false;
+		std::string normalTexturePath_{};
+		std::string hoverTexturePath_{};
+		QuitPopupYesAction yesActionOnOpen_ = QuitPopupYesAction::QuitApplication;
+	};
 }
 
 namespace {
@@ -618,6 +932,7 @@ namespace {
 		bool moveStartCaptured = false;
 		int lastMoney = 0;
 		int paymentsCollected_ = 0;
+		std::unordered_set<int> paidCustomerIDs_{};
 		bool completionPopupShown_ = false;
 		std::vector<int> completionPopupIDs_{};
 
@@ -665,6 +980,41 @@ namespace {
 			const glm::vec2 max(pos.x + sz.x * 0.5f, pos.y + sz.y * 0.5f);
 
 			return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y;
+		}
+
+		void RefreshPaymentProgress(Scene& scene, LogicManager& logic) {
+			int newlyPaidCount = 0;
+
+			for (GameObject* obj : scene.GetAllObjectsRaw()) {
+				if (!obj) continue;
+
+				const int id = obj->GetID();
+				auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(id);
+				if (!npc || !npc->HasPaid()) continue;
+
+				if (paidCustomerIDs_.insert(id).second) {
+					++newlyPaidCount;
+				}
+			}
+
+			if (newlyPaidCount <= 0) {
+				return;
+			}
+
+			paymentsCollected_ += newlyPaidCount;
+			lastMoney = Economy::gPlayerMoney;
+
+			if (paymentsCollected_ >= 2) {
+				step = TutorialStep::Done;
+				scene.SetRuntimeTextByName("TutorialText", "");
+				ShowCompletionPopup(scene);
+				return;
+			}
+
+			if (step != TutorialStep::Done && step != TutorialStep::FinalCustomerFreePlay) {
+				step = TutorialStep::FinalCustomerFreePlay;
+				scene.SetRuntimeTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
+			}
 		}
 
 		void UpdateCompletionButtonHoverVisual(Scene& scene, const glm::vec2& mouseWorld) {
@@ -1038,6 +1388,7 @@ namespace {
 			moveStartCaptured = false;
 			lastMoney = Economy::gPlayerMoney;
 			paymentsCollected_ = 0;
+			paidCustomerIDs_.clear();
 			scene.SetRuntimeTextByName("TutorialText", active ? "Click anywhere to move." : "");
 		}
 
@@ -1075,6 +1426,8 @@ namespace {
 			LogicManager& logic = scene.GetLogicManager();
 			PlayerLogic* playerLogic = logic.GetLogicForObject<PlayerLogic>(playerId);
 			if (!playerLogic) return;
+
+			RefreshPaymentProgress(scene, logic);
 
 			switch (step) {
 			case TutorialStep::Move:
@@ -1279,37 +1632,13 @@ namespace {
 
 			case TutorialStep::CollectMoneyFromCustomer:
 			{
-				if (Economy::gPlayerMoney > lastMoney) {
-					lastMoney = Economy::gPlayerMoney;
-					++paymentsCollected_;
-
-					if (paymentsCollected_ >= 2) {
-						step = TutorialStep::Done;
-						scene.SetRuntimeTextByName("TutorialText", "");
-						ShowCompletionPopup(scene);
-					}
-					else {
-						// No walkthrough for customer 2; just show one final objective line.
-						step = TutorialStep::FinalCustomerFreePlay;
-						scene.SetRuntimeTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
-					}
-				}
+				scene.SetRuntimeTextByName("TutorialText", "Collect money from customer.");
 				break;
 			}
 
 			case TutorialStep::FinalCustomerFreePlay:
 			{
-				// Free-play phase: no step-by-step gating/highlights, only wait for final payment.
-				if (Economy::gPlayerMoney > lastMoney) {
-					lastMoney = Economy::gPlayerMoney;
-					++paymentsCollected_;
-
-					if (paymentsCollected_ >= 2) {
-						step = TutorialStep::Done;
-						scene.SetRuntimeTextByName("TutorialText", "");
-						ShowCompletionPopup(scene);
-					}
-				}
+				scene.SetRuntimeTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
 				break;
 			}
 
@@ -1528,6 +1857,7 @@ namespace {
 		const bool isTutorial = simulationActive && IsTutorialLevelLoaded(scene);
 		gTutorialFlow.Reset(scene, isTutorial);
 		Economy::BindUIScene(scene);
+		gQuitPopup.Clear(scene);
 
 		if (isTutorial) {
 			customerManager.SetMaxCustomers(2);
@@ -1738,7 +2068,7 @@ namespace {
 				}
 			}},
 			{ "btn_quit", [](Scene& scene, int id) {
-				scene.GetLogicManager().AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+				scene.GetLogicManager().AddLogic<QuitPopupOpenButtonLogic>(id, QuitPopupYesAction::QuitApplication);
 			}},
 			{ "btn_next_level", [](Scene& scene, int id) {
 				const bool goMainMenu = Economy::gWinScreenNextGoesToMainMenu;
@@ -1807,7 +2137,7 @@ namespace {
 		}
 		}
 		else if (action == "quit") {
-			logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
+			logicManager.AddLogic<QuitPopupOpenButtonLogic>(id, QuitPopupYesAction::ReturnToMainMenu);
 		}
 	}
 
@@ -1945,6 +2275,10 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		// Apply level-authored quota/timer tuning for both editor loads and live gameplay so
 		// the HUD matches the selected kitchen immediately after Load, Play, and Stop.
 		applyLevelGameplayTuning(s);
+
+		// Prevent timer carry-over (from tutorial -> kitchen01).
+		// Ensures remaining time always matches the configured level time limit after load.
+		Economy::gTimeRemaining = Economy::kTimeLimitSeconds;
 		Economy::SyncUI(&s);
 		});
 
