@@ -352,6 +352,11 @@ namespace {
 		}
 	};
 
+	enum class QuitPopupYesAction {
+		QuitApplication,
+		ReturnToMainMenu
+	};
+
 	struct QuitPopupState {
 		bool shown_ = false;
 		std::vector<int> objectIDs_{};
@@ -362,8 +367,10 @@ namespace {
 		bool mouseHeld_ = false;
 		bool yesHovered_ = false;
 		bool noHovered_ = false;
+		QuitPopupYesAction yesAction_ = QuitPopupYesAction::QuitApplication;
 
-		static constexpr const char* kPopupTexture_ = "../assets/quit_popup.png";
+		static constexpr const char* kQuitPopupTexture_ = "../assets/quit_popup.png";
+		static constexpr const char* kReturnPopupTexture_ = "../assets/return_popup.png";
 
 		static constexpr const char* kYesTexture_ = "../assets/yes_s.png";
 		static constexpr const char* kYesHoverTexture_ = "../assets/yes_h.png";
@@ -432,11 +439,12 @@ namespace {
 			noHovered_ = false;
 		}
 
-		void Show(Scene& scene) {
+		void Show(Scene& scene, QuitPopupYesAction yesAction) {
 			if (shown_) {
 				return;
 			}
 			shown_ = true;
+			yesAction_ = yesAction;
 
 			const glm::vec3 center{
 				static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
@@ -444,8 +452,12 @@ namespace {
 				0.0f
 			};
 
+			const char* popupTexture = (yesAction_ == QuitPopupYesAction::ReturnToMainMenu)
+				? kReturnPopupTexture_
+				: kQuitPopupTexture_;
+
 			if (GameObject* popup = scene.SpawnStaticSprite(
-				kPopupTexture_,
+				popupTexture,
 				center,
 				glm::vec2(1152.0f, 648.0f),
 				kUiLayer_)) {
@@ -543,8 +555,17 @@ namespace {
 
 			if (yesButtonID_ >= 0 && IsPointInObject(scene, yesButtonID_, mouseWorld)) {
 				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
-				if (GLFWwindow* win = glfwGetCurrentContext()) {
-					glfwSetWindowShouldClose(win, GLFW_TRUE);
+				
+				if (yesAction_ == QuitPopupYesAction::ReturnToMainMenu) {
+					Clear(scene);
+					scene.HidePauseOverlay();
+					scene.RequestResumeFromPauseOverlay();
+					scene.StartLevelTransition(MyoonchiPaths::Levels::MAIN_MENU, false);
+				}
+				else {
+					if (GLFWwindow* win = glfwGetCurrentContext()) {
+						glfwSetWindowShouldClose(win, GLFW_TRUE);
+					}
 				}
 				return;
 			}
@@ -560,8 +581,8 @@ namespace {
 
 	class QuitPopupOpenButtonLogic final : public GameObjectLogic {
 	public:
-		explicit QuitPopupOpenButtonLogic(int ownerID)
-			: GameObjectLogic(ownerID) {
+		explicit QuitPopupOpenButtonLogic(int ownerID, QuitPopupYesAction yesAction)
+			: GameObjectLogic(ownerID), yesActionOnOpen_(yesAction) {
 		}
 
 		void Update(float dt, Scene& scene, InputManager& input) override {
@@ -607,7 +628,7 @@ namespace {
 
 			if (hoveredNow && clickEdge) {
 				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
-				gQuitPopup.Show(scene);
+				gQuitPopup.Show(scene, yesActionOnOpen_);
 			}
 		}
 
@@ -641,6 +662,7 @@ namespace {
 		bool hovered_ = false;
 		std::string normalTexturePath_{};
 		std::string hoverTexturePath_{};
+		QuitPopupYesAction yesActionOnOpen_ = QuitPopupYesAction::QuitApplication;
 	};
 }
 
@@ -2026,7 +2048,7 @@ namespace {
 				scene.GetLogicManager().AddLogic<HowToPlayButtonLogic>(id);
 			}},
 			{ "btn_quit", [](Scene& scene, int id) {
-				scene.GetLogicManager().AddLogic<QuitPopupOpenButtonLogic>(id);
+				scene.GetLogicManager().AddLogic<QuitPopupOpenButtonLogic>(id, QuitPopupYesAction::QuitApplication);
 			}},
 			{ "btn_next_level", [](Scene& scene, int id) {
 				const bool goMainMenu = Economy::gWinScreenNextGoesToMainMenu;
@@ -2092,7 +2114,7 @@ namespace {
 			logicManager.AddLogic<HowToPlayButtonLogic>(id);
 		}
 		else if (action == "quit") {
-			logicManager.AddLogic<QuitPopupOpenButtonLogic>(id);
+			logicManager.AddLogic<QuitPopupOpenButtonLogic>(id, QuitPopupYesAction::ReturnToMainMenu);
 		}
 	}
 
