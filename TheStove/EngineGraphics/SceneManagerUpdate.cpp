@@ -11,6 +11,8 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include <algorithm>
+
 #include "EngineCore/AudioManager.hpp"
 #include "EngineCore/FilePaths.hpp"
 #include "EngineCore/InputManager.hpp"
@@ -99,6 +101,7 @@ bool Scene::UpdateInputPhase(float deltaTime) {
 		// Abort the rest of the frame once the scene has been rebuilt from an empty state.
 		ClearAll();
 		RebuildColliders();
+		pendingDespawns_.clear();
 		pendingClear_ = false;
 		return false;
 	}
@@ -240,10 +243,18 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 #endif
 
 	// Apply deferred despawns after all gameplay iteration has completed for the frame.
-	for (int id : pendingDespawns_) {
-		DespawnByID(id);
-	}
+	// Move queued IDs out first so any newly queued despawns stay deferred to next frame.
+	auto despawnsThisFrame = std::move(pendingDespawns_);
 	pendingDespawns_.clear();
+
+	std::sort(despawnsThisFrame.begin(), despawnsThisFrame.end());
+	despawnsThisFrame.erase(std::unique(despawnsThisFrame.begin(), despawnsThisFrame.end()), despawnsThisFrame.end());
+
+	for (int id : despawnsThisFrame) {
+		if (id > 0) {
+			DespawnByID(id);
+		}
+	}
 
 #ifndef _DEBUG
 	if (showFPS_) {
@@ -267,13 +278,30 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 	}
 
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
+		const std::string levelPath = GetCurrentLevelPath();
+		const bool isWinLikeLevel =
+			levelPath == FilePaths::Levels::WIN ||
+			levelPath.find("win") != std::string::npos ||
+			levelPath.find("dayclear") != std::string::npos ||
+			levelPath.find("day_clear") != std::string::npos;
+
 		// Use ESC as a pause toggle only outside debug builds where the pause overlay is available.
 		if (IsPauseOverlayActive()) {
+			if (AudioManager* audioManager = GetAudioManager()) {
+				if (audioManager->HasSound("ui_startresume")) {
+					audioManager->PlaySound("ui_startresume", audioManager->GetVfxVolume(), false);
+				}
+			}
 			HidePauseOverlay();
 			RequestResumeFromPauseOverlay();
 			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
 		}
-		else if (IsSimulationActive()) {
+		else if (IsSimulationActive() && !isWinLikeLevel) {
+			if (AudioManager* audioManager = GetAudioManager()) {
+				if (audioManager->HasSound("ui_back")) {
+					audioManager->PlaySound("ui_back", audioManager->GetVfxVolume(), false);
+				}
+			}
 			ShowPauseOverlay();
 			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
 		}

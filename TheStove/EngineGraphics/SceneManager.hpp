@@ -475,6 +475,9 @@ public:
 		pauseMusicChannel_ = std::move(musicChannel);
 		pauseAmbienceChannel_ = std::move(ambienceChannel);
 	}
+	void SetPauseOverlayAdditionalAudioChannels(std::vector<std::string> channels) {
+		pauseAdditionalChannels_ = std::move(channels);
+	}
 	/// @}
 
 	// -------------------------------------------------------------------------------------------------
@@ -1221,6 +1224,7 @@ private:
 	TagUsesVelocityHook tagUsesVelocityHook_;
 	std::string pauseMusicChannel_;
 	std::string pauseAmbienceChannel_;
+	std::vector<std::string> pauseAdditionalChannels_;
 
 	bool howToPlayOverlayActive_ = false;
 

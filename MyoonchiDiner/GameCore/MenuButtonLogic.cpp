@@ -94,6 +94,9 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	if (over && !hovered_) {
 		hovered_ = true;
 		TrySetTexture(owner, hoverTexturePath_);
+		if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
+		}
 	}
 	else if (!over && hovered_) {
 		hovered_ = false;
@@ -102,7 +105,9 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 
 	if (over && input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		if (audioManager_) {
-			audioManager_->PlayUIClickSound();
+			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager_->GetVfxVolume(), false);
+			}
 			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_START_BUTTON)) {
 				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_START_BUTTON, audioManager_->GetVfxVolume(), false);
 			}

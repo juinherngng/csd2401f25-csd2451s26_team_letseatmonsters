@@ -678,6 +678,14 @@ namespace {
 			}
 			completionMenuHovered_ = isHoveredNow;
 
+			if (completionMenuHovered_) {
+				if (AudioManager* audioManager = scene.GetAudioManager()) {
+					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
+					}
+				}
+			}
+
 			GameObject* button = scene.GetGameObjectByID(completionMenuButtonID_);
 			if (!button) {
 				return;
@@ -721,6 +729,9 @@ namespace {
 			if (IsPointInObject(scene, completionMenuButtonID_, mouseWorld)) {
 				ClearCompletionPopup(scene);
 				if (AudioManager* audioManager = scene.GetAudioManager()) {
+					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
+					}
 					audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
 					audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
 					audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
@@ -1721,7 +1732,10 @@ namespace {
 				}
 			}},
 			{ "btn_howtoplay", [](Scene& scene, int id) {
-				scene.GetLogicManager().AddLogic<HowToPlayButtonLogic>(id);
+				auto* logic = scene.GetLogicManager().AddLogic<HowToPlayButtonLogic>(id);
+				if (logic && scene.GetAudioManager()) {
+					logic->SetAudioManager(scene.GetAudioManager());
+				}
 			}},
 			{ "btn_quit", [](Scene& scene, int id) {
 				scene.GetLogicManager().AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
@@ -1787,7 +1801,10 @@ namespace {
 			logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Resume);
 		}
 		else if (action == "howtoplay") {
-			logicManager.AddLogic<HowToPlayButtonLogic>(id);
+		auto* logic = logicManager.AddLogic<HowToPlayButtonLogic>(id);
+		if (logic && scene.GetAudioManager()) {
+			logic->SetAudioManager(scene.GetAudioManager());
+		}
 		}
 		else if (action == "quit") {
 			logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Quit);
@@ -1938,6 +1955,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	// Pause overlay: tell engine which audio channels to fade on pause
 	scene.SetPauseOverlayAudioChannels(MyoonchiPaths::Audio::BGM_LEVEL_THEME, MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+	scene.SetPauseOverlayAdditionalAudioChannels({ "sfx_grill", "sfx_boiling_sound", "sfx_chopping" });
 	scene.SetPauseSuppressedRuntimeTextNames({ "MoneyText", "QuotaText", "TimerText", "TutorialText" });
 	scene.SetEditorPreservedRuntimeTextNames({ "MoneyText", "QuotaText", "TimerText", "TutorialText" });
 

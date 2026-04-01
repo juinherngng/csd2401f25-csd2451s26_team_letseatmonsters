@@ -19,6 +19,7 @@
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/HowToPlayButtonLogic.hpp"
+#include "MyoonchiDiner/GamePaths.hpp"
 
 #ifndef _DEBUG
 namespace {
@@ -79,6 +80,12 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		const bool escClose = input.IsKeyJustPressed(GLFW_KEY_ESCAPE);
 
 		if (clickClose || escClose) {
+			if (audioManager_) {
+				if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_BACK)) {
+					audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_BACK, audioManager_->GetVfxVolume(), false);
+				}
+			}
+
 			if (overlayId_ >= 0) {
 				scene.DespawnByID(overlayId_);
 				overlayId_ = -1;
@@ -90,6 +97,9 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 
 			if (clickClose) {
 				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+			}
+			if (escClose) {
+				input.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
 			}
 		}
 
@@ -131,6 +141,9 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	if (over && !hovered_) {
 		hovered_ = true;
 		TrySetTexture(owner, hoverTexturePath_);
+		if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
+		}
 	}
 	else if (!over && hovered_) {
 		hovered_ = false;
@@ -140,6 +153,10 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	// Click to show overlay
 	if (!over || !input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
 		return;
+	}
+
+	if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+		audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager_->GetVfxVolume(), false);
 	}
 
 	input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);

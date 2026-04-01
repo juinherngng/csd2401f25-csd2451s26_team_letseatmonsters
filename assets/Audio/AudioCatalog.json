@@ -439,6 +439,14 @@
       "name": "ui_startresume",
       "stream": false,
       "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_introcutscene.wav",
+      "loop": false,
+      "name": "sfx_introcutscene",
+      "stream": false,
+      "volume": 1.0
     }
   ],
   "version": "1.0"

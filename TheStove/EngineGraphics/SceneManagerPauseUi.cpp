@@ -62,6 +62,12 @@ void Scene::ShowPauseOverlay() {
 		pauseAudioPending_ = true;
 		pauseAudioTimer_ = pauseFadeOut;
 
+		for (const std::string& channel : pauseAdditionalChannels_) {
+			if (!channel.empty()) {
+				audioManager_->PauseChannel(channel);
+			}
+		}
+
 		TS_LOG_DEBUG("[Scene] Fading out level BGM and ambience for pause menu");
 	}
 
@@ -148,6 +154,12 @@ void Scene::HidePauseOverlay() {
 
 		if (!pauseAmbienceChannel_.empty()) {
 			audioManager_->FadeChannel(pauseAmbienceChannel_, pausedAmbienceVolume_, pauseFadeIn);
+		}
+
+		for (const std::string& channel : pauseAdditionalChannels_) {
+			if (!channel.empty()) {
+				audioManager_->ResumeChannel(channel);
+			}
 		}
 
 		TS_LOG_DEBUG("[Scene] Resumed and fading in level BGM and ambience after pause menu");

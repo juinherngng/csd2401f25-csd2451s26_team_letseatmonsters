@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "EngineCore/AudioManager.hpp"
 #include "EngineCore/GameObjectLogic.hpp"
 
  // Logic for the "How To Play" button in the pause menu, which spawns an overlay with instructions when clicked.
@@ -39,6 +40,10 @@ public:
 	 */
 	void Update(float dt, Scene& scene, InputManager& input) override;
 
+	void SetAudioManager(AudioManager* mgr) {
+		audioManager_ = mgr;
+	}
+
 private:
 	// Data members for hover state, texture paths, and overlay tracking
 	bool initialized_ = false;
@@ -49,4 +54,6 @@ private:
 	std::string hoverTexturePath_;
 
 	int overlayId_ = -1; // ID of spawned HowToPlay overlay, -1 if none
+
+	AudioManager* audioManager_ = nullptr;
 };

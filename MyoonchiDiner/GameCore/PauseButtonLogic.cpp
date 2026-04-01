@@ -15,10 +15,12 @@
 #include <string>
 
 #include "EngineGraphics/GraphicsEngine.hpp"
+#include "EngineCore/AudioManager.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/PauseButtonLogic.hpp"
 #include "GameCore/PlayerLogic.hpp"
+#include "MyoonchiDiner/GamePaths.hpp"
 
 #ifndef _DEBUG
 namespace {
@@ -86,6 +88,11 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	if (over && !hovered_) {
 		hovered_ = true;
 		TrySetTexture(owner, hoverTexturePath_);
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
+			}
+		}
 	}
 	else if (!over && hovered_) {
 		hovered_ = false;
@@ -102,6 +109,11 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 
 	switch (action_) {
 	case PauseAction::Resume:
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_START_RESUME)) {
+				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_START_RESUME, audioManager->GetVfxVolume(), false);
+			}
+		}
 		if (PlayerLogic* playerLogic = scene.GetLogicManager().GetLogicForObject<PlayerLogic>(scene.GetPlayerID())) {
 			playerLogic->EnterPauseState(scene);
 		}
@@ -114,12 +126,22 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		break;
 
 	case PauseAction::HowToPlay:
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
+			}
+		}
 		// (Optional) You can hook this to your HowToPlay overlay too
 		// e.g. scene.ShowHowToPlayFromPause();
 		break;
 
 	case PauseAction::Quit:
 	{
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
+			}
+		}
 		// Close the window safely
 		if (GLFWwindow* win = glfwGetCurrentContext()) {
 			glfwSetWindowShouldClose(win, GLFW_TRUE);

@@ -53,5 +53,10 @@ namespace MyoonchiPaths {
 		constexpr const char* SFX_GAMEOVER = "sfx_gameover";
 		constexpr const char* SFX_START_BUTTON = "sfx_start_button";
 		constexpr const char* SFX_SKIP_INTRO_CUTSCENE = "sfx_skip_intro_cutscene";
-	}
+		constexpr const char* SFX_INTRO_CUTSCENE = "sfx_introcutscene";
+		constexpr const char* SFX_UI_BACK = "ui_back";
+		constexpr const char* SFX_UI_HOVER = "ui_hover";
+		constexpr const char* SFX_UI_CLICK_BUTTON = "ui_clickbutton";
+		constexpr const char* SFX_UI_START_RESUME = "ui_startresume";
+}
 }

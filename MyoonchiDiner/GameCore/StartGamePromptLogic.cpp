@@ -222,6 +222,9 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		if (over && !hovered_) {
 			hovered_ = true;
 			TrySetTexture(owner, hoverTexturePath_);
+			if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
+			}
 		}
 		else if (!over && hovered_) {
 			hovered_ = false;
@@ -230,6 +233,9 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 
 		// Click opens popup.
 		if (input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT) && over) {
+			if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager_->GetVfxVolume(), false);
+			}
 			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 			OpenPrompt(scene);
 		}
@@ -257,6 +263,9 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	if (yesOver && !yesHovered_) {
 		yesHovered_ = true;
 		TrySetObjectTexture(scene, yesButtonId_, kTutorialYesHoverTexture);
+		if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
+		}
 	}
 	else if (!yesOver && yesHovered_) {
 		yesHovered_ = false;
@@ -266,6 +275,9 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	if (noOver && !noHovered_) {
 		noHovered_ = true;
 		TrySetObjectTexture(scene, noButtonId_, kTutorialNoHoverTexture);
+		if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
+		}
 	}
 	else if (!noOver && noHovered_) {
 		noHovered_ = false;
@@ -282,7 +294,9 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		// Yes -> enter tutorial directly.
 		ClosePrompt(scene);
 		if (audioManager_) {
-			audioManager_->PlayUIClickSound();
+			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager_->GetVfxVolume(), false);
+			}
 			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_START_BUTTON)) {
 				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_START_BUTTON, audioManager_->GetVfxVolume(), false);
 			}
@@ -294,7 +308,9 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		// No -> play intro cutscene flow, then continue.
 		ClosePrompt(scene);
 		if (audioManager_) {
-			audioManager_->PlayUIClickSound();
+			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager_->GetVfxVolume(), false);
+			}
 			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_START_BUTTON)) {
 				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_START_BUTTON, audioManager_->GetVfxVolume(), false);
 			}
@@ -322,6 +338,9 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 
 		if (audioManager_) {
 			const float cutsceneBgmFadeIn = 1.0f;
+			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE)) {
+				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE, audioManager_->GetVfxVolume(), false);
+			}
 			audioManager_->PlaySound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, false);
 			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, audioManager_->GetBgmVolume() * 1.6f, cutsceneBgmFadeIn);
 		}
