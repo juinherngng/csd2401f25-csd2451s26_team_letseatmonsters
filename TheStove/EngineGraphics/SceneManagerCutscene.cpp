@@ -28,7 +28,7 @@ namespace {
 	 */
 	std::vector<bool> sCutsceneBoundaryFlags;
 
-	constexpr const char* kCutsceneSkipTexture = "../assets/cutscene_skip.png";
+	constexpr const char* kCutsceneSkipTexture = "../assets/UI/cutscene_skip.png";
 	constexpr glm::vec2 kCutsceneSkipSize{ 320.0f, 156.0f };
 	constexpr float kCutsceneSkipMarginRight = 24.0f;
 	constexpr float kCutsceneSkipMarginTop = 20.0f;
@@ -437,7 +437,7 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 			}
 			else {
 				// Final boundary fades back to the gameplay level instead of another cutscene image.
-               float finalOutSeconds = cutTrans_.outSeconds;
+				float finalOutSeconds = cutTrans_.outSeconds;
 				if (cutTrans_.targetLevelJson.find("win") != std::string::npos) {
 					finalOutSeconds = std::max(finalOutSeconds, 2.5f);
 				}
@@ -448,7 +448,7 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 
 #ifndef _DEBUG
 				if (cutsceneFadeOutHook_) {
-                  cutsceneFadeOutHook_(*this, finalOutSeconds);
+					cutsceneFadeOutHook_(*this, finalOutSeconds);
 				}
 #endif
 			}

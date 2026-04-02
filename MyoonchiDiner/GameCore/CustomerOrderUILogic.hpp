@@ -62,12 +62,12 @@ private:
 	std::string lastIconPath_;
 
 	// Your coin icon path
-	const char* coinIconPath_ = "../assets/Reaction_Money.png";
+	const char* coinIconPath_ = "../assets/UI/Reaction_Money.png";
 
 	// --- asset paths ---
-	const char* bubbleBGPath_ = "../assets/Customer_Order.png";
-	const char* patienceBGPath_ = "../assets/Customer_Timer_Red.png";	  // red
-	const char* patienceFillPath_ = "../assets/Customer_Timer_Green.png"; // green
+	const char* bubbleBGPath_ = "../assets/UI/Customer_Order.png";
+	const char* patienceBGPath_ = "../assets/UI/Customer_Timer_Red.png";	  // red
+	const char* patienceFillPath_ = "../assets/UI/Customer_Timer_Green.png"; // green
 
 	// helpers
 	// Ensures patience bar background/fill widgets are created
@@ -91,8 +91,8 @@ private:
 	// Rescales patience fill width from a normalized [0,1] ratio
 	void UpdatePatienceFill(Scene& scene, float ratio01);
 
-	const char* happyFacePath_ = "../assets/Reaction_Happy_Face.png";
-	const char* sadFacePath_ = "../assets/Reaction_Angry_Face.png";
+	const char* happyFacePath_ = "../assets/UI/Reaction_Happy_Face.png";
+	const char* sadFacePath_ = "../assets/UI/Reaction_Angry_Face.png";
 
 	// Spawns temporary payment reaction VFX (happy/sad face)
 	void SpawnPaymentVFX(Scene& scene, const char* path);

@@ -93,7 +93,7 @@ void ParticleSystem::EnsureDefaultFootstepPreset_(EntityManager& em) {
 
 	Preset dust;
 	dust.name = "FootstepDust";
-	dust.texturePath = "../assets/run_vfx.png";
+	dust.texturePath = "../assets/VFX/run_vfx.png";
 	dust.frames = kFullFrame;
 	dust.animateFrames = false;
 	dust.frameDuration = 0.06f;

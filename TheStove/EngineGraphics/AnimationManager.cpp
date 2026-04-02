@@ -312,7 +312,7 @@ namespace {
 		}
 
 		// default fallback
-		return GetCustomerAnimProfile("../assets/goat-Sheet.png");
+		return GetCustomerAnimProfile("../assets/Characters/goat-Sheet.png");
 	}
 }
 
@@ -464,7 +464,7 @@ std::vector<glm::vec4> AnimationManager::CreateFullGridSequence(int totalRows, i
 
 // Generates a full grid sequence with controllable row/column directions.
 // topFirst: true = start at the top row of the image; false = bottom row first.
-// leftToRight: true = increase column index leftâ†’right; false = rightâ†’left.
+// leftToRight: true = increase column index leftÃ¢â€ â€™right; false = rightÃ¢â€ â€™left.
 static std::vector<glm::vec4> CreateFullGridSequenceDir(int totalRows, int totalCols, bool topFirst, bool leftToRight) {
 	std::vector<glm::vec4> frames;
 	frames.reserve(static_cast<size_t>(totalRows * totalCols));

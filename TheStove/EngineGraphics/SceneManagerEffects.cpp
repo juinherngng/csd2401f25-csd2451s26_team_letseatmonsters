@@ -25,7 +25,7 @@ namespace {
 	// Local Effect Helpers
 	// -------------------------------------------------------------------------------------------------
 
-	constexpr char kUiButtonStarSheetPath[] = "../assets/staranim-Sheet2.png";
+	constexpr char kUiButtonStarSheetPath[] = "../assets/VFX/staranim-Sheet2.png";
 	constexpr int kUiButtonStarSheetCols = 11;
 	constexpr int kUiButtonStarSheetRows = 2;
 	constexpr float kUiButtonStarFrameAspectFallback =
@@ -149,7 +149,7 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 
 	if (amount > 0) {
 		GameObject* fx = SpawnAnimatedSprite(
-			"../assets/staranim-Sheet.png",
+			"../assets/VFX/staranim-Sheet.png",
 			glm::vec3(tablePos.x, tablePos.y - 12.0f, tablePos.z),
 			glm::vec2(240.0f, 240.0f),
 			kStarFrames,

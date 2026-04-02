@@ -1094,7 +1094,7 @@ public:
 	int TriggerOrderUiSlideIn(const glm::vec2& targetPos,
 		const glm::vec2& size,
 		const std::string& layer = "3",
-		const std::string& texturePath = "../assets/Order_UI.png",
+		const std::string& texturePath = "../assets/UI/Order_UI.png",
 		float slideDuration = 0.45f);
 
 	/**

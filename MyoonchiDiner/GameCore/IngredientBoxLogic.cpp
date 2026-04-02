@@ -23,15 +23,14 @@
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/IngredientBoxLogic.hpp"
 
-IngredientBoxLogic::IngredientBoxLogic(int ownerID) : TableLogic(ownerID) {
-}
+IngredientBoxLogic::IngredientBoxLogic(int ownerID) : TableLogic(ownerID) {}
 
 void IngredientBoxLogic::ConfigureAsVegetableBox() {
 	spawnMode_ = BoxSpawnMode::Ingredient;
 	spawnType_ = IngredientType::Vegetable;
 
 	// You can tweak these if you have different ingredient types later
-	ingredientTexture_ = "../assets/Cabbage_Ingredient.png";
+	ingredientTexture_ = "../assets/Food/Cabbage_Ingredient.png";
 	ingredientWidth_ = 64.0f;
 	ingredientHeight_ = 64.0f;
 	ingredientLayer_ = "3";
@@ -42,7 +41,7 @@ void IngredientBoxLogic::ConfigureAsMeatBox() {
 	spawnType_ = IngredientType::Meat;
 
 	// You can tweak these if you have different ingredient types later
-	ingredientTexture_ = "../assets/Meat_Ingredient.png";
+	ingredientTexture_ = "../assets/Food/Meat_Ingredient.png";
 	ingredientWidth_ = 64.0f;
 	ingredientHeight_ = 64.0f;
 	ingredientLayer_ = "3";
@@ -53,7 +52,7 @@ void IngredientBoxLogic::ConfigureAsShroomBox() {
 	spawnType_ = IngredientType::Shroom;
 
 	// You can tweak these if you have different ingredient types later
-	ingredientTexture_ = "../assets/Mushroom_Ingredient.png";
+	ingredientTexture_ = "../assets/Food/Mushroom_Ingredient.png";
 	ingredientWidth_ = 64.0f;
 	ingredientHeight_ = 64.0f;
 	ingredientLayer_ = "3";
@@ -63,7 +62,7 @@ void IngredientBoxLogic::ConfigureAsCarrotBox() {
 	spawnMode_ = BoxSpawnMode::Ingredient;
 	spawnType_ = IngredientType::Carrot;
 
-	ingredientTexture_ = "../assets/Ingredient_Carrot.png";
+	ingredientTexture_ = "../assets/Food/Ingredient_Carrot.png";
 	ingredientWidth_ = 64.0f;
 	ingredientHeight_ = 64.0f;
 	ingredientLayer_ = "3";
@@ -73,7 +72,7 @@ void IngredientBoxLogic::ConfigureAsPlateBox() {
 	spawnMode_ = BoxSpawnMode::Plate;
 
 	// TODO: update these to match your plate asset
-	plateTexture_ = "../assets/Plate.png";   // e.g. "../assets/Plate_Empty.png"
+	plateTexture_ = "../assets/Food/Plate.png";   // e.g. "../assets/Plate_Empty.png"
 	plateWidth_ = 64.0f;
 	plateHeight_ = 64.0f;
 	plateLayer_ = "2";
@@ -186,7 +185,7 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene) {
 				std::uniform_int_distribution<int> dist(1, 4);
 				int variant = dist(EngineRng::Get());
 				std::string sfxName = "sfx_pickup_cabbage_" + std::to_string(variant);
-              if (audioMgr->HasSound(sfxName)) {
+				if (audioMgr->HasSound(sfxName)) {
 					audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume() * 0.5f);
 				}
 			}

@@ -63,22 +63,22 @@ namespace FilePaths {
 	// ============================================================================
 	namespace Textures {
 		// Backgrounds
-		constexpr const char* BACKGROUND = "../assets/Background.png";
+		constexpr const char* BACKGROUND = "../assets/Backgrounds/Background.png";
 
 		// UI - Pause Menu
 		constexpr const char* PAUSE_BG = "../assets/pause.png";
-		constexpr const char* PAUSED_BG = "../assets/paused.png";
-		constexpr const char* BTN_CONTINUE = "../assets/continue_s.png";
-		constexpr const char* BTN_RESUME = "../assets/resume_s.png";
-		constexpr const char* BTN_HOW = "../assets/how_s.png";
-		constexpr const char* BTN_QUIT = "../assets/quit_s.png";
-		constexpr const char* BTN_RETURN = "../assets/return_s.png";
+		constexpr const char* PAUSED_BG = "../assets/UI/paused.png";
+		constexpr const char* BTN_CONTINUE = "../assets/UI/continue_s.png";
+		constexpr const char* BTN_RESUME = "../assets/UI/resume_s.png";
+		constexpr const char* BTN_HOW = "../assets/UI/how_s.png";
+		constexpr const char* BTN_QUIT = "../assets/UI/quit_s.png";
+		constexpr const char* BTN_RETURN = "../assets/UI/return_s.png";
 
 		// UI - How To Play
-		constexpr const char* HOW_TO_PLAY = "../assets/HowToPlay.png";
+		constexpr const char* HOW_TO_PLAY = "../assets/UI/HowToPlay.png";
 
 		// Placeholder/Debug
-		constexpr const char* PLACEHOLDER = "../assets/mc_sprite_front.png";
+		constexpr const char* PLACEHOLDER = "../assets/Characters/mc_sprite_front.png";
 	}
 
 	// ============================================================================

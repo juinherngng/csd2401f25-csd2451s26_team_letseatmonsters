@@ -62,11 +62,11 @@ WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const s
 const char* WorkTableLogic::GetProcessedTextureForRaw(IngredientType rawType) const {
 	// IMPORTANT: Replace these 2 paths with your actual cooked meat/shroom assets.
 	switch (rawType) {
-	case IngredientType::Vegetable: return "../assets/Cabbage_CUT_Ingredient.png";
-	case IngredientType::Meat:      return "../assets/Meat_CUT_Ingredient.png";
-	case IngredientType::Shroom:    return "../assets/Mushroom_CUT_Ingredient.png";
-	case IngredientType::Carrot:    return "../assets/CUT_Carrot_Ingredient.png";
-	default:                        return "../assets/Cabbage_CUT_Ingredient.png";
+	case IngredientType::Vegetable: return "../assets/Food/Cabbage_CUT_Ingredient.png";
+	case IngredientType::Meat:      return "../assets/Food/Meat_CUT_Ingredient.png";
+	case IngredientType::Shroom:    return "../assets/Food/Mushroom_CUT_Ingredient.png";
+	case IngredientType::Carrot:    return "../assets/Food/CUT_Carrot_Ingredient.png";
+	default:                        return "../assets/Food/Cabbage_CUT_Ingredient.png";
 	}
 }
 
@@ -418,9 +418,9 @@ void WorkTableLogic::CompleteProcessingForIngredient(IngredientLogic& ingredient
 
 const char* WorkTableLogic::GetVfxTextureForStation() const {
 	switch (stationType_) {
-	case StationType::CuttingBoard: return "../assets/VFX_SpriteSheet.png";
-	case StationType::Grill:        return "../assets/VFX_SpriteSheet.png";
-	case StationType::Stove:        return "../assets/VFX_SpriteSheet.png";
+	case StationType::CuttingBoard: return "../assets/VFX/VFX_SpriteSheet.png";
+	case StationType::Grill:        return "../assets/VFX/VFX_SpriteSheet.png";
+	case StationType::Stove:        return "../assets/VFX/VFX_SpriteSheet.png";
 	default:                        return nullptr;
 	}
 }

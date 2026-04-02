@@ -84,8 +84,8 @@ private:
 
 	std::vector<OrderSlot> slots_;
 
-	const char* panelTex_ = "../assets/Order_UI.png";
-	const char* invisTex_ = "../assets/invis.png";
+	const char* panelTex_ = "../assets/UI/Order_UI.png";
+	const char* invisTex_ = "../assets/UI/invis.png";
 
 	std::string panelLayer_ = "3";
 	std::string dishLayer_ = "4";
@@ -118,7 +118,7 @@ private:
 	float livePanelMoveSpeed_ = 14.0f;
 
 	// green-face stamp on ticket
-	const char* completionStampTex_ = "../assets/Reaction_Happy_Face.png";
+	const char* completionStampTex_ = "../assets/UI/Reaction_Happy_Face.png";
 	glm::vec2 completionStampOffset_ = { 0.f, -8.f };
 	glm::vec2 completionStampSize_ = { 86.f, 86.f };
 	float completionStampDuration_ = 0.34f;

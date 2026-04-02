@@ -553,24 +553,24 @@ void MovementManager::UpdateSpriteDirection(int entityID, EntityManager& entityM
 	if (useHorizontal) {
 		if (basis.x > 0.0f) {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_right.png", "../assets/mc_sprite_right.png"));
+				"../assets/Characters/mc_sprite_right.png", "../assets/Characters/mc_sprite_right.png"));
 			data.lastFacing = { 1.f, 0.f };
 		}
 		else {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_left.png", "../assets/mc_sprite_left.png"));
+				"../assets/Characters/mc_sprite_left.png", "../assets/Characters/mc_sprite_left.png"));
 			data.lastFacing = { -1.f, 0.f };
 		}
 	}
 	else {
 		if (basis.y > 0.0f) {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_front.png", "../assets/mc_sprite_front.png"));
+				"../assets/Characters/mc_sprite_front.png", "../assets/Characters/mc_sprite_front.png"));
 			data.lastFacing = { 0.f, 1.f };
 		}
 		else {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_back.png", "../assets/mc_sprite_back.png"));
+				"../assets/Characters/mc_sprite_back.png", "../assets/Characters/mc_sprite_back.png"));
 			data.lastFacing = { 0.f, -1.f };
 		}
 	}

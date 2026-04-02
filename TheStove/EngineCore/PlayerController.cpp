@@ -190,7 +190,7 @@ void PlayerController::UpdateClickIndicator(float deltaTime, EntityManager& enti
 		}
 
 		GameObject* indicator = entityManager.SpawnAnimatedSprite(
-			"../assets/arrow-Sheet.png",
+			"../assets/VFX/arrow-Sheet.png",
 			glm::vec3(clickIndicatorWorld_.x, clickIndicatorWorld_.y, 0.0f),
 			glm::vec2(kIndicatorSize, kIndicatorSize),
 			arrowFrames,
@@ -251,22 +251,22 @@ void PlayerController::UpdateSpriteDirection(const glm::vec2& direction, GameObj
 		// Horizontal dominant
 		if (direction.x > 0.0f) {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_right.png", "../assets/mc_sprite_right.png"));
+				"../assets/Characters/mc_sprite_right.png", "../assets/Characters/mc_sprite_right.png"));
 		}
 		else {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_left.png", "../assets/mc_sprite_left.png"));
+				"../assets/Characters/mc_sprite_left.png", "../assets/Characters/mc_sprite_left.png"));
 		}
 	}
 	else {
 		// Vertical dominant
 		if (direction.y > 0.0f) {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_front.png", "../assets/mc_sprite_front.png"));
+				"../assets/Characters/mc_sprite_front.png", "../assets/Characters/mc_sprite_front.png"));
 		}
 		else {
 			sprite->SetTexture(ResourceManager::Instance().LoadTexture(
-				"../assets/mc_sprite_back.png", "../assets/mc_sprite_back.png"));
+				"../assets/Characters/mc_sprite_back.png", "../assets/Characters/mc_sprite_back.png"));
 		}
 	}
 }

@@ -32,7 +32,7 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "btn_main_menu",
-      "texture": "../assets/return_s.png",
+      "texture": "../assets/UI/return_s.png",
       "visible": true,
       "w": 350.0,
       "x": 1406.3123779296875,

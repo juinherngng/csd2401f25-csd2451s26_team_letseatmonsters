@@ -67,13 +67,13 @@ private:
 	IngredientType spawnType_ = IngredientType::Vegetable;
 
 	// Config for the spawned ingredient sprite, tweak as needed:
-	const char* ingredientTexture_ = "../assets/Cabbage_Ingredient.png"; // change to your real asset
+	const char* ingredientTexture_ = "../assets/Food/Cabbage_Ingredient.png"; // change to your real asset
 	float ingredientWidth_ = 64.0f;
 	float ingredientHeight_ = 64.0f;
 	const char* ingredientLayer_ = "3";
 
 	// Config for the spawned plate sprite, tweak as needed:
-	const char* plateTexture_ = "../assets/Plate.png";
+	const char* plateTexture_ = "../assets/Food/Plate.png";
 	float       plateWidth_ = 64.0f;
 	float       plateHeight_ = 64.0f;
 	const char* plateLayer_ = "2";

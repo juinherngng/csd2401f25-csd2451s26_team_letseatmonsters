@@ -34,13 +34,13 @@ namespace MyoonchiPaths {
 
 	// Texture assets referenced at runtime
 	namespace Textures {
-		constexpr const char* BACKGROUND = "../assets/Background.png";
+		constexpr const char* BACKGROUND = "../assets/Backgrounds/Background.png";
 
-		constexpr const char* CUSTOMER_GOAT = "../assets/goat-Sheet.png";
-		constexpr const char* CUSTOMER_TIGER = "../assets/tiger-Sheet.png";
-		constexpr const char* CUSTOMER_ANTEATER = "../assets/anteater spritesheet.png";
+		constexpr const char* CUSTOMER_GOAT = "../assets/Characters/goat-Sheet.png";
+		constexpr const char* CUSTOMER_TIGER = "../assets/Characters/tiger-Sheet.png";
+		constexpr const char* CUSTOMER_ANTEATER = "../assets/Characters/anteater spritesheet.png";
 
-		constexpr const char* AMBIENT_VFX_SHEET = "../assets/VFX_SpriteSheet.png";
+		constexpr const char* AMBIENT_VFX_SHEET = "../assets/VFX/VFX_SpriteSheet.png";
 	}
 
 	// Audio catalog keys (must match entries in AudioCatalog.json)
@@ -59,5 +59,5 @@ namespace MyoonchiPaths {
 		constexpr const char* SFX_UI_HOVER = "ui_hover";
 		constexpr const char* SFX_UI_CLICK_BUTTON = "ui_clickbutton";
 		constexpr const char* SFX_UI_START_RESUME = "ui_startresume";
-}
+	}
 }

@@ -81,8 +81,8 @@ void Scene::ShowPauseOverlay() {
 
 	// Warm the hover star sheet before the pause buttons appear so the first hover does not hitch.
 	ResourceManager::Instance().LoadTexture(
-		"animatedsprite_../assets/staranim-Sheet2.png",
-		"../assets/staranim-Sheet2.png");
+		"animatedsprite_../assets/VFX/staranim-Sheet2.png",
+		"../assets/VFX/staranim-Sheet2.png");
 
 	// Keep the pause overlay on a dedicated top-most UI layer so gameplay objects remain untouched.
 	if (GameObject* dim = SpawnStaticSprite(FilePaths::Textures::PAUSED_BG,

@@ -1315,7 +1315,7 @@ namespace LEPANELLEVEL {
 							PushUndoSnapshot(editor, scene);
 
 							LevelObject proto{};
-							proto.texture = "../assets/goat_sprite_front.png";
+							proto.texture = "../assets/Characters/goat_sprite_front.png";
 							proto.tag = "npc";
 							proto.x = 300.f;
 							proto.y = 300.f;
@@ -1398,7 +1398,7 @@ namespace LEPANELLEVEL {
 							{
 								std::string texPath = scene.GetObjectTexturePath(id);
 								if (texPath.empty())
-									texPath = "../assets/goat_sprite_front.png";
+									texPath = "../assets/Characters/goat_sprite_front.png";
 								std::snprintf(textureBuf, sizeof(textureBuf), "%s", texPath.c_str());
 							}
 

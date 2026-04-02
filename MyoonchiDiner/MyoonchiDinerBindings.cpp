@@ -373,14 +373,14 @@ namespace {
 		bool noHovered_ = false;
 		QuitPopupYesAction yesAction_ = QuitPopupYesAction::QuitApplication;
 
-		static constexpr const char* kQuitPopupTexture_ = "../assets/quit_popup.png";
-		static constexpr const char* kReturnPopupTexture_ = "../assets/return_popup.png";
+		static constexpr const char* kQuitPopupTexture_ = "../assets/UI/quit_popup.png";
+		static constexpr const char* kReturnPopupTexture_ = "../assets/UI/return_popup.png";
 
-		static constexpr const char* kYesTexture_ = "../assets/yes_s.png";
-		static constexpr const char* kYesHoverTexture_ = "../assets/yes_h.png";
+		static constexpr const char* kYesTexture_ = "../assets/UI/yes_s.png";
+		static constexpr const char* kYesHoverTexture_ = "../assets/UI/yes_h.png";
 
-		static constexpr const char* kNoTexture_ = "../assets/no_s.png";
-		static constexpr const char* kNoHoverTexture_ = "../assets/no_h.png";
+		static constexpr const char* kNoTexture_ = "../assets/UI/no_s.png";
+		static constexpr const char* kNoHoverTexture_ = "../assets/UI/no_h.png";
 
 		// Match tutorial popup layering behavior, but force highest sort order too.
 		static constexpr const char* kUiLayer_ = "999999";
@@ -450,8 +450,8 @@ namespace {
 				return;
 			}
 			ResourceManager::Instance().LoadTexture(
-				"animatedsprite_../assets/staranim-Sheet2.png",
-				"../assets/staranim-Sheet2.png");
+				"animatedsprite_../assets/VFX/staranim-Sheet2.png",
+				"../assets/VFX/staranim-Sheet2.png");
 			shown_ = true;
 			yesAction_ = yesAction;
 			scene.SetMenuModalActive(true);
@@ -1026,7 +1026,7 @@ namespace {
 		int completionMenuButtonID_ = -1;
 		bool popupMouseHeld_ = false;
 		bool completionMenuHovered_ = false;
-		static constexpr const char* kCompletionMenuHoverTex_ = "../assets/return_h.png";
+		static constexpr const char* kCompletionMenuHoverTex_ = "../assets/UI/return_h.png";
 
 		bool GetMouseWorld(InputManager& input, glm::vec2& outWorld) {
 			if (GraphicsEngine::Instance().GetMouseWorldInScene(outWorld)) {
@@ -1752,7 +1752,7 @@ namespace {
 			const std::string uiLayer = "999999";
 
 			if (GameObject* popup = scene.SpawnStaticSprite(
-				"../assets/tutorial_complete.png",
+				"../assets/UI/tutorial_complete.png",
 				center,
 				glm::vec2(1152.0f, 648.0f),
 				uiLayer)) {

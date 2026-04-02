@@ -36,11 +36,11 @@
 
 namespace {
 	// Popup + decision button textures.
-	constexpr const char* kTutorialPopupTexture = "../assets/tutorial_popup.png";
-	constexpr const char* kTutorialYesNormalTexture = "../assets/yes_s.png";
-	constexpr const char* kTutorialYesHoverTexture = "../assets/yes_h.png";
-	constexpr const char* kTutorialNoNormalTexture = "../assets/no_s.png";
-	constexpr const char* kTutorialNoHoverTexture = "../assets/no_h.png";
+	constexpr const char* kTutorialPopupTexture = "../assets/UI/tutorial_popup.png";
+	constexpr const char* kTutorialYesNormalTexture = "../assets/UI/yes_s.png";
+	constexpr const char* kTutorialYesHoverTexture = "../assets/UI/yes_h.png";
+	constexpr const char* kTutorialNoNormalTexture = "../assets/UI/no_s.png";
+	constexpr const char* kTutorialNoHoverTexture = "../assets/UI/no_h.png";
 	constexpr int kTutorialPopupSortOrder = 1000000;
 	constexpr int kTutorialButtonSortOrder = 1000001;
 
@@ -115,8 +115,8 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 	}
 
 	ResourceManager::Instance().LoadTexture(
-		"animatedsprite_../assets/staranim-Sheet2.png",
-		"../assets/staranim-Sheet2.png");
+		"animatedsprite_../assets/VFX/staranim-Sheet2.png",
+		"../assets/VFX/staranim-Sheet2.png");
 
 	// Center popup on reference canvas.
 	popupCenter_ = glm::vec2(

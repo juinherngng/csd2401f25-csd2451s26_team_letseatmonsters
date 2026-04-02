@@ -46,18 +46,18 @@ namespace {
 		switch (type) {
 		case IngredientType::Vegetable:
 		case IngredientType::Refined_Veg:
-			return "../assets/VegIngredientBox.png";
+			return "../assets/Food/VegIngredientBox.png";
 		case IngredientType::Meat:
 		case IngredientType::Refined_Meat:
-			return "../assets/MeatIngredientBox.png";
+			return "../assets/Food/MeatIngredientBox.png";
 		case IngredientType::Shroom:
 		case IngredientType::Refined_Shroom:
-			return "../assets/ShroomIngredientBox.png";
+			return "../assets/Food/ShroomIngredientBox.png";
 		case IngredientType::Carrot:
 		case IngredientType::Refined_Carrot:
-			return "../assets/CarrotIngredientBox.png";
+			return "../assets/Food/CarrotIngredientBox.png";
 		default:
-			return "../assets/VegIngredientBox.png";
+			return "../assets/Food/VegIngredientBox.png";
 		}
 	}
 
@@ -111,13 +111,13 @@ static void DespawnIfAlive(Scene& scene, int& id) {
 
 const char* OrderUILogic::DishToIconPath(DishType t) const {
 	switch (t) {
-	case DishType::VegDish:  return "../assets/Salad.png";
-	case DishType::MeatDish: return "../assets/Meat.png";
-	case DishType::SoupDish: return "../assets/Soup.png";
-	case DishType::SkewerDish: return "../assets/Food_Meat_n_carrot.png";
-	case DishType::CarrotSaladDish: return "../assets/Food_Salad_n_carrot.png";
-	case DishType::PoopDish: return "../assets/poop.png";
-	default:                 return "../assets/Salad.png";
+	case DishType::VegDish:  return "../assets/Food/Salad.png";
+	case DishType::MeatDish: return "../assets/Food/Meat.png";
+	case DishType::SoupDish: return "../assets/Food/Soup.png";
+	case DishType::SkewerDish: return "../assets/Food/Food_Meat_n_carrot.png";
+	case DishType::CarrotSaladDish: return "../assets/Food/Food_Salad_n_carrot.png";
+	case DishType::PoopDish: return "../assets/Food/poop.png";
+	default:                 return "../assets/Food/Salad.png";
 	}
 }
 
@@ -559,36 +559,36 @@ void OrderUILogic::GetRecipeIconPaths(DishType dish,
 	case DishType::VegDish:
 		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Vegetable));
 		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Vegetable));
-		outStationTex.push_back("../assets/Cutting_Board.png");
-		outStationTex.push_back("../assets/Cutting_Board.png");
+		outStationTex.push_back("../assets/Stations/Cutting_Board.png");
+		outStationTex.push_back("../assets/Stations/Cutting_Board.png");
 		break;
 
 	case DishType::MeatDish:
 		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Meat));
 		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Vegetable));
-		outStationTex.push_back("../assets/Grills_2.png");
-		outStationTex.push_back("../assets/Cutting_Board.png");
+		outStationTex.push_back("../assets/Stations/Grills_2.png");
+		outStationTex.push_back("../assets/Stations/Cutting_Board.png");
 		break;
 
 	case DishType::SoupDish:
 		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Meat));
 		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Shroom));
-		outStationTex.push_back("../assets/Grills_2.png");
-		outStationTex.push_back("../assets/Stove_2.png");
+		outStationTex.push_back("../assets/Stations/Grills_2.png");
+		outStationTex.push_back("../assets/Stations/Stove_2.png");
 		break;
 
 	case DishType::SkewerDish:
 		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Meat));
 		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Carrot));
-		outStationTex.push_back("../assets/Grills_2.png");
-		outStationTex.push_back("../assets/Stove_2.png");
+		outStationTex.push_back("../assets/Stations/Grills_2.png");
+		outStationTex.push_back("../assets/Stations/Stove_2.png");
 		break;
 
 	case DishType::CarrotSaladDish:
 		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Vegetable));
 		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Carrot));
-		outStationTex.push_back("../assets/Cutting_Board.png");
-		outStationTex.push_back("../assets/Stove_2.png");
+		outStationTex.push_back("../assets/Stations/Cutting_Board.png");
+		outStationTex.push_back("../assets/Stations/Stove_2.png");
 		break;
 	default:
 		// no recipe -> show nothing

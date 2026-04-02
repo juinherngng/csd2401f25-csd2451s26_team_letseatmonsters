@@ -828,7 +828,7 @@ namespace LEPANELASSETS {
 
 			// Lazy-load a generic icon once (placeholder)
 			if (!sAudioIcon) {
-				sAudioIcon = LoadTextureBypassingCache("../assets/mc_sprite_front.png");
+				sAudioIcon = LoadTextureBypassingCache("../assets/Characters/mc_sprite_front.png");
 			}
 
 			bool refreshAudio = false;

@@ -142,7 +142,7 @@ void PlayerLogic::ShowClickMoveIndicator(Scene& scene, const glm::vec2& worldPoi
 	}
 
 	GameObject* marker = scene.SpawnAnimatedSprite(
-		"../assets/arrow-Sheet.png",
+		"../assets/VFX/arrow-Sheet.png",
 		markerPos,
 		glm::vec2(PlayerLogicDetail::kClickIndicatorBaseSize, PlayerLogicDetail::kClickIndicatorBaseSize),
 		kArrowFrames,

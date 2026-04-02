@@ -154,6 +154,6 @@ protected:
 	glm::vec2 timerBarBGSize_ = { 120.f, 14.f };
 	glm::vec2 timerBarFillSize_ = { 112.f, 10.f };
 
-	const char* timerBarBGPath_ = "../assets/Customer_Timer_Red.png";
-	const char* timerBarFillPath_ = "../assets/Customer_Timer_Green.png";
+	const char* timerBarBGPath_ = "../assets/UI/Customer_Timer_Red.png";
+	const char* timerBarFillPath_ = "../assets/UI/Customer_Timer_Green.png";
 };

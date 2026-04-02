@@ -45,8 +45,8 @@ void Scene::GenerateStressTest(int objectCount) {
 
 	// Textures to render
 	std::vector<std::string> texturePaths = {
-		"../assets/goat_sprite_front.png",
-		"../assets/mc_sprite_front.png"
+		"../assets/Characters/goat_sprite_front.png",
+		"../assets/Characters/mc_sprite_front.png"
 	};
 
 	std::uniform_int_distribution<size_t> texIndex(0, texturePaths.size() - 1);

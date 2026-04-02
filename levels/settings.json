@@ -263,8 +263,8 @@
       "texture": "../assets/Settings/mastervol_toggle.png",
       "visible": true,
       "w": 25.0,
-      "x": 1000.0,
-      "y": 275.0,
+      "x": 997.2185668945313,
+      "y": 274.0,
       "z": 0.0
     },
     {
@@ -301,8 +301,8 @@
       "texture": "../assets/Settings/bgmvol_toggle.png",
       "visible": true,
       "w": 25.0,
-      "x": 1009.0,
-      "y": 398.0,
+      "x": 995.0,
+      "y": 397.0,
       "z": 0.0
     },
     {
@@ -339,8 +339,8 @@
       "texture": "../assets/Settings/sfxvol_toggle.png",
       "visible": true,
       "w": 25.0,
-      "x": 1013.0,
-      "y": 525.0,
+      "x": 997.2185668945313,
+      "y": 524.0,
       "z": 0.0
     }
   ],

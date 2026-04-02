@@ -1,5 +1,5 @@
 {
-  "background": "../assets/gameover_new.png",
+  "background": "../assets/Backgrounds/gameover_new.png",
   "objects": [
     {
       "anim_name": "",
@@ -32,7 +32,7 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "btn_retry_level",
-      "texture": "../assets/continue_s.png",
+      "texture": "../assets/UI/continue_s.png",
       "visible": true,
       "w": 450.0,
       "x": 1332.0,
@@ -70,7 +70,7 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "btn_howtoplay",
-      "texture": "../assets/how_s.png",
+      "texture": "../assets/UI/how_s.png",
       "visible": true,
       "w": 450.0,
       "x": 1332.0,
@@ -108,7 +108,7 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "btn_main_menu",
-      "texture": "../assets/return_s.png",
+      "texture": "../assets/UI/return_s.png",
       "visible": true,
       "w": 450.0,
       "x": 1332.0,
