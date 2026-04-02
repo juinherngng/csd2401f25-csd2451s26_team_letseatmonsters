@@ -107,7 +107,7 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 		GameObject* fx = SpawnAnimatedSprite(
 			"../assets/staranim-Sheet.png",
 			glm::vec3(tablePos.x, tablePos.y - 12.0f, tablePos.z),
-			glm::vec2(160.0f, 160.0f),
+			glm::vec2(240.0f, 240.0f),
 			kStarFrames,
 			kFrameDuration,
 			false,
