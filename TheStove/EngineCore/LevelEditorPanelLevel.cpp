@@ -1054,27 +1054,15 @@ namespace LEPANELLEVEL {
 												  [&]() { return PerformUndo(editor, scene); }, [&]() { return PerformRedo(editor, scene); }, [&]() {
 						LevelData& snap = editor.MutablePlaySnapshot();
 						CaptureEditorState(scene, snap);
-						const bool useExactFileLoad = !editor.levelPath.empty();
-						const std::string playLevelPath = useExactFileLoad ? editor.levelPath : scene.GetCurrentLevelPath();
+						const std::string playLevelPath = !editor.levelPath.empty() ? editor.levelPath : scene.GetCurrentLevelPath();
 						const bool playSimulationActive = InferEditorPlaySimulationActive(playLevelPath);
 
 						editor.SetPlaying(true);
 						selectedIndex = -1;
 						selectedObjectId = -1;
 
-						if (useExactFileLoad) {
-							LevelData playLevel;
-							if (!LevelSerializer::LoadExact(editor.levelPath, playLevel)) {
-								TS_LOG_ERROR("[LevelEditor] Exact editor play load failed for '" << editor.levelPath << "'");
-								editor.SetPlaying(false);
-								return;
-							}
-
-							ApplyLevelToEditorScene(scene, editor.levelPath, playLevel, playSimulationActive);
-						}
-						else {
-							ApplyLevelToEditorScene(scene, editor.levelPath, snap, playSimulationActive);
-						}
+						// Play the exact live editor state so unsaved edits are what gets tested.
+						ApplyLevelToEditorScene(scene, playLevelPath, snap, playSimulationActive);
 						}, [&]() {
 						editor.SetPlaying(false);
 						StopEditorAudio(scene);
@@ -1082,24 +1070,12 @@ namespace LEPANELLEVEL {
 
 						LevelData& playSnapshot = editor.MutablePlaySnapshot();
 
-						if (!editor.levelPath.empty()) {
-							LevelData restoredLevel;
-							if (LevelSerializer::LoadExact(editor.levelPath, restoredLevel)) {
-								sLastValidationReport = RuntimeLevel::ValidateLevelData(editor.levelPath, restoredLevel);
-								ApplyLevelToEditorScene(scene, editor.levelPath, restoredLevel, false);
-								SyncPrefabLinksToEditor(restoredLevel, scene);
-								SyncTextObjectsToEditor(restoredLevel);
-								selectedIndex = -1;
-								selectedObjectId = -1;
-								LEHIERARCHY::InvalidateCache();
-								return;
-							}
-
-							TS_LOG_ERROR("[LevelEditor] Exact editor stop restore failed for '" << editor.levelPath << "'");
-						}
-
+						// Stop must restore the exact pre-play snapshot so unsaved edits survive round-trip.
 						ApplyLevelToEditorScene(scene, editor.levelPath, playSnapshot, false);
 						SyncTextObjectsToEditor(playSnapshot);
+						selectedIndex = -1;
+						selectedObjectId = -1;
+						LEHIERARCHY::InvalidateCache();
 						} });
 
 						if (sLastValidationReport.HasWarnings() && ImGui::CollapsingHeader("Validation Warnings", ImGuiTreeNodeFlags_DefaultOpen)) {

@@ -38,6 +38,17 @@
 
 namespace LEPANELAUDIOCONTROL {
 #ifdef _DEBUG
+	namespace {
+		static std::string ResolveConfigPathForAudioControl() {
+			std::string configPath;
+			if (ConfigManager::ResolveAssetPath(configPath)) {
+				return configPath;
+			}
+
+			return FilePaths::JoinPath(FilePaths::Dirs::ASSETS, "config.txt");
+		}
+	}
+
 	/**
 	 * @brief Draws the docked Audio Control panel for previewing and tuning audio.
 	 * @param editor Shared level editor controller.
@@ -128,13 +139,13 @@ namespace LEPANELAUDIOCONTROL {
 		const float mixAvailWidth = ImGui::GetContentRegionAvail().x;
 		const float mixButtonWidth = std::max(120.0f, (mixAvailWidth - mixButtonSpacing) * 0.5f);
 		if (ImGui::Button("Save Mixer to Config", ImVec2(mixButtonWidth, 0.0f))) {
-			const std::string configPath = "../../assets/config.txt";
+			const std::string configPath = ResolveConfigPathForAudioControl();
 			if (ConfigManager::Save(configPath, mixerSettings)) {
-				TS_LOG_INFO("[Audio Control] Mixer settings saved to config.");
+				TS_LOG_INFO("[Audio Control] Mixer settings saved to config: " << configPath);
 				ImGui::OpenPopup("Config Saved");
 			}
 			else {
-				TS_LOG_ERROR("[Audio Control] Failed to save config!");
+				TS_LOG_ERROR("[Audio Control] Failed to save config: " << configPath);
 				ImGui::OpenPopup("Config Save Failed");
 			}
 		}

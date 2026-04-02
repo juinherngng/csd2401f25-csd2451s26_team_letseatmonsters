@@ -798,6 +798,8 @@ namespace LEPANELASSETS {
 				static std::string originalEditName = "";
 				static Audio::AudioAsset pendingEditBuffer;
 				static std::string currentlyPlaying = "";
+				static bool requestOpenEditPopup = false;
+				static bool requestOpenRemovePopup = false;
 
 				std::unordered_map<std::string, std::vector<const Audio::AudioAsset*>> audioByCategory;
 				for (const auto& asset : catalogAssets) {
@@ -900,12 +902,12 @@ namespace LEPANELASSETS {
 										if (ImGui::MenuItem("Edit Metadata")) {
 											originalEditName = asset->name;
 											editBuffer = *asset;
-											ImGui::OpenPopup("Edit Audio Asset");
+											requestOpenEditPopup = true;
 										}
 
 										if (ImGui::MenuItem("Remove From Catalog")) {
 											pendingRemoveName = asset->name;
-											ImGui::OpenPopup("Confirm Remove Audio");
+											requestOpenRemovePopup = true;
 										}
 
 										ImGui::EndPopup();
@@ -921,6 +923,16 @@ namespace LEPANELASSETS {
 				}
 
 				ImGui::EndChild();
+
+				if (requestOpenEditPopup) {
+					ImGui::OpenPopup("Edit Audio Asset");
+					requestOpenEditPopup = false;
+				}
+
+				if (requestOpenRemovePopup) {
+					ImGui::OpenPopup("Confirm Remove Audio");
+					requestOpenRemovePopup = false;
+				}
 
 				if (ImGui::BeginPopupModal("Edit Audio Asset", nullptr,
 					ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
@@ -997,20 +1009,25 @@ namespace LEPANELASSETS {
 				}
 
 				if (applyEdit) {
-					if (currentlyPlaying == originalEditName && g_AppState && g_AppState->coreEngine) {
+					const bool wasPreviewingEditedAsset = (currentlyPlaying == originalEditName);
+					if (wasPreviewingEditedAsset && g_AppState && g_AppState->coreEngine) {
 						g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(originalEditName);
 						currentlyPlaying.clear();
 					}
 
-					Audio::AudioCatalog::RemoveAudioAsset(originalEditName);
-					Audio::AudioCatalog::AddAudioAsset(pendingEditBuffer);
-					ResourceManager::Instance().UnloadAudio(originalEditName);
-					ResourceManager::Instance().LoadAudio(
-						pendingEditBuffer.name,
-						pendingEditBuffer.filepath,
-						pendingEditBuffer.loop,
-						pendingEditBuffer.stream
-					);
+					if (Audio::AudioCatalog::ReplaceAudioAsset(originalEditName, pendingEditBuffer)) {
+						ResourceManager::Instance().UnloadAudio(originalEditName);
+						ResourceManager::Instance().LoadAudio(
+							pendingEditBuffer.name,
+							pendingEditBuffer.filepath,
+							pendingEditBuffer.loop,
+							pendingEditBuffer.stream
+						);
+					}
+					else {
+						TS_LOG_ERROR("[Assets Panel] Failed to update audio asset metadata for '" << originalEditName << "'");
+					}
+
 					applyEdit = false;
 					originalEditName.clear();
 				}

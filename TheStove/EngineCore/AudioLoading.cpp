@@ -324,6 +324,34 @@ namespace Audio {
 		return false;
 	}
 
+	bool AudioCatalog::ReplaceAudioAsset(const std::string& originalName, const AudioAsset& updatedAsset) {
+		AudioAsset normalizedAsset = updatedAsset;
+		normalizedAsset.filepath = NormalizeAudioPath(updatedAsset.filepath);
+
+		if (!IsValidAudioFile(normalizedAsset.filepath)) {
+			TS_LOG_ERROR("AudioCatalog: " << GetInvalidFormatMessage(normalizedAsset.filepath));
+			return false;
+		}
+
+		auto existingIt = std::find_if(s_AudioAssets.begin(), s_AudioAssets.end(),
+			[&originalName](const AudioAsset& asset) { return asset.name == originalName; });
+		if (existingIt == s_AudioAssets.end()) {
+			TS_LOG_WARN("AudioCatalog: Asset '" << originalName << "' not found");
+			return false;
+		}
+
+		for (const auto& existing : s_AudioAssets) {
+			if (existing.name == normalizedAsset.name && existing.name != originalName) {
+				TS_LOG_ERROR("AudioCatalog: Asset with name '" << normalizedAsset.name << "' already exists");
+				return false;
+			}
+		}
+
+		*existingIt = normalizedAsset;
+		TS_LOG_INFO("AudioCatalog: Replaced asset '" << originalName << "' with '" << normalizedAsset.name << "'");
+		return true;
+	}
+
 	const AudioAsset* AudioCatalog::GetAudioAsset(const std::string& name) {
 		auto it = std::find_if(s_AudioAssets.begin(), s_AudioAssets.end(),
 			[&name](const AudioAsset& asset) { return asset.name == name; });

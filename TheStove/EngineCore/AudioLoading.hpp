@@ -117,6 +117,20 @@ namespace Audio {
 		/************************************************************************/
 		/*!
 		\brief
+			Replaces an existing audio asset with updated metadata atomically.
+		\param originalName
+			The current name of the audio asset being edited.
+		\param updatedAsset
+			The replacement metadata to store.
+		\return
+			True if the asset was replaced successfully, false otherwise.
+		*/
+		/************************************************************************/
+		static bool ReplaceAudioAsset(const std::string& originalName, const AudioAsset& updatedAsset);
+
+		/************************************************************************/
+		/*!
+		\brief
 			Gets an audio asset from the catalog by name.
 		\param name
 			The name of the audio asset to retrieve.
