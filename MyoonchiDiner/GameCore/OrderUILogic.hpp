@@ -101,7 +101,7 @@ private:
 	glm::vec2 dishSize_ = { 75.f, 75.f };
 
 	std::vector<glm::vec2> ingredientOffsets_ = { { -20.f, 4.f }, { 20.f, 4.f } };
-	glm::vec2 ingredientSize_ = { 40.f, 40.f };
+	glm::vec2 ingredientSize_ = { 35.f, 35.f };
 
 	std::vector<glm::vec2> stationOffsets_ = { { -20.f, 40.f }, { 20.f, 40.f } };
 	glm::vec2 stationSize_ = { 35.f, 35.f };

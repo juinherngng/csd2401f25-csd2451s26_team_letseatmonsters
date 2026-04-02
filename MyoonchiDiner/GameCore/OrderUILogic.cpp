@@ -42,6 +42,25 @@ namespace {
 		return value;
 	}
 
+	const char* IngredientBoxIconPath(IngredientType type) {
+		switch (type) {
+		case IngredientType::Vegetable:
+		case IngredientType::Refined_Veg:
+			return "../assets/VegIngredientBox.png";
+		case IngredientType::Meat:
+		case IngredientType::Refined_Meat:
+			return "../assets/MeatIngredientBox.png";
+		case IngredientType::Shroom:
+		case IngredientType::Refined_Shroom:
+			return "../assets/ShroomIngredientBox.png";
+		case IngredientType::Carrot:
+		case IngredientType::Refined_Carrot:
+			return "../assets/CarrotIngredientBox.png";
+		default:
+			return "../assets/VegIngredientBox.png";
+		}
+	}
+
 }
 
 bool OrderUILogic::TryGetPanelCenterForCustomer(int customerId, glm::vec2& outPos) {
@@ -538,36 +557,36 @@ void OrderUILogic::GetRecipeIconPaths(DishType dish,
 
 	switch (dish) {
 	case DishType::VegDish:
-		outIngredientTex.push_back("../assets/Cabbage_Ingredient.png");
-		outIngredientTex.push_back("../assets/Cabbage_Ingredient.png");
+		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Vegetable));
+		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Vegetable));
 		outStationTex.push_back("../assets/Cutting_Board.png");
 		outStationTex.push_back("../assets/Cutting_Board.png");
 		break;
 
 	case DishType::MeatDish:
-		outIngredientTex.push_back("../assets/Meat_Ingredient.png");
-		outIngredientTex.push_back("../assets/Cabbage_Ingredient.png");
+		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Meat));
+		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Vegetable));
 		outStationTex.push_back("../assets/Grills_2.png");
 		outStationTex.push_back("../assets/Cutting_Board.png");
 		break;
 
 	case DishType::SoupDish:
-		outIngredientTex.push_back("../assets/Meat_Ingredient.png");
-		outIngredientTex.push_back("../assets/Mushroom_Ingredient.png");
+		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Meat));
+		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Shroom));
 		outStationTex.push_back("../assets/Grills_2.png");
 		outStationTex.push_back("../assets/Stove_2.png");
 		break;
 
 	case DishType::SkewerDish:
-		outIngredientTex.push_back("../assets/Meat_Ingredient.png");
-		outIngredientTex.push_back("../assets/Ingredient_Carrot.png");
+		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Meat));
+		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Carrot));
 		outStationTex.push_back("../assets/Grills_2.png");
 		outStationTex.push_back("../assets/Stove_2.png");
 		break;
 
 	case DishType::CarrotSaladDish:
-		outIngredientTex.push_back("../assets/Cabbage_Ingredient.png");
-		outIngredientTex.push_back("../assets/Ingredient_Carrot.png");
+		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Vegetable));
+		outIngredientTex.push_back(IngredientBoxIconPath(IngredientType::Carrot));
 		outStationTex.push_back("../assets/Cutting_Board.png");
 		outStationTex.push_back("../assets/Stove_2.png");
 		break;
