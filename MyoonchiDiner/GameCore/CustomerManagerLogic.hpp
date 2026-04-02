@@ -85,6 +85,14 @@ public:
 		cooldownRampStopTime_ = rampStopTimeSeconds;
 	}
 
+	void SetSpawningEnabled(bool enabled) {
+		spawningEnabled_ = enabled;
+	}
+
+	bool IsSpawningEnabled() const {
+		return spawningEnabled_;
+	}
+
 private:
 	int maxCustomers_ = 16;
 
@@ -136,4 +144,5 @@ private:
 	void CacheEntries(Scene& scene);
 	void CleanupDeadCustomers(Scene& scene);
 	bool TrySpawnOne(Scene& scene);
+	bool spawningEnabled_ = true;
 };

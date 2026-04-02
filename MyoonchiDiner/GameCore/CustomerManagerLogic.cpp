@@ -379,6 +379,9 @@ void CustomerManagerSystem::Update(float dt, Scene& scene) {
 	if (!cachedTables_) CacheTables(scene);
 	if (!cachedTemplate_) CacheTemplate(scene);
 	if (!cachedEntries_) CacheEntries(scene);
+	if (!spawningEnabled_) {
+		return;
+	}
 
 	CleanupDeadCustomers(scene);
 

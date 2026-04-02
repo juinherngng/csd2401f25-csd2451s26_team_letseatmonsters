@@ -109,23 +109,19 @@ namespace Economy {
 	void OnQuotaReached(Scene& scene) {
 		if (gTimerPaused) return;
 		gTimerPaused = true;
+		gAwaitingFinalCustomerClear = false;
 
-		// Stop all gameplay audio immediately
 		StopAllGameplayAudio(scene, 2.0f);
-
-		// Note: bgm_win_cutscene will be started by Scene after the initial fade-in completes
 
 		std::vector<std::string> frames;
 		std::vector<bool> boundaries;
 
-		// Use one frame per chapter for day-clear sequence.
 		BuildSequentialFramesAndBoundaries(
 			frames, boundaries,
 			"../assets/Win",
 			"Cutscene_daychange_"
 		);
 
-		// If no frames, go straight to MAIN MENU
 		if (frames.empty()) {
 			scene.RequestMainMenuStateChange();
 			return;
@@ -142,7 +138,6 @@ namespace Economy {
 			gWinScreenNextGoesToMainMenu = false;
 		}
 		else {
-			// Default: keep existing day-clear button flow pointing at level 2.
 			gWinScreenNextGoesToMainMenu = false;
 		}
 
@@ -153,9 +148,9 @@ namespace Economy {
 			boundaries,
 			nextScenePath,
 			true,
-			2.0f,   // fadeOutSeconds - 2 second fade out for win cutscene
-			0.35f,  // fadeInSeconds
-			1.5f, // hold each chapter image steadily (no per-subframe cadence)
+			2.0f,
+			0.35f,
+			1.5f,
 			-1,
 			0.0f
 		);

@@ -38,6 +38,9 @@ namespace Economy {
 	// Total time allowed (seconds). Adjust as you like.
 	inline float kTimeLimitSeconds = 180.0f;
 
+	inline bool gAwaitingFinalCustomerClear = false;
+	inline float kStopSpawningThresholdSeconds = 2.0f;
+
 
 	inline void SetQuota(int quota) {
 		kQuota = quota;
@@ -108,6 +111,7 @@ namespace Economy {
 		gTimeRemaining = kTimeLimitSeconds;
 		gTimeUp = false;
 		gTimerPaused = false;
+		gAwaitingFinalCustomerClear = false;
 
 		// Reset sound effect flags
 		gPlayed10SecWarning = false;
@@ -148,11 +152,12 @@ namespace Economy {
 		if (gTimeRemaining <= 0.0f) {
 			gTimeRemaining = 0.0f;
 			gTimeUp = true;
+
 			if (gQuotaReached) {
 				OnQuotaReached(scene);
 			}
 			else {
-				OnTimeUp(scene);
+				gAwaitingFinalCustomerClear = true;
 			}
 		}
 

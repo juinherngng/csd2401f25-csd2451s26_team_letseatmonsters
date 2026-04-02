@@ -1794,6 +1794,31 @@ namespace {
 		}
 	}
 
+	static bool HasAnyUnresolvedCustomer(Scene& scene) {
+		LogicManager& logic = scene.GetLogicManager();
+
+		for (GameObject* obj : scene.GetAllObjectsRaw()) {
+			if (!obj) continue;
+
+			auto* table = logic.GetLogicForObject<CustomerTableLogic>(obj->GetID());
+			if (!table || !table->HasSeatedCustomer()) continue;
+
+			for (int customerId : table->GetSeatedCustomerIDs()) {
+				if (customerId < 0) continue;
+
+				auto* npc = logic.GetLogicForObject<SimpleNpcLogic>(customerId);
+				if (!npc) continue;
+
+				// Still unresolved until payment has been collected
+				if (!npc->HasPaid()) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
 	/************************************************************************/
 	/*!
 	\brief
@@ -2268,10 +2293,23 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		};
 
 	scene.SetCustomerUpdateHook([customerManager, ambientVfx](float dt, Scene& s) {
+		// Stop new customer spawns near endgame.
+		// This requires CustomerManagerSystem to support spawn enable/disable cleanly.
+		const bool shouldStopSpawning =
+			(Economy::gTimeRemaining <= Economy::kStopSpawningThresholdSeconds) ||
+			Economy::gAwaitingFinalCustomerClear;
+
+		customerManager->SetSpawningEnabled(!shouldStopSpawning);
 		customerManager->Update(dt, s);
+
 		ambientVfx->Update(dt, s);
 
-		// Always tick tutorial flow so completion popup input still works
+		// If time is over, quota was reached, and no unresolved customers remain,
+		// finally go to the win cutscene.
+		if (Economy::gAwaitingFinalCustomerClear && !HasAnyUnresolvedCustomer(s)) {
+			Economy::OnQuotaReached(s);
+		}
+
 		gTutorialFlow.Update(s, dt);
 		});
 
