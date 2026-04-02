@@ -528,7 +528,31 @@ void PlayerLogic::HandleClickInput(Scene& scene, InputManager& input, float dt) 
 	}
 
 	if (movementLocked_) {
-		// Ignore gameplay clicks while a workstation owns the player.
+		// Let the player buffer their next intent while a workstation animation owns movement.
+		if (lmbJustPressed) {
+			int clickedTableID = -1;
+			TableLogic* clickedTableLogic = nullptr;
+			const bool clickedTable =
+				TryResolveClickedTableTarget(scene, mouseWorld, clickedTableID, clickedTableLogic);
+
+			if (clickedTable && clickedTableLogic) {
+				QueueTableAction(clickedTableID);
+
+				const glm::vec2 playerPos = PlayerLogicDetail::ToVec2(player->GetPositionGLM());
+				glm::vec2 indicatorTarget = playerPos;
+				if (TryGetTableMoveTarget(scene, clickedTableID, playerPos, indicatorTarget)) {
+					ShowClickMoveIndicator(scene, indicatorTarget);
+				}
+				else {
+					ShowClickMoveIndicator(scene, mouseWorld);
+				}
+			}
+			else {
+				QueueMoveAction(mouseWorld);
+				ShowClickMoveIndicator(scene, mouseWorld);
+			}
+		}
+
 		ResetMouseDragState();
 		return;
 	}

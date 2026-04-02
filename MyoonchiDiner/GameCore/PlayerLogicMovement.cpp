@@ -57,6 +57,7 @@ void PlayerLogic::FinishMovement(Scene& scene, bool clearPendingTable) {
 	moveMode_ = MoveMode::None;
 	pathPoints_.clear();
 	pathIndex_ = 0;
+	blockedMoveFrames_ = 0;
 
 	if (clearPendingTable) {
 		pendingTableID = -1;
@@ -181,6 +182,14 @@ bool PlayerLogic::TryUpdateDirectMovement(float dt, Scene& scene, GameObject* pl
 	const float allowedLenSq = allowedDelta.x * allowedDelta.x + allowedDelta.y * allowedDelta.y;
 
 	if (allowedLenSq < 0.0001f) {
+		// Give transient blockers a few frames to clear before rebuilding or cancelling movement.
+		++blockedMoveFrames_;
+		if (blockedMoveFrames_ < PlayerLogicDetail::kBlockedFramesBeforeCancel) {
+			return true;
+		}
+
+		blockedMoveFrames_ = 0;
+
 		// When the step is fully blocked, fall back to pathfinding before giving up.
 		if (TryRepathToFinalTarget(scene, player, currentPos, arriveRadiusSq, true)) {
 			return true;
@@ -190,6 +199,7 @@ bool PlayerLogic::TryUpdateDirectMovement(float dt, Scene& scene, GameObject* pl
 		return true;
 	}
 
+	blockedMoveFrames_ = 0;
 	player->SetPosition(glm::vec3(currentPos.x + allowedDelta.x, currentPos.y + allowedDelta.y, playerPos3.z));
 	scene.ClampToWalkArea(player);
 	UpdateSprite(scene, player, allowedDelta);
@@ -222,6 +232,14 @@ bool PlayerLogic::TryUpdatePathMovement(float dt, Scene& scene, GameObject* play
 	const float allowedLenSq = allowedDelta.x * allowedDelta.x + allowedDelta.y * allowedDelta.y;
 
 	if (allowedLenSq < 0.0001f) {
+		// Brief stalls should not instantly cancel a route while the scene is crowded.
+		++blockedMoveFrames_;
+		if (blockedMoveFrames_ < PlayerLogicDetail::kBlockedFramesBeforeCancel) {
+			return true;
+		}
+
+		blockedMoveFrames_ = 0;
+
 		// Try to recover from stale nav data before cancelling the move outright.
 		if (TryRepathToFinalTarget(scene, player, currentPos, arriveRadiusSq, false)) {
 			return true;
@@ -232,6 +250,7 @@ bool PlayerLogic::TryUpdatePathMovement(float dt, Scene& scene, GameObject* play
 		return true;
 	}
 
+	blockedMoveFrames_ = 0;
 	const glm::vec2 nextPos(currentPos.x + allowedDelta.x, currentPos.y + allowedDelta.y);
 	player->SetPosition(glm::vec3(nextPos.x, nextPos.y, playerPos3.z));
 	scene.ClampToWalkArea(player);
@@ -326,6 +345,8 @@ void PlayerLogic::MoveDirect(const glm::vec2& dest) {
 	moveTarget = dest;
 	pathPoints_.clear();
 	pathIndex_ = 0;
+	blockedMoveFrames_ = 0;
+	directPathCheckTimer_ = 0.0f;
 	hasMoveTarget = true;
 	moveMode_ = MoveMode::Direct;
 }
@@ -356,6 +377,8 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 	finalTarget_ = snappedDest;
 	pathPoints_.clear();
 	pathIndex_ = 0;
+	blockedMoveFrames_ = 0;
+	directPathCheckTimer_ = 0.0f;
 	hasMoveTarget = false;
 	moveMode_ = MoveMode::Pathfinding;
 
@@ -400,6 +423,8 @@ void PlayerLogic::CancelQueuedTableMove(Scene& scene) {
 	moveMode_ = MoveMode::None;
 	pathPoints_.clear();
 	pathIndex_ = 0;
+	blockedMoveFrames_ = 0;
+	directPathCheckTimer_ = 0.0f;
 	pendingTableID = -1;
 
 	if (GameObject* player = GetOwner(scene)) {
@@ -444,8 +469,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 		}
 	}
 
-	constexpr float kMoveArriveRadius = 6.0f;
-	const float arriveRadiusSq = kMoveArriveRadius * kMoveArriveRadius;
+	const float arriveRadiusSq = PlayerLogicDetail::kArriveRadius * PlayerLogicDetail::kArriveRadius;
 
 	if (moveMode_ == MoveMode::Direct) {
 		(void)TryUpdateDirectMovement(dt, scene, player, pos3, pos, arriveRadiusSq);
@@ -516,8 +540,11 @@ void PlayerLogic::HandleKeyboardMovement(float dt, Scene& scene, InputManager& i
 		moveMode_ = MoveMode::None;
 		pathPoints_.clear();
 		pathIndex_ = 0;
+		blockedMoveFrames_ = 0;
+		directPathCheckTimer_ = 0.0f;
 		pendingTableID = -1;
 		ClearQueuedAction();
+		ResetMouseDragState();
 
 		const glm::vec2 normalizedInput = PlayerLogicDetail::NormalizeOrZero(inputDir);
 		glm::vec2 desiredDelta(normalizedInput.x * moveSpeed * dt, normalizedInput.y * moveSpeed * dt);
@@ -643,6 +670,8 @@ void PlayerLogic::BeginStationLock(Scene& scene, int tableID) {
 
 	hasMoveTarget = false;
 	moveMode_ = MoveMode::None;
+	blockedMoveFrames_ = 0;
+	directPathCheckTimer_ = 0.0f;
 
 	if (GameObject* p = GetOwner(scene)) {
 		scene.GetMovementManager().ClearMoveTarget(p->GetID());

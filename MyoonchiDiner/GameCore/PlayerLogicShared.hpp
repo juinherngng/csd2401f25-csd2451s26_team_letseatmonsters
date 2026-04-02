@@ -25,11 +25,11 @@
 #include "GameCore/TableLogic.hpp"
 
 namespace PlayerLogicDetail {
-	inline constexpr float kPlayerInteractRadius = 40.0f;
+	inline constexpr float kPlayerInteractRadius = 48.0f;
 	inline constexpr float kMoveRetargetDeadzone = 6.0f;
-	inline constexpr float kDragRetargetDistance = 20.0f;
-	inline constexpr float kDragRetargetInterval = 0.06f;
-	inline constexpr float kArriveRadius = 4.0f;
+	inline constexpr float kDragRetargetDistance = 12.0f;
+	inline constexpr float kDragRetargetInterval = 0.035f;
+	inline constexpr float kArriveRadius = 10.0f;
 	inline constexpr int kBlockedFramesBeforeCancel = 6;
 
 	inline constexpr float kKeyboardMoveSpeed = 200.0f;
