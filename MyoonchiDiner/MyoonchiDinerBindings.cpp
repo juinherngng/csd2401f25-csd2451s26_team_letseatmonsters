@@ -2131,7 +2131,7 @@ namespace {
 			}},
 			{ "btn_credits", [](Scene& scene, int id) {
 				// Temporary wiring: route to main menu until a dedicated credits flow exists.
-				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::MAIN_MENU, false);
+				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::CREDITS, false);
 				if (logic && scene.GetAudioManager()) {
 					logic->SetAudioManager(scene.GetAudioManager());
 				}
