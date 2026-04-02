@@ -89,10 +89,23 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	}
 
 	const std::string levelPath = scene.GetCurrentLevelPath();
+	const bool isTutorial = levelPath.find("tutorial") != std::string::npos;
 	const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
 	const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
+	const bool forceLoseShortcut =
+		((isTutorial || isLevel1 || isLevel2) && input.IsKeyJustPressed(GLFW_KEY_F9));
 	const bool forceClearShortcut =
 		((isLevel1 || isLevel2) && input.IsKeyJustPressed(GLFW_KEY_F10));
+
+	if (forceLoseShortcut && !Economy::gTimerPaused) {
+		// Mirror the instant-win debug shortcut with a direct fail-state trigger.
+		Economy::gTimeRemaining = 0.0f;
+		Economy::gTimeUp = true;
+		Economy::gAwaitingFinalCustomerClear = false;
+		Economy::SyncUI(&scene);
+		Economy::OnTimeUp(scene);
+		return;
+	}
 
 	if (forceClearShortcut && !Economy::gQuotaReached) {
 		// Preserve the existing developer shortcut for quickly forcing quota completion in kitchen levels.

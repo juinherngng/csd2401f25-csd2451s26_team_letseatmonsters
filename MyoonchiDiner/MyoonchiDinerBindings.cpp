@@ -572,6 +572,12 @@ namespace {
 			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 
 			if (yesButtonID_ >= 0 && IsPointInObject(scene, yesButtonID_, mouseWorld)) {
+               if (AudioManager* audioManager = scene.GetAudioManager()) {
+					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
+					}
+				}
+
 				if (yesAction_ == QuitPopupYesAction::ReturnToMainMenu) {
 					Clear(scene);
 					scene.HidePauseOverlay();
@@ -587,6 +593,12 @@ namespace {
 			}
 
 			if (noButtonID_ >= 0 && IsPointInObject(scene, noButtonID_, mouseWorld)) {
+               if (AudioManager* audioManager = scene.GetAudioManager()) {
+					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
+					}
+				}
+
 				Clear(scene);
 				// Prevent stale edge/held states from leaking into resume logic on the next frame after closing the popup
 				input.ClearState();
@@ -655,6 +667,12 @@ namespace {
 			mouseHeld_ = mouseDown;
 
 			if (hoveredNow && clickEdge) {
+                if (AudioManager* audioManager = scene.GetAudioManager()) {
+					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
+						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
+					}
+				}
+
 				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 				gQuitPopup.Show(scene, yesActionOnOpen_);
 			}

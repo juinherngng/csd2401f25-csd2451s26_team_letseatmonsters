@@ -215,7 +215,8 @@ namespace Economy {
 
 		const std::string levelPath = scene.GetCurrentLevelPath();
 		const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
-		const char* nextScenePath = isLevel1 ? FilePaths::Levels::LOSE : FilePaths::Levels::MAIN_MENU;
+		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
+		const char* nextScenePath = (isLevel1 || isLevel2) ? FilePaths::Levels::LOSE : FilePaths::Levels::MAIN_MENU;
 
 		scene.StartCutsceneTransitionedBounded(
 			frames,
