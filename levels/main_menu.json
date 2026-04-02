@@ -108,7 +108,7 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "btn_settings",
-      "texture": "../../assets/UI/settings_s.png",
+      "texture": "../assets/UI/settings_s.png",
       "visible": true,
       "w": 302.3999938964844,
       "x": 1300.0,

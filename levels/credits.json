@@ -35,8 +35,8 @@
       "texture": "../assets/UI/return_s.png",
       "visible": true,
       "w": 350.0,
-      "x": 1406.3123779296875,
-      "y": 794.6179809570313,
+      "x": 1406.0,
+      "y": 795.0,
       "z": 0.0
     }
   ],
@@ -52,12 +52,29 @@
       "layer": "99",
       "name": "CreditsTitle",
       "rotation": 0.0,
-      "scale": 1.1299999952316284,
+      "scale": 1.1799999475479126,
       "text": "CREDITS",
       "useBlockRotation": true,
       "visible": true,
-      "x": 700.0,
-      "y": 95.0
+      "x": 670.0,
+      "y": 88.0
+    },
+    {
+      "colorA": 1.0,
+      "colorB": 1.0,
+      "colorG": 1.0,
+      "colorR": 1.0,
+      "fontName": "font1",
+      "fontSize": 48,
+      "layer": "99",
+      "name": "CreditsSubtitle",
+      "rotation": 0.0,
+      "scale": 0.41999998688697815,
+      "text": "MYOONCHI DINER TEAM / FACULTY",
+      "useBlockRotation": true,
+      "visible": true,
+      "x": 615.0,
+      "y": 138.0
     },
     {
       "colorA": 1.0,
@@ -73,8 +90,8 @@
       "text": "President",
       "useBlockRotation": true,
       "visible": true,
-      "x": 720.0,
-      "y": 190.0
+      "x": 742.0,
+      "y": 188.0
     },
     {
       "colorA": 1.0,
@@ -90,8 +107,8 @@
       "text": "Claude Comair",
       "useBlockRotation": true,
       "visible": true,
-      "x": 722.0,
-      "y": 234.0
+      "x": 730.0,
+      "y": 235.0
     },
     {
       "colorA": 1.0,
@@ -107,8 +124,8 @@
       "text": "ALL CONTENT (C) 2026 DIGIPEN INSTITUTE OF TECHNOLOGY SINGAPORE",
       "useBlockRotation": true,
       "visible": true,
-      "x": 485.0,
-      "y": 870.0
+      "x": 405.0,
+      "y": 874.0
     },
     {
       "colorA": 1.0,
@@ -124,7 +141,7 @@
       "text": "Team",
       "useBlockRotation": true,
       "visible": true,
-      "x": 380.0,
+      "x": 250.0,
       "y": 300.0
     },
     {
@@ -141,7 +158,7 @@
       "text": "Ng Juin Herng - Technical Lead / Audio Champion",
       "useBlockRotation": true,
       "visible": true,
-      "x": 220.0,
+      "x": 180.0,
       "y": 360.0
     },
     {
@@ -158,7 +175,7 @@
       "text": "Yat Chun Wee - Product Manager / Physics & Collision Champion",
       "useBlockRotation": true,
       "visible": true,
-      "x": 220.0,
+      "x": 180.0,
       "y": 420.0
     },
     {
@@ -175,7 +192,7 @@
       "text": "Seah Wang Hua - Programmer / Graphics & Rendering Champion",
       "useBlockRotation": true,
       "visible": true,
-      "x": 220.0,
+      "x": 180.0,
       "y": 480.0
     },
     {
@@ -192,7 +209,7 @@
       "text": "Vu Phan Hung - Design Lead / Systems Design Champion",
       "useBlockRotation": true,
       "visible": true,
-      "x": 220.0,
+      "x": 180.0,
       "y": 540.0
     },
     {
@@ -209,7 +226,7 @@
       "text": "Loo Shi Ya - Art Lead / Character & Props Champion",
       "useBlockRotation": true,
       "visible": true,
-      "x": 220.0,
+      "x": 180.0,
       "y": 600.0
     },
     {
@@ -223,10 +240,10 @@
       "name": "CreditsLine05",
       "rotation": 0.0,
       "scale": 0.5,
-      "text": "Ting Tze Chin Rena - Artist / Environmnet & Props Champion",
+      "text": "Ting Tze Chin Rena - Artist / Environment & Props Champion",
       "useBlockRotation": true,
       "visible": true,
-      "x": 220.0,
+      "x": 180.0,
       "y": 660.0
     },
     {
@@ -243,7 +260,7 @@
       "text": "Instructors",
       "useBlockRotation": true,
       "visible": true,
-      "x": 1035.0,
+      "x": 970.0,
       "y": 300.0
     },
     {
@@ -260,7 +277,7 @@
       "text": "Tech",
       "useBlockRotation": true,
       "visible": true,
-      "x": 980.0,
+      "x": 935.0,
       "y": 350.0
     },
     {
@@ -277,7 +294,7 @@
       "text": "Parminder Singh",
       "useBlockRotation": true,
       "visible": true,
-      "x": 980.0,
+      "x": 935.0,
       "y": 390.0
     },
     {
@@ -294,7 +311,7 @@
       "text": "Elie Horsy",
       "useBlockRotation": true,
       "visible": true,
-      "x": 980.0,
+      "x": 935.0,
       "y": 420.0
     },
     {
@@ -311,7 +328,7 @@
       "text": "Ding Xiang Cheng",
       "useBlockRotation": true,
       "visible": true,
-      "x": 980.0,
+      "x": 935.0,
       "y": 450.0
     },
     {
@@ -328,7 +345,7 @@
       "text": "Ruby Castan",
       "useBlockRotation": true,
       "visible": true,
-      "x": 980.0,
+      "x": 935.0,
       "y": 480.0
     },
     {
@@ -345,7 +362,7 @@
       "text": "Richard Tsao",
       "useBlockRotation": true,
       "visible": true,
-      "x": 980.0,
+      "x": 935.0,
       "y": 510.0
     },
     {
@@ -362,7 +379,7 @@
       "text": "Art",
       "useBlockRotation": true,
       "visible": true,
-      "x": 1175.0,
+      "x": 1140.0,
       "y": 560.0
     },
     {
@@ -379,7 +396,7 @@
       "text": "Choon Wee Keh",
       "useBlockRotation": true,
       "visible": true,
-      "x": 1175.0,
+      "x": 1140.0,
       "y": 599.0
     },
     {
@@ -396,7 +413,7 @@
       "text": "Design",
       "useBlockRotation": true,
       "visible": true,
-      "x": 1175.0,
+      "x": 1140.0,
       "y": 350.0
     },
     {
@@ -413,7 +430,7 @@
       "text": "Raymond Teo",
       "useBlockRotation": true,
       "visible": true,
-      "x": 1175.0,
+      "x": 1140.0,
       "y": 390.0
     },
     {
@@ -430,7 +447,7 @@
       "text": "Danielle Fong",
       "useBlockRotation": true,
       "visible": true,
-      "x": 1175.0,
+      "x": 1140.0,
       "y": 420.0
     },
     {
@@ -447,7 +464,7 @@
       "text": "Holger Liebnitz",
       "useBlockRotation": true,
       "visible": true,
-      "x": 1175.0,
+      "x": 1140.0,
       "y": 450.0
     },
     {
@@ -464,7 +481,7 @@
       "text": "Issac Tan",
       "useBlockRotation": true,
       "visible": true,
-      "x": 1175.0,
+      "x": 1140.0,
       "y": 480.0
     },
     {
@@ -481,7 +498,7 @@
       "text": "Audio",
       "useBlockRotation": true,
       "visible": true,
-      "x": 980.0,
+      "x": 935.0,
       "y": 560.0
     },
     {
@@ -498,7 +515,7 @@
       "text": "Vuk Krakovic",
       "useBlockRotation": true,
       "visible": true,
-      "x": 980.0,
+      "x": 935.0,
       "y": 600.0
     },
     {
@@ -515,7 +532,7 @@
       "text": "Gavin Parker",
       "useBlockRotation": true,
       "visible": true,
-      "x": 980.0,
+      "x": 935.0,
       "y": 630.0
     },
     {
@@ -532,7 +549,7 @@
       "text": "Choon Wee Keh",
       "useBlockRotation": true,
       "visible": true,
-      "x": 980.0,
+      "x": 935.0,
       "y": 660.0
     }
   ]
