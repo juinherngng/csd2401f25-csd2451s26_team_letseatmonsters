@@ -2373,6 +2373,11 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, outSeconds);
 			}
 
+			// Stop intro stinger immediately on skip so it does not continue under the transition.
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE)) {
+				audioManager->StopSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE);
+			}
+
 			if (audioManager->HasSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE)) {
 				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE, 0.0f, outSeconds);
 			}
