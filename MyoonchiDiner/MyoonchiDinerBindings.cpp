@@ -79,6 +79,7 @@
 #include "GameCore/TableLogic.hpp"
 #include "GameCore/TrashCanLogic.hpp"
 #include "GameCore/WorkTableLogic.hpp"
+#include "GameCore/InGamePauseTriggerLogic.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
 #include "MyoonchiDiner/MyoonchiDinerBindings.hpp"
 
@@ -2138,6 +2139,9 @@ namespace {
 				if (logic && scene.GetAudioManager()) {
 					logic->SetAudioManager(scene.GetAudioManager());
 				}
+			}},
+			{ "btn_pause", [](Scene& scene, int id) {
+			   scene.GetLogicManager().AddLogic<InGamePauseTriggerLogic>(id);
 			}},
 		};
 		return table;

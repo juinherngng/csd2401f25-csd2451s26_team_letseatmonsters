@@ -1285,7 +1285,7 @@
       "shadow": false,
       "speed_x": 0.0,
       "speed_y": 0.0,
-      "tag": "",
+      "tag": "btn_pause",
       "texture": "../assets/Pause_button.png",
       "visible": true,
       "w": 32.0,
