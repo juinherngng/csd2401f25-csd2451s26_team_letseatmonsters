@@ -834,16 +834,87 @@ bool PlayerLogic::TryPlaceHeldItemOnEmptyTable(Scene& scene, GameObject* player,
  * @return True when the combination succeeded.
  */
 bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, LogicManager& logicMgr, TableLogic& table) {
-	// Support both directions: ingredient onto plate, or held plate onto table ingredient.
 	(void)player;
+
 	const int tableItemID = table.GetHeldItemID();
+
 	PlateLogic* heldPlate = logicMgr.GetLogicForObject<PlateLogic>(carriedItemID);
 	IngredientLogic* heldIngredient = logicMgr.GetLogicForObject<IngredientLogic>(carriedItemID);
+
 	PlateLogic* tablePlate = logicMgr.GetLogicForObject<PlateLogic>(tableItemID);
 	IngredientLogic* tableIngredient = logicMgr.GetLogicForObject<IngredientLogic>(tableItemID);
 
+	// --------------------------------------------------------------------
+	// CASE 1:
+	// Player is holding a PLATE with 1 ingredient,
+	// table has another PLATE with 1 ingredient.
+	// Combine onto the held plate, leave empty plate on the table.
+	// --------------------------------------------------------------------
+	if (heldPlate && tablePlate) {
+		// Do not allow combining already-finished dishes
+		if (heldPlate->HasPreparedDish() || tablePlate->HasPreparedDish()) {
+			return false;
+		}
+
+		// Only support 1-ingredient plate + 1-ingredient plate
+		if (heldPlate->GetIngredientCount() != 1 || tablePlate->GetIngredientCount() != 1) {
+			return false;
+		}
+
+		const std::vector<IngredientType>& tableIngredients = tablePlate->GetIngredients();
+		if (tableIngredients.empty()) {
+			return false;
+		}
+
+		const IngredientType transferType = tableIngredients[0];
+
+		// Held plate must still be able to accept the transferred ingredient
+		if (!heldPlate->CanAcceptIngredientType(transferType)) {
+			return false;
+		}
+
+		const int heldFirstObjID = heldPlate->GetFirstIngredientObjectID();
+		const int tableFirstObjID = tablePlate->GetFirstIngredientObjectID();
+
+		// Add the second ingredient logically onto the held plate
+		heldPlate->AddIngredientType(transferType);
+
+		// Clear the table plate back to empty
+		if (tableFirstObjID >= 0 && scene.GetGameObjectByID(tableFirstObjID)) {
+			scene.DespawnByID(tableFirstObjID);
+		}
+		tablePlate->ClearIngredients();
+
+		// Assemble final dish on held plate
+		DishType dishType;
+		std::vector<IngredientType> consumedTypes;
+		if (heldPlate->TryAssembleDish(dishType, consumedTypes)) {
+			heldPlate->ApplyDishVisual(scene);
+
+			// Remove the loose first ingredient visual from the held plate too
+			if (heldFirstObjID >= 0 && scene.GetGameObjectByID(heldFirstObjID)) {
+				scene.DespawnByID(heldFirstObjID);
+	}
+
+			heldPlate->SetFirstIngredientObjectID(-1);
+}
+
+#ifndef _DEBUG
+		if (AudioManager* audioMgr = scene.GetAudioManager()) {
+			glm::vec3 playerPos = player->GetPositionGLM();
+			audioMgr->PlaySound3D("sfx_put_down", playerPos.x, playerPos.y, playerPos.z,
+				audioMgr->GetVfxVolume() * 0.8f);
+		}
+#endif
+		return true;
+	}
+
+	// --------------------------------------------------------------------
+	// CASE 2:
+	// Player is holding a PLATE, table has a processed INGREDIENT.
+	// Merge table ingredient into held plate.
+	// --------------------------------------------------------------------
 	if (heldPlate && tableIngredient) {
-		// Merge a table ingredient into the held plate, then upgrade to a dish if the recipe completes.
 		if (!tableIngredient->IsProcessed() || !heldPlate->CanAcceptIngredientType(tableIngredient->GetType())) {
 			return false;
 		}
@@ -857,7 +928,6 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 
 		bool consumedNow = false;
 		if (!heldPlate->TryAddIngredient(*tableIngredient, consumedNow)) {
-			// Restore the table state when the ingredient cannot actually be added to the plate.
 			table.PlaceItem(scene, removedID);
 			return false;
 		}
@@ -886,7 +956,7 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 			if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
 				scene.DespawnByID(ingredientObjID);
 			}
-		}
+			}
 
 #ifndef _DEBUG
 		if (AudioManager* audioMgr = scene.GetAudioManager()) {
@@ -896,10 +966,14 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 		}
 #endif
 		return true;
-	}
+		}
 
+	// --------------------------------------------------------------------
+	// CASE 3:
+	// Player is holding a processed INGREDIENT, table has a PLATE.
+	// Merge held ingredient into table plate.
+	// --------------------------------------------------------------------
 	if (tablePlate && heldIngredient) {
-		// Mirror the same recipe flow when the plate is on the table and the ingredient is in hand.
 		const int ingredientObjID = heldIngredient->GetOwnerID();
 		const int ingredientCountBefore = tablePlate->GetIngredientCount();
 
@@ -951,4 +1025,4 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 	}
 
 	return false;
-}
+	}
