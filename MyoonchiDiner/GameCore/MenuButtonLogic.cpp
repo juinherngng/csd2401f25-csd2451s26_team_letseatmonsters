@@ -22,7 +22,6 @@
 #include "GameCore/MenuButtonLogic.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
 
-#ifndef _DEBUG
 namespace {
 	static std::string MakeHoverPath(const std::string& path) {
 		if (path.empty()) return path;
@@ -46,16 +45,22 @@ namespace {
 		}
 	}
 }
-#endif // _DEBUG
 
 void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
-#ifdef _DEBUG
-	(void)scene; (void)input;
-#else
 	if (!initialized_) {
 		normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
 		hoverTexturePath_ = MakeHoverPath(normalTexturePath_);
 		initialized_ = true;
+	}
+
+	if (!scene.ShouldUseRuntimeParityMode()) {
+		if (hovered_) {
+			hovered_ = false;
+			if (GameObject* owner = GetOwner(scene)) {
+				TrySetTexture(owner, normalTexturePath_);
+			}
+		}
+		return;
 	}
 
 	if (scene.IsHowToPlayOverlayActive() || scene.IsMenuModalActive()) {
@@ -129,5 +134,4 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		// Direct transition only. No intro cutscene here.
 		scene.StartLevelTransition(targetJson_, activateSimulation_, 0.35f, 0.35f);
 	}
-#endif // _DEBUG
 }

@@ -568,17 +568,17 @@ void PlayerLogic::UpdateFootstepTrailAndAudio(float dt, Scene& scene, InputManag
 		return;
 	}
 
-#ifndef _DEBUG
-	footstepEmitTimer_ += dt;
-	if (footstepEmitTimer_ >= PlayerLogicDetail::kFootstepInterval) {
-		// Rate-limit footstep SFX so long moves do not spam overlapping sounds.
-		footstepEmitTimer_ = 0.0f;
-		if (AudioManager* audioMgr = scene.GetAudioManager()) {
-			audioMgr->PlaySound3D("sfx_step_1", afterPos.x, afterPos.y, afterPos.z,
-				audioMgr->GetVfxVolume() * 0.04f);
+	if (scene.ShouldUseRuntimeParityMode()) {
+		footstepEmitTimer_ += dt;
+		if (footstepEmitTimer_ >= PlayerLogicDetail::kFootstepInterval) {
+			// Rate-limit footstep SFX so long moves do not spam overlapping sounds.
+			footstepEmitTimer_ = 0.0f;
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				audioMgr->PlaySound3D("sfx_step_1", afterPos.x, afterPos.y, afterPos.z,
+					audioMgr->GetVfxVolume() * 0.04f);
+			}
 		}
 	}
-#endif
 
 	glm::vec3 feet = afterPos;
 	const auto co = player->GetColliderOffset();

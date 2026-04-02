@@ -108,11 +108,10 @@ namespace {
  * @param input Input manager used for mouse position queries and button state.
  */
 void InGamePauseTriggerLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
-    #ifdef _DEBUG
-	(void)scene;
-	(void)input;
-	return;
-	#else
+	if (!scene.ShouldUseRuntimeParityMode()) {
+		return;
+	}
+
 	// Skip when the game is not actively simulating or the pause UI is already visible.
 	if (!scene.IsSimulationActive() || scene.IsPauseOverlayActive()) {
 		return;
@@ -190,5 +189,4 @@ void InGamePauseTriggerLogic::Update(float /*dt*/, Scene& scene, InputManager& i
 
 	// Ask the scene to display the pause overlay UI.
 	scene.ShowPauseOverlay();
-   #endif
 }

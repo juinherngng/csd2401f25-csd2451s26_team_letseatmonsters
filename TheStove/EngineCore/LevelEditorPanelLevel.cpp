@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "EngineCore/ApplicationState.hpp"
+#include "EngineCore/AudioManager.hpp"
 #include "EngineCore/AudioLoading.hpp"
 #include "EngineCore/Core.hpp"
 #include "EngineCore/InputManager.hpp"
@@ -493,6 +494,53 @@ namespace {
 	}
 
 	/**
+	 * @brief Stops all editor/runtime audio so edit mode returns to a silent state.
+	 * @param scene Scene whose bound audio manager should be silenced.
+	 */
+	static void StopEditorAudio(Scene& scene) {
+		scene.StopAllObjectAudio();
+		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			audioManager->StopAllSounds();
+		}
+	}
+
+	/**
+	 * @brief Infers the simulation mode a level normally uses in the shipped game.
+	 * @param levelPath Exact or best-effort path/name of the level being played from the editor.
+	 * @return True when the level should run as gameplay-active, false for menu-style screens.
+	 */
+	static bool InferEditorPlaySimulationActive(const std::string& levelPath) {
+		std::string lower = fs::path(levelPath).generic_string();
+		std::transform(lower.begin(), lower.end(), lower.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+		if (lower.empty()) {
+			return true;
+		}
+
+		if (lower.find("main_menu") != std::string::npos ||
+			lower.find("credits") != std::string::npos ||
+			lower.find("lose") != std::string::npos ||
+			lower.find("collision_") != std::string::npos) {
+			return false;
+		}
+
+		// Day-clear / win screens keep the scene in runtime mode in release, but still use menu-style audio.
+		if (lower.find("win") != std::string::npos ||
+			lower.find("dayclear") != std::string::npos ||
+			lower.find("day_clear") != std::string::npos) {
+			return true;
+		}
+
+		if (lower.find("tutorial") != std::string::npos ||
+			lower.find("kitchen") != std::string::npos) {
+			return true;
+		}
+
+		return true;
+	}
+
+	/**
 	 * @brief Captures the current scene into a serializable level snapshot.
 	 * @param scene Scene to read from.
 	 * @param levelOut Snapshot to populate.
@@ -878,9 +926,9 @@ namespace LEPANELLEVEL {
 		static std::string sLastSavedPath;
 
 		LEACTIONS::DrawActionGrid(editor, scene, { [&]() {
-													  scene.StopAllObjectAudio();
-													  scene.SetSimulationActive(false);
 													  editor.SetPlaying(false);
+													  StopEditorAudio(scene);
+													  scene.SetSimulationActive(false);
 
 													  LevelData& work = editor.MutableLevel();
 													  if (LevelSerializer::LoadExact(editor.levelPath, work)) {
@@ -910,13 +958,12 @@ namespace LEPANELLEVEL {
 													  }
 												  },
 												  [&]() {
-													  scene.StopAllObjectAudio();
+													  editor.SetPlaying(false);
+													  StopEditorAudio(scene);
 													  scene.SetSimulationActive(false);
 													  scene.ClearAll();
 													  scene.RebuildColliders();
 													  scene.ResetResizeBaseline();
-
-													  editor.SetPlaying(false);
 													  LEPANELFONTS::ClearTextObjects();
 
 													  LevelData& fresh = editor.MutableLevel();
@@ -945,6 +992,8 @@ namespace LEPANELLEVEL {
 						LevelData& snap = editor.MutablePlaySnapshot();
 						CaptureEditorState(scene, snap);
 						const bool useExactFileLoad = !editor.levelPath.empty();
+						const std::string playLevelPath = useExactFileLoad ? editor.levelPath : scene.GetCurrentLevelPath();
+						const bool playSimulationActive = InferEditorPlaySimulationActive(playLevelPath);
 
 						editor.SetPlaying(true);
 						selectedIndex = -1;
@@ -958,13 +1007,14 @@ namespace LEPANELLEVEL {
 								return;
 							}
 
-							ApplyLevelToEditorScene(scene, editor.levelPath, playLevel, true);
+							ApplyLevelToEditorScene(scene, editor.levelPath, playLevel, playSimulationActive);
 						}
 						else {
-							ApplyLevelToEditorScene(scene, editor.levelPath, snap, true);
+							ApplyLevelToEditorScene(scene, editor.levelPath, snap, playSimulationActive);
 						}
 						}, [&]() {
-						scene.StopAllObjectAudio();
+						editor.SetPlaying(false);
+						StopEditorAudio(scene);
 						scene.SetSimulationActive(false);
 
 						LevelData& playSnapshot = editor.MutablePlaySnapshot();
@@ -979,7 +1029,6 @@ namespace LEPANELLEVEL {
 								selectedIndex = -1;
 								selectedObjectId = -1;
 								LEHIERARCHY::InvalidateCache();
-								editor.SetPlaying(false);
 								return;
 							}
 
@@ -988,7 +1037,7 @@ namespace LEPANELLEVEL {
 
 						ApplyLevelToEditorScene(scene, editor.levelPath, playSnapshot, false);
 						SyncTextObjectsToEditor(playSnapshot);
-						editor.SetPlaying(false); } });
+						} });
 
 		if (sLastValidationReport.HasWarnings() && ImGui::CollapsingHeader("Validation Warnings", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::TextColored(ImVec4(1.0f, 0.78f, 0.25f, 1.0f), "%d warning(s) in loaded level", static_cast<int>(sLastValidationReport.warnings.size()));

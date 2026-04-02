@@ -24,7 +24,6 @@
 #include "GameCore/HowToPlayButtonLogic.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
 
-#ifndef _DEBUG
 namespace {
 	static constexpr std::array<const char*, 3> kHowToPlayPages{
 		"../assets/HowToPlay/howtoplay_1.png",
@@ -95,13 +94,8 @@ namespace {
 		return mouseWorld;
 	}
 }
-#endif // _DEBUG
 
 void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
-#ifdef _DEBUG
-	(void)scene;
-	(void)input;
-#else
 	GameObject* owner = GetOwner(scene);
 	if (!owner) {
 		return;
@@ -123,6 +117,14 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		};
 
 	const bool overlayActive = scene.IsHowToPlayOverlayActive();
+
+	if (!overlayActive && !scene.ShouldUseRuntimeParityMode()) {
+		if (hovered_) {
+			hovered_ = false;
+			TrySetTexture(owner, normalTexturePath_);
+		}
+		return;
+	}
 
 	if (!overlayActive && scene.IsMenuModalActive()) {
 		if (hovered_) {
@@ -277,5 +279,4 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	nextBtn->SetMovableByPhysics(false);
 
 	scene.SetHowToPlayOverlayActive(true);
-#endif // _DEBUG
 }

@@ -22,7 +22,6 @@
 #include "GameCore/PlayerLogic.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
 
-#ifndef _DEBUG
 namespace {
 	static std::string MakeHoverPath(const std::string& path) {
 		if (path.empty()) return path;
@@ -48,19 +47,23 @@ namespace {
 		}
 	}
 }
-#endif 
 
 void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
-#ifdef _DEBUG
-	// Debug build: inert
-	(void)scene;
-	(void)input;
-#else
 	// Lazy init from entity metadata
 	if (!initialized_) {
 		normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
 		hoverTexturePath_ = MakeHoverPath(normalTexturePath_);
 		initialized_ = true;
+	}
+
+	if (!scene.ShouldUseRuntimeParityMode()) {
+		if (hovered_) {
+			hovered_ = false;
+			if (GameObject* owner = GetOwner(scene)) {
+				TrySetTexture(owner, normalTexturePath_);
+			}
+		}
+		return;
 	}
 
 	if (scene.IsHowToPlayOverlayActive() || scene.IsMenuModalActive()) {
@@ -159,5 +162,4 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		}
 	} break;
 	}
-#endif // _DEBUG
 }

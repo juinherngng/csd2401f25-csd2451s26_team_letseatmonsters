@@ -275,8 +275,7 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 		}
 	}
 
-#ifndef _DEBUG
-	if (showFPS_) {
+	if (ShouldUseRuntimeParityMode() && showFPS_) {
 		// Smooth the displayed FPS value by updating it at a fixed reporting cadence.
 		fpsAccumTime_ += deltaTime;
 		fpsAccumFrames_ += 1;
@@ -296,7 +295,7 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 		}
 	}
 
-	if (inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
+	if (ShouldUseRuntimeParityMode() && inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
 		const std::string levelPath = GetCurrentLevelPath();
 		const bool isCreditsLevel = levelPath == FilePaths::Levels::CREDITS;
 		const bool isWinLikeLevel =
@@ -338,11 +337,10 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 	}
 
 	// Resume simulation only after the overlay has been fully torn down.
-	if (resumeFromPausePending_ && !pauseOverlayActive_) {
+	if (ShouldUseRuntimeParityMode() && resumeFromPausePending_ && !pauseOverlayActive_) {
 		// Reactivate gameplay one frame after the pause UI finishes despawning.
 		SetSimulationActive(true);
 		resumeFromPausePending_ = false;
 		RefreshFlowState();
 	}
-#endif
 }

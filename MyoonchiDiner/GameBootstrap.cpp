@@ -19,6 +19,7 @@
 #include "EngineCore/AudioManager.hpp"
 #include "EngineCore/GameBootstrap.hpp"
 #include "EngineCore/GameStateManager.hpp"
+#include "EngineGraphics/SceneManager.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
 #include "MyoonchiDiner/MyoonchiDinerBindings.hpp"
 
@@ -70,7 +71,10 @@ void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 	// stopping the previous state's audio and starting the new state's BGM.
 	gsm.SetStateAudioPolicy([](Framework::GameState state, Scene& scene, AudioManager* audioManager) {
 		(void)scene;
-#ifndef _DEBUG
+		if (!scene.ShouldUseRuntimeParityMode()) {
+			return;
+		}
+
 		if (!audioManager) {
 			return;
 		}
@@ -94,10 +98,6 @@ void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 			audioManager->PlaySound(gCurrentAmbience, 0.0f, false);
 			audioManager->FadeChannel(gCurrentAmbience, audioManager->GetBgmVolume() * 0.5f, 1.0f);
 		}
-#else
-		(void)audioManager;
-		(void)state;
-#endif
 		});
 
 

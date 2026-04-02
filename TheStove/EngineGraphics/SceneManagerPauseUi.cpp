@@ -28,7 +28,10 @@
   * @brief Spawns the pause overlay and fades gameplay audio down while gameplay is halted.
   */
 void Scene::ShowPauseOverlay() {
-#ifndef _DEBUG
+	if (!ShouldUseRuntimeParityMode()) {
+		return;
+	}
+
 	if (pauseOverlayActive_) {
 		return;
 	}
@@ -109,7 +112,6 @@ void Scene::ShowPauseOverlay() {
 	spawnPauseBtn(FilePaths::Textures::BTN_RESUME, { 1300.f, 454.f }, "resume");
 	spawnPauseBtn(FilePaths::Textures::BTN_HOW, { 1300.f, 584.f }, "howtoplay");
 	spawnPauseBtn(FilePaths::Textures::BTN_QUIT, { 1300.f, 714.f }, "quit");
-#endif
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -120,20 +122,25 @@ void Scene::ShowPauseOverlay() {
  * @brief Requests gameplay resume once the pause overlay teardown has completed.
  */
 void Scene::RequestResumeFromPauseOverlay() {
-#ifndef _DEBUG
+	if (!ShouldUseRuntimeParityMode()) {
+		return;
+	}
+
 	// Defer simulation restart until the overlay objects and audio state are fully restored.
 	resumeFromPausePending_ = true;
 	if (!pauseOverlayActive_) {
 		RefreshFlowState();
 	}
-#endif
 }
 
 /**
  * @brief Removes the pause overlay and restores the paused gameplay audio mix.
  */
 void Scene::HidePauseOverlay() {
-#ifndef _DEBUG
+	if (!ShouldUseRuntimeParityMode()) {
+		return;
+	}
+
 	if (!pauseOverlayActive_) return;
 	// Remove all pause-only UI objects before resuming the underlying scene.
 	for (int id : pauseOverlayObjectIds_) {
@@ -179,5 +186,4 @@ void Scene::HidePauseOverlay() {
 	if (messageBus_) {
 		messageBus_->Post<CoreFramework::PauseOverlayChangedMessage>(false);
 	}
-#endif
 }

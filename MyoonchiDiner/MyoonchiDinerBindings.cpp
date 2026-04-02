@@ -629,6 +629,15 @@ namespace {
 				return;
 			}
 
+			if (!scene.ShouldUseRuntimeParityMode()) {
+				if (hovered_) {
+					hovered_ = false;
+					const std::string cacheKey = "pause_quit_normal_" + std::to_string(GetOwnerID());
+					QuitPopupState::TrySetObjectTexture(scene, GetOwnerID(), normalTexturePath_.c_str(), cacheKey);
+				}
+				return;
+			}
+
 			if (scene.IsHowToPlayOverlayActive() || scene.IsMenuModalActive()) {
 				if (hovered_) {
 					hovered_ = false;
@@ -1974,8 +1983,10 @@ namespace {
 			}
 		}
 
-#ifndef _DEBUG
-		// existing audio/UI logic unchanged...
+		if (!scene.ShouldUseRuntimeParityMode()) {
+			return;
+		}
+
 		if (!simulationActive || IsDayClearLevelLoaded(scene)) {
 			if (Layer* menuLayer = scene.GetLayer("10")) {
 				menuLayer->SetVisible(true);
@@ -2013,10 +2024,6 @@ namespace {
 				audioManager->FadeChannel(levelAmbienceKey, audioManager->GetBgmVolume() * 0.5f, fadeIn);
 			}
 		}
-#else
-		(void)scene;
-		(void)simulationActive;
-#endif
 	}
 
 	/************************************************************************/
@@ -2029,15 +2036,14 @@ namespace {
 	*/
 	/************************************************************************/
 	void OnCutsceneFadeOut(Scene& scene, float outSeconds) {
-#ifndef _DEBUG
+		if (!scene.ShouldUseRuntimeParityMode()) {
+			return;
+		}
+
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
 			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, outSeconds);
 			audioManager->StopSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE);
 		}
-#else
-		(void)scene;
-		(void)outSeconds;
-#endif
 	}
 
 	/************************************************************************/
@@ -2050,7 +2056,10 @@ namespace {
 	*/
 	/************************************************************************/
 	void OnCutsceneFirstFrame(Scene& scene, const std::string& firstImage) {
-#ifndef _DEBUG
+		if (!scene.ShouldUseRuntimeParityMode()) {
+			return;
+		}
+
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
 			if (firstImage.find("Win") != std::string::npos || firstImage.find("daychange") != std::string::npos) {
 				if (audioManager->HasSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE)) {
@@ -2058,10 +2067,6 @@ namespace {
 				}
 			}
 		}
-#else
-		(void)scene;
-		(void)firstImage;
-#endif
 	}
 
 	/************************************************************************/
@@ -2074,7 +2079,10 @@ namespace {
 	*/
 	/************************************************************************/
 	void OnCutsceneBeforeFinalLoad(Scene& scene, float outSeconds) {
-#ifndef _DEBUG
+		if (!scene.ShouldUseRuntimeParityMode()) {
+			return;
+		}
+
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
 			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
 			audioManager->StopSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE);
@@ -2085,10 +2093,6 @@ namespace {
 				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE, 0.0f, outSeconds);
 			}
 		}
-#else
-		(void)scene;
-		(void)outSeconds;
-#endif
 	}
 
 	using TagHandler = std::function<void(Scene&, int)>;
@@ -2433,7 +2437,10 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	// Skip-cutscene audio: stop cutscene BGMs and play skip SFX when player skips
 	scene.SetSkipCutsceneAudioHook([](Scene& s, float outSeconds) {
-#ifndef _DEBUG
+		if (!s.ShouldUseRuntimeParityMode()) {
+			return;
+		}
+
 		if (AudioManager* audioManager = s.GetAudioManager()) {
 			// Fade bgm
 			if (audioManager->HasSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE)) {
@@ -2462,10 +2469,6 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 					false);
 			}
 		}
-#else
-		(void)s;
-		(void)outSeconds;
-#endif
 		});
 
 	// Tag velocity hook: tells engine which tags use authored velocity

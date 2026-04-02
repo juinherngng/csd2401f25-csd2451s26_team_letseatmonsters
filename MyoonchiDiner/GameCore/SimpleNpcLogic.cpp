@@ -625,18 +625,18 @@ void SimpleNpcLogic::TakePayment(Scene& scene) {
 		return;
 
 	// Play payment or wrong order sound effect (release mode only)
-#ifndef _DEBUG
-	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		if (payZero_) {
-			// Wrong order or patience expired - play wrong order sound
-			PlaySpatialSfxAtNpc(scene, GetOwnerID(), "sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f);
-		}
-		else {
-			// Successful order - play payment sound
-			PlaySpatialSfxAtNpc(scene, GetOwnerID(), "sfx_payment", audioMgr->GetVfxVolume() * 0.3f);
+	if (scene.ShouldUseRuntimeParityMode()) {
+		if (AudioManager* audioMgr = scene.GetAudioManager()) {
+			if (payZero_) {
+				// Wrong order or patience expired - play wrong order sound
+				PlaySpatialSfxAtNpc(scene, GetOwnerID(), "sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f);
+			}
+			else {
+				// Successful order - play payment sound
+				PlaySpatialSfxAtNpc(scene, GetOwnerID(), "sfx_payment", audioMgr->GetVfxVolume() * 0.3f);
+			}
 		}
 	}
-#endif
 
 	hasPaid_ = true;
 	behaviourState_ = BehaviourState::Leaving;
@@ -739,11 +739,11 @@ void SimpleNpcLogic::OnReachedExit(Scene& scene) {
 	TS_LOG_DEBUG("[SimpleNpcLogic] Reached exit gate. Despawning.");
 
 	// Play customer leaving sound effect (release mode only)
-#ifndef _DEBUG
-	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		audioMgr->PlaySound("sfx_customer_leaving", audioMgr->GetVfxVolume() * 0.3f, false);
+	if (scene.ShouldUseRuntimeParityMode()) {
+		if (AudioManager* audioMgr = scene.GetAudioManager()) {
+			audioMgr->PlaySound("sfx_customer_leaving", audioMgr->GetVfxVolume() * 0.3f, false);
+		}
 	}
-#endif
 
 	// Free the customer table
 	if (customerTableID_ != kInvalidID) {

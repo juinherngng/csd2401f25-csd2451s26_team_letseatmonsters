@@ -605,6 +605,25 @@ bool Application::Initialize(int width, int height, const std::string& title, bo
 	movementMgr->SetInputManager(inputMgr);
 	collisionMgr->SetEntityManager(&state_.currentScene->GetEntityManager());
 
+	// Keep editor ownership at the application layer rather than inside Scene runtime state.
+	state_.levelEditor = std::make_unique<LevelEditor>();
+	state_.currentScene->SetEditorUiHook([this](Scene& scene) {
+		if (state_.levelEditor) {
+			state_.levelEditor->DrawUI(scene);
+		}
+		});
+	state_.currentScene->SetEditorToggleHook([this]() {
+		if (state_.levelEditor) {
+			state_.levelEditor->Toggle();
+		}
+		});
+	state_.currentScene->SetEditorEnabledQuery([this]() {
+		return state_.levelEditor && state_.levelEditor->IsEnabled();
+		});
+	state_.currentScene->SetEditorPlayingQuery([this]() {
+		return state_.levelEditor && state_.levelEditor->IsPlaying();
+		});
+
 	if (auto* gsm = state_.coreEngine->GetSystem<Framework::GameStateManager>()) {
 		// Connect state management after the scene exists so level loads can target it.
 		gsm->SetScene(state_.currentScene.get());
@@ -632,22 +651,6 @@ bool Application::Initialize(int width, int height, const std::string& title, bo
 	state_.debugApp->AddDebugLine("DebuggerApp initialized successfully\n");
 	state_.debugApp->SetScene(state_.currentScene.get());
 #endif
-
-	// Keep editor ownership at the application layer rather than inside Scene runtime state.
-	state_.levelEditor = std::make_unique<LevelEditor>();
-	state_.currentScene->SetEditorUiHook([this](Scene& scene) {
-		if (state_.levelEditor) {
-			state_.levelEditor->DrawUI(scene);
-		}
-		});
-	state_.currentScene->SetEditorToggleHook([this]() {
-		if (state_.levelEditor) {
-			state_.levelEditor->Toggle();
-		}
-		});
-	state_.currentScene->SetEditorEnabledQuery([this]() {
-		return state_.levelEditor && state_.levelEditor->IsEnabled();
-		});
 
 	return true;
 }

@@ -176,6 +176,9 @@ public:
 	void SetEditorEnabledQuery(std::function<bool()> query) {
 		editorEnabledQuery_ = std::move(query);
 	}
+	void SetEditorPlayingQuery(std::function<bool()> query) {
+		editorPlayingQuery_ = std::move(query);
+	}
 	/// @}
 
 	/**
@@ -975,6 +978,20 @@ public:
 	}
 
 	/**
+	 * @brief Returns whether runtime behavior should match the release build.
+	 * @return True in release, or in debug when the editor is hidden or actively simulating.
+	 */
+	bool ShouldUseRuntimeParityMode() const {
+#if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
+		const bool editorVisible = editorEnabledQuery_ && editorEnabledQuery_();
+		const bool editorPlaying = editorPlayingQuery_ && editorPlayingQuery_();
+		return !editorVisible || editorPlaying;
+#else
+		return true;
+#endif
+	}
+
+	/**
 	 * @brief Sets whether a menu-owned modal popup is currently blocking other menu input.
 	 * @param active Parameter for active.
 	 */
@@ -1255,6 +1272,7 @@ private:
 	std::function<void(Scene&)> editorUiHook_;
 	std::function<void()> editorToggleHook_;
 	std::function<bool()> editorEnabledQuery_;
+	std::function<bool()> editorPlayingQuery_;
 
 	// -------------------------------------------------------------------------------------------------
 	// Cutscene, Transition, And Runtime UI Animation State

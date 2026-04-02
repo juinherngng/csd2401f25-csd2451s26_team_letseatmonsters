@@ -359,11 +359,11 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	}
 
 	// Play customer entering sound effect (release mode only)
-#ifndef _DEBUG
-	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		PlaySpatialSfxAtPos(scene, "sfx_customer_entering", npc->GetPositionGLM(), audioMgr->GetVfxVolume() * 0.3f);
+	if (scene.ShouldUseRuntimeParityMode()) {
+		if (AudioManager* audioMgr = scene.GetAudioManager()) {
+			PlaySpatialSfxAtPos(scene, "sfx_customer_entering", npc->GetPositionGLM(), audioMgr->GetVfxVolume() * 0.3f);
+		}
 	}
-#endif
 
 	TS_LOG_DEBUG("[CustomerManager] Spawned customer " << npcID
 		<< " -> table " << chosenTableID

@@ -87,14 +87,17 @@ namespace Economy {
 
 		// Helper to stop/fade gameplay audio before cutscene
 		static void StopAllGameplayAudio(Scene& scene, float bgmFadeSeconds) {
-#ifndef _DEBUG
+			if (!scene.ShouldUseRuntimeParityMode()) {
+				return;
+			}
+
 			if (AudioManager* audioMgr = scene.GetAudioManager()) {
 				// Fade level BGM and ambience instead of hard stop.
 				audioMgr->FadeChannel("bgm_MyoonchiDiner_LevelTheme", 0.0f, bgmFadeSeconds);
 				audioMgr->FadeChannel("bgm_KitchenAmbience", 0.0f, bgmFadeSeconds);
 				audioMgr->FadeChannel("bgm_forest_ambience", 0.0f, bgmFadeSeconds);
 
-               // Stop all processing sounds (work table sounds)
+				// Stop all processing sounds (work table sounds)
 				audioMgr->StopSound("sfx_chopping");
 				audioMgr->StopSound("sfx_grilling_sizzle");
 				audioMgr->StopSound("sfx_boiling_sound");
@@ -104,11 +107,6 @@ namespace Economy {
 
 				TS_LOG_DEBUG("[Economy] Fading gameplay BGM for win/lose cutscene");
 			}
-#endif
-#ifdef _DEBUG
-			(void)scene;
-			(void)bgmFadeSeconds;
-#endif
 		}
 
 		static void BuildLoseFramesExact3(std::vector<std::string>& outFrames,
@@ -189,15 +187,15 @@ namespace Economy {
 		// Stop all gameplay audio immediately
 		StopAllGameplayAudio(scene, 0.35f);
 
-#ifndef _DEBUG
-		// Play game over sound effect at 50% volume
-		if (AudioManager* audioMgr = scene.GetAudioManager()) {
-			if (audioMgr->HasSound("sfx_game_over")) {
-				audioMgr->PlaySound("sfx_game_over", audioMgr->GetVfxVolume() * 1.0f, false);
-				TS_LOG_DEBUG("[Economy] Playing game over sound effect at 50% volume");
+		if (scene.ShouldUseRuntimeParityMode()) {
+			// Play game over sound effect at 50% volume
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				if (audioMgr->HasSound("sfx_game_over")) {
+					audioMgr->PlaySound("sfx_game_over", audioMgr->GetVfxVolume() * 1.0f, false);
+					TS_LOG_DEBUG("[Economy] Playing game over sound effect at 50% volume");
+				}
 			}
 		}
-#endif
 
 		std::vector<std::string> frames;
 		std::vector<bool> boundaries;

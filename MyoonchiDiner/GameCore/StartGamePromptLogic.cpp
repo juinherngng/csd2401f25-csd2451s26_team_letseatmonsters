@@ -226,6 +226,14 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	// Stage 1: popup closed -> interact with main Play button.
 	// ---------------------------------------------------------------------
 	if (!promptOpen_) {
+		if (!scene.ShouldUseRuntimeParityMode()) {
+			if (hovered_) {
+				hovered_ = false;
+				TrySetTexture(owner, normalTexturePath_);
+			}
+			return;
+		}
+
 		if (scene.IsMenuModalActive()) {
 			if (hovered_) {
 				hovered_ = false;

@@ -22,8 +22,7 @@
   * @return Result produced by this operation.
   */
 void Scene::RenderFPSText() {
-#ifndef _DEBUG
-	if (!showFPS_) {
+	if (!ShouldUseRuntimeParityMode() || !showFPS_) {
 		return;
 	}
 
@@ -53,7 +52,6 @@ void Scene::RenderFPSText() {
 
 	glDisable(GL_BLEND);
 	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
-#endif
 }
 
 /**

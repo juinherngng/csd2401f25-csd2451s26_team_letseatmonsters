@@ -37,13 +37,13 @@ void PlayerLogic::PickUp(Scene& scene, int itemID) {
 	carriedItemOriginalLayer_ = scene.GetObjectLayer(itemID);
 	hasCarriedItemOriginalLayer_ = true;
 
-#ifndef _DEBUG
-	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		glm::vec3 playerPos = player->GetPositionGLM();
-		audioMgr->PlaySound3D("ui_click", playerPos.x, playerPos.y, playerPos.z,
-			audioMgr->GetVfxVolume() * 0.3f);
+	if (scene.ShouldUseRuntimeParityMode()) {
+		if (AudioManager* audioMgr = scene.GetAudioManager()) {
+			glm::vec3 playerPos = player->GetPositionGLM();
+			audioMgr->PlaySound3D("ui_click", playerPos.x, playerPos.y, playerPos.z,
+				audioMgr->GetVfxVolume() * 0.3f);
+		}
 	}
-#endif
 
 	carriedItemOriginalColliderSize = item->GetColliderSize();
 	hasCarriedItemOriginalColliderSize = true;
