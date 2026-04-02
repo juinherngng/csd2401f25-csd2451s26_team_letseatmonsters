@@ -196,6 +196,10 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		return;
 	}
 
+	if (scene.IsHowToPlayOverlayActive()) {
+		return;
+	}
+
 	// Lazy-init normal/hover texture paths for main Play button.
 	if (!initialized_) {
 		normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());

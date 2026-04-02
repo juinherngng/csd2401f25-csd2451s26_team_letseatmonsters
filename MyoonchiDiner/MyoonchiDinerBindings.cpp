@@ -610,6 +610,10 @@ namespace {
 				return;
 			}
 
+			if (scene.IsHowToPlayOverlayActive()) {
+				return;
+			}
+
 			if (!initialized_) {
 				normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
 				hoverTexturePath_ = BuildHoverTexturePath(normalTexturePath_);
