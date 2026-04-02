@@ -42,6 +42,16 @@ static float Clamp01Value(float v) {
 	return v;
 }
 
+static bool TryGetObjectWorldPos(Scene& scene, int objectID, glm::vec3& outPos) {
+	GameObject* obj = scene.GetGameObjectByID(objectID);
+	if (!obj) {
+		return false;
+	}
+
+	outPos = obj->GetPositionGLM();
+	return true;
+}
+
 static std::unordered_map<std::string, int> g_processingSoundRefCounts;
 
 WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const std::string& texPath) const {
@@ -292,7 +302,22 @@ void WorkTableLogic::StartProcessingSound(Scene& scene) {
 
 	int& refCount = g_processingSoundRefCounts[soundName];
 	if (refCount == 0) {
-		audioMgr->PlaySound(soundName, audioMgr->GetVfxVolume(), false);
+		glm::vec3 worldPos{};
+		if (TryGetObjectWorldPos(scene, GetOwnerID(), worldPos)) {
+			audioMgr->PlaySound3D(
+				soundName,
+				worldPos.x,
+				worldPos.y,
+				0.0f,
+				audioMgr->GetVfxVolume(),
+				120.0f,
+				1200.0f,
+				false);
+		}
+		else {
+			audioMgr->PlaySound(soundName, audioMgr->GetVfxVolume(), false);
+		}
+
 		if (stationType_ == StationType::CuttingBoard) {
 			audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.2f);
 		}

@@ -612,18 +612,22 @@ void AudioManager::PlaySound3D(std::string const& name, float posX, float posY, 
 	CheckError(result, "playSound3D: " + name);
 
 	if (result == FMOD_OK && channel) {
-		// Set 3D position
 		FMOD_VECTOR pos = { posX, posY, posZ };
 		FMOD_VECTOR vel = { 0.0f, 0.0f, 0.0f };
 		channel->set3DAttributes(&pos, &vel);
 
 		// Set 3D min/max distance for attenuation
-		channel->set3DMinMaxDistance(minDistance, maxDistance);
+		constexpr float kSpatialDistanceScale = 4.0f;
+		const float effectiveMinDistance = std::max(1.0f, minDistance * kSpatialDistanceScale);
+		const float effectiveMaxDistance = std::max(effectiveMinDistance + 1.0f, maxDistance * kSpatialDistanceScale);
+		channel->set3DMinMaxDistance(effectiveMinDistance, effectiveMaxDistance);
 
-		// Set volume with category and master scaling
+		// Set volume with category and master scaling, then boost 3D audibility.
 		const float finalVolume = ComputePlaybackVolume(name, volume);
+		constexpr float kSpatialGainBoost = 3.0f;
+		const float boostedVolume = std::clamp(finalVolume * kSpatialGainBoost, 0.0f, 1.0f);
 
-		channel->setVolume(finalVolume);
+		channel->setVolume(boostedVolume);
 		channels[name].push_back(channel);
 
 		// Unpause now that 3D attributes and volume are set
@@ -632,7 +636,7 @@ void AudioManager::PlaySound3D(std::string const& name, float posX, float posY, 
 		}
 
 		TS_LOG_DEBUG("[AudioManager] Playing 3D sound '" << name << "' at position ("
-			<< posX << ", " << posY << ", " << posZ << ") volume " << finalVolume);
+			<< posX << ", " << posY << ", " << posZ << ") volume " << boostedVolume);
 	}
 }
 
@@ -641,7 +645,7 @@ void AudioManager::SetListenerPosition(float posX, float posY, float posZ) {
 
 	FMOD_VECTOR listenerPos = { posX, posY, posZ };
 	FMOD_VECTOR listenerVel = { 0.0f, 0.0f, 0.0f };
-	FMOD_VECTOR forward     = { 0.0f, 0.0f, 1.0f };
+	FMOD_VECTOR forward     = { 0.0f, 0.0f, -1.0f };
 	FMOD_VECTOR up          = { 0.0f, 1.0f, 0.0f };
 
 	FMOD_RESULT result = system->set3DListenerAttributes(0, &listenerPos, &listenerVel, &forward, &up);
