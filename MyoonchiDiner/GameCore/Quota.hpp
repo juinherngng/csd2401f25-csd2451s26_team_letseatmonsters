@@ -88,8 +88,10 @@ namespace Economy {
 		// Money
 		gBoundUIScene->SetRuntimeTextByName("MoneyText", "$" + std::to_string(gPlayerMoney));
 
-		// Quota: "current / target"
-		gBoundUIScene->SetRuntimeTextByName("QuotaText", "$" + std::to_string(kQuota));
+		// Quota card now uses separate centered text objects so the value can be larger.
+		gBoundUIScene->SetRuntimeTextByName("QuotaText", "");
+		gBoundUIScene->SetRuntimeTextByName("QuotaLabelText", "TODAY'S GOAL");
+		gBoundUIScene->SetRuntimeTextByName("QuotaValueText", "$" + std::to_string(kQuota));
 
 		// Timer: format mm:ss
 		int total = static_cast<int>(gTimeRemaining + 0.999f); // ceil-ish

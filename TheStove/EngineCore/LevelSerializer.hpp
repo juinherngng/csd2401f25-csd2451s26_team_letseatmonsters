@@ -90,6 +90,7 @@ struct LevelTextObject {
 	std::string text;            // The text to render
 	std::string fontName;		 // Name of the loaded font to use
 	unsigned int fontSize{ 48 }; // Font size (for reloading font if needed)
+	std::string horizontalAlign{ "left" };
 
 	// Transform
 	float x{ 0.0f };

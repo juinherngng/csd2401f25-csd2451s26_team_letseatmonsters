@@ -128,6 +128,15 @@ void Scene::RenderLevelTextObjects() {
 		text.SetScale(o.scale);
 		text.SetRotation(o.rotation);
 		text.SetPosition(glm::vec2(o.x, o.y));
+		if (o.horizontalAlign == "center") {
+			text.SetHorizontalAlign(FontSystem::Text::HorizontalAlign::Center);
+		}
+		else if (o.horizontalAlign == "right") {
+			text.SetHorizontalAlign(FontSystem::Text::HorizontalAlign::Right);
+		}
+		else {
+			text.SetHorizontalAlign(FontSystem::Text::HorizontalAlign::Left);
+		}
 		text.SetRotationMode(o.useBlockRotation
 			? FontSystem::Text::RotationMode::Block
 			: FontSystem::Text::RotationMode::PerCharacter);

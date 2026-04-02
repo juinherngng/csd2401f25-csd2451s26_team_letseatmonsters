@@ -2366,8 +2366,8 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	// Pause overlay: tell engine which audio channels to fade on pause
 	scene.SetPauseOverlayAudioChannels(MyoonchiPaths::Audio::BGM_LEVEL_THEME, MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
 	scene.SetPauseOverlayAdditionalAudioChannels({ "sfx_grill", "sfx_boiling_sound", "sfx_chopping" });
-	scene.SetPauseSuppressedRuntimeTextNames({ "MoneyText", "QuotaText", "TimerText", "TutorialText" });
-	scene.SetEditorPreservedRuntimeTextNames({ "MoneyText", "QuotaText", "TimerText", "TutorialText" });
+	scene.SetPauseSuppressedRuntimeTextNames({ "MoneyText", "QuotaText", "QuotaLabelText", "QuotaValueText", "TimerText", "TutorialText" });
+	scene.SetEditorPreservedRuntimeTextNames({ "MoneyText", "QuotaText", "QuotaLabelText", "QuotaValueText", "TimerText", "TutorialText" });
 
 	// Logic / UI binders
 	scene.SetTagLogicBinder(AttachTagLogic);

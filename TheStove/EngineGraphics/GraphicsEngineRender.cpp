@@ -426,6 +426,15 @@ void GraphicsEngine::RenderSingleTextObject(const RuntimeTextData& data) {
 	textRenderer.SetPosition(glm::vec2(data.x, data.y));
 	textRenderer.SetScale(data.scale);
 	textRenderer.SetRotation(data.rotation);
+	if (data.horizontalAlign == "center") {
+		textRenderer.SetHorizontalAlign(FontSystem::Text::HorizontalAlign::Center);
+	}
+	else if (data.horizontalAlign == "right") {
+		textRenderer.SetHorizontalAlign(FontSystem::Text::HorizontalAlign::Right);
+	}
+	else {
+		textRenderer.SetHorizontalAlign(FontSystem::Text::HorizontalAlign::Left);
+	}
 	textRenderer.SetRotationMode(data.useBlockRotation ?
 		FontSystem::Text::RotationMode::Block :
 		FontSystem::Text::RotationMode::PerCharacter);

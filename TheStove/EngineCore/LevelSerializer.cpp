@@ -202,6 +202,7 @@ static LevelTextObject ReadTextObject(const json& jsonObj) {
 	obj.text = jsonObj.value("text", "");
 	obj.fontName = jsonObj.value("fontName", "");
 	obj.fontSize = jsonObj.value("fontSize", 48u);
+	obj.horizontalAlign = jsonObj.value("horizontalAlign", "left");
 
 	obj.x = jsonObj.value("x", 0.0f);
 	obj.y = jsonObj.value("y", 0.0f);
@@ -285,6 +286,7 @@ static json WriteTextObject(const LevelTextObject& obj) {
 		{ "text", obj.text },
 		{ "fontName", obj.fontName },
 		{ "fontSize", obj.fontSize },
+		{ "horizontalAlign", obj.horizontalAlign },
 		{ "x", obj.x },
 		{ "y", obj.y },
 		{ "scale", obj.scale },
