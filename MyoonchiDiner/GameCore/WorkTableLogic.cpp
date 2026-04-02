@@ -17,7 +17,6 @@
  */
 
 #include <glm/vec4.hpp>
-
 #include <unordered_map>
 
 #include "EngineCore/AudioManager.hpp"

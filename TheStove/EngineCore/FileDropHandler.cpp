@@ -17,8 +17,8 @@
 #include <filesystem>
 
 #include "EngineCore/AudioLoading.hpp"
-#include "EngineCore/FilePaths.hpp"
 #include "EngineCore/FileDropHandler.hpp"
+#include "EngineCore/FilePaths.hpp"
 #include "EngineCore/LevelEditorFileIO.hpp"
 #include "EngineCore/Logger.hpp"
 #include "EngineGraphics/ResourceManager.hpp"

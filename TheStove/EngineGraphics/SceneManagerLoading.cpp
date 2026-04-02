@@ -203,6 +203,8 @@ void Scene::ResetLevelObjectState() {
 	uiSlides_.clear();
 	pauseOverlayObjectIds_.clear();
 	pendingDespawns_.clear();
+	howToPlayOverlayActive_ = false;
+	menuModalActive_ = false;
 
 	objectMetadata_.Clear();
 	layers.clear();

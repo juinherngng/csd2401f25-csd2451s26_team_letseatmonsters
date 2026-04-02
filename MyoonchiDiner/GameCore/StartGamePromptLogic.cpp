@@ -41,6 +41,8 @@ namespace {
 	constexpr const char* kTutorialYesHoverTexture = "../assets/yes_h.png";
 	constexpr const char* kTutorialNoNormalTexture = "../assets/no_s.png";
 	constexpr const char* kTutorialNoHoverTexture = "../assets/no_h.png";
+	constexpr int kTutorialPopupSortOrder = 1000000;
+	constexpr int kTutorialButtonSortOrder = 1000001;
 
 	// Intro cutscene frames used by the "No" path.
 	const std::vector<std::string> kIntroCutsceneFrames = {
@@ -131,8 +133,10 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 		return;
 	}
 
+	popup->SetRenderSortOrder(kTutorialPopupSortOrder);
 	popupId_ = popup->GetID();
 	promptOpen_ = true;
+	scene.SetMenuModalActive(true);
 
 	// Convert popup-local normalized coordinates into world-space.
 	auto ToWorld = [&](float nx, float ny) -> glm::vec2 {
@@ -154,6 +158,7 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 		glm::vec3(yesCenter.x, yesCenter.y, 0.0f),
 		buttonSize,
 		"999999")) {
+		yesBtn->SetRenderSortOrder(kTutorialButtonSortOrder);
 		yesButtonId_ = yesBtn->GetID();
 		scene.SetObjectTexturePath(yesButtonId_, kTutorialYesNormalTexture);
 	}
@@ -163,6 +168,7 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 		glm::vec3(noCenter.x, noCenter.y, 0.0f),
 		buttonSize,
 		"999999")) {
+		noBtn->SetRenderSortOrder(kTutorialButtonSortOrder);
 		noButtonId_ = noBtn->GetID();
 		scene.SetObjectTexturePath(noButtonId_, kTutorialNoNormalTexture);
 	}
@@ -189,6 +195,7 @@ void StartGamePromptLogic::ClosePrompt(Scene& scene) {
 	yesHovered_ = false;
 	noHovered_ = false;
 	promptOpen_ = false;
+	scene.SetMenuModalActive(false);
 }
 
 // Update handles both the hover state for the "Play" button and the click interactions when the prompt is open. 
@@ -219,6 +226,14 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	// Stage 1: popup closed -> interact with main Play button.
 	// ---------------------------------------------------------------------
 	if (!promptOpen_) {
+		if (scene.IsMenuModalActive()) {
+			if (hovered_) {
+				hovered_ = false;
+				TrySetTexture(owner, normalTexturePath_);
+			}
+			return;
+		}
+
 		const glm::vec3 pos = owner->GetPositionGLM();
 		const glm::vec3 sz = owner->GetScaleGLM();
 		const glm::vec2 min(pos.x - sz.x * 0.5f, pos.y - sz.y * 0.5f);
@@ -254,6 +269,15 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	// ---------------------------------------------------------------------
 	// Stage 2: popup open -> interact with Yes/No decision buttons.
 	// ---------------------------------------------------------------------
+	if (input.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
+		if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_BACK)) {
+			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_BACK, audioManager_->GetVfxVolume(), false);
+		}
+		ClosePrompt(scene);
+		input.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
+		return;
+	}
+
 	auto IsPointInObject = [&](int id) -> bool {
 		GameObject* obj = scene.GetGameObjectByID(id);
 		if (!obj) return false;

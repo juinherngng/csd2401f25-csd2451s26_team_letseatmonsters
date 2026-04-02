@@ -975,6 +975,22 @@ public:
 	}
 
 	/**
+	 * @brief Sets whether a menu-owned modal popup is currently blocking other menu input.
+	 * @param active Parameter for active.
+	 */
+	void SetMenuModalActive(bool active) {
+		menuModalActive_ = active;
+	}
+
+	/**
+	 * @brief Returns whether a menu-owned modal popup is blocking other menu input.
+	 * @return True when the operation succeeds or the condition is met.
+	 */
+	bool IsMenuModalActive() const {
+		return menuModalActive_;
+	}
+
+	/**
 	 * @brief Renders fpstext.
 	 */
 	void RenderFPSText();
@@ -1227,6 +1243,7 @@ private:
 	std::vector<std::string> pauseAdditionalChannels_;
 
 	bool howToPlayOverlayActive_ = false;
+	bool menuModalActive_ = false;
 
 	std::vector<int> pendingDespawns_;
 

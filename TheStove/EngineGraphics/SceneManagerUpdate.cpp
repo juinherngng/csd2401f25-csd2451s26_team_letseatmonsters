@@ -298,14 +298,25 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 
 	if (inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
 		const std::string levelPath = GetCurrentLevelPath();
+		const bool isCreditsLevel = levelPath == FilePaths::Levels::CREDITS;
 		const bool isWinLikeLevel =
 			levelPath == FilePaths::Levels::WIN ||
 			levelPath.find("win") != std::string::npos ||
 			levelPath.find("dayclear") != std::string::npos ||
 			levelPath.find("day_clear") != std::string::npos;
 
+		// Credits uses ESC as a direct return to the main menu instead of pause semantics.
+		if (isCreditsLevel && !IsPauseOverlayActive() && !HasPendingLevel() && !HasPendingStateChange() && !IsAnyCutsceneActive()) {
+			if (AudioManager* audioManager = GetAudioManager()) {
+				if (audioManager->HasSound("ui_back")) {
+					audioManager->PlaySound("ui_back", audioManager->GetVfxVolume(), false);
+				}
+			}
+			StartLevelTransition(FilePaths::Levels::MAIN_MENU, false, 0.35f, 0.35f);
+			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
+		}
 		// Use ESC as a pause toggle only outside debug builds where the pause overlay is available.
-		if (IsPauseOverlayActive()) {
+		else if (IsPauseOverlayActive()) {
 			if (AudioManager* audioManager = GetAudioManager()) {
 				if (audioManager->HasSound("ui_startresume")) {
 					audioManager->PlaySound("ui_startresume", audioManager->GetVfxVolume(), false);

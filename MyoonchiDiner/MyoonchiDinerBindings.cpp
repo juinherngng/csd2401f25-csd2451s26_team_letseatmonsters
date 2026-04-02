@@ -66,6 +66,7 @@
 #include "GameCore/CustomerTableLogic.hpp"
 #include "GameCore/ExitGateLogic.hpp"
 #include "GameCore/HowToPlayButtonLogic.hpp"
+#include "GameCore/InGamePauseTriggerLogic.hpp"
 #include "GameCore/IngredientBoxLogic.hpp"
 #include "GameCore/IngredientLogic.hpp"
 #include "GameCore/MenuButtonLogic.hpp"
@@ -79,7 +80,6 @@
 #include "GameCore/TableLogic.hpp"
 #include "GameCore/TrashCanLogic.hpp"
 #include "GameCore/WorkTableLogic.hpp"
-#include "GameCore/InGamePauseTriggerLogic.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
 #include "MyoonchiDiner/MyoonchiDinerBindings.hpp"
 
@@ -441,6 +441,7 @@ namespace {
 			mouseHeld_ = false;
 			yesHovered_ = false;
 			noHovered_ = false;
+			scene.SetMenuModalActive(false);
 		}
 
 		void Show(Scene& scene, QuitPopupYesAction yesAction) {
@@ -452,6 +453,7 @@ namespace {
 				"../assets/staranim-Sheet2.png");
 			shown_ = true;
 			yesAction_ = yesAction;
+			scene.SetMenuModalActive(true);
 
 			const glm::vec3 center{
 				static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
@@ -542,22 +544,21 @@ namespace {
 			}
 		}
 
-		void SuppressPauseToggle(InputManager& input) const {
-			if (!shown_) {
-				return;
-			}
-
-			// Prevent pause-overlay ESC toggle while quit popup is up.
-			input.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
-		}
-
 		void Update(Scene& scene, InputManager& input) {
 			if (!shown_) {
 				return;
 			}
 
-			// Keep consuming ESC while popup is active.
-			SuppressPauseToggle(input);
+			if (input.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
+				if (AudioManager* audioManager = scene.GetAudioManager()) {
+					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_BACK)) {
+						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_BACK, audioManager->GetVfxVolume(), false);
+					}
+				}
+				Clear(scene);
+				input.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
+				return;
+			}
 
 			GLFWwindow* window = glfwGetCurrentContext();
 			if (!window) {
@@ -579,7 +580,7 @@ namespace {
 			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 
 			if (yesButtonID_ >= 0 && IsPointInObject(scene, yesButtonID_, mouseWorld)) {
-               if (AudioManager* audioManager = scene.GetAudioManager()) {
+				if (AudioManager* audioManager = scene.GetAudioManager()) {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
 						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
 					}
@@ -595,12 +596,12 @@ namespace {
 					if (GLFWwindow* win = glfwGetCurrentContext()) {
 						glfwSetWindowShouldClose(win, GLFW_TRUE);
 					}
-				}	
+				}
 				return;
 			}
 
 			if (noButtonID_ >= 0 && IsPointInObject(scene, noButtonID_, mouseWorld)) {
-               if (AudioManager* audioManager = scene.GetAudioManager()) {
+				if (AudioManager* audioManager = scene.GetAudioManager()) {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
 						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
 					}
@@ -618,8 +619,7 @@ namespace {
 	class QuitPopupOpenButtonLogic final : public GameObjectLogic {
 	public:
 		explicit QuitPopupOpenButtonLogic(int ownerID, QuitPopupYesAction yesAction)
-			: GameObjectLogic(ownerID), yesActionOnOpen_(yesAction) {
-		}
+			: GameObjectLogic(ownerID), yesActionOnOpen_(yesAction) {}
 
 		void Update(float dt, Scene& scene, InputManager& input) override {
 			(void)dt;
@@ -629,7 +629,12 @@ namespace {
 				return;
 			}
 
-			if (scene.IsHowToPlayOverlayActive()) {
+			if (scene.IsHowToPlayOverlayActive() || scene.IsMenuModalActive()) {
+				if (hovered_) {
+					hovered_ = false;
+					const std::string cacheKey = "pause_quit_normal_" + std::to_string(GetOwnerID());
+					QuitPopupState::TrySetObjectTexture(scene, GetOwnerID(), normalTexturePath_.c_str(), cacheKey);
+				}
 				return;
 			}
 
@@ -675,7 +680,7 @@ namespace {
 			mouseHeld_ = mouseDown;
 
 			if (hoveredNow && clickEdge) {
-                if (AudioManager* audioManager = scene.GetAudioManager()) {
+				if (AudioManager* audioManager = scene.GetAudioManager()) {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
 						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
 					}
@@ -1980,7 +1985,7 @@ namespace {
 		}
 
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
-          const std::string levelPath = scene.GetCurrentLevelPath();
+			const std::string levelPath = scene.GetCurrentLevelPath();
 			const bool isLevel2Loaded = levelPath.find("kitchen02") != std::string::npos;
 			const char* levelAmbienceKey = isLevel2Loaded
 				? MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE
@@ -2241,10 +2246,10 @@ namespace {
 			logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Resume);
 		}
 		else if (action == "howtoplay") {
-		auto* logic = logicManager.AddLogic<HowToPlayButtonLogic>(id);
-		if (logic && scene.GetAudioManager()) {
-			logic->SetAudioManager(scene.GetAudioManager());
-		}
+			auto* logic = logicManager.AddLogic<HowToPlayButtonLogic>(id);
+			if (logic && scene.GetAudioManager()) {
+				logic->SetAudioManager(scene.GetAudioManager());
+			}
 		}
 		else if (action == "quit") {
 			logicManager.AddLogic<QuitPopupOpenButtonLogic>(id, QuitPopupYesAction::ReturnToMainMenu);

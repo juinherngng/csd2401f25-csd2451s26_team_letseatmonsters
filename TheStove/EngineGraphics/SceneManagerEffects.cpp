@@ -87,8 +87,8 @@ namespace {
 	 */
 	glm::vec2 ComputeUiButtonHoverEffectSize(const glm::vec3& buttonScale) {
 		const float frameAspect = std::max(GetUiButtonStarFrameAspect(), 0.0001f);
-		const float minWidth = buttonScale.x * 1.52f;
-		const float minHeight = buttonScale.y * 1.32f;
+		const float minWidth = buttonScale.x * 1.6f;
+		const float minHeight = buttonScale.y * 1.4f;
 		const float effectHeight = std::max(minHeight, minWidth / frameAspect);
 		return glm::vec2(effectHeight * frameAspect, effectHeight);
 	}
@@ -115,7 +115,7 @@ namespace {
 
 		return width;
 	}
-}
+} // namespace
 
 // -------------------------------------------------------------------------------------------------
 // Runtime Effect Creation
@@ -137,8 +137,7 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 		font = FontSystem::FontManager::Instance().LoadFont(
 			"payment_popup_font",
 			FilePaths::Fonts::TO_THE_POINT,
-			72
-		);
+			72);
 	}
 
 	static const std::vector<glm::vec4> kStarFrames = CreateCustomerPaymentStarFrames();
@@ -156,8 +155,7 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 			kStarFrames,
 			kFrameDuration,
 			false,
-			layer
-		);
+			layer);
 
 		if (fx) {
 			// These feedback sprites are purely visual and should never participate in gameplay systems.
@@ -171,8 +169,7 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 				fx->GetScaleGLM(),
 				0.0f,
 				kLifetime,
-				true
-				});
+				true });
 		}
 	}
 
@@ -189,8 +186,7 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 		1.0f,
 		0.0f,
 		0.9f,
-		layer
-		});
+		layer });
 }
 
 /**
@@ -215,8 +211,7 @@ void Scene::TriggerUiButtonHoverFeedback(int buttonObjectID) {
 	const glm::vec3 effectPos(
 		buttonPos.x,
 		buttonPos.y - buttonScale.y * 0.52f,
-		buttonPos.z
-	);
+		buttonPos.z);
 	const glm::vec2 effectSize = ComputeUiButtonHoverEffectSize(buttonScale);
 
 	GameObject* fx = SpawnAnimatedSprite(
@@ -226,8 +221,7 @@ void Scene::TriggerUiButtonHoverFeedback(int buttonObjectID) {
 		kUiStarFrames,
 		kFrameDuration,
 		false,
-		layer
-	);
+		layer);
 
 	if (!fx) {
 		return;
@@ -236,7 +230,7 @@ void Scene::TriggerUiButtonHoverFeedback(int buttonObjectID) {
 	fx->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
 	fx->SetMovableByPhysics(false);
 	fx->EnableShadow(false);
-	fx->SetRenderSortOrder(500);
+	fx->SetRenderSortOrder(std::max(buttonObj->GetRenderSortOrder() + 1, 500));
 	fx->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.95f));
 
 	runtimeAnimatedFx_.push_back(RuntimeAnimatedFx{
@@ -244,8 +238,7 @@ void Scene::TriggerUiButtonHoverFeedback(int buttonObjectID) {
 		fx->GetScaleGLM(),
 		0.0f,
 		kLifetime,
-		false
-		});
+		false });
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -273,8 +266,7 @@ void Scene::UpdateRuntimeAnimatedFx(float dt) {
 					obj->SetScale(glm::vec3(
 						fx.baseScale.x * scaleMul,
 						fx.baseScale.y * scaleMul,
-						fx.baseScale.z
-					));
+						fx.baseScale.z));
 				}
 				else {
 					obj->SetScale(fx.baseScale);
@@ -294,8 +286,7 @@ void Scene::UpdateRuntimeAnimatedFx(float dt) {
 				}
 				return false;
 			}),
-		runtimeAnimatedFx_.end()
-	);
+		runtimeAnimatedFx_.end());
 }
 
 /**
@@ -313,8 +304,7 @@ void Scene::UpdateFloatingWorldTextFx(float dt) {
 			[](const FloatingWorldTextFx& fx) {
 				return fx.elapsed >= fx.lifetime;
 			}),
-		floatingWorldTextFx_.end()
-	);
+		floatingWorldTextFx_.end());
 }
 
 /**

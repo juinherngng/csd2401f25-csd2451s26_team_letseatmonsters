@@ -52,14 +52,20 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 #ifdef _DEBUG
 	(void)scene; (void)input;
 #else
-	if (scene.IsHowToPlayOverlayActive()) {
-		return;
-	}
-
 	if (!initialized_) {
 		normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
 		hoverTexturePath_ = MakeHoverPath(normalTexturePath_);
 		initialized_ = true;
+	}
+
+	if (scene.IsHowToPlayOverlayActive() || scene.IsMenuModalActive()) {
+		if (hovered_) {
+			hovered_ = false;
+			if (GameObject* owner = GetOwner(scene)) {
+				TrySetTexture(owner, normalTexturePath_);
+			}
+		}
+		return;
 	}
 
 	glm::vec2 mouseWorld{};

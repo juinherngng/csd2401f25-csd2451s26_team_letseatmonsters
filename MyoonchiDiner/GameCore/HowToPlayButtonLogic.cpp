@@ -124,6 +124,14 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 
 	const bool overlayActive = scene.IsHowToPlayOverlayActive();
 
+	if (!overlayActive && scene.IsMenuModalActive()) {
+		if (hovered_) {
+			hovered_ = false;
+			TrySetTexture(owner, normalTexturePath_);
+		}
+		return;
+	}
+
 	// If overlay is active but this instance did not spawn it, ignore input.
 	if (overlayActive && overlayId_ < 0) {
 		return;
@@ -248,18 +256,18 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	w - kNextButtonMargin.x - (kNextButtonSize.x * 0.5f),
 	kNextButtonMargin.y + (kNextButtonSize.y * 0.5f),
 	0.0f
-};
+	};
 
-GameObject* nextBtn = scene.SpawnStaticSprite(
-	kNextButtonTexNormal,
-	nextPos,
-	kNextButtonSize,
-	nextButtonLayer);
+	GameObject* nextBtn = scene.SpawnStaticSprite(
+		kNextButtonTexNormal,
+		nextPos,
+		kNextButtonSize,
+		nextButtonLayer);
 
-if (!nextBtn) {
-	scene.DespawnByID(overlay->GetID());
-	return;
-}
+	if (!nextBtn) {
+		scene.DespawnByID(overlay->GetID());
+		return;
+	}
 	overlayId_ = overlay->GetID();
 	nextButtonId_ = nextBtn->GetID();
 	currentPage_ = 0;

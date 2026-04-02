@@ -1,4 +1,4 @@
-﻿/*
+/*
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         InGamePauseTriggerLogic.hpp
  PROJECT NAME:      Project GAM200

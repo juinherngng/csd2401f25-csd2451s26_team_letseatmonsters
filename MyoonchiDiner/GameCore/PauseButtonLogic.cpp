@@ -14,8 +14,8 @@
 
 #include <string>
 
-#include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineCore/AudioManager.hpp"
+#include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/PauseButtonLogic.hpp"
@@ -56,15 +56,21 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	(void)scene;
 	(void)input;
 #else
-	if (scene.IsHowToPlayOverlayActive()) {
-		return;
-	}
-
 	// Lazy init from entity metadata
 	if (!initialized_) {
 		normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
 		hoverTexturePath_ = MakeHoverPath(normalTexturePath_);
 		initialized_ = true;
+	}
+
+	if (scene.IsHowToPlayOverlayActive() || scene.IsMenuModalActive()) {
+		if (hovered_) {
+			hovered_ = false;
+			if (GameObject* owner = GetOwner(scene)) {
+				TrySetTexture(owner, normalTexturePath_);
+			}
+		}
+		return;
 	}
 
 	// Hover hit-test
