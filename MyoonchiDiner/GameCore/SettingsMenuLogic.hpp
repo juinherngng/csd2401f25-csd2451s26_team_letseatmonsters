@@ -130,6 +130,9 @@ private:
 
 	bool fullscreenHovered_ = false;
 	bool windowedHovered_ = false;
+	bool suppressHoverFeedbackUntilMouseMove_ = false;
+	float lastMouseWorldX_ = 0.0f;
+	float lastMouseWorldY_ = 0.0f;
 
 	SliderTarget draggingSlider_ = SliderTarget::None;
 	AudioManager* audioManager_ = nullptr;

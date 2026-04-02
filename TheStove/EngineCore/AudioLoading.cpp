@@ -33,6 +33,14 @@ namespace Audio {
 		return normalized;
 	}
 
+	static std::string CompactAudioFileLabel(const std::string& path) {
+		if (path.empty()) {
+			return path;
+		}
+
+		return std::filesystem::path(path).filename().string();
+	}
+
 	// Helper function to convert editor paths to runtime paths for release builds
 	// Editor paths: ../../assets/Audio/file.mp3 (from build/Release)
 	// Runtime paths: ../assets/Audio/file.mp3 (from release/ folder)
@@ -227,8 +235,8 @@ namespace Audio {
 		int failCount = 0;
 
 		for (const auto& asset : s_AudioAssets) {
-			TS_LOG_DEBUG("Loading: " << asset.name << " from " << asset.filepath);
-			TS_LOG_DEBUG("Properties: loop=" << (asset.loop ? "true" : "false")
+			TS_LOG_DEBUG("[LoadCatalog] Loading '" << asset.name << "' from '" << CompactAudioFileLabel(asset.filepath) << "'.");
+			TS_LOG_DEBUG("[LoadCatalog] loop=" << (asset.loop ? "true" : "false")
 				<< ", stream=" << (asset.stream ? "true" : "false")
 				<< ", category=" << asset.category
 				<< ", volume=" << asset.volume);

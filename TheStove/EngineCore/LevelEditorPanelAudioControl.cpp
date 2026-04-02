@@ -76,43 +76,61 @@ namespace LEPANELAUDIOCONTROL {
 			return;
 		}
 
-		// Master volume control
-		static float masterVolume = 1.0f;
-
-		// Initialize master volume from AudioManager on first frame
-		static bool masterVolumeInitialized = false;
-		if (!masterVolumeInitialized && g_AppState && g_AppState->coreEngine) {
-			// Pull the live master volume once so the slider starts from the runtime value.
+		// Mirror the runtime config in a local mixer state so the sliders act like a dedicated audio console.
+		static ConfigManager::Settings mixerSettings = ConfigManager::LoadFromAssetsOrDefaults();
+		static bool mixerSettingsInitialized = false;
+		if (!mixerSettingsInitialized && g_AppState && g_AppState->coreEngine) {
 			if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
-				masterVolume = audioMgr->GetMasterVolume();
-				masterVolumeInitialized = true;
+				mixerSettings.masterVolume = audioMgr->GetMasterVolume();
+				mixerSettings.bgmVolume = audioMgr->GetBgmVolume();
+				mixerSettings.vfxVolume = audioMgr->GetVfxVolume();
 			}
+
+			ConfigManager::Validate(mixerSettings);
+			mixerSettingsInitialized = true;
 		}
 
-		ImGui::Text("Master Volume");
-		ImGui::SetNextItemWidth(-FLT_MIN);
-		if (ImGui::SliderFloat("##MasterVolume", &masterVolume, 0.0f, 1.0f, "%.2f")) {
-			// Push slider changes directly into the live audio manager.
+		auto ApplyMixerSettings = [&]() {
+			ConfigManager::Validate(mixerSettings);
 			if (g_AppState && g_AppState->coreEngine) {
 				if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
-					audioMgr->SetMasterVolume(masterVolume);
+					audioMgr->ApplySettings(mixerSettings);
 				}
 			}
+			};
+
+		ImGui::SeparatorText("Mixer");
+		ImGui::PushTextWrapPos(0.0f);
+		ImGui::TextDisabled("Adjust live runtime levels first, then save when they feel right.");
+		ImGui::PopTextWrapPos();
+		ImGui::Spacing();
+
+		ImGui::TextUnformatted("Master");
+		ImGui::SetNextItemWidth(-FLT_MIN);
+		if (ImGui::SliderFloat("##MasterVolume", &mixerSettings.masterVolume, 0.0f, 1.0f, "%.2f")) {
+			ApplyMixerSettings();
 		}
 
-		ImGui::SameLine();
+		ImGui::TextUnformatted("BGM");
+		ImGui::SetNextItemWidth(-FLT_MIN);
+		if (ImGui::SliderFloat("##BgmVolume", &mixerSettings.bgmVolume, 0.0f, 1.0f, "%.2f")) {
+			ApplyMixerSettings();
+		}
 
-		// Save master volume to config file
-		const float smallButtonWidth = std::max(110.0f, ImGui::GetContentRegionAvail().x);
-		if (ImGui::Button("Save to Config", ImVec2(smallButtonWidth, 0.0f))) {
-			// Persist the current master volume so the next launch uses the same default.
-			ConfigManager::Settings settings = ConfigManager::LoadFromAssetsOrDefaults();
-			settings.masterVolume = masterVolume;
+		ImGui::TextUnformatted("SFX");
+		ImGui::SetNextItemWidth(-FLT_MIN);
+		if (ImGui::SliderFloat("##VfxVolume", &mixerSettings.vfxVolume, 0.0f, 1.0f, "%.2f")) {
+			ApplyMixerSettings();
+		}
 
-			// Save to SOURCE config file (../../assets from build/Release)
+		ImGui::Spacing();
+		const float mixButtonSpacing = ImGui::GetStyle().ItemSpacing.x;
+		const float mixAvailWidth = ImGui::GetContentRegionAvail().x;
+		const float mixButtonWidth = std::max(120.0f, (mixAvailWidth - mixButtonSpacing) * 0.5f);
+		if (ImGui::Button("Save Mixer to Config", ImVec2(mixButtonWidth, 0.0f))) {
 			const std::string configPath = "../../assets/config.txt";
-			if (ConfigManager::Save(configPath, settings)) {
-				TS_LOG_INFO("[Audio Control] Master volume saved to config: " << masterVolume);
+			if (ConfigManager::Save(configPath, mixerSettings)) {
+				TS_LOG_INFO("[Audio Control] Mixer settings saved to config.");
 				ImGui::OpenPopup("Config Saved");
 			}
 			else {
@@ -121,11 +139,18 @@ namespace LEPANELAUDIOCONTROL {
 			}
 		}
 
+		ImGui::SameLine();
+		if (ImGui::Button("Reload Mixer", ImVec2(mixButtonWidth, 0.0f))) {
+			mixerSettings = ConfigManager::LoadFromAssetsOrDefaults();
+			ConfigManager::Validate(mixerSettings);
+			ApplyMixerSettings();
+		}
+
 		// Config save success popup
 		if (ImGui::BeginPopupModal("Config Saved", nullptr,
 			ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
-			ImGui::Text("Master volume saved to config!");
-			ImGui::TextDisabled("This will be the default volume on next startup.");
+			ImGui::Text("Mixer settings saved to config!");
+			ImGui::TextDisabled("Master, BGM, and SFX defaults will match on next startup.");
 			ImGui::Spacing();
 			if (ImGui::Button("OK", ImVec2(120, 0))) {
 				ImGui::CloseCurrentPopup();
@@ -142,6 +167,7 @@ namespace LEPANELAUDIOCONTROL {
 			if (ImGui::Button("OK", ImVec2(120, 0))) {
 				ImGui::CloseCurrentPopup();
 			}
+
 			ImGui::EndPopup();
 		}
 
@@ -210,7 +236,20 @@ namespace LEPANELAUDIOCONTROL {
 		}
 
 		// Audio assets table
-		ImGui::TextColored(ImVec4(0.7f, 0.9f, 0.7f, 1.0f), "Audio Assets (%zu):", catalogAssets.size());
+		ImGui::SeparatorText("Per-Asset Levels");
+		ImGui::TextColored(ImVec4(0.7f, 0.9f, 0.7f, 1.0f), "Catalog assets: %zu", catalogAssets.size());
+		if (!currentlyPlaying.empty()) {
+			ImGui::PushTextWrapPos(0.0f);
+			ImGui::TextDisabled("Previewing: %s", currentlyPlaying.c_str());
+			ImGui::PopTextWrapPos();
+		}
+
+		static char sAudioFilter[128] = "";
+		ImGui::SetNextItemWidth(-FLT_MIN);
+		ImGui::InputTextWithHint("##AudioControlFilter", "Search by asset name...", sAudioFilter, IM_ARRAYSIZE(sAudioFilter));
+		std::string filterLower = sAudioFilter;
+		std::transform(filterLower.begin(), filterLower.end(), filterLower.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 		ImGui::Spacing();
 
 		// Begin a child region for scrollable content
@@ -261,93 +300,131 @@ namespace LEPANELAUDIOCONTROL {
 				continue;
 			}
 
+			std::vector<const Audio::AudioAsset*> filteredAssets;
+			filteredAssets.reserve(audioByCategory[category].size());
+			for (const auto* asset : audioByCategory[category]) {
+				if (!filterLower.empty()) {
+					std::string assetLower = asset->name;
+					std::transform(assetLower.begin(), assetLower.end(), assetLower.begin(),
+						[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+					if (assetLower.find(filterLower) == std::string::npos) {
+						continue;
+					}
+				}
+
+				filteredAssets.push_back(asset);
+			}
+
+			if (filteredAssets.empty()) {
+				continue;
+			}
+
 			// Category header
 			ImGui::PushStyleColor(ImGuiCol_Text, colors[catIdx]);
-			if (ImGui::CollapsingHeader((category + " (" + std::to_string(audioByCategory[category].size()) + ")").c_str(),
-				ImGuiTreeNodeFlags_DefaultOpen)) {
+			if (ImGui::CollapsingHeader((category + " (" + std::to_string(filteredAssets.size()) + ")").c_str(),
+				filterLower.empty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen)) {
 				ImGui::PopStyleColor();
 
-				for (const auto* asset : audioByCategory[category]) {
-					ImGui::PushID(asset->name.c_str());
+				if (ImGui::BeginTable((std::string("##AudioControlTable_") + category).c_str(), 4,
+					ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg)) {
+					ImGui::TableSetupColumn("Preview", ImGuiTableColumnFlags_WidthFixed, 62.0f);
+					ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 0.55f);
+					ImGui::TableSetupColumn("Flags", ImGuiTableColumnFlags_WidthFixed, 48.0f);
+					ImGui::TableSetupColumn("Volume", ImGuiTableColumnFlags_WidthStretch, 0.45f);
 
-					bool isPlaying = (currentlyPlaying == asset->name);
+					for (const auto* asset : filteredAssets) {
+						ImGui::PushID(asset->name.c_str());
 
-					// Asset name (make it draggable)
-					ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.8f, 1.0f), "%s", asset->name.c_str());
+						bool isPlaying = (currentlyPlaying == asset->name);
 
-					// Make the asset name a drag source for binding to game objects
-					if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-						// Store the asset name as payload
-						ImGui::SetDragDropPayload("AUDIO_ASSET", asset->name.c_str(), asset->name.size() + 1);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
 
-						// Show preview while dragging
-						ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "Bind: %s", asset->name.c_str());
-						ImGui::TextDisabled("Drop on object's audio slot");
-
-						ImGui::EndDragDropSource();
-					}
-
-					// Play/Stop button
-					if (isPlaying) {
-						if (ImGui::Button("Stop", ImVec2(60, 0))) {
-							// Stop preview playback through the shared message bus.
-							if (g_AppState && g_AppState->coreEngine) {
-								g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset->name);
-								currentlyPlaying = "";
-								TS_LOG_INFO("[Audio Control] Stopped: " << asset->name);
+						if (isPlaying) {
+							if (ImGui::Button("Stop", ImVec2(60, 0))) {
+								// Stop preview playback through the shared message bus.
+								if (g_AppState && g_AppState->coreEngine) {
+									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset->name);
+									currentlyPlaying = "";
+									TS_LOG_INFO("[Audio Control] Stopped: " << asset->name);
+								}
 							}
 						}
-					}
-					else {
-						if (ImGui::Button("Play", ImVec2(60, 0))) {
-							// Ensure only one preview plays at a time.
-							if (!currentlyPlaying.empty() && g_AppState && g_AppState->coreEngine) {
-								g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(currentlyPlaying);
-							}
+						else {
+							if (ImGui::Button("Play", ImVec2(60, 0))) {
+								// Ensure only one preview plays at a time.
+								if (!currentlyPlaying.empty() && g_AppState && g_AppState->coreEngine) {
+									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(currentlyPlaying);
+								}
 
-							// Play the selected audio
-							if (g_AppState && g_AppState->coreEngine) {
-								g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>(
-									asset->name,
-									asset->volume,
-									false
-								);
-								currentlyPlaying = asset->name;
-								TS_LOG_INFO("[Audio Control] Playing: " << asset->name);
-							}
-						}
-					}
-
-					ImGui::SameLine();
-
-					// Volume slider - use the cache that was initialized from catalog
-					float& vol = volumeCache[asset->name];
-					ImGui::SetNextItemWidth(-FLT_MIN);
-					if (ImGui::SliderFloat(("##Volume" + asset->name).c_str(), &vol, 0.0f, 1.0f, "%.2f")) {
-						// Update preview playback immediately when the active asset is being adjusted.
-						if (isPlaying && g_AppState && g_AppState->coreEngine) {
-							if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
-								audioMgr->SetVolume(asset->name, vol);
+								// Play the selected audio
+								if (g_AppState && g_AppState->coreEngine) {
+									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>(
+										asset->name,
+										asset->volume,
+										false
+									);
+									currentlyPlaying = asset->name;
+									TS_LOG_INFO("[Audio Control] Playing: " << asset->name);
+								}
 							}
 						}
 
-						// Update the catalog asset volume immediately in memory
-						// This will be saved when user clicks "Save Volume Settings"
-						const_cast<Audio::AudioAsset*>(asset)->volume = vol;
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Selectable(asset->name.c_str(), false);
+						if (ImGui::IsItemHovered()) {
+							ImGui::SetTooltip("Category: %s\nLoop: %s\nStream: %s\nPath: %s",
+								asset->category.c_str(),
+								asset->loop ? "Yes" : "No",
+								asset->stream ? "Yes" : "No",
+								asset->filepath.c_str());
+						}
+
+						// Make the asset name a drag source for binding to game objects
+						if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+							ImGui::SetDragDropPayload("AUDIO_ASSET", asset->name.c_str(), asset->name.size() + 1);
+							ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "Bind: %s", asset->name.c_str());
+							ImGui::TextDisabled("Drop on object's audio slot");
+							ImGui::EndDragDropSource();
+						}
+
+						ImGui::TableSetColumnIndex(2);
+						std::string flags;
+						if (asset->loop) {
+							flags += "L";
+						}
+
+						if (asset->stream) {
+							if (!flags.empty()) {
+								flags += "/";
+							}
+
+							flags += "S";
+						}
+
+						ImGui::TextDisabled("%s", flags.empty() ? "-" : flags.c_str());
+
+						ImGui::TableSetColumnIndex(3);
+						// Volume slider - use the cache that was initialized from catalog
+						float& vol = volumeCache[asset->name];
+						ImGui::SetNextItemWidth(-FLT_MIN);
+						if (ImGui::SliderFloat(("##Volume" + asset->name).c_str(), &vol, 0.0f, 1.0f, "%.2f")) {
+							// Update preview playback immediately when the active asset is being adjusted.
+							if (isPlaying && g_AppState && g_AppState->coreEngine) {
+								if (auto* audioMgr = g_AppState->coreEngine->GetSystem<AudioManager>()) {
+									audioMgr->SetVolume(asset->name, vol);
+								}
+							}
+
+							// Update the catalog asset volume immediately in memory
+							// This will be saved when user clicks "Save Volume Settings"
+							const_cast<Audio::AudioAsset*>(asset)->volume = vol;
+						}
+
+						ImGui::PopID();
 					}
 
-					// Show audio properties inline
-					ImGui::Indent(20.0f);
-					ImGui::TextDisabled("Loop: %s | Stream: %s",
-						asset->loop ? "Yes" : "No",
-						asset->stream ? "Yes" : "No");
-					ImGui::Unindent(20.0f);
-
-					ImGui::Spacing();
-					ImGui::Separator();
-					ImGui::Spacing();
-
-					ImGui::PopID();
+					ImGui::EndTable();
 				}
 			}
 			else {

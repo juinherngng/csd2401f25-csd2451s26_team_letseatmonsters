@@ -44,6 +44,19 @@ namespace {
 
 		return std::filesystem::path(path).lexically_normal().string();
 	}
+
+	std::string CompactAssetLabel(const std::string& value) {
+		if (value.empty()) {
+			return value;
+		}
+
+		const size_t slashPos = value.find_last_of("/\\");
+		if (slashPos != std::string::npos && slashPos + 1 < value.size()) {
+			return value.substr(slashPos + 1);
+		}
+
+		return value;
+	}
 }
 
 /**
@@ -195,7 +208,8 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 	if (pathIt != texturePaths.end()) {
 		// Record an alias from the requested logical name to the already loaded texture instance.
 		textureAliases[name] = pathIt->second;
-		TS_LOG_DEBUG("[ResourceManager] Reusing texture '" << filePath << "' as alias '" << name << "'.");
+		TS_LOG_DEBUG("[ResourceManager] Reusing texture '" << CompactAssetLabel(filePath)
+			<< "' as '" << CompactAssetLabel(name) << "'.");
 		return pathIt->second;
 	}
 

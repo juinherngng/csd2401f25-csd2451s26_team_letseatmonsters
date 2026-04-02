@@ -462,6 +462,13 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 	}
 
 	const glm::vec2 mouseWorld = GetMouseWorld(input);
+	const bool mouseMovedSinceLastFrame =
+		(mouseWorld.x != lastMouseWorldX_) || (mouseWorld.y != lastMouseWorldY_);
+	if (mouseMovedSinceLastFrame) {
+		suppressHoverFeedbackUntilMouseMove_ = false;
+	}
+	lastMouseWorldX_ = mouseWorld.x;
+	lastMouseWorldY_ = mouseWorld.y;
 	const Rect fullscreenButtonRect = GetObjectRect(scene, fullscreenVisualId_);
 	const Rect windowedButtonRect = GetObjectRect(scene, windowedVisualId_);
 	const SliderGeometry masterSlider = GetSliderGeometry(scene, masterBarVisualId_, masterKnobVisualId_);
@@ -476,7 +483,7 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 	if (overFullscreen != fullscreenHovered_) {
 		// Refresh hover art and sound only when the state actually changes.
 		fullscreenHovered_ = overFullscreen;
-		if (fullscreenHovered_) {
+		if (fullscreenHovered_ && !suppressHoverFeedbackUntilMouseMove_) {
 			PlayHoverSound();
 		}
 		RefreshVisualState(scene);
@@ -485,7 +492,7 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 	if (overWindowed != windowedHovered_) {
 		// Windowed uses the same hover feedback flow as fullscreen.
 		windowedHovered_ = overWindowed;
-		if (windowedHovered_) {
+		if (windowedHovered_ && !suppressHoverFeedbackUntilMouseMove_) {
 			PlayHoverSound();
 		}
 
@@ -496,6 +503,7 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 		if (overFullscreen) {
 			// Fullscreen toggles save immediately because the app window changes right away.
 			PlayClickSound();
+			suppressHoverFeedbackUntilMouseMove_ = true;
 			settings_.fullscreen = true;
 			PersistSettings(true);
 			RefreshVisualState(scene);
@@ -506,6 +514,7 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 		if (overWindowed) {
 			// Windowed mode follows the same immediate-apply path.
 			PlayClickSound();
+			suppressHoverFeedbackUntilMouseMove_ = true;
 			settings_.fullscreen = false;
 			PersistSettings(true);
 			RefreshVisualState(scene);

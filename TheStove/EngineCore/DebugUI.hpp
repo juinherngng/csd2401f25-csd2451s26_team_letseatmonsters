@@ -84,7 +84,7 @@ namespace Debug {
 		void UpdateSystemTimes(float loopTime);
 
 		bool IsActive() const {
-			return openedDebugger;
+			return openedDebugger || showConsoleLogWindow || showTransitionPreviewWindow;
 		}
 
 		void AddDebugLine(const std::string& txt);
@@ -120,6 +120,8 @@ namespace Debug {
 		bool openedDebugger; // Shows Whether debugger window is visible
 
 		std::vector<std::string> debuglines;
+		bool showConsoleLogWindow = true;
+		bool showTransitionPreviewWindow = true;
 
 	private:
 		GLFWwindow* debugWindow; // The host window
@@ -154,41 +156,29 @@ namespace Debug {
 
 	class DebuggerApp {
 	public:
-		DebuggerApp() noexcept : fps(0), msperFrame(0), fpsMode(FPSMode::VSYNC), openedDebugger(false) {
-		}
+		DebuggerApp() noexcept : fps(0), msperFrame(0), fpsMode(FPSMode::VSYNC), openedDebugger(false) {}
 		~DebuggerApp() noexcept = default;
 
-		void Shutdown() noexcept {
-		}
+		void Shutdown() noexcept {}
 		bool InitializeDebuggerApp(GLFWwindow* /*externalWindow*/, CoreFramework::CoreEngine* /*coreEnginePtr*/) noexcept {
 			return false;
 		}
-		void UpdateDebuggerApp() noexcept {
-		}
-		void RenderDebuggerApp() noexcept {
-		}
-		void RunDebuggerApp() noexcept {
-		}
-		void LogError(const std::string& /*errorMessage*/) noexcept {
-		}
-		void UpdateSystemTimes(float /*loopTime*/) noexcept {
-		}
+		void UpdateDebuggerApp() noexcept {}
+		void RenderDebuggerApp() noexcept {}
+		void RunDebuggerApp() noexcept {}
+		void LogError(const std::string& /*errorMessage*/) noexcept {}
+		void UpdateSystemTimes(float /*loopTime*/) noexcept {}
 		bool IsActive() const noexcept {
-			return false;
+			return openedDebugger || showConsoleLogWindow || showTransitionPreviewWindow;
 		}
-		void AddDebugLine(const std::string& /*txt*/) noexcept {
-		}
+		void AddDebugLine(const std::string& /*txt*/) noexcept {}
 		void ClearDebugLog() noexcept {
 			debuglines.clear();
 		}
-		void ShowDebugLog() noexcept {
-		}
-		void SetRenderStats(int /*objects*/, int /*batches*/, int /*instanced*/, int /*draws*/) noexcept {
-		}
-		void SetScene(Scene* /*scenePtr*/) noexcept {
-		}
-		void SetupDefaultLayout() noexcept {
-		}
+		void ShowDebugLog() noexcept {}
+		void SetRenderStats(int /*objects*/, int /*batches*/, int /*instanced*/, int /*draws*/) noexcept {}
+		void SetScene(Scene* /*scenePtr*/) noexcept {}
+		void SetupDefaultLayout() noexcept {}
 
 	public:
 		float fps = 0; // FPS
@@ -197,6 +187,8 @@ namespace Debug {
 		FPSMode fpsMode = FPSMode::VSYNC;
 		bool openedDebugger = false;
 		std::vector<std::string> debuglines;
+		bool showConsoleLogWindow = false;
+		bool showTransitionPreviewWindow = false;
 	};
 
 	extern DebuggerApp gDebugger;

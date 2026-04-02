@@ -189,6 +189,10 @@ namespace {
 			return;
 		}
 
+		// Fullscreen monitor switches can emit transient focus/iconify callbacks in release.
+		// Suppress those briefly so intentional settings/F11 toggles do not look like app pause/resume.
+		app.suppressFocusCallbacksUntil = glfwGetTime() + 0.75;
+
 		if (!app.isFullscreen) {
 			// Cache the windowed placement before entering fullscreen.
 			glfwGetWindowPos(app.window, &app.windowedPosX, &app.windowedPosY);
@@ -529,6 +533,10 @@ bool Application::Initialize(int width, int height, const std::string& title, bo
 
 #ifndef _DEBUG
 	glfwSetWindowFocusCallback(state_.window, [](GLFWwindow* win, int focused) {
+		if (g_AppState && glfwGetTime() < g_AppState->suppressFocusCallbacksUntil) {
+			return;
+		}
+
 		if (focused == GLFW_FALSE) {
 			// Native modal dialogs should pause systems without forcing a minimize.
 			if (g_AppState && g_AppState->modalDialogOpen) {
@@ -548,6 +556,9 @@ bool Application::Initialize(int width, int height, const std::string& title, bo
 
 	glfwSetWindowIconifyCallback(state_.window, [](GLFWwindow* win, int iconified) {
 		(void)win;
+		if (g_AppState && glfwGetTime() < g_AppState->suppressFocusCallbacksUntil) {
+			return;
+		}
 		// Keep pause state aligned with iconify/minimize events from the OS.
 		HandlePauseResume(iconified == GLFW_TRUE);
 		});

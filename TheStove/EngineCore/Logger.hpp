@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <cctype>
 #include <iostream>
 #include <mutex>
 #include <sstream>
@@ -71,13 +72,24 @@ namespace CoreFramework::Logging {
 		return (level == Level::Warn || level == Level::Error) ? std::cerr : std::cout;
 	}
 
+	inline std::string TrimLeadingWhitespace(const std::string& message) {
+		size_t index = 0;
+		while (index < message.size() &&
+			std::isspace(static_cast<unsigned char>(message[index])) != 0 &&
+			message[index] != '\n' &&
+			message[index] != '\r') {
+			++index;
+		}
+		return message.substr(index);
+	}
+
 	inline void Write(Level level, const std::string& message) {
 		if (!ShouldLog(level)) {
 			return;
 		}
 
 		std::lock_guard<std::mutex> lock(OutputMutex());
-		Stream(level) << Prefix(level) << message << std::endl;
+		Stream(level) << Prefix(level) << TrimLeadingWhitespace(message) << std::endl;
 	}
 }
 

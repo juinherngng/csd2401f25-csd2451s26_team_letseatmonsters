@@ -70,6 +70,8 @@ struct ApplicationState {
 	bool simActiveBeforePause = false;
 	// Indicates whether a native modal dialog is currently open.
 	bool modalDialogOpen = false;
+	// Ignores transient focus/iconify callbacks triggered by intentional monitor switches.
+	double suppressFocusCallbacksUntil = 0.0;
 
 	// Tracks whether the window is currently fullscreen.
 	bool isFullscreen = false;

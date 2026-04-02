@@ -38,6 +38,14 @@ namespace {
 		return ToLowerCopy(name).find("bgm") != std::string::npos;
 	}
 
+	std::string CompactPathLabel(const std::string& path) {
+		if (path.empty()) {
+			return path;
+		}
+
+		return std::filesystem::path(path).filename().string();
+	}
+
 	float GetBgmChannelVolumeMultiplier(const std::string& name) {
 		const std::string lower = ToLowerCopy(name);
 		if (lower.find("ambience") != std::string::npos) {
@@ -303,9 +311,7 @@ FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const&
 		return it->second;
 	}
 
-	// Debug: Print the path we're trying to load
-	TS_LOG_DEBUG("[AudioManager] Attempting to load: " << name);
-	TS_LOG_DEBUG("  Relative path: " << filePath);
+	TS_LOG_DEBUG("[AudioManager] Loading '" << name << "' from '" << CompactPathLabel(filePath) << "'.");
 
 	// Check if file exists
 	if (!std::filesystem::exists(filePath)) {
@@ -314,17 +320,17 @@ FMOD::Sound* AudioManager::LoadSound(std::string const& name, std::string const&
 		// Try to get absolute path for debugging
 		try {
 			std::filesystem::path absPath = std::filesystem::absolute(filePath);
-			TS_LOG_ERROR("  Absolute path would be: " << absPath.string());
-			TS_LOG_ERROR("  Current working directory: " << std::filesystem::current_path().string());
+			TS_LOG_ERROR("Absolute path would be: " << absPath.string());
+			TS_LOG_ERROR("Current working directory: " << std::filesystem::current_path().string());
 		}
 		catch (...) {
-			TS_LOG_ERROR("  Could not determine absolute path");
+			TS_LOG_ERROR("Could not determine absolute path");
 		}
 
 		return nullptr;
 	}
 
-	TS_LOG_DEBUG("  File exists, proceeding with FMOD load...");
+	TS_LOG_DEBUG("[AudioManager] File found, continuing with FMOD load.");
 
 	// Set FMOD mode flags
 	FMOD_MODE mode = FMOD_DEFAULT | (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF) |
@@ -452,6 +458,31 @@ void AudioManager::StopSound(std::string const& name) {
 		activeFades.erase(name);
 		channels.erase(it);
 	}
+}
+
+bool AudioManager::IsSoundPlaying(std::string const& name) {
+	auto it = channels.find(name);
+	if (it == channels.end()) {
+		return false;
+	}
+
+	RemoveStoppedChannels(it->second);
+	if (it->second.empty()) {
+		return false;
+	}
+
+	for (FMOD::Channel* channel : it->second) {
+		if (!channel) {
+			continue;
+		}
+
+		bool isPlaying = false;
+		if (channel->isPlaying(&isPlaying) == FMOD_OK && isPlaying) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void AudioManager::StopAllSounds() {
@@ -649,23 +680,22 @@ FMOD::Sound* AudioManager::LoadSound3D(std::string const& name, std::string cons
 		return it->second;
 	}
 
-	TS_LOG_DEBUG("[AudioManager] Attempting to load 3D sound: " << name);
-	TS_LOG_DEBUG("  Relative path: " << filePath);
+	TS_LOG_DEBUG("[AudioManager] Loading 3D sound '" << name << "' from '" << CompactPathLabel(filePath) << "'.");
 
 	if (!std::filesystem::exists(filePath)) {
 		TS_LOG_ERROR("[AudioManager] File does not exist at path: " << filePath);
 		try {
 			std::filesystem::path absPath = std::filesystem::absolute(filePath);
-			TS_LOG_ERROR("  Absolute path would be: " << absPath.string());
-			TS_LOG_ERROR("  Current working directory: " << std::filesystem::current_path().string());
+			TS_LOG_ERROR("Absolute path would be: " << absPath.string());
+			TS_LOG_ERROR("Current working directory: " << std::filesystem::current_path().string());
 		}
 		catch (...) {
-			TS_LOG_ERROR("  Could not determine absolute path");
+			TS_LOG_ERROR("Could not determine absolute path");
 		}
 		return nullptr;
 	}
 
-	TS_LOG_DEBUG("  File exists, proceeding with FMOD 3D load...");
+	TS_LOG_DEBUG("[AudioManager] File found, continuing with FMOD 3D load.");
 
 	// Set FMOD mode flags with FMOD_3D for spatial audio.
 	// Use inverse rolloff to avoid abrupt drop-offs that feel like early cut-outs.

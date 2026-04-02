@@ -21,6 +21,7 @@
 #include <chrono>
 #include <future>
 #include <map>
+#include <unordered_set>
 
 #include "EngineCore/ApplicationState.hpp"
 #include "EngineCore/AudioLoading.hpp"
@@ -780,181 +781,217 @@ namespace LEPANELASSETS {
 			// Get catalog assets
 			const auto& catalogAssets = Audio::AudioCatalog::GetAllAssets();
 
-			// Display catalog entries with inline editing
+			// Display catalog entries as a compact library browser instead of a long inline form list.
 			if (!catalogAssets.empty()) {
 				ImGui::TextColored(ImVec4(0.7f, 0.9f, 0.7f, 1.0f), "Catalog Entries (%zu):", catalogAssets.size());
+				static char sAudioCatalogFilter[128] = "";
+				ImGui::SetNextItemWidth(-FLT_MIN);
+				ImGui::InputTextWithHint("##AudioCatalogFilter", "Search audio assets...", sAudioCatalogFilter, IM_ARRAYSIZE(sAudioCatalogFilter));
+				std::string filterLower = sAudioCatalogFilter;
+				std::transform(filterLower.begin(), filterLower.end(), filterLower.begin(),
+					[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-				// State for inline editing
-				static std::string editingName = "";
-				static bool editMode = false;
 				static Audio::AudioAsset editBuffer;
 				static bool applyRemove = false;
 				static std::string pendingRemoveName = "";
 				static bool applyEdit = false;
 				static std::string originalEditName = "";
 				static Audio::AudioAsset pendingEditBuffer;
-
-				// State for tracking which audio is currently playing (for UI feedback)
 				static std::string currentlyPlaying = "";
 
+				std::unordered_map<std::string, std::vector<const Audio::AudioAsset*>> audioByCategory;
 				for (const auto& asset : catalogAssets) {
-					ImGui::PushID(asset.name.c_str());
+					audioByCategory[asset.category].push_back(&asset);
+				}
 
-					bool isEditing = (editMode && editingName == asset.name);
-					bool isPlaying = (currentlyPlaying == asset.name);
+				for (auto& [_, assets] : audioByCategory) {
+					std::sort(assets.begin(), assets.end(),
+						[](const Audio::AudioAsset* a, const Audio::AudioAsset* b) {
+							return a->name < b->name;
+						});
+				}
 
-					// Collapsing header for each audio asset
-					if (ImGui::TreeNode(asset.name.c_str())) {
-						if (isEditing) {
-							// Edit mode
-							char nameBuf[128];
-							strncpy_s(nameBuf, editBuffer.name.c_str(), sizeof(nameBuf) - 1);
-							ImGui::SetNextItemWidth(200.0f);
-							if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf))) {
-								editBuffer.name = nameBuf;
-								// Auto-detect category from name prefix
-								editBuffer.category = DetectCategoryFromName(editBuffer.name);
-							}
-
-							// Category combo
-							const char* categories[] = { "ui", "sfx", "bgm", "ambient", "other" };
-							int selectedCategory = 0;
-							for (int i = 0; i < 5; ++i) {
-								if (editBuffer.category == categories[i]) {
-									selectedCategory = i;
-									break;
-								}
-							}
-							ImGui::SetNextItemWidth(150.0f);
-							if (ImGui::Combo("Category", &selectedCategory, categories, 5)) {
-								editBuffer.category = categories[selectedCategory];
-							}
-
-							ImGui::Checkbox("Loop", &editBuffer.loop);
-							ImGui::SameLine();
-							ImGui::Checkbox("Stream", &editBuffer.stream);
-
-							ImGui::SetNextItemWidth(200.0f);
-							ImGui::SliderFloat("Volume", &editBuffer.volume, 0.0f, 1.0f, "%.2f");
-
-							ImGui::TextWrapped("File: %s", editBuffer.filepath.c_str());
-
-							if (ImGui::Button("Save##Edit")) {
-								// Queue catalog mutation until after the UI iteration.
-								originalEditName = editingName;
-								pendingEditBuffer = editBuffer;
-								applyEdit = true;
-								editMode = false;
-								editingName = "";
-							}
-							ImGui::SameLine();
-							if (ImGui::Button("Cancel##Edit")) {
-								editMode = false;
-								editingName = "";
-							}
-						}
-						else {
-							// Display mode
-							ImGui::Text("Category: %s", asset.category.c_str());
-							ImGui::Text("Loop: %s", asset.loop ? "Yes" : "No");
-							ImGui::Text("Stream: %s", asset.stream ? "Yes" : "No");
-							ImGui::Text("Volume: %.2f", asset.volume);
-							ImGui::TextWrapped("File: %s", asset.filepath.c_str());
-
-							ImGui::Spacing();
-							ImGui::Separator();
-							ImGui::Spacing();
-
-							// Play/Stop buttons for audio preview
-							if (isPlaying) {
-								// Show stop button if this audio is playing
-								if (ImGui::Button("Stop Preview", ImVec2(120, 0))) {
-									// Stop via MessageBus
-									if (g_AppState && g_AppState->coreEngine) {
-										g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
-										currentlyPlaying = "";
-										TS_LOG_INFO("[Assets Panel] Stopped preview: " << asset.name);
-									}
-								}
-							}
-							else {
-								// Show play button
-								if (ImGui::Button("Play Preview", ImVec2(120, 0))) {
-									// Stop any currently playing preview first
-									if (!currentlyPlaying.empty() && g_AppState && g_AppState->coreEngine) {
-										g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(currentlyPlaying);
-									}
-
-									// Play via MessageBus
-									if (g_AppState && g_AppState->coreEngine) {
-										g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>(
-											asset.name,
-											asset.volume,
-											false  // Don't pause
-										);
-										currentlyPlaying = asset.name;
-										TS_LOG_INFO("[Assets Panel] Playing preview: " << asset.name);
-									}
-								}
-							}
-
-							ImGui::SameLine();
-
-							if (ImGui::Button("Edit")) {
-								editMode = true;
-								editingName = asset.name;
-								editBuffer = asset;
-							}
-
-							ImGui::SameLine();
-							if (ImGui::Button("Remove")) {
-								// Stop if currently playing
-								if (isPlaying && g_AppState && g_AppState->coreEngine) {
-									g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset.name);
-									currentlyPlaying = "";
-								}
-
-								ImGui::OpenPopup("Confirm Remove Audio");
-							}
-
-							if (ImGui::BeginPopupModal("Confirm Remove Audio", nullptr,
-								ImGuiWindowFlags_AlwaysAutoResize)) {
-								ImGui::Text("Remove '%s' from catalog?", asset.name.c_str());
-								ImGui::Separator();
-
-								if (ImGui::Button("Yes", ImVec2(120, 0))) {
-									pendingRemoveName = asset.name;
-									applyRemove = true;
-									ImGui::CloseCurrentPopup();
-								}
-
-								ImGui::SameLine();
-								if (ImGui::Button("No", ImVec2(120, 0))) {
-									ImGui::CloseCurrentPopup();
-								}
-
-								ImGui::EndPopup();
-							}
+				const char* categoryOrder[] = { "ui", "sfx", "bgm", "ambient", "other" };
+				const float browserHeight = 260.0f;
+				const float buttonWidth = 48.0f;
+				ImGui::Spacing();
+				if (ImGui::BeginChild("##AudioCatalogBrowser", ImVec2(0.0f, browserHeight), true)) {
+					for (const char* categoryName : categoryOrder) {
+						auto it = audioByCategory.find(categoryName);
+						if (it == audioByCategory.end()) {
+							continue;
 						}
 
-						ImGui::TreePop();
+						std::vector<const Audio::AudioAsset*> filteredAssets;
+						filteredAssets.reserve(it->second.size());
+						for (const auto* asset : it->second) {
+							if (!filterLower.empty()) {
+								std::string assetLower = asset->name;
+								std::transform(assetLower.begin(), assetLower.end(), assetLower.begin(),
+									[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+								if (assetLower.find(filterLower) == std::string::npos) {
+									continue;
+								}
+							}
+
+							filteredAssets.push_back(asset);
+						}
+
+						if (filteredAssets.empty()) {
+							continue;
+						}
+
+						if (ImGui::CollapsingHeader((std::string(categoryName) + " (" + std::to_string(filteredAssets.size()) + ")").c_str(),
+							filterLower.empty() ? 0 : ImGuiTreeNodeFlags_DefaultOpen)) {
+							if (ImGui::BeginTable((std::string("##AudioCatalogTable_") + categoryName).c_str(), 2,
+								ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV)) {
+								ImGui::TableSetupColumn("Preview", ImGuiTableColumnFlags_WidthFixed, 62.0f);
+								ImGui::TableSetupColumn("Asset", ImGuiTableColumnFlags_WidthStretch);
+
+								for (const auto* asset : filteredAssets) {
+									ImGui::PushID(asset->name.c_str());
+									const bool isPlaying = (currentlyPlaying == asset->name);
+
+									ImGui::TableNextRow();
+									ImGui::TableSetColumnIndex(0);
+									if (isPlaying) {
+										if (ImGui::Button("Stop", ImVec2(buttonWidth, 0.0f))) {
+											if (g_AppState && g_AppState->coreEngine) {
+												g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(asset->name);
+												currentlyPlaying.clear();
+											}
+										}
+									}
+									else {
+										if (ImGui::Button("Play", ImVec2(buttonWidth, 0.0f))) {
+											if (!currentlyPlaying.empty() && g_AppState && g_AppState->coreEngine) {
+												g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(currentlyPlaying);
+											}
+
+											if (g_AppState && g_AppState->coreEngine) {
+												g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::PlayAudioMessage>(
+													asset->name,
+													asset->volume,
+													false);
+												currentlyPlaying = asset->name;
+											}
+										}
+									}
+
+									ImGui::TableSetColumnIndex(1);
+									ImGui::Selectable(asset->name.c_str(), false);
+									if (ImGui::IsItemHovered()) {
+										ImGui::SetTooltip("Category: %s\nVolume: %.2f\nLoop: %s\nStream: %s\nPath: %s",
+											asset->category.c_str(),
+											asset->volume,
+											asset->loop ? "Yes" : "No",
+											asset->stream ? "Yes" : "No",
+											asset->filepath.c_str());
+									}
+
+									if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+										ImGui::SetDragDropPayload("AUDIO_ASSET", asset->name.c_str(), asset->name.size() + 1);
+										ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "Bind: %s", asset->name.c_str());
+										ImGui::TextDisabled("Drop on object's audio slot");
+										ImGui::EndDragDropSource();
+									}
+
+									if (ImGui::BeginPopupContextItem("##AudioCatalogContext")) {
+										if (ImGui::MenuItem("Edit Metadata")) {
+											originalEditName = asset->name;
+											editBuffer = *asset;
+											ImGui::OpenPopup("Edit Audio Asset");
+										}
+
+										if (ImGui::MenuItem("Remove From Catalog")) {
+											pendingRemoveName = asset->name;
+											ImGui::OpenPopup("Confirm Remove Audio");
+										}
+
+										ImGui::EndPopup();
+									}
+
+									ImGui::PopID();
+								}
+
+								ImGui::EndTable();
+							}
+						}
+					}
+				}
+
+				ImGui::EndChild();
+
+				if (ImGui::BeginPopupModal("Edit Audio Asset", nullptr,
+					ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+					char nameBuf[128];
+					strncpy_s(nameBuf, editBuffer.name.c_str(), sizeof(nameBuf) - 1);
+					ImGui::SetNextItemWidth(260.0f);
+					if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf))) {
+						editBuffer.name = nameBuf;
+						editBuffer.category = DetectCategoryFromName(editBuffer.name);
 					}
 
-					ImGui::PopID();
+					const char* categories[] = { "ui", "sfx", "bgm", "ambient", "other" };
+					int selectedCategory = 0;
+					for (int i = 0; i < 5; ++i) {
+						if (editBuffer.category == categories[i]) {
+							selectedCategory = i;
+							break;
+						}
+					}
+
+					ImGui::SetNextItemWidth(180.0f);
+					if (ImGui::Combo("Category", &selectedCategory, categories, 5)) {
+						editBuffer.category = categories[selectedCategory];
+					}
+
+					ImGui::Checkbox("Loop", &editBuffer.loop);
+					ImGui::SameLine();
+					ImGui::Checkbox("Stream", &editBuffer.stream);
+					ImGui::SetNextItemWidth(260.0f);
+					ImGui::SliderFloat("Volume", &editBuffer.volume, 0.0f, 1.0f, "%.2f");
+					ImGui::TextWrapped("File: %s", editBuffer.filepath.c_str());
+					ImGui::Spacing();
+					if (ImGui::Button("Save", ImVec2(120.0f, 0.0f))) {
+						pendingEditBuffer = editBuffer;
+						applyEdit = true;
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::SameLine();
+					if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f))) {
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
+				}
+
+				if (ImGui::BeginPopupModal("Confirm Remove Audio", nullptr,
+					ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings)) {
+					ImGui::Text("Remove '%s' from catalog?", pendingRemoveName.c_str());
+					ImGui::Separator();
+					if (ImGui::Button("Remove", ImVec2(120.0f, 0.0f))) {
+						applyRemove = true;
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::SameLine();
+					if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f))) {
+						pendingRemoveName.clear();
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
 				}
 
 				if (applyRemove) {
-					Audio::AudioCatalog::RemoveAudioAsset(pendingRemoveName);
-
-					if (currentlyPlaying == pendingRemoveName) {
+					if (currentlyPlaying == pendingRemoveName && g_AppState && g_AppState->coreEngine) {
+						g_AppState->coreEngine->GetMessageBus().Post<CoreFramework::StopAudioMessage>(pendingRemoveName);
 						currentlyPlaying.clear();
 					}
 
-					if (editingName == pendingRemoveName) {
-						editMode = false;
-						editingName.clear();
-					}
-
+					Audio::AudioCatalog::RemoveAudioAsset(pendingRemoveName);
 					pendingRemoveName.clear();
 					applyRemove = false;
 				}
@@ -967,7 +1004,6 @@ namespace LEPANELASSETS {
 
 					Audio::AudioCatalog::RemoveAudioAsset(originalEditName);
 					Audio::AudioCatalog::AddAudioAsset(pendingEditBuffer);
-
 					ResourceManager::Instance().UnloadAudio(originalEditName);
 					ResourceManager::Instance().LoadAudio(
 						pendingEditBuffer.name,
@@ -975,7 +1011,6 @@ namespace LEPANELASSETS {
 						pendingEditBuffer.loop,
 						pendingEditBuffer.stream
 					);
-
 					applyEdit = false;
 					originalEditName.clear();
 				}
@@ -990,106 +1025,135 @@ namespace LEPANELASSETS {
 
 			bool refreshAudio = false;
 			const float iconSize = 32.0f;
+			const float audioFileBrowserHeight = 260.0f;
+			static char sAudioFileFilter[128] = "";
 
-			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.9f, 1.0f), "Audio Files (%zu):", sAudio.size());
+			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.9f, 1.0f), "Audio Files (%zu)", sAudio.size());
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::InputTextWithHint("##AudioFileFilter", "Search source audio files...", sAudioFileFilter, IM_ARRAYSIZE(sAudioFileFilter));
+			std::string audioFileFilterLower = sAudioFileFilter;
+			std::transform(audioFileFilterLower.begin(), audioFileFilterLower.end(), audioFileFilterLower.begin(),
+				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-			for (const auto& path : sAudio) {
-				const std::string displayName = fs::path(path).filename().string();
-				ImGui::PushID(path.c_str());
+			std::unordered_set<std::string> catalogFilePaths;
+			catalogFilePaths.reserve(catalogAssets.size());
+			for (const auto& asset : catalogAssets) {
+				catalogFilePaths.insert(NormalizeAudioPath(asset.filepath));
+			}
 
-				// Draw icon, same style as textures/prefabs
-				if (sAudioIcon) {
-					ImTextureID texID = (ImTextureID)(intptr_t)sAudioIcon->GetID();
-					ImGui::Image(
-						texID,
-						ImVec2(iconSize, iconSize),
-						ImVec2(0, 1),
-						ImVec2(1, 0));
-					ImGui::SameLine();
-				}
+			if (ImGui::BeginChild("##AudioFilesBrowser", ImVec2(0.0f, audioFileBrowserHeight), true,
+				ImGuiWindowFlags_HorizontalScrollbar)) {
+				if (ImGui::BeginTable("##AudioFilesTable", 3,
+					ImGuiTableFlags_SizingStretchProp | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV)) {
+					ImGui::TableSetupColumn("Icon", ImGuiTableColumnFlags_WidthFixed, 38.0f);
+					ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthStretch, 0.78f);
+					ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_WidthFixed, 68.0f);
 
-				// Make the selectable at least as tall as the icon
-				ImGui::Selectable(displayName.c_str(), false, 0, ImVec2(0.0f, iconSize));
-				if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
-					ImGui::SetTooltip("%s", path.c_str());
-				}
-
-				// Double-click to add to catalog if not already there
-				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
-					ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-
-					// Check if already in catalog
-					bool inCatalog = false;
-					for (const auto& asset : catalogAssets) {
-						if (asset.filepath == path) {
-							inCatalog = true;
-							break;
-						}
-					}
-
-					if (!inCatalog) {
-						// Normalize the path for FMOD
+					for (const auto& path : sAudio) {
+						const std::string displayName = fs::path(path).filename().string();
 						const std::string normalizedPath = NormalizeAudioPath(path);
+						const bool inCatalog = catalogFilePaths.find(normalizedPath) != catalogFilePaths.end();
+						const std::string searchableText = displayName + " " + normalizedPath;
 
-						// Auto-add to catalog
-						Audio::AudioAsset newAsset;
-						newAsset.filepath = normalizedPath;
-
-						// Extract name from filepath
-						size_t lastSlash = normalizedPath.find_last_of("/\\");
-						size_t lastDot = normalizedPath.find_last_of('.');
-
-						if (lastSlash != std::string::npos && lastDot != std::string::npos) {
-							newAsset.name = normalizedPath.substr(lastSlash + 1, lastDot - lastSlash - 1);
-						}
-						else {
-							newAsset.name = "audio_" + std::to_string(catalogAssets.size());
-						}
-
-						newAsset.loop = false;
-						newAsset.stream = false;
-						newAsset.category = DetectCategoryFromName(newAsset.name); // Auto-detect from name
-						newAsset.volume = 1.0f;
-
-						if (Audio::AudioCatalog::AddAudioAsset(newAsset)) {
-							ResourceManager::Instance().LoadAudio(
-								newAsset.name,
-								newAsset.filepath,
-								newAsset.loop,
-								newAsset.stream
-							);
-
-							// Auto-save catalog to SOURCE directory after successful addition
-							const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
-							if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
-								TS_LOG_INFO("[Assets Panel] Catalog auto-saved after double-click add to: " << catalogPath);
+						if (!audioFileFilterLower.empty()) {
+							std::string searchableLower = searchableText;
+							std::transform(searchableLower.begin(), searchableLower.end(), searchableLower.begin(),
+								[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+							if (searchableLower.find(audioFileFilterLower) == std::string::npos) {
+								continue;
 							}
 						}
-					}
-				}
 
-				// Drag source so other panels can receive audio
-				if (ImGui::BeginDragDropSource()) {
-					ImGui::SetDragDropPayload("AUDIO_PATH", path.c_str(), path.size() + 1);
-					ImGui::TextUnformatted("Audio");
-					ImGui::TextWrapped("%s", path.c_str());
-					ImGui::EndDragDropSource();
-				}
+						ImGui::PushID(path.c_str());
+						ImGui::TableNextRow();
 
-				// Right-click context menu: soft delete
-				if (ImGui::BeginPopupContextItem(
-					(std::string("ctx_audio##") + path).c_str())) {
-					if (ImGui::MenuItem("Delete File")) {
-						if (MoveToTrash(path)) {
-							refreshAudio = true;
+						ImGui::TableSetColumnIndex(0);
+						if (sAudioIcon) {
+							ImTextureID texID = (ImTextureID)(intptr_t)sAudioIcon->GetID();
+							ImGui::Image(
+								texID,
+								ImVec2(iconSize, iconSize),
+								ImVec2(0, 1),
+								ImVec2(1, 0));
 						}
+
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Selectable(displayName.c_str(), false, 0, ImVec2(0.0f, iconSize));
+						if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort)) {
+							ImGui::SetTooltip("%s", path.c_str());
+						}
+
+						// Double-click to add to catalog if not already there
+						if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
+							ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) &&
+							!inCatalog) {
+
+							Audio::AudioAsset newAsset;
+							newAsset.filepath = normalizedPath;
+
+							size_t lastSlash = normalizedPath.find_last_of("/\\");
+							size_t lastDot = normalizedPath.find_last_of('.');
+
+							if (lastSlash != std::string::npos && lastDot != std::string::npos) {
+								newAsset.name = normalizedPath.substr(lastSlash + 1, lastDot - lastSlash - 1);
+							}
+							else {
+								newAsset.name = "audio_" + std::to_string(catalogAssets.size());
+							}
+
+							newAsset.loop = false;
+							newAsset.stream = false;
+							newAsset.category = DetectCategoryFromName(newAsset.name);
+							newAsset.volume = 1.0f;
+
+							if (Audio::AudioCatalog::AddAudioAsset(newAsset)) {
+								ResourceManager::Instance().LoadAudio(
+									newAsset.name,
+									newAsset.filepath,
+									newAsset.loop,
+									newAsset.stream
+								);
+
+								const std::string catalogPath = FilePaths::Audio::CATALOG_EDITOR;
+								if (Audio::AudioCatalog::SaveCatalogToFile(catalogPath)) {
+									TS_LOG_INFO("[Assets Panel] Catalog auto-saved after double-click add to: " << catalogPath);
+								}
+							}
+						}
+
+						if (ImGui::BeginDragDropSource()) {
+							ImGui::SetDragDropPayload("AUDIO_PATH", path.c_str(), path.size() + 1);
+							ImGui::TextUnformatted("Audio");
+							ImGui::TextWrapped("%s", path.c_str());
+							ImGui::EndDragDropSource();
+						}
+
+						if (ImGui::BeginPopupContextItem((std::string("ctx_audio##") + path).c_str())) {
+							if (ImGui::MenuItem("Delete File")) {
+								if (MoveToTrash(path)) {
+									refreshAudio = true;
+								}
+							}
+
+							ImGui::EndPopup();
+						}
+
+						ImGui::TableSetColumnIndex(2);
+						if (inCatalog) {
+							ImGui::TextColored(ImVec4(0.55f, 0.85f, 0.55f, 1.0f), "Catalog");
+						}
+						else {
+							ImGui::TextDisabled("Source");
+						}
+
+						ImGui::PopID();
 					}
 
-					ImGui::EndPopup();
+					ImGui::EndTable();
 				}
-
-				ImGui::PopID();
 			}
+
+			ImGui::EndChild();
 
 			if (refreshAudio) {
 				QueueAudioRefresh();

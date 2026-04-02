@@ -2012,7 +2012,14 @@ namespace {
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE);
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
-				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
+				if (!audioManager->IsSoundPlaying(MyoonchiPaths::Audio::BGM_MAIN_MENU)) {
+					audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
+				}
+				else {
+					// Menu-to-menu transitions can leave the shared menu BGM faded out.
+					// Reapply the current BGM mix here without replaying the track.
+					audioManager->SetBgmVolume(audioManager->GetBgmVolume());
+				}
 			}
 			else {
 				const float fadeIn = 1.0f;
