@@ -498,6 +498,13 @@ namespace {
 				const bool hoveredNow = IsPointInObject(scene, yesButtonID_, mouseWorld);
 				if (hoveredNow != yesHovered_) {
 					yesHovered_ = hoveredNow;
+					if (yesHovered_) {
+						if (AudioManager* audioManager = scene.GetAudioManager()) {
+							if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+								audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
+							}
+						}
+					}
 					TrySetObjectTexture(
 						scene,
 						yesButtonID_,
@@ -510,6 +517,13 @@ namespace {
 				const bool hoveredNow = IsPointInObject(scene, noButtonID_, mouseWorld);
 				if (hoveredNow != noHovered_) {
 					noHovered_ = hoveredNow;
+					if (noHovered_) {
+						if (AudioManager* audioManager = scene.GetAudioManager()) {
+							if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+								audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
+							}
+						}
+					}
 					TrySetObjectTexture(
 						scene,
 						noButtonID_,
@@ -610,6 +624,13 @@ namespace {
 			const bool hoveredNow = QuitPopupState::IsPointInObject(scene, GetOwnerID(), mouseWorld);
 			if (hoveredNow != hovered_) {
 				hovered_ = hoveredNow;
+				if (hovered_) {
+					if (AudioManager* audioManager = scene.GetAudioManager()) {
+						if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+							audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
+						}
+					}
+				}
 
 				const std::string cacheKey = hovered_
 					? ("pause_quit_hover_" + std::to_string(GetOwnerID()))
