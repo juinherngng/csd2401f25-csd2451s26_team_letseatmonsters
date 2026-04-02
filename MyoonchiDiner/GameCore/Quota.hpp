@@ -153,12 +153,10 @@ namespace Economy {
 			gTimeRemaining = 0.0f;
 			gTimeUp = true;
 
-			if (gQuotaReached) {
-				OnQuotaReached(scene);
-			}
-			else {
-				gAwaitingFinalCustomerClear = true;
-			}
+			// Defer round resolution until all currently seated customers are fully
+			// resolved (payment collected / customer cleared). The final outcome
+			// (win/lose) is decided later based on whether quota was reached.
+			gAwaitingFinalCustomerClear = true;
 		}
 
 		SyncUI(&scene); // <--- update timer every frame (and quota/money too)

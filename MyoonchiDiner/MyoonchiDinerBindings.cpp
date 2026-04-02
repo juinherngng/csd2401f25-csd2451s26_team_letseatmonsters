@@ -2304,10 +2304,15 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 		ambientVfx->Update(dt, s);
 
-		// If time is over, quota was reached, and no unresolved customers remain,
-		// finally go to the win cutscene.
+		// If time is over and no unresolved customers remain, finish the round.
+		// Final state depends on whether quota was reached by then.
 		if (Economy::gAwaitingFinalCustomerClear && !HasAnyUnresolvedCustomer(s)) {
-			Economy::OnQuotaReached(s);
+			if (Economy::gQuotaReached) {
+				Economy::OnQuotaReached(s);
+			}
+			else {
+				Economy::OnTimeUp(s);
+			}
 		}
 
 		gTutorialFlow.Update(s, dt);
