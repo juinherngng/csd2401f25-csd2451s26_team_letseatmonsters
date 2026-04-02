@@ -173,9 +173,9 @@ namespace Economy {
 			boundaries,
 			nextScenePath,
 			true,
-			2.0f,
-			0.35f,
-			1.5f,
+			1.0f,
+			0.175f,
+			0.75f,
 			-1,
 			0.0f
 		);
