@@ -29,8 +29,14 @@
 
 namespace Economy {
 	namespace {
-		// Collect one frame per sequential index:
-		// tries .../prefix1.png then .../prefix1.1.png, then 2, 3, ...
+		// Collect a sequential cutscene authored as either:
+		//   prefix1.png, prefix2.png, ...
+		// or chapter/subframe groups:
+		//   prefix1.1.png, prefix1.2.png, prefix1.3.png, prefix2.1.png, ...
+		//
+		// Boundary flags are only set on the first frame of each chapter so
+		// in-chapter subframes swap directly while chapter changes fade through
+		// black using the transitioned cutscene player.
 		static void BuildSequentialFramesAndBoundaries(std::vector<std::string>& outFrames,
 			std::vector<bool>& outFlags,
 			const std::string& baseFolder,
@@ -40,23 +46,42 @@ namespace Economy {
 			outFrames.clear();
 			outFlags.clear();
 
-			for (int i = 1; i <= 3; ++i) {
-				const std::string pDirect = baseFolder + "/" + prefix + std::to_string(i) + ".png";
-				const std::string pDotOne = baseFolder + "/" + prefix + std::to_string(i) + ".1.png";
+			for (int chapter = 1;; ++chapter) {
+				const std::string chapterBase = baseFolder + "/" + prefix + std::to_string(chapter);
+				const std::string directPath = chapterBase + ".png";
 
-				if (fs::exists(pDirect)) {
-					outFrames.push_back(pDirect);
+				if (fs::exists(directPath)) {
+					outFrames.push_back(directPath);
 					outFlags.push_back(true);
 					continue;
 				}
 
-				if (fs::exists(pDotOne)) {
-					outFrames.push_back(pDotOne);
-					outFlags.push_back(true);
-					continue;
-				}
+				for (int subframe = 1;; ++subframe) {
+					const std::string dottedPath = chapterBase + "." + std::to_string(subframe) + ".png";
+					const std::string commaPath = chapterBase + "," + std::to_string(subframe) + ".png";
 
-				break;
+					if (fs::exists(dottedPath)) {
+						outFrames.push_back(dottedPath);
+						outFlags.push_back(subframe == 1);
+						continue;
+					}
+
+					// Backward-compatible fallback for the authored asset typo:
+					// Cutscene_daychange_2,3.png
+					if (fs::exists(commaPath)) {
+						outFrames.push_back(commaPath);
+						outFlags.push_back(subframe == 1);
+						continue;
+					}
+
+					// No frame found for ".1" means the sequence is over.
+					if (subframe == 1) {
+						return;
+					}
+
+					// Later subframe missing: move on to the next chapter.
+					break;
+				}
 			}
 		}
 
