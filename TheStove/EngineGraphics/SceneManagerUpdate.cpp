@@ -297,15 +297,17 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 
 	if (ShouldUseRuntimeParityMode() && inputManager.IsKeyJustPressed(GLFW_KEY_ESCAPE)) {
 		const std::string levelPath = GetCurrentLevelPath();
-		const bool isCreditsLevel = levelPath == FilePaths::Levels::CREDITS;
+		const bool isReturnToMainMenuLevel =
+			levelPath == FilePaths::Levels::CREDITS ||
+			levelPath == FilePaths::Levels::SETTINGS;
 		const bool isWinLikeLevel =
 			levelPath == FilePaths::Levels::WIN ||
 			levelPath.find("win") != std::string::npos ||
 			levelPath.find("dayclear") != std::string::npos ||
 			levelPath.find("day_clear") != std::string::npos;
 
-		// Credits uses ESC as a direct return to the main menu instead of pause semantics.
-		if (isCreditsLevel && !IsPauseOverlayActive() && !HasPendingLevel() && !HasPendingStateChange() && !IsAnyCutsceneActive()) {
+		// Non-gameplay menu screens use ESC as a direct return to the main menu instead of pause semantics.
+		if (isReturnToMainMenuLevel && !IsPauseOverlayActive() && !HasPendingLevel() && !HasPendingStateChange() && !IsAnyCutsceneActive()) {
 			if (AudioManager* audioManager = GetAudioManager()) {
 				if (audioManager->HasSound("ui_back")) {
 					audioManager->PlaySound("ui_back", audioManager->GetVfxVolume(), false);

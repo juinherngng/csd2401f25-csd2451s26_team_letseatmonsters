@@ -11,6 +11,7 @@
 */
 
 #include <algorithm>
+#include <cctype>
 #include <filesystem> // For checking file existence
 
 #include "EngineCore/AudioManager.hpp"
@@ -21,10 +22,31 @@ namespace {
 		// Map game 2D plane (X,Y) onto FMOD ground plane (X,Z).
 		// Keep FMOD Y as vertical-up so up/down movement in game affects depth/distance.
 		FMOD_VECTOR out{};
-	out.x = -worldX;
+		out.x = -worldX;
 		out.y = worldZ;
 		out.z = -worldY;
 		return out;
+	}
+
+	std::string ToLowerCopy(std::string value) {
+		std::transform(value.begin(), value.end(), value.begin(),
+			[](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+		return value;
+	}
+
+	bool IsBgmChannelName(const std::string& name) {
+		return ToLowerCopy(name).find("bgm") != std::string::npos;
+	}
+
+	float GetBgmChannelVolumeMultiplier(const std::string& name) {
+		const std::string lower = ToLowerCopy(name);
+		if (lower.find("ambience") != std::string::npos) {
+			return 0.5f;
+		}
+		if (lower.find("introcutscene") != std::string::npos) {
+			return 1.6f;
+		}
+		return 1.0f;
 	}
 }
 
@@ -41,7 +63,7 @@ void AudioManager::StopOneSoundInstance(std::string const& name) {
 		return;
 	}
 
- FMOD::Channel* channel = it->second.front();
+	FMOD::Channel* channel = it->second.front();
 	it->second.erase(it->second.begin());
 	if (channel) {
 		channel->setVolume(0.0f);
@@ -494,8 +516,36 @@ void AudioManager::SetBgmVolume(float volume) {
 	// Clamp volume between 0.0 and 1.0
 	bgmVolume = std::clamp(volume, 0.0f, 1.0f);
 
-	// BGM volume is relative to master volume
-	// Note: Individual channel volumes are set during playback in PlaySound()
+	// Retune currently playing BGM channels immediately so settings UI changes
+	// affect the active menu/game music without needing to restart playback.
+	for (auto it = channels.begin(); it != channels.end(); ++it) {
+		if (!IsBgmChannelName(it->first)) {
+			continue;
+		}
+
+		RemoveStoppedChannels(it->second);
+		if (it->second.empty()) {
+			continue;
+		}
+
+		const float targetVolume = bgmVolume * GetBgmChannelVolumeMultiplier(it->first);
+		for (FMOD::Channel* channel : it->second) {
+			if (channel) {
+				channel->setVolume(targetVolume);
+			}
+		}
+	}
+
+	// If the user is dragging the settings slider, the new value should win
+	// immediately instead of being overwritten by an old fade target next frame.
+	for (auto it = activeFades.begin(); it != activeFades.end(); ) {
+		if (IsBgmChannelName(it->first)) {
+			it = activeFades.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
 }
 
 void AudioManager::SetVfxVolume(float volume) {
@@ -699,8 +749,8 @@ void AudioManager::SetListenerPosition(float posX, float posY, float posZ) {
 
 	FMOD_VECTOR listenerPos = ToFmodWorld(posX, posY, posZ);
 	FMOD_VECTOR listenerVel = { 0.0f, 0.0f, 0.0f };
-	FMOD_VECTOR forward     = { 0.0f, 0.0f, 1.0f };
-	FMOD_VECTOR up          = { 0.0f, 1.0f, 0.0f };
+	FMOD_VECTOR forward = { 0.0f, 0.0f, 1.0f };
+	FMOD_VECTOR up = { 0.0f, 1.0f, 0.0f };
 
 	FMOD_RESULT result = system->set3DListenerAttributes(0, &listenerPos, &listenerVel, &forward, &up);
 	CheckError(result, "set3DListenerAttributes");

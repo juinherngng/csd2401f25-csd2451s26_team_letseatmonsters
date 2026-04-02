@@ -75,6 +75,7 @@
 #include "GameCore/PlateLogic.hpp"
 #include "GameCore/PlayerLogic.hpp"
 #include "GameCore/Quota.hpp"
+#include "GameCore/SettingsMenuLogic.hpp"
 #include "GameCore/SimpleNpcLogic.hpp"
 #include "GameCore/StartGamePromptLogic.hpp"
 #include "GameCore/TableLogic.hpp"
@@ -2169,9 +2170,14 @@ namespace {
 					logic->SetAudioManager(scene.GetAudioManager());
 				}
 			}},
+			{ "settings_how_visual", [](Scene& scene, int id) {
+				auto* logic = scene.GetLogicManager().AddLogic<HowToPlayButtonLogic>(id);
+				if (logic && scene.GetAudioManager()) {
+					logic->SetAudioManager(scene.GetAudioManager());
+				}
+			}},
 			{ "btn_settings", [](Scene& scene, int id) {
-				// Temporary wiring: route to main menu until a dedicated settings flow exists.
-				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::MAIN_MENU, false);
+				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::SETTINGS, false);
 				if (logic && scene.GetAudioManager()) {
 					logic->SetAudioManager(scene.GetAudioManager());
 				}
@@ -2209,6 +2215,12 @@ namespace {
 			}},
 			{ "btn_pause", [](Scene& scene, int id) {
 			   scene.GetLogicManager().AddLogic<InGamePauseTriggerLogic>(id);
+			}},
+			{ "settings_ui_logic", [](Scene& scene, int id) {
+				auto* logic = scene.GetLogicManager().AddLogic<SettingsMenuLogic>(id);
+				if (logic && scene.GetAudioManager()) {
+					logic->SetAudioManager(scene.GetAudioManager());
+				}
 			}},
 		};
 		return table;

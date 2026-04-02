@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "EngineCore/Collision.hpp"
+#include "EngineCore/FilePaths.hpp"
 #include "EngineCore/LevelEditorPanelLevel.hpp"
 #include "EngineCore/LevelEditorPickDrag.hpp"
 #include "EngineGraphics/GameObject.hpp"
@@ -306,6 +307,21 @@ namespace LEPICKDRAG {
 		outBR = glm::vec2(box.max.x, box.max.y); // right, bottom
 
 		return true;
+	}
+
+	/**
+	 * @brief Returns whether the editor viewport should ignore picking this object.
+	 * @param scene Scene currently being edited.
+	 * @param objectId Candidate object identifier.
+	 * @return True when the object is a runtime-managed settings overlay visual.
+	 */
+	static bool ShouldSkipEditorViewportPick(Scene& scene, int objectId) {
+		if (scene.GetCurrentLevelPath() != FilePaths::Levels::SETTINGS) {
+			return false;
+		}
+
+		const std::string tag = scene.GetObjectTag(objectId);
+		return tag == "settings_ui_logic";
 	}
 
 	/**
@@ -740,6 +756,9 @@ namespace LEPICKDRAG {
 				for (int i = static_cast<int>(list.size()) - 1; i >= 0; --i) {
 					GameObject* g = list[i];
 					if (!g) {
+						continue;
+					}
+					if (ShouldSkipEditorViewportPick(scene, g->GetID())) {
 						continue;
 					}
 

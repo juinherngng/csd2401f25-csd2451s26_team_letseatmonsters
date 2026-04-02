@@ -299,6 +299,32 @@ void SetModalDialogOpen(bool open) {
 }
 
 /**
+ * @brief Returns whether the desktop window is currently fullscreen.
+ * @return `true` when the application is running fullscreen.
+ */
+bool IsApplicationFullscreen() {
+	return g_AppState != nullptr && g_AppState->isFullscreen;
+}
+
+/**
+ * @brief Applies the requested fullscreen state immediately if the app is running.
+ * @param fullscreen True for fullscreen, false for windowed.
+ * @return `true` when the request could be serviced.
+ */
+bool SetApplicationFullscreen(bool fullscreen) {
+	if (!g_AppState || !g_AppState->window) {
+		return false;
+	}
+
+	if (g_AppState->isFullscreen == fullscreen) {
+		return true;
+	}
+
+	ToggleFullscreen(*g_AppState);
+	return g_AppState->isFullscreen == fullscreen;
+}
+
+/**
  * @brief Destroys the application wrapper.
  */
 Application::~Application() {

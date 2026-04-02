@@ -52,6 +52,7 @@ namespace FilePaths {
 		constexpr const char* KITCHEN_01 = "../levels/kitchen01.json";
 		constexpr const char* KITCHEN_02 = "../levels/kitchen02.json";
 		constexpr const char* MAIN_MENU = "../levels/main_menu.json";
+		constexpr const char* SETTINGS = "../levels/settings.json";
 		constexpr const char* CREDITS = "../levels/credits.json";
 		constexpr const char* WIN = "../levels/win.json";
 		constexpr const char* LOSE = "../levels/lose.json";

@@ -60,7 +60,7 @@
     },
     {
       "animated": false,
-      "texture": "../assets/credits_s.png",
+      "texture": "../assets/Credits/credits_s.png",
       "tag": "btn_credits",
       "layer": "10",
       "x": 1300.0,

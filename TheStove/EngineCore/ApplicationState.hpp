@@ -96,3 +96,16 @@ extern ApplicationState* g_AppState;
  * @param open True when a modal dialog is active.
  */
 void SetModalDialogOpen(bool open);
+
+/**
+ * @brief Returns whether the desktop window is currently fullscreen.
+ * @return True when the runtime window is fullscreen.
+ */
+bool IsApplicationFullscreen();
+
+/**
+ * @brief Applies the requested fullscreen state immediately to the desktop window.
+ * @param fullscreen True for fullscreen, false for windowed.
+ * @return True when the request could be applied.
+ */
+bool SetApplicationFullscreen(bool fullscreen);
