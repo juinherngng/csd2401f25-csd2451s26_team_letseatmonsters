@@ -166,6 +166,15 @@ void InGamePauseTriggerLogic::Update(float /*dt*/, Scene& scene, InputManager& i
 		return;
 	}
 
+	if (AudioManager* audioManager = scene.GetAudioManager()) {
+		if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_BACK)) {
+			audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_BACK, audioManager->GetVfxVolume(), false);
+		}
+       if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+			audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
+		}
+	}
+
 	// Consume the click so it is not processed by other UI or game elements.
 	input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 
