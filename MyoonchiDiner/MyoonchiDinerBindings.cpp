@@ -447,6 +447,9 @@ namespace {
 			if (shown_) {
 				return;
 			}
+			ResourceManager::Instance().LoadTexture(
+				"animatedsprite_../assets/staranim-Sheet2.png",
+				"../assets/staranim-Sheet2.png");
 			shown_ = true;
 			yesAction_ = yesAction;
 
@@ -503,6 +506,7 @@ namespace {
 				if (hoveredNow != yesHovered_) {
 					yesHovered_ = hoveredNow;
 					if (yesHovered_) {
+						scene.TriggerUiButtonHoverFeedback(yesButtonID_);
 						if (AudioManager* audioManager = scene.GetAudioManager()) {
 							if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 								audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
@@ -522,6 +526,7 @@ namespace {
 				if (hoveredNow != noHovered_) {
 					noHovered_ = hoveredNow;
 					if (noHovered_) {
+						scene.TriggerUiButtonHoverFeedback(noButtonID_);
 						if (AudioManager* audioManager = scene.GetAudioManager()) {
 							if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 								audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
@@ -646,6 +651,7 @@ namespace {
 			if (hoveredNow != hovered_) {
 				hovered_ = hoveredNow;
 				if (hovered_) {
+					scene.TriggerUiButtonHoverFeedback(GetOwnerID());
 					if (AudioManager* audioManager = scene.GetAudioManager()) {
 						if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 							audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
@@ -1077,6 +1083,7 @@ namespace {
 			completionMenuHovered_ = isHoveredNow;
 
 			if (completionMenuHovered_) {
+				scene.TriggerUiButtonHoverFeedback(completionMenuButtonID_);
 				if (AudioManager* audioManager = scene.GetAudioManager()) {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
@@ -1973,10 +1980,19 @@ namespace {
 		}
 
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
+          const std::string levelPath = scene.GetCurrentLevelPath();
+			const bool isLevel2Loaded = levelPath.find("kitchen02") != std::string::npos;
+			const char* levelAmbienceKey = isLevel2Loaded
+				? MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE
+				: MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE;
+
+			scene.SetPauseOverlayAudioChannels(MyoonchiPaths::Audio::BGM_LEVEL_THEME, levelAmbienceKey);
+
 			const bool useMenuBgm = !simulationActive || IsDayClearLevelLoaded(scene);
 			if (useMenuBgm) {
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE);
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
 				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
@@ -1986,8 +2002,10 @@ namespace {
 				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
 				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
 
-				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
-				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE);
+				audioManager->PlaySound(levelAmbienceKey, 0.0f, false);
+				audioManager->FadeChannel(levelAmbienceKey, audioManager->GetBgmVolume() * 0.5f, fadeIn);
 			}
 		}
 #else
@@ -2138,6 +2156,20 @@ namespace {
 			}},
 			{ "btn_howtoplay", [](Scene& scene, int id) {
 				auto* logic = scene.GetLogicManager().AddLogic<HowToPlayButtonLogic>(id);
+				if (logic && scene.GetAudioManager()) {
+					logic->SetAudioManager(scene.GetAudioManager());
+				}
+			}},
+			{ "btn_settings", [](Scene& scene, int id) {
+				// Temporary wiring: route to main menu until a dedicated settings flow exists.
+				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::MAIN_MENU, false);
+				if (logic && scene.GetAudioManager()) {
+					logic->SetAudioManager(scene.GetAudioManager());
+				}
+			}},
+			{ "btn_credits", [](Scene& scene, int id) {
+				// Temporary wiring: route to main menu until a dedicated credits flow exists.
+				auto* logic = scene.GetLogicManager().AddLogic<MenuButtonLogic>(id, FilePaths::Levels::CREDITS, false);
 				if (logic && scene.GetAudioManager()) {
 					logic->SetAudioManager(scene.GetAudioManager());
 				}
@@ -2385,7 +2417,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	// Pause overlay: tell engine which audio channels to fade on pause
 	scene.SetPauseOverlayAudioChannels(MyoonchiPaths::Audio::BGM_LEVEL_THEME, MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
-	scene.SetPauseOverlayAdditionalAudioChannels({ "sfx_grill", "sfx_boiling_sound", "sfx_chopping" });
+	scene.SetPauseOverlayAdditionalAudioChannels({ "sfx_grilling_sizzle", "sfx_boiling_sound", "sfx_chopping" });
 	scene.SetPauseSuppressedRuntimeTextNames({ "MoneyText", "QuotaText", "QuotaLabelText", "QuotaValueText", "TimerText", "TutorialText" });
 	scene.SetEditorPreservedRuntimeTextNames({ "MoneyText", "QuotaText", "QuotaLabelText", "QuotaValueText", "TimerText", "TutorialText" });
 

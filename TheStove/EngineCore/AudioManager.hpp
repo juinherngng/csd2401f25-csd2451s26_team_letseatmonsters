@@ -186,6 +186,7 @@ public:
 	*/
 	/************************************************************************/
 	void StopSound(std::string const& name);
+	void StopOneSoundInstance(std::string const& name);
 	/************************************************************************/
 	/*!
 	\brief

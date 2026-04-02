@@ -15,7 +15,9 @@
 #include "EngineCore/FilePaths.hpp"
 #include "EngineCore/Logger.hpp"
 #include "EngineCore/MessageBus.hpp"
+#include "EngineGraphics/AnimationManager.hpp"
 #include "EngineGraphics/GraphicsEngine.hpp"
+#include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
 
  // -------------------------------------------------------------------------------------------------
@@ -35,6 +37,7 @@ void Scene::ShowPauseOverlay() {
 	flowStateBeforePause_ = ComputeSteadyFlowState();
 	pauseOverlayActive_ = true;
 	SetFlowState(FlowState::Paused);
+	animationManager.Play();
 
 	if (messageBus_) {
 		messageBus_->Post<CoreFramework::PauseOverlayChangedMessage>(true);
@@ -72,6 +75,11 @@ void Scene::ShowPauseOverlay() {
 	}
 
 	const std::string uiLayer = "999999";
+
+	// Warm the hover star sheet before the pause buttons appear so the first hover does not hitch.
+	ResourceManager::Instance().LoadTexture(
+		"animatedsprite_../assets/staranim-Sheet2.png",
+		"../assets/staranim-Sheet2.png");
 
 	// Keep the pause overlay on a dedicated top-most UI layer so gameplay objects remain untouched.
 	if (GameObject* dim = SpawnStaticSprite(FilePaths::Textures::PAUSED_BG,

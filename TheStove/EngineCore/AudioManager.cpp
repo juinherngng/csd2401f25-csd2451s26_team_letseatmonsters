@@ -28,6 +28,32 @@ namespace {
 	}
 }
 
+void AudioManager::StopOneSoundInstance(std::string const& name) {
+	auto it = channels.find(name);
+	if (it == channels.end()) {
+		return;
+	}
+
+	RemoveStoppedChannels(it->second);
+	if (it->second.empty()) {
+		activeFades.erase(name);
+		channels.erase(it);
+		return;
+	}
+
+ FMOD::Channel* channel = it->second.front();
+	it->second.erase(it->second.begin());
+	if (channel) {
+		channel->setVolume(0.0f);
+		QueueDeferredStop(channel);
+	}
+
+	if (it->second.empty()) {
+		activeFades.erase(name);
+		channels.erase(it);
+	}
+}
+
 AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), system(nullptr), masterGroup(nullptr), masterVolume(1.f), bgmVolume(1.f), vfxVolume(1.f), muted(false) {
 	// Subscribe to messages
 	debugInfoSubId = messageBus.Subscribe(

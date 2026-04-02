@@ -60,16 +60,21 @@ void Scene::PlayInteractAudio(int objectId) {
 		return;
 	}
 
-	if (defs->audioOnInteract.empty()) {
+    if (defs->audioOnInteract.empty()) {
 		return;
 	}
 
-	if (audioManager_->HasSound(defs->audioOnInteract)) {
-		audioManager_->PlaySound3D(defs->audioOnInteract, defs->pos.x, defs->pos.y, defs->pos.z);
-		TS_LOG_DEBUG("[Scene] Playing interact audio '" << defs->audioOnInteract << "' for object " << objectId);
+	std::string interactSound = defs->audioOnInteract;
+	if (interactSound == "ui_click") {
+		interactSound = "sfx_pickup";
+	}
+
+   if (audioManager_->HasSound(interactSound)) {
+		audioManager_->PlaySound3D(interactSound, defs->pos.x, defs->pos.y, defs->pos.z);
+		TS_LOG_DEBUG("[Scene] Playing interact audio '" << interactSound << "' for object " << objectId);
 	}
 	else {
-		TS_LOG_WARN("[Scene] Interact audio '" << defs->audioOnInteract << "' not found in AudioManager");
+      TS_LOG_WARN("[Scene] Interact audio '" << interactSound << "' not found in AudioManager");
 	}
 }
 

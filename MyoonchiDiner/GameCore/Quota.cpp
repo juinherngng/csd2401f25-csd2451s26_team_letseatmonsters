@@ -92,10 +92,11 @@ namespace Economy {
 				// Fade level BGM and ambience instead of hard stop.
 				audioMgr->FadeChannel("bgm_MyoonchiDiner_LevelTheme", 0.0f, bgmFadeSeconds);
 				audioMgr->FadeChannel("bgm_KitchenAmbience", 0.0f, bgmFadeSeconds);
+				audioMgr->FadeChannel("bgm_forest_ambience", 0.0f, bgmFadeSeconds);
 
-				// Stop all processing sounds (work table sounds)
+               // Stop all processing sounds (work table sounds)
 				audioMgr->StopSound("sfx_chopping");
-				audioMgr->StopSound("sfx_grill");
+				audioMgr->StopSound("sfx_grilling_sizzle");
 				audioMgr->StopSound("sfx_boiling_sound");
 
 				// Stop any other looping gameplay sounds

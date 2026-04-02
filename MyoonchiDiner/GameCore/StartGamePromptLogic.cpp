@@ -112,6 +112,10 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 		return;
 	}
 
+	ResourceManager::Instance().LoadTexture(
+		"animatedsprite_../assets/staranim-Sheet2.png",
+		"../assets/staranim-Sheet2.png");
+
 	// Center popup on reference canvas.
 	popupCenter_ = glm::vec2(
 		static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
@@ -226,6 +230,7 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		if (over && !hovered_) {
 			hovered_ = true;
 			TrySetTexture(owner, hoverTexturePath_);
+			scene.TriggerUiButtonHoverFeedback(GetOwnerID());
 			if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
 			}
@@ -267,6 +272,7 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	if (yesOver && !yesHovered_) {
 		yesHovered_ = true;
 		TrySetObjectTexture(scene, yesButtonId_, kTutorialYesHoverTexture);
+		scene.TriggerUiButtonHoverFeedback(yesButtonId_);
 		if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
 		}
@@ -279,6 +285,7 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	if (noOver && !noHovered_) {
 		noHovered_ = true;
 		TrySetObjectTexture(scene, noButtonId_, kTutorialNoHoverTexture);
+		scene.TriggerUiButtonHoverFeedback(noButtonId_);
 		if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
 		}

@@ -142,6 +142,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			}
 
 			if (nextButtonHovered_ && audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+				scene.TriggerUiButtonHoverFeedback(nextButtonId_);
 				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
 			}
 		}
@@ -208,6 +209,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	if (over && !hovered_) {
 		hovered_ = true;
 		TrySetTexture(owner, hoverTexturePath_);
+		scene.TriggerUiButtonHoverFeedback(GetOwnerID());
 		if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
 		}

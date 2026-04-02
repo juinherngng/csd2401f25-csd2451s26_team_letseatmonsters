@@ -19,7 +19,7 @@
     {
       "category": "bgm",
       "filepath": "../../assets/Audio/MyoonchiDiner_LevelTheme.wav",
-      "loop": false,
+      "loop": true,
       "name": "bgm_MyoonchiDiner_LevelTheme",
       "stream": false,
       "volume": 1.0
@@ -146,9 +146,9 @@
     },
     {
       "category": "sfx",
-      "filepath": "../../assets/Audio/sfx_grill.wav",
-      "loop": false,
-      "name": "sfx_grill",
+      "filepath": "../../assets/Audio/sfx_grill_sizzle.wav",
+      "loop": true,
+      "name": "sfx_grilling_sizzle",
       "stream": false,
       "volume": 1.0
     },
@@ -445,6 +445,62 @@
       "filepath": "../../assets/Audio/sfx_introcutscene.wav",
       "loop": false,
       "name": "sfx_introcutscene",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_dish_complete.wav",
+      "loop": false,
+      "name": "sfx_dish_complete",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_bad_dish.wav",
+      "loop": false,
+      "name": "sfx_bad_dish",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_standard_pickup_01.wav",
+      "loop": false,
+      "name": "sfx_standard_pickup_01",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_standard_pickup_02.wav",
+      "loop": false,
+      "name": "sfx_standard_pickup_02",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_pickup.wav",
+      "loop": false,
+      "name": "sfx_pickup",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/bgm_forest_ambience.wav",
+      "loop": true,
+      "name": "bgm_forest_ambience",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_grill_sizzle.wav",
+      "loop": true,
+      "name": "sfx_grill_sizzle",
       "stream": false,
       "volume": 1.0
     }

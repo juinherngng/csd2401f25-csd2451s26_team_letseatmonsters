@@ -1460,6 +1460,12 @@ public:
 	 */
 	void TriggerCustomerPaymentFeedback(int tableObjectID, int amount);
 
+	/**
+	 * @brief Triggers the shared star-burst hover feedback for blue UI buttons.
+	 * @param buttonObjectID Identifier of the hovered button.
+	 */
+	void TriggerUiButtonHoverFeedback(int buttonObjectID);
+
 private:
 	// -------------------------------------------------------------------------------------------------
 	// Runtime Effects And Per-Frame Internal Helpers
@@ -1480,6 +1486,7 @@ private:
 		glm::vec3 baseScale{ 1.0f, 1.0f, 1.0f };
 		float elapsed = 0.0f;
 		float lifetime = 0.0f;
+		bool animateScale = true;
 	};
 
 	struct FloatingWorldTextFx {

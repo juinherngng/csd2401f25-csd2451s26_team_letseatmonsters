@@ -890,6 +890,17 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 				}
 
 				heldPlate->SetFirstIngredientObjectID(-1);
+
+#ifndef _DEBUG
+				if (AudioManager* audioMgr = scene.GetAudioManager()) {
+					const char* dishSfx = (dishType == DishType::PoopDish)
+						? "sfx_bad_dish"
+						: "sfx_dish_complete";
+					if (audioMgr->HasSound(dishSfx)) {
+						audioMgr->PlaySound(dishSfx, audioMgr->GetVfxVolume(), false);
+					}
+				}
+#endif
 			}
 
 #ifndef _DEBUG
@@ -953,6 +964,17 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 			if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
 				scene.DespawnByID(ingredientObjID);
 			}
+
+#ifndef _DEBUG
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				const char* dishSfx = (dishType == DishType::PoopDish)
+					? "sfx_bad_dish"
+					: "sfx_dish_complete";
+				if (audioMgr->HasSound(dishSfx)) {
+					audioMgr->PlaySound(dishSfx, audioMgr->GetVfxVolume(), false);
+				}
+			}
+#endif
 		}
 
 #ifndef _DEBUG
@@ -1011,6 +1033,17 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 			if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
 				scene.DespawnByID(ingredientObjID);
 			}
+
+#ifndef _DEBUG
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				const char* dishSfx = (dishType == DishType::PoopDish)
+					? "sfx_bad_dish"
+					: "sfx_dish_complete";
+				if (audioMgr->HasSound(dishSfx)) {
+					audioMgr->PlaySound(dishSfx, audioMgr->GetVfxVolume(), false);
+				}
+			}
+#endif
 
 			hasCarriedItemOriginalColliderSize = false;
 		}

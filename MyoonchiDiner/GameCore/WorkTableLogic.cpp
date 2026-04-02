@@ -52,8 +52,6 @@ static bool TryGetObjectWorldPos(Scene& scene, int objectID, glm::vec3& outPos) 
 	return true;
 }
 
-static std::unordered_map<std::string, int> g_processingSoundRefCounts;
-
 WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const std::string& texPath) const {
 	// Detect by the workstation sprite (the table's texture)
 	if (Contains(texPath, "Cutting_Board")) return StationType::CuttingBoard;
@@ -76,7 +74,7 @@ const char* WorkTableLogic::GetProcessedTextureForRaw(IngredientType rawType) co
 const char* WorkTableLogic::GetProcessingSoundName() const {
 	switch (stationType_) {
 	case StationType::CuttingBoard: return "sfx_chopping";
-	case StationType::Grill:        return "sfx_grill";
+	case StationType::Grill:        return "sfx_grilling_sizzle";
 	case StationType::Stove:        return "sfx_boiling_sound";
 	default:                        return nullptr;
 	}
@@ -300,30 +298,26 @@ void WorkTableLogic::StartProcessingSound(Scene& scene) {
 		return;
 	}
 
-	int& refCount = g_processingSoundRefCounts[soundName];
-	if (refCount == 0) {
-		glm::vec3 worldPos{};
-		if (TryGetObjectWorldPos(scene, GetOwnerID(), worldPos)) {
-			audioMgr->PlaySound3D(
-				soundName,
-				worldPos.x,
-				worldPos.y,
-				0.0f,
-				audioMgr->GetVfxVolume(),
-				120.0f,
-				1200.0f,
-				false);
-		}
-		else {
-			audioMgr->PlaySound(soundName, audioMgr->GetVfxVolume(), false);
-		}
-
-		if (stationType_ == StationType::CuttingBoard) {
-			audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.2f);
-		}
+	glm::vec3 worldPos{};
+	if (TryGetObjectWorldPos(scene, GetOwnerID(), worldPos)) {
+		audioMgr->PlaySound3D(
+			soundName,
+			worldPos.x,
+			worldPos.y,
+			0.0f,
+			audioMgr->GetVfxVolume(),
+			120.0f,
+			1200.0f,
+			false);
+	}
+	else {
+		audioMgr->PlaySound(soundName, audioMgr->GetVfxVolume(), false);
 	}
 
-	++refCount;
+	if (stationType_ == StationType::CuttingBoard) {
+		audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.2f);
+	}
+
 	processingSoundActive_ = true;
 }
 
@@ -344,20 +338,8 @@ void WorkTableLogic::StopProcessingSound(Scene& scene) {
 		return;
 	}
 
-	auto it = g_processingSoundRefCounts.find(soundName);
-	if (it == g_processingSoundRefCounts.end()) {
-		return;
-	}
-
-	if (it->second > 0) {
-		--it->second;
-	}
-
-	if (it->second <= 0) {
-		if (audioMgr->HasSound(soundName)) {
-			audioMgr->StopSound(soundName);
-		}
-		g_processingSoundRefCounts.erase(it);
+	if (audioMgr->HasSound(soundName)) {
+		audioMgr->StopOneSoundInstance(soundName);
 	}
 }
 
