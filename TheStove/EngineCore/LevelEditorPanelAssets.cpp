@@ -20,6 +20,7 @@
 #include <cctype>
 #include <chrono>
 #include <future>
+#include <map>
 
 #include "EngineCore/ApplicationState.hpp"
 #include "EngineCore/AudioLoading.hpp"
@@ -44,6 +45,11 @@ namespace fs = std::filesystem;
 using namespace LEFILEIO;
 
 namespace {
+
+	struct TextureFolderNode {
+		std::map<std::string, TextureFolderNode> children;
+		std::vector<std::string> assets;
+	};
 
 	/**
 	 * @brief Normalizes an audio asset path to use forward slashes.
@@ -81,6 +87,72 @@ namespace {
 
 		// Default to "other" if no recognized prefix
 		return "other";
+	}
+
+	/**
+	 * @brief Splits an asset path into folder parts relative to the assets root.
+	 * @param assetPath Relative asset path returned by the editor file helpers.
+	 * @return Folder components from the assets root down to the file's parent folder.
+	 */
+	std::vector<std::string> GetAssetFolderParts(const std::string& assetPath) {
+		std::string generic = fs::path(assetPath).parent_path().generic_string();
+		const std::string editorAssetsPrefix = fs::path(FilePaths::Dirs::ASSETS_EDITOR).generic_string();
+		const std::string runtimeAssetsPrefix = fs::path(FilePaths::Dirs::ASSETS).generic_string();
+
+		auto trimPrefix = [&](const std::string& prefix) {
+			if (generic.rfind(prefix, 0) == 0) {
+				generic.erase(0, prefix.size());
+			}
+			};
+
+		trimPrefix(editorAssetsPrefix);
+		trimPrefix(runtimeAssetsPrefix);
+
+		while (!generic.empty() && (generic.front() == '/' || generic.front() == '.')) {
+			generic.erase(generic.begin());
+		}
+
+		std::vector<std::string> parts;
+		if (generic.empty()) {
+			return parts;
+		}
+
+		for (const auto& part : fs::path(generic)) {
+			const std::string name = part.generic_string();
+			if (!name.empty() && name != ".") {
+				parts.push_back(name);
+			}
+		}
+
+		return parts;
+	}
+
+	/**
+	 * @brief Inserts a texture path into the nested folder tree used by the assets panel.
+	 * @param root Root tree node for all texture folders.
+	 * @param assetPath Texture asset path to insert.
+	 */
+	void InsertTextureIntoFolderTree(TextureFolderNode& root, const std::string& assetPath) {
+		TextureFolderNode* node = &root;
+		for (const std::string& part : GetAssetFolderParts(assetPath)) {
+			node = &node->children[part];
+		}
+
+		node->assets.push_back(assetPath);
+	}
+
+	/**
+	 * @brief Counts all textures contained in a folder tree node and its descendants.
+	 * @param node Folder node to count.
+	 * @return Number of texture entries stored below the node.
+	 */
+	int CountTextureFolderAssets(const TextureFolderNode& node) {
+		int count = static_cast<int>(node.assets.size());
+		for (const auto& [_, child] : node.children) {
+			count += CountTextureFolderAssets(child);
+		}
+
+		return count;
 	}
 }
 
@@ -399,21 +471,44 @@ namespace LEPANELASSETS {
 			}
 
 			bool refreshTextures = false;
+			std::string filterLower = sTextureFilter;
+			std::transform(filterLower.begin(), filterLower.end(), filterLower.begin(),
+				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
+			TextureFolderNode textureTree;
 			for (const auto& path : sTextures) {
 				const std::string displayName = fs::path(path).filename().string();
-				if (sTextureFilter[0] != '\0') {
-					std::string filterLower = sTextureFilter;
-					std::transform(filterLower.begin(), filterLower.end(), filterLower.begin(),
+				const std::vector<std::string> folderParts = GetAssetFolderParts(path);
+				std::string searchableText;
+				for (const std::string& part : folderParts) {
+					if (!searchableText.empty()) {
+						searchableText += "/";
+					}
+					searchableText += part;
+				}
+				if (!searchableText.empty()) {
+					searchableText += "/";
+				}
+				searchableText += displayName;
+
+				if (!filterLower.empty()) {
+					std::string searchableLower = searchableText;
+					std::transform(searchableLower.begin(), searchableLower.end(), searchableLower.begin(),
 						[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-					std::string nameLower = displayName;
-					std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(),
-						[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-					if (nameLower.find(filterLower) == std::string::npos) {
+					if (searchableLower.find(filterLower) == std::string::npos) {
 						continue;
 					}
 				}
 
+				InsertTextureIntoFolderTree(textureTree, path);
+			}
+
+			const float iconBoxSize = 32.0f;
+			const float textureRowHeight = iconBoxSize + ImGui::GetStyle().ItemSpacing.y;
+			const float textureBrowserHeight = 320.0f;
+
+			auto DrawTextureEntry = [&](const std::string& path) {
+				const std::string displayName = fs::path(path).filename().string();
 				ImGui::PushID(path.c_str());
 
 				// Fetch or load preview texture by a deterministic key.
@@ -422,23 +517,44 @@ namespace LEPANELASSETS {
 				const std::string previewKey = std::string(kPreviewTextureKeyPrefix) + path;
 				Texture* previewTex = ResourceManager::Instance().LoadTexture(previewKey, path);
 
-				const float iconSize = 32.0f;
-
-				// If we have a texture, draw its image first
 				if (previewTex && previewTex->GetID() != 0) {
 					ImTextureID texID = (ImTextureID)(intptr_t)previewTex->GetID();
+					float previewWidth = iconBoxSize;
+					float previewHeight = iconBoxSize;
+					const int textureWidth = previewTex->GetWidth();
+					const int textureHeight = previewTex->GetHeight();
 
-					// Draw the thumbnail (UVs flipped vertically for OpenGL)
-					ImGui::Image(texID,
-						ImVec2(iconSize, iconSize),
+					// Fit the preview into a square box while preserving the source aspect ratio.
+					if (textureWidth > 0 && textureHeight > 0) {
+						const float widthScale = iconBoxSize / static_cast<float>(textureWidth);
+						const float heightScale = iconBoxSize / static_cast<float>(textureHeight);
+						const float scale = std::min(widthScale, heightScale);
+						previewWidth = std::max(1.0f, static_cast<float>(textureWidth) * scale);
+						previewHeight = std::max(1.0f, static_cast<float>(textureHeight) * scale);
+					}
+
+					// Reserve a fixed-size icon slot, then center the preview inside it.
+					const ImVec2 slotMin = ImGui::GetCursorScreenPos();
+					ImGui::Dummy(ImVec2(iconBoxSize, iconBoxSize));
+					const float offsetX = (iconBoxSize - previewWidth) * 0.5f;
+					const float offsetY = (iconBoxSize - previewHeight) * 0.5f;
+					ImGui::GetWindowDrawList()->AddImage(
+						texID,
+						ImVec2(slotMin.x + offsetX, slotMin.y + offsetY),
+						ImVec2(slotMin.x + offsetX + previewWidth, slotMin.y + offsetY + previewHeight),
 						ImVec2(0, 1),
 						ImVec2(1, 0));
 
 					ImGui::SameLine();
 				}
+				else {
+					// Keep text rows aligned even when a preview texture fails to load.
+					ImGui::Dummy(ImVec2(iconBoxSize, iconBoxSize));
+					ImGui::SameLine();
+				}
 
 				// Make the selectable at least as tall as the icon so they line up nicely
-				ImGui::Selectable(displayName.c_str(), false, 0, ImVec2(0.0f, iconSize));
+				ImGui::Selectable(displayName.c_str(), false, 0, ImVec2(0.0f, iconBoxSize));
 				if (ImGui::IsItemHovered()) {
 					ImGui::SetTooltip("%s", path.c_str());
 				}
@@ -491,7 +607,48 @@ namespace LEPANELASSETS {
 				}
 
 				ImGui::PopID();
+				};
+
+			auto DrawTextureFolderTree = [&](auto&& self, const TextureFolderNode& node, const std::string& folderName, const std::string& nodePath) -> void {
+				const int assetCount = CountTextureFolderAssets(node);
+				std::string header = folderName + " (" + std::to_string(assetCount) + ")";
+				ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+				if (!filterLower.empty()) {
+					flags |= ImGuiTreeNodeFlags_DefaultOpen;
+				}
+
+				if (ImGui::TreeNodeEx(nodePath.c_str(), flags, "%s", header.c_str())) {
+					ImGuiListClipper clipper;
+					clipper.Begin(static_cast<int>(node.assets.size()), textureRowHeight);
+					while (clipper.Step()) {
+						for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index) {
+							DrawTextureEntry(node.assets[static_cast<size_t>(index)]);
+						}
+					}
+
+					for (const auto& [childName, childNode] : node.children) {
+						const std::string childPath = nodePath + "/" + childName;
+						self(self, childNode, childName, childPath);
+					}
+
+					ImGui::TreePop();
+				}
+				};
+
+			// Keep the texture browser in its own scrolling region so large folders
+			// do not spill over later sections like Audio.
+			if (ImGui::BeginChild("##TextureBrowserTree", ImVec2(0.0f, textureBrowserHeight), true,
+				ImGuiWindowFlags_HorizontalScrollbar)) {
+				for (const auto& path : textureTree.assets) {
+					DrawTextureEntry(path);
+				}
+
+				for (const auto& [folderName, folderNode] : textureTree.children) {
+					DrawTextureFolderTree(DrawTextureFolderTree, folderNode, folderName, folderName);
+				}
 			}
+
+			ImGui::EndChild();
 
 			if (refreshTextures) {
 				QueueTextureRefresh();
