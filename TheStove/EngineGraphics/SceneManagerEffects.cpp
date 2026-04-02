@@ -25,13 +25,20 @@ namespace {
 	// Local Effect Helpers
 	// -------------------------------------------------------------------------------------------------
 
+	constexpr char kUiButtonStarSheetPath[] = "../assets/staranim-Sheet2.png";
+	constexpr int kUiButtonStarSheetCols = 11;
+	constexpr int kUiButtonStarSheetRows = 2;
+	constexpr float kUiButtonStarFrameAspectFallback =
+		(4000.0f * static_cast<float>(kUiButtonStarSheetRows)) /
+		(227.0f * static_cast<float>(kUiButtonStarSheetCols));
+
 	/**
 	 * @brief Builds the sprite-sheet UVs used by the customer payment star burst.
 	 * @return Ordered frame rectangles for the temporary payment animation.
 	 */
 	std::vector<glm::vec4> CreateCustomerPaymentStarFrames() {
-		constexpr int totalCols = 11;
-		constexpr int totalRows = 2;
+		constexpr int totalCols = kUiButtonStarSheetCols;
+		constexpr int totalRows = kUiButtonStarSheetRows;
 		const float frameW = 1.0f / static_cast<float>(totalCols);
 		const float frameH = 1.0f / static_cast<float>(totalRows);
 
@@ -55,6 +62,35 @@ namespace {
 	 */
 	std::vector<glm::vec4> CreateUiButtonStarFrames() {
 		return CreateCustomerPaymentStarFrames();
+	}
+
+	/**
+	 * @brief Returns the authored aspect ratio of a single hover-burst frame.
+	 * @return Frame width divided by frame height.
+	 */
+	float GetUiButtonStarFrameAspect() {
+		Texture* texture = ResourceManager::Instance().LoadTexture(
+			"animatedsprite_" + std::string(kUiButtonStarSheetPath),
+			kUiButtonStarSheetPath);
+		if (!texture || texture->GetWidth() <= 0 || texture->GetHeight() <= 0) {
+			return kUiButtonStarFrameAspectFallback;
+		}
+
+		return (static_cast<float>(texture->GetWidth()) * static_cast<float>(kUiButtonStarSheetRows)) /
+			(static_cast<float>(texture->GetHeight()) * static_cast<float>(kUiButtonStarSheetCols));
+	}
+
+	/**
+	 * @brief Computes a hover-burst size that preserves the animation frame aspect.
+	 * @param buttonScale Current button render scale.
+	 * @return Width/height for the spawned hover effect.
+	 */
+	glm::vec2 ComputeUiButtonHoverEffectSize(const glm::vec3& buttonScale) {
+		const float frameAspect = std::max(GetUiButtonStarFrameAspect(), 0.0001f);
+		const float minWidth = buttonScale.x * 1.32f;
+		const float minHeight = buttonScale.y * 1.20f;
+		const float effectHeight = std::max(minHeight, minWidth / frameAspect);
+		return glm::vec2(effectHeight * frameAspect, effectHeight);
 	}
 
 	/**
@@ -181,13 +217,10 @@ void Scene::TriggerUiButtonHoverFeedback(int buttonObjectID) {
 		buttonPos.y - buttonScale.y * 0.52f,
 		buttonPos.z
 	);
-	const glm::vec2 effectSize(
-		buttonScale.x * 1.24f,
-		buttonScale.y * 1.05f
-	);
+	const glm::vec2 effectSize = ComputeUiButtonHoverEffectSize(buttonScale);
 
 	GameObject* fx = SpawnAnimatedSprite(
-		"../assets/staranim-Sheet2.png",
+		kUiButtonStarSheetPath,
 		effectPos,
 		effectSize,
 		kUiStarFrames,
