@@ -251,6 +251,7 @@ namespace {
 			textData.name = levelText.name;
 			textData.fontName = levelText.fontName;
 			textData.text = levelText.text;
+			textData.horizontalAlign = levelText.horizontalAlign;
 			textData.x = levelText.x;
 			textData.y = levelText.y;
 			textData.scale = levelText.scale;
@@ -293,6 +294,7 @@ namespace {
 			levelText.name = textData.name;
 			levelText.fontName = textData.fontName;
 			levelText.text = textData.text;
+			levelText.horizontalAlign = textData.horizontalAlign;
 			levelText.x = textData.x;
 			levelText.y = textData.y;
 			levelText.scale = textData.scale;
@@ -446,6 +448,7 @@ namespace {
 			d.name = t.name;
 			d.fontName = t.fontName;
 			d.text = t.text;
+			d.horizontalAlign = t.horizontalAlign;
 			d.x = t.x;
 			d.y = t.y;
 			d.scale = t.scale;

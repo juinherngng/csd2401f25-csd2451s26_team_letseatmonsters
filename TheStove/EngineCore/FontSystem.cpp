@@ -322,6 +322,15 @@ namespace FontSystem {
 	}
 
 	/**
+	 * @brief Sets horizontal alignment.
+	 * @param align Parameter for align.
+	 * @return Result produced by this operation.
+	 */
+	void Text::SetHorizontalAlign(HorizontalAlign align) {
+		m_horizontalAlign = align;
+	}
+
+	/**
 	 * @brief Performs setup rendering.
 	 * @return Result produced by this operation.
 	 */
@@ -415,17 +424,67 @@ namespace FontSystem {
 		// Starting cursor position (will advance for each character)
 		float cursorX = 0.0f;
 		float cursorY = 0.0f;
+		const float lineAdvance = static_cast<float>(m_font->GetFontSize()) * m_scale * 1.2f;
+		std::vector<float> lineWidths(1, 0.0f);
+
+		for (char c : m_text) {
+			if (c == '\r') {
+				continue;
+			}
+
+			if (c == '\n') {
+				lineWidths.emplace_back(0.0f);
+				continue;
+			}
+
+			const Character* ch = m_font->GetCharacter(c);
+			if (!ch) {
+				continue;
+			}
+
+			lineWidths.back() += static_cast<float>(ch->advance >> 6) * m_scale;
+		}
+
+		auto GetLineOffset = [this, &lineWidths](size_t lineIndex) {
+			if (lineIndex >= lineWidths.size()) {
+				return 0.0f;
+			}
+
+			switch (m_horizontalAlign) {
+			case HorizontalAlign::Center:
+				return -lineWidths[lineIndex] * 0.5f;
+			case HorizontalAlign::Right:
+				return -lineWidths[lineIndex];
+			case HorizontalAlign::Left:
+			default:
+				return 0.0f;
+			}
+			};
+		size_t lineIndex = 0;
 
 		// Iterate through all characters
 		for (char c : m_text) {
+			if (c == '\r') {
+				continue;
+			}
+
+			if (c == '\n') {
+				cursorX = 0.0f;
+				cursorY += lineAdvance;
+				++lineIndex;
+				continue;
+			}
+
 			const Character* ch = m_font->GetCharacter(c);
 			if (!ch)
 				continue;
 
+			const float lineOffsetX = GetLineOffset(lineIndex);
+
 			// Position relative to cursor
 			// In top-left coordinate system, bearing.y is positive upward from baseline
 			// We want glyphs to sit on the baseline, so subtract bearing.y
-			float xpos = cursorX + ch->bearing.x * m_scale;
+			float xpos = lineOffsetX + cursorX + ch->bearing.x * m_scale;
 			float ypos = cursorY - ch->bearing.y * m_scale;
 
 			float w = ch->size.x * m_scale;

@@ -542,6 +542,7 @@ namespace RuntimeLevel {
 			d.name = t.name;
 			d.fontName = t.fontName;
 			d.text = t.text;
+			d.horizontalAlign = t.horizontalAlign;
 
 			d.x = t.x;
 			d.y = t.y;

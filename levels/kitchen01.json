@@ -1451,15 +1451,34 @@
       "colorR": 0.0,
       "fontName": "font1",
       "fontSize": 48,
+      "horizontalAlign": "center",
       "layer": "99",
-      "name": "QuotaText",
+      "name": "QuotaLabelText",
       "rotation": 0.0,
-      "scale": 0.5199999809265137,
+      "scale": 0.30000001072883606,
+      "text": "TODAY'S GOAL",
+      "useBlockRotation": true,
+      "visible": true,
+      "x": 290.0,
+      "y": 31.0
+    },
+    {
+      "colorA": 1.0,
+      "colorB": 0.0,
+      "colorG": 0.0,
+      "colorR": 0.0,
+      "fontName": "font1",
+      "fontSize": 48,
+      "horizontalAlign": "center",
+      "layer": "99",
+      "name": "QuotaValueText",
+      "rotation": 0.0,
+      "scale": 0.6100000143051147,
       "text": "$200",
       "useBlockRotation": true,
       "visible": true,
-      "x": 266.0,
-      "y": 52.0
+      "x": 290.0,
+      "y": 64.0
     }
   ]
 }

@@ -152,6 +152,12 @@ namespace FontSystem {
 			Block          // Entire text block rotates as one (normal rotation)
 		};
 
+		enum class HorizontalAlign {
+			Left,
+			Center,
+			Right
+		};
+
 		/**
 		 * @brief Constructs a `Text` instance.
 		 */
@@ -203,6 +209,12 @@ namespace FontSystem {
 		 * @param mode Parameter for mode.
 		 */
 		void SetRotationMode(RotationMode mode);
+
+		/**
+		 * @brief Sets horizontal alignment.
+		 * @param align Parameter for align.
+		 */
+		void SetHorizontalAlign(HorizontalAlign align);
 
 		/**
 		 * @brief Returns text.
@@ -286,6 +298,7 @@ namespace FontSystem {
 		float m_scale = 1.0f;
 		float m_rotation = 0.0f;  // Rotation in degrees
 		RotationMode m_rotationMode = RotationMode::Block;  // Default to block rotation
+		HorizontalAlign m_horizontalAlign = HorizontalAlign::Left;
 
 		// OpenGL rendering resources
 		GLuint m_VAO = 0;
