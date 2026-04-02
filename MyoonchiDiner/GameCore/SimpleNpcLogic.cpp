@@ -24,6 +24,23 @@
 #include "GameCore/ExitGateLogic.hpp"
 #include "GameCore/SimpleNpcLogic.hpp"
 
+namespace {
+	void PlaySpatialSfxAtNpc(Scene& scene, int npcID, const std::string& soundName, float volume, float minDistance = 120.0f, float maxDistance = 1100.0f) {
+		AudioManager* audioMgr = scene.GetAudioManager();
+		if (!audioMgr || !audioMgr->HasSound(soundName)) {
+			return;
+		}
+
+		if (GameObject* npc = scene.GetGameObjectByID(npcID)) {
+			const glm::vec3 pos = npc->GetPositionGLM();
+			audioMgr->PlaySound3D(soundName, pos.x, pos.y, 0.0f, volume, minDistance, maxDistance, false);
+			return;
+		}
+
+		audioMgr->PlaySound(soundName, volume, false);
+	}
+}
+
 void SimpleNpcLogic::Awake(Scene& scene) {
 	(void)scene;
 	timer = 0.0f;
@@ -612,11 +629,11 @@ void SimpleNpcLogic::TakePayment(Scene& scene) {
 	if (AudioManager* audioMgr = scene.GetAudioManager()) {
 		if (payZero_) {
 			// Wrong order or patience expired - play wrong order sound
-			audioMgr->PlaySound("sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f, false);
+			PlaySpatialSfxAtNpc(scene, GetOwnerID(), "sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f);
 		}
 		else {
 			// Successful order - play payment sound
-			audioMgr->PlaySound("sfx_payment", audioMgr->GetVfxVolume() * 0.3f, false);
+			PlaySpatialSfxAtNpc(scene, GetOwnerID(), "sfx_payment", audioMgr->GetVfxVolume() * 0.3f);
 		}
 	}
 #endif
@@ -630,7 +647,7 @@ void SimpleNpcLogic::TakePayment(Scene& scene) {
 			std::uniform_int_distribution<int> dist(1, 9);
 			int variant = dist(EngineRng::Get());
 			std::string sfxName = "vo_customer_happy_0" + std::to_string(variant);
-			audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume());
+			PlaySpatialSfxAtNpc(scene, GetOwnerID(), sfxName, audioMgr->GetVfxVolume());
 		}
 	}
 
@@ -878,7 +895,7 @@ void SimpleNpcLogic::BeginLeaveToExit(Scene& scene, bool freeTableImmediately) {
 	// Play "wrong order" sound immediately when leaving unhappy
 	if (payZero_) {
 		if (AudioManager* audioMgr = scene.GetAudioManager()) {
-			audioMgr->PlaySound("sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f, false);
+			PlaySpatialSfxAtNpc(scene, GetOwnerID(), "sfx_wrong_order", audioMgr->GetVfxVolume() * 0.3f);
 		}
 	}
 
@@ -891,7 +908,7 @@ void SimpleNpcLogic::BeginLeaveToExit(Scene& scene, bool freeTableImmediately) {
 			std::uniform_int_distribution<int> dist(1, 8);
 			int variant = dist(EngineRng::Get());
 			std::string sfxName = "vo_customer_angry_0" + std::to_string(variant);
-			audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume());
+			PlaySpatialSfxAtNpc(scene, GetOwnerID(), sfxName, audioMgr->GetVfxVolume());
 		}
 	}
 
