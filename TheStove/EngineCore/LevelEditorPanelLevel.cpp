@@ -394,7 +394,7 @@ namespace {
 #endif
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-	static void ApplyLevelToEditorScene(Scene& scene, const std::string& levelPath, const LevelData& levelIn, bool activeSimulation);
+	[[maybe_unused]] static void ApplyLevelToEditorScene(Scene& scene, const std::string& levelPath, const LevelData& levelIn, bool activeSimulation);
 
 	/**
 	 * @brief Captures the full editor state into a serializable snapshot.
@@ -523,7 +523,7 @@ namespace {
 	 * @param levelIn Serialized level snapshot to apply.
 	 * @param activeSimulation True when the rebuilt scene should enter play mode.
 	 */
-	static void ApplyLevelToEditorScene(Scene& scene, const std::string& levelPath, const LevelData& levelIn, bool activeSimulation) {
+	[[maybe_unused]] static void ApplyLevelToEditorScene(Scene& scene, const std::string& levelPath, const LevelData& levelIn, bool activeSimulation) {
 		// Set the target level path before clearing so reset hooks can apply level-specific gameplay tuning.
 		scene.SetCurrentLevelPath(levelPath);
 		scene.ClearAll();
@@ -547,7 +547,7 @@ namespace {
 	 * @brief Stops all editor/runtime audio so edit mode returns to a silent state.
 	 * @param scene Scene whose bound audio manager should be silenced.
 	 */
-	static void StopEditorAudio(Scene& scene) {
+	[[maybe_unused]] static void StopEditorAudio(Scene& scene) {
 		scene.StopAllObjectAudio();
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
 			audioManager->StopAllSounds();
@@ -559,7 +559,7 @@ namespace {
 	 * @param levelPath Exact or best-effort path/name of the level being played from the editor.
 	 * @return True when the level should run as gameplay-active, false for menu-style screens.
 	 */
-	static bool InferEditorPlaySimulationActive(const std::string& levelPath) {
+	[[maybe_unused]] static bool InferEditorPlaySimulationActive(const std::string& levelPath) {
 		std::string lower = fs::path(levelPath).generic_string();
 		std::transform(lower.begin(), lower.end(), lower.begin(),
 			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
