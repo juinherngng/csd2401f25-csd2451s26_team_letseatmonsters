@@ -410,7 +410,8 @@ void AnimationManager::AttachCustomersAnimations(int objectID, const std::string
 void AnimationManager::AttachWorkVfxCutAnimations(int objectID) {
 	Animator2D& anim = animators_[objectID];
 
-	auto frames = CreateFrameSequenceRow(1, 0, 3, 6, 6);
+	// Chopping VFX now lives on row 4 from the top of the 14x6 sheet.
+	auto frames = CreateFrameSequenceRow(10, 0, 3, 14, 6);
 	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
 
 	const auto& clip = animationSets_[objectID]["LOOP"];
@@ -422,7 +423,8 @@ void AnimationManager::AttachWorkVfxCutAnimations(int objectID) {
 void AnimationManager::AttachWorkVfxGrillAnimations(int objectID) {
 	Animator2D& anim = animators_[objectID];
 
-	auto frames = CreateFrameSequenceRow(4, 0, 3, 6, 6);
+	// Grilling VFX lives on row 2 from the top of the 14x6 sheet.
+	auto frames = CreateFrameSequenceRow(12, 0, 3, 14, 6);
 	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
 
 	const auto& clip = animationSets_[objectID]["LOOP"];
@@ -434,7 +436,8 @@ void AnimationManager::AttachWorkVfxGrillAnimations(int objectID) {
 void AnimationManager::AttachWorkVfxStoveAnimations(int objectID) {
 	Animator2D& anim = animators_[objectID];
 
-	auto frames = CreateFrameSequenceRow(5, 0, 3, 6, 6);
+	// Boiling VFX lives on row 1 from the top of the 14x6 sheet.
+	auto frames = CreateFrameSequenceRow(13, 0, 3, 14, 6);
 	animationSets_[objectID]["LOOP"] = { frames, 0.08f, true };
 
 	const auto& clip = animationSets_[objectID]["LOOP"];

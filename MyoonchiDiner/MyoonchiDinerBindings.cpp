@@ -84,7 +84,7 @@
 #include "MyoonchiDiner/MyoonchiDinerBindings.hpp"
 
 namespace {
-	constexpr int kAmbientVfxRows = 6;
+	constexpr int kAmbientVfxRows = 14;
 	constexpr int kAmbientVfxCols = 6;
 
 	constexpr const char* kShinePointTag = "bg_vfx_shine_point";
@@ -233,8 +233,8 @@ namespace {
 
 			const AmbientPoint& point = shinePoints_[RandomIndex(static_cast<int>(shinePoints_.size()))];
 
-			// Shine = row 4 from top -> engine row 2, 3 frames: 0..2
-			const std::vector<glm::vec4> frames = CreateVfxFramesFromTopRow(4, 0, 2);
+			// Shine = row 3 from top on the 14x6 sheet, 3 frames: 0..2
+			const std::vector<glm::vec4> frames = CreateVfxFramesFromTopRow(3, 0, 2);
 			const float frameDuration = 0.15f;
 
 			GameObject* fx = scene.SpawnAnimatedSprite(
@@ -268,8 +268,10 @@ namespace {
 		}
 
 		void SpawnLeaf(Scene& scene) {
-			// Leaves = row 3 from top -> engine row 3, 6 frames: 0..5
-			const std::vector<glm::vec4> frames = CreateVfxFramesFromTopRow(3, 0, 5);
+			// Level 2 leaves randomly choose between the two authored variants
+			// on rows 6 and 7 from the top of the 14x6 sheet.
+			const int topRowOneBased = (RandomRange(0.0f, 1.0f) < 0.5f) ? 6 : 7;
+			const std::vector<glm::vec4> frames = CreateVfxFramesFromTopRow(topRowOneBased, 0, 5);
 
 			const bool leftToRight = RandomRange(0.0f, 1.0f) < 0.5f;
 			const float y = !leafLaneYs_.empty()

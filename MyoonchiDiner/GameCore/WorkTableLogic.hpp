@@ -124,10 +124,13 @@ protected:
 
 	int vfxObjectID_ = -1;
 	glm::vec2 vfxOffset_{ -1.0f, -37.0f }; // tweak per station if needed
+	glm::vec2 grillVfxOffset_{ -1.0f, -57.0f };
+	glm::vec2 stoveVfxOffset_{ -1.0f, -57.0f };
 
 	void SpawnProcessingVfx(Scene& scene);
 	void DespawnProcessingVfx(Scene& scene);
 	void UpdateProcessingVfxTransform(Scene& scene);
+	glm::vec2 GetVfxOffsetForStation() const;
 
 	const char* GetVfxTextureForStation() const;
 	const char* GetVfxTagForStation() const;

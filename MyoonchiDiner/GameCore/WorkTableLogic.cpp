@@ -440,9 +440,9 @@ void WorkTableLogic::CompleteProcessingForIngredient(IngredientLogic& ingredient
 
 const char* WorkTableLogic::GetVfxTextureForStation() const {
 	switch (stationType_) {
-	case StationType::CuttingBoard: return "../assets/VFX SpriteSheet.png";
-	case StationType::Grill:        return "../assets/VFX SpriteSheet.png";
-	case StationType::Stove:        return "../assets/VFX SpriteSheet.png";
+	case StationType::CuttingBoard: return "../assets/VFX_SpriteSheet.png";
+	case StationType::Grill:        return "../assets/VFX_SpriteSheet.png";
+	case StationType::Stove:        return "../assets/VFX_SpriteSheet.png";
 	default:                        return nullptr;
 	}
 }
@@ -453,6 +453,17 @@ const char* WorkTableLogic::GetVfxTagForStation() const {
 	case StationType::Grill:        return "work_vfx_grill";
 	case StationType::Stove:        return "work_vfx_stove";
 	default:                        return nullptr;
+	}
+}
+
+glm::vec2 WorkTableLogic::GetVfxOffsetForStation() const {
+	switch (stationType_) {
+	case StationType::Grill: return grillVfxOffset_;
+	case StationType::Stove: return stoveVfxOffset_;
+	case StationType::CuttingBoard:
+	case StationType::Generic:
+	default:
+		return vfxOffset_;
 	}
 }
 
@@ -467,7 +478,8 @@ void WorkTableLogic::SpawnProcessingVfx(Scene& scene) {
 	if (!table) return;
 
 	glm::vec3 tp = table->GetPositionGLM();
-	glm::vec3 vfxPos{ tp.x + vfxOffset_.x, tp.y + vfxOffset_.y, tp.z + 0.001f };
+	const glm::vec2 vfxOffset = GetVfxOffsetForStation();
+	glm::vec3 vfxPos{ tp.x + vfxOffset.x, tp.y + vfxOffset.y, tp.z + 0.001f };
 
 	// Create an animated sprite so AnimationManager can drive UVs
 	std::vector<glm::vec4> dummyFrames = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
@@ -507,7 +519,8 @@ void WorkTableLogic::UpdateProcessingVfxTransform(Scene& scene) {
 	if (!table || !vfx) return;
 
 	glm::vec3 tp = table->GetPositionGLM();
-	vfx->SetPosition(glm::vec3(tp.x + vfxOffset_.x, tp.y + vfxOffset_.y, tp.z + 0.001f));
+	const glm::vec2 vfxOffset = GetVfxOffsetForStation();
+	vfx->SetPosition(glm::vec3(tp.x + vfxOffset.x, tp.y + vfxOffset.y, tp.z + 0.001f));
 }
 
 void WorkTableLogic::EnsureCookingTimerBar(Scene& scene) {

@@ -40,7 +40,7 @@ namespace MyoonchiPaths {
 		constexpr const char* CUSTOMER_TIGER = "../assets/tiger-Sheet.png";
 		constexpr const char* CUSTOMER_ANTEATER = "../assets/anteater spritesheet.png";
 
-		constexpr const char* AMBIENT_VFX_SHEET = "../assets/VFX SpriteSheet.png";
+		constexpr const char* AMBIENT_VFX_SHEET = "../assets/VFX_SpriteSheet.png";
 	}
 
 	// Audio catalog keys (must match entries in AudioCatalog.json)
