@@ -56,6 +56,10 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	(void)scene;
 	(void)input;
 #else
+	if (scene.IsHowToPlayOverlayActive()) {
+		return;
+	}
+
 	// Lazy init from entity metadata
 	if (!initialized_) {
 		normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
