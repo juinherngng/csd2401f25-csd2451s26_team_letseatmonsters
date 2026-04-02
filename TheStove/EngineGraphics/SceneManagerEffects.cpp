@@ -87,8 +87,8 @@ namespace {
 	 */
 	glm::vec2 ComputeUiButtonHoverEffectSize(const glm::vec3& buttonScale) {
 		const float frameAspect = std::max(GetUiButtonStarFrameAspect(), 0.0001f);
-		const float minWidth = buttonScale.x * 1.32f;
-		const float minHeight = buttonScale.y * 1.20f;
+		const float minWidth = buttonScale.x * 1.52f;
+		const float minHeight = buttonScale.y * 1.32f;
 		const float effectHeight = std::max(minHeight, minWidth / frameAspect);
 		return glm::vec2(effectHeight * frameAspect, effectHeight);
 	}
