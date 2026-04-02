@@ -437,13 +437,18 @@ void Scene::UpdateCutsceneTransitioned(float dt) {
 			}
 			else {
 				// Final boundary fades back to the gameplay level instead of another cutscene image.
-				gfx->StartSceneTransition(cutTrans_.outSeconds, cutTrans_.inSeconds);
+               float finalOutSeconds = cutTrans_.outSeconds;
+				if (cutTrans_.targetLevelJson.find("win") != std::string::npos) {
+					finalOutSeconds = std::max(finalOutSeconds, 2.5f);
+				}
+
+				gfx->StartSceneTransition(finalOutSeconds, cutTrans_.inSeconds);
 				cutTrans_.awaitingBlackout = true;
 				cutTrans_.holding = false;
 
 #ifndef _DEBUG
 				if (cutsceneFadeOutHook_) {
-					cutsceneFadeOutHook_(*this, cutTrans_.outSeconds);
+                  cutsceneFadeOutHook_(*this, finalOutSeconds);
 				}
 #endif
 			}
