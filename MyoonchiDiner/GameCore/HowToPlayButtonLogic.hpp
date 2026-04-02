@@ -48,6 +48,7 @@ private:
 	// Data members for hover state, texture paths, and overlay tracking
 	bool initialized_ = false;
 	bool hovered_ = false;
+	bool backButtonHovered_ = false;
 
 	// Texture paths for normal and hover states (set in Start)
 	std::string normalTexturePath_;
