@@ -130,17 +130,15 @@ namespace Economy {
 
 		gPlayerMoney += amount;
 
-		SyncUI(&scene); // <--- update UI immediately
-
 		if (!gQuotaReached && gPlayerMoney >= kQuota) {
 			gQuotaReached = true;
-			OnQuotaReached(scene);
 		}
+
+		SyncUI(&scene); // <--- update UI immediately
 	}
 
 	// Call this every frame with the delta time to update the timer. It checks for time-up condition and updates the UI.
 	inline void Update(float dt, Scene& scene) {
-		if (gQuotaReached) return;
 		if (gTimeUp) return;
 		if (gTimerPaused) return;
 		if (dt <= 0.0f) return;
@@ -150,7 +148,12 @@ namespace Economy {
 		if (gTimeRemaining <= 0.0f) {
 			gTimeRemaining = 0.0f;
 			gTimeUp = true;
-			OnTimeUp(scene);
+			if (gQuotaReached) {
+				OnQuotaReached(scene);
+			}
+			else {
+				OnTimeUp(scene);
+			}
 		}
 
 		SyncUI(&scene); // <--- update timer every frame (and quota/money too)
