@@ -19,7 +19,7 @@
     {
       "category": "bgm",
       "filepath": "../../assets/Audio/MyoonchiDiner_LevelTheme.wav",
-      "loop": false,
+      "loop": true,
       "name": "bgm_MyoonchiDiner_LevelTheme",
       "stream": false,
       "volume": 1.0
@@ -146,9 +146,9 @@
     },
     {
       "category": "sfx",
-      "filepath": "../../assets/Audio/sfx_grill.wav",
-      "loop": false,
-      "name": "sfx_grill",
+      "filepath": "../../assets/Audio/sfx_grill_sizzle.wav",
+      "loop": true,
+      "name": "sfx_grilling_sizzle",
       "stream": false,
       "volume": 1.0
     },

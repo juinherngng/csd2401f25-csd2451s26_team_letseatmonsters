@@ -1971,10 +1971,19 @@ namespace {
 		}
 
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
+          const std::string levelPath = scene.GetCurrentLevelPath();
+			const bool isLevel2Loaded = levelPath.find("kitchen02") != std::string::npos;
+			const char* levelAmbienceKey = isLevel2Loaded
+				? MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE
+				: MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE;
+
+			scene.SetPauseOverlayAudioChannels(MyoonchiPaths::Audio::BGM_LEVEL_THEME, levelAmbienceKey);
+
 			const bool useMenuBgm = !simulationActive || IsDayClearLevelLoaded(scene);
 			if (useMenuBgm) {
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE);
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
 				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
@@ -1984,8 +1993,10 @@ namespace {
 				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_LEVEL_THEME, 0.0f, false);
 				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_LEVEL_THEME, audioManager->GetBgmVolume(), fadeIn);
 
-				audioManager->PlaySound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, 0.0f, false);
-				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE, audioManager->GetBgmVolume() * 0.5f, fadeIn);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
+				audioManager->StopSound(MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE);
+				audioManager->PlaySound(levelAmbienceKey, 0.0f, false);
+				audioManager->FadeChannel(levelAmbienceKey, audioManager->GetBgmVolume() * 0.5f, fadeIn);
 			}
 		}
 #else
@@ -2383,7 +2394,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 
 	// Pause overlay: tell engine which audio channels to fade on pause
 	scene.SetPauseOverlayAudioChannels(MyoonchiPaths::Audio::BGM_LEVEL_THEME, MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
-	scene.SetPauseOverlayAdditionalAudioChannels({ "sfx_grill", "sfx_boiling_sound", "sfx_chopping" });
+	scene.SetPauseOverlayAdditionalAudioChannels({ "sfx_grilling_sizzle", "sfx_boiling_sound", "sfx_chopping" });
 	scene.SetPauseSuppressedRuntimeTextNames({ "MoneyText", "QuotaText", "QuotaLabelText", "QuotaValueText", "TimerText", "TutorialText" });
 	scene.SetEditorPreservedRuntimeTextNames({ "MoneyText", "QuotaText", "QuotaLabelText", "QuotaValueText", "TimerText", "TutorialText" });
 

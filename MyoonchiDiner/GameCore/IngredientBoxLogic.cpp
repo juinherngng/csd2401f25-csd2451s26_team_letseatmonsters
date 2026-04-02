@@ -180,13 +180,25 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene) {
 			<< " of type=" << static_cast<int>(spawnType_)
 			<< " from box " << ownerID_);
 
-		// Play a random cabbage pickup SFX for vegetable boxes
+		// Play pickup SFX per ingredient family.
 		if (spawnType_ == IngredientType::Vegetable) {
 			if (AudioManager* audioMgr = scene.GetAudioManager()) {
 				std::uniform_int_distribution<int> dist(1, 4);
 				int variant = dist(EngineRng::Get());
 				std::string sfxName = "sfx_pickup_cabbage_" + std::to_string(variant);
-				audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume() * 0.5f);
+              if (audioMgr->HasSound(sfxName)) {
+					audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume() * 0.5f);
+				}
+			}
+		}
+		else {
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				const char* variants[] = { "sfx_standard_pickup_01", "sfx_standard_pickup_02" };
+				std::uniform_int_distribution<int> dist(0, 1);
+				const char* sfxName = variants[dist(EngineRng::Get())];
+				if (audioMgr->HasSound(sfxName)) {
+					audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume() * 0.5f);
+				}
 			}
 		}
 	}

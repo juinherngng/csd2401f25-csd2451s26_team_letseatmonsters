@@ -76,7 +76,7 @@ const char* WorkTableLogic::GetProcessedTextureForRaw(IngredientType rawType) co
 const char* WorkTableLogic::GetProcessingSoundName() const {
 	switch (stationType_) {
 	case StationType::CuttingBoard: return "sfx_chopping";
-	case StationType::Grill:        return "sfx_grill";
+	case StationType::Grill:        return "sfx_grilling_sizzle";
 	case StationType::Stove:        return "sfx_boiling_sound";
 	default:                        return nullptr;
 	}
