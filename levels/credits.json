@@ -152,14 +152,31 @@
       "fontName": "font1",
       "fontSize": 48,
       "layer": "99",
-      "name": "CreditsLine02",
+      "name": "CreditsLine01A",
       "rotation": 0.0,
       "scale": 0.5,
-      "text": "Seah Wang Hua - Graphics / Rendering Champion",
+      "text": "Yat Chun Wee - Product Manager/ Physics & Collision Champion",
       "useBlockRotation": true,
       "visible": true,
       "x": 220.0,
       "y": 420.0
+    },
+    {
+      "colorA": 1.0,
+      "colorB": 1.0,
+      "colorG": 1.0,
+      "colorR": 1.0,
+      "fontName": "font1",
+      "fontSize": 48,
+      "layer": "99",
+      "name": "CreditsLine02",
+      "rotation": 0.0,
+      "scale": 0.5,
+      "text": "Seah Wang Hua - Programmer/ Graphics & Rendering Champion",
+      "useBlockRotation": true,
+      "visible": true,
+      "x": 220.0,
+      "y": 480.0
     },
     {
       "colorA": 1.0,
@@ -176,7 +193,7 @@
       "useBlockRotation": true,
       "visible": true,
       "x": 220.0,
-      "y": 480.0
+      "y": 540.0
     },
     {
       "colorA": 1.0,
@@ -193,7 +210,7 @@
       "useBlockRotation": true,
       "visible": true,
       "x": 220.0,
-      "y": 540.0
+      "y": 600.0
     },
     {
       "colorA": 1.0,
@@ -210,7 +227,7 @@
       "useBlockRotation": true,
       "visible": true,
       "x": 220.0,
-      "y": 600.0
+      "y": 660.0
     },
     {
       "colorA": 1.0,
