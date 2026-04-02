@@ -377,6 +377,10 @@ void AudioManager::PlaySound(std::string const& name, float volume, bool paused)
 	// If caller provided a specific volume (not default 1.0f), use it directly
 	// Otherwise, use category-based volume
 	if (result == FMOD_OK && channel) {
+		// Force non-spatial playback for the 2D API path even if the underlying
+		// sound asset was loaded with 3D flags.
+		channel->setMode(FMOD_2D);
+
 		const float finalVolume = ComputePlaybackVolume(name, volume);
 
 		channel->setVolume(finalVolume);
@@ -629,17 +633,27 @@ void AudioManager::PlaySound3D(std::string const& name, float posX, float posY, 
 		FMOD_VECTOR vel = { 0.0f, 0.0f, 0.0f };
 		channel->set3DAttributes(&pos, &vel);
 
+		const bool isCustomerOneShot =
+			(name.find("customer") != std::string::npos) ||
+			(name.find("vo_customer") != std::string::npos) ||
+			(name.find("sfx_payment") != std::string::npos) ||
+			(name.find("sfx_wrong_order") != std::string::npos);
+
 		// Set 3D min/max distance for attenuation
 		// Keep distance response subtle: audible near/far change, but not drastic.
-		constexpr float kSpatialDistanceScale = 1.5f;
-		const float effectiveMinDistance = std::max(1.0f, minDistance * kSpatialDistanceScale);
-		const float effectiveMaxDistance = std::max(effectiveMinDistance + 1.0f, maxDistance * kSpatialDistanceScale);
+		const float distanceScale = isCustomerOneShot ? 8.0f : 1.5f;
+		const float effectiveMinDistance = std::max(1.0f, minDistance * distanceScale);
+		const float effectiveMaxDistance = std::max(effectiveMinDistance + 1.0f, maxDistance * distanceScale);
 		channel->set3DMinMaxDistance(effectiveMinDistance, effectiveMaxDistance);
+
+		// Keep customer one-shots from sounding like they are abruptly cut by attenuation.
+		channel->set3DLevel(isCustomerOneShot ? 0.55f : 1.0f);
+		channel->set3DSpread(isCustomerOneShot ? 60.0f : 20.0f);
 
 		// Set volume with category and master scaling, then boost 3D audibility.
 		const float finalVolume = ComputePlaybackVolume(name, volume);
-		constexpr float kSpatialGainBoost = 1.5f;
-		const float boostedVolume = std::clamp(finalVolume * kSpatialGainBoost, 0.0f, 1.0f);
+		const float gainBoost = isCustomerOneShot ? 1.25f : 1.5f;
+		const float boostedVolume = std::clamp(finalVolume * gainBoost, 0.0f, 1.0f);
 
 		channel->setVolume(boostedVolume);
 		channels[name].push_back(channel);
