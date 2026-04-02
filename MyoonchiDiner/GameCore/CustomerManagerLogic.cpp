@@ -43,6 +43,15 @@ namespace {
 		std::uniform_int_distribution<int> dist(0, static_cast<int>(kCustomerSkins.size()) - 1);
 		return kCustomerSkins[dist(EngineRng::Get())];
 	}
+
+	void PlaySpatialSfxAtPos(Scene& scene, const std::string& soundName, const glm::vec3& pos, float volume, float minDistance = 120.0f, float maxDistance = 1100.0f) {
+		AudioManager* audioMgr = scene.GetAudioManager();
+		if (!audioMgr || !audioMgr->HasSound(soundName)) {
+			return;
+		}
+
+		audioMgr->PlaySound3D(soundName, pos.x, pos.y, pos.z, volume, minDistance, maxDistance, false);
+	}
 }
 
 namespace {
@@ -352,7 +361,7 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	// Play customer entering sound effect (release mode only)
 #ifndef _DEBUG
 	if (AudioManager* audioMgr = scene.GetAudioManager()) {
-		audioMgr->PlaySound("sfx_customer_entering", audioMgr->GetVfxVolume() * 0.3f, false);
+		PlaySpatialSfxAtPos(scene, "sfx_customer_entering", npc->GetPositionGLM(), audioMgr->GetVfxVolume() * 0.3f);
 	}
 #endif
 

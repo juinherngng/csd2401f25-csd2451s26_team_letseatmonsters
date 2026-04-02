@@ -12,6 +12,7 @@
  */
 
 #include <algorithm>
+#include <cmath>
 
 #include "EngineCore/AudioManager.hpp"
 #include "EngineCore/FilePaths.hpp"
@@ -201,10 +202,28 @@ void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 		ApplyFinalConstraints(entityManager);
 
 		if (audioManager_) {
-			// Keep the 2D listener centered on the authored scene reference frame.
-			const float listenerX = static_cast<float>(GraphicsEngine::kRefW) * 0.5f;
-			const float listenerY = static_cast<float>(GraphicsEngine::kRefH) * 0.5f;
-			audioManager_->SetListenerPosition(listenerX, listenerY, 0.0f);
+			// Follow the player for spatial-audio perspective.
+			// If player is unavailable for a frame, keep the previous listener position
+			// (avoid snapping to scene center and causing audible position jumps).
+			static bool listenerInitialized = false;
+			static glm::vec2 smoothedListener{ 0.0f, 0.0f };
+
+			if (GameObject* player = GetGameObjectByID(GetPlayerID())) {
+				const glm::vec3 playerPos = player->GetPositionGLM();
+
+				if (!listenerInitialized) {
+					smoothedListener = { playerPos.x, playerPos.y };
+					listenerInitialized = true;
+				}
+				else {
+					const float followHz = 16.0f;
+					const float alpha = 1.0f - std::exp(-followHz * deltaTime);
+					smoothedListener.x += (playerPos.x - smoothedListener.x) * alpha;
+					smoothedListener.y += (playerPos.y - smoothedListener.y) * alpha;
+				}
+
+				audioManager_->SetListenerPosition(smoothedListener.x, smoothedListener.y, 0.0f);
+			}
 		}
 	}
 }
