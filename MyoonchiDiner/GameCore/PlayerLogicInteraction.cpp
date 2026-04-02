@@ -836,7 +836,12 @@ bool PlayerLogic::TryPlaceHeldItemOnEmptyTable(Scene& scene, GameObject* player,
 bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, LogicManager& logicMgr, TableLogic& table) {
 	(void)player;
 
+	const int tableObjectID = table.GetOwnerID();
 	const int tableItemID = table.GetHeldItemID();
+
+	if (carriedItemID < 0 || tableItemID < 0) {
+		return false;
+	}
 
 	PlateLogic* heldPlate = logicMgr.GetLogicForObject<PlateLogic>(carriedItemID);
 	IngredientLogic* heldIngredient = logicMgr.GetLogicForObject<IngredientLogic>(carriedItemID);
@@ -846,78 +851,70 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 
 	// --------------------------------------------------------------------
 	// CASE 1:
-	// Player is holding a PLATE with 1 ingredient,
-	// table has another PLATE with 1 ingredient.
-	// Combine onto the held plate, leave empty plate on the table.
+	// held plate with 1 ingredient + table plate with 1 ingredient
+	// => combine onto held plate
+	//
+	// IMPORTANT:
+	// If this exact combine is not valid, do NOT return false here.
+	// Fall through so swap can still happen.
 	// --------------------------------------------------------------------
 	if (heldPlate && tablePlate) {
-		// Do not allow combining already-finished dishes
-		if (heldPlate->HasPreparedDish() || tablePlate->HasPreparedDish()) {
-			return false;
-		}
+		const bool canPlatePlateCombine =
+			!heldPlate->HasPreparedDish() &&
+			!tablePlate->HasPreparedDish() &&
+			heldPlate->GetIngredientCount() == 1 &&
+			tablePlate->GetIngredientCount() == 1 &&
+			!tablePlate->GetIngredients().empty() &&
+			heldPlate->CanAcceptIngredientType(tablePlate->GetIngredients()[0]);
 
-		// Only support 1-ingredient plate + 1-ingredient plate
-		if (heldPlate->GetIngredientCount() != 1 || tablePlate->GetIngredientCount() != 1) {
-			return false;
-		}
+		if (canPlatePlateCombine) {
+			const IngredientType transferType = tablePlate->GetIngredients()[0];
 
-		const std::vector<IngredientType>& tableIngredients = tablePlate->GetIngredients();
-		if (tableIngredients.empty()) {
-			return false;
-		}
+			const int heldFirstObjID = heldPlate->GetFirstIngredientObjectID();
+			const int tableFirstObjID = tablePlate->GetFirstIngredientObjectID();
 
-		const IngredientType transferType = tableIngredients[0];
+			heldPlate->AddIngredientType(transferType);
 
-		// Held plate must still be able to accept the transferred ingredient
-		if (!heldPlate->CanAcceptIngredientType(transferType)) {
-			return false;
-		}
+			if (tableFirstObjID >= 0 && scene.GetGameObjectByID(tableFirstObjID)) {
+				scene.DespawnByID(tableFirstObjID);
+			}
+			tablePlate->ClearIngredients();
 
-		const int heldFirstObjID = heldPlate->GetFirstIngredientObjectID();
-		const int tableFirstObjID = tablePlate->GetFirstIngredientObjectID();
+			DishType dishType;
+			std::vector<IngredientType> consumedTypes;
+			if (heldPlate->TryAssembleDish(dishType, consumedTypes)) {
+				heldPlate->ApplyDishVisual(scene);
 
-		// Add the second ingredient logically onto the held plate
-		heldPlate->AddIngredientType(transferType);
+				if (heldFirstObjID >= 0 && scene.GetGameObjectByID(heldFirstObjID)) {
+					scene.DespawnByID(heldFirstObjID);
+				}
 
-		// Clear the table plate back to empty
-		if (tableFirstObjID >= 0 && scene.GetGameObjectByID(tableFirstObjID)) {
-			scene.DespawnByID(tableFirstObjID);
-		}
-		tablePlate->ClearIngredients();
-
-		// Assemble final dish on held plate
-		DishType dishType;
-		std::vector<IngredientType> consumedTypes;
-		if (heldPlate->TryAssembleDish(dishType, consumedTypes)) {
-			heldPlate->ApplyDishVisual(scene);
-
-			// Remove the loose first ingredient visual from the held plate too
-			if (heldFirstObjID >= 0 && scene.GetGameObjectByID(heldFirstObjID)) {
-				scene.DespawnByID(heldFirstObjID);
-	}
-
-			heldPlate->SetFirstIngredientObjectID(-1);
-}
+				heldPlate->SetFirstIngredientObjectID(-1);
+			}
 
 #ifndef _DEBUG
-		if (AudioManager* audioMgr = scene.GetAudioManager()) {
-			glm::vec3 playerPos = player->GetPositionGLM();
-			audioMgr->PlaySound3D("sfx_put_down", playerPos.x, playerPos.y, playerPos.z,
-				audioMgr->GetVfxVolume() * 0.8f);
-		}
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				glm::vec3 playerPos = player->GetPositionGLM();
+				audioMgr->PlaySound3D("sfx_put_down", playerPos.x, playerPos.y, playerPos.z,
+					audioMgr->GetVfxVolume() * 0.8f);
+			}
 #endif
-		return true;
+			return true;
+		}
+		// else: not a valid plate+plate combine, fall through to swap
 	}
 
 	// --------------------------------------------------------------------
 	// CASE 2:
-	// Player is holding a PLATE, table has a processed INGREDIENT.
-	// Merge table ingredient into held plate.
+	// held plate + processed table ingredient
+	// => combine into held plate
+	//
+	// IMPORTANT:
+	// If table ingredient is raw / invalid, fall through to swap.
 	// --------------------------------------------------------------------
-	if (heldPlate && tableIngredient) {
-		if (!tableIngredient->IsProcessed() || !heldPlate->CanAcceptIngredientType(tableIngredient->GetType())) {
-			return false;
-		}
+	if (heldPlate && tableIngredient &&
+		tableIngredient->IsProcessed() &&
+		heldPlate->CanAcceptIngredientType(tableIngredient->GetType())) {
 
 		const int ingredientObjID = tableItemID;
 		const int ingredientCountBefore = heldPlate->GetIngredientCount();
@@ -956,7 +953,7 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 			if (ingredientObjID >= 0 && ingredientObjID != firstObjID) {
 				scene.DespawnByID(ingredientObjID);
 			}
-			}
+		}
 
 #ifndef _DEBUG
 		if (AudioManager* audioMgr = scene.GetAudioManager()) {
@@ -966,14 +963,20 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 		}
 #endif
 		return true;
-		}
+	}
 
 	// --------------------------------------------------------------------
 	// CASE 3:
-	// Player is holding a processed INGREDIENT, table has a PLATE.
-	// Merge held ingredient into table plate.
+	// held processed ingredient + table plate
+	// => combine into table plate
+	//
+	// IMPORTANT:
+	// If held ingredient is raw / invalid, fall through to swap.
 	// --------------------------------------------------------------------
-	if (tablePlate && heldIngredient) {
+	if (tablePlate && heldIngredient &&
+		heldIngredient->IsProcessed() &&
+		tablePlate->CanAcceptIngredientType(heldIngredient->GetType())) {
+
 		const int ingredientObjID = heldIngredient->GetOwnerID();
 		const int ingredientCountBefore = tablePlate->GetIngredientCount();
 
@@ -1024,5 +1027,70 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 		return true;
 	}
 
-	return false;
+	// --------------------------------------------------------------------
+	// CASE 4:
+	// fallback swap
+	// If no valid combine happened, swap the two items.
+	// --------------------------------------------------------------------
+	{
+		WorkTableLogic* wt = logicMgr.GetLogicForObject<WorkTableLogic>(tableObjectID);
+
+		// Keep lock-required worktables blocked for now
+		if (wt && wt->LocksPlayerMovementWhileProcessing()) {
+			return false;
+		}
+
+		// If station refuses taking its current item, do nothing
+		if (wt && !wt->CanTakeHeldItem(scene)) {
+			return false;
+		}
+
+		const int heldItemID = carriedItemID;
+		const int takenItemID = table.TakeItem(scene);
+		if (takenItemID < 0) {
+			return false;
+		}
+
+		// Now that the table is empty, explicitly validate the held item again.
+		// This makes swap use the same acceptance rules as normal placement.
+		if (wt) {
+			if (!wt->CanAcceptItem(scene, heldItemID)) {
+				table.PlaceItem(scene, takenItemID);
+				return false;
+			}
+		}
+		else {
+			if (!table.CanAcceptItem(scene, heldItemID)) {
+				table.PlaceItem(scene, takenItemID);
+				return false;
+			}
+		}
+
+		if (!table.PlaceItem(scene, heldItemID)) {
+			table.PlaceItem(scene, takenItemID);
+			return false;
+		}
+
+		if (hasCarriedItemOriginalColliderSize) {
+			if (GameObject* item = scene.GetGameObjectByID(heldItemID)) {
+				item->SetColliderSize(carriedItemOriginalColliderSize);
+			}
+			hasCarriedItemOriginalColliderSize = false;
+		}
+
+		RestoreCarriedItemLayer(scene, heldItemID);
+
+		carriedItemID = -1;
+
+		PickUp(scene, takenItemID);
+
+#ifndef _DEBUG
+		if (AudioManager* audioMgr = scene.GetAudioManager()) {
+			glm::vec3 playerPos = player->GetPositionGLM();
+			audioMgr->PlaySound3D("sfx_put_down", playerPos.x, playerPos.y, playerPos.z,
+				audioMgr->GetVfxVolume() * 0.8f);
+		}
+#endif
+		return true;
 	}
+}
