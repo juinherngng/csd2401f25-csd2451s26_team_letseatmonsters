@@ -425,7 +425,8 @@ namespace {
 		void Clear(Scene& scene) {
 			for (int id : objectIDs_) {
 				if (id >= 0 && scene.GetGameObjectByID(id)) {
-					scene.DespawnByID(id);
+					// Defer destruction to avoid in-frame invalidation while UI logic is still updated
+					scene.RequestDespawn(id);
 				}
 			}
 
@@ -567,9 +568,9 @@ namespace {
 				return;
 			}
 
+			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+
 			if (yesButtonID_ >= 0 && IsPointInObject(scene, yesButtonID_, mouseWorld)) {
-				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
-				
 				if (yesAction_ == QuitPopupYesAction::ReturnToMainMenu) {
 					Clear(scene);
 					scene.HidePauseOverlay();
@@ -580,13 +581,14 @@ namespace {
 					if (GLFWwindow* win = glfwGetCurrentContext()) {
 						glfwSetWindowShouldClose(win, GLFW_TRUE);
 					}
-				}
+				}	
 				return;
 			}
 
 			if (noButtonID_ >= 0 && IsPointInObject(scene, noButtonID_, mouseWorld)) {
-				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 				Clear(scene);
+				// Prevent stale edge/held states from leaking into resume logic on the next frame after closing the popup
+				input.ClearState();
 			}
 		}
 	};
