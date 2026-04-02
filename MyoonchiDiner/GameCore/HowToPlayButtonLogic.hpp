@@ -2,8 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         HowToPlayButtonLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (80%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (60%)
  CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu	  (20%)
+					Seah Wang Hua, wanghua.seah@digipen.edu (20%)
 
  DESCRIPTION:       Declares the HowToPlayButtonLogic class, including data
 					required for hover detection, overlay spawning, texture
@@ -48,13 +49,15 @@ private:
 	// Data members for hover state, texture paths, and overlay tracking
 	bool initialized_ = false;
 	bool hovered_ = false;
-	bool backButtonHovered_ = false;
+	bool nextButtonHovered_ = false;
 
 	// Texture paths for normal and hover states (set in Start)
 	std::string normalTexturePath_;
 	std::string hoverTexturePath_;
 
 	int overlayId_ = -1; // ID of spawned HowToPlay overlay, -1 if none
+	int nextButtonId_ = -1;  // ID of spawned next button while overlay is active
+	int currentPage_ = 0;    // 0-based index for howtoplay_1..3
 
 	AudioManager* audioManager_ = nullptr;
 };
