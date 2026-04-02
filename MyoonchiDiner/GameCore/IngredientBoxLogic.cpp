@@ -23,23 +23,6 @@
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/IngredientBoxLogic.hpp"
 
-namespace {
-	void PlaySpatialSfxAtObject(Scene& scene, int objectID, const std::string& soundName, float volume, float minDistance = 120.0f, float maxDistance = 1100.0f) {
-		AudioManager* audioMgr = scene.GetAudioManager();
-		if (!audioMgr || !audioMgr->HasSound(soundName)) {
-			return;
-		}
-
-		if (GameObject* obj = scene.GetGameObjectByID(objectID)) {
-			const glm::vec3 pos = obj->GetPositionGLM();
-			audioMgr->PlaySound3D(soundName, pos.x, pos.y, 0.0f, volume, minDistance, maxDistance, false);
-			return;
-		}
-
-		audioMgr->PlaySound(soundName, volume, false);
-	}
-}
-
 IngredientBoxLogic::IngredientBoxLogic(int ownerID) : TableLogic(ownerID) {
 }
 
@@ -199,11 +182,12 @@ int IngredientBoxLogic::SpawnIngredient(Scene& scene) {
 
 		// Play a random cabbage pickup SFX for vegetable boxes
 		if (spawnType_ == IngredientType::Vegetable) {
-			std::uniform_int_distribution<int> dist(1, 4);
-			int variant = dist(EngineRng::Get());
-			std::string sfxName = "sfx_pickup_cabbage_" + std::to_string(variant);
-			const float volume = scene.GetAudioManager() ? scene.GetAudioManager()->GetVfxVolume() * 0.5f : 0.5f;
-			PlaySpatialSfxAtObject(scene, ownerID_, sfxName, volume);
+			if (AudioManager* audioMgr = scene.GetAudioManager()) {
+				std::uniform_int_distribution<int> dist(1, 4);
+				int variant = dist(EngineRng::Get());
+				std::string sfxName = "sfx_pickup_cabbage_" + std::to_string(variant);
+				audioMgr->PlaySound(sfxName, audioMgr->GetVfxVolume() * 0.5f);
+			}
 		}
 	}
 	else // BoxSpawnMode::Plate

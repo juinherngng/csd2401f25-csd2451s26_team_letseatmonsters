@@ -16,6 +16,18 @@
 #include "EngineCore/AudioManager.hpp"
 #include "EngineCore/Logger.hpp"
 
+namespace {
+	FMOD_VECTOR ToFmodWorld(float worldX, float worldY, float worldZ) {
+		// Map game 2D plane (X,Y) onto FMOD ground plane (X,Z).
+		// Keep FMOD Y as vertical-up so up/down movement in game affects depth/distance.
+		FMOD_VECTOR out{};
+	out.x = -worldX;
+		out.y = worldZ;
+		out.z = -worldY;
+		return out;
+	}
+}
+
 AudioManager::AudioManager(CoreFramework::MessageBus& bus) : messageBus(bus), system(nullptr), masterGroup(nullptr), masterVolume(1.f), bgmVolume(1.f), vfxVolume(1.f), muted(false) {
 	// Subscribe to messages
 	debugInfoSubId = messageBus.Subscribe(
@@ -575,8 +587,9 @@ FMOD::Sound* AudioManager::LoadSound3D(std::string const& name, std::string cons
 
 	TS_LOG_DEBUG("  File exists, proceeding with FMOD 3D load...");
 
-	// Set FMOD mode flags with FMOD_3D for spatial audio
-	FMOD_MODE mode = FMOD_3D | FMOD_3D_LINEARROLLOFF
+	// Set FMOD mode flags with FMOD_3D for spatial audio.
+	// Use inverse rolloff to avoid abrupt drop-offs that feel like early cut-outs.
+	FMOD_MODE mode = FMOD_3D | FMOD_3D_INVERSEROLLOFF
 		| (loop ? FMOD_LOOP_NORMAL : FMOD_LOOP_OFF)
 		| (stream ? FMOD_CREATESTREAM : FMOD_CREATESAMPLE);
 
@@ -612,19 +625,20 @@ void AudioManager::PlaySound3D(std::string const& name, float posX, float posY, 
 	CheckError(result, "playSound3D: " + name);
 
 	if (result == FMOD_OK && channel) {
-		FMOD_VECTOR pos = { posX, posY, posZ };
+		FMOD_VECTOR pos = ToFmodWorld(posX, posY, posZ);
 		FMOD_VECTOR vel = { 0.0f, 0.0f, 0.0f };
 		channel->set3DAttributes(&pos, &vel);
 
 		// Set 3D min/max distance for attenuation
-		constexpr float kSpatialDistanceScale = 4.0f;
+		// Keep distance response subtle: audible near/far change, but not drastic.
+		constexpr float kSpatialDistanceScale = 1.5f;
 		const float effectiveMinDistance = std::max(1.0f, minDistance * kSpatialDistanceScale);
 		const float effectiveMaxDistance = std::max(effectiveMinDistance + 1.0f, maxDistance * kSpatialDistanceScale);
 		channel->set3DMinMaxDistance(effectiveMinDistance, effectiveMaxDistance);
 
 		// Set volume with category and master scaling, then boost 3D audibility.
 		const float finalVolume = ComputePlaybackVolume(name, volume);
-		constexpr float kSpatialGainBoost = 3.0f;
+		constexpr float kSpatialGainBoost = 1.5f;
 		const float boostedVolume = std::clamp(finalVolume * kSpatialGainBoost, 0.0f, 1.0f);
 
 		channel->setVolume(boostedVolume);
@@ -643,9 +657,9 @@ void AudioManager::PlaySound3D(std::string const& name, float posX, float posY, 
 void AudioManager::SetListenerPosition(float posX, float posY, float posZ) {
 	if (!system) return;
 
-	FMOD_VECTOR listenerPos = { posX, posY, posZ };
+	FMOD_VECTOR listenerPos = ToFmodWorld(posX, posY, posZ);
 	FMOD_VECTOR listenerVel = { 0.0f, 0.0f, 0.0f };
-	FMOD_VECTOR forward     = { 0.0f, 0.0f, -1.0f };
+	FMOD_VECTOR forward     = { 0.0f, 0.0f, 1.0f };
 	FMOD_VECTOR up          = { 0.0f, 1.0f, 0.0f };
 
 	FMOD_RESULT result = system->set3DListenerAttributes(0, &listenerPos, &listenerVel, &forward, &up);
@@ -656,7 +670,7 @@ void AudioManager::Set3DChannelPosition(std::string const& name, float posX, flo
 	auto it = channels.find(name);
 	if (it == channels.end()) return;
 
-	FMOD_VECTOR pos = { posX, posY, posZ };
+	FMOD_VECTOR pos = ToFmodWorld(posX, posY, posZ);
 	FMOD_VECTOR vel = { 0.0f, 0.0f, 0.0f };
 	for (FMOD::Channel* channel : it->second) {
 		if (channel) {
