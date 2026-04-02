@@ -48,12 +48,14 @@ private:
 	// Data members for hover state, texture paths, and overlay tracking
 	bool initialized_ = false;
 	bool hovered_ = false;
+	bool backButtonHovered_ = false;
 
 	// Texture paths for normal and hover states (set in Start)
 	std::string normalTexturePath_;
 	std::string hoverTexturePath_;
 
 	int overlayId_ = -1; // ID of spawned HowToPlay overlay, -1 if none
+	int backButtonId_ = -1;
 
 	AudioManager* audioManager_ = nullptr;
 };

@@ -23,6 +23,10 @@
 
 #ifndef _DEBUG
 namespace {
+	static constexpr const char* kHowToPlayBackHoverTexture = "../assets/return_h.png";
+	static const glm::vec2 kHowToPlayBackButtonPos{ 1332.0f, 790.0f };
+	static const glm::vec2 kHowToPlayBackButtonSize{ 450.0f, 130.0f };
+
 	static std::string MakeHoverPath(const std::string& path) {
 		if (path.empty()) return path;
 
@@ -52,6 +56,29 @@ namespace {
 			owner->SetTexture(tex);
 		}
 	}
+
+	static void TrySetObjectTexture(Scene& scene, int objectID, const std::string& texPath) {
+		if (objectID < 0 || texPath.empty()) return;
+		GameObject* obj = scene.GetGameObjectByID(objectID);
+		if (!obj) return;
+
+		std::string cacheName = "staticsprite_" + texPath;
+		if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheName, texPath)) {
+			obj->SetTexture(tex);
+			scene.SetObjectTexturePath(objectID, texPath);
+		}
+	}
+
+	static bool IsPointInObject(Scene& scene, int objectID, const glm::vec2& p) {
+		GameObject* obj = scene.GetGameObjectByID(objectID);
+		if (!obj) return false;
+
+		const glm::vec3 pos = obj->GetPositionGLM();
+		const glm::vec3 sz = obj->GetScaleGLM();
+		const glm::vec2 min(pos.x - sz.x * 0.5f, pos.y - sz.y * 0.5f);
+		const glm::vec2 max(pos.x + sz.x * 0.5f, pos.y + sz.y * 0.5f);
+		return p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y;
+	}
 }
 #endif // _DEBUG
 
@@ -76,10 +103,34 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 
 	// --- CASE 1: overlay already active -> treat any click or Esc as "close overlay" ---
 	if (overlayActive) {
+		glm::vec2 mouseWorld{};
+		bool insideScene = GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld);
+		if (!insideScene) {
+			glm::vec3 w = input.ScreenToWorld(
+				static_cast<float>(input.GetMousePosition().x),
+				static_cast<float>(input.GetMousePosition().y));
+			mouseWorld = glm::vec2(w.x, w.y);
+		}
+
+		const bool overBackButton = IsPointInObject(scene, backButtonId_, mouseWorld);
+		if (overBackButton != backButtonHovered_) {
+			backButtonHovered_ = overBackButton;
+			if (backButtonHovered_) {
+				if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+					audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
+				}
+			}
+
+			TrySetObjectTexture(
+				scene,
+				backButtonId_,
+				backButtonHovered_ ? kHowToPlayBackHoverTexture : FilePaths::Textures::BTN_RETURN);
+		}
+
 		const bool clickClose = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
 		const bool escClose = input.IsKeyJustPressed(GLFW_KEY_ESCAPE);
 
-		if (clickClose || escClose) {
+		if ((clickClose && overBackButton) || escClose) {
 			if (audioManager_) {
 				if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_BACK)) {
 					audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_BACK, audioManager_->GetVfxVolume(), false);
@@ -90,6 +141,11 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 				scene.DespawnByID(overlayId_);
 				overlayId_ = -1;
 			}
+			if (backButtonId_ >= 0) {
+				scene.DespawnByID(backButtonId_);
+				backButtonId_ = -1;
+			}
+			backButtonHovered_ = false;
 
 			scene.SetHowToPlayOverlayActive(false);
 			// Restore button texts on main menu (no-op in gameplay if no menu buttons)
@@ -178,6 +234,17 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 
 	overlayId_ = img->GetID();
 	img->SetMovableByPhysics(false);
+
+	if (GameObject* backBtn = scene.SpawnStaticSprite(
+		FilePaths::Textures::BTN_RETURN,
+		{ kHowToPlayBackButtonPos.x, kHowToPlayBackButtonPos.y, 0.0f },
+		kHowToPlayBackButtonSize,
+		uiLayer)) {
+		backButtonId_ = backBtn->GetID();
+		backBtn->SetMovableByPhysics(false);
+		scene.SetObjectTexturePath(backButtonId_, FilePaths::Textures::BTN_RETURN);
+		backButtonHovered_ = false;
+	}
 
 	// Mark overlay active in the scene and hide menu button texts
 	scene.SetHowToPlayOverlayActive(true);

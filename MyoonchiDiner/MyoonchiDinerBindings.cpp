@@ -1985,6 +1985,7 @@ namespace {
 #ifndef _DEBUG
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
 			audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, outSeconds);
+			audioManager->StopSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE);
 		}
 #else
 		(void)scene;
@@ -2029,6 +2030,7 @@ namespace {
 #ifndef _DEBUG
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
 			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
+			audioManager->StopSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE);
 			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_GAMEOVER)) {
 				audioManager->FadeChannel(MyoonchiPaths::Audio::SFX_GAMEOVER, 0.0f, outSeconds);
 			}
@@ -2375,6 +2377,12 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 			// Fade bgm
 			if (audioManager->HasSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE)) {
 				audioManager->FadeChannel(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE, 0.0f, outSeconds);
+			}
+			audioManager->StopSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE);
+
+			// Stop intro stinger immediately on skip so it does not continue under the transition.
+			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE)) {
+				audioManager->StopSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE);
 			}
 
 			if (audioManager->HasSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE)) {
