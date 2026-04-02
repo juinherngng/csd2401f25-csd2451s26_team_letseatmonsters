@@ -57,6 +57,7 @@ namespace {
 		GLFW_KEY_F1,	 // FPS display toggle in Release
 		GLFW_KEY_F5,	 // Scene reload in Release, debug toggle in Debug
 		GLFW_KEY_F6,	 // Level editor toggle
+		GLFW_KEY_F9,	 // Gameplay debug shortcut (instant lose testing during gameplay)
 		GLFW_KEY_F10	 // Gameplay debug shortcut (instant win testing during gameplay)
 	};
 
@@ -164,7 +165,9 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 		GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3,
 		GLFW_KEY_ESCAPE,
 		GLFW_KEY_F1,  // FPS display toggle in Release
-		GLFW_KEY_SPACE
+		GLFW_KEY_SPACE,
+		GLFW_KEY_F9,
+		GLFW_KEY_F10
 	};
 
 	// If ImGui wants the keyboard, clear key states so gameplay won't react
