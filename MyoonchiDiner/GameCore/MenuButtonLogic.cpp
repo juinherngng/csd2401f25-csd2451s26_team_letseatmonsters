@@ -94,6 +94,10 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	if (over && !hovered_) {
 		hovered_ = true;
 		TrySetTexture(owner, hoverTexturePath_);
+		const std::string ownerTag = scene.GetObjectTag(GetOwnerID());
+		if (ownerTag != "btn_next_level" && ownerTag != "btn_retry_level") {
+			scene.TriggerUiButtonHoverFeedback(GetOwnerID());
+		}
 		if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
 		}

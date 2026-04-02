@@ -92,6 +92,7 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	if (over && !hovered_) {
 		hovered_ = true;
 		TrySetTexture(owner, hoverTexturePath_);
+		scene.TriggerUiButtonHoverFeedback(GetOwnerID());
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
 			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);

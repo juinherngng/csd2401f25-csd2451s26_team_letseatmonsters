@@ -445,6 +445,9 @@ namespace {
 			if (shown_) {
 				return;
 			}
+			ResourceManager::Instance().LoadTexture(
+				"animatedsprite_../assets/staranim-Sheet2.png",
+				"../assets/staranim-Sheet2.png");
 			shown_ = true;
 			yesAction_ = yesAction;
 
@@ -501,6 +504,7 @@ namespace {
 				if (hoveredNow != yesHovered_) {
 					yesHovered_ = hoveredNow;
 					if (yesHovered_) {
+						scene.TriggerUiButtonHoverFeedback(yesButtonID_);
 						if (AudioManager* audioManager = scene.GetAudioManager()) {
 							if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 								audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
@@ -520,6 +524,7 @@ namespace {
 				if (hoveredNow != noHovered_) {
 					noHovered_ = hoveredNow;
 					if (noHovered_) {
+						scene.TriggerUiButtonHoverFeedback(noButtonID_);
 						if (AudioManager* audioManager = scene.GetAudioManager()) {
 							if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 								audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
@@ -644,6 +649,7 @@ namespace {
 			if (hoveredNow != hovered_) {
 				hovered_ = hoveredNow;
 				if (hovered_) {
+					scene.TriggerUiButtonHoverFeedback(GetOwnerID());
 					if (AudioManager* audioManager = scene.GetAudioManager()) {
 						if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 							audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
@@ -1075,6 +1081,7 @@ namespace {
 			completionMenuHovered_ = isHoveredNow;
 
 			if (completionMenuHovered_) {
+				scene.TriggerUiButtonHoverFeedback(completionMenuButtonID_);
 				if (AudioManager* audioManager = scene.GetAudioManager()) {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);

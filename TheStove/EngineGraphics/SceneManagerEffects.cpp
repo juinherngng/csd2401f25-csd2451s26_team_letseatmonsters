@@ -15,6 +15,7 @@
 
 #include "EngineCore/FilePaths.hpp"
 #include "EngineCore/FontSystem.hpp"
+#include "EngineGraphics/AnimationManager.hpp"
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
@@ -46,6 +47,14 @@ namespace {
 		}
 
 		return frames;
+	}
+
+	/**
+	 * @brief Builds the sprite-sheet UVs used by the blue-button hover burst.
+	 * @return Ordered frame rectangles for the temporary UI star animation.
+	 */
+	std::vector<glm::vec4> CreateUiButtonStarFrames() {
+		return CreateCustomerPaymentStarFrames();
 	}
 
 	/**
@@ -125,7 +134,8 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 				fx->GetID(),
 				fx->GetScaleGLM(),
 				0.0f,
-				kLifetime
+				kLifetime,
+				true
 				});
 		}
 	}
@@ -144,6 +154,64 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 		0.0f,
 		0.9f,
 		layer
+		});
+}
+
+/**
+ * @brief Spawns a temporary star burst on top of a hovered blue UI button.
+ * @param buttonObjectID Identifier of the hovered button.
+ */
+void Scene::TriggerUiButtonHoverFeedback(int buttonObjectID) {
+	GameObject* buttonObj = GetGameObjectByID(buttonObjectID);
+	if (!buttonObj) {
+		return;
+	}
+
+	animationManager.Play();
+
+	static const std::vector<glm::vec4> kUiStarFrames = CreateUiButtonStarFrames();
+	constexpr float kFrameDuration = 0.04f;
+	const float kLifetime = static_cast<float>(kUiStarFrames.size()) * kFrameDuration + 0.05f;
+
+	const glm::vec3 buttonPos = buttonObj->GetPositionGLM();
+	const glm::vec3 buttonScale = buttonObj->GetScaleGLM();
+	const std::string layer = GetObjectLayer(buttonObjectID).empty() ? "10" : GetObjectLayer(buttonObjectID);
+	const glm::vec3 effectPos(
+		buttonPos.x,
+		buttonPos.y - buttonScale.y * 0.52f,
+		buttonPos.z
+	);
+	const glm::vec2 effectSize(
+		buttonScale.x * 1.24f,
+		buttonScale.y * 1.05f
+	);
+
+	GameObject* fx = SpawnAnimatedSprite(
+		"../assets/staranim-Sheet2.png",
+		effectPos,
+		effectSize,
+		kUiStarFrames,
+		kFrameDuration,
+		false,
+		layer
+	);
+
+	if (!fx) {
+		return;
+	}
+
+	fx->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+	fx->SetMovableByPhysics(false);
+	fx->EnableShadow(false);
+	fx->SetRenderSortOrder(500);
+	fx->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.95f));
+
+	runtimeAnimatedFx_.push_back(RuntimeAnimatedFx{
+		fx->GetID(),
+		fx->GetScaleGLM(),
+		0.0f,
+		kLifetime,
+		false
 		});
 }
 
@@ -167,12 +235,17 @@ void Scene::UpdateRuntimeAnimatedFx(float dt) {
 				fx.elapsed += dt;
 				const float t = std::clamp(fx.elapsed / std::max(fx.lifetime, 0.0001f), 0.0f, 1.0f);
 
-				const float scaleMul = 0.85f + 0.30f * t;
-				obj->SetScale(glm::vec3(
-					fx.baseScale.x * scaleMul,
-					fx.baseScale.y * scaleMul,
-					fx.baseScale.z
-				));
+				if (fx.animateScale) {
+					const float scaleMul = 0.85f + 0.30f * t;
+					obj->SetScale(glm::vec3(
+						fx.baseScale.x * scaleMul,
+						fx.baseScale.y * scaleMul,
+						fx.baseScale.z
+					));
+				}
+				else {
+					obj->SetScale(fx.baseScale);
+				}
 
 				float alpha = 1.0f;
 				if (t > 0.70f) {
