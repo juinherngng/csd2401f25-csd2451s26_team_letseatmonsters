@@ -204,6 +204,13 @@ void Scene::ResetLevelObjectState() {
 	pendingDespawns_.clear();
 	howToPlayOverlayActive_ = false;
 	menuModalActive_ = false;
+	cutsceneSkipPromptId_ = -1;
+	cutscene_.spriteA = -1;
+	cutscene_.spriteB = -1;
+	cutTrans_.currentSpriteId = -1;
+	cutTrans_.nextSpriteId = -1;
+	videoCutscene_.spriteId = -1;
+	pendingVideoCutsceneTransition_ = {};
 
 	objectMetadata_.Clear();
 	layers.clear();
