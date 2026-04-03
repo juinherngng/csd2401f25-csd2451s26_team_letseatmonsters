@@ -368,7 +368,9 @@ namespace {
 				fx->SetColliderOffset(Math::Vector2D(0.0f, 0.0f));
 				fx->SetMovableByPhysics(false);
 				fx->EnableShadow(false);
-				fx->SetRenderSortOrder(2);
+				// Keep candles above the table hover mask so level 1 hover feedback
+				// never visually cuts through the permanent candle VFX.
+				fx->SetRenderSortOrder(205);
 
 				scene.SetObjectTag(fx->GetID(), "ambient_vfx_candle");
 
