@@ -38,6 +38,7 @@ public:
 	// UI state for each order slot
 	struct OrderSlot {
 		int customerId = -1;
+		int tableId = -1;
 
 		int panelId = -1;
 		int dishIconId = -1;
@@ -85,6 +86,7 @@ private:
 	std::vector<OrderSlot> slots_;
 
 	const char* panelTex_ = "../assets/UI/Order_UI.png";
+	const char* darkPanelTex_ = "../assets/UI/Order_UI_Dark.png";
 	const char* invisTex_ = "../assets/UI/invis.png";
 
 	std::string panelLayer_ = "3";
@@ -97,8 +99,8 @@ private:
 	glm::vec2 panelSize_ = { 168.f, 124.f };
 	float slideDuration_ = 0.45f;
 
-	glm::vec2 dishOffset_ = { 0.f, -44.f };
-	glm::vec2 dishSize_ = { 75.f, 75.f };
+	glm::vec2 dishOffset_ = { 0.f, -38.f };
+	glm::vec2 dishSize_ = { 60.f, 60.f };
 
 	std::vector<glm::vec2> ingredientOffsets_ = { { -20.f, 4.f }, { 20.f, 4.f } };
 	glm::vec2 ingredientSize_ = { 35.f, 35.f };
@@ -146,6 +148,12 @@ private:
 	void EnsureDishIcon(Scene& scene, OrderSlot& slot);
 	void EnsureRecipeIcons(Scene& scene, OrderSlot& slot);
 	void FollowPanel(Scene& scene, OrderSlot& slot);
+	glm::vec2 GetDishIconOffset(DishType dish) const;
+	glm::vec2 GetDishIconSize(DishType dish) const;
+	void UpdateDishIconVisualState(Scene& scene, OrderSlot& slot,
+		const glm::vec2& panelPos, float scaleMul, float alpha);
+	void SetPanelTexture(Scene& scene, int panelId, const char* texPath);
+	const char* GetPanelTextureForTable(Scene& scene, int tableId) const;
 
 	const char* DishToIconPath(DishType t) const;
 	void SetIconTexture(Scene& scene, int iconId, const char* texPath);

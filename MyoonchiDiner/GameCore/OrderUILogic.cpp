@@ -180,6 +180,7 @@ void OrderUILogic::ClearSlot(Scene& scene, OrderSlot& slot) {
 	DespawnIfAlive(scene, slot.stampId);
 
 	slot.customerId = -1;
+	slot.tableId = -1;
 	slot.panelSpawned = false;
 	slot.lastDish = DishType::PoopDish;
 	slot.hasLastDish = false;
@@ -231,6 +232,7 @@ void OrderUILogic::UpdateLivePanelLayout(Scene& scene, int slotIndex, OrderSlot&
 
 	panel->SetPosition(glm::vec3(cur.x, cur.y, cur.z));
 	FollowPanel(scene, slot);
+	UpdateDishIconVisualState(scene, slot, glm::vec2(cur.x, cur.y), 1.0f, 1.0f);
 
 	if (slot.customerId >= 0) {
 		sCustomerPanelCenters_[slot.customerId] = glm::vec2(cur.x, cur.y);
@@ -351,7 +353,7 @@ void OrderUILogic::ApplySlotVisualState(Scene& scene, OrderSlot& slot,
 		};
 
 	applySprite(slot.panelId, glm::vec2(0.0f, 0.0f), panelSize_);
-	applySprite(slot.dishIconId, dishOffset_, dishSize_);
+	UpdateDishIconVisualState(scene, slot, panelPos, scaleMul, alpha);
 
 	for (int i = 0; i < kRecipeCols; ++i) {
 		if (i < (int)ingredientOffsets_.size()) {
@@ -408,15 +410,93 @@ bool OrderUILogic::UpdateCompleteAnimation(Scene& scene, OrderSlot& slot, float 
 	return slot.completionTimer >= total;
 }
 
-void OrderUILogic::EnsurePanel(Scene& scene, int slotIndex, OrderSlot& slot) {
-	if (slot.panelSpawned && slot.panelId >= 0 && scene.GetGameObjectByID(slot.panelId))
+glm::vec2 OrderUILogic::GetDishIconOffset(DishType dish) const {
+	switch (dish) {
+	case DishType::SkewerDish:
+	case DishType::CarrotSaladDish:
+		return glm::vec2(0.0f, -36.0f);
+	default:
+		return dishOffset_;
+	}
+}
+
+glm::vec2 OrderUILogic::GetDishIconSize(DishType dish) const {
+	switch (dish) {
+	case DishType::SkewerDish:
+	case DishType::CarrotSaladDish:
+		return glm::vec2(50.0f, 50.0f);
+	default:
+		return dishSize_;
+	}
+}
+
+void OrderUILogic::UpdateDishIconVisualState(Scene& scene, OrderSlot& slot,
+	const glm::vec2& panelPos, float scaleMul, float alpha) {
+	if (slot.dishIconId < 0) {
 		return;
+	}
+
+	GameObject* icon = scene.GetGameObjectByID(slot.dishIconId);
+	if (!icon) {
+		return;
+	}
+
+	const DishType dish = slot.hasLastDish ? slot.lastDish : DishType::PoopDish;
+	const glm::vec2 iconOffset = GetDishIconOffset(dish);
+	const glm::vec2 iconSize = GetDishIconSize(dish);
+
+	icon->SetPosition(glm::vec3(
+		panelPos.x + iconOffset.x,
+		panelPos.y + iconOffset.y,
+		icon->GetPositionGLM().z
+	));
+	icon->SetScale(glm::vec3(iconSize.x * scaleMul, iconSize.y * scaleMul, 1.0f));
+	icon->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, Clamp01(alpha)));
+}
+
+const char* OrderUILogic::GetPanelTextureForTable(Scene& scene, int tableId) const {
+	const std::string levelPath = scene.GetCurrentLevelPath();
+	if (levelPath.find("kitchen02") == std::string::npos) {
+		return panelTex_;
+	}
+
+	if (tableId < 0) {
+		return panelTex_;
+	}
+
+	const Scene::Defaults tableDefaults = scene.GetDefaults(tableId);
+	return tableDefaults.texture == "../assets/Furniture/Customertable_new.png"
+		? darkPanelTex_
+		: panelTex_;
+}
+
+void OrderUILogic::SetPanelTexture(Scene& scene, int panelId, const char* texPath) {
+	GameObject* panel = scene.GetGameObjectByID(panelId);
+	if (!panel) {
+		return;
+	}
+
+	panel->SetTexture(ResourceManager::Instance().LoadTexture(texPath, texPath));
+	scene.SetObjectTexturePath(panelId, texPath);
+
+	Scene::Defaults d = scene.GetDefaults(panelId);
+	d.texture = texPath;
+	scene.SetDefaults(panelId, d);
+}
+
+void OrderUILogic::EnsurePanel(Scene& scene, int slotIndex, OrderSlot& slot) {
+	const char* panelTexPath = GetPanelTextureForTable(scene, slot.tableId);
+
+	if (slot.panelSpawned && slot.panelId >= 0 && scene.GetGameObjectByID(slot.panelId)) {
+		SetPanelTexture(scene, slot.panelId, panelTexPath);
+		return;
+	}
 
 	slot.panelId = scene.TriggerOrderUiSlideIn(
 		SlotTargetPos(slotIndex),
 		panelSize_,
 		panelLayer_,
-		panelTex_,
+		panelTexPath,
 		slideDuration_
 	);
 
@@ -446,7 +526,9 @@ void OrderUILogic::EnsureSubSprite(Scene& scene, int panelId, int& spriteId,
 }
 
 void OrderUILogic::EnsureDishIcon(Scene& scene, OrderSlot& slot) {
-	EnsureSubSprite(scene, slot.panelId, slot.dishIconId, dishOffset_, dishSize_, dishLayer_);
+	const DishType dish = slot.hasLastDish ? slot.lastDish : DishType::PoopDish;
+	EnsureSubSprite(scene, slot.panelId, slot.dishIconId,
+		GetDishIconOffset(dish), GetDishIconSize(dish), dishLayer_);
 }
 
 void OrderUILogic::EnsureRecipeIcons(Scene& scene, OrderSlot& slot) {
@@ -478,7 +560,9 @@ void OrderUILogic::FollowPanel(Scene& scene, OrderSlot& slot) {
 		go->SetPosition(Math::Vector3D(p.x + off.x, p.y + off.y, p.z));
 		};
 
-	move(slot.dishIconId, dishOffset_);
+	if (slot.panelId >= 0) {
+		UpdateDishIconVisualState(scene, slot, glm::vec2(p.x, p.y), 1.0f, 1.0f);
+	}
 
 	for (int i = 0; i < kRecipeCols; ++i) {
 		if (i < (int)ingredientOffsets_.size())
@@ -661,6 +745,7 @@ void OrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*/) {
 		}
 
 		used[idx] = true;
+		slot.tableId = orders[idx].tableId;
 
 		EnsurePanel(scene, s, slot);
 		EnsureDishIcon(scene, slot);
@@ -701,6 +786,7 @@ void OrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*/) {
 		OrderSlot& slot = slots_[emptySlot];
 
 		slot.customerId = orders[i].customerId;
+		slot.tableId = orders[i].tableId;
 		slot.lastDish = DishType::PoopDish;
 		slot.hasLastDish = false;
 		slot.panelSpawned = false;
