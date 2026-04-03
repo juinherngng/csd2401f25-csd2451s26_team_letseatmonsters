@@ -109,6 +109,9 @@ private:
 	// Keeps the eating VFX anchored to the customer each frame
 	void UpdateEatingVFX(Scene& scene);
 
+	// Picks the eating VFX offset that matches the customer's current eating pose
+	glm::vec2 GetEatingVfxOffset(Scene& scene) const;
+
 	// Destroys the eating VFX if it exists
 	void DestroyEatingVFX(Scene& scene);
 
@@ -168,7 +171,9 @@ private:
 
 	// --- eating VFX ---
 	int eatingVFX_ID_ = -1;
-	glm::vec2 eatingVFXOffset_ = { 0.f, -18.f };
+	glm::vec2 eatingVFXOffsetRight_ = { 18.f, 8.f };
+	glm::vec2 eatingVFXOffsetLeft_ = { -18.f, 8.f };
+	glm::vec2 eatingVFXFallbackOffset_ = { 18.f, 8.f };
 	glm::vec2 eatingVFXSize_ = { 96.f, 96.f };
 
 };

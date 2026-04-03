@@ -275,9 +275,10 @@ void CustomerOrderUILogic::FollowCustomer(Scene& scene) {
 
 	if (eatingVFX_ID_ >= 0) {
 		if (GameObject* eatingVfx = scene.GetGameObjectByID(eatingVFX_ID_)) {
+			const glm::vec2 eatingOffset = GetEatingVfxOffset(scene);
 			eatingVfx->SetPosition(Math::Vector3D(
-				p.x + eatingVFXOffset_.x,
-				p.y + eatingVFXOffset_.y,
+				p.x + eatingOffset.x,
+				p.y + eatingOffset.y,
 				p.z + 0.001f));
 		}
 	}
@@ -319,6 +320,17 @@ void CustomerOrderUILogic::DestroyEatingVFX(Scene& scene) {
 	DespawnIfAlive(scene, eatingVFX_ID_);
 }
 
+glm::vec2 CustomerOrderUILogic::GetEatingVfxOffset(Scene& scene) const {
+	const std::string animName = scene.GetCurrentAnimationName(GetOwnerID());
+	if (animName == "EAT_LEFT") {
+		return eatingVFXOffsetLeft_;
+	}
+	if (animName == "EAT_RIGHT") {
+		return eatingVFXOffsetRight_;
+	}
+	return eatingVFXFallbackOffset_;
+}
+
 void CustomerOrderUILogic::EnsureEatingVFX(Scene& scene) {
 	if (eatingVFX_ID_ >= 0 && scene.GetGameObjectByID(eatingVFX_ID_)) {
 		return;
@@ -335,13 +347,14 @@ void CustomerOrderUILogic::EnsureEatingVFX(Scene& scene) {
 	}
 
 	const glm::vec3 p = me->GetPositionGLM();
+	const glm::vec2 eatingOffset = GetEatingVfxOffset(scene);
 	const std::string layer = scene.GetObjectLayer(GetOwnerID()).empty()
 		? std::string("10")
 		: scene.GetObjectLayer(GetOwnerID());
 
 	GameObject* fx = scene.SpawnAnimatedSprite(
 		MyoonchiPaths::Textures::AMBIENT_VFX_SHEET,
-		glm::vec3(p.x + eatingVFXOffset_.x, p.y + eatingVFXOffset_.y, p.z + 0.001f),
+		glm::vec3(p.x + eatingOffset.x, p.y + eatingOffset.y, p.z + 0.001f),
 		eatingVFXSize_,
 		frames,
 		0.10f,
@@ -374,13 +387,14 @@ void CustomerOrderUILogic::UpdateEatingVFX(Scene& scene) {
 	}
 
 	const glm::vec3 p = me->GetPositionGLM();
+	const glm::vec2 eatingOffset = GetEatingVfxOffset(scene);
 	const std::string layer = scene.GetObjectLayer(GetOwnerID()).empty()
 		? std::string("10")
 		: scene.GetObjectLayer(GetOwnerID());
 
 	fx->SetPosition(glm::vec3(
-		p.x + eatingVFXOffset_.x,
-		p.y + eatingVFXOffset_.y,
+		p.x + eatingOffset.x,
+		p.y + eatingOffset.y,
 		p.z + 0.001f));
 	fx->SetScale(glm::vec3(eatingVFXSize_.x, eatingVFXSize_.y, 1.0f));
 	fx->SetRenderSortOrder(std::max(me->GetRenderSortOrder() + 1, 5));
