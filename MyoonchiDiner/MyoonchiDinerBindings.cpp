@@ -91,6 +91,7 @@ namespace {
 
 	constexpr const char* kShinePointTag = "bg_vfx_shine_point";
 	constexpr const char* kButterflyPointTag = "bg_vfx_butterfly_point";
+	constexpr const char* kButterflyAltPointTag = "bg_vfx_butterfly_alt_point";
 	constexpr const char* kLeafLaneTag = "bg_vfx_leaf_lane";
 
 	static std::vector<glm::vec4> CreateVfxFramesFromTopRow(int topRowOneBased, int startCol, int endCol) {
@@ -107,6 +108,10 @@ namespace {
 		}
 
 		return frames;
+	}
+
+	static std::vector<glm::vec4> CreateVfxFramesFromBottomRow(int bottomRowOneBased, int startCol, int endCol) {
+		return CreateVfxFramesFromTopRow(kAmbientVfxRows - bottomRowOneBased + 1, startCol, endCol);
 	}
 
 	static float RandomRange(float minValue, float maxValue) {
@@ -130,6 +135,8 @@ namespace {
 		glm::vec2 velocity{ 0.0f, 0.0f };
 		float lifetime = 0.0f;
 		float totalLifetime = 0.0f;
+		float shrinkWindowRatio = 0.30f;
+		float shrinkDuration = -1.0f;
 		glm::vec3 baseScale{ 1.0f, 1.0f, 1.0f };
 		bool killWhenOffscreen = false;
 		bool shrinkOutAtEnd = false;
@@ -138,12 +145,14 @@ namespace {
 	struct AmbientVfxController {
 		std::vector<AmbientPoint> shinePoints_;
 		std::vector<AmbientPoint> butterflyPoints_;
+		std::vector<AmbientPoint> butterflyAltPoints_;
 		std::vector<float> leafLaneYs_;
 		std::vector<AmbientVfxInstance> active_;
 		bool cached_ = false;
 
 		float shineCooldown_ = 0.0f;
 		float butterflyCooldown_ = 0.0f;
+		float butterflyAltCooldown_ = 0.0f;
 		float leafCooldown_ = 0.0f;
 
 		void Reset(Scene& scene) {
@@ -156,17 +165,20 @@ namespace {
 			active_.clear();
 			shinePoints_.clear();
 			butterflyPoints_.clear();
+			butterflyAltPoints_.clear();
 			leafLaneYs_.clear();
 			cached_ = false;
 
 			shineCooldown_ = 0.0f;
 			butterflyCooldown_ = 0.0f;
+			butterflyAltCooldown_ = 0.0f;
 			leafCooldown_ = 0.0f;
 		}
 
 		void CachePoints(Scene& scene) {
 			shinePoints_.clear();
 			butterflyPoints_.clear();
+			butterflyAltPoints_.clear();
 			leafLaneYs_.clear();
 
 			for (GameObject* obj : scene.GetAllObjectsRaw()) {
@@ -190,6 +202,14 @@ namespace {
 					p.size = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(160.0f, 160.0f);
 					p.layer = d.layer.empty() ? "0" : d.layer;
 					butterflyPoints_.push_back(p);
+				}
+				else if (d.tag == kButterflyAltPointTag) {
+					AmbientPoint p;
+					const glm::vec3 pos = obj->GetPositionGLM();
+					p.pos = glm::vec2(pos.x, pos.y);
+					p.size = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(160.0f, 160.0f);
+					p.layer = d.layer.empty() ? "0" : d.layer;
+					butterflyAltPoints_.push_back(p);
 				}
 				else if (d.tag == kLeafLaneTag) {
 					const glm::vec3 pos = obj->GetPositionGLM();
@@ -222,7 +242,9 @@ namespace {
 				inst.lifetime -= dt;
 
 				if (inst.shrinkOutAtEnd && inst.totalLifetime > 0.0f) {
-					const float shrinkStartLife = inst.totalLifetime * 0.30f;
+					const float shrinkStartLife = (inst.shrinkDuration > 0.0f)
+						? std::min(inst.shrinkDuration, inst.totalLifetime)
+						: inst.totalLifetime * std::clamp(inst.shrinkWindowRatio, 0.05f, 0.95f);
 					float scaleMul = 1.0f;
 					if (inst.lifetime < shrinkStartLife) {
 						scaleMul = std::clamp(inst.lifetime / shrinkStartLife, 0.0f, 1.0f);
@@ -405,6 +427,51 @@ namespace {
 			active_.push_back(inst);
 		}
 
+		void SpawnButterflyAlt(Scene& scene, const AmbientPoint& point) {
+			// Alternate butterfly = rows 3 then 2 when counted from bottom to top.
+			std::vector<glm::vec4> frames = CreateVfxFramesFromBottomRow(3, 0, 5);
+			const std::vector<glm::vec4> lastRow = CreateVfxFramesFromBottomRow(2, 0, 1);
+			frames.insert(frames.end(), lastRow.begin(), lastRow.end());
+
+			if (frames.empty()) {
+				return;
+			}
+
+			const float frameDuration = 0.09f;
+			GameObject* fx = scene.SpawnAnimatedSprite(
+				MyoonchiPaths::Textures::AMBIENT_VFX_SHEET,
+				glm::vec3(point.pos.x, point.pos.y, 0.0f),
+				point.size,
+				frames,
+				frameDuration,
+				false,
+				point.layer
+			);
+
+			if (!fx) {
+				return;
+			}
+
+			fx->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+			fx->SetColliderOffset(Math::Vector2D(0.0f, 0.0f));
+			fx->SetMovableByPhysics(false);
+			fx->EnableShadow(false);
+			fx->SetRenderSortOrder(1);
+
+			scene.SetObjectTag(fx->GetID(), "ambient_vfx_butterfly_alt");
+
+			AmbientVfxInstance inst;
+			inst.objectID = fx->GetID();
+			inst.velocity = glm::vec2(0.0f, 0.0f);
+			inst.lifetime = static_cast<float>(frames.size()) * frameDuration + 0.06f;
+			inst.totalLifetime = inst.lifetime;
+			inst.shrinkDuration = 0.06f;
+			inst.baseScale = glm::vec3(point.size.x, point.size.y, 1.0f);
+			inst.killWhenOffscreen = false;
+			inst.shrinkOutAtEnd = true;
+			active_.push_back(inst);
+		}
+
 		void Update(float dt, Scene& scene) {
 			if (!scene.IsSimulationActive()) {
 				return;
@@ -432,6 +499,12 @@ namespace {
 				if (butterflyCooldown_ <= 0.0f && !butterflyPoints_.empty()) {
 					SpawnButterfly(scene, butterflyPoints_[RandomIndex(static_cast<int>(butterflyPoints_.size()))]);
 					butterflyCooldown_ = RandomRange(9.0f, 13.0f);
+				}
+
+				butterflyAltCooldown_ -= dt;
+				if (butterflyAltCooldown_ <= 0.0f && !butterflyAltPoints_.empty()) {
+					SpawnButterflyAlt(scene, butterflyAltPoints_[RandomIndex(static_cast<int>(butterflyAltPoints_.size()))]);
+					butterflyAltCooldown_ = RandomRange(9.0f, 13.0f);
 				}
 
 				leafCooldown_ -= dt;
