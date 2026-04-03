@@ -549,10 +549,13 @@ namespace {
 			const std::string levelPath = scene.GetCurrentLevelPath();
 			const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
 			const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
+			const bool isTutorial = levelPath.find("tutorial") != std::string::npos;
 
-			if (isLevel1) {
+			if (isLevel1 || isTutorial) {
 				SpawnCandles(scene);
+			}
 
+			if (isLevel1 || isTutorial) {
 				shineCooldown_ -= dt;
 				if (shineCooldown_ <= 0.0f && !shinePoints_.empty()) {
 					SpawnShine(scene);
