@@ -2255,6 +2255,9 @@ namespace {
 			const char* levelAmbienceKey = isLevel2Loaded
 				? MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE
 				: MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE;
+			const bool shouldRestartMenuBgm =
+				levelPath == FilePaths::Levels::MAIN_MENU ||
+				IsDayClearLevelPath(levelPath);
 
 			scene.SetPauseOverlayAudioChannels(MyoonchiPaths::Audio::BGM_LEVEL_THEME, levelAmbienceKey);
 
@@ -2265,7 +2268,11 @@ namespace {
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE);
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
 				audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
-				if (!audioManager->IsSoundPlaying(MyoonchiPaths::Audio::BGM_MAIN_MENU)) {
+				if (shouldRestartMenuBgm) {
+					audioManager->StopSound(MyoonchiPaths::Audio::BGM_MAIN_MENU);
+					audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
+				}
+				else if (!audioManager->IsSoundPlaying(MyoonchiPaths::Audio::BGM_MAIN_MENU)) {
 					audioManager->PlaySound(MyoonchiPaths::Audio::BGM_MAIN_MENU, audioManager->GetBgmVolume(), false);
 				}
 				else {

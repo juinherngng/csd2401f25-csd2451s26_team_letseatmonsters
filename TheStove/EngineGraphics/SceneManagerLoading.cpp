@@ -142,17 +142,16 @@ void Scene::HandleDeferredLoads() {
 			if (cutTrans_.fadeInAfterLoad) {
 				auto& gfx = GetGraphicsEngine();
 
-				// Ensure a fade is active; if not, start a fade-in-only transition.
-				if (!gfx.IsTransitionActive() || !gfx.IsAtBlackout()) {
-					gfx.StartSceneTransition(0.1f, cutTrans_.inSeconds);
+				// Only continue a fade if the renderer is actually waiting at blackout for this load.
+				if (gfx.IsTransitionActive() && gfx.IsAtBlackout()) {
+					gfx.ContinueTransitionFadeIn();
 				}
-
-				gfx.ContinueTransitionFadeIn();
 				cutTrans_.fadeInAfterLoad = false;
+			}
 
-				if (postLevelLoadHook_) {
-					postLevelLoadHook_(*this, request.activateSimulation);
-				}
+			// Apply post-load runtime wiring for every deferred load, not only blackout-backed cutscene loads.
+			if (postLevelLoadHook_) {
+				postLevelLoadHook_(*this, request.activateSimulation);
 			}
 
 			if (messageBus_) {

@@ -473,6 +473,11 @@ void Scene::UpdateVideoCutscene(float dt) {
 		}
 
 		// Once playback is done, tear down the transient cutscene state and continue the normal flow.
+#ifndef _DEBUG
+		if (cutsceneBeforeFinalLoadHook_) {
+			cutsceneBeforeFinalLoadHook_(*this, 0.15f);
+		}
+#endif
 		videoCutscene_.player.Close();
 		videoCutscene_.active = false;
 		DespawnCutsceneSkipPrompt();
