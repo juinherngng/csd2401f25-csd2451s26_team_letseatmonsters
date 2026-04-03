@@ -12,12 +12,27 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include <array>
+#include <cmath>
+
 #include "EngineCore/LogicManager.hpp"
 #include "EngineGraphics/GameObject.hpp"
+#include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/CustomerOrderUILogic.hpp"
 #include "GameCore/OrderUILogic.hpp"
 #include "GameCore/SimpleNpcLogic.hpp"
+
+namespace {
+	constexpr float kLowPatienceThreshold = 0.30f;
+	constexpr float kLowPatienceGlowPulseSpeed = 9.0f;
+	constexpr float kLowPatienceGlowMinAlpha = 0.32f;
+	constexpr float kLowPatienceGlowMaxAlpha = 0.92f;
+	constexpr float kLowPatienceGlowOffset = 2.5f;
+	constexpr int kLowPatienceGlowSortOrder = 200;
+	constexpr int kLowPatienceGlowMaskSortOrder = 201;
+	const glm::vec4 kLowPatienceGlowTint(1.0f, 0.16f, 0.16f, kLowPatienceGlowMaxAlpha);
+}
 
  // small utility
 static void DespawnIfAlive(Scene& scene, int& id) {
@@ -42,6 +57,8 @@ static float EaseOutCubic01(float x) {
 void CustomerOrderUILogic::Start(Scene& /*scene*/) {
 	lastIconPath_.clear();
 	prevBehaviourState_ = -1;
+	lowPatienceGlow_ = {};
+	lowPatienceGlowTimer_ = 0.0f;
 
 	payVFX_ID_ = -1;
 	payVFXTimer_ = 0.0f;
@@ -64,6 +81,7 @@ void CustomerOrderUILogic::DestroyBubble(Scene& scene) {
 }
 
 void CustomerOrderUILogic::DestroyPatienceBar(Scene& scene) {
+	DestroyLowPatienceGlow(scene);
 	DespawnIfAlive(scene, barFill_ID_);
 	DespawnIfAlive(scene, barBG_ID_);
 }
@@ -173,6 +191,173 @@ void CustomerOrderUILogic::UpdatePatienceFill(Scene& scene, float ratio01) {
 	fill->SetPosition(Math::Vector3D(centerX, bgPos.y, bgPos.z));
 }
 
+void CustomerOrderUILogic::DestroyLowPatienceGlow(Scene& scene) {
+	for (int& id : lowPatienceGlow_.ids) {
+		DespawnIfAlive(scene, id);
+	}
+	lowPatienceGlow_.sourceID = -1;
+}
+
+void CustomerOrderUILogic::EnsureLowPatienceGlow(Scene& scene) {
+	if (barBG_ID_ < 0) {
+		DestroyLowPatienceGlow(scene);
+		return;
+	}
+
+	GameObject* source = scene.GetGameObjectByID(barBG_ID_);
+	if (!source) {
+		DestroyLowPatienceGlow(scene);
+		return;
+	}
+
+	const std::string texturePath = scene.GetObjectTexturePath(barBG_ID_);
+	if (texturePath.empty()) {
+		DestroyLowPatienceGlow(scene);
+		return;
+	}
+
+	if (lowPatienceGlow_.sourceID == barBG_ID_) {
+		return;
+	}
+
+	DestroyLowPatienceGlow(scene);
+
+	const std::string layer = scene.GetObjectLayer(barBG_ID_);
+	const glm::vec3 sourcePos = source->GetPositionGLM();
+	const glm::vec3 sourceScale = source->GetScaleGLM();
+	const float sourceRotation = source->GetRotation();
+
+	const std::array<glm::vec2, 4> offsets{
+		glm::vec2(-kLowPatienceGlowOffset, 0.0f),
+		glm::vec2(kLowPatienceGlowOffset, 0.0f),
+		glm::vec2(0.0f, -kLowPatienceGlowOffset),
+		glm::vec2(0.0f,  kLowPatienceGlowOffset)
+	};
+
+	for (std::size_t i = 0; i < offsets.size(); ++i) {
+		const glm::vec2& offset = offsets[i];
+		GameObject* outline = scene.SpawnStaticSprite(
+			texturePath,
+			glm::vec3(sourcePos.x + offset.x, sourcePos.y + offset.y, sourcePos.z),
+			glm::vec2(std::abs(sourceScale.x), std::abs(sourceScale.y)),
+			layer);
+
+		if (!outline) {
+			continue;
+		}
+
+		outline->SetColorTint(kLowPatienceGlowTint);
+		outline->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+		outline->SetMovableByPhysics(false);
+		outline->EnableShadow(false);
+		outline->SetRenderSortOrder(kLowPatienceGlowSortOrder);
+		outline->SetRotation(sourceRotation, glm::vec3(0.0f, 0.0f, 1.0f));
+
+		if (Shader* outlineShader = ResourceManager::Instance().GetShader("hover_outline")) {
+			outline->SetShader(outlineShader);
+		}
+
+		lowPatienceGlow_.ids[i] = outline->GetID();
+	}
+
+	GameObject* mask = scene.SpawnStaticSprite(
+		texturePath,
+		sourcePos,
+		glm::vec2(std::abs(sourceScale.x), std::abs(sourceScale.y)),
+		layer);
+
+	if (mask) {
+		mask->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+		mask->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+		mask->SetMovableByPhysics(false);
+		mask->EnableShadow(false);
+		mask->SetRenderSortOrder(kLowPatienceGlowMaskSortOrder);
+		mask->SetRotation(sourceRotation, glm::vec3(0.0f, 0.0f, 1.0f));
+		lowPatienceGlow_.ids[4] = mask->GetID();
+	}
+
+	lowPatienceGlow_.sourceID = barBG_ID_;
+}
+
+void CustomerOrderUILogic::SyncLowPatienceGlow(Scene& scene, float alpha) {
+	if (lowPatienceGlow_.sourceID < 0) {
+		return;
+	}
+
+	GameObject* source = scene.GetGameObjectByID(lowPatienceGlow_.sourceID);
+	if (!source) {
+		DestroyLowPatienceGlow(scene);
+		return;
+	}
+
+	const std::string layer = scene.GetObjectLayer(lowPatienceGlow_.sourceID);
+	const glm::vec3 sourcePos = source->GetPositionGLM();
+	const glm::vec3 sourceScale = source->GetScaleGLM();
+	const float sourceRotation = source->GetRotation();
+	const float clampedAlpha = Clamp01(alpha);
+
+	const std::array<glm::vec2, 4> offsets{
+		glm::vec2(-kLowPatienceGlowOffset, 0.0f),
+		glm::vec2(kLowPatienceGlowOffset, 0.0f),
+		glm::vec2(0.0f, -kLowPatienceGlowOffset),
+		glm::vec2(0.0f,  kLowPatienceGlowOffset)
+	};
+
+	for (std::size_t i = 0; i < 4; ++i) {
+		const int id = lowPatienceGlow_.ids[i];
+		if (id < 0) {
+			continue;
+		}
+
+		GameObject* outline = scene.GetGameObjectByID(id);
+		if (!outline) {
+			continue;
+		}
+
+		const glm::vec2& offset = offsets[i];
+		outline->SetPosition(glm::vec3(sourcePos.x + offset.x, sourcePos.y + offset.y, sourcePos.z));
+		outline->SetScale(glm::vec3(std::abs(sourceScale.x), std::abs(sourceScale.y), 1.0f));
+		outline->SetRotation(sourceRotation, glm::vec3(0.0f, 0.0f, 1.0f));
+		outline->SetColorTint(glm::vec4(
+			kLowPatienceGlowTint.r,
+			kLowPatienceGlowTint.g,
+			kLowPatienceGlowTint.b,
+			clampedAlpha));
+		outline->SetRenderSortOrder(kLowPatienceGlowSortOrder);
+		scene.AssignObjectToLayer(id, layer);
+	}
+
+	const int maskID = lowPatienceGlow_.ids[4];
+	if (maskID >= 0) {
+		if (GameObject* mask = scene.GetGameObjectByID(maskID)) {
+			mask->SetPosition(sourcePos);
+			mask->SetScale(glm::vec3(std::abs(sourceScale.x), std::abs(sourceScale.y), 1.0f));
+			mask->SetRotation(sourceRotation, glm::vec3(0.0f, 0.0f, 1.0f));
+			mask->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+			mask->SetRenderSortOrder(kLowPatienceGlowMaskSortOrder);
+			scene.AssignObjectToLayer(maskID, layer);
+		}
+	}
+}
+
+void CustomerOrderUILogic::UpdateLowPatienceWarning(Scene& scene, float dt, float ratio01, bool showBar) {
+	const bool shouldWarn = showBar && ratio01 <= kLowPatienceThreshold;
+	if (!shouldWarn) {
+		lowPatienceGlowTimer_ = 0.0f;
+		DestroyLowPatienceGlow(scene);
+		return;
+	}
+
+	lowPatienceGlowTimer_ += dt;
+	EnsureLowPatienceGlow(scene);
+
+	const float pulse01 = 0.5f + 0.5f * std::sin(lowPatienceGlowTimer_ * kLowPatienceGlowPulseSpeed);
+	const float alpha = kLowPatienceGlowMinAlpha +
+		(kLowPatienceGlowMaxAlpha - kLowPatienceGlowMinAlpha) * pulse01;
+
+	SyncLowPatienceGlow(scene, alpha);
+}
+
 /**
  * @brief Updates the order bubble, patience bar, and reaction VFX for the owning customer.
  * @param dt Delta time for the frame.
@@ -233,18 +418,25 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 
 	if (showBar) {
 		EnsurePatienceBar(scene);
-		float ratio = npcLogic->GetPatienceRatio01();
-		UpdatePatienceFill(scene, ratio);
 	}
 	else {
 		DestroyPatienceBar(scene);
 	}
 
-	// Update the payment VFX lifetime / motion
-	UpdatePaymentVFX(scene, dt);
-
 	// keep UI following the customer every frame
 	FollowCustomer(scene);
+
+	if (showBar) {
+		const float ratio = npcLogic->GetPatienceRatio01();
+		UpdatePatienceFill(scene, ratio);
+		UpdateLowPatienceWarning(scene, dt, ratio, showBar);
+	}
+	else {
+		UpdateLowPatienceWarning(scene, dt, 1.0f, false);
+	}
+
+	// Update the payment VFX lifetime / motion
+	UpdatePaymentVFX(scene, dt);
 
 	// store previous state for transition detection
 	prevBehaviourState_ = curStateInt;

@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <array>
 #include <glm/glm.hpp>
 #include <string>
 
@@ -37,11 +38,18 @@ public:
 	}
 
 private:
+	struct WarningGlowSet {
+		std::array<int, 5> ids{ -1, -1, -1, -1, -1 };
+		int sourceID = -1;
+	};
+
 	// --- spawned UI object IDs (attached to this customer) ---
 	int bubbleBG_ID_ = -1; // thought bubble background sprite
 	int bubbleDish_ID_ = -1; // dish icon sprite on top of bubble
 	int barBG_ID_ = -1; // patience background bar (red)
 	int barFill_ID_ = -1; // patience fill bar (shrinks)
+	WarningGlowSet lowPatienceGlow_{};
+	float lowPatienceGlowTimer_ = 0.0f;
 
 	// --- config (tune these values) ---
 	std::string uiLayerBG_ = "50";
@@ -90,6 +98,18 @@ private:
 
 	// Rescales patience fill width from a normalized [0,1] ratio
 	void UpdatePatienceFill(Scene& scene, float ratio01);
+
+	// Drives the low-patience warning glow while the bar is visible
+	void UpdateLowPatienceWarning(Scene& scene, float dt, float ratio01, bool showBar);
+
+	// Ensures the low-patience outline overlay exists around the bar background
+	void EnsureLowPatienceGlow(Scene& scene);
+
+	// Keeps the low-patience glow aligned with the bar and updates pulse alpha
+	void SyncLowPatienceGlow(Scene& scene, float alpha);
+
+	// Destroys the low-patience glow overlay if it exists
+	void DestroyLowPatienceGlow(Scene& scene);
 
 	const char* happyFacePath_ = "../assets/UI/Reaction_Happy_Face.png";
 	const char* sadFacePath_ = "../assets/UI/Reaction_Angry_Face.png";
