@@ -360,24 +360,11 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_MAIN_MENU, 0.0f, 0.35f);
 		}
 
-		scene.StartCutsceneTransitionedBounded(
-			kIntroCutsceneFrames,
-			{
-				true,  // 1.1
-				true,  // 2.1
-				true,  // 3.1
-				true,  // 4.1
-				true,  // 5.1
-				true,  // 6.1
-			},
+		scene.StartVideoCutscene(
+			MyoonchiPaths::Videos::INTRO_CUTSCENE,
 			skipJson_,
 			activateSimulation_,
-			0.35f, // fade out at boundaries
-			0.35f, // fade in at boundaries
-			1.50f, // per-frame hold (animation cadence)
-			5,     // crossfade to frame index 5 (6.1)
-			1.5f
-			);
+			false);
 
 		if (audioManager_) {
 			const float cutsceneBgmFadeIn = 1.0f;

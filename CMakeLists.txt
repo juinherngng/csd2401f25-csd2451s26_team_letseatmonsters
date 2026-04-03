@@ -110,6 +110,10 @@ target_include_directories(TheStove PUBLIC
 
 target_link_libraries(TheStove PUBLIC ${ALL_LIBS})
 
+if(WIN32)
+    target_link_libraries(TheStove PUBLIC mfplat mfreadwrite mfuuid mf ole32)
+endif()
+
 # Game-specific library layered on top of TheStove
 add_library(MyoonchiDiner STATIC ${GAME_SOURCE_FILES})
 

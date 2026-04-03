@@ -36,6 +36,7 @@ namespace FilePaths {
 		constexpr const char* FONTS = "../assets/Font/";
 		constexpr const char* AUDIO = "../assets/Audio/";
 		constexpr const char* CUTSCENES = "../assets/Cutscenes/";
+		constexpr const char* VIDEOS = "../assets/Videos/";
 
 		// Relative to deeper directories (used by editor panels running from build/Release)
 		constexpr const char* ASSETS_EDITOR = "../../assets/";
@@ -188,6 +189,15 @@ namespace FilePaths {
 	/************************************************************************/
 	inline std::string CutscenePath(const std::string& filename) {
 		return JoinPath(Dirs::CUTSCENES, filename);
+	}
+
+	/**
+	 * @brief Constructs a full path to a video file stored under the shared videos directory.
+	 * @param filename Video filename such as `"intro.mp4"`.
+	 * @return Full relative path such as `"../assets/Videos/intro.mp4"`.
+	 */
+	inline std::string VideoPath(const std::string& filename) {
+		return JoinPath(Dirs::VIDEOS, filename);
 	}
 
 } // namespace FilePaths

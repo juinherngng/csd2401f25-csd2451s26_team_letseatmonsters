@@ -63,6 +63,7 @@ void Scene::Update(float deltaTime, GLFWwindow* window) {
  */
 void Scene::UpdateCutscenePhase(float deltaTime) {
 	// Drive both cutscene players every frame so fade and blackout transitions keep progressing.
+	UpdateVideoCutscene(deltaTime);
 	UpdateCutsceneTransitioned(deltaTime);
 	UpdateCutscene(deltaTime);
 	UpdateLevelTransition();
