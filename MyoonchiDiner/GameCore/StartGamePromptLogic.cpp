@@ -31,6 +31,7 @@
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
+#include "GameCore/MenuKeyboardNavigation.hpp"
 #include "GameCore/StartGamePromptLogic.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
 
@@ -175,6 +176,7 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 
 	yesHovered_ = false;
 	noHovered_ = false;
+	MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "start_prompt"));
 }
 
 // Closes the tutorial prompt by despawning the popup GameObject using its stored ID. Sets promptOpen_ to false and resets popupId_.
@@ -193,9 +195,10 @@ void StartGamePromptLogic::ClosePrompt(Scene& scene) {
 	}
 
 	yesHovered_ = false;
-	noHovered_ = false;
-	promptOpen_ = false;
-	scene.SetMenuModalActive(false);
+		noHovered_ = false;
+		promptOpen_ = false;
+		scene.SetMenuModalActive(false);
+		MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "start_prompt"));
 }
 
 // Update handles both the hover state for the "Play" button and the click interactions when the prompt is open. 
@@ -248,9 +251,17 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		const glm::vec2 max(pos.x + sz.x * 0.5f, pos.y + sz.y * 0.5f);
 
 		const bool over = IsPointInRect(mouseWorld, min, max);
+		const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
+			scene,
+			input,
+			MenuKeyboardNavigation::GetCurrentSceneTopLevelScopeKey(scene),
+			MenuKeyboardNavigation::CollectCurrentSceneTopLevelButtons(scene),
+			over ? GetOwnerID() : -1);
+		const bool keyboardFocused = (focusedButtonId == GetOwnerID());
+		const bool hot = over || keyboardFocused;
 
 		// hover swap
-		if (over && !hovered_) {
+		if (hot && !hovered_) {
 			hovered_ = true;
 			TrySetTexture(owner, hoverTexturePath_);
 			scene.TriggerUiButtonHoverFeedback(GetOwnerID());
@@ -258,17 +269,20 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
 			}
 		}
-		else if (!over && hovered_) {
+		else if (!hot && hovered_) {
 			hovered_ = false;
 			TrySetTexture(owner, normalTexturePath_);
 		}
 
 		// Click opens popup.
-		if (input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT) && over) {
+		const bool keyboardSubmit = keyboardFocused && MenuKeyboardNavigation::ConsumeSubmitPress(input);
+		if ((input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT) && over) || keyboardSubmit) {
 			if (audioManager_ && audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
 				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager_->GetVfxVolume(), false);
 			}
-			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+			if (over) {
+				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+			}
 			OpenPrompt(scene);
 		}
 		return;
@@ -299,9 +313,17 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 
 	const bool yesOver = IsPointInObject(yesButtonId_);
 	const bool noOver = IsPointInObject(noButtonId_);
+	const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
+		scene,
+		input,
+		MenuKeyboardNavigation::BuildScopeKey(scene, "start_prompt"),
+		{ yesButtonId_, noButtonId_ },
+		yesOver ? yesButtonId_ : (noOver ? noButtonId_ : -1));
+	const bool yesHot = yesOver || (focusedButtonId == yesButtonId_);
+	const bool noHot = noOver || (focusedButtonId == noButtonId_);
 
 	// Hover swaps for decision buttons.
-	if (yesOver && !yesHovered_) {
+	if (yesHot && !yesHovered_) {
 		yesHovered_ = true;
 		TrySetObjectTexture(scene, yesButtonId_, kTutorialYesHoverTexture);
 		scene.TriggerUiButtonHoverFeedback(yesButtonId_);
@@ -309,12 +331,12 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
 		}
 	}
-	else if (!yesOver && yesHovered_) {
+	else if (!yesHot && yesHovered_) {
 		yesHovered_ = false;
 		TrySetObjectTexture(scene, yesButtonId_, kTutorialYesNormalTexture);
 	}
 
-	if (noOver && !noHovered_) {
+	if (noHot && !noHovered_) {
 		noHovered_ = true;
 		TrySetObjectTexture(scene, noButtonId_, kTutorialNoHoverTexture);
 		scene.TriggerUiButtonHoverFeedback(noButtonId_);
@@ -322,18 +344,22 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
 		}
 	}
-	else if (!noOver && noHovered_) {
+	else if (!noHot && noHovered_) {
 		noHovered_ = false;
 		TrySetObjectTexture(scene, noButtonId_, kTutorialNoNormalTexture);
 	}
 
 	// Click handling for Yes/No actions.
-	if (!input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+	const bool click = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
+	const bool keyboardSubmit = MenuKeyboardNavigation::ConsumeSubmitPress(input);
+	if (!click && !keyboardSubmit) {
 		return;
 	}
-	input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+	if (click) {
+		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+	}
 
-	if (yesOver) {
+	if (yesHot && (yesOver || focusedButtonId == yesButtonId_)) {
 		// Yes -> enter tutorial directly.
 		ClosePrompt(scene);
 		if (audioManager_) {
@@ -347,7 +373,7 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		}
 		scene.StartLevelTransition(tutorialJson_, activateSimulation_);
 	}
-	else if (noOver) {
+	else if (noHot && (noOver || focusedButtonId == noButtonId_)) {
 		// No -> play intro cutscene flow, then continue.
 		ClosePrompt(scene);
 		if (audioManager_) {

@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <string>
+#include <vector>
 
 #include "EngineCore/ApplicationState.hpp"
 #include "EngineCore/FilePaths.hpp"
@@ -23,6 +24,7 @@
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
+#include "GameCore/MenuKeyboardNavigation.hpp"
 #include "GameCore/SettingsMenuLogic.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
 
@@ -477,13 +479,22 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 	const Rect masterSliderInteractRect = UnionRects(SliderGeometryToRect(masterSlider), GetObjectRect(scene, masterKnobVisualId_));
 	const Rect bgmSliderInteractRect = UnionRects(SliderGeometryToRect(bgmSlider), GetObjectRect(scene, bgmKnobVisualId_));
 	const Rect sfxSliderInteractRect = UnionRects(SliderGeometryToRect(sfxSlider), GetObjectRect(scene, sfxKnobVisualId_));
-	const bool overFullscreen = IsPointInRect(mouseWorld, fullscreenButtonRect);
-	const bool overWindowed = IsPointInRect(mouseWorld, windowedButtonRect);
+	const bool mouseOverFullscreen = IsPointInRect(mouseWorld, fullscreenButtonRect);
+	const bool mouseOverWindowed = IsPointInRect(mouseWorld, windowedButtonRect);
+	const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
+		scene,
+		input,
+		MenuKeyboardNavigation::GetCurrentSceneTopLevelScopeKey(scene),
+		MenuKeyboardNavigation::CollectCurrentSceneTopLevelButtons(scene),
+		mouseOverFullscreen ? fullscreenVisualId_ : (mouseOverWindowed ? windowedVisualId_ : -1));
+	const bool overFullscreen = mouseOverFullscreen || (focusedButtonId == fullscreenVisualId_);
+	const bool overWindowed = mouseOverWindowed || (focusedButtonId == windowedVisualId_);
 
 	if (overFullscreen != fullscreenHovered_) {
 		// Refresh hover art and sound only when the state actually changes.
 		fullscreenHovered_ = overFullscreen;
-		if (fullscreenHovered_ && !suppressHoverFeedbackUntilMouseMove_) {
+		if (fullscreenHovered_ && ((focusedButtonId == fullscreenVisualId_) || !suppressHoverFeedbackUntilMouseMove_)) {
+			scene.TriggerUiButtonHoverFeedback(fullscreenVisualId_);
 			PlayHoverSound();
 		}
 		RefreshVisualState(scene);
@@ -492,37 +503,46 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 	if (overWindowed != windowedHovered_) {
 		// Windowed uses the same hover feedback flow as fullscreen.
 		windowedHovered_ = overWindowed;
-		if (windowedHovered_ && !suppressHoverFeedbackUntilMouseMove_) {
+		if (windowedHovered_ && ((focusedButtonId == windowedVisualId_) || !suppressHoverFeedbackUntilMouseMove_)) {
+			scene.TriggerUiButtonHoverFeedback(windowedVisualId_);
 			PlayHoverSound();
 		}
 
 		RefreshVisualState(scene);
 	}
 
-	if (input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
-		if (overFullscreen) {
+	const bool mouseClick = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
+	const bool keyboardCanActivateLocal =
+		(focusedButtonId == fullscreenVisualId_) || (focusedButtonId == windowedVisualId_);
+	const bool keyboardSubmit = keyboardCanActivateLocal && MenuKeyboardNavigation::ConsumeSubmitPress(input);
+	if (mouseClick || keyboardSubmit) {
+		if ((mouseOverFullscreen && mouseClick) || (focusedButtonId == fullscreenVisualId_ && keyboardSubmit)) {
 			// Fullscreen toggles save immediately because the app window changes right away.
 			PlayClickSound();
 			suppressHoverFeedbackUntilMouseMove_ = true;
 			settings_.fullscreen = true;
 			PersistSettings(true);
 			RefreshVisualState(scene);
-			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+			if (mouseOverFullscreen && mouseClick) {
+				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+			}
 			return;
 		}
 
-		if (overWindowed) {
+		if ((mouseOverWindowed && mouseClick) || (focusedButtonId == windowedVisualId_ && keyboardSubmit)) {
 			// Windowed mode follows the same immediate-apply path.
 			PlayClickSound();
 			suppressHoverFeedbackUntilMouseMove_ = true;
 			settings_.fullscreen = false;
 			PersistSettings(true);
 			RefreshVisualState(scene);
-			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+			if (mouseOverWindowed && mouseClick) {
+				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+			}
 			return;
 		}
 
-		if (IsPointInRect(mouseWorld, masterSliderInteractRect)) {
+		if (mouseClick && IsPointInRect(mouseWorld, masterSliderInteractRect)) {
 			// Dragging starts from either the bar strip or the current knob body.
 			PlayClickSound();
 			StartSliderDrag(SliderTarget::Master, mouseWorld.x);
@@ -530,7 +550,7 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 			return;
 		}
 
-		if (IsPointInRect(mouseWorld, bgmSliderInteractRect)) {
+		if (mouseClick && IsPointInRect(mouseWorld, bgmSliderInteractRect)) {
 			// BGM slider uses the same authored geometry-derived interaction region.
 			PlayClickSound();
 			StartSliderDrag(SliderTarget::Bgm, mouseWorld.x);
@@ -538,7 +558,7 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 			return;
 		}
 
-		if (IsPointInRect(mouseWorld, sfxSliderInteractRect)) {
+		if (mouseClick && IsPointInRect(mouseWorld, sfxSliderInteractRect)) {
 			// SFX slider also supports click-to-jump plus immediate drag continuation.
 			PlayClickSound();
 			StartSliderDrag(SliderTarget::Sfx, mouseWorld.x);

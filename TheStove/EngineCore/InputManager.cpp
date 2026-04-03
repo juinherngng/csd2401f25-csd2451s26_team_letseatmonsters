@@ -40,6 +40,8 @@ namespace {
 		GLFW_KEY_RIGHT,
 		GLFW_KEY_UP,
 		GLFW_KEY_DOWN,
+		GLFW_KEY_ENTER,
+		GLFW_KEY_KP_ENTER,
 		GLFW_KEY_W,
 		GLFW_KEY_A,
 		GLFW_KEY_S,
@@ -159,6 +161,7 @@ void InputManager::UpdateInternal(GLFWwindow* window) {
 	// Poll commonly used keys
 	int keys[] = {
 		GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN,
+		GLFW_KEY_ENTER, GLFW_KEY_KP_ENTER,
 		GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D,
 		// physics dt, collider, points/lines, force, level editor
 		GLFW_KEY_P, GLFW_KEY_G, GLFW_KEY_H, GLFW_KEY_F, GLFW_KEY_L,

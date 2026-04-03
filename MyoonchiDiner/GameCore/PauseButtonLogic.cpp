@@ -13,11 +13,13 @@
  */
 
 #include <string>
+#include <vector>
 
 #include "EngineCore/AudioManager.hpp"
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
+#include "GameCore/MenuKeyboardNavigation.hpp"
 #include "GameCore/PauseButtonLogic.hpp"
 #include "GameCore/PlayerLogic.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
@@ -94,9 +96,19 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	const float halfW = sz.x * 0.5f;
 	const float halfH = sz.y * 0.5f;
 
-	const bool over =
+	const bool mouseOver =
 		mouseWorld.x >= (pos.x - halfW) && mouseWorld.x <= (pos.x + halfW) &&
 		mouseWorld.y >= (pos.y - halfH) && mouseWorld.y <= (pos.y + halfH);
+
+	const std::vector<int> buttonIds = MenuKeyboardNavigation::CollectPauseOverlayButtons(scene);
+	const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
+		scene,
+		input,
+		MenuKeyboardNavigation::GetPauseOverlayScopeKey(scene),
+		buttonIds,
+		mouseOver ? GetOwnerID() : -1);
+	const bool keyboardFocused = (focusedButtonId == GetOwnerID());
+	const bool over = mouseOver || keyboardFocused;
 
 	if (over && !hovered_) {
 		hovered_ = true;
@@ -114,12 +126,15 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	}
 
 	// Click
-	if (!over || !input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+	const bool keyboardSubmit = keyboardFocused && MenuKeyboardNavigation::ConsumeSubmitPress(input);
+	if ((!mouseOver || !input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) && !keyboardSubmit) {
 		return;
 	}
 
 	// Consume click so it won't leak into gameplay after resume
-	input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+	if (mouseOver) {
+		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+	}
 
 	switch (action_) {
 	case PauseAction::Resume:

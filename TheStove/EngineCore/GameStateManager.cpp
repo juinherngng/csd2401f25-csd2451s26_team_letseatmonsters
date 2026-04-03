@@ -244,6 +244,10 @@ namespace Framework {
 			return false;
 		}
 
+		// Promote the loaded JSON path immediately so first-load menu logic can
+		// reliably detect which authored scene is active, just like deferred loads.
+		scene->SetCurrentLevelPath(path);
+
 		if (!loadResult.validationWarnings.empty()) {
 			TS_LOG_WARN("[GameStateManager] Loaded '" << path << "' with " << loadResult.validationWarnings.size() << " validation warning(s).");
 		}

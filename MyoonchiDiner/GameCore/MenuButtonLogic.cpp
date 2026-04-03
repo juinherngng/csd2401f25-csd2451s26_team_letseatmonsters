@@ -14,11 +14,13 @@
  */
 
 #include <string>
+#include <vector>
 
 #include "EngineCore/AudioManager.hpp"
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
+#include "GameCore/MenuKeyboardNavigation.hpp"
 #include "GameCore/MenuButtonLogic.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
 
@@ -84,10 +86,6 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		insideScene = scene.GetGraphicsEngine().GetMouseWorldInScene(mouseWorld, nullptr);
 	}
 
-	if (!insideScene) {
-		return;
-	}
-
 	GameObject* owner = GetOwner(scene);
 	if (!owner) {
 		return;
@@ -98,9 +96,19 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	const float halfW = sz.x * 0.5f;
 	const float halfH = sz.y * 0.5f;
 
-	const bool over =
+	const bool mouseOver = insideScene &&
 		mouseWorld.x >= (pos.x - halfW) && mouseWorld.x <= (pos.x + halfW) &&
 		mouseWorld.y >= (pos.y - halfH) && mouseWorld.y <= (pos.y + halfH);
+
+	const std::vector<int> buttonIds = MenuKeyboardNavigation::CollectCurrentSceneTopLevelButtons(scene);
+	const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
+		scene,
+		input,
+		MenuKeyboardNavigation::GetCurrentSceneTopLevelScopeKey(scene),
+		buttonIds,
+		mouseOver ? GetOwnerID() : -1);
+	const bool keyboardFocused = (focusedButtonId == GetOwnerID());
+	const bool over = mouseOver || keyboardFocused;
 
 	if (over && !hovered_) {
 		hovered_ = true;
@@ -118,7 +126,8 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		TrySetTexture(owner, normalTexturePath_);
 	}
 
-	if (over && input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+	const bool keyboardSubmit = keyboardFocused && MenuKeyboardNavigation::ConsumeSubmitPress(input);
+	if ((mouseOver && input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) || keyboardSubmit) {
 		if (audioManager_) {
 			if (audioManager_->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
 				audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager_->GetVfxVolume(), false);
@@ -129,7 +138,9 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 			audioManager_->FadeChannel(MyoonchiPaths::Audio::BGM_MAIN_MENU, 0.0f, 0.35f);
 		}
 
-		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+		if (mouseOver) {
+			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+		}
 
 		// Direct transition only. No intro cutscene here.
 		scene.StartLevelTransition(targetJson_, activateSimulation_, 0.35f, 0.35f);

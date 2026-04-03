@@ -70,6 +70,7 @@
 #include "GameCore/InGamePauseTriggerLogic.hpp"
 #include "GameCore/IngredientBoxLogic.hpp"
 #include "GameCore/IngredientLogic.hpp"
+#include "GameCore/MenuKeyboardNavigation.hpp"
 #include "GameCore/MenuButtonLogic.hpp"
 #include "GameCore/OrderUILogic.hpp"
 #include "GameCore/PauseButtonLogic.hpp"
@@ -671,6 +672,7 @@ namespace {
 			yesHovered_ = false;
 			noHovered_ = false;
 			scene.SetMenuModalActive(false);
+			MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "quit_popup"));
 		}
 
 		void Show(Scene& scene, QuitPopupYesAction yesAction) {
@@ -729,13 +731,13 @@ namespace {
 
 			yesHovered_ = false;
 			noHovered_ = false;
+			MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "quit_popup"));
 		}
 
-		void UpdateHoverVisuals(Scene& scene, const glm::vec2& mouseWorld) {
+		void UpdateHoverVisuals(Scene& scene, bool yesHot, bool noHot) {
 			if (yesButtonID_ >= 0) {
-				const bool hoveredNow = IsPointInObject(scene, yesButtonID_, mouseWorld);
-				if (hoveredNow != yesHovered_) {
-					yesHovered_ = hoveredNow;
+				if (yesHot != yesHovered_) {
+					yesHovered_ = yesHot;
 					if (yesHovered_) {
 						scene.TriggerUiButtonHoverFeedback(yesButtonID_);
 						if (AudioManager* audioManager = scene.GetAudioManager()) {
@@ -753,9 +755,8 @@ namespace {
 			}
 
 			if (noButtonID_ >= 0) {
-				const bool hoveredNow = IsPointInObject(scene, noButtonID_, mouseWorld);
-				if (hoveredNow != noHovered_) {
-					noHovered_ = hoveredNow;
+				if (noHot != noHovered_) {
+					noHovered_ = noHot;
 					if (noHovered_) {
 						scene.TriggerUiButtonHoverFeedback(noButtonID_);
 						if (AudioManager* audioManager = scene.GetAudioManager()) {
@@ -796,19 +797,32 @@ namespace {
 
 			glm::vec2 mouseWorld{};
 			GetMouseWorld(input, mouseWorld);
-			UpdateHoverVisuals(scene, mouseWorld);
+			const bool yesOver = yesButtonID_ >= 0 && IsPointInObject(scene, yesButtonID_, mouseWorld);
+			const bool noOver = noButtonID_ >= 0 && IsPointInObject(scene, noButtonID_, mouseWorld);
+			const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
+				scene,
+				input,
+				MenuKeyboardNavigation::BuildScopeKey(scene, "quit_popup"),
+				{ yesButtonID_, noButtonID_ },
+				yesOver ? yesButtonID_ : (noOver ? noButtonID_ : -1));
+			const bool yesHot = yesOver || (focusedButtonId == yesButtonID_);
+			const bool noHot = noOver || (focusedButtonId == noButtonID_);
+			UpdateHoverVisuals(scene, yesHot, noHot);
 
 			const bool mouseDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
 			const bool clickEdge = mouseDown && !mouseHeld_;
 			mouseHeld_ = mouseDown;
+			const bool keyboardSubmit = MenuKeyboardNavigation::ConsumeSubmitPress(input);
 
-			if (!clickEdge) {
+			if (!clickEdge && !keyboardSubmit) {
 				return;
 			}
 
-			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+			if (clickEdge) {
+				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+			}
 
-			if (yesButtonID_ >= 0 && IsPointInObject(scene, yesButtonID_, mouseWorld)) {
+			if (yesHot && (yesOver || focusedButtonId == yesButtonID_)) {
 				if (AudioManager* audioManager = scene.GetAudioManager()) {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
 						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
@@ -847,7 +861,7 @@ namespace {
 				return;
 			}
 
-			if (noButtonID_ >= 0 && IsPointInObject(scene, noButtonID_, mouseWorld)) {
+			if (noHot && (noOver || focusedButtonId == noButtonID_)) {
 				if (AudioManager* audioManager = scene.GetAudioManager()) {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
 						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
@@ -908,7 +922,20 @@ namespace {
 			glm::vec2 mouseWorld{};
 			QuitPopupState::GetMouseWorld(input, mouseWorld);
 
-			const bool hoveredNow = QuitPopupState::IsPointInObject(scene, GetOwnerID(), mouseWorld);
+			const bool mouseOver = QuitPopupState::IsPointInObject(scene, GetOwnerID(), mouseWorld);
+			const std::vector<int> buttonIds = scene.IsPauseOverlayActive()
+				? MenuKeyboardNavigation::CollectPauseOverlayButtons(scene)
+				: MenuKeyboardNavigation::CollectCurrentSceneTopLevelButtons(scene);
+			const std::string scopeKey = scene.IsPauseOverlayActive()
+				? MenuKeyboardNavigation::GetPauseOverlayScopeKey(scene)
+				: MenuKeyboardNavigation::GetCurrentSceneTopLevelScopeKey(scene);
+			const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
+				scene,
+				input,
+				scopeKey,
+				buttonIds,
+				mouseOver ? GetOwnerID() : -1);
+			const bool hoveredNow = mouseOver || (focusedButtonId == GetOwnerID());
 			if (hoveredNow != hovered_) {
 				hovered_ = hoveredNow;
 				if (hovered_) {
@@ -934,15 +961,18 @@ namespace {
 			const bool mouseDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
 			const bool clickEdge = mouseDown && !mouseHeld_;
 			mouseHeld_ = mouseDown;
+			const bool keyboardSubmit = (focusedButtonId == GetOwnerID()) && MenuKeyboardNavigation::ConsumeSubmitPress(input);
 
-			if (hoveredNow && clickEdge) {
+			if ((mouseOver && clickEdge) || keyboardSubmit) {
 				if (AudioManager* audioManager = scene.GetAudioManager()) {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
 						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
 					}
 				}
 
-				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+				if (mouseOver && clickEdge) {
+					input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+				}
 				gQuitPopup.Show(scene, yesActionOnOpen_);
 			}
 		}

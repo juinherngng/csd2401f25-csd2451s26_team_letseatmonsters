@@ -16,12 +16,14 @@
  */
 
 #include <array>
+#include <vector>
 
 #include "EngineCore/FilePaths.hpp"
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/HowToPlayButtonLogic.hpp"
+#include "GameCore/MenuKeyboardNavigation.hpp"
 #include "MyoonchiDiner/GamePaths.hpp"
 
 namespace {
@@ -114,6 +116,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		currentPage_ = 0;
 		nextButtonHovered_ = false;
 		scene.SetHowToPlayOverlayActive(false);
+		MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "how_to_play_overlay"));
 		};
 
 	const bool overlayActive = scene.IsHowToPlayOverlayActive();
@@ -143,9 +146,17 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	if (overlayActive) {
 		const glm::vec2 mouseWorld = GetMouseWorld(input);
 		const bool overNextButton = (nextButtonId_ >= 0) && IsPointInObject(scene, nextButtonId_, mouseWorld);
+		const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
+			scene,
+			input,
+			MenuKeyboardNavigation::BuildScopeKey(scene, "how_to_play_overlay"),
+			nextButtonId_ >= 0 ? std::vector<int>{ nextButtonId_ } : std::vector<int>{},
+			overNextButton ? nextButtonId_ : -1);
+		const bool keyboardFocused = (focusedButtonId == nextButtonId_);
+		const bool nextButtonHot = overNextButton || keyboardFocused;
 
-		if (overNextButton != nextButtonHovered_) {
-			nextButtonHovered_ = overNextButton;
+		if (nextButtonHot != nextButtonHovered_) {
+			nextButtonHovered_ = nextButtonHot;
 
 			if (GameObject* nextBtn = scene.GetGameObjectByID(nextButtonId_)) {
 				TrySetTexture(nextBtn, nextButtonHovered_ ? kNextButtonTexHover : kNextButtonTexNormal);
@@ -169,14 +180,17 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			return;
 		}
 
-		if (!click) {
+		const bool keyboardSubmit = keyboardFocused && MenuKeyboardNavigation::ConsumeSubmitPress(input);
+		if (!click && !keyboardSubmit) {
 			return;
 		}
 
-		// Consume all clicks while overlay is open.
-		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+		if (click) {
+			// Consume all clicks while overlay is open.
+			input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+		}
 
-		if (!overNextButton) {
+		if (!(overNextButton || keyboardFocused)) {
 			return;
 		}
 
@@ -216,7 +230,22 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		mouseWorld.x >= (pos.x - halfW) && mouseWorld.x <= (pos.x + halfW) &&
 		mouseWorld.y >= (pos.y - halfH) && mouseWorld.y <= (pos.y + halfH);
 
-	if (over && !hovered_) {
+	const std::vector<int> buttonIds = scene.IsPauseOverlayActive()
+		? MenuKeyboardNavigation::CollectPauseOverlayButtons(scene)
+		: MenuKeyboardNavigation::CollectCurrentSceneTopLevelButtons(scene);
+	const std::string scopeKey = scene.IsPauseOverlayActive()
+		? MenuKeyboardNavigation::GetPauseOverlayScopeKey(scene)
+		: MenuKeyboardNavigation::GetCurrentSceneTopLevelScopeKey(scene);
+	const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
+		scene,
+		input,
+		scopeKey,
+		buttonIds,
+		over ? GetOwnerID() : -1);
+	const bool keyboardFocused = (focusedButtonId == GetOwnerID());
+	const bool hot = over || keyboardFocused;
+
+	if (hot && !hovered_) {
 		hovered_ = true;
 		TrySetTexture(owner, hoverTexturePath_);
 		scene.TriggerUiButtonHoverFeedback(GetOwnerID());
@@ -224,12 +253,13 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager_->GetVfxVolume(), false);
 		}
 	}
-	else if (!over && hovered_) {
+	else if (!hot && hovered_) {
 		hovered_ = false;
 		TrySetTexture(owner, normalTexturePath_);
 	}
 
-	if (!over || !input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+	const bool keyboardSubmit = keyboardFocused && MenuKeyboardNavigation::ConsumeSubmitPress(input);
+	if ((!over || !input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) && !keyboardSubmit) {
 		return;
 	}
 
@@ -237,7 +267,9 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		audioManager_->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager_->GetVfxVolume(), false);
 	}
 
-	input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+	if (over) {
+		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+	}
 
 	const std::string overlayLayer = "9999998";
 	const std::string nextButtonLayer = "9999999";
@@ -274,6 +306,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	nextButtonId_ = nextBtn->GetID();
 	currentPage_ = 0;
 	nextButtonHovered_ = false;
+	MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "how_to_play_overlay"));
 
 	overlay->SetMovableByPhysics(false);
 	nextBtn->SetMovableByPhysics(false);
