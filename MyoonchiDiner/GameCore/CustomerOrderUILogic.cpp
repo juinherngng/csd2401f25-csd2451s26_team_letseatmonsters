@@ -13,19 +13,19 @@
  */
 
 #include <algorithm>
-#include <cstdint>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <vector>
 
 #include "EngineCore/LogicManager.hpp"
 #include "EngineGraphics/GameObject.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
-#include "GamePaths.hpp"
 #include "GameCore/CustomerOrderUILogic.hpp"
 #include "GameCore/OrderUILogic.hpp"
 #include "GameCore/SimpleNpcLogic.hpp"
+#include "MyoonchiDiner/GamePaths.hpp"
 
 namespace {
 	constexpr int kAmbientVfxRows = 14;
@@ -73,7 +73,7 @@ namespace {
 	}
 }
 
- // small utility
+// small utility
 static void DespawnIfAlive(Scene& scene, int& id) {
 	if (id >= 0) {
 		scene.DespawnByID(id);

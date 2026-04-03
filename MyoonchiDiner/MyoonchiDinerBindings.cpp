@@ -745,6 +745,24 @@ namespace {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
 						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
 					}
+
+					if (yesAction_ == QuitPopupYesAction::ReturnToMainMenu) {
+						const float transitionFadeOut = 0.35f;
+						const std::array<const char*, 6> channelsToFade = {
+							MyoonchiPaths::Audio::BGM_LEVEL_THEME,
+							MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE,
+							MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE,
+							MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE,
+							MyoonchiPaths::Audio::BGM_WIN_CUTSCENE,
+							MyoonchiPaths::Audio::SFX_GAMEOVER
+						};
+
+						for (const char* channelName : channelsToFade) {
+							if (audioManager->HasSound(channelName) && audioManager->IsSoundPlaying(channelName)) {
+								audioManager->FadeChannel(channelName, 0.0f, transitionFadeOut);
+							}
+						}
+					}
 				}
 
 				if (yesAction_ == QuitPopupYesAction::ReturnToMainMenu) {
@@ -1312,10 +1330,22 @@ namespace {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
 						audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
 					}
-					audioManager->StopSound(MyoonchiPaths::Audio::BGM_LEVEL_THEME);
-					audioManager->StopSound(MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE);
-					audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
-					audioManager->StopSound(MyoonchiPaths::Audio::BGM_WIN_CUTSCENE);
+
+					const float transitionFadeOut = 0.35f;
+					const std::array<const char*, 6> channelsToFade = {
+						MyoonchiPaths::Audio::BGM_LEVEL_THEME,
+						MyoonchiPaths::Audio::BGM_KITCHEN_AMBIENCE,
+						MyoonchiPaths::Audio::BGM_FOREST_AMBIENCE,
+						MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE,
+						MyoonchiPaths::Audio::BGM_WIN_CUTSCENE,
+						MyoonchiPaths::Audio::SFX_GAMEOVER
+					};
+
+					for (const char* channelName : channelsToFade) {
+						if (audioManager->HasSound(channelName) && audioManager->IsSoundPlaying(channelName)) {
+							audioManager->FadeChannel(channelName, 0.0f, transitionFadeOut);
+						}
+					}
 				}
 				scene.StartLevelTransition(MyoonchiPaths::Levels::MAIN_MENU, false);
 			}

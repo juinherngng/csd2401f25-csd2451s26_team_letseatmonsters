@@ -868,14 +868,15 @@ void Application::Cleanup() {
 
 	if (state_.coreEngine) {
 		if (auto* audioMgr = state_.coreEngine->GetSystem<AudioManager>()) {
-			// Stop playback before destroying the audio backend.
+			// Silence playback first, but keep the backend alive until the catalog
+			// has finished unloading through the shared ResourceManager bridge.
 			audioMgr->StopAllSounds();
-			audioMgr->Shutdown();
 		}
 	}
 
 	// Release catalog-owned sound resources before graphics and engine teardown.
 	Audio::AudioCatalog::UnloadAllAudio();
+	ResourceManager::Instance().SetAudioManager(nullptr);
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 	if (state_.debugApp) {
