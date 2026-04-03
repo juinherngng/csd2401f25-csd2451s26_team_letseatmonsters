@@ -68,7 +68,7 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 	const std::string& levelJsonPath,
 	bool activateSimulation) {
 	if (imagePaths.size() == 1 && IsVideoCutscenePath(imagePaths.front())) {
-		StartVideoCutscene(imagePaths.front(), levelJsonPath, activateSimulation, false);
+		StartVideoCutsceneTransitioned(imagePaths.front(), levelJsonPath, activateSimulation, false);
 		return;
 	}
 
@@ -295,7 +295,13 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 	int crossfadeFromIndex,
 	float crossfadeSeconds) {
 	if (imagePaths.size() == 1 && IsVideoCutscenePath(imagePaths.front())) {
-		StartVideoCutscene(imagePaths.front(), levelJsonPath, activateSimulation, false);
+		StartVideoCutsceneTransitioned(
+			imagePaths.front(),
+			levelJsonPath,
+			activateSimulation,
+			false,
+			fadeOutSeconds,
+			fadeInSeconds);
 		return;
 	}
 
@@ -450,6 +456,38 @@ void Scene::StartVideoCutscene(const std::string& videoPath,
 	}
 }
 
+void Scene::StartVideoCutsceneTransitioned(const std::string& videoPath,
+	const std::string& levelJsonPath,
+	bool activateSimulation,
+	bool loop,
+	float fadeOutSeconds,
+	float fadeInSeconds) {
+	if (videoPath.empty()) {
+		QueueLevelLoad(levelJsonPath, activateSimulation);
+		return;
+	}
+
+	SetSimulationActive(false);
+	HidePauseOverlay();
+	SetFlowState(FlowState::Transitioning);
+
+	// Reset any previous pending request so rapid menu input always keeps the latest choice.
+	pendingVideoCutsceneTransition_.active = true;
+	pendingVideoCutsceneTransition_.awaitingBlackout = true;
+	pendingVideoCutsceneTransition_.videoPath = videoPath;
+	pendingVideoCutsceneTransition_.targetLevelJson = levelJsonPath;
+	pendingVideoCutsceneTransition_.targetActivateSim = activateSimulation;
+	pendingVideoCutsceneTransition_.loop = loop;
+	pendingVideoCutsceneTransition_.fadeOutSeconds = fadeOutSeconds;
+	pendingVideoCutsceneTransition_.fadeInSeconds = fadeInSeconds;
+
+	auto& gfx = GetGraphicsEngine();
+	if (gfx.IsTransitionActive() && !gfx.IsAtBlackout()) {
+		gfx.CancelSceneTransition();
+	}
+	gfx.StartSceneTransition(fadeOutSeconds, fadeInSeconds);
+}
+
 /**
  * @brief Advances active video playback and hands off to the next level when the video ends.
  * @param dt Frame delta time in seconds.
@@ -487,6 +525,31 @@ void Scene::UpdateVideoCutscene(float dt) {
 			QueueLevelLoad(videoCutscene_.targetLevelJson, videoCutscene_.targetActivateSim);
 		}
 	}
+}
+
+void Scene::UpdatePendingVideoCutsceneTransition() {
+	if (!pendingVideoCutsceneTransition_.active) {
+		return;
+	}
+
+	auto& gfx = GetGraphicsEngine();
+	if (!pendingVideoCutsceneTransition_.awaitingBlackout || !gfx.IsAtBlackout()) {
+		return;
+	}
+
+	pendingVideoCutsceneTransition_.awaitingBlackout = false;
+
+	const std::string videoPath = pendingVideoCutsceneTransition_.videoPath;
+	const std::string targetLevelJson = pendingVideoCutsceneTransition_.targetLevelJson;
+	const bool targetActivateSim = pendingVideoCutsceneTransition_.targetActivateSim;
+	const bool loop = pendingVideoCutsceneTransition_.loop;
+	const float fadeInSeconds = pendingVideoCutsceneTransition_.fadeInSeconds;
+
+	pendingVideoCutsceneTransition_ = {};
+
+	StartVideoCutscene(videoPath, targetLevelJson, targetActivateSim, loop);
+	gfx.ContinueTransitionFadeIn();
+	cutTrans_.inSeconds = fadeInSeconds;
 }
 
 /**
@@ -845,24 +908,28 @@ void Scene::SkipActiveCutscene() {
 	bool publishedSkipEvent = false;
 
 	if (videoCutscene_.active) {
+		const float skipFadeOutSeconds = 1.0f;
+		const float skipFadeInSeconds = 0.175f;
+
 #ifndef _DEBUG
 		if (skipCutsceneAudioHook_) {
-			skipCutsceneAudioHook_(*this, 0.15f);
+			skipCutsceneAudioHook_(*this, skipFadeOutSeconds);
 		}
 #endif
 
-		if (videoCutscene_.spriteId >= 0) {
-			DespawnByID(videoCutscene_.spriteId);
-			videoCutscene_.spriteId = -1;
-		}
-
+		// Freeze on the current video frame so the fade-out happens over the video itself
+		// instead of revealing whatever scene content sits underneath the cutscene layer.
 		videoCutscene_.player.Close();
 		videoCutscene_.active = false;
 		DespawnCutsceneSkipPrompt();
 
 		if (!videoCutscene_.queuedFinalLoad) {
 			videoCutscene_.queuedFinalLoad = true;
-			QueueLevelLoad(videoCutscene_.targetLevelJson, videoCutscene_.targetActivateSim);
+			StartLevelTransition(
+				videoCutscene_.targetLevelJson,
+				videoCutscene_.targetActivateSim,
+				skipFadeOutSeconds,
+				skipFadeInSeconds);
 		}
 
 		if (messageBus_) {

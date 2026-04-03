@@ -1093,6 +1093,22 @@ public:
 		bool activateSimulation,
 		bool loop = false);
 
+	/**
+	 * @brief Starts a fade-to-black transition, then begins a fullscreen video cutscene at blackout.
+	 * @param videoPath Path to the video asset that should be played.
+	 * @param levelJsonPath Level JSON path queued once playback completes or is skipped.
+	 * @param activateSimulation Whether the follow-up level should resume simulation.
+	 * @param loop Whether the video should restart automatically after ending.
+	 * @param fadeOutSeconds Seconds spent fading out to blackout before the video appears.
+	 * @param fadeInSeconds Seconds spent fading back in over the video once playback begins.
+	 */
+	void StartVideoCutsceneTransitioned(const std::string& videoPath,
+		const std::string& levelJsonPath,
+		bool activateSimulation,
+		bool loop = false,
+		float fadeOutSeconds = 0.35f,
+		float fadeInSeconds = 0.35f);
+
 	// Order UI slide-in API
 	// Spawns an Order UI sprite off-screen at the top, then animates it sliding down to target.
 	/**
@@ -1142,6 +1158,11 @@ public:
 	 * @param dt Frame delta time in seconds.
 	 */
 	void UpdateVideoCutscene(float dt);
+
+	/**
+	 * @brief Advances a pending fade-into-video request until blackout is reached.
+	 */
+	void UpdatePendingVideoCutsceneTransition();
 
 private:
 	// -------------------------------------------------------------------------------------------------
@@ -1372,6 +1393,17 @@ private:
 		bool loop = false;
 		VideoPlayer player;
 	} videoCutscene_;
+
+	struct PendingVideoCutsceneTransition {
+		bool active = false;
+		bool awaitingBlackout = false;
+		std::string videoPath;
+		std::string targetLevelJson;
+		bool targetActivateSim = true;
+		bool loop = false;
+		float fadeOutSeconds = 0.35f;
+		float fadeInSeconds = 0.35f;
+	} pendingVideoCutsceneTransition_;
 
 	// Runtime ID for top-right "press space to skip" cutscene sprite
 	int cutsceneSkipPromptId_ = -1;
