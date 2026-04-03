@@ -103,6 +103,15 @@ private:
 	// Rescales patience fill width from a normalized [0,1] ratio
 	void UpdatePatienceFill(Scene& scene, float ratio01);
 
+	// Ensures the looping eating VFX exists while the customer is eating
+	void EnsureEatingVFX(Scene& scene);
+
+	// Keeps the eating VFX anchored to the customer each frame
+	void UpdateEatingVFX(Scene& scene);
+
+	// Destroys the eating VFX if it exists
+	void DestroyEatingVFX(Scene& scene);
+
 	// Drives the low-patience warning glow while the bar is visible
 	void UpdateLowPatienceWarning(Scene& scene, float dt, float ratio01, bool showBar);
 
@@ -156,5 +165,10 @@ private:
 	glm::vec2 payVFXTargetPos_ = { 0.f, 0.f };
 	float payVFXFlyDuration_ = 0.24f;
 	bool payVFXQueueStamp_ = false;
+
+	// --- eating VFX ---
+	int eatingVFX_ID_ = -1;
+	glm::vec2 eatingVFXOffset_ = { 0.f, -18.f };
+	glm::vec2 eatingVFXSize_ = { 96.f, 96.f };
 
 };

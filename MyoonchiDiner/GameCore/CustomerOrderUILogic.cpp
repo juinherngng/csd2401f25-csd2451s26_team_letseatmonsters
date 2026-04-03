@@ -16,16 +16,20 @@
 #include <cstdint>
 #include <array>
 #include <cmath>
+#include <vector>
 
 #include "EngineCore/LogicManager.hpp"
 #include "EngineGraphics/GameObject.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
+#include "GamePaths.hpp"
 #include "GameCore/CustomerOrderUILogic.hpp"
 #include "GameCore/OrderUILogic.hpp"
 #include "GameCore/SimpleNpcLogic.hpp"
 
 namespace {
+	constexpr int kAmbientVfxRows = 14;
+	constexpr int kAmbientVfxCols = 6;
 	constexpr float kLowPatienceThreshold = 0.30f;
 	constexpr float kLowPatienceGlowPulseSpeed = 7.8f;
 	constexpr float kLowPatienceGlowMinAlpha = 0.72f;
@@ -42,6 +46,31 @@ namespace {
 	constexpr int kLowPatienceGlowSortOrder = 200;
 	constexpr int kLowPatienceGlowMaskSortOrder = 201;
 	const glm::vec4 kLowPatienceGlowTint(1.0f, 0.16f, 0.16f, kLowPatienceGlowMaxAlpha);
+
+	std::vector<glm::vec4> CreateAmbientVfxFramesFromTopRow(int topRowOneBased, int startCol, int endCol) {
+		std::vector<glm::vec4> frames;
+		if (topRowOneBased < 1 || topRowOneBased > kAmbientVfxRows) {
+			return frames;
+		}
+
+		startCol = std::max(0, std::min(startCol, kAmbientVfxCols - 1));
+		endCol = std::max(0, std::min(endCol, kAmbientVfxCols - 1));
+		if (startCol > endCol) {
+			std::swap(startCol, endCol);
+		}
+
+		const int engineRow = kAmbientVfxRows - topRowOneBased;
+		const float frameW = 1.0f / static_cast<float>(kAmbientVfxCols);
+		const float frameH = 1.0f / static_cast<float>(kAmbientVfxRows);
+		const float v = engineRow * frameH;
+
+		for (int col = startCol; col <= endCol; ++col) {
+			const float u = col * frameW;
+			frames.emplace_back(u, v, frameW, frameH);
+		}
+
+		return frames;
+	}
 }
 
  // small utility
@@ -137,6 +166,7 @@ void CustomerOrderUILogic::Start(Scene& /*scene*/) {
 	payVFXStartPos_ = { 0.f, 0.f };
 	payVFXTargetPos_ = { 0.f, 0.f };
 	payVFXQueueStamp_ = false;
+	eatingVFX_ID_ = -1;
 }
 
 void CustomerOrderUILogic::OnDestroy(Scene& scene) {
@@ -144,6 +174,7 @@ void CustomerOrderUILogic::OnDestroy(Scene& scene) {
 	DestroyBubble(scene);
 	DestroyPatienceBar(scene);
 	DestroyPaymentVFX(scene);
+	DestroyEatingVFX(scene);
 }
 
 void CustomerOrderUILogic::DestroyBubble(Scene& scene) {
@@ -242,6 +273,15 @@ void CustomerOrderUILogic::FollowCustomer(Scene& scene) {
 		SyncLowPatienceGlow(scene, lowPatienceGlowAlpha_);
 	}
 
+	if (eatingVFX_ID_ >= 0) {
+		if (GameObject* eatingVfx = scene.GetGameObjectByID(eatingVFX_ID_)) {
+			eatingVfx->SetPosition(Math::Vector3D(
+				p.x + eatingVFXOffset_.x,
+				p.y + eatingVFXOffset_.y,
+				p.z + 0.001f));
+		}
+	}
+
 	// barFill position is handled in UpdatePatienceFill() so it pivots correctly
 }
 
@@ -273,6 +313,78 @@ void CustomerOrderUILogic::UpdatePatienceFill(Scene& scene, float ratio01) {
 	fill->SetScale({ newW, fullH, 1.0f });
 	fill->SetPosition(Math::Vector3D(centerX, bgPos.y, bgPos.z));
 	fill->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, lowPatienceBarAlpha_));
+}
+
+void CustomerOrderUILogic::DestroyEatingVFX(Scene& scene) {
+	DespawnIfAlive(scene, eatingVFX_ID_);
+}
+
+void CustomerOrderUILogic::EnsureEatingVFX(Scene& scene) {
+	if (eatingVFX_ID_ >= 0 && scene.GetGameObjectByID(eatingVFX_ID_)) {
+		return;
+	}
+
+	GameObject* me = scene.GetGameObjectByID(GetOwnerID());
+	if (!me) {
+		return;
+	}
+
+	std::vector<glm::vec4> frames = CreateAmbientVfxFramesFromTopRow(5, 0, 4);
+	if (frames.empty()) {
+		return;
+	}
+
+	const glm::vec3 p = me->GetPositionGLM();
+	const std::string layer = scene.GetObjectLayer(GetOwnerID()).empty()
+		? std::string("10")
+		: scene.GetObjectLayer(GetOwnerID());
+
+	GameObject* fx = scene.SpawnAnimatedSprite(
+		MyoonchiPaths::Textures::AMBIENT_VFX_SHEET,
+		glm::vec3(p.x + eatingVFXOffset_.x, p.y + eatingVFXOffset_.y, p.z + 0.001f),
+		eatingVFXSize_,
+		frames,
+		0.10f,
+		true,
+		layer);
+
+	if (!fx) {
+		return;
+	}
+
+	eatingVFX_ID_ = fx->GetID();
+	fx->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+	fx->SetColliderOffset(Math::Vector2D(0.0f, 0.0f));
+	fx->SetMovableByPhysics(false);
+	fx->EnableShadow(false);
+	fx->SetRenderSortOrder(std::max(me->GetRenderSortOrder() + 1, 5));
+	scene.SetObjectTag(eatingVFX_ID_, "customer_eating_vfx");
+}
+
+void CustomerOrderUILogic::UpdateEatingVFX(Scene& scene) {
+	if (eatingVFX_ID_ < 0) {
+		return;
+	}
+
+	GameObject* me = scene.GetGameObjectByID(GetOwnerID());
+	GameObject* fx = scene.GetGameObjectByID(eatingVFX_ID_);
+	if (!me || !fx) {
+		DestroyEatingVFX(scene);
+		return;
+	}
+
+	const glm::vec3 p = me->GetPositionGLM();
+	const std::string layer = scene.GetObjectLayer(GetOwnerID()).empty()
+		? std::string("10")
+		: scene.GetObjectLayer(GetOwnerID());
+
+	fx->SetPosition(glm::vec3(
+		p.x + eatingVFXOffset_.x,
+		p.y + eatingVFXOffset_.y,
+		p.z + 0.001f));
+	fx->SetScale(glm::vec3(eatingVFXSize_.x, eatingVFXSize_.y, 1.0f));
+	fx->SetRenderSortOrder(std::max(me->GetRenderSortOrder() + 1, 5));
+	scene.AssignObjectToLayer(eatingVFX_ID_, layer);
 }
 
 void CustomerOrderUILogic::DestroyLowPatienceGlow(Scene& scene) {
@@ -524,6 +636,8 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 
 	const bool showBar =
 		(state == SimpleNpcLogic::BehaviourState::WaitingForFood);
+	const bool showEatingVfx =
+		(state == SimpleNpcLogic::BehaviourState::Eating);
 	float patienceRatio = 1.0f;
 
 	if (showBubble) {
@@ -541,6 +655,13 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 		DestroyBubble(scene);
 	}
 
+	if (showEatingVfx) {
+		EnsureEatingVFX(scene);
+	}
+	else {
+		DestroyEatingVFX(scene);
+	}
+
 	if (showBar) {
 		EnsurePatienceBar(scene);
 		patienceRatio = npcLogic->GetPatienceRatio01();
@@ -556,6 +677,10 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 
 	if (showBar) {
 		UpdatePatienceFill(scene, patienceRatio);
+	}
+
+	if (showEatingVfx) {
+		UpdateEatingVFX(scene);
 	}
 
 	// Update the payment VFX lifetime / motion
