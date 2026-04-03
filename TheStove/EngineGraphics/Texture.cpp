@@ -19,15 +19,24 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "EngineGraphics/stb_image.h"
 
+/**
+ * @brief Initializes the wrapper with no active GPU texture.
+ */
 Texture::Texture() : textureID(0), width(0), height(0), channels(0) {}
 
+/**
+ * @brief Deletes the owned GPU texture when the wrapper goes out of scope.
+ */
 Texture::~Texture() {
 	if (textureID != 0) {
 		glDeleteTextures(1, &textureID);
 	}
 }
 
-// Move constructor
+/**
+ * @brief Transfers GPU texture ownership from another wrapper during construction.
+ * @param other Source wrapper whose texture handle is adopted.
+ */
 Texture::Texture(Texture&& other) noexcept
 	: textureID(other.textureID), width(other.width), height(other.height), channels(other.channels) {
 	other.textureID = 0;
@@ -36,9 +45,14 @@ Texture::Texture(Texture&& other) noexcept
 	other.channels = 0;
 }
 
-// Move assignment
+/**
+ * @brief Transfers GPU texture ownership from another wrapper during assignment.
+ * @param other Source wrapper whose texture handle is adopted.
+ * @return Reference to this wrapper after ownership transfer.
+ */
 Texture& Texture::operator=(Texture&& other) noexcept {
 	if (this != &other) {
+		// Release any texture this wrapper already owns before adopting the incoming one.
 		if (textureID != 0) {
 			glDeleteTextures(1, &textureID);
 		}
@@ -56,7 +70,15 @@ Texture& Texture::operator=(Texture&& other) noexcept {
 	return *this;
 }
 
-// Static method to decode an image file into CPU memory using stb_image (no OpenGL calls)
+/**
+ * @brief Decodes an image file into CPU memory using stb_image without issuing any OpenGL calls.
+ * @param filePath Relative or absolute path to the image file.
+ * @param outData Output vector filled with decoded pixel data.
+ * @param outWidth Output image width in pixels.
+ * @param outHeight Output image height in pixels.
+ * @param outChannels Output channel count of the decoded image.
+ * @return `true` if the file was decoded successfully.
+ */
 bool Texture::DecodeFile(const std::string& filePath,
 	std::vector<unsigned char>& outData,
 	int& outWidth,
@@ -85,9 +107,43 @@ bool Texture::DecodeFile(const std::string& filePath,
 	return true;
 }
 
-// Upload pre-decoded image bytes to OpenGL and create a texture object
+/**
+ * @brief Allocates a texture and uploads pre-decoded image bytes into it.
+ * @param data Raw pixel data to upload.
+ * @param imageWidth Image width in pixels.
+ * @param imageHeight Image height in pixels.
+ * @param imageChannels Number of channels stored in `data`.
+ * @return `true` if the texture was allocated and filled successfully.
+ */
 bool Texture::LoadFromMemory(const unsigned char* data, int imageWidth, int imageHeight, int imageChannels) {
 	if (!data || imageWidth <= 0 || imageHeight <= 0 || imageChannels <= 0) {
+		return false;
+	}
+
+	if (!AllocateEmpty(imageWidth, imageHeight, imageChannels)) {
+		return false;
+	}
+
+	GLenum format = GL_RGB;
+	if (imageChannels == 1)
+		format = GL_RED;
+	else if (imageChannels == 3)
+		format = GL_RGB;
+	else if (imageChannels == 4)
+		format = GL_RGBA;
+
+	return UpdateFromMemory(data, imageWidth, imageHeight, format, GL_UNSIGNED_BYTE);
+}
+
+/**
+ * @brief Allocates empty GPU storage for a texture that will be updated later.
+ * @param imageWidth Texture width in pixels.
+ * @param imageHeight Texture height in pixels.
+ * @param imageChannels Channel count used to choose the internal storage format.
+ * @return `true` if allocation succeeded.
+ */
+bool Texture::AllocateEmpty(int imageWidth, int imageHeight, int imageChannels) {
+	if (imageWidth <= 0 || imageHeight <= 0 || imageChannels <= 0) {
 		return false;
 	}
 
@@ -117,13 +173,45 @@ bool Texture::LoadFromMemory(const unsigned char* data, int imageWidth, int imag
 	else if (channels == 4)
 		format = GL_RGBA;
 
-	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+	glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, nullptr);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return true;
 }
 
-// Load texture data from disk and upload it to OpenGL
+/**
+ * @brief Updates an already allocated texture with new pixel data.
+ * @param data Raw pixel data to upload.
+ * @param imageWidth Width of the incoming data.
+ * @param imageHeight Height of the incoming data.
+ * @param inputFormat OpenGL format describing the incoming pixel layout.
+ * @param inputType OpenGL component type describing the incoming pixel layout.
+ * @return `true` if the texture dimensions matched and the upload was issued.
+ */
+bool Texture::UpdateFromMemory(const unsigned char* data,
+	int imageWidth,
+	int imageHeight,
+	GLenum inputFormat,
+	GLenum inputType) {
+	if (!data || textureID == 0 || imageWidth <= 0 || imageHeight <= 0) {
+		return false;
+	}
+
+	if (imageWidth != width || imageHeight != height) {
+		return false;
+	}
+
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, inputFormat, inputType, data);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	return true;
+}
+
+/**
+ * @brief Loads an image from disk, decodes it in CPU memory, and uploads it into a GPU texture.
+ * @param filePath Relative or absolute path to the image file.
+ * @return `true` if decode and upload both succeed.
+ */
 bool Texture::LoadFromFile(const std::string& filePath) {
 	std::vector<unsigned char> decoded;
 	int imageWidth = 0;
@@ -144,7 +232,10 @@ bool Texture::LoadFromFile(const std::string& filePath) {
 	return true;
 }
 
-// Bind this texture to a texture unit slot (default slot 0)
+/**
+ * @brief Binds this texture to the requested texture unit.
+ * @param slot Texture unit index to bind to.
+ */
 void Texture::Bind(unsigned int slot) const {
 
 	if (textureID == 0) {
@@ -156,7 +247,9 @@ void Texture::Bind(unsigned int slot) const {
 	glBindTexture(GL_TEXTURE_2D, textureID);
 }
 
-// Unbind any texture from the active texture target
+/**
+ * @brief Unbinds any currently bound 2D texture from the active texture unit.
+ */
 void Texture::Unbind() const {
 	glBindTexture(GL_TEXTURE_2D, 0);
 }

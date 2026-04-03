@@ -89,7 +89,6 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	}
 
 	const std::string levelPath = scene.GetCurrentLevelPath();
-	const bool isTutorial = levelPath.find("tutorial") != std::string::npos;
 	const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
 	const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
 	const bool forceLoseShortcut =

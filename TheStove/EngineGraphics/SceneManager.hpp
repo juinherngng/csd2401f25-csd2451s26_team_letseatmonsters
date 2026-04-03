@@ -42,6 +42,7 @@
 #include "EngineGraphics/Layer.hpp"
 #include "EngineGraphics/ParticleSystem.hpp"
 #include "EngineGraphics/SceneObjectMetadata.hpp"
+#include "EngineGraphics/VideoPlayer.hpp"
 
 class AudioManager;
 class GameObject;
@@ -1080,6 +1081,18 @@ public:
 		int crossfadeFromIndex = -1,
 		float crossfadeSeconds = 0.75f);
 
+	/**
+	 * @brief Starts a fullscreen MP4/video cutscene rendered through a streaming texture.
+	 * @param videoPath Path to the video asset that should be played.
+	 * @param levelJsonPath Level JSON path queued once playback completes or is skipped.
+	 * @param activateSimulation Whether the follow-up level should resume simulation.
+	 * @param loop Whether the video should restart automatically after ending.
+	 */
+	void StartVideoCutscene(const std::string& videoPath,
+		const std::string& levelJsonPath,
+		bool activateSimulation,
+		bool loop = false);
+
 	// Order UI slide-in API
 	// Spawns an Order UI sprite off-screen at the top, then animates it sliding down to target.
 	/**
@@ -1102,7 +1115,7 @@ public:
 	 * @return True when the operation succeeds or the condition is met.
 	 */
 	bool IsAnyCutsceneActive() const {
-		return cutscene_.active || cutTrans_.active;
+		return cutscene_.active || cutTrans_.active || videoCutscene_.active;
 	}
 
 	/**
@@ -1123,6 +1136,12 @@ public:
 	 * @brief Performs skip active cutscene.
 	 */
 	void SkipActiveCutscene();
+
+	/**
+	 * @brief Advances the active video cutscene player and updates its sprite texture.
+	 * @param dt Frame delta time in seconds.
+	 */
+	void UpdateVideoCutscene(float dt);
 
 private:
 	// -------------------------------------------------------------------------------------------------
@@ -1341,6 +1360,18 @@ private:
 		// initial fade-in control
 		bool awaitingInitialFadeIn = false;
 	} cutTrans_;
+
+	struct VideoCutsceneState {
+		bool active = false;
+		std::string videoPath;
+		std::string uiLayer = "999998";
+		int spriteId = -1;
+		std::string targetLevelJson;
+		bool targetActivateSim = true;
+		bool queuedFinalLoad = false;
+		bool loop = false;
+		VideoPlayer player;
+	} videoCutscene_;
 
 	// Runtime ID for top-right "press space to skip" cutscene sprite
 	int cutsceneSkipPromptId_ = -1;

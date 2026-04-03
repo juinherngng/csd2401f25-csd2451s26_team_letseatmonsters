@@ -12,7 +12,9 @@
  */
 
 #include <algorithm>
+#include <filesystem>
 
+#include "EngineCore/FilePaths.hpp"
 #include "EngineCore/MessageBus.hpp"
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/Layer.hpp"
@@ -33,6 +35,19 @@ namespace {
 	constexpr float kCutsceneSkipMarginRight = 24.0f;
 	constexpr float kCutsceneSkipMarginTop = 20.0f;
 	constexpr int kCutsceneSkipSortOrder = 5000;
+
+	/**
+	 * @brief Returns whether a cutscene asset path should be routed through the MP4 video player.
+	 * @param path Candidate cutscene asset path.
+	 * @return `true` when the file extension matches a supported video type.
+	 */
+	bool IsVideoCutscenePath(const std::string& path) {
+		std::string ext = std::filesystem::path(path).extension().string();
+		std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) {
+			return static_cast<char>(std::tolower(c));
+			});
+		return ext == ".mp4" || ext == ".m4v" || ext == ".mov";
+	}
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -52,6 +67,11 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 	float fadeSeconds,
 	const std::string& levelJsonPath,
 	bool activateSimulation) {
+	if (imagePaths.size() == 1 && IsVideoCutscenePath(imagePaths.front())) {
+		StartVideoCutscene(imagePaths.front(), levelJsonPath, activateSimulation, false);
+		return;
+	}
+
 	if (imagePaths.empty()) {
 		QueueLevelLoad(levelJsonPath, activateSimulation);
 		return;
@@ -61,6 +81,13 @@ void Scene::StartCutscene(const std::vector<std::string>& imagePaths,
 	HidePauseOverlay();
 	SetFlowState(FlowState::Cutscene);
 	SpawnCutsceneSkipPrompt();
+
+	if (videoCutscene_.spriteId >= 0) {
+		DespawnByID(videoCutscene_.spriteId);
+		videoCutscene_.spriteId = -1;
+	}
+	videoCutscene_.player.Close();
+	videoCutscene_.active = false;
 
 	CleanupCutsceneObjects();
 	cutscene_.active = true;
@@ -267,6 +294,11 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 	float holdSeconds,
 	int crossfadeFromIndex,
 	float crossfadeSeconds) {
+	if (imagePaths.size() == 1 && IsVideoCutscenePath(imagePaths.front())) {
+		StartVideoCutscene(imagePaths.front(), levelJsonPath, activateSimulation, false);
+		return;
+	}
+
 	if (imagePaths.empty()) {
 		QueueLevelLoad(levelJsonPath, activateSimulation);
 		return;
@@ -276,6 +308,13 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 	HidePauseOverlay();
 	SetFlowState(FlowState::Cutscene);
 	SpawnCutsceneSkipPrompt();
+
+	if (videoCutscene_.spriteId >= 0) {
+		DespawnByID(videoCutscene_.spriteId);
+		videoCutscene_.spriteId = -1;
+	}
+	videoCutscene_.player.Close();
+	videoCutscene_.active = false;
 
 	if (cutTrans_.currentSpriteId >= 0) {
 		DespawnByID(cutTrans_.currentSpriteId);
@@ -335,6 +374,114 @@ void Scene::StartCutsceneTransitionedBounded(const std::vector<std::string>& ima
 		holdSeconds,
 		crossfadeFromIndex,
 		crossfadeSeconds);
+}
+
+/**
+ * @brief Starts a fullscreen video cutscene that ends by queueing a follow-up level load.
+ * @param videoPath Path to the MP4/video file that should be decoded and displayed.
+ * @param levelJsonPath Level JSON path queued when playback completes or is skipped.
+ * @param activateSimulation Whether the follow-up level should resume active simulation.
+ * @param loop Whether the video should restart automatically instead of ending.
+ */
+void Scene::StartVideoCutscene(const std::string& videoPath,
+	const std::string& levelJsonPath,
+	bool activateSimulation,
+	bool loop) {
+	if (videoPath.empty()) {
+		QueueLevelLoad(levelJsonPath, activateSimulation);
+		return;
+	}
+
+	SetSimulationActive(false);
+	HidePauseOverlay();
+	SetFlowState(FlowState::Cutscene);
+	SpawnCutsceneSkipPrompt();
+
+	CleanupCutsceneObjects();
+	if (cutTrans_.currentSpriteId >= 0) {
+		DespawnByID(cutTrans_.currentSpriteId);
+		cutTrans_.currentSpriteId = -1;
+	}
+
+	if (videoCutscene_.spriteId >= 0) {
+		DespawnByID(videoCutscene_.spriteId);
+		videoCutscene_.spriteId = -1;
+	}
+
+	videoCutscene_.player.Close();
+	videoCutscene_.active = false;
+	videoCutscene_.videoPath.clear();
+	videoCutscene_.targetLevelJson.clear();
+	videoCutscene_.targetActivateSim = true;
+	videoCutscene_.queuedFinalLoad = false;
+	videoCutscene_.loop = false;
+
+	if (!videoCutscene_.player.Open(videoPath, loop)) {
+		// Fall back to the next level immediately if the video cannot be opened.
+		DespawnCutsceneSkipPrompt();
+		QueueLevelLoad(levelJsonPath, activateSimulation);
+		return;
+	}
+
+	videoCutscene_.active = true;
+	videoCutscene_.videoPath = videoPath;
+	videoCutscene_.targetLevelJson = levelJsonPath;
+	videoCutscene_.targetActivateSim = activateSimulation;
+	videoCutscene_.loop = loop;
+
+	// Render the decoded frames through a normal fullscreen sprite so the existing renderer can stay unchanged.
+	const glm::vec3 center{ GraphicsEngine::kRefW * 0.5f, GraphicsEngine::kRefH * 0.5f, 0.0f };
+	const glm::vec2 fullSize{ static_cast<float>(GraphicsEngine::kRefW), static_cast<float>(GraphicsEngine::kRefH) };
+	if (GameObject* sprite = SpawnStaticSprite(FilePaths::Textures::PLACEHOLDER, center, fullSize, videoCutscene_.uiLayer)) {
+		videoCutscene_.spriteId = sprite->GetID();
+		sprite->SetTexture(videoCutscene_.player.GetTexture());
+		SetObjectTexturePath(videoCutscene_.spriteId, videoPath);
+	}
+	else {
+		videoCutscene_.player.Close();
+		videoCutscene_.active = false;
+		videoCutscene_.videoPath.clear();
+		videoCutscene_.targetLevelJson.clear();
+		videoCutscene_.targetActivateSim = true;
+		videoCutscene_.queuedFinalLoad = false;
+		videoCutscene_.loop = false;
+		DespawnCutsceneSkipPrompt();
+		QueueLevelLoad(levelJsonPath, activateSimulation);
+	}
+}
+
+/**
+ * @brief Advances active video playback and hands off to the next level when the video ends.
+ * @param dt Frame delta time in seconds.
+ */
+void Scene::UpdateVideoCutscene(float dt) {
+	if (!videoCutscene_.active) {
+		return;
+	}
+
+	// Advance decode/upload so the bound sprite texture stays in sync with playback.
+	videoCutscene_.player.Update(dt);
+
+	if (GameObject* sprite = GetGameObjectByID(videoCutscene_.spriteId)) {
+		sprite->SetTexture(videoCutscene_.player.GetTexture());
+	}
+
+	if (videoCutscene_.player.HasEnded()) {
+		if (videoCutscene_.spriteId >= 0) {
+			DespawnByID(videoCutscene_.spriteId);
+			videoCutscene_.spriteId = -1;
+		}
+
+		// Once playback is done, tear down the transient cutscene state and continue the normal flow.
+		videoCutscene_.player.Close();
+		videoCutscene_.active = false;
+		DespawnCutsceneSkipPrompt();
+
+		if (!videoCutscene_.queuedFinalLoad) {
+			videoCutscene_.queuedFinalLoad = true;
+			QueueLevelLoad(videoCutscene_.targetLevelJson, videoCutscene_.targetActivateSim);
+		}
+	}
 }
 
 /**
@@ -691,6 +838,33 @@ void Scene::UpdateLevelTransition() {
  */
 void Scene::SkipActiveCutscene() {
 	bool publishedSkipEvent = false;
+
+	if (videoCutscene_.active) {
+#ifndef _DEBUG
+		if (skipCutsceneAudioHook_) {
+			skipCutsceneAudioHook_(*this, 0.15f);
+		}
+#endif
+
+		if (videoCutscene_.spriteId >= 0) {
+			DespawnByID(videoCutscene_.spriteId);
+			videoCutscene_.spriteId = -1;
+		}
+
+		videoCutscene_.player.Close();
+		videoCutscene_.active = false;
+		DespawnCutsceneSkipPrompt();
+
+		if (!videoCutscene_.queuedFinalLoad) {
+			videoCutscene_.queuedFinalLoad = true;
+			QueueLevelLoad(videoCutscene_.targetLevelJson, videoCutscene_.targetActivateSim);
+		}
+
+		if (messageBus_) {
+			messageBus_->Post<CoreFramework::CutsceneSkippedMessage>(false, videoCutscene_.targetLevelJson);
+		}
+		return;
+	}
 
 	if (cutTrans_.active) {
 		auto& gfx = GetGraphicsEngine();

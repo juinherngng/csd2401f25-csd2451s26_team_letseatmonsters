@@ -43,6 +43,10 @@ namespace MyoonchiPaths {
 		constexpr const char* AMBIENT_VFX_SHEET = "../assets/VFX/VFX_SpriteSheet.png";
 	}
 
+	namespace Videos {
+		constexpr const char* INTRO_CUTSCENE = "../assets/Videos/Starting_Cutscene_Animation_TEXT.mp4";
+	}
+
 	// Audio catalog keys (must match entries in AudioCatalog.json)
 	namespace Audio {
 		constexpr const char* BGM_MAIN_MENU = "bgm_MyoonchiDiner_MainMenu";
