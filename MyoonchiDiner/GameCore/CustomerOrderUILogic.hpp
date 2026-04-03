@@ -39,7 +39,7 @@ public:
 
 private:
 	struct WarningGlowSet {
-		std::array<int, 5> ids{ -1, -1, -1, -1, -1 };
+		std::array<int, 9> ids{ -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 		int sourceID = -1;
 	};
 
@@ -52,6 +52,7 @@ private:
 	float lowPatienceGlowTimer_ = 0.0f;
 	float lowPatienceGlowAlpha_ = 0.0f;
 	float lowPatienceBarScaleMul_ = 1.0f;
+	float lowPatienceBarAlpha_ = 1.0f;
 	glm::vec2 lowPatienceBarOffset_ = { 0.0f, 0.0f };
 
 	// --- config (tune these values) ---

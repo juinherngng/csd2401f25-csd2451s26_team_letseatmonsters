@@ -12,6 +12,8 @@
  ----------------------------------------------------------------------------------------------------
  */
 
+#include <algorithm>
+#include <cstdint>
 #include <array>
 #include <cmath>
 
@@ -25,16 +27,18 @@
 
 namespace {
 	constexpr float kLowPatienceThreshold = 0.30f;
-	constexpr float kLowPatienceGlowPulseSpeed = 9.0f;
-	constexpr float kLowPatienceGlowMinAlpha = 0.32f;
-	constexpr float kLowPatienceGlowMaxAlpha = 0.92f;
-	constexpr float kLowPatienceBarPulseSpeed = 7.5f;
-	constexpr float kLowPatienceBarPulseAmount = 0.035f;
-	constexpr float kLowPatienceShakeAmplitudeX = 1.1f;
-	constexpr float kLowPatienceShakeAmplitudeY = 0.7f;
-	constexpr float kLowPatienceShakeSpeedX = 22.0f;
-	constexpr float kLowPatienceShakeSpeedY = 17.0f;
-	constexpr float kLowPatienceGlowOffset = 2.5f;
+	constexpr float kLowPatienceGlowPulseSpeed = 7.8f;
+	constexpr float kLowPatienceGlowMinAlpha = 0.72f;
+	constexpr float kLowPatienceGlowMaxAlpha = 1.0f;
+	constexpr float kLowPatienceBarPulseSpeed = 8.6f;
+	constexpr float kLowPatienceBarPulseAmount = 0.22f;
+	constexpr float kLowPatienceBarMinAlpha = 0.64f;
+	constexpr float kLowPatienceBarMaxAlpha = 1.0f;
+	constexpr float kLowPatienceShakeAmplitudeX = 3.2f;
+	constexpr float kLowPatienceShakeAmplitudeY = 2.1f;
+	constexpr float kLowPatienceShakeSpeedX = 8.5f;
+	constexpr float kLowPatienceShakeSpeedY = 11.8f;
+	constexpr float kLowPatienceGlowOffset = 5.5f;
 	constexpr int kLowPatienceGlowSortOrder = 200;
 	constexpr int kLowPatienceGlowMaskSortOrder = 201;
 	const glm::vec4 kLowPatienceGlowTint(1.0f, 0.16f, 0.16f, kLowPatienceGlowMaxAlpha);
@@ -60,6 +64,63 @@ static float EaseOutCubic01(float x) {
 	return 1.0f - inv * inv * inv;
 }
 
+static float SmoothNoiseBlend(float t) {
+	t = Clamp01(t);
+	return t * t * (3.0f - 2.0f * t);
+}
+
+static uint32_t HashNoiseBits(uint32_t x) {
+	x ^= x >> 16;
+	x *= 0x7feb352dU;
+	x ^= x >> 15;
+	x *= 0x846ca68bU;
+	x ^= x >> 16;
+	return x;
+}
+
+static float HashSignedNoise(int cell, int seed) {
+	const uint32_t cellBits = static_cast<uint32_t>(cell);
+	const uint32_t seedBits = static_cast<uint32_t>(seed) * 0x9e3779b9U;
+	const uint32_t hashed = HashNoiseBits(cellBits ^ seedBits);
+	const float normalized = static_cast<float>(hashed) / static_cast<float>(UINT32_MAX);
+	return normalized * 2.0f - 1.0f;
+}
+
+static float SampleValueNoise1D(float x, int seed) {
+	const int cell0 = static_cast<int>(std::floor(x));
+	const int cell1 = cell0 + 1;
+	const float localT = x - static_cast<float>(cell0);
+	const float blend = SmoothNoiseBlend(localT);
+	const float value0 = HashSignedNoise(cell0, seed);
+	const float value1 = HashSignedNoise(cell1, seed);
+	return value0 + (value1 - value0) * blend;
+}
+
+static float SampleFractalNoise1D(float x, int seed) {
+	float sum = 0.0f;
+	float totalWeight = 0.0f;
+	float amplitude = 1.0f;
+	float frequency = 1.0f;
+
+	for (int octave = 0; octave < 3; ++octave) {
+		sum += SampleValueNoise1D(x * frequency, seed + octave * 131) * amplitude;
+		totalWeight += amplitude;
+		amplitude *= 0.5f;
+		frequency *= 2.17f;
+	}
+
+	if (totalWeight <= 0.0f) {
+		return 0.0f;
+	}
+
+	return sum / totalWeight;
+}
+
+static float SignedPow(float value, float exponent) {
+	const float magnitude = std::pow(std::abs(value), exponent);
+	return std::copysign(magnitude, value);
+}
+
 void CustomerOrderUILogic::Start(Scene& /*scene*/) {
 	lastIconPath_.clear();
 	prevBehaviourState_ = -1;
@@ -67,6 +128,7 @@ void CustomerOrderUILogic::Start(Scene& /*scene*/) {
 	lowPatienceGlowTimer_ = 0.0f;
 	lowPatienceGlowAlpha_ = 0.0f;
 	lowPatienceBarScaleMul_ = 1.0f;
+	lowPatienceBarAlpha_ = 1.0f;
 	lowPatienceBarOffset_ = { 0.0f, 0.0f };
 
 	payVFX_ID_ = -1;
@@ -172,6 +234,7 @@ void CustomerOrderUILogic::FollowCustomer(Scene& scene) {
 				barBGSize_.x * lowPatienceBarScaleMul_,
 				barBGSize_.y * lowPatienceBarScaleMul_,
 				1.0f));
+			bg->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, lowPatienceBarAlpha_));
 		}
 	}
 
@@ -209,6 +272,7 @@ void CustomerOrderUILogic::UpdatePatienceFill(Scene& scene, float ratio01) {
 
 	fill->SetScale({ newW, fullH, 1.0f });
 	fill->SetPosition(Math::Vector3D(centerX, bgPos.y, bgPos.z));
+	fill->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, lowPatienceBarAlpha_));
 }
 
 void CustomerOrderUILogic::DestroyLowPatienceGlow(Scene& scene) {
@@ -247,11 +311,16 @@ void CustomerOrderUILogic::EnsureLowPatienceGlow(Scene& scene) {
 	const glm::vec3 sourceScale = source->GetScaleGLM();
 	const float sourceRotation = source->GetRotation();
 
-	const std::array<glm::vec2, 4> offsets{
+	const float diagonalOffset = kLowPatienceGlowOffset * 0.72f;
+	const std::array<glm::vec2, 8> offsets{
 		glm::vec2(-kLowPatienceGlowOffset, 0.0f),
 		glm::vec2(kLowPatienceGlowOffset, 0.0f),
 		glm::vec2(0.0f, -kLowPatienceGlowOffset),
-		glm::vec2(0.0f,  kLowPatienceGlowOffset)
+		glm::vec2(0.0f,  kLowPatienceGlowOffset),
+		glm::vec2(-diagonalOffset, -diagonalOffset),
+		glm::vec2(diagonalOffset, -diagonalOffset),
+		glm::vec2(-diagonalOffset, diagonalOffset),
+		glm::vec2(diagonalOffset, diagonalOffset)
 	};
 
 	for (std::size_t i = 0; i < offsets.size(); ++i) {
@@ -293,7 +362,7 @@ void CustomerOrderUILogic::EnsureLowPatienceGlow(Scene& scene) {
 		mask->EnableShadow(false);
 		mask->SetRenderSortOrder(kLowPatienceGlowMaskSortOrder);
 		mask->SetRotation(sourceRotation, glm::vec3(0.0f, 0.0f, 1.0f));
-		lowPatienceGlow_.ids[4] = mask->GetID();
+		lowPatienceGlow_.ids[8] = mask->GetID();
 	}
 
 	lowPatienceGlow_.sourceID = barBG_ID_;
@@ -316,14 +385,19 @@ void CustomerOrderUILogic::SyncLowPatienceGlow(Scene& scene, float alpha) {
 	const float sourceRotation = source->GetRotation();
 	const float clampedAlpha = Clamp01(alpha);
 
-	const std::array<glm::vec2, 4> offsets{
+	const float diagonalOffset = kLowPatienceGlowOffset * 0.72f;
+	const std::array<glm::vec2, 8> offsets{
 		glm::vec2(-kLowPatienceGlowOffset, 0.0f),
 		glm::vec2(kLowPatienceGlowOffset, 0.0f),
 		glm::vec2(0.0f, -kLowPatienceGlowOffset),
-		glm::vec2(0.0f,  kLowPatienceGlowOffset)
+		glm::vec2(0.0f,  kLowPatienceGlowOffset),
+		glm::vec2(-diagonalOffset, -diagonalOffset),
+		glm::vec2(diagonalOffset, -diagonalOffset),
+		glm::vec2(-diagonalOffset, diagonalOffset),
+		glm::vec2(diagonalOffset, diagonalOffset)
 	};
 
-	for (std::size_t i = 0; i < 4; ++i) {
+	for (std::size_t i = 0; i < offsets.size(); ++i) {
 		const int id = lowPatienceGlow_.ids[i];
 		if (id < 0) {
 			continue;
@@ -347,7 +421,7 @@ void CustomerOrderUILogic::SyncLowPatienceGlow(Scene& scene, float alpha) {
 		scene.AssignObjectToLayer(id, layer);
 	}
 
-	const int maskID = lowPatienceGlow_.ids[4];
+	const int maskID = lowPatienceGlow_.ids[8];
 	if (maskID >= 0) {
 		if (GameObject* mask = scene.GetGameObjectByID(maskID)) {
 			mask->SetPosition(sourcePos);
@@ -366,6 +440,7 @@ void CustomerOrderUILogic::UpdateLowPatienceWarning(Scene& scene, float dt, floa
 		lowPatienceGlowTimer_ = 0.0f;
 		lowPatienceGlowAlpha_ = 0.0f;
 		lowPatienceBarScaleMul_ = 1.0f;
+		lowPatienceBarAlpha_ = 1.0f;
 		lowPatienceBarOffset_ = { 0.0f, 0.0f };
 		DestroyLowPatienceGlow(scene);
 		return;
@@ -374,15 +449,37 @@ void CustomerOrderUILogic::UpdateLowPatienceWarning(Scene& scene, float dt, floa
 	lowPatienceGlowTimer_ += dt;
 	EnsureLowPatienceGlow(scene);
 
-	const float pulse01 = 0.5f + 0.5f * std::sin(lowPatienceGlowTimer_ * kLowPatienceGlowPulseSpeed);
+	const float warning01 = Clamp01((kLowPatienceThreshold - ratio01) / kLowPatienceThreshold);
+	const float trauma = 0.42f + 0.58f * warning01;
+	const float shakeStrength = trauma * trauma;
+
+	const float pulse01 = 0.5f + 0.5f * std::sin(lowPatienceGlowTimer_ * kLowPatienceGlowPulseSpeed + warning01 * 0.85f);
 	lowPatienceGlowAlpha_ = kLowPatienceGlowMinAlpha +
 		(kLowPatienceGlowMaxAlpha - kLowPatienceGlowMinAlpha) * pulse01;
 
-	const float barPulse01 = 0.5f + 0.5f * std::sin(lowPatienceGlowTimer_ * kLowPatienceBarPulseSpeed + 0.55f);
-	lowPatienceBarScaleMul_ = 1.0f + (barPulse01 * kLowPatienceBarPulseAmount);
+	const float barPulse01 = 0.25f + 0.75f * std::pow(
+		0.5f + 0.5f * std::sin(lowPatienceGlowTimer_ * kLowPatienceBarPulseSpeed + 0.55f),
+		1.85f);
+	lowPatienceBarScaleMul_ = 1.0f +
+		(barPulse01 * kLowPatienceBarPulseAmount * (0.45f + 0.55f * shakeStrength));
+	lowPatienceBarAlpha_ = kLowPatienceBarMinAlpha +
+		(kLowPatienceBarMaxAlpha - kLowPatienceBarMinAlpha) * barPulse01;
+
+	const int seedBase = GetOwnerID() * 97 + 131;
+	const float noiseX = SignedPow(
+		SampleFractalNoise1D(lowPatienceGlowTimer_ * kLowPatienceShakeSpeedX, seedBase + 11),
+		0.78f);
+	const float noiseY = SignedPow(
+		SampleFractalNoise1D(lowPatienceGlowTimer_ * kLowPatienceShakeSpeedY, seedBase + 53),
+		1.12f);
+	const float burstNoise = std::max(
+		0.0f,
+		SampleFractalNoise1D(lowPatienceGlowTimer_ * 4.6f, seedBase + 97));
+	const float xAmp = kLowPatienceShakeAmplitudeX * (0.55f + shakeStrength + burstNoise * 0.35f);
+	const float yAmp = kLowPatienceShakeAmplitudeY * (0.45f + shakeStrength * 0.95f);
 	lowPatienceBarOffset_ = glm::vec2(
-		std::sin(lowPatienceGlowTimer_ * kLowPatienceShakeSpeedX) * kLowPatienceShakeAmplitudeX,
-		std::cos(lowPatienceGlowTimer_ * kLowPatienceShakeSpeedY) * kLowPatienceShakeAmplitudeY);
+		noiseX * xAmp * (noiseX >= 0.0f ? 1.0f : 0.72f),
+		noiseY * yAmp * (noiseY >= 0.0f ? 0.78f : 1.18f));
 }
 
 /**
