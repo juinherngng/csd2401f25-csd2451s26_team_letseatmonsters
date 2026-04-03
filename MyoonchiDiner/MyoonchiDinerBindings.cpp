@@ -47,6 +47,7 @@
 ----------------------------------------------------------------------------------------------------
 */
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -269,12 +270,15 @@ namespace {
 		}
 
 		void SpawnLeaf(Scene& scene) {
-			// Level 2 leaves randomly choose between the two authored variants
-			// on rows 6 and 7 from the top of the 14x6 sheet.
-			const int topRowOneBased = (RandomRange(0.0f, 1.0f) < 0.5f) ? 6 : 7;
-			const std::vector<glm::vec4> frames = CreateVfxFramesFromTopRow(topRowOneBased, 0, 5);
-
 			const bool leftToRight = RandomRange(0.0f, 1.0f) < 0.5f;
+			// Let both sides use either authored leaf variant, but when a leaf enters
+			// from the right we reverse the frame order so the motion reads more naturally.
+			const int topRowOneBased = (RandomRange(0.0f, 1.0f) < 0.5f) ? 6 : 7;
+			std::vector<glm::vec4> frames = CreateVfxFramesFromTopRow(topRowOneBased, 0, 5);
+			if (!leftToRight) {
+				std::reverse(frames.begin(), frames.end());
+			}
+
 			const float y = !leafLaneYs_.empty()
 				? leafLaneYs_[RandomIndex(static_cast<int>(leafLaneYs_.size()))]
 				: RandomRange(180.0f, 700.0f);
@@ -308,11 +312,6 @@ namespace {
 			fx->SetMovableByPhysics(false);
 			fx->EnableShadow(false);
 			fx->SetRenderSortOrder(10);
-
-			// Optional: mirror the sprite if travelling right -> left
-			if (!leftToRight) {
-				fx->SetScale(glm::vec3(-size.x, size.y, 1.0f));
-			}
 
 			scene.SetObjectTag(fx->GetID(), "ambient_vfx_leaf");
 
