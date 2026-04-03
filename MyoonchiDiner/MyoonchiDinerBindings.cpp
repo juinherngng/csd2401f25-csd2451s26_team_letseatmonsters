@@ -90,6 +90,7 @@ namespace {
 	constexpr int kAmbientVfxCols = 6;
 
 	constexpr const char* kShinePointTag = "bg_vfx_shine_point";
+	constexpr const char* kCandlePointTag = "bg_vfx_candle_point";
 	constexpr const char* kButterflyPointTag = "bg_vfx_butterfly_point";
 	constexpr const char* kButterflyAltPointTag = "bg_vfx_butterfly_alt_point";
 	constexpr const char* kLeafLaneTag = "bg_vfx_leaf_lane";
@@ -139,16 +140,19 @@ namespace {
 		float shrinkDuration = -1.0f;
 		glm::vec3 baseScale{ 1.0f, 1.0f, 1.0f };
 		bool killWhenOffscreen = false;
+		bool persistent = false;
 		bool shrinkOutAtEnd = false;
 	};
 
 	struct AmbientVfxController {
 		std::vector<AmbientPoint> shinePoints_;
+		std::vector<AmbientPoint> candlePoints_;
 		std::vector<AmbientPoint> butterflyPoints_;
 		std::vector<AmbientPoint> butterflyAltPoints_;
 		std::vector<float> leafLaneYs_;
 		std::vector<AmbientVfxInstance> active_;
 		bool cached_ = false;
+		bool candlesSpawned_ = false;
 
 		float shineCooldown_ = 0.0f;
 		float butterflyCooldown_ = 0.0f;
@@ -164,10 +168,12 @@ namespace {
 
 			active_.clear();
 			shinePoints_.clear();
+			candlePoints_.clear();
 			butterflyPoints_.clear();
 			butterflyAltPoints_.clear();
 			leafLaneYs_.clear();
 			cached_ = false;
+			candlesSpawned_ = false;
 
 			shineCooldown_ = 0.0f;
 			butterflyCooldown_ = 0.0f;
@@ -177,6 +183,7 @@ namespace {
 
 		void CachePoints(Scene& scene) {
 			shinePoints_.clear();
+			candlePoints_.clear();
 			butterflyPoints_.clear();
 			butterflyAltPoints_.clear();
 			leafLaneYs_.clear();
@@ -194,6 +201,14 @@ namespace {
 					p.size = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(96.0f, 96.0f);
 					p.layer = d.layer.empty() ? "0" : d.layer;
 					shinePoints_.push_back(p);
+				}
+				else if (d.tag == kCandlePointTag) {
+					AmbientPoint p;
+					const glm::vec3 pos = obj->GetPositionGLM();
+					p.pos = glm::vec2(pos.x, pos.y);
+					p.size = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(56.0f, 56.0f);
+					p.layer = d.layer.empty() ? "1" : d.layer;
+					candlePoints_.push_back(p);
 				}
 				else if (d.tag == kButterflyPointTag) {
 					AmbientPoint p;
@@ -239,9 +254,11 @@ namespace {
 					obj->SetPosition(pos);
 				}
 
-				inst.lifetime -= dt;
+				if (!inst.persistent) {
+					inst.lifetime -= dt;
+				}
 
-				if (inst.shrinkOutAtEnd && inst.totalLifetime > 0.0f) {
+				if (!inst.persistent && inst.shrinkOutAtEnd && inst.totalLifetime > 0.0f) {
 					const float shrinkStartLife = (inst.shrinkDuration > 0.0f)
 						? std::min(inst.shrinkDuration, inst.totalLifetime)
 						: inst.totalLifetime * std::clamp(inst.shrinkWindowRatio, 0.05f, 0.95f);
@@ -257,7 +274,7 @@ namespace {
 					));
 				}
 
-				bool shouldKill = (inst.lifetime <= 0.0f);
+				bool shouldKill = (!inst.persistent && inst.lifetime <= 0.0f);
 
 				if (!shouldKill && inst.killWhenOffscreen) {
 					const glm::vec3 pos = obj->GetPositionGLM();
@@ -322,6 +339,50 @@ namespace {
 			inst.baseScale = glm::vec3(point.size.x, point.size.y, 1.0f);
 			inst.killWhenOffscreen = false;
 			active_.push_back(inst);
+		}
+
+		void SpawnCandles(Scene& scene) {
+			if (candlesSpawned_ || candlePoints_.empty()) {
+				return;
+			}
+
+			const std::vector<glm::vec4> frames = CreateVfxFramesFromTopRow(14, 0, 3);
+			const float frameDuration = 0.14f;
+
+			for (const AmbientPoint& point : candlePoints_) {
+				GameObject* fx = scene.SpawnAnimatedSprite(
+					MyoonchiPaths::Textures::AMBIENT_VFX_SHEET,
+					glm::vec3(point.pos.x, point.pos.y, 0.0f),
+					point.size,
+					frames,
+					frameDuration,
+					true,
+					point.layer
+				);
+
+				if (!fx) {
+					continue;
+				}
+
+				fx->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+				fx->SetColliderOffset(Math::Vector2D(0.0f, 0.0f));
+				fx->SetMovableByPhysics(false);
+				fx->EnableShadow(false);
+				fx->SetRenderSortOrder(2);
+
+				scene.SetObjectTag(fx->GetID(), "ambient_vfx_candle");
+
+				AmbientVfxInstance inst;
+				inst.objectID = fx->GetID();
+				inst.velocity = glm::vec2(0.0f, 0.0f);
+				inst.totalLifetime = 0.0f;
+				inst.baseScale = glm::vec3(point.size.x, point.size.y, 1.0f);
+				inst.killWhenOffscreen = false;
+				inst.persistent = true;
+				active_.push_back(inst);
+			}
+
+			candlesSpawned_ = true;
 		}
 
 		void SpawnLeaf(Scene& scene) {
@@ -488,6 +549,8 @@ namespace {
 			const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
 
 			if (isLevel1) {
+				SpawnCandles(scene);
+
 				shineCooldown_ -= dt;
 				if (shineCooldown_ <= 0.0f && !shinePoints_.empty()) {
 					SpawnShine(scene);
