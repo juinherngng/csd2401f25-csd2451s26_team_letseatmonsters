@@ -50,6 +50,9 @@ private:
 	int barFill_ID_ = -1; // patience fill bar (shrinks)
 	WarningGlowSet lowPatienceGlow_{};
 	float lowPatienceGlowTimer_ = 0.0f;
+	float lowPatienceGlowAlpha_ = 0.0f;
+	float lowPatienceBarScaleMul_ = 1.0f;
+	glm::vec2 lowPatienceBarOffset_ = { 0.0f, 0.0f };
 
 	// --- config (tune these values) ---
 	std::string uiLayerBG_ = "50";

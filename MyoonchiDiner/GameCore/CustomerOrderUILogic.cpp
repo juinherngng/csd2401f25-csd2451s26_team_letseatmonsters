@@ -28,6 +28,12 @@ namespace {
 	constexpr float kLowPatienceGlowPulseSpeed = 9.0f;
 	constexpr float kLowPatienceGlowMinAlpha = 0.32f;
 	constexpr float kLowPatienceGlowMaxAlpha = 0.92f;
+	constexpr float kLowPatienceBarPulseSpeed = 7.5f;
+	constexpr float kLowPatienceBarPulseAmount = 0.035f;
+	constexpr float kLowPatienceShakeAmplitudeX = 1.1f;
+	constexpr float kLowPatienceShakeAmplitudeY = 0.7f;
+	constexpr float kLowPatienceShakeSpeedX = 22.0f;
+	constexpr float kLowPatienceShakeSpeedY = 17.0f;
 	constexpr float kLowPatienceGlowOffset = 2.5f;
 	constexpr int kLowPatienceGlowSortOrder = 200;
 	constexpr int kLowPatienceGlowMaskSortOrder = 201;
@@ -59,6 +65,9 @@ void CustomerOrderUILogic::Start(Scene& /*scene*/) {
 	prevBehaviourState_ = -1;
 	lowPatienceGlow_ = {};
 	lowPatienceGlowTimer_ = 0.0f;
+	lowPatienceGlowAlpha_ = 0.0f;
+	lowPatienceBarScaleMul_ = 1.0f;
+	lowPatienceBarOffset_ = { 0.0f, 0.0f };
 
 	payVFX_ID_ = -1;
 	payVFXTimer_ = 0.0f;
@@ -155,8 +164,19 @@ void CustomerOrderUILogic::FollowCustomer(Scene& scene) {
 
 	if (barBG_ID_ >= 0) {
 		if (GameObject* bg = scene.GetGameObjectByID(barBG_ID_)) {
-			bg->SetPosition(Math::Vector3D(p.x + barOffset_.x, p.y + barOffset_.y, p.z));
+			bg->SetPosition(Math::Vector3D(
+				p.x + barOffset_.x + lowPatienceBarOffset_.x,
+				p.y + barOffset_.y + lowPatienceBarOffset_.y,
+				p.z));
+			bg->SetScale(glm::vec3(
+				barBGSize_.x * lowPatienceBarScaleMul_,
+				barBGSize_.y * lowPatienceBarScaleMul_,
+				1.0f));
 		}
+	}
+
+	if (lowPatienceGlow_.sourceID >= 0) {
+		SyncLowPatienceGlow(scene, lowPatienceGlowAlpha_);
 	}
 
 	// barFill position is handled in UpdatePatienceFill() so it pivots correctly
@@ -178,8 +198,8 @@ void CustomerOrderUILogic::UpdatePatienceFill(Scene& scene, float ratio01) {
 	//  1) compute left edge world X
 	//  2) set new width
 	//  3) set fill center to left + newWidth/2
-	const float fullW = barFillSize_.x;
-	const float fullH = barFillSize_.y;
+	const float fullW = barFillSize_.x * lowPatienceBarScaleMul_;
+	const float fullH = barFillSize_.y * lowPatienceBarScaleMul_;
 
 	float newW = fullW * ratio01;
 	if (newW < 0.f) newW = 0.f;
@@ -344,6 +364,9 @@ void CustomerOrderUILogic::UpdateLowPatienceWarning(Scene& scene, float dt, floa
 	const bool shouldWarn = showBar && ratio01 <= kLowPatienceThreshold;
 	if (!shouldWarn) {
 		lowPatienceGlowTimer_ = 0.0f;
+		lowPatienceGlowAlpha_ = 0.0f;
+		lowPatienceBarScaleMul_ = 1.0f;
+		lowPatienceBarOffset_ = { 0.0f, 0.0f };
 		DestroyLowPatienceGlow(scene);
 		return;
 	}
@@ -352,10 +375,14 @@ void CustomerOrderUILogic::UpdateLowPatienceWarning(Scene& scene, float dt, floa
 	EnsureLowPatienceGlow(scene);
 
 	const float pulse01 = 0.5f + 0.5f * std::sin(lowPatienceGlowTimer_ * kLowPatienceGlowPulseSpeed);
-	const float alpha = kLowPatienceGlowMinAlpha +
+	lowPatienceGlowAlpha_ = kLowPatienceGlowMinAlpha +
 		(kLowPatienceGlowMaxAlpha - kLowPatienceGlowMinAlpha) * pulse01;
 
-	SyncLowPatienceGlow(scene, alpha);
+	const float barPulse01 = 0.5f + 0.5f * std::sin(lowPatienceGlowTimer_ * kLowPatienceBarPulseSpeed + 0.55f);
+	lowPatienceBarScaleMul_ = 1.0f + (barPulse01 * kLowPatienceBarPulseAmount);
+	lowPatienceBarOffset_ = glm::vec2(
+		std::sin(lowPatienceGlowTimer_ * kLowPatienceShakeSpeedX) * kLowPatienceShakeAmplitudeX,
+		std::cos(lowPatienceGlowTimer_ * kLowPatienceShakeSpeedY) * kLowPatienceShakeAmplitudeY);
 }
 
 /**
@@ -400,6 +427,7 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 
 	const bool showBar =
 		(state == SimpleNpcLogic::BehaviourState::WaitingForFood);
+	float patienceRatio = 1.0f;
 
 	if (showBubble) {
 		if (state == SimpleNpcLogic::BehaviourState::Paying) {
@@ -418,21 +446,19 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 
 	if (showBar) {
 		EnsurePatienceBar(scene);
+		patienceRatio = npcLogic->GetPatienceRatio01();
+		UpdateLowPatienceWarning(scene, dt, patienceRatio, true);
 	}
 	else {
 		DestroyPatienceBar(scene);
+		UpdateLowPatienceWarning(scene, dt, 1.0f, false);
 	}
 
 	// keep UI following the customer every frame
 	FollowCustomer(scene);
 
 	if (showBar) {
-		const float ratio = npcLogic->GetPatienceRatio01();
-		UpdatePatienceFill(scene, ratio);
-		UpdateLowPatienceWarning(scene, dt, ratio, showBar);
-	}
-	else {
-		UpdateLowPatienceWarning(scene, dt, 1.0f, false);
+		UpdatePatienceFill(scene, patienceRatio);
 	}
 
 	// Update the payment VFX lifetime / motion
