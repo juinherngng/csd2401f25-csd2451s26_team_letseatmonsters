@@ -32,8 +32,7 @@ namespace Audio {
 		float volume;           // Default volume (0.0 to 1.0)
 
 		AudioAsset()
-			: name(""), filepath(""), loop(false), stream(false), category(""), volume(1.0f) {
-		}
+			: name(""), filepath(""), loop(false), stream(false), category(""), volume(1.0f) {}
 	};
 
 	/************************************************************************/
