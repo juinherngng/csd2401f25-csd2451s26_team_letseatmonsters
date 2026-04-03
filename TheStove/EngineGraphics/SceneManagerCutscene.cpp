@@ -622,8 +622,29 @@ void Scene::StartLevelTransition(const std::string& levelJsonPath,
 	bool activateSimulation,
 	float fadeOutSeconds,
 	float fadeInSeconds) {
+	auto& gfx = GetGraphicsEngine();
+
 	if (levelTrans_.active) {
+		// Keep the latest destination so rapid menu clicks do not leave the scene stuck
+		// waiting on an outdated target while the fade is already in progress.
+		levelTrans_.targetJson = levelJsonPath;
+		levelTrans_.targetActivateSim = activateSimulation;
+		levelTrans_.outSec = fadeOutSeconds;
+		levelTrans_.inSec = fadeInSeconds;
+		cutTrans_.inSeconds = fadeInSeconds;
+
+		// Recover if the renderer has already cleared its transition while the scene still
+		// believes a blackout handoff is pending.
+		if (!gfx.IsTransitionActive()) {
+			gfx.StartSceneTransition(levelTrans_.outSec, levelTrans_.inSec);
+		}
 		return;
+	}
+
+	// Fast menu-to-menu clicks can arrive while the previous level is still fading in.
+	// Restart the renderer transition cleanly so the new request can reach blackout.
+	if (gfx.IsTransitionActive() && !gfx.IsAtBlackout()) {
+		gfx.CancelSceneTransition();
 	}
 
 #ifndef _DEBUG
@@ -640,8 +661,6 @@ void Scene::StartLevelTransition(const std::string& levelJsonPath,
 	SetFlowState(FlowState::Transitioning);
 
 	cutTrans_.inSeconds = fadeInSeconds;
-
-	auto& gfx = GetGraphicsEngine();
 	gfx.StartSceneTransition(levelTrans_.outSec, levelTrans_.inSec);
 }
 
