@@ -19,6 +19,7 @@
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
+#include "../../MyoonchiDiner/GameCore/MenuKeyboardNavigation.hpp"
 
  // -------------------------------------------------------------------------------------------------
  // Pause Overlay Entry
@@ -41,6 +42,7 @@ void Scene::ShowPauseOverlay() {
 	pauseOverlayActive_ = true;
 	SetFlowState(FlowState::Paused);
 	animationManager.Play();
+	MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::GetPauseOverlayScopeKey(*this));
 
 	if (messageBus_) {
 		messageBus_->Post<CoreFramework::PauseOverlayChangedMessage>(true);
@@ -149,6 +151,7 @@ void Scene::HidePauseOverlay() {
 	}
 	pauseOverlayObjectIds_.clear();
 	pauseOverlayActive_ = false;
+	MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::GetPauseOverlayScopeKey(*this));
 
 	pauseAudioPending_ = false;
 

@@ -126,6 +126,25 @@ namespace {
 	std::vector<int> CollectCreditsMenuButtons(Scene& scene) {
 		return MenuKeyboardNavigation::CollectObjectsByTags(scene, { "btn_main_menu" });
 	}
+
+	bool ShouldAutoFocusFirstButtonForScope(Scene& scene, const std::string& scopeKey, const std::vector<int>& orderedButtonIds) {
+		if (orderedButtonIds.size() == 1 ||
+			scopeKey.find("quit_popup") != std::string::npos ||
+			scopeKey.find("pause_overlay") != std::string::npos ||
+			scopeKey.find("settings") != std::string::npos) {
+			return true;
+		}
+
+		if (scopeKey.find("top_level_menu") == std::string::npos) {
+			return false;
+		}
+
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		return levelPath.find("win") != std::string::npos ||
+			levelPath.find("dayclear") != std::string::npos ||
+			levelPath.find("day_clear") != std::string::npos ||
+			levelPath.find("lose") != std::string::npos;
+	}
 }
 
 namespace MenuKeyboardNavigation {
@@ -290,10 +309,7 @@ namespace MenuKeyboardNavigation {
 		const bool shouldAutoFocusFirstButton =
 			state.initialAutoFocusPending &&
 			(state.focusedId < 0) &&
-			(orderedButtonIds.size() == 1 ||
-				scopeKey.find("quit_popup") != std::string::npos ||
-				scopeKey.find("pause_overlay") != std::string::npos ||
-				scopeKey.find("settings") != std::string::npos);
+			ShouldAutoFocusFirstButtonForScope(scene, scopeKey, orderedButtonIds);
 		if (shouldAutoFocusFirstButton) {
 			state.focusedId = orderedButtonIds.front();
 			state.initialAutoFocusPending = false;

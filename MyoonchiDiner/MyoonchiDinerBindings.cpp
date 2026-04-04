@@ -600,6 +600,7 @@ namespace {
 		bool mouseHeld_ = false;
 		bool yesHovered_ = false;
 		bool noHovered_ = false;
+		bool suppressInitialYesHoverFeedback_ = false;
 		QuitPopupYesAction yesAction_ = QuitPopupYesAction::QuitApplication;
 		double popupInputBlockedUntil_ = 0.0;
 		double reopenBlockedUntil_ = 0.0;
@@ -696,6 +697,7 @@ namespace {
 			mouseHeld_ = false;
 			yesHovered_ = false;
 			noHovered_ = false;
+			suppressInitialYesHoverFeedback_ = false;
 			popupInputBlockedUntil_ = 0.0;
 			scene.SetMenuModalActive(false);
 			MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "quit_popup"));
@@ -758,19 +760,22 @@ namespace {
 			mouseHeld_ = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
 			yesHovered_ = false;
 			noHovered_ = false;
+			suppressInitialYesHoverFeedback_ = (yesAction_ == QuitPopupYesAction::QuitApplication);
 			BeginPopupInputGuard();
 			MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "quit_popup"));
 		}
 
-		void UpdateHoverVisuals(Scene& scene, bool yesHot, bool noHot) {
+		void UpdateHoverVisuals(Scene& scene, bool yesHot, bool noHot, bool suppressYesHoverFeedback) {
 			if (yesButtonID_ >= 0) {
 				if (yesHot != yesHovered_) {
 					yesHovered_ = yesHot;
 					if (yesHovered_) {
-						scene.TriggerUiButtonHoverFeedback(yesButtonID_);
-						if (AudioManager* audioManager = scene.GetAudioManager()) {
-							if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
-								audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
+						if (!suppressYesHoverFeedback) {
+							scene.TriggerUiButtonHoverFeedback(yesButtonID_);
+							if (AudioManager* audioManager = scene.GetAudioManager()) {
+								if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+									audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
+								}
 							}
 						}
 					}
@@ -835,7 +840,12 @@ namespace {
 				yesOver ? yesButtonID_ : (noOver ? noButtonID_ : -1));
 			const bool yesHot = yesOver || (focusedButtonId == yesButtonID_);
 			const bool noHot = noOver || (focusedButtonId == noButtonID_);
-			UpdateHoverVisuals(scene, yesHot, noHot);
+			const bool suppressInitialYesHoverFeedback =
+				suppressInitialYesHoverFeedback_ &&
+				!yesOver &&
+				(focusedButtonId == yesButtonID_);
+			UpdateHoverVisuals(scene, yesHot, noHot, suppressInitialYesHoverFeedback);
+			suppressInitialYesHoverFeedback_ = false;
 
 			const bool mouseDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
 			const bool clickEdge = mouseDown && !mouseHeld_;

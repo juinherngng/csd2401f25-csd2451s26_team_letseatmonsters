@@ -32,7 +32,7 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "btn_retry_level",
-      "texture": "../assets/UI/retry_h.png",
+      "texture": "../assets/UI/retry_s.png",
       "visible": true,
       "w": 450.0,
       "x": 1332.0,
