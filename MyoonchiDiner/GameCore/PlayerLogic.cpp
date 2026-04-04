@@ -58,6 +58,9 @@ void PlayerLogic::EnterPauseState(Scene& scene) {
 	CancelQueuedTableMove(scene);
 	ClearQueuedAction();
 	ResetMouseDragState();
+	if (GameObject* player = GetOwner(scene)) {
+		player->SetVelocity(Math::Vector2D(0.0f, 0.0f));
+	}
 	suppressMouseUntilRelease_ = true;
 }
 

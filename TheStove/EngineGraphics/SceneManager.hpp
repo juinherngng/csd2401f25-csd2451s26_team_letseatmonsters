@@ -1251,6 +1251,7 @@ private:
 	// Pause overlay state
 	bool pauseOverlayActive_ = false;
 	bool resumeFromPausePending_ = false;
+	int pauseResumePlayerCollisionGraceFrames_ = 0;
 	std::vector<int> pauseOverlayObjectIds_;
 	FlowState flowState_ = FlowState::Bootstrapping;
 	FlowState flowStateBeforePause_ = FlowState::Gameplay;

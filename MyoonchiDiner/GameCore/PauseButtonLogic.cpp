@@ -170,9 +170,6 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 
 		scene.HidePauseOverlay();
 		scene.RequestResumeFromPauseOverlay();
-		// Fully clear transient input after clicking Resume so gameplay
-		// does not receive stale mouse/key edges from the pause UI frame.
-		input.ClearState();
 		break;
 
 	case PauseAction::HowToPlay:

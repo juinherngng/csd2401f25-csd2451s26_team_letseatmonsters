@@ -22,6 +22,7 @@
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
+#include "../../MyoonchiDiner/GameCore/PlayerLogic.hpp"
 
  // -------------------------------------------------------------------------------------------------
  // Top-Level Frame Driver
@@ -193,6 +194,11 @@ void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 	}
 
 	if (simulationActive) {
+		const bool skipPlayerCollisionsThisFrame = (pauseResumePlayerCollisionGraceFrames_ > 0);
+		if (pauseResumePlayerCollisionGraceFrames_ > 0) {
+			--pauseResumePlayerCollisionGraceFrames_;
+		}
+
 		if (useForces_) {
 			// Physics integration is optional so designers can toggle force-driven movement live.
 			physicsManager.UpdatePhysics(physicsDt, entityManager, inputManager);
@@ -200,7 +206,9 @@ void Scene::UpdateSimulationPhase(float deltaTime, float physicsDt) {
 
 		const collision::WalkArea walk = GetWalkArea();
 		npcSystem.Update(physicsDt, entityManager, collisionManager, walk);
-		HandlePlayerCollisions(physicsDt, entityManager);
+		if (!skipPlayerCollisionsThisFrame) {
+			HandlePlayerCollisions(physicsDt, entityManager);
+		}
 		ApplyFinalConstraints(entityManager);
 
 		if (audioManager_) {
@@ -325,6 +333,9 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 					audioManager->PlaySound("ui_startresume", audioManager->GetVfxVolume(), false);
 				}
 			}
+			if (PlayerLogic* playerLogic = GetLogicManager().GetLogicForObject<PlayerLogic>(GetPlayerID())) {
+				playerLogic->EnterPauseState(*this);
+			}
 			HidePauseOverlay();
 			RequestResumeFromPauseOverlay();
 			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
@@ -335,6 +346,9 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 					audioManager->PlaySound("ui_back", audioManager->GetVfxVolume(), false);
 				}
 			}
+			if (PlayerLogic* playerLogic = GetLogicManager().GetLogicForObject<PlayerLogic>(GetPlayerID())) {
+				playerLogic->EnterPauseState(*this);
+			}
 			ShowPauseOverlay();
 			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);
 		}
@@ -343,6 +357,7 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 	// Resume simulation only after the overlay has been fully torn down.
 	if (ShouldUseRuntimeParityMode() && resumeFromPausePending_ && !pauseOverlayActive_) {
 		// Reactivate gameplay one frame after the pause UI finishes despawning.
+		pauseResumePlayerCollisionGraceFrames_ = 1;
 		SetSimulationActive(true);
 		resumeFromPausePending_ = false;
 		RefreshFlowState();
