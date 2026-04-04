@@ -18,6 +18,11 @@
 
 class Texture {
 public:
+	enum class SamplingMode {
+		PixelArt,
+		Smooth
+	};
+
 	/**
 	 * @brief Constructs an empty OpenGL texture wrapper with no allocated GPU texture yet.
 	 */
@@ -48,9 +53,10 @@ public:
 	/**
 	 * @brief Loads an image file from disk and uploads it as a GPU texture.
 	 * @param filePath Relative or absolute path to the image file.
+	 * @param samplingMode Sampler profile used when the texture is magnified or minified.
 	 * @return `true` if decoding and upload both succeed.
 	 */
-	bool LoadFromFile(const std::string& filePath);
+	bool LoadFromFile(const std::string& filePath, SamplingMode samplingMode = SamplingMode::PixelArt);
 
 	/**
 	 * @brief Uploads already-decoded image bytes by allocating a new GPU texture and filling it.
@@ -58,18 +64,27 @@ public:
 	 * @param imageWidth Image width in pixels.
 	 * @param imageHeight Image height in pixels.
 	 * @param imageChannels Number of color channels stored in `data`.
+	 * @param samplingMode Sampler profile used when the texture is magnified or minified.
 	 * @return `true` if allocation and upload succeed.
 	 */
-	bool LoadFromMemory(const unsigned char* data, int imageWidth, int imageHeight, int imageChannels);
+	bool LoadFromMemory(const unsigned char* data,
+		int imageWidth,
+		int imageHeight,
+		int imageChannels,
+		SamplingMode samplingMode = SamplingMode::PixelArt);
 
 	/**
 	 * @brief Allocates an empty GPU texture for later streaming updates.
 	 * @param imageWidth Texture width in pixels.
 	 * @param imageHeight Texture height in pixels.
 	 * @param imageChannels Number of channels to allocate storage for.
+	 * @param samplingMode Sampler profile used when the texture is magnified or minified.
 	 * @return `true` if the empty texture was allocated successfully.
 	 */
-	bool AllocateEmpty(int imageWidth, int imageHeight, int imageChannels = 4);
+	bool AllocateEmpty(int imageWidth,
+		int imageHeight,
+		int imageChannels = 4,
+		SamplingMode samplingMode = SamplingMode::PixelArt);
 
 	/**
 	 * @brief Replaces the contents of the currently allocated texture without recreating it.
@@ -137,6 +152,9 @@ public:
 	}
 
 private:
+	void ApplySamplingParameters() const;
+
 	GLuint textureID;
 	int width, height, channels;
+	SamplingMode samplingMode;
 };

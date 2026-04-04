@@ -57,6 +57,31 @@ namespace {
 
 		return value;
 	}
+
+	std::string ToLowerAscii(std::string value) {
+		std::transform(value.begin(), value.end(), value.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		return value;
+	}
+
+	Texture::SamplingMode DetermineTextureSamplingMode(const std::string& path) {
+		const std::string lower = ToLowerAscii(path);
+		const bool shouldSmooth =
+			lower.find("\\backgrounds\\") != std::string::npos ||
+			lower.find("/backgrounds/") != std::string::npos ||
+			lower.find("\\ui\\") != std::string::npos ||
+			lower.find("/ui/") != std::string::npos ||
+			lower.find("\\credits\\") != std::string::npos ||
+			lower.find("/credits/") != std::string::npos ||
+			lower.find("\\cutscenes\\") != std::string::npos ||
+			lower.find("/cutscenes/") != std::string::npos;
+
+		return shouldSmooth ? Texture::SamplingMode::Smooth : Texture::SamplingMode::PixelArt;
+	}
+
+	std::string BuildTextureVariantKey(const std::string& normalizedPath, Texture::SamplingMode samplingMode) {
+		return normalizedPath + "|" + (samplingMode == Texture::SamplingMode::Smooth ? "smooth" : "pixel");
+	}
 }
 
 /**
@@ -204,7 +229,9 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 
 	// Normalize paths so duplicate relative spellings still share the same GPU texture.
 	const std::string normalizedPath = NormalizePathCached(filePath);
-	auto pathIt = texturePaths.find(normalizedPath);
+	const Texture::SamplingMode samplingMode = DetermineTextureSamplingMode(normalizedPath);
+	const std::string variantKey = BuildTextureVariantKey(normalizedPath, samplingMode);
+	auto pathIt = texturePaths.find(variantKey);
 	if (pathIt != texturePaths.end()) {
 		// Record an alias from the requested logical name to the already loaded texture instance.
 		textureAliases[name] = pathIt->second;
@@ -213,22 +240,22 @@ Texture* ResourceManager::LoadTexture(const std::string& name, const std::string
 		return pathIt->second;
 	}
 
-	if (failedTexturePaths.find(normalizedPath) != failedTexturePaths.end()) {
+	if (failedTexturePaths.find(variantKey) != failedTexturePaths.end()) {
 		// Skip repeated disk attempts for textures that already failed earlier in the run.
 		return nullptr;
 	}
 
 	auto texture = std::make_unique<Texture>();
-	if (!texture->LoadFromFile(filePath)) {
-		failedTexturePaths.insert(normalizedPath);
+	if (!texture->LoadFromFile(filePath, samplingMode)) {
+		failedTexturePaths.insert(variantKey);
 		return nullptr;
 	}
 
 	Texture* texturePtr = texture.get();
 	// Store both the logical name and normalized file path so later aliases can share this texture.
 	textures[name] = std::move(texture);
-	texturePaths[normalizedPath] = texturePtr;
-	failedTexturePaths.erase(normalizedPath);
+	texturePaths[variantKey] = texturePtr;
+	failedTexturePaths.erase(variantKey);
 
 #ifndef NDEBUG
 	TS_LOG_DEBUG("[ResourceManager] Loaded texture: " << name);
@@ -276,6 +303,8 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 	struct PendingPath {
 		std::string path;
 		std::string normalizedPath;
+		std::string variantKey;
+		Texture::SamplingMode samplingMode = Texture::SamplingMode::PixelArt;
 	};
 
 	std::vector<PendingPath> uniquePaths;
@@ -289,16 +318,18 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 		}
 
 		const std::string normalizedPath = NormalizePathCached(filePath);
-		if (texturePaths.find(normalizedPath) != texturePaths.end()) {
+		const Texture::SamplingMode samplingMode = DetermineTextureSamplingMode(normalizedPath);
+		const std::string variantKey = BuildTextureVariantKey(normalizedPath, samplingMode);
+		if (texturePaths.find(variantKey) != texturePaths.end()) {
 			continue;
 		}
 
-		if (failedTexturePaths.find(normalizedPath) != failedTexturePaths.end()) {
+		if (failedTexturePaths.find(variantKey) != failedTexturePaths.end()) {
 			continue;
 		}
 
-		if (seen.insert(normalizedPath).second) {
-			uniquePaths.push_back(PendingPath{ filePath, normalizedPath });
+		if (seen.insert(variantKey).second) {
+			uniquePaths.push_back(PendingPath{ filePath, normalizedPath, variantKey, samplingMode });
 		}
 	}
 
@@ -309,17 +340,21 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 	struct DecodedTexture {
 		std::string path;
 		std::string normalizedPath;
+		std::string variantKey;
 		std::vector<unsigned char> data;
 		int width = 0;
 		int height = 0;
 		int channels = 0;
 		bool ok = false;
+		Texture::SamplingMode samplingMode = Texture::SamplingMode::PixelArt;
 	};
 
 	auto decodeTask = [](PendingPath pendingPath) {
 		DecodedTexture decoded;
 		decoded.path = std::move(pendingPath.path);
 		decoded.normalizedPath = std::move(pendingPath.normalizedPath);
+		decoded.variantKey = std::move(pendingPath.variantKey);
+		decoded.samplingMode = pendingPath.samplingMode;
 		decoded.ok = Texture::DecodeFile(decoded.path, decoded.data, decoded.width, decoded.height, decoded.channels);
 		return decoded;
 		};
@@ -332,7 +367,7 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 
 	auto consumeDecodedTexture = [&](DecodedTexture&& decoded) {
 		if (!decoded.ok) {
-			failedTexturePaths.insert(decoded.normalizedPath);
+			failedTexturePaths.insert(decoded.variantKey);
 			++failedCount;
 			return;
 		}
@@ -340,8 +375,8 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 		// Upload decoded image data on the main thread so the OpenGL calls remain valid.
 		auto texture = std::make_unique<Texture>();
 		const auto uploadStart = std::chrono::steady_clock::now();
-		if (!texture->LoadFromMemory(decoded.data.data(), decoded.width, decoded.height, decoded.channels)) {
-			failedTexturePaths.insert(decoded.normalizedPath);
+		if (!texture->LoadFromMemory(decoded.data.data(), decoded.width, decoded.height, decoded.channels, decoded.samplingMode)) {
+			failedTexturePaths.insert(decoded.variantKey);
 			++failedCount;
 			return;
 		}
@@ -353,8 +388,8 @@ void ResourceManager::PreloadTextures(const std::vector<std::string>& filePaths)
 		const std::string cacheKey = "preload_" + decoded.path;
 		// Cache the preload result under a synthetic key and the normalized disk path.
 		textures[cacheKey] = std::move(texture);
-		texturePaths[decoded.normalizedPath] = texturePtr;
-		failedTexturePaths.erase(decoded.normalizedPath);
+		texturePaths[decoded.variantKey] = texturePtr;
+		failedTexturePaths.erase(decoded.variantKey);
 		};
 
 	for (auto& pendingPath : uniquePaths) {

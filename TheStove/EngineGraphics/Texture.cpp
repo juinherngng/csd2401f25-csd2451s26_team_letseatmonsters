@@ -22,7 +22,7 @@
 /**
  * @brief Initializes the wrapper with no active GPU texture.
  */
-Texture::Texture() : textureID(0), width(0), height(0), channels(0) {}
+Texture::Texture() : textureID(0), width(0), height(0), channels(0), samplingMode(SamplingMode::PixelArt) {}
 
 /**
  * @brief Deletes the owned GPU texture when the wrapper goes out of scope.
@@ -38,11 +38,12 @@ Texture::~Texture() {
  * @param other Source wrapper whose texture handle is adopted.
  */
 Texture::Texture(Texture&& other) noexcept
-	: textureID(other.textureID), width(other.width), height(other.height), channels(other.channels) {
+	: textureID(other.textureID), width(other.width), height(other.height), channels(other.channels), samplingMode(other.samplingMode) {
 	other.textureID = 0;
 	other.width = 0;
 	other.height = 0;
 	other.channels = 0;
+	other.samplingMode = SamplingMode::PixelArt;
 }
 
 /**
@@ -61,11 +62,13 @@ Texture& Texture::operator=(Texture&& other) noexcept {
 		width = other.width;
 		height = other.height;
 		channels = other.channels;
+		samplingMode = other.samplingMode;
 
 		other.textureID = 0;
 		other.width = 0;
 		other.height = 0;
 		other.channels = 0;
+		other.samplingMode = SamplingMode::PixelArt;
 	}
 	return *this;
 }
@@ -115,12 +118,16 @@ bool Texture::DecodeFile(const std::string& filePath,
  * @param imageChannels Number of channels stored in `data`.
  * @return `true` if the texture was allocated and filled successfully.
  */
-bool Texture::LoadFromMemory(const unsigned char* data, int imageWidth, int imageHeight, int imageChannels) {
+bool Texture::LoadFromMemory(const unsigned char* data,
+	int imageWidth,
+	int imageHeight,
+	int imageChannels,
+	SamplingMode requestedSamplingMode) {
 	if (!data || imageWidth <= 0 || imageHeight <= 0 || imageChannels <= 0) {
 		return false;
 	}
 
-	if (!AllocateEmpty(imageWidth, imageHeight, imageChannels)) {
+	if (!AllocateEmpty(imageWidth, imageHeight, imageChannels, requestedSamplingMode)) {
 		return false;
 	}
 
@@ -142,7 +149,7 @@ bool Texture::LoadFromMemory(const unsigned char* data, int imageWidth, int imag
  * @param imageChannels Channel count used to choose the internal storage format.
  * @return `true` if allocation succeeded.
  */
-bool Texture::AllocateEmpty(int imageWidth, int imageHeight, int imageChannels) {
+bool Texture::AllocateEmpty(int imageWidth, int imageHeight, int imageChannels, SamplingMode requestedSamplingMode) {
 	if (imageWidth <= 0 || imageHeight <= 0 || imageChannels <= 0) {
 		return false;
 	}
@@ -150,6 +157,7 @@ bool Texture::AllocateEmpty(int imageWidth, int imageHeight, int imageChannels) 
 	width = imageWidth;
 	height = imageHeight;
 	channels = imageChannels;
+	samplingMode = requestedSamplingMode;
 
 	if (textureID != 0) {
 		glDeleteTextures(1, &textureID);
@@ -159,11 +167,7 @@ bool Texture::AllocateEmpty(int imageWidth, int imageHeight, int imageChannels) 
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
-	// Set texture wrapping/filtering options
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);  // Pixel art friendly
+	ApplySamplingParameters();
 
 	GLenum format = GL_RGB;
 	if (channels == 1)
@@ -177,6 +181,20 @@ bool Texture::AllocateEmpty(int imageWidth, int imageHeight, int imageChannels) 
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return true;
+}
+
+void Texture::ApplySamplingParameters() const {
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	if (samplingMode == SamplingMode::Smooth) {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		return;
+	}
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
 
 /**
@@ -203,6 +221,9 @@ bool Texture::UpdateFromMemory(const unsigned char* data,
 
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, inputFormat, inputType, data);
+	if (samplingMode == SamplingMode::Smooth) {
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return true;
 }
@@ -212,7 +233,7 @@ bool Texture::UpdateFromMemory(const unsigned char* data,
  * @param filePath Relative or absolute path to the image file.
  * @return `true` if decode and upload both succeed.
  */
-bool Texture::LoadFromFile(const std::string& filePath) {
+bool Texture::LoadFromFile(const std::string& filePath, SamplingMode requestedSamplingMode) {
 	std::vector<unsigned char> decoded;
 	int imageWidth = 0;
 	int imageHeight = 0;
@@ -222,7 +243,7 @@ bool Texture::LoadFromFile(const std::string& filePath) {
 		return false;
 	}
 
-	if (!LoadFromMemory(decoded.data(), imageWidth, imageHeight, imageChannels)) {
+	if (!LoadFromMemory(decoded.data(), imageWidth, imageHeight, imageChannels, requestedSamplingMode)) {
 		return false;
 	}
 
