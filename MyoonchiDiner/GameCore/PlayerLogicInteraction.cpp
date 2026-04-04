@@ -611,6 +611,8 @@ void PlayerLogic::InteractWithTable(Scene& scene, int tableObjectID) {
 		return;
 	}
 
+	table->RefreshHeldItemState(scene);
+
 	if (TryHandleIngredientBoxInteraction(scene, player, logicMgr, tableObjectID)) {
 		// Ingredient boxes have custom spawn/pickup rules, including the plate-box conversion flow.
 		return;

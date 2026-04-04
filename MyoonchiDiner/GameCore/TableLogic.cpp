@@ -116,6 +116,12 @@ bool TableLogic::CanAcceptItem(Scene& scene, int itemID) const {
 	return true;
 }
 
+void TableLogic::RefreshHeldItemState(Scene& scene) {
+	if (heldItemID_ != kInvalidID && scene.GetGameObjectByID(heldItemID_) == nullptr) {
+		heldItemID_ = kInvalidID;
+	}
+}
+
 bool TableLogic::PlaceItem(Scene& scene, int itemID) {
 	if (heldItemID_ != kInvalidID && scene.GetGameObjectByID(heldItemID_) == nullptr) {
 		// Recover from stale occupancy when the previous item was despawned externally.
@@ -136,7 +142,7 @@ bool TableLogic::PlaceItem(Scene& scene, int itemID) {
 	heldItemID_ = itemID;
 
 	// Snap the item to the visual tabletop, not just the raw object origin.
-	Math::Vector3D newPos = ResolveTableItemPlacementPos(scene, *owner);
+	Math::Vector3D newPos = GetItemPlacementPosition(scene);
 	item->SetPosition(newPos);
 	// If this item is a plate with an attached ingredient visual, move it too.
 	if (auto* plate = scene.GetLogicManager().GetLogicForObject<PlateLogic>(itemID)) {
@@ -173,6 +179,15 @@ int TableLogic::TakeItem(Scene& scene) {
 	}
 
 	return resultID;
+}
+
+Math::Vector3D TableLogic::GetItemPlacementPosition(Scene& scene) const {
+	GameObject* owner = GetOwnerChecked(scene);
+	if (!owner) {
+		return Math::Vector3D(0.0f, 0.0f, 0.0f);
+	}
+
+	return ResolveTableItemPlacementPos(scene, *owner);
 }
 
 // ------------------- Approach / destination points -------------------

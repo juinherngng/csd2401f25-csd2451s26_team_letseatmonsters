@@ -51,6 +51,9 @@ public:
 	// Derived classes (e.g. CustomerTable, WorkTable) can override to add rules.
 	virtual bool CanAcceptItem(Scene& scene, int itemID) const;
 
+	// Refresh any cached held-item bookkeeping before interaction logic depends on it.
+	virtual void RefreshHeldItemState(Scene& scene);
+
 	// Place an item onto this table.
 	// - Returns true on success.
 	// - Does NOT change ownership in any container, it just records the ID and
@@ -107,6 +110,9 @@ protected:
 
 	// Convenience to get the table GameObject (owner) with null-check already done.
 	GameObject* GetOwnerChecked(Scene& scene) const;
+
+	// Returns the authored tabletop anchor used for items resting on this table.
+	Math::Vector3D GetItemPlacementPosition(Scene& scene) const;
 
 	std::string GetName() const override {
 		return "TableLogic";

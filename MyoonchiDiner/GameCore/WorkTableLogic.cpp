@@ -17,11 +17,13 @@
  */
 
 #include <glm/vec4.hpp>
+#include <limits>
 #include <unordered_map>
 
 #include "EngineCore/AudioManager.hpp"
 #include "EngineGraphics/GameObject.hpp"
 #include "EngineGraphics/SceneManager.hpp"
+#include "GameCore/PlayerLogic.hpp"
 #include "GameCore/WorkTableLogic.hpp"
 
 static bool Contains(const std::string& s, const char* sub) {
@@ -50,6 +52,8 @@ static bool TryGetObjectWorldPos(Scene& scene, int objectID, glm::vec3& outPos) 
 	outPos = obj->GetPositionGLM();
 	return true;
 }
+
+static constexpr float kRecoveredStationOccupantMaxDistSq = 18.0f * 18.0f;
 
 WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const std::string& texPath) const {
 	// Detect by the workstation sprite (the table's texture)
@@ -112,6 +116,8 @@ void WorkTableLogic::OnDestroy(Scene& scene) {
 
 void WorkTableLogic::Update(float dt, Scene& scene, InputManager&) {
 	if (!scene.IsSimulationActive()) return;
+
+	RefreshHeldItemState(scene);
 
 	if (!HasItem()) {
 		if (isProcessing_) {
@@ -202,6 +208,86 @@ bool WorkTableLogic::CanAcceptItem(Scene& scene, int itemID) const {
 		return false;
 
 	return IsItemProcessable(scene, *item);
+}
+
+void WorkTableLogic::RefreshHeldItemState(Scene& scene) {
+	TableLogic::RefreshHeldItemState(scene);
+
+	if (heldItemID_ != kInvalidID) {
+		return;
+	}
+
+	const Math::Vector3D anchor3 = GetItemPlacementPosition(scene);
+	const glm::vec2 anchor(anchor3.x, anchor3.y);
+
+	int carriedItemID = -1;
+	if (PlayerLogic* playerLogic = scene.GetLogicManager().GetLogicForObject<PlayerLogic>(scene.GetPlayerID())) {
+		carriedItemID = playerLogic->GetCarriedItemID();
+	}
+
+	int recoveredItemID = -1;
+	float bestDistSq = std::numeric_limits<float>::max();
+	IngredientLogic* recoveredIngredient = nullptr;
+
+	for (GameObject* obj : scene.GetAllObjectsRaw()) {
+		if (!obj) {
+			continue;
+		}
+
+		const int objectID = obj->GetID();
+		if (objectID == GetOwnerID() || objectID == carriedItemID) {
+			continue;
+		}
+
+		IngredientLogic* ingredient = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(objectID);
+		if (!ingredient) {
+			continue;
+		}
+
+		if (!ingredient->IsProcessed() && !CanProcessIngredient(*ingredient)) {
+			continue;
+		}
+
+		const glm::vec3 objectPos = obj->GetPositionGLM();
+		const float dx = objectPos.x - anchor.x;
+		const float dy = objectPos.y - anchor.y;
+		const float distSq = dx * dx + dy * dy;
+		if (distSq > kRecoveredStationOccupantMaxDistSq) {
+			continue;
+		}
+
+		if (distSq < bestDistSq) {
+			bestDistSq = distSq;
+			recoveredItemID = objectID;
+			recoveredIngredient = ingredient;
+		}
+	}
+
+	if (recoveredItemID < 0) {
+		if (isProcessing_) {
+			CancelProcessing(scene);
+		}
+		return;
+	}
+
+	heldItemID_ = recoveredItemID;
+
+	if (!recoveredIngredient) {
+		return;
+	}
+
+	if (recoveredIngredient->IsProcessed()) {
+		if (isProcessing_) {
+			CancelProcessing(scene);
+		}
+		return;
+	}
+
+	if (!isProcessing_) {
+		if (GameObject* recoveredItem = scene.GetGameObjectByID(recoveredItemID)) {
+			OnItemPlaced(scene, *recoveredItem);
+		}
+	}
 }
 
 bool WorkTableLogic::IsItemProcessable(Scene& scene, const GameObject& item) const {

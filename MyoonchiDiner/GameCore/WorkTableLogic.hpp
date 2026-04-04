@@ -43,6 +43,7 @@ public:
 
 	// Only accept items that are processable and when not already processing.
 	bool CanAcceptItem(Scene& scene, int itemID) const override;
+	void RefreshHeldItemState(Scene& scene) override;
 
 	// External control / queries
 	bool  IsProcessing() const {
