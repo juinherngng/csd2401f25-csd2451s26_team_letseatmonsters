@@ -80,8 +80,9 @@ void IngredientBoxLogic::ConfigureAsCarrotBox() {
 
 	// Point the runtime spawn settings at the carrot art and layer configuration.
 	ingredientTexture_ = "../assets/Food/Ingredient_Carrot.png";
+	// The raw carrot sprite sheet is authored at a 4:3 aspect instead of square.
 	ingredientWidth_ = 64.0f;
-	ingredientHeight_ = 64.0f;
+	ingredientHeight_ = 48.0f;
 	ingredientLayer_ = "3";
 }
 
