@@ -482,7 +482,8 @@ namespace Economy {
 			0.175f,
 			perFrameDurationSeconds,
 			-1,
-			0.0f
+			0.0f,
+			false
 		);
 	}
 

@@ -67,9 +67,24 @@ void Scene::RenderLevelTextObjects() {
 		return;
 	}
 
-	// Cutscene-specific UI uses separate drawing paths, so regular authored text stays hidden here.
 	const bool cutsceneActive = IsAnyCutsceneActive();
-	if (cutsceneActive) {
+	const bool suppressGameplayHudForFullscreenCutscene =
+		cutscene_.active ||
+		videoCutscene_.active ||
+		(cutTrans_.active && cutTrans_.hideWorldObjects);
+	const bool transitionedCutsceneBlackoutActive =
+		cutTrans_.active &&
+		graphicsEngine.IsAtBlackout();
+	const bool transitionedCutsceneImageVisible =
+		cutTrans_.active &&
+		(cutTrans_.currentSpriteId >= 0 || cutTrans_.nextSpriteId >= 0);
+	const bool suppressGameplayHudForCutscene =
+		suppressGameplayHudForFullscreenCutscene ||
+		transitionedCutsceneBlackoutActive ||
+		transitionedCutsceneImageVisible;
+	// Keep gameplay HUD visible through the win frame and fade-out, then hide it once the
+	// transitioned cutscene reaches blackout or has a cutscene frame on screen.
+	if (suppressGameplayHudForCutscene) {
 		return;
 	}
 
@@ -98,7 +113,7 @@ void Scene::RenderLevelTextObjects() {
 
 	for (const auto& o : objs) {
 		// Hide gameplay HUD text while cutscene or pause overlays own the top-level presentation.
-		if ((cutsceneActive || pauseActive) && pauseSuppressedRuntimeTextNames_.count(o.name)) {
+		if ((suppressGameplayHudForCutscene || pauseActive) && pauseSuppressedRuntimeTextNames_.count(o.name)) {
 			continue;
 		}
 

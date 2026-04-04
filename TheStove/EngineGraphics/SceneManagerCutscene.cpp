@@ -296,7 +296,8 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 	float fadeInSeconds,
 	float holdSeconds,
 	int crossfadeFromIndex,
-	float crossfadeSeconds) {
+	float crossfadeSeconds,
+	bool hideWorldObjects) {
 	if (imagePaths.size() == 1 && IsVideoCutscenePath(imagePaths.front())) {
 		StartVideoCutsceneTransitioned(
 			imagePaths.front(),
@@ -342,6 +343,8 @@ void Scene::StartCutsceneTransitioned(const std::vector<std::string>& imagePaths
 	cutTrans_.holding = false;
 	cutTrans_.awaitingBlackout = false;
 	cutTrans_.awaitingInitialFadeIn = false;
+	cutTrans_.hideWorldObjects = hideWorldObjects;
+	cutTrans_.hudGraceFrames = hideWorldObjects ? 0 : 1;
 
 	cutTrans_.useCrossfade = (crossfadeFromIndex >= 0);
 	cutTrans_.crossfadeSeconds = std::max(0.05f, crossfadeSeconds);
@@ -372,7 +375,8 @@ void Scene::StartCutsceneTransitionedBounded(const std::vector<std::string>& ima
 	float fadeInSeconds,
 	float holdSeconds,
 	int crossfadeFromIndex,
-	float crossfadeSeconds) {
+	float crossfadeSeconds,
+	bool hideWorldObjects) {
 	sCutsceneBoundaryFlags = boundaryFlags;
 
 	StartCutsceneTransitioned(imagePaths,
@@ -382,7 +386,8 @@ void Scene::StartCutsceneTransitionedBounded(const std::vector<std::string>& ima
 		fadeInSeconds,
 		holdSeconds,
 		crossfadeFromIndex,
-		crossfadeSeconds);
+		crossfadeSeconds,
+		hideWorldObjects);
 }
 
 /**

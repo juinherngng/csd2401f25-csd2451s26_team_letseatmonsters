@@ -327,6 +327,12 @@ public:
 	bool IsTransitionActive() const;
 
 	/**
+	 * @brief Returns whether the fade overlay is currently visible on screen.
+	 * @return True when the transition tint alpha is greater than zero.
+	 */
+	bool IsTransitionOverlayVisible() const;
+
+	/**
 	 * @brief Returns whether at blackout.
 	 * @return True when the operation succeeds or the condition is met.
 	 */

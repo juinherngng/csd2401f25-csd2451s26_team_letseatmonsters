@@ -28,6 +28,14 @@ namespace {
 	// Local Effect Helpers
 	// -------------------------------------------------------------------------------------------------
 
+	constexpr char kHudMoneyFontName[] = "font1";
+	constexpr char kCustomerPaymentStarSheetPath[] = "../assets/VFX/staranim-Sheet.png";
+	constexpr int kCustomerPaymentStarSheetCols = 11;
+	constexpr int kCustomerPaymentStarSheetRows = 2;
+	constexpr float kCustomerPaymentStarFrameAspectFallback =
+		(4000.0f * static_cast<float>(kCustomerPaymentStarSheetRows)) /
+		(227.0f * static_cast<float>(kCustomerPaymentStarSheetCols));
+
 	constexpr char kUiButtonStarSheetPath[] = "../assets/VFX/staranim-Sheet2.png";
 	constexpr int kUiButtonStarSheetCols = 11;
 	constexpr int kUiButtonStarSheetRows = 2;
@@ -65,6 +73,32 @@ namespace {
 	 */
 	std::vector<glm::vec4> CreateUiButtonStarFrames() {
 		return CreateCustomerPaymentStarFrames();
+	}
+
+	/**
+	 * @brief Returns the authored aspect ratio of a single customer-payment star frame.
+	 * @return Frame width divided by frame height.
+	 */
+	float GetCustomerPaymentStarFrameAspect() {
+		Texture* texture = ResourceManager::Instance().LoadTexture(
+			"animatedsprite_" + std::string(kCustomerPaymentStarSheetPath),
+			kCustomerPaymentStarSheetPath);
+		if (!texture || texture->GetWidth() <= 0 || texture->GetHeight() <= 0) {
+			return kCustomerPaymentStarFrameAspectFallback;
+		}
+
+		return (static_cast<float>(texture->GetWidth()) * static_cast<float>(kCustomerPaymentStarSheetRows)) /
+			(static_cast<float>(texture->GetHeight()) * static_cast<float>(kCustomerPaymentStarSheetCols));
+	}
+
+	/**
+	 * @brief Computes a payment-burst size that preserves the animation frame aspect.
+	 * @return Width/height for the spawned payment effect.
+	 */
+	glm::vec2 ComputeCustomerPaymentEffectSize() {
+		const float frameAspect = std::max(GetCustomerPaymentStarFrameAspect(), 0.0001f);
+		constexpr float effectWidth = 480.0f;
+		return glm::vec2(effectWidth, effectWidth / frameAspect);
 	}
 
 	/**
@@ -118,6 +152,22 @@ namespace {
 
 		return width;
 	}
+
+	/**
+	 * @brief Returns the font used by the gameplay money HUD, loading it on demand if needed.
+	 * @return Shared money-counter font, or `nullptr` when it cannot be resolved.
+	 */
+	FontSystem::Font* GetHudMoneyFont() {
+		FontSystem::Font* font = ResourceManager::Instance().GetFont(kHudMoneyFontName);
+		if (font) {
+			return font;
+		}
+
+		return FontSystem::FontManager::Instance().LoadFont(
+			kHudMoneyFontName,
+			FilePaths::Fonts::AGENCYB,
+			48);
+	}
 } // namespace
 
 // -------------------------------------------------------------------------------------------------
@@ -135,13 +185,7 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 		return;
 	}
 
-	FontSystem::Font* font = ResourceManager::Instance().GetFont("payment_popup_font");
-	if (!font) {
-		font = FontSystem::FontManager::Instance().LoadFont(
-			"payment_popup_font",
-			FilePaths::Fonts::TO_THE_POINT,
-			72);
-	}
+	GetHudMoneyFont();
 
 	static const std::vector<glm::vec4> kStarFrames = CreateCustomerPaymentStarFrames();
 	constexpr float kFrameDuration = 0.045f;
@@ -152,9 +196,9 @@ void Scene::TriggerCustomerPaymentFeedback(int tableObjectID, int amount) {
 
 	if (amount > 0) {
 		GameObject* fx = SpawnAnimatedSprite(
-			"../assets/VFX/staranim-Sheet.png",
+			kCustomerPaymentStarSheetPath,
 			glm::vec3(tablePos.x, tablePos.y - 12.0f, tablePos.z),
-			glm::vec2(240.0f, 240.0f),
+			ComputeCustomerPaymentEffectSize(),
 			kStarFrames,
 			kFrameDuration,
 			false,
@@ -321,7 +365,7 @@ void Scene::RenderFloatingWorldTextFx(const glm::mat4& projection, bool pauseAct
 		return;
 	}
 
-	FontSystem::Font* font = ResourceManager::Instance().GetFont("payment_popup_font");
+	FontSystem::Font* font = GetHudMoneyFont();
 	if (!font) {
 		return;
 	}

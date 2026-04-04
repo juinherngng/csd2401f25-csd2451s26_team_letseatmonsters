@@ -214,6 +214,10 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 	// Rebuild the list every frame so layer visibility, cutscenes, and sort order stay current.
 	out.clear();
 	const bool cutsceneActive = IsAnyCutsceneActive();
+	const bool hideWorldObjectsForCutscene =
+		cutscene_.active ||
+		videoCutscene_.active ||
+		(cutTrans_.active && cutTrans_.hideWorldObjects);
 
 	const auto& all = entityManager.GetObjectStorage();
 	out.reserve(all.size());
@@ -232,7 +236,11 @@ void Scene::CollectRenderablePointers(std::vector<GameObject*>& out) {
 
 		const std::string layerName = (defaults != nullptr) ? defaults->layer : "";
 		// Hide non-UI objects while cutscene-specific presentation owns the screen.
-		if (cutsceneActive && layerName != cutTrans_.uiLayer && layerName != cutscene_.uiLayer && layerName != "999999") {
+		if (cutsceneActive &&
+			hideWorldObjectsForCutscene &&
+			layerName != cutTrans_.uiLayer &&
+			layerName != cutscene_.uiLayer &&
+			layerName != "999999") {
 			continue;
 		}
 

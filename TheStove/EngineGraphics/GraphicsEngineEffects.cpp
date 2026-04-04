@@ -133,6 +133,14 @@ bool GraphicsEngine::IsTransitionActive() const {
 }
 
 /**
+ * @brief Returns whether the transition overlay currently contributes visible opacity.
+ * @return `true` when the fullscreen fade tint has a positive alpha.
+ */
+bool GraphicsEngine::IsTransitionOverlayVisible() const {
+	return transitionAlpha_ > 0.0f;
+}
+
+/**
  * @brief Returns whether the transition has reached full blackout and is waiting for a scene swap.
  * @return `true` when the fade-out completed and the engine is holding on a fully opaque overlay.
  */

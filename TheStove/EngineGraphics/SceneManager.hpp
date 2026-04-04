@@ -1079,7 +1079,8 @@ public:
 		float fadeInSeconds = 0.35f,
 		float holdSeconds = 1.5f,
 		int crossfadeFromIndex = -1,           // -1 = disabled; otherwise crossfade when transitioning to this target index
-		float crossfadeSeconds = 0.75f);
+		float crossfadeSeconds = 0.75f,
+		bool hideWorldObjects = true);
 
 	// Starts a cutscene with per-frame images. 'boundaryFlags' marks indices where a chapter boundary occurs.
 	// At boundaries, the engine performs fade-out/in (or crossfade when 'crossfadeFromIndex' matches).
@@ -1103,7 +1104,8 @@ public:
 		float fadeInSeconds = 0.35f,
 		float holdSeconds = 1.0f / 12.0f, // default 12 FPS
 		int crossfadeFromIndex = -1,
-		float crossfadeSeconds = 0.75f);
+		float crossfadeSeconds = 0.75f,
+		bool hideWorldObjects = true);
 
 	/**
 	 * @brief Starts a fullscreen MP4/video cutscene rendered through a streaming texture.
@@ -1381,6 +1383,8 @@ private:
 		std::vector<std::string> images;
 		size_t index = 0;
 		std::string uiLayer = "999998";
+		bool hideWorldObjects = true;
+		int hudGraceFrames = 0;
 		int currentSpriteId = -1;
 		std::string targetLevelJson;
 		bool targetActivateSim = true;
