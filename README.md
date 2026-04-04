@@ -1,29 +1,95 @@
-# Project GAM250
-Myoonchi Diner
+# Myoonchi Diner
 
-# Team Lets Eat Monsters
-Team Members:
-1. Seah Wang Hua        (wanghua.seah@digipen.edu)  RTIS
-2. Yat Chun Wee         (y.chunwee@digipen.edu)     RTIS
-3. Darren Toh           (darren.toh@digipen.edu)    IMGD (Dropped Out)
-4. Glenn Yeo Yi Heng    (g.yeo@digipen.edu)         IMGD (Dropped Out)
-5. Ng Juin Herng        (juinherng.ng@digipen.edu)  IMGD
-6. Vu Phan Hung         (phanhung.vu@digipen.edu)   IMGD
-7. Loo Shi Ya           (s.loo@digipen.edu)         BFA
-8. Ting Tze Chin Rena   (t.ting@digipen.edu)        BFA
+Myoonchi Diner is a top-down 2D cooking and restaurant management game built by Team Lets Eat Monsters for Project GAM250. Players take control of Myool, a dungeon slime disguised as a cook, and prepare dishes for adventurers who descend into the dungeon looking for food. The deeper the run goes, the stranger the customers, ingredients, and kitchen challenges become.
 
-## Codebase Layout
----
+## Team Lets Eat Monsters
+
+### Team Roster
+- Seah Wang Hua - Programmer / Graphics & Rendering Champion
+- Yat Chun Wee - Product Manager / Physics & Collision Champion
+- Ng Juin Herng - Technical Lead / Audio Champion
+- Vu Phan Hung - Design Lead / Systems Design Champion
+- Loo Shi Ya - Art Lead / Character & Props Champion
+- Ting Tze Chin Rena - Artist / Environment & Props Champion
+
+### Team Members
+- Seah Wang Hua `(wanghua.seah@digipen.edu)` - RTIS
+- Yat Chun Wee `(y.chunwee@digipen.edu)` - RTIS
+- Ng Juin Herng `(juinherng.ng@digipen.edu)` - IMGD
+- Vu Phan Hung `(phanhung.vu@digipen.edu)` - IMGD
+- Loo Shi Ya `(s.loo@digipen.edu)` - BFA
+- Ting Tze Chin Rena `(t.ting@digipen.edu)` - BFA
+- Darren Toh `(darren.toh@digipen.edu)` - IMGD (Dropped Out)
+- Glenn Yeo Yi Heng `(g.yeo@digipen.edu)` - IMGD (Dropped Out)
+
+## Game Concept
+
+Myoonchi Diner mixes cooking, time management, and dungeon-themed restaurant gameplay. Players gather ingredients, process them at stations, assemble dishes on plates, and serve the correct meals to waiting customers before their patience runs out. Each level introduces different pacing, kitchen layouts, and environmental presentation to make the restaurant feel more alive and increasingly chaotic.
+
+## How To Play
+
+### Core Gameplay Controls
+- `Left Click` - Move the player
+- `Left Click` - Interact with ingredients, stations, plates, tables, and UI buttons
+- `Esc` - Pause the game
+
+### Menu Controls
+- `Arrow Keys` / `WASD` - Move menu focus on supported screens
+- `Enter` / `Space` - Confirm the focused button on supported screens
+- `Esc` - Back, close overlays, or pause depending on the current screen
+
+### Basic Gameplay Loop
+1. Click an ingredient box to spawn the ingredient you need.
+2. Click a plate box to spawn a plate.
+3. Bring raw ingredients to the correct workstation to process them.
+4. Pick up processed ingredients and place them onto a plate.
+5. Combine the correct processed ingredients to complete a dish.
+6. Bring the completed dish to the matching customer table before patience runs out.
+7. Earn enough money and meet the quota before time expires.
+
+## Custom Demo Input And Usage
+
+The custom demo in this repository includes both the playable game flow and the in-engine level editor/debug workflow.
+
+### Playable Demo Usage
+- Start from the main menu and choose `Start`.
+- Follow the tutorial to learn the ingredient, plate, cooking, and serving flow.
+- Use the pause menu to resume, retry, open settings, or quit.
+- The game currently supports both mouse-driven play and partial keyboard navigation across several menu screens.
+
+### Editor / Debug Demo Controls
+- `L` - Toggle the level editor in debug builds
+- `Left Click` - Select objects in the scene view
+- `Left Click + Drag` - Move the selected object
+- `Delete` - Delete the selected object
+- `Q` - Select tool
+- `T` - Toggle transform rectangle gizmo
+- `E` - Switch to rotate gizmo
+- `C` - Toggle gizmo mode between transform and collider editing
+- `Ctrl + Z` - Undo
+- `Ctrl + Y` or `Ctrl + Shift + Z` - Redo
+- `G` - Toggle collider debug visualization
+- `H` - Toggle auxiliary debug visuals
+- `F` - Toggle force-based movement mode
+
+### Editor Workflow Features
+- Create, load, edit, and save level JSON data
+- Instantiate and save prefabs
+- Edit transform, collider, sprite, text, and layer data
+- Preview and manage assets, audio, and runtime text objects
+- Use play, stop, pause, and resume simulation controls inside the editor
+
+## Project Structure
 
 ### Folder Roles
 - `TheStove/EngineCore`
-  - Engine-side gameplay systems, runtime systems, editor systems, serialization, and shared utility code.
+  Engine-side gameplay systems, runtime systems, editor systems, serialization, and shared utility code.
 - `TheStove/EngineGraphics`
-  - Rendering, scene presentation, resources, meshes, shaders, and scene-facing graphics objects.
+  Rendering, scene presentation, resources, meshes, shaders, and graphics-facing scene systems.
 - `MyoonchiDiner/GameCore`
-  - Game-specific logic layered on top of the engine.
+  Game-specific logic layered on top of the engine.
 - `MyoonchiDiner`
-  - Game bootstrap, bindings, and top-level game-specific shared headers such as `GamePaths.hpp`.
+  Game bootstrap, bindings, and shared game-level headers such as `GamePaths.hpp`.
 
 ### Include Prefixes
 - Use `#include "EngineCore/..."` for engine core headers from `TheStove/EngineCore`.
@@ -50,51 +116,30 @@ Team Members:
 - If a forward declaration block appears after includes, leave one empty line after that block before the next declaration block.
 
 ## Codebase Guidelines
----
 
 ### Naming Conventions
 #### Variables
 - Use meaningful names that reflect what the variable is used for.
 - Add a short comment if a name alone may still be confusing.
-- Global or extern variables:
-  - use `camelCase`
-- File-scoped variables:
-  - use `static`
-  - use `camelCase`
-  - prefix private file-local statics with `_` when that improves clarity
-- Parameters and data members:
-  - `camelCase` is preferred
-  - trailing `_` for data members is allowed and already used widely in the codebase
-  - avoid ambiguous names such as `n`, `tmp`, or `data` unless the scope is extremely small and obvious
+- Global or extern variables use `camelCase`.
+- File-scoped variables should use `static`.
+- Parameters and data members should follow the established local file style.
 
 #### Functions
 - Use `PascalCase`.
-- Prefer names that describe the action performed.
-- Verb-based names are preferred where practical, for example `ProcessData`, `LoadScene`, or `UpdateUiPhase`.
-- Debug-only helpers may be prefixed with `Debug`.
+- Prefer action-based names.
 
-#### Constants
-- Use uppercase with underscores for macros and true global constants, for example `MAX_BUFFER_SIZE`.
-- Function-local `const` variables do not need to follow the macro-style naming pattern.
-
-#### Enums
-- Enum type names use `PascalCase`.
-- Enum values should be consistent within the enum.
-- Existing code currently uses both `PascalCase` and all-caps styles, so new code should follow the style already established in the local file or enum.
-
-#### Structs, Classes, and Typedefs
+#### Structs, Classes, Enums, And Typedefs
 - Use `PascalCase`.
 
 #### Files
 - Use `PascalCase` file names.
 - Prefer `.hpp` for project headers and `.cpp` for source files.
-- `.h` is acceptable for third-party or legacy compatibility headers already present in the repo.
 
 ### Documentation And Comments
 - Public or non-obvious functions should use Doxygen-style comments where practical.
 - Use inline comments to explain intent, assumptions, or non-obvious control flow.
-- Prefer short comments that explain why the code exists, not comments that restate obvious syntax.
-- Modified gameplay files should keep the DigiPen-style file banner comment at the top.
+- Prefer comments that explain why the code exists instead of restating obvious syntax.
 
 ### Dependency Hygiene
 - Do not rely on transitive includes.
@@ -102,18 +147,11 @@ Team Members:
 - Keep engine dependencies pointing to `EngineCore` or `EngineGraphics`.
 - Keep game dependencies pointing to `GameCore` where the header is game-owned.
 
-### Formatting Expectations
-- Use one primary class or responsibility per file where practical.
-- Keep whitespace and include layout consistent with the include-order rules above.
-- Avoid introducing extra blank lines at end-of-file.
-- Prefer ASCII unless the file already uses another encoding convention intentionally.
+## Repository Status
 
-## Current Repository Status
----
-
-The repository has been aligned to the conventions above:
-- engine folders renamed to `EngineCore` and `EngineGraphics`
-- game logic folder renamed to `GameCore`
-- project include paths normalized to `EngineCore/...`, `EngineGraphics/...`, and `GameCore/...`
-- relative project header includes like `../` and `./` removed from source/header include blocks
-- Debug and Release builds verified after the refactor
+The repository has been aligned to the current folder and include conventions:
+- Engine folders are split into `EngineCore` and `EngineGraphics`
+- Game logic lives in `GameCore`
+- Project include paths were normalized to `EngineCore/...`, `EngineGraphics/...`, and `GameCore/...`
+- Relative project header includes were removed from source and header include blocks
+- Debug and Release builds were verified after the refactor
