@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         InputCommandHandler.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (50%)
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(50%)
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (70%)
+ CO-AUTHOR:         Yat Chun Wee, y.chunwee@digipen.edu		(30%)
 
  DESCRIPTION:       Implements InputCommandHandler. Maps keyboard input to engine/debug actions:
 					collider/debug visibility toggles and force-mode switching for the player.

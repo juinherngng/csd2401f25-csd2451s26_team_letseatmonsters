@@ -370,7 +370,7 @@ void GraphicsEngine::RenderBatched(const std::vector<GameObject*>& objects) {
 		if (!instanceBatch.empty()) {
 			flushBatch(instanceBatch, currentKey);
 		}
-	};
+		};
 
 	renderSubset(worldObjects);
 

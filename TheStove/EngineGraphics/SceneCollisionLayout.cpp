@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         SceneCollisionLayout.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu	  (50%)
+ CO-AUTHOR: 		Vu Phan Hung, phanhung.vu@digipen.edu (50%)
 
  DESCRIPTION:       Implements Scene methods and helpers related to:
 					- Level reference resolution (ref <-> framebuffer)

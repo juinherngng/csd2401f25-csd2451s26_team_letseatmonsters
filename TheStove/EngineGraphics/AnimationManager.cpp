@@ -2,8 +2,10 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			AnimationManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (90%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
  CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+					Vu Phan Hung, phanhung.vu@digipen.edu	(30%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(10%)
 
  DESCRIPTION:	    Implements AnimationManager. Manages 2D sprite animations for game objects,
 					updating frame UVs based on Animator2D components. Supports play/pause

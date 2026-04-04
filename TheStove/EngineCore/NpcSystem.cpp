@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         NpcSystem.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (65%)
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(35%)
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (75%)
+ CO-AUTHOR:         Yat Chun Wee, y.chunwee@digipen.edu		(25%)
 
  DESCRIPTION:       Implements NPCSystem. Updates lane-bound NPCs (Y-lane with bounce)
 					and generic NPCs (free planar). Performs simple pairwise elastic

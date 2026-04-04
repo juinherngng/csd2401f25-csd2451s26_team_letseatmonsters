@@ -3,7 +3,7 @@
  FILE NAME:			GameObject.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(60%)
 
  DESCRIPTION:		Implements the GameObject class, which encapsulates the state, transform, and
 					rendering details for every entity that appears in the scene.
@@ -19,12 +19,12 @@
 #include "EngineGraphics/GameObject.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 
-/**
- * @brief Performs game object.
- * @param mesh Parameter for mesh.
- * @param shader Parameter for shader.
- * @return Result produced by this operation.
- */
+ /**
+  * @brief Performs game object.
+  * @param mesh Parameter for mesh.
+  * @param shader Parameter for shader.
+  * @return Result produced by this operation.
+  */
 GameObject::GameObject(Mesh* mesh, Shader* shader)
 	: m_Mesh(mesh), m_Shader(shader), m_Position(0.0f), m_Scale(1.0f), m_Rotation(1.0f), m_RotationAngle(0.0f) {
 	UpdateModelMatrix();

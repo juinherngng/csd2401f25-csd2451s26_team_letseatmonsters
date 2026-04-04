@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			Message.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (60%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	    (40%)
 
  DESCRIPTION:		Message system for inter-component communication.
 					Supports publish/subscribe patterns.

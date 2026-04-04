@@ -2,7 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GridPathfinder.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (90%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (10%)
+
  DESCRIPTION:		Implements the NavGrid and GridPathfinder classes, which provide grid-based pathfinding
 					functionality using A* search. NavGrid represents a 2D grid of walkable/blocked cells,
 					while GridPathfinder contains the A* algorithm to find a path between two points on the grid.

@@ -3,7 +3,7 @@
  FILE NAME:         SceneDebug.cpp
  PROJECT NAME:      Project GAM200
  AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (50%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(50%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(50%)
 
  DESCRIPTION:       Implements debug-only Scene helpers:
 						- Stress test object generator

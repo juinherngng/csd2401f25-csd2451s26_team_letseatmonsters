@@ -2,8 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         LevelEditorPanelFonts.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu (70%)
+ AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu (60%)
  CO-AUTHORS:		Vu Phan Hung, phanhung.vu@digipen.edu   (30%)
+					Yat Chun Wee, y.chunwee@digipen.edu	    (10%)
 
  DESCRIPTION:       Implementation of the Fonts panel for Level Editor.
 					Manages font loading and text object data.

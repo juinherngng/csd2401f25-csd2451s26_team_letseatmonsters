@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GOC.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (70%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (30%)
 
  DESCRIPTION:		GOC (Game Object Composition) represents a single "entity" in the engine.
 					Each GOC contains a map of components (inherited from GameComponent) keyed

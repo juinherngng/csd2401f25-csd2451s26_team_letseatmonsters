@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			ConfigManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(90%)
+ CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:		This module defines a minimal configuration schema (window resolution, fullscreen,
 					BGM/VFX volumes) and exposes helpers to load from a file or common asset locations,

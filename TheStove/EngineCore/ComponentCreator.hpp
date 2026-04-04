@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			ComponentCreator.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (50%)
+ CO-AUTHOR:         Yat Chun Wee, y.chunwee@digipen.edu	  (50%)
 
  DESCRIPTION:		Factory helper classes for creating GameComponent instances.
 					- ComponentCreator: abstract base with a Create() interface.

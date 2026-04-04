@@ -3,7 +3,7 @@
  FILE NAME:			FontSystem.hpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (70%)
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(30%)
+ CO-AUTHOR:         Yat Chun Wee, y.chunwee@digipen.edu		(30%)
 
  DESCRIPTION:		Font system using FreeType to load TTF fonts, render text with
 					different fonts at different positions using OpenGL.

@@ -2,7 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GridPathfinder.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (80%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (20%)
+
  DESCRIPTION:		Declares the NavGrid and GridPathfinder classes, which provide a grid-based navigation system
 					for pathfinding in the game world. NavGrid represents a 2D grid of walkable and blocked cells,
 					while GridPathfinder implements A* search to find paths between grid coordinates.

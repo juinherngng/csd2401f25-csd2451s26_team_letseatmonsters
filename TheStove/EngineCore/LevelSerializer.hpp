@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			LevelSerializer.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(50%)
- CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu (20%)
-					Ng Juin Herng, juinherng.ng@digipen.edu (30%)
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(45%)
+ CO-AUTHORS:		Vu Phan Hung, phanhung.vu@digipen.edu   (30%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (25%)
 
  DESCRIPTION:		JSON-based (de)serialization for level data used by the editor/runtime.
 

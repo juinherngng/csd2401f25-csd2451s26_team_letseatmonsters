@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SceneManagerAudio.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(20%)
+ CO-AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (80%)
 
  DESCRIPTION:		Implements Scene helpers for playing and stopping object-bound runtime audio
 					using the AudioManager and stored object default metadata.
@@ -60,7 +61,7 @@ void Scene::PlayInteractAudio(int objectId) {
 		return;
 	}
 
-    if (defs->audioOnInteract.empty()) {
+	if (defs->audioOnInteract.empty()) {
 		return;
 	}
 
@@ -69,12 +70,12 @@ void Scene::PlayInteractAudio(int objectId) {
 		interactSound = "sfx_pickup";
 	}
 
-   if (audioManager_->HasSound(interactSound)) {
+	if (audioManager_->HasSound(interactSound)) {
 		audioManager_->PlaySound3D(interactSound, defs->pos.x, defs->pos.y, defs->pos.z);
 		TS_LOG_DEBUG("[Scene] Playing interact audio '" << interactSound << "' for object " << objectId);
 	}
 	else {
-      TS_LOG_WARN("[Scene] Interact audio '" << interactSound << "' not found in AudioManager");
+		TS_LOG_WARN("[Scene] Interact audio '" << interactSound << "' not found in AudioManager");
 	}
 }
 

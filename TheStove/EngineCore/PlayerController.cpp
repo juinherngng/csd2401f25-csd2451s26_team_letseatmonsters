@@ -3,8 +3,8 @@
  FILE NAME:			PlayerController.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
-					Vu Phan Hung, phanhung.vu@digipen.edu	(30%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(35%)
+					Vu Phan Hung, phanhung.vu@digipen.edu	(25%)
 
  DESCRIPTION:		Implements PlayerController. Reads input, adjusts scale/rotation,
 					sets click-to-move targets (either physics-based or direct), and

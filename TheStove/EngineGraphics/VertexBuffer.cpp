@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			VertexBuffer.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (45%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	    (55%)
 
  DESCRIPTION:		Implements VBO creation, data upload in constructor, bind/unbind, and destruction.
 

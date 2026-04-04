@@ -2,9 +2,10 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			DebugUI.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu    (15%)
- CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (65%)
+ AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu    (10%)
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (40%)
 					Seah Wang Hua, wanghua.seah"digipen.edu (20%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(30%)
 
  DESCRIPTION:		The definitions of functions for the debugger window.
 

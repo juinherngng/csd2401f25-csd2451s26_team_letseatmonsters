@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameComponent.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (60%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (40%)
 
  DESCRIPTION:		Base class for all attachable components in the GameObject-Component (GOC)
 					architecture. Provides lifecycle methods (Initialize, Start, Update,
@@ -30,11 +31,9 @@ class GameComponent {
 public:
 	GameComponent() = default;
 	//Init the Game Component
-	virtual void Initialize() {
-	};
+	virtual void Initialize() {};
 	//Start is only called once and this check using the flag started
-	virtual void Start() {
-	};
+	virtual void Start() {};
 	//Update
 	virtual void Update(float dt) {
 		(void)dt;
@@ -56,11 +55,9 @@ public:
 	}
 
 	//called when the component is enabled
-	virtual void OnEnable() {
-	};
+	virtual void OnEnable() {};
 	//called when the component is disabled
-	virtual void OnDisable() {
-	};
+	virtual void OnDisable() {};
 
 	//Enable/disable the component
 	void SetEnabled(bool state) {
@@ -95,8 +92,7 @@ public:
 	}
 
 	//dtor
-	virtual ~GameComponent() {
-	};
+	virtual ~GameComponent() {};
 
 	//Cloning GameObject component
 	virtual GameComponent* Clone() const = 0;

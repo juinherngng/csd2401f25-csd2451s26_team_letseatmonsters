@@ -2,9 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			LevelEditorPanelLevel.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(70%)
- CO-AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (5%)
-					Vu Phan Hung, phanhung.vu@digipen.edu	(25%)
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(80%)
+ CO-AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (20%)
 
  DESCRIPTION:       Implements the Level panel for the Level Editor, which manages the overall level state, including:
 					- Loading/saving level JSON files

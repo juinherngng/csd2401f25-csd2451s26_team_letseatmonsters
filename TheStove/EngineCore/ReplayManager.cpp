@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			ReplayManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (90%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	    (10%)
 
  DESCRIPTION:		Implements recording/playback flow for `ReplayManager`.
 

@@ -16,10 +16,10 @@
 #include "EngineCore/Forces.hpp"
 #include "EngineCore/RigidBody2D.hpp"
 
-/**
- * @brief Performs ~iforce generator.
- * @return Result produced by this operation.
- */
+ /**
+  * @brief Performs ~iforce generator.
+  * @return Result produced by this operation.
+  */
 IForceGenerator::~IForceGenerator() = default;
 
 /**
@@ -75,8 +75,7 @@ void ForceRegistry::UpdateForces(float dt) {
  * @return Result produced by this operation.
  */
 GravityForce::GravityForce(Math::Vector2D gravity)
-	: g(gravity) {
-}
+	: g(gravity) {}
 
 /**
  * @brief Updates force.
@@ -101,8 +100,7 @@ void GravityForce::UpdateForce(RigidBody2D& body, float) {
  * @return Result produced by this operation.
  */
 DragForce::DragForce(float linearK, float quadraticK)
-	: k1(linearK), k2(quadraticK) {
-}
+	: k1(linearK), k2(quadraticK) {}
 
 /**
  * @brief Updates force.
@@ -131,8 +129,7 @@ void DragForce::UpdateForce(RigidBody2D& body, float) {
  * @return Result produced by this operation.
  */
 ConstantForce::ConstantForce(Math::Vector2D force)
-	: f(force) {
-}
+	: f(force) {}
 
 /**
  * @brief Updates force.
@@ -152,8 +149,7 @@ void ConstantForce::UpdateForce(RigidBody2D& body, float) {
  * @return Result produced by this operation.
  */
 SeekForce::SeekForce(Math::Vector2D* targetPtr, float maxAccelIn, float arrive)
-	: target(targetPtr), currentPos2DPtr(nullptr), maxAccel(maxAccelIn), arriveRadius(arrive) {
-}
+	: target(targetPtr), currentPos2DPtr(nullptr), maxAccel(maxAccelIn), arriveRadius(arrive) {}
 
 /**
  * @brief Performs seek force.
@@ -167,8 +163,7 @@ SeekForce::SeekForce(Math::Vector2D* targetPtr,
 	const Math::Vector2D* cur,
 	float maxAccelIn,
 	float arrive)
-	: target(targetPtr), currentPos2DPtr(cur), maxAccel(maxAccelIn), arriveRadius(arrive) {
-}
+	: target(targetPtr), currentPos2DPtr(cur), maxAccel(maxAccelIn), arriveRadius(arrive) {}
 
 /**
  * @brief Updates force.

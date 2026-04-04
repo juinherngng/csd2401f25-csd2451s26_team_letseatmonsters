@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			ApplicationShutdown.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:            OpenAI Codex
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu (100%)
 
  DESCRIPTION:		Declares lightweight app-owned shutdown helpers so engine systems can
 					request termination without owning the desktop application loop.
