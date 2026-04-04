@@ -74,7 +74,7 @@ public:
 	};
 
 	/** @name Core Manager Accessors */
-	/// @{
+	// @{
 	GraphicsEngine& GetGraphicsEngine();
 	const GraphicsEngine& GetGraphicsEngine() const;
 	MovementManager& GetMovementManager();
@@ -95,7 +95,7 @@ public:
 	const LogicManager& GetLogicManager() const {
 		return logicManager;
 	}
-	/// @}
+	// @}
 
 	// -------------------------------------------------------------------------------------------------
 	// Scene Lifetime And Frame Control
@@ -140,17 +140,17 @@ public:
 	/** @name Object-Bound Audio Helpers
 	 * Helpers for playing and stopping sounds configured on scene object defaults.
 	 */
-	 /// @{
+	 // @{
 	void PlaySpawnAudio(int objectId);
 	void PlayInteractAudio(int objectId);
 	void PlayDestroyAudio(int objectId);
 	void PlayProcessingAudio(int objectId);   // Start looping processing audio
 	void StopProcessingAudio(int objectId);   // Stop processing audio
 	void StopAllObjectAudio();				  // Stop all audio bound to objects
-	/// @}
+	// @}
 
 	/** @name Scene Lifecycle And Presentation */
-	/// @{
+	// @{
 	void LoadScene(const std::string& sceneName);
 	void Update(float deltaTime, GLFWwindow* window);
 	void DrawUI();
@@ -183,7 +183,7 @@ public:
 	void SetEditorPlayingQuery(std::function<bool()> query) {
 		editorPlayingQuery_ = std::move(query);
 	}
-	/// @}
+	// @}
 
 	/**
 	 * @brief Sets simulation active.
@@ -307,7 +307,7 @@ public:
 	// -------------------------------------------------------------------------------------------------
 
 	/** @name Scene Background Helpers */
-	/// @{
+	// @{
 	void SetSceneBackground(const std::string& texturePath);
 	void SetSceneBackgroundOverlay(const std::string& texturePath);
 	void ClearSceneBackgroundOverlay();
@@ -317,7 +317,7 @@ public:
 	const std::string& GetSceneBackgroundOverlay() const {
 		return sceneBackgroundOverlayPath_;
 	}
-	/// @}
+	// @}
 
 	/**
 	 * @brief Sets transform from level.
@@ -371,7 +371,7 @@ public:
 	float ToRefY(float currentY) const;
 
 	/** @name Animation Helpers */
-	/// @{
+	// @{
 	bool HasAnimations(int id) const;
 	std::vector<std::string> GetAnimationList(int id) const;
 	std::string GetCurrentAnimationName(int id) const;
@@ -385,7 +385,7 @@ public:
 	void AttachWorkVfxStoveAnimations(int objID);
 	void MarkAnimated(int id, bool state);
 	void AttachMenuAnimations(int objID);
-	/// @}
+	// @}
 
 	/**
 	 * @brief Generates stress test.
@@ -426,7 +426,7 @@ public:
 	using NavigationBlockerCollector = std::function<void(Scene&, int, std::vector<collision::AABB>&)>;
 
 	/** @name Scene Hook Setters */
-	/// @{
+	// @{
 	void SetTagLogicBinder(TagLogicBinder binder) {
 		tagLogicBinder_ = std::move(binder);
 	}
@@ -485,7 +485,7 @@ public:
 	void SetPauseOverlayAdditionalAudioChannels(std::vector<std::string> channels) {
 		pauseAdditionalChannels_ = std::move(channels);
 	}
-	/// @}
+	// @}
 
 	// -------------------------------------------------------------------------------------------------
 	// Object Metadata, Identity, And Visibility

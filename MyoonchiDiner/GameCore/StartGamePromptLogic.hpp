@@ -4,17 +4,10 @@
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
 
- DESCRIPTION:		Declares `StartGamePromptLogic`, the click/hover controller for the main menu
-					`btn_play` flow.
-
-
-	Responsibilities:
-	  1) Handles hover-state sprite swapping for the main Play button.
-	  2) Opens/closes the tutorial decision popup.
-	  3) Spawns and controls popup Yes/No button visuals and hover states.
-	  4) Routes click actions to either:
-		 - tutorial level transition (Yes), or
-		 - intro cutscene sequence then level transition (No).
+ DESCRIPTION:		Declares the main-menu Play button prompt flow.
+					The logic controls the Play button hover state, manages the tutorial
+					prompt, and routes the player's choice into either the tutorial or
+					the intro-video path before gameplay begins.
 
 		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -29,9 +22,19 @@
 #include "EngineCore/AudioManager.hpp"
 #include "EngineCore/GameObjectLogic.hpp"
 
+/**
+ * @class StartGamePromptLogic
+ * @brief Handles the Play button and its tutorial-choice modal popup.
+ */
 class StartGamePromptLogic final : public GameObjectLogic {
 public:
-	// Constructor takes explicit target JSON paths and simulation activation.
+	/**
+	 * @brief Constructs the Play-button prompt controller.
+	 * @param ownerID Scene object id for the Play button sprite.
+	 * @param tutorialJson Level JSON path used when the player chooses the tutorial.
+	 * @param skipJson Level JSON path used after the intro-video path completes.
+	 * @param activateSimulation Whether the destination level should start with simulation enabled.
+	 */
 	StartGamePromptLogic(int ownerID,
 		std::string tutorialJson,
 		std::string skipJson,
@@ -40,52 +43,91 @@ public:
 		, tutorialJson_(std::move(tutorialJson))
 		, skipJson_(std::move(skipJson))
 		, activateSimulation_(activateSimulation) {
+		// Persist both possible destinations so the popup can route either choice immediately.
 	}
 
-	// Per-frame input + UI state update.
+	/**
+	 * @brief Updates the Play button or tutorial prompt depending on the current modal state.
+	 * @param dt Unused frame delta time in seconds.
+	 * @param scene Active scene providing UI spawning and transition helpers.
+	 * @param input Frame input snapshot used for hover, click, and keyboard submit behavior.
+	 */
 	void Update(float dt, Scene& scene, InputManager& input) override;
 
-	// Set AudioManager for button click sounds
+	/**
+	 * @brief Injects the audio manager used for UI sound playback.
+	 * @param mgr Non-owning pointer to the shared audio manager.
+	 */
 	void SetAudioManager(AudioManager* mgr) {
+		// Cache the audio bridge so button hover and click feedback can be played on demand.
 		audioManager_ = mgr;
 	}
 
 private:
-	// Converts current cursor position into scene/world coordinates.
+	/**
+	 * @brief Converts the current cursor position into scene-space coordinates.
+	 * @param scene Active scene, unused because the graphics singleton resolves the world position.
+	 * @param input Input manager used as the fallback world-space conversion path.
+	 * @param outWorld Output cursor position in reference-scene coordinates.
+	 * @return `true` when a usable world position was produced.
+	 */
 	bool GetMouseWorld(Scene& scene, InputManager& input, glm::vec2& outWorld) const;
 
-	// Axis-aligned rectangle hit test in world-space.
+	/**
+	 * @brief Tests whether a point lies inside a world-space axis-aligned rectangle.
+	 * @param p Point to test.
+	 * @param min Minimum corner of the rectangle.
+	 * @param max Maximum corner of the rectangle.
+	 * @return `true` when the point lies within the rectangle bounds.
+	 */
 	bool IsPointInRect(const glm::vec2& p, const glm::vec2& min, const glm::vec2& max) const;
 
-	// Spawns popup + decision buttons and initializes popup state.
+	/**
+	 * @brief Spawns the tutorial-choice popup and its Yes/No buttons.
+	 * @param scene Active scene used for UI object spawning.
+	 */
 	void OpenPrompt(Scene& scene);
 
-	// Despawns popup + decision buttons and resets popup state.
+	/**
+	 * @brief Closes the tutorial-choice popup and clears its runtime state.
+	 * @param scene Active scene used for UI object despawning.
+	 */
 	void ClosePrompt(Scene& scene);
 
-	// Level targets selected by the popup.
+	// Level JSON path queued when the player chooses the tutorial.
 	std::string tutorialJson_;
+	// Level JSON path queued after the intro-video path completes.
 	std::string skipJson_;
+	// Whether the chosen destination should start with gameplay simulation enabled.
 	bool activateSimulation_ = false;
 
-	// Popup runtime state.
+	// Tracks whether the tutorial-choice prompt is currently visible.
 	bool promptOpen_ = false;
+	// Runtime id of the popup background sprite.
 	int popupId_ = -1;
+	// Runtime id of the Yes button sprite.
 	int yesButtonId_ = -1;
+	// Runtime id of the No button sprite.
 	int noButtonId_ = -1;
+	// Tracks whether the Yes button is currently highlighted.
 	bool yesHovered_ = false;
+	// Tracks whether the No button is currently highlighted.
 	bool noHovered_ = false;
 
-	// Hover texture state for the main Play button.
+	// Tracks whether the Play-button texture paths have been initialized.
 	bool initialized_ = false;
+	// Tracks whether the Play button is currently highlighted.
 	bool hovered_ = false;
+	// Cached idle texture path for the Play button.
 	std::string normalTexturePath_;
+	// Cached hover texture path for the Play button.
 	std::string hoverTexturePath_;
 
-	// Popup transform authoring.
+	// Cached popup center in reference-scene coordinates.
 	glm::vec2 popupCenter_{ 0.0f, 0.0f };
+	// Authored popup size used for spawn and button-position calculations.
 	glm::vec2 popupSize_{ 1152.0f, 648.0f };
 
-	// Audio
+	// Optional audio bridge used for hover, click, and transition sounds.
 	AudioManager* audioManager_ = nullptr;
 };

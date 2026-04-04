@@ -42,9 +42,9 @@ namespace {
  // ------------------- Constructor / lifecycle -------------------
 
 TableLogic::TableLogic(int ownerID) : GameObjectLogic(ownerID), heldItemID_(kInvalidID) {
-	//// Default: one approach point directly "in front" of the table.
-	//// You can tweak this later or add more via AddApproachOffset.
-	//// (Assuming +Y is "up" visually; adjust sign if needed.)
+	// Default: one approach point directly "in front" of the table.
+	// You can tweak this later or add more via AddApproachOffset.
+	// (Assuming +Y is "up" visually; adjust sign if needed.)
 	//ClearApproachOffsets();
 
 	//AddApproachOffset(Math::Vector2D(0.0f, -110.0f));

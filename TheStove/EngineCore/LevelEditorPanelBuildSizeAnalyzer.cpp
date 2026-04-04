@@ -36,14 +36,14 @@
 namespace fs = std::filesystem;
 
 namespace {
-	/// @brief Cached metadata for one exportable asset shown in the analyzer table.
+	// @brief Cached metadata for one exportable asset shown in the analyzer table.
 	struct BuildAssetEntry {
 		std::string exportRelativePath;
 		std::string sourcePath;
 		std::uintmax_t sizeBytes = 0;
 	};
 
-	/// @brief Maps a source root in the repository to its exported folder prefix.
+	// @brief Maps a source root in the repository to its exported folder prefix.
 	struct RootMapping {
 		const char* sourceDir;
 		const char* exportPrefix;

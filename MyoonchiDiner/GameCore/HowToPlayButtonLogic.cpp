@@ -2,8 +2,10 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         HowToPlayButtonLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (50%)
- CO-AUTHOR:         Seah Wang Hua, wanghua.seah@digipen.edu (50%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu	(40%)
+ CO-AUTHOR:         Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(15%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
  DESCRIPTION:       Handles hover and click behaviour for the How To Play
 					button in the main menu. On click, it spawns a fullscreen

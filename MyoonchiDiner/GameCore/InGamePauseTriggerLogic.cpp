@@ -5,9 +5,9 @@
  AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu
 
  DESCRIPTION:		Implements interaction logic for the in‑game pause trigger. This source file defines
-					the behavior for a pause trigger UI element, including hover highlighting, click detection, 
+					the behavior for a pause trigger UI element, including hover highlighting, click detection,
 					audio feedback, and transitioning the game into a paused state with an overlay.
- 
+
 
 		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -174,7 +174,7 @@ void InGamePauseTriggerLogic::Update(float /*dt*/, Scene& scene, InputManager& i
 		if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_BACK)) {
 			audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_BACK, audioManager->GetVfxVolume(), false);
 		}
-       if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
+		if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
 			audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_HOVER, audioManager->GetVfxVolume(), false);
 		}
 	}

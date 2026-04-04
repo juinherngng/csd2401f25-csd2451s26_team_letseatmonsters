@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CustomerTableLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (85%)
+					Yat Chun Wee, y.chunwee@digipen.edu	  (15%)
 
  DESCRIPTION:       Declares the CustomerTableLogic class, representing a
 					table that can seat a customer. Exposes API for checking

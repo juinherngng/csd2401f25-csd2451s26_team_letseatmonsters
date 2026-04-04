@@ -235,9 +235,9 @@ namespace {
 		return seed;
 	}
 
-	/// @brief Synchronizes serialized level data into a live scene.
+	// @brief Synchronizes serialized level data into a live scene.
 	void SyncLevelToScene(const LevelData& levelIn, Scene& scene);
-	/// @brief Captures the current live scene into serializable level data.
+	// @brief Captures the current live scene into serializable level data.
 	void SyncSceneToLevel(Scene& scene, LevelData& levelOut);
 
 	/**

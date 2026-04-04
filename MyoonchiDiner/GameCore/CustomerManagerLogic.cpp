@@ -2,8 +2,10 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CustomerManagerlogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (95%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (80%)
  CO-AUTHORS:        Ng Juin Herng, juinherng.ng@digipen.edu (5%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(10%)
+					Seah Wang Hua, wanghua.seah@digipen.edu (5%)
 
  DESCRIPTION:       Implements a simple scene-level system that manages all
 					customers in the level. It assigns customers to available

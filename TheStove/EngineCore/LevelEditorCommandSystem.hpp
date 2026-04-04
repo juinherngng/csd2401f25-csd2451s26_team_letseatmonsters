@@ -19,9 +19,9 @@ class LevelEditor;
 struct LevelData;
 
 namespace LECOMMAND {
-	/// @brief Callback type used to capture the current level state into a snapshot.
+	// @brief Callback type used to capture the current level state into a snapshot.
 	using CaptureStateFn = std::function<void(LevelData&)>;
-	/// @brief Callback type used to restore a previously captured level snapshot.
+	// @brief Callback type used to restore a previously captured level snapshot.
 	using RestoreStateFn = std::function<void(const LevelData&)>;
 
 	/**

@@ -16,8 +16,7 @@
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/DishLogic.hpp"
 
-DishLogic::DishLogic(int ownerID, DishType type) : GameObjectLogic(ownerID), dishType_(type), isEaten_(false) {
-}
+DishLogic::DishLogic(int ownerID, DishType type) : GameObjectLogic(ownerID), dishType_(type), isEaten_(false) {}
 
 void DishLogic::Start(Scene& /*scene*/) {
 	// Nothing special yet.

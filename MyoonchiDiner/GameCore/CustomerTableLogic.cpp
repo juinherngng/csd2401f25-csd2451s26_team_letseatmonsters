@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         CustomerTableLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (90%)
+					Yat Chun Wee, y.chunwee@digipen.edu	  (10%)
 
  DESCRIPTION:       Implements behaviour for a dining table that can seat a
 					customer. Handles table state (occupied/free), seat
@@ -27,8 +28,7 @@
 #include "GameCore/SimpleNpcLogic.hpp"
 
 CustomerTableLogic::CustomerTableLogic(int ownerID)
-	: TableLogic(ownerID) {
-}
+	: TableLogic(ownerID) {}
 
 void CustomerTableLogic::Start(Scene& scene) {
 	TableLogic::Start(scene);
