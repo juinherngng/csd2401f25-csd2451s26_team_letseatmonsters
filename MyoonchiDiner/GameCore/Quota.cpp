@@ -430,24 +430,34 @@ namespace Economy {
 		// Fade or stop gameplay audio before transitioning into the day-clear cutscene.
 		StopAllGameplayAudio(scene, 2.0f);
 
+		// Decide where the win screen's "Next" action should route based on the current kitchen level.
+		const std::string levelPath = scene.GetCurrentLevelPath();
+		const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
+		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
+
 		std::vector<std::string> frames;
 		std::vector<bool> boundaries;
 
+		const char* winCutscenePrefix = isLevel2 ? "Cutscene_goodend_" : "Cutscene_daychange_";
 		BuildSequentialFramesAndBoundaries(
 			frames, boundaries,
 			"../assets/Win",
-			"Cutscene_daychange_"
+			winCutscenePrefix
 		);
+
+		// Fallback to day-change sequence if the good-end sequence is missing.
+		if (frames.empty() && isLevel2) {
+			BuildSequentialFramesAndBoundaries(
+				frames, boundaries,
+				"../assets/Win",
+				"Cutscene_daychange_"
+			);
+		}
 
 		if (frames.empty()) {
 			scene.RequestMainMenuStateChange();
 			return;
 		}
-
-		// Decide where the win screen's "Next" action should route based on the current kitchen level.
-		const std::string levelPath = scene.GetCurrentLevelPath();
-		const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
-		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
 
 		if (isLevel2) {
 			gWinScreenNextGoesToMainMenu = true;
@@ -460,8 +470,9 @@ namespace Economy {
 		}
 
 		const char* nextScenePath = FilePaths::Levels::WIN;
+		const float perFrameDurationSeconds = isLevel2 ? 2.25f : 0.75f; // +1.5s hold duration for good-end cutscene only
 
-		// Launch the authored day-clear cutscene sequence with chapter-boundary fades.
+		// Launch the authored day-clear/good-end cutscene sequence with chapter-boundary fades.
 		scene.StartCutsceneTransitionedBounded(
 			frames,
 			boundaries,
@@ -469,7 +480,7 @@ namespace Economy {
 			true,
 			1.0f,
 			0.175f,
-			0.75f,
+			perFrameDurationSeconds,
 			-1,
 			0.0f
 		);
