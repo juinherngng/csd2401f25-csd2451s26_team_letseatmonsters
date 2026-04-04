@@ -651,17 +651,32 @@ const char* WorkTableLogic::GetVfxTagForStation() const {
 }
 
 /**
- * @brief Returns the station-specific local offset used for processing VFX placement.
- * @return Local VFX offset for the current station type.
+ * @brief Returns the station-specific position and size tuning for processing VFX.
+ * @return Offset/size values for the current station type.
  */
-glm::vec2 WorkTableLogic::GetVfxOffsetForStation() const {
+WorkTableLogic::ProcessingVfxTuning WorkTableLogic::GetProcessingVfxTuning() const {
+	constexpr ProcessingVfxTuning kCuttingBoardTuning{
+		glm::vec2(-1.0f, -37.0f),
+		glm::vec2(150.0f, 210.0f)
+	};
+	constexpr ProcessingVfxTuning kGrillTuning{
+		glm::vec2(-1.0f, -57.0f),
+		glm::vec2(150.0f, 210.0f)
+	};
+	constexpr ProcessingVfxTuning kStoveTuning{
+		glm::vec2(-1.0f, -57.0f),
+		glm::vec2(150.0f * 0.75f, 210.0f * 0.75f)
+	};
+
 	switch (stationType_) {
-	case StationType::Grill: return grillVfxOffset_;
-	case StationType::Stove: return stoveVfxOffset_;
+	case StationType::Grill:
+		return kGrillTuning;
+	case StationType::Stove:
+		return kStoveTuning;
 	case StationType::CuttingBoard:
 	case StationType::Generic:
 	default:
-		return vfxOffset_;
+		return kCuttingBoardTuning;
 	}
 }
 
@@ -680,8 +695,8 @@ void WorkTableLogic::SpawnProcessingVfx(Scene& scene) {
 	if (!table) return;
 
 	glm::vec3 tp = table->GetPositionGLM();
-	const glm::vec2 vfxOffset = GetVfxOffsetForStation();
-	glm::vec3 vfxPos{ tp.x + vfxOffset.x, tp.y + vfxOffset.y, tp.z + 0.001f };
+	const ProcessingVfxTuning tuning = GetProcessingVfxTuning();
+	glm::vec3 vfxPos{ tp.x + tuning.offset.x, tp.y + tuning.offset.y, tp.z + 0.001f };
 
 	// Create an animated sprite so AnimationManager can drive UVs
 	std::vector<glm::vec4> dummyFrames = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
@@ -689,7 +704,7 @@ void WorkTableLogic::SpawnProcessingVfx(Scene& scene) {
 	// Put it on a higher layer than the table (simple version: hardcode a top-ish layer)
 	std::string vfxLayer = "50";
 
-	GameObject* vfx = scene.SpawnAnimatedSprite(tex, vfxPos, glm::vec2(170, 230),
+	GameObject* vfx = scene.SpawnAnimatedSprite(tex, vfxPos, tuning.size,
 		dummyFrames, 0.1f, true, vfxLayer);
 
 	if (!vfx) return;
@@ -729,8 +744,8 @@ void WorkTableLogic::UpdateProcessingVfxTransform(Scene& scene) {
 	if (!table || !vfx) return;
 
 	glm::vec3 tp = table->GetPositionGLM();
-	const glm::vec2 vfxOffset = GetVfxOffsetForStation();
-	vfx->SetPosition(glm::vec3(tp.x + vfxOffset.x, tp.y + vfxOffset.y, tp.z + 0.001f));
+	const ProcessingVfxTuning tuning = GetProcessingVfxTuning();
+	vfx->SetPosition(glm::vec3(tp.x + tuning.offset.x, tp.y + tuning.offset.y, tp.z + 0.001f));
 }
 
 /**

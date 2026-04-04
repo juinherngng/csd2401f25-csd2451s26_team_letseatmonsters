@@ -129,6 +129,41 @@ namespace {
 		return dist(EngineRng::Get());
 	}
 
+	static glm::vec2 FitAmbientVfxToMaxSize(const glm::vec2& authoredSize, float maxSize) {
+		const float safeMaxSize = (maxSize > 0.0f) ? maxSize : 128.0f;
+		const float maxDimension = std::max(authoredSize.x, authoredSize.y);
+		if (maxDimension <= 0.0f) {
+			return glm::vec2(safeMaxSize, safeMaxSize);
+		}
+
+		if (maxDimension <= safeMaxSize) {
+			return authoredSize;
+		}
+
+		const float scale = safeMaxSize / maxDimension;
+		return authoredSize * scale;
+	}
+
+	static float GetAmbientShineVfxMaxSize() {
+		return 128.0f;
+	}
+
+	static float GetAmbientCandleVfxMaxSize() {
+		return 128.0f;
+	}
+
+	static float GetAmbientButterflyVfxMaxSize() {
+		return 128.0f;
+	}
+
+	static float GetAmbientButterflyAltVfxMaxSize() {
+		return 128.0f;
+	}
+
+	static glm::vec2 GetAmbientLeafVfxSize() {
+		return glm::vec2(128.0f, 128.0f);
+	}
+
 	struct AmbientPoint {
 		glm::vec2 pos{ 0.0f, 0.0f };
 		glm::vec2 size{ 96.0f, 96.0f };
@@ -204,7 +239,8 @@ namespace {
 					AmbientPoint p;
 					const glm::vec3 pos = obj->GetPositionGLM();
 					p.pos = glm::vec2(pos.x, pos.y);
-					p.size = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(96.0f, 96.0f);
+					const glm::vec2 authoredSize = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(96.0f, 96.0f);
+					p.size = FitAmbientVfxToMaxSize(authoredSize, GetAmbientShineVfxMaxSize());
 					p.layer = d.layer.empty() ? "0" : d.layer;
 					shinePoints_.push_back(p);
 				}
@@ -212,7 +248,8 @@ namespace {
 					AmbientPoint p;
 					const glm::vec3 pos = obj->GetPositionGLM();
 					p.pos = glm::vec2(pos.x, pos.y);
-					p.size = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(56.0f, 56.0f);
+					const glm::vec2 authoredSize = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(56.0f, 56.0f);
+					p.size = FitAmbientVfxToMaxSize(authoredSize, GetAmbientCandleVfxMaxSize());
 					p.layer = d.layer.empty() ? "1" : d.layer;
 					candlePoints_.push_back(p);
 				}
@@ -220,7 +257,8 @@ namespace {
 					AmbientPoint p;
 					const glm::vec3 pos = obj->GetPositionGLM();
 					p.pos = glm::vec2(pos.x, pos.y);
-					p.size = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(160.0f, 160.0f);
+					const glm::vec2 authoredSize = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(160.0f, 160.0f);
+					p.size = FitAmbientVfxToMaxSize(authoredSize, GetAmbientButterflyVfxMaxSize());
 					p.layer = d.layer.empty() ? "0" : d.layer;
 					butterflyPoints_.push_back(p);
 				}
@@ -228,7 +266,8 @@ namespace {
 					AmbientPoint p;
 					const glm::vec3 pos = obj->GetPositionGLM();
 					p.pos = glm::vec2(pos.x, pos.y);
-					p.size = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(160.0f, 160.0f);
+					const glm::vec2 authoredSize = (d.size.x > 0.0f && d.size.y > 0.0f) ? d.size : glm::vec2(160.0f, 160.0f);
+					p.size = FitAmbientVfxToMaxSize(authoredSize, GetAmbientButterflyAltVfxMaxSize());
 					p.layer = d.layer.empty() ? "0" : d.layer;
 					butterflyAltPoints_.push_back(p);
 				}
@@ -423,7 +462,7 @@ namespace {
 				? -140.0f
 				: static_cast<float>(GraphicsEngine::kRefW) + 140.0f;
 
-			const glm::vec2 size(128.0f, 128.0f);
+			const glm::vec2 size = GetAmbientLeafVfxSize();
 			GameObject* fx = scene.SpawnAnimatedSprite(
 				MyoonchiPaths::Textures::AMBIENT_VFX_SHEET,
 				glm::vec3(startX, y, 0.0f),

@@ -226,10 +226,12 @@ protected:
 		return "WorkTableLogic";
 	}
 
+	struct ProcessingVfxTuning {
+		glm::vec2 offset{ 0.0f, 0.0f };
+		glm::vec2 size{ 0.0f, 0.0f };
+	};
+
 	int vfxObjectID_ = -1;
-	glm::vec2 vfxOffset_{ -1.0f, -37.0f }; // tweak per station if needed
-	glm::vec2 grillVfxOffset_{ -1.0f, -57.0f };
-	glm::vec2 stoveVfxOffset_{ -1.0f, -57.0f };
 
 	/**
 	 * @brief Spawns the station's processing VFX if one is not already active.
@@ -250,10 +252,10 @@ protected:
 	void UpdateProcessingVfxTransform(Scene& scene);
 
 	/**
-	 * @brief Returns the VFX offset appropriate for the current station type.
-	 * @return Local VFX offset for the workstation.
+	 * @brief Returns the position and size tuning appropriate for the current station type.
+	 * @return Offset/size data for the workstation VFX sprite.
 	 */
-	glm::vec2 GetVfxOffsetForStation() const;
+	ProcessingVfxTuning GetProcessingVfxTuning() const;
 
 	/**
 	 * @brief Returns the VFX texture path for the current station type.
