@@ -10,8 +10,8 @@
  DESCRIPTION:       Handles hover and click behaviour for the How To Play
 					button in the main menu. On click, it spawns a fullscreen
 					HowToPlay overlay image with a top-right Next button.
-					Clicking Next advances through 3 pages, then closes the overlay.
-					Esc also closes the overlay.
+					Clicking Next advances through the authored how-to-play pages,
+					then closes the overlay. Esc also closes the overlay.
 
 		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------
@@ -29,10 +29,11 @@
 #include "MyoonchiDiner/GamePaths.hpp"
 
 namespace {
-	static constexpr std::array<const char*, 3> kHowToPlayPages{
+	static constexpr std::array<const char*, 4> kHowToPlayPages{
 		"../assets/HowToPlay/howtoplay_1.png",
 		"../assets/HowToPlay/howtoplay_2.png",
-		"../assets/HowToPlay/howtoplay_3.png"
+		"../assets/HowToPlay/howtoplay_3.png",
+		"../assets/HowToPlay/howtoplay_4.png"
 	};
 
 	static constexpr const char* kNextButtonTexNormal = "../assets/HowToPlay/next_s.png";
