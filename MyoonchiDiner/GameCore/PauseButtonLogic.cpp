@@ -25,6 +25,8 @@
 #include "MyoonchiDiner/GamePaths.hpp"
 
 namespace {
+	static int gPauseResumeButtonIdForCurrentOverlay = -1;
+
 	static std::string MakeHoverPath(const std::string& path) {
 		if (path.empty()) return path;
 
@@ -69,6 +71,10 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	}
 
 	if (!scene.IsPauseOverlayActive()) {
+		if (action_ == PauseAction::Resume) {
+			gPauseResumeButtonIdForCurrentOverlay = -1;
+		}
+
 		if (hovered_) {
 			hovered_ = false;
 			if (GameObject* owner = GetOwner(scene)) {
@@ -76,6 +82,11 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 			}
 		}
 		return;
+	}
+
+	if (action_ == PauseAction::Resume && gPauseResumeButtonIdForCurrentOverlay != GetOwnerID()) {
+		MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::GetPauseOverlayScopeKey(scene));
+		gPauseResumeButtonIdForCurrentOverlay = GetOwnerID();
 	}
 
 	if (scene.IsHowToPlayOverlayActive() || scene.IsMenuModalActive()) {

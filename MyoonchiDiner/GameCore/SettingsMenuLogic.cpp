@@ -453,6 +453,7 @@ void SettingsMenuLogic::Start(Scene& scene) {
 	// In the editor we want authored knob positions from the level JSON to stay editable.
 	// Only snap visuals to live config.txt values when the scene is actually running in menu runtime mode.
 	if (scene.ShouldUseRuntimeParityMode()) {
+		MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::GetCurrentSceneTopLevelScopeKey(scene));
 		RefreshVisualState(scene);
 	}
 

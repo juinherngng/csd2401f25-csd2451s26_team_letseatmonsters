@@ -1398,12 +1398,11 @@ namespace {
 			}
 		}
 
-		void UpdateCompletionButtonHoverVisual(Scene& scene, const glm::vec2& mouseWorld) {
+		void UpdateCompletionButtonHoverVisual(Scene& scene, bool isHoveredNow) {
 			if (completionMenuButtonID_ < 0) {
 				return;
 			}
 
-			const bool isHoveredNow = IsPointInObject(scene, completionMenuButtonID_, mouseWorld);
 			if (isHoveredNow == completionMenuHovered_) {
 				return;
 			}
@@ -1437,28 +1436,35 @@ namespace {
 				return;
 			}
 
-			double mx = 0.0;
-			double my = 0.0;
-			glfwGetCursorPos(window, &mx, &my);
-
+			InputManager& input = InputManager::Get();
 			glm::vec2 mouseWorld{};
-			if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {
-				InputManager& input = InputManager::Get();
-				glm::vec3 w = input.ScreenToWorld(static_cast<float>(mx), static_cast<float>(my));
-				mouseWorld = glm::vec2(w.x, w.y);
-			}
+			GetMouseWorld(input, mouseWorld);
 
-			UpdateCompletionButtonHoverVisual(scene, mouseWorld);
+			const bool buttonOver = IsPointInObject(scene, completionMenuButtonID_, mouseWorld);
+			const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
+				scene,
+				input,
+				MenuKeyboardNavigation::BuildScopeKey(scene, "tutorial_completion_popup"),
+				completionMenuButtonID_ >= 0 ? std::vector<int>{ completionMenuButtonID_ } : std::vector<int>{},
+				buttonOver ? completionMenuButtonID_ : -1);
+			const bool keyboardFocused = (focusedButtonId == completionMenuButtonID_);
+			const bool buttonHot = buttonOver || keyboardFocused;
+			UpdateCompletionButtonHoverVisual(scene, buttonHot);
 
 			const bool mouseDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
 			const bool clickEdge = mouseDown && !popupMouseHeld_;
 			popupMouseHeld_ = mouseDown;
+			const bool keyboardSubmit = keyboardFocused && MenuKeyboardNavigation::ConsumeSubmitPress(input);
 
-			if (!clickEdge) {
+			if (!clickEdge && !keyboardSubmit) {
 				return;
 			}
 
-			if (IsPointInObject(scene, completionMenuButtonID_, mouseWorld)) {
+			if (clickEdge) {
+				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
+			}
+
+			if (buttonHot && (buttonOver || keyboardFocused)) {
 				ClearCompletionPopup(scene);
 				if (AudioManager* audioManager = scene.GetAudioManager()) {
 					if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON)) {
@@ -2059,6 +2065,7 @@ namespace {
 			completionMenuButtonID_ = -1;
 			popupMouseHeld_ = false;
 			completionMenuHovered_ = false;
+			MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "tutorial_completion_popup"));
 		}
 
 		void ShowCompletionPopup(Scene& scene) {
@@ -2092,6 +2099,8 @@ namespace {
 				completionPopupIDs_.push_back(completionMenuButtonID_);
 				scene.SetObjectTexturePath(completionMenuButtonID_, FilePaths::Textures::BTN_RETURN);
 				completionMenuHovered_ = false;
+				popupMouseHeld_ = InputManager::Get().IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
+				MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "tutorial_completion_popup"));
 				// Do NOT attach MenuButtonLogic here.
 			}
 		}

@@ -12,8 +12,8 @@
 namespace {
 	struct FocusState {
 		int focusedId = -1;
-		bool suppressMouseUntilMove = false;
-		bool startupBackgroundFallbackPending = true;
+		int lastMouseHoveredId = -1;
+		bool initialAutoFocusPending = true;
 		glm::dvec2 lastMousePos{ 0.0, 0.0 };
 		bool hasMousePos = false;
 	};
@@ -263,10 +263,8 @@ namespace MenuKeyboardNavigation {
 		FocusState& state = gFocusStates[scopeKey];
 
 		const glm::dvec2 mousePos = input.GetMousePosition();
-		if (state.hasMousePos &&
-			(mousePos.x != state.lastMousePos.x || mousePos.y != state.lastMousePos.y)) {
-			state.suppressMouseUntilMove = false;
-		}
+		const bool mouseMoved = state.hasMousePos &&
+			(mousePos.x != state.lastMousePos.x || mousePos.y != state.lastMousePos.y);
 		state.lastMousePos = mousePos;
 		state.hasMousePos = true;
 
@@ -274,24 +272,31 @@ namespace MenuKeyboardNavigation {
 			state.focusedId = -1;
 		}
 
-		const bool backgroundClickAtStartup =
-			state.focusedId < 0 &&
-			mouseHoveredId < 0 &&
-			state.startupBackgroundFallbackPending &&
-			input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
-		if (backgroundClickAtStartup) {
-			state.focusedId = orderedButtonIds.front();
-			state.startupBackgroundFallbackPending = false;
+		if (!ContainsId(orderedButtonIds, state.lastMouseHoveredId)) {
+			state.lastMouseHoveredId = -1;
 		}
 
-		if (!state.suppressMouseUntilMove && ContainsId(orderedButtonIds, mouseHoveredId)) {
-			state.focusedId = mouseHoveredId;
+		if (ContainsId(orderedButtonIds, mouseHoveredId)) {
+			state.lastMouseHoveredId = mouseHoveredId;
 		}
-		else if (state.focusedId < 0) {
-			// Default keyboard focus to the first visible button so menus are
-			// navigable immediately on first open without requiring a mouse click.
+
+		// Mouse activity clears keyboard focus so a missed click never activates
+		// the previously selected button underneath the cursor.
+		if (mouseMoved || input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+			state.focusedId = -1;
+			state.initialAutoFocusPending = false;
+		}
+
+		const bool shouldAutoFocusFirstButton =
+			state.initialAutoFocusPending &&
+			(state.focusedId < 0) &&
+			(orderedButtonIds.size() == 1 ||
+				scopeKey.find("quit_popup") != std::string::npos ||
+				scopeKey.find("pause_overlay") != std::string::npos ||
+				scopeKey.find("settings") != std::string::npos);
+		if (shouldAutoFocusFirstButton) {
 			state.focusedId = orderedButtonIds.front();
-			state.startupBackgroundFallbackPending = false;
+			state.initialAutoFocusPending = false;
 		}
 
 		int moveDelta = 0;
@@ -305,10 +310,14 @@ namespace MenuKeyboardNavigation {
 		}
 
 		if (moveDelta != 0) {
-			state.suppressMouseUntilMove = true;
-
+			state.initialAutoFocusPending = false;
 			if (state.focusedId < 0) {
-				state.focusedId = (moveDelta > 0) ? orderedButtonIds.front() : orderedButtonIds.back();
+				if (ContainsId(orderedButtonIds, state.lastMouseHoveredId)) {
+					state.focusedId = state.lastMouseHoveredId;
+				}
+				else {
+					state.focusedId = (moveDelta > 0) ? orderedButtonIds.front() : orderedButtonIds.back();
+				}
 			}
 			else {
 				const auto it = std::find(orderedButtonIds.begin(), orderedButtonIds.end(), state.focusedId);
