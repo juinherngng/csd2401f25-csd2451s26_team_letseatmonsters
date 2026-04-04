@@ -25,35 +25,28 @@
 #include "EngineCore/GOC.hpp"
 #include "EngineCore/Logger.hpp"
 
-//template<typename T>
-//std::optional<T*> GOC::Get() const
-//{
-//	auto it = m_components.find(typeid(T));
-//
-//	if (it == m_components.end())
-//		return std::nullopt;
-//	return static_cast<T*>(it->second);
-//}
-
-//template <typename T>
-//bool GOC::Has() const
-//{
-//	return m_components.find(typeid(T)) != m_components.end();
-//}
-
+/**
+ * @brief Destroys the game-object composition and releases all owned components.
+ */
 GOC::~GOC() {
+	// Clearing the component map releases every owned component via unique_ptr.
 	m_components.clear();
 }
 
+/**
+ * @brief Initializes every component currently attached to the game object.
+ */
 void GOC::Initialize() {
-	//for every component in map
+	// Forward initialization to each attached component exactly once during object startup.
 	for (auto& kv : m_components) {
-		//call the actual game component init
+		// Call the component-specific initialization hook.
 		kv.second->Initialize();
 	}
 }
 
-//Let the factory handle it
+/**
+ * @brief Requests destruction of this game object.
+ */
 void GOC::Destroy() {
 	// Prefer deferred destruction through the factory so external id maps do not keep dangling pointers.
 	if (FACTORY) {
@@ -67,12 +60,18 @@ void GOC::Destroy() {
 	delete this;
 }
 
-
+/**
+ * @brief Attaches a component to the game object under an explicit type key.
+ * @param id Type key used to store the component.
+ * @param c Component instance to attach.
+ * @return Raw pointer to the attached component, or nullptr if the input was null.
+ */
 GameComponent* GOC::AddComponent(std::type_index id, std::unique_ptr<GameComponent> c) {
 	if (!c) {
 		return nullptr;
 	}
 
+	// Set the back-reference before transferring ownership into the component map.
 	c->SetOwner(this);
 	GameComponent* component = c.get();
 	m_components[id] = std::move(c);
@@ -80,24 +79,39 @@ GameComponent* GOC::AddComponent(std::type_index id, std::unique_ptr<GameCompone
 }
 
 template <typename T, typename ... Args>
+/**
+ * @brief Constructs and attaches a component of type `T` to the game object.
+ * @tparam T Concrete component type to create.
+ * @tparam Args Constructor argument types forwarded into `T`.
+ * @param args Constructor arguments used to build the component.
+ * @return Raw pointer to the attached component.
+ */
 T* GOC::AddComponent(Args&&... args) {
 	auto component = std::make_unique<T>(std::forward<Args>(args)...);
+	// Set ownership before exposing the component so it can safely query its parent object.
 	component->SetOwner(this);
 	T* componentPtr = component.get();
 	m_components[typeid(T)] = std::move(component);
 	return componentPtr;
 }
 
+/**
+ * @brief Creates a deep copy of this game object and all of its components.
+ * @return Newly allocated cloned game object.
+ */
 GOC* GOC::Clone() const {
 	GOC* clone = new GOC();
 	for (auto& c : m_components) {
+		// Ask each component to clone itself so concrete component state is preserved.
 		std::unique_ptr<GameComponent> copy(c.second->Clone());
 		copy->SetOwner(clone);
 		clone->m_components[c.first] = std::move(copy);
 	}
 	if (FACTORY) {
+		// Register the clone with the factory so it gets a valid object ID and lifetime ownership.
 		FACTORY->IdGameObject(clone);
 	}
+	// Distinguish the clone in debug/editor views without losing the original name.
 	clone->name = this->name + " clone";
 	return clone;
 }

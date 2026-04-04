@@ -22,37 +22,20 @@ namespace Framework {
 	class GameStateManager;
 }
 
-/************************************************************************/
-/*!
-\brief
-	Registers all game-specific logic bindings, hooks, and policies
-	onto the given Scene. Delegates to the active game module.
-\param scene
-	The engine Scene to bind game hooks into.
-*/
-/************************************************************************/
+/**
+ * @brief Registers all game-specific logic bindings, hooks, and policies onto a scene.
+ * @param scene Engine scene to bind game hooks into.
+ */
 void RegisterGameBindings(Scene& scene);
 
-/************************************************************************/
-/*!
-\brief
-	Maps engine game-state IDs (GS_MainMenu, GS_Kitchen01, etc.) to their
-	corresponding JSON level files so the GameStateManager can load
-	them at runtime.
-\param gsm
-	The GameStateManager to register state-to-level mappings on.
-*/
-/************************************************************************/
+/**
+ * @brief Maps engine game states to their corresponding JSON level files.
+ * @param gsm GameStateManager receiving the state-to-level mappings.
+ */
 void ConfigureGameStates(Framework::GameStateManager& gsm);
 
-/************************************************************************/
-/*!
-\brief
-	Injects the audio playback and pause/resume policies that the
-	GameStateManager uses when transitioning between states or when
-	the simulation is paused/resumed.
-\param gsm
-	The GameStateManager to attach audio policies to.
-*/
-/************************************************************************/
+/**
+ * @brief Configures the game-state audio and pause/resume policies.
+ * @param gsm GameStateManager receiving the audio policies.
+ */
 void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm);

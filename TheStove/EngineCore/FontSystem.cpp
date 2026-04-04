@@ -27,8 +27,7 @@ namespace FontSystem {
 	// ===========================
 
 	/**
-	 * @brief Performs ~font.
-	 * @return Result produced by this operation.
+	 * @brief Destroys the font and releases all cached glyph textures.
 	 */
 	Font::~Font() {
 		// Cleanup all character textures
@@ -39,10 +38,10 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Loads this object.
-	 * @param fontPath Parameter for font path.
-	 * @param fontSize Parameter for font size.
-	 * @return Result produced by this operation.
+	 * @brief Loads glyph textures for this font at the requested size.
+	 * @param fontPath Path to the font file.
+	 * @param fontSize Requested pixel size for glyph generation.
+	 * @return True if the font loaded successfully, otherwise false.
 	 */
 	bool Font::Load(const std::string& fontPath, unsigned int fontSize) {
 		m_fontPath = fontPath;
@@ -64,10 +63,10 @@ namespace FontSystem {
 		// Set font size (width=0 means dynamically calculated)
 		FT_Set_Pixel_Sizes(face, 0, fontSize);
 
-		// Disable byte-alignment restriction
+		// Glyph bitmaps are single-channel, so use byte alignment that matches the glyph buffer layout.
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-		// Load first 128 ASCII characters
+		// Preload the basic ASCII range so common debug/editor text is always available.
 		for (unsigned char c = 0; c < 128; c++) {
 			// Load character glyph
 			if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
@@ -75,7 +74,7 @@ namespace FontSystem {
 				continue;
 			}
 
-			// Generate texture
+			// Upload each rendered glyph bitmap into its own OpenGL texture.
 			GLuint texture;
 			glGenTextures(1, &texture);
 			glBindTexture(GL_TEXTURE_2D, texture);
@@ -97,7 +96,7 @@ namespace FontSystem {
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-			// Store character
+			// Cache the glyph metrics and texture handle for later text layout and rendering.
 			Character character = {
 				texture,
 				glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
@@ -117,9 +116,9 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Returns character.
-	 * @param c Parameter for c.
-	 * @return Requested value.
+	 * @brief Returns glyph data for a single character.
+	 * @param c ASCII character to look up.
+	 * @return Pointer to the glyph data, or nullptr if unavailable.
 	 */
 	const Character* Font::GetCharacter(char c) const {
 		auto it = m_characters.find(c);
@@ -134,8 +133,8 @@ namespace FontSystem {
 	// ===========================
 
 	/**
-	 * @brief Performs instance.
-	 * @return Result produced by this operation.
+	 * @brief Returns the global FontManager singleton.
+	 * @return Reference to the shared FontManager instance.
 	 */
 	FontManager& FontManager::Instance() {
 		static FontManager instance;
@@ -143,16 +142,15 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Performs ~font manager.
-	 * @return Result produced by this operation.
+	 * @brief Destroys the FontManager and releases loaded resources.
 	 */
 	FontManager::~FontManager() {
 		Shutdown();
 	}
 
 	/**
-	 * @brief Initializes this object.
-	 * @return Result produced by this operation.
+	 * @brief Initializes the FreeType library used by the font system.
+	 * @return True if initialization succeeded, otherwise false.
 	 */
 	bool FontManager::Initialize() {
 		if (m_initialized) {
@@ -172,8 +170,7 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Performs shutdown.
-	 * @return Result produced by this operation.
+	 * @brief Shuts down the font manager and releases all loaded fonts.
 	 */
 	void FontManager::Shutdown() {
 		if (!m_initialized)
@@ -193,11 +190,11 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Loads font.
-	 * @param name Parameter for name.
-	 * @param fontPath Parameter for font path.
-	 * @param fontSize Parameter for font size.
-	 * @return Result produced by this operation.
+	 * @brief Loads a named font into the manager.
+	 * @param name Logical font name used for lookup.
+	 * @param fontPath Path to the font file.
+	 * @param fontSize Requested pixel size.
+	 * @return Pointer to the loaded font, or nullptr on failure.
 	 */
 	Font* FontManager::LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize) {
 		if (!m_initialized) {
@@ -212,23 +209,23 @@ namespace FontSystem {
 			return it->second.get();
 		}
 
-		// Create new font
+		// Create a new Font object only when the name has not already been registered.
 		auto font = std::make_unique<Font>();
 		if (!font->Load(fontPath, fontSize)) {
 			TS_LOG_ERROR("[FontSystem::FontManager] Failed to load font '" << name << "' from: " << fontPath);
 			return nullptr;
 		}
 
-		// Store and return
+		// Transfer ownership to the manager while returning a raw pointer for immediate use.
 		Font* fontPtr = font.get();
 		m_fonts[name] = std::move(font);
 		return fontPtr;
 	}
 
 	/**
-	 * @brief Returns font.
-	 * @param name Parameter for name.
-	 * @return Requested value.
+	 * @brief Retrieves a previously loaded font by name.
+	 * @param name Logical font name.
+	 * @return Pointer to the font, or nullptr if not found.
 	 */
 	Font* FontManager::GetFont(const std::string& name) {
 		auto it = m_fonts.find(name);
@@ -243,8 +240,7 @@ namespace FontSystem {
 	// ===========================
 
 	/**
-	 * @brief Performs text.
-	 * @return Result produced by this operation.
+	 * @brief Constructs a text object with deferred OpenGL setup.
 	 */
 	Text::Text() {
 		// Don't call SetupRendering() here - OpenGL may not be initialized yet
@@ -252,94 +248,92 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Performs ~text.
-	 * @return Result produced by this operation.
+	 * @brief Destroys the text object and releases its render buffers.
 	 */
 	Text::~Text() {
 		CleanupRendering();
 	}
 
 	/**
-	 * @brief Sets font.
-	 * @param font Parameter for font.
-	 * @return Result produced by this operation.
+	 * @brief Sets the font used by this text object.
+	 * @param font Font pointer used for glyph lookup.
 	 */
 	void Text::SetFont(Font* font) {
+		// Swap the font reference used for all subsequent glyph lookups.
 		m_font = font;
 	}
 
 	/**
-	 * @brief Sets text.
-	 * @param text Parameter for text.
-	 * @return Result produced by this operation.
+	 * @brief Sets the string content to render.
+	 * @param text Text string to display.
 	 */
 	void Text::SetText(const std::string& text) {
+		// Store the raw string so layout can be recomputed during the next render.
 		m_text = text;
 	}
 
 	/**
-	 * @brief Sets position.
-	 * @param position Parameter for position.
-	 * @return Result produced by this operation.
+	 * @brief Sets the screen-space position of the text object.
+	 * @param position New text position.
 	 */
 	void Text::SetPosition(const glm::vec2& position) {
+		// Cache the new origin used when generating glyph quads.
 		m_position = position;
 	}
 
 	/**
-	 * @brief Sets color.
-	 * @param color Parameter for color.
-	 * @return Result produced by this operation.
+	 * @brief Sets the tint color used to render the text.
+	 * @param color New RGBA color.
 	 */
 	void Text::SetColor(const glm::vec4& color) {
+		// Cache the color that will be pushed into the text shader uniform.
 		m_color = color;
 	}
 
 	/**
-	 * @brief Sets scale.
-	 * @param scale Parameter for scale.
-	 * @return Result produced by this operation.
+	 * @brief Sets the glyph scale factor used during rendering.
+	 * @param scale New text scale.
 	 */
 	void Text::SetScale(float scale) {
+		// Cache the per-glyph scale factor for future layout and rendering.
 		m_scale = scale;
 	}
 
 	/**
-	 * @brief Sets rotation.
-	 * @param degrees Parameter for degrees.
-	 * @return Result produced by this operation.
+	 * @brief Sets the text rotation in degrees.
+	 * @param degrees Rotation angle in degrees.
 	 */
 	void Text::SetRotation(float degrees) {
+		// Store the rotation angle; actual trig work happens during Render().
 		m_rotation = degrees;
 	}
 
 	/**
-	 * @brief Sets rotation mode.
-	 * @param mode Parameter for mode.
-	 * @return Result produced by this operation.
+	 * @brief Sets how rotation is applied to the text.
+	 * @param mode Rotation mode to use.
 	 */
 	void Text::SetRotationMode(RotationMode mode) {
+		// Switch between per-character rotation and whole-block rotation behavior.
 		m_rotationMode = mode;
 	}
 
 	/**
-	 * @brief Sets horizontal alignment.
-	 * @param align Parameter for align.
-	 * @return Result produced by this operation.
+	 * @brief Sets the horizontal alignment used for line layout.
+	 * @param align Horizontal alignment mode.
 	 */
 	void Text::SetHorizontalAlign(HorizontalAlign align) {
+		// Cache the alignment so line offsets can be computed during rendering.
 		m_horizontalAlign = align;
 	}
 
 	/**
-	 * @brief Performs setup rendering.
-	 * @return Result produced by this operation.
+	 * @brief Creates the VAO and VBO required to render text quads.
 	 */
 	void Text::SetupRendering() {
 		if (m_renderingSetup)
 			return;
 
-		// Create VAO and VBO for rendering text quads
+		// Allocate a reusable quad buffer that will be updated once per glyph draw.
 		glGenVertexArrays(1, &m_VAO);
 		glGenBuffers(1, &m_VBO);
 
@@ -359,8 +353,7 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Performs cleanup rendering.
-	 * @return Result produced by this operation.
+	 * @brief Releases the OpenGL buffers used by this text object.
 	 */
 	void Text::CleanupRendering() {
 		if (!m_renderingSetup)
@@ -377,10 +370,9 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Renders this object.
-	 * @param shaderProgram Parameter for shader program.
-	 * @param projection Parameter for projection.
-	 * @return Result produced by this operation.
+	 * @brief Renders the text object using the supplied shader and projection matrix.
+	 * @param shaderProgram OpenGL shader program used for text rendering.
+	 * @param projection Projection matrix used for screen-space rendering.
 	 */
 	void Text::Render(GLuint shaderProgram, const glm::mat4& projection) {
 		// Lazy initialization - setup rendering on first render call when OpenGL is ready
@@ -390,7 +382,7 @@ namespace FontSystem {
 		if (!m_font || m_text.empty() || !m_renderingSetup)
 			return;
 
-		// Save current blend state
+		// Save blend state so text rendering can temporarily force alpha blending.
 		GLboolean blendWasEnabled = glIsEnabled(GL_BLEND);
 		GLint prevBlendSrc, prevBlendDst;
 		glGetIntegerv(GL_BLEND_SRC_ALPHA, &prevBlendSrc);
@@ -410,7 +402,7 @@ namespace FontSystem {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		// Disable depth testing for text (text should always appear on top within its layer)
+		// Disable depth testing so text overlays are not clipped by scene geometry.
 		GLboolean depthWasEnabled = glIsEnabled(GL_DEPTH_TEST);
 		glDisable(GL_DEPTH_TEST);
 
@@ -422,7 +414,7 @@ namespace FontSystem {
 		float cosR = std::cos(rotRad);
 		float sinR = std::sin(rotRad);
 
-		// Starting cursor position (will advance for each character)
+		// First measure each line so alignment offsets can be computed before drawing.
 		float cursorX = 0.0f;
 		float cursorY = 0.0f;
 		const float lineAdvance = static_cast<float>(m_font->GetFontSize()) * m_scale * 1.2f;
@@ -463,7 +455,7 @@ namespace FontSystem {
 			};
 		size_t lineIndex = 0;
 
-		// Iterate through all characters
+		// Draw each glyph by updating the shared quad buffer and submitting one textured quad.
 		for (char c : m_text) {
 			if (c == '\r') {
 				continue;
@@ -482,9 +474,7 @@ namespace FontSystem {
 
 			const float lineOffsetX = GetLineOffset(lineIndex);
 
-			// Position relative to cursor
-			// In top-left coordinate system, bearing.y is positive upward from baseline
-			// We want glyphs to sit on the baseline, so subtract bearing.y
+			// Convert glyph metrics into the top-left-origin screen-space convention used here.
 			float xpos = lineOffsetX + cursorX + ch->bearing.x * m_scale;
 			float ypos = cursorY - ch->bearing.y * m_scale;
 
@@ -506,7 +496,7 @@ namespace FontSystem {
 				{ xpos + w, ypos }       // top-right
 			};
 
-			// Apply rotation and translation based on rotation mode
+			// Generate final quad vertices by applying the requested rotation mode.
 			float finalVertices[6][4];
 
 			if (m_rotationMode == RotationMode::PerCharacter) {
@@ -539,14 +529,14 @@ namespace FontSystem {
 					}
 				}
 
-				// Advance cursor with rotation (curved text effect)
+				// Advance along the rotated axis so the string itself bends/turns character by character.
 				float advanceX = (ch->advance >> 6) * m_scale;
 				cursorX += advanceX * cosR;
 				cursorY += advanceX * sinR;
 			}
 			else // RotationMode::Block
 			{
-				// Block rotation: rotate entire text as one unit
+				// Keep layout straight, then rotate the whole block as a single unit.
 				for (int i = 0; i < 6; i++) {
 					// First rotate the vertices around origin
 					float rx = vertices[i].x * cosR - vertices[i].y * sinR;
@@ -575,7 +565,7 @@ namespace FontSystem {
 					}
 				}
 
-				// Advance cursor WITHOUT rotation (straight line, then rotate entire block)
+				// Advance in straight text space before the final block rotation is applied.
 				float advanceX = (ch->advance >> 6) * m_scale;
 				cursorX += advanceX;
 				// cursorY stays 0 for block mode
@@ -584,7 +574,7 @@ namespace FontSystem {
 			// Render glyph texture over quad
 			glBindTexture(GL_TEXTURE_2D, ch->textureID);
 
-			// Update content of VBO memory
+			// Stream the current glyph quad into the dynamic vertex buffer.
 			glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
 			glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(finalVertices), finalVertices);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -601,7 +591,7 @@ namespace FontSystem {
 			glEnable(GL_DEPTH_TEST);
 		}
 
-		// Restore blend state
+		// Restore the previous blend configuration so surrounding render code is unaffected.
 		if (!blendWasEnabled) {
 			glDisable(GL_BLEND);
 		}
@@ -615,8 +605,8 @@ namespace FontSystem {
 	// ===========================
 
 	/**
-	 * @brief Performs instance.
-	 * @return Result produced by this operation.
+	 * @brief Returns the global TextRenderer singleton.
+	 * @return Reference to the shared TextRenderer instance.
 	 */
 	TextRenderer& TextRenderer::Instance() {
 		static TextRenderer instance;
@@ -624,16 +614,15 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Performs ~text renderer.
-	 * @return Result produced by this operation.
+	 * @brief Destroys the text renderer and releases its shader program.
 	 */
 	TextRenderer::~TextRenderer() {
 		Shutdown();
 	}
 
 	/**
-	 * @brief Initializes this object.
-	 * @return Result produced by this operation.
+	 * @brief Initializes the text renderer and loads its shaders.
+	 * @return True if initialization succeeded, otherwise false.
 	 */
 	bool TextRenderer::Initialize() {
 		if (m_initialized) {
@@ -652,8 +641,7 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Performs shutdown.
-	 * @return Result produced by this operation.
+	 * @brief Shuts down the text renderer and releases its shader resources.
 	 */
 	void TextRenderer::Shutdown() {
 		if (!m_initialized)
@@ -669,23 +657,22 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Renders text.
-	 * @param text Parameter for text.
-	 * @param projection Parameter for projection.
-	 * @return Result produced by this operation.
+	 * @brief Renders a single text object.
+	 * @param text Text object to render.
+	 * @param projection Projection matrix used for rendering.
 	 */
 	void TextRenderer::RenderText(Text& text, const glm::mat4& projection) {
 		if (!m_initialized || !m_shaderProgram)
 			return;
 
+		// Forward rendering to the Text object once the shared shader is ready.
 		text.Render(m_shaderProgram, projection);
 	}
 
 	/**
-	 * @brief Renders texts.
-	 * @param texts Parameter for texts.
-	 * @param projection Parameter for projection.
-	 * @return Result produced by this operation.
+	 * @brief Renders a collection of text objects.
+	 * @param texts Text objects to render.
+	 * @param projection Projection matrix used for rendering.
 	 */
 	void TextRenderer::RenderTexts(const std::vector<Text*>& texts, const glm::mat4& projection) {
 		if (!m_initialized || !m_shaderProgram)
@@ -699,11 +686,11 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Loads shaders.
-	 * @return Result produced by this operation.
+	 * @brief Loads and links the shader program used for text rendering.
+	 * @return True if the shader program was created successfully, otherwise false.
 	 */
 	bool TextRenderer::LoadShaders() {
-		// Vertex shader source
+		// Use a minimal shader pair that samples a glyph atlas and tints it with a uniform color.
 		const char* vertexShaderSource = R"(
 			#version 330 core
 			layout (location = 0) in vec4 vertex; // <vec2 pos, vec2 tex>
@@ -753,10 +740,10 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Performs compile shader.
-	 * @param type Parameter for type.
-	 * @param source Parameter for source.
-	 * @return Result produced by this operation.
+	 * @brief Compiles an OpenGL shader from GLSL source.
+	 * @param type Shader type such as `GL_VERTEX_SHADER`.
+	 * @param source GLSL source code.
+	 * @return Compiled shader handle, or `0` on failure.
 	 */
 	GLuint TextRenderer::CompileShader(GLenum type, const std::string& source) {
 		GLuint shader = glCreateShader(type);
@@ -777,10 +764,10 @@ namespace FontSystem {
 	}
 
 	/**
-	 * @brief Performs link program.
-	 * @param vertexShader Parameter for vertex shader.
-	 * @param fragmentShader Parameter for fragment shader.
-	 * @return Result produced by this operation.
+	 * @brief Links a vertex and fragment shader into an OpenGL program.
+	 * @param vertexShader Compiled vertex shader handle.
+	 * @param fragmentShader Compiled fragment shader handle.
+	 * @return Linked program handle, or `0` on failure.
 	 */
 	GLuint TextRenderer::LinkProgram(GLuint vertexShader, GLuint fragmentShader) {
 		GLuint program = glCreateProgram();

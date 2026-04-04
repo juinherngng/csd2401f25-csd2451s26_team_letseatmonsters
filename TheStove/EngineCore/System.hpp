@@ -18,44 +18,32 @@
 namespace CoreFramework {
 	class SystemInterface {
 	public:
-
-		/************************************************************************/
-		/*!
-		\brief
-			All systems are updated every game frame.
-		\param dt
-			Delta time in seconds since last frame.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Updates the system once per frame.
+		 * @param dt Delta time in seconds since the previous frame.
+		 */
 		virtual void Update(float dt) = 0;
 
-		/************************************************************************/
-		/*!
-		\brief
-			All systems provide a string name for debugging.
-		\return
-			Name of the system.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Returns the system name for debugging and profiling output.
+		 * @return Human-readable system name.
+		 */
 		virtual std::string GetName() = 0;
 
-		/************************************************************************/
-		/*!
-		\brief
-			Initialize the system.
-		*/
-		/************************************************************************/
-		virtual void Initialize() {};
+		/**
+		 * @brief Performs any one-time setup required before updates begin.
+		 */
+		virtual void Initialize() {
+			// Default systems have no explicit initialization work.
+		};
 
-		/************************************************************************/
-		/*!
-		\brief
-			All systems need a virtual destructor to have their destructor called.
-		*/
-		/************************************************************************/
-		virtual ~SystemInterface() {}
+		/**
+		 * @brief Destroys the system through the polymorphic interface.
+		 */
+		virtual ~SystemInterface() {
+			// Keep destruction polymorphic for derived engine systems.
+		}
 
-		// For performance tracking
-		float lastDt = 0.0f; // Tracks the last frame delta of this system
+		float lastDt = 0.0f; // Tracks the most recent frame delta processed by this system.
 	};
 }

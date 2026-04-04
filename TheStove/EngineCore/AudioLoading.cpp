@@ -27,28 +27,41 @@ namespace Audio {
 	// Static storage for audio assets
 	std::vector<AudioAsset> AudioCatalog::s_AudioAssets;
 
-	// Helper function to normalize paths (convert backslashes to forward slashes)
+	/**
+	 * @brief Normalizes an authored audio path to forward-slash form.
+	 * @param path Raw path to normalize.
+	 * @return Path with Windows-style separators converted to forward slashes.
+	 */
 	static std::string NormalizeAudioPath(const std::string& path) {
 		std::string normalized = path;
+		// Store paths in a consistent form so editor and runtime comparisons behave predictably.
 		std::replace(normalized.begin(), normalized.end(), '\\', '/');
 		return normalized;
 	}
 
+	/**
+	 * @brief Reduces a full audio path to just its file name for logging.
+	 * @param path Full or relative path to an audio file.
+	 * @return File name portion of the path.
+	 */
 	static std::string CompactAudioFileLabel(const std::string& path) {
 		if (path.empty()) {
 			return path;
 		}
 
+		// Show only the filename in logs so long asset paths do not overwhelm the console.
 		return std::filesystem::path(path).filename().string();
 	}
 
-	// Helper function to convert editor paths to runtime paths for release builds
-	// Editor paths: ../../assets/Audio/file.mp3 (from build/Release)
-	// Runtime paths: ../assets/Audio/file.mp3 (from release/ folder)
+	/**
+	 * @brief Converts editor-authored asset paths into runtime paths for release builds.
+	 * @param path Original path stored in the catalog.
+	 * @return Path adjusted for the runtime working directory.
+	 */
 	static std::string ConvertToRuntimePath(const std::string& path) {
 		std::string result = path;
 
-		// Convert ../../assets/ to ../assets/ for release builds
+		// Convert ../../assets/ to ../assets/ for release builds.
 		const std::string editorPrefix = "../../assets/";
 		const std::string runtimePrefix = "../assets/";
 
@@ -59,6 +72,11 @@ namespace Audio {
 		return result;
 	}
 
+	/**
+	 * @brief Loads the audio catalog JSON from disk into memory.
+	 * @param catalogPath Path to the catalog JSON file.
+	 * @return True if the catalog was parsed successfully, otherwise false.
+	 */
 	bool AudioCatalog::LoadCatalogFromFile(const std::string& catalogPath) {
 		TS_LOG_INFO("AudioCatalog: Loading catalog from " << catalogPath << "...");
 
@@ -89,24 +107,24 @@ namespace Audio {
 			json catalogJson;
 			file >> catalogJson;
 
-			// Clear existing assets
+			// Replace any previous catalog contents with the freshly parsed data.
 			s_AudioAssets.clear();
 
 			// Parse version (for future compatibility)
 			std::string version = catalogJson.value("version", "1.0");
 			TS_LOG_DEBUG("Catalog version: " << version);
 
-			// Parse audio assets
+			// Deserialize each authored audio asset entry into the in-memory catalog.
 			if (catalogJson.contains("audio_assets") && catalogJson["audio_assets"].is_array()) {
 				for (const auto& assetJson : catalogJson["audio_assets"]) {
 					AudioAsset asset;
 					asset.name = assetJson.value("name", "");
 
-					// Normalize the filepath when loading from JSON
+					// Normalize the path immediately so later save/load passes stay consistent.
 					std::string rawPath = assetJson.value("filepath", "");
 					asset.filepath = NormalizeAudioPath(rawPath);
 
-					// Convert editor paths to runtime paths for release builds
+					// Release builds run from a different working directory, so patch the stored paths on load.
 					if (convertPaths) {
 						asset.filepath = ConvertToRuntimePath(asset.filepath);
 					}
@@ -116,13 +134,13 @@ namespace Audio {
 					asset.category = assetJson.value("category", "");
 					asset.volume = assetJson.value("volume", 1.0f);
 
-					// Validate the asset
+					// Skip malformed entries rather than aborting the whole catalog load.
 					if (asset.name.empty() || asset.filepath.empty()) {
 						TS_LOG_WARN("AudioCatalog: Skipping invalid audio asset entry");
 						continue;
 					}
 
-					// Validate file format
+					// Only allow file types currently supported by the audio pipeline.
 					if (!IsValidAudioFile(asset.filepath)) {
 						TS_LOG_WARN("AudioCatalog: Unsupported audio format for " << asset.filepath
 							<< " (only .wav and .mp3 are supported)");
@@ -146,6 +164,11 @@ namespace Audio {
 		}
 	}
 
+	/**
+	 * @brief Saves the current in-memory audio catalog back to JSON.
+	 * @param catalogPath Path to the output catalog file.
+	 * @return True if the file was written successfully, otherwise false.
+	 */
 	bool AudioCatalog::SaveCatalogToFile(const std::string& catalogPath) {
 		TS_LOG_INFO("AudioCatalog: Saving catalog to " << catalogPath << "...");
 
@@ -171,7 +194,7 @@ namespace Audio {
 			catalogJson["version"] = "1.0";
 			catalogJson["audio_assets"] = json::array();
 
-			// Serialize all audio assets
+			// Serialize every tracked asset so the JSON stays in sync with the in-memory editor state.
 			for (const auto& asset : s_AudioAssets) {
 				TS_LOG_DEBUG("[SaveCatalog] Saving asset '" << asset.name << "' with filepath: " << asset.filepath);
 
@@ -186,7 +209,7 @@ namespace Audio {
 				catalogJson["audio_assets"].push_back(assetJson);
 			}
 
-			// Write to file with pretty printing
+			// Pretty-print the JSON so the catalog remains readable in source control.
 			std::ofstream file(catalogPath);
 			if (!file.is_open()) {
 				TS_LOG_ERROR("AudioCatalog: Failed to open file for writing: " << catalogPath);
@@ -204,7 +227,7 @@ namespace Audio {
 				TS_LOG_DEBUG("[SaveCatalog] File size: " << fileSize << " bytes");
 				TS_LOG_DEBUG("[SaveCatalog] File written to: " << absolutePath.string());
 
-				// Read back the file to verify it contains the data
+				// Read back a few lines for debugging so save failures are easier to diagnose.
 				std::ifstream verifyFile(catalogPath);
 				if (verifyFile.is_open()) {
 					std::string line;
@@ -228,6 +251,9 @@ namespace Audio {
 		}
 	}
 
+	/**
+	 * @brief Loads every audio asset currently stored in the catalog.
+	 */
 	void AudioCatalog::LoadAllAudio() {
 		TS_LOG_INFO("AudioCatalog: Loading all audio assets into memory...");
 
@@ -242,14 +268,14 @@ namespace Audio {
 				<< ", category=" << asset.category
 				<< ", volume=" << asset.volume);
 
-			// Load SFX/VFX sounds as 3D for spatial audio; BGM and UI stay 2D
+			// Load SFX/VFX sounds as 3D for spatial playback, while BGM/UI remain 2D.
 			bool isSpatial = (asset.category == "sfx" || asset.category == "vfx");
 			bool loaded = isSpatial
 				? resMgr.LoadAudio3D(asset.name, asset.filepath, asset.loop, asset.stream)
 				: resMgr.LoadAudio(asset.name, asset.filepath, asset.loop, asset.stream);
 
 			if (loaded) {
-				// Get and display audio info
+				// Log decoded audio metadata so asset issues are easier to track down.
 				unsigned int lenMs = 0;
 				int channels = 0, bits = 0;
 				float freq = 0.0f;
@@ -271,6 +297,9 @@ namespace Audio {
 			<< (failCount > 0 ? " (" + std::to_string(failCount) + " failed)" : std::string{}) << ".");
 	}
 
+	/**
+	 * @brief Unloads every audio asset currently tracked by the catalog.
+	 */
 	void AudioCatalog::UnloadAllAudio() {
 		TS_LOG_INFO("AudioCatalog: Unloading all audio assets...");
 
@@ -284,12 +313,17 @@ namespace Audio {
 		TS_LOG_INFO("AudioCatalog: All audio assets unloaded.");
 	}
 
+	/**
+	 * @brief Adds a new audio asset entry to the in-memory catalog.
+	 * @param asset Audio asset metadata to add.
+	 * @return True if the asset was added, otherwise false.
+	 */
 	bool AudioCatalog::AddAudioAsset(const AudioAsset& asset) {
-		// Normalize the filepath before adding
+		// Normalize the filepath before storing it so editor and runtime code see the same format.
 		AudioAsset normalizedAsset = asset;
 		normalizedAsset.filepath = NormalizeAudioPath(asset.filepath);
 
-		// Check if asset with same name already exists
+		// Asset names are treated as unique logical identifiers by the audio system.
 		for (const auto& existing : s_AudioAssets) {
 			if (existing.name == normalizedAsset.name) {
 				TS_LOG_ERROR("AudioCatalog: Asset with name '" << normalizedAsset.name << "' already exists");
@@ -297,7 +331,7 @@ namespace Audio {
 			}
 		}
 
-		// Validate file format
+		// Reject unsupported formats before the catalog is mutated.
 		if (!IsValidAudioFile(normalizedAsset.filepath)) {
 			TS_LOG_ERROR("AudioCatalog: " << GetInvalidFormatMessage(normalizedAsset.filepath));
 			return false;
@@ -308,6 +342,11 @@ namespace Audio {
 		return true;
 	}
 
+	/**
+	 * @brief Removes an audio asset entry from the catalog and unloads it if necessary.
+	 * @param name Logical name of the audio asset to remove.
+	 * @return True if the asset was removed, otherwise false.
+	 */
 	bool AudioCatalog::RemoveAudioAsset(const std::string& name) {
 		auto it = std::find_if(s_AudioAssets.begin(), s_AudioAssets.end(),
 			[&name](const AudioAsset& asset) { return asset.name == name; });
@@ -316,7 +355,7 @@ namespace Audio {
 			s_AudioAssets.erase(it);
 			TS_LOG_INFO("AudioCatalog: Removed asset: " << name);
 
-			// Also unload from audio system
+			// Also unload from the runtime audio system so stale resources do not linger.
 			ResourceManager::Instance().UnloadAudio(name);
 			return true;
 		}
@@ -325,6 +364,12 @@ namespace Audio {
 		return false;
 	}
 
+	/**
+	 * @brief Replaces an existing catalog entry with updated metadata.
+	 * @param originalName Current name of the asset being replaced.
+	 * @param updatedAsset Replacement asset metadata.
+	 * @return True if the asset was replaced successfully, otherwise false.
+	 */
 	bool AudioCatalog::ReplaceAudioAsset(const std::string& originalName, const AudioAsset& updatedAsset) {
 		AudioAsset normalizedAsset = updatedAsset;
 		normalizedAsset.filepath = NormalizeAudioPath(updatedAsset.filepath);
@@ -353,27 +398,43 @@ namespace Audio {
 		return true;
 	}
 
+	/**
+	 * @brief Finds an audio asset entry by logical name.
+	 * @param name Logical asset name to search for.
+	 * @return Pointer to the matching asset, or nullptr if absent.
+	 */
 	const AudioAsset* AudioCatalog::GetAudioAsset(const std::string& name) {
 		auto it = std::find_if(s_AudioAssets.begin(), s_AudioAssets.end(),
 			[&name](const AudioAsset& asset) { return asset.name == name; });
 
 		if (it != s_AudioAssets.end()) {
+			// Return a stable pointer into the catalog vector when the asset is present.
 			return &(*it);
 		}
 
 		return nullptr;
 	}
 
+	/**
+	 * @brief Returns the full in-memory audio catalog.
+	 * @return Immutable reference to the catalog asset list.
+	 */
 	const std::vector<AudioAsset>& AudioCatalog::GetAllAssets() {
+		// Expose the live catalog so editor tools can inspect the current audio entries.
 		return s_AudioAssets;
 	}
 
+	/**
+	 * @brief Checks whether a file path uses a supported audio extension.
+	 * @param filepath File path to validate.
+	 * @return True for supported formats, otherwise false.
+	 */
 	bool AudioCatalog::IsValidAudioFile(const std::string& filepath) {
 		if (filepath.empty()) {
 			return false;
 		}
 
-		// Extract extension
+		// Extract the extension first so validation works for arbitrary directory names.
 		size_t dotPos = filepath.find_last_of('.');
 		if (dotPos == std::string::npos) {
 			return false;
@@ -381,18 +442,24 @@ namespace Audio {
 
 		std::string ext = filepath.substr(dotPos);
 
-		// Convert to lowercase for case-insensitive comparison
+		// Normalize casing so .WAV and .wav are treated the same.
 		std::transform(ext.begin(), ext.end(), ext.begin(),
 			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-		// Check if extension is supported
+		// Only the formats currently supported by FMOD in this pipeline are allowed here.
 		return (ext == ".wav" || ext == ".mp3");
 	}
 
+	/**
+	 * @brief Builds a readable validation error for an unsupported audio file path.
+	 * @param filepath File path that failed validation.
+	 * @return Human-readable error message.
+	 */
 	std::string AudioCatalog::GetInvalidFormatMessage(const std::string& filepath) {
 		size_t dotPos = filepath.find_last_of('.');
 		std::string ext = (dotPos != std::string::npos) ? filepath.substr(dotPos) : "unknown";
 
+		// Format the message once here so editor/UI code can reuse the same validation wording.
 		return "Unsupported audio file type: \"" + ext + "\". Only .wav and .mp3 files are supported.";
 	}
 }

@@ -25,160 +25,85 @@
 #include "EngineCore/MessageBus.hpp"
 #include "EngineCore/System.hpp"
 
-/************************************************************************/
-/*!
-\class FileDropHandler
-\brief
-	CoreEngine system for handling external file drops from OS file explorer.
-
-	This system processes files dragged from Windows File Explorer into the
-	application window. It automatically:
-	- Validates file types (.wav, .mp3, .png, .jpg, .json)
-	- Copies files to appropriate project directories
-	- Adds audio files to the AudioCatalog
-	- Loads resources into the ResourceManager
-
-	Supported file types:
-	- Audio: .wav, .mp3 ? copied to ../../assets/Audio/
-*/
-/************************************************************************/
+/**
+ * @brief CoreEngine system for handling external file drops from the OS file explorer.
+ */
 class FileDropHandler : public CoreFramework::SystemInterface {
 public:
-	/************************************************************************/
-	/*!
-	\brief
-		Constructs the FileDropHandler system.
-	\param bus
-		Reference to the CoreEngine's MessageBus for future event notifications.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Constructs the file-drop handler system.
+	 * @param bus Reference to the CoreEngine message bus.
+	 */
 	explicit FileDropHandler(CoreFramework::MessageBus& bus);
 
-	/************************************************************************/
-	/*!
-	\brief
-		Default destructor.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Destroys the file-drop handler.
+	 */
 	~FileDropHandler() = default;
 
-	/************************************************************************/
-	/*!
-	\brief
-		Initializes the file drop handler system.
-		Called once by CoreEngine during startup.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Initializes the file-drop handler system.
+	 */
 	void Initialize() override;
 
-	/************************************************************************/
-	/*!
-	\brief
-		Updates the file drop handler system each frame.
-		This system is event-driven, so Update does nothing.
-	\param dt
-		Delta time in seconds (unused).
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Updates the file-drop handler system.
+	 * @param dt Delta time in seconds.
+	 */
 	void Update(float dt) override;
 
-	/************************************************************************/
-	/*!
-	\brief
-		Returns the name of this system for debugging.
-	\return
-		"FileDropHandler"
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Returns the debug-facing name of this system.
+	 * @return The string `"FileDropHandler"`.
+	 */
 	std::string GetName() override {
+		// Keep the system name stable for logs and runtime inspection tools.
 		return "FileDropHandler";
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Processes multiple files dropped from Windows File Explorer.
-		Called by the GLFW drop callback in Main.cpp.
-	\param count
-		Number of files dropped.
-	\param paths
-		Array of C-string file paths from GLFW.
-
-	Example:
-		glfwSetDropCallback(window, [](GLFWwindow*, int count, const char** paths) {
-			if (auto* handler = coreEngine->GetSystem<FileDropHandler>()) {
-				handler->HandleGLFWDrop(count, paths);
-			}
-		});
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Processes multiple files dropped from the OS file explorer.
+	 * @param count Number of dropped files.
+	 * @param paths Array of dropped file paths provided by GLFW.
+	 */
 	void HandleGLFWDrop(int count, const char** paths);
 
-	/************************************************************************/
-	/*!
-	\brief
-		Processes a single dropped file by routing to appropriate handler
-		based on file extension.
-	\param droppedPath
-		Absolute file path from the operating system.
-	\return
-		True if the file was successfully imported, false otherwise.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Routes a dropped file to the correct importer based on its extension.
+	 * @param droppedPath Absolute file path provided by the operating system.
+	 * @return True if the file was successfully imported, otherwise false.
+	 */
 	bool ProcessDroppedFile(const std::string& droppedPath);
 
 private:
 	//! Reference to the message bus for posting success/error events (future use)
 	CoreFramework::MessageBus& messageBus;
 
-	/************************************************************************/
-	/*!
-	\brief
-		Processes audio files (.wav, .mp3).
-		Copies to ../../assets/Audio/, adds to AudioCatalog, and loads into memory.
-	\param droppedPath
-		Absolute path to the audio file.
-	\return
-		True if successfully imported and added to catalog.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Imports a dropped audio file into the project.
+	 * @param droppedPath Absolute path to the audio file.
+	 * @return True if the audio was imported successfully.
+	 */
 	bool ProcessAudioFile(const std::string& droppedPath);
 
-	/************************************************************************/
-	/*!
-	\brief
-		Processes texture files (.png, .jpg, .jpeg).
-		Copies into the project assets folder and primes a texture load.
-	\param droppedPath
-		Absolute path to the texture file.
-	\return
-		True if the texture was imported successfully.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Imports a dropped texture file into the project.
+	 * @param droppedPath Absolute path to the texture file.
+	 * @return True if the texture was imported successfully.
+	 */
 	bool ProcessTextureFile(const std::string& droppedPath);
 
-	/************************************************************************/
-	/*!
-	\brief
-		Processes prefab files (.json).
-		Copies into the project prefabs folder.
-	\param droppedPath
-		Absolute path to the prefab file.
-	\return
-		True if the prefab was imported successfully.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Imports a dropped prefab JSON file into the project.
+	 * @param droppedPath Absolute path to the prefab file.
+	 * @return True if the prefab was imported successfully.
+	 */
 	bool ProcessPrefabFile(const std::string& droppedPath);
 
-	/************************************************************************/
-	/*!
-	\brief
-		Extracts the file extension from a path (including the dot).
-	\param path
-		File path to extract extension from.
-	\return
-		File extension (e.g., ".wav", ".mp3"), or empty string if no extension.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Extracts the file extension from a path.
+	 * @param path File path to inspect.
+	 * @return File extension including the dot, or an empty string if none exists.
+	 */
 	std::string GetFileExtension(const std::string& path) const;
 };

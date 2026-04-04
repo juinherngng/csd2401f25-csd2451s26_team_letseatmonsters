@@ -133,6 +133,7 @@ public:
 	 * @return Texture width.
 	 */
 	int GetWidth() const {
+		// Expose the cached texture width without querying OpenGL state.
 		return width;
 	}
 
@@ -141,6 +142,7 @@ public:
 	 * @return Texture height.
 	 */
 	int GetHeight() const {
+		// Expose the cached texture height without querying OpenGL state.
 		return height;
 	}
 
@@ -149,10 +151,14 @@ public:
 	 * @return GPU texture object ID.
 	 */
 	GLuint GetID() const {
+		// Expose the raw GL handle for low-level rendering integrations.
 		return textureID;
 	}
 
 private:
+	/**
+	 * @brief Applies the currently selected wrap and filter parameters to the bound texture.
+	 */
 	void ApplySamplingParameters() const;
 
 	GLuint textureID;

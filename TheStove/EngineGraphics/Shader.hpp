@@ -20,38 +20,72 @@
 
 class Shader {
 public:
-	/** @brief Build a shader program from vertex and fragment shader files. */
+	/**
+	 * @brief Builds a shader program from vertex and fragment shader files.
+	 * @param vertexFile Path to the vertex shader source file.
+	 * @param fragmentFile Path to the fragment shader source file.
+	 */
 	Shader(const std::string& vertexFile, const std::string& fragmentFile);
 
-	/** @brief Release the OpenGL shader program. */
+	/**
+	 * @brief Releases the OpenGL shader program.
+	 */
 	~Shader();
 
-	/** @brief Bind this shader program for subsequent draw calls. */
+	/**
+	 * @brief Binds this shader program for subsequent draw calls.
+	 */
 	void Use() const;
 
-	/** @brief Set model matrix uniform. */
+	/**
+	 * @brief Updates the model-matrix uniform.
+	 * @param mat Model transform matrix to upload.
+	 */
 	void SetModelMatrix(const glm::mat4& mat) const;
 
-	/** @brief Set view matrix uniform. */
+	/**
+	 * @brief Updates the view-matrix uniform.
+	 * @param mat View transform matrix to upload.
+	 */
 	void SetViewMatrix(const glm::mat4& mat) const;
 
-	/** @brief Set projection matrix uniform. */
+	/**
+	 * @brief Updates the projection-matrix uniform.
+	 * @param mat Projection matrix to upload.
+	 */
 	void SetProjectionMatrix(const glm::mat4& mat) const;
 
-	/** @brief Bind a sampler uniform name to a texture unit index. */
+	/**
+	 * @brief Binds a named sampler uniform to a texture unit index.
+	 * @param name Sampler uniform name to update.
+	 * @param textureUnit Texture unit index that the sampler should read from.
+	 */
 	void SetTexture(const std::string& name, int textureUnit) const;
 
-	/** @brief Set RGBA tint multiplier for textured rendering. */
+	/**
+	 * @brief Updates the color-tint uniform used by textured rendering paths.
+	 * @param color RGBA tint multiplier to upload.
+	 */
 	void SetColorTint(const glm::vec4& color) const; // For tinting textures
 
-	/** @brief Set UV offset for atlas/animation sampling. */
+	/**
+	 * @brief Updates the UV offset uniform for atlas or animation sampling.
+	 * @param offset UV offset to upload.
+	 */
 	void SetUVOffset(const glm::vec2& offset) const;
 
-	/** @brief Set UV scale for atlas/animation sampling. */
+	/**
+	 * @brief Updates the UV scale uniform for atlas or animation sampling.
+	 * @param scale UV scale to upload.
+	 */
 	void SetUVScale(const glm::vec2& scale) const;
 
-	/** @brief Access the raw OpenGL program ID. */
+	/**
+	 * @brief Returns the raw OpenGL program identifier.
+	 * @return Linked OpenGL program ID owned by this wrapper.
+	 */
 	GLuint GetProgramID() const {
+		// Expose the linked program handle for low-level integrations.
 		return programID;
 	}
 
@@ -63,15 +97,31 @@ private:
 	GLint uniformViewMatrix;
 	GLint uniformProjMatrix;
 
-	/** @brief Cache required uniform locations from the linked program. */
+	/**
+	 * @brief Caches the core uniform locations from the linked program.
+	 */
 	void InitUniforms();
 
-	/** @brief Read an entire text file into memory. */
+	/**
+	 * @brief Reads an entire text file into memory.
+	 * @param filepath Path of the file to load.
+	 * @return File contents as a string, or an empty string on failure.
+	 */
 	std::string ReadFile(const std::string& filepath);
 
-	/** @brief Compile one GLSL shader stage and return its object ID. */
+	/**
+	 * @brief Compiles one GLSL shader stage.
+	 * @param type OpenGL shader-stage enum to compile.
+	 * @param source GLSL source code to compile.
+	 * @return OpenGL shader object ID.
+	 */
 	GLuint CompileShader(GLenum type, const std::string& source);
 
-	/** @brief Link compiled shader stages into a complete program. */
+	/**
+	 * @brief Links compiled shader stages into a complete program.
+	 * @param vertexShader Compiled vertex shader object ID.
+	 * @param fragmentShader Compiled fragment shader object ID.
+	 * @return Linked OpenGL program object ID.
+	 */
 	GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 };

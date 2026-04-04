@@ -20,13 +20,9 @@
 #include <utility>
 
 namespace CoreFramework {
-	/************************************************************************/
-	/*!
-	\brief
-		Message type identifiers using enum class for type safety.
-		Each message type has a unique identifier used for routing.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Identifies each routed message type in a type-safe way.
+	 */
 	enum class MessageType : uint32_t {
 		NONE = 0,
 		QUIT,
@@ -66,16 +62,20 @@ namespace CoreFramework {
 		constexpr MessageType CUTSCENE_SKIPPED = MessageType::CUTSCENE_SKIPPED;
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Base polymorphic message class.
-		All specific messages inherit from this class.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Base polymorphic message type used by the message bus.
+	 */
 	class Message {
 	public:
+		/**
+		 * @brief Initializes the base message with a concrete message type.
+		 * @param id Type identifier stored for downstream routing.
+		 */
 		explicit Message(MessageType id) noexcept : MessageId(id) {}
+
+		/**
+		 * @brief Destroys the message through a polymorphic base pointer.
+		 */
 		virtual ~Message() = default;
 
 		// Delete copy operations to prevent slicing
@@ -86,7 +86,12 @@ namespace CoreFramework {
 		Message(Message&&) noexcept = default;
 		Message& operator=(Message&&) noexcept = default;
 
+		/**
+		 * @brief Returns the stored runtime message type.
+		 * @return Message type used for dispatch.
+		 */
 		MessageType GetType() const noexcept {
+			// Expose the cached type identifier without altering the message payload.
 			return MessageId;
 		}
 
@@ -95,23 +100,25 @@ namespace CoreFramework {
 
 	using EntityId = uint32_t;
 
-	/************************************************************************/
-	/*!
-	\brief
-		Message to signal application shutdown.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Signals that the application should shut down.
+	 */
 	struct QuitMessage final : public Message {
+		/**
+		 * @brief Creates an application-quit message.
+		 */
 		QuitMessage() noexcept : Message(MessageType::QUIT) {}
 	};
 
-	/************************************************************************/
-	/*!
-	\brief
-		Message to toggle debug information display.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Requests that debug information visibility be toggled or forced.
+	 */
 	struct ToggleDebugInfoMessage final : public Message {
+		/**
+		 * @brief Creates a debug-visibility toggle request.
+		 * @param forceState Requested forced debug state when `hasForcedState` is true.
+		 * @param hasForcedState Indicates whether the toggle should act as a forced set.
+		 */
 		explicit ToggleDebugInfoMessage(bool forceState = false, bool hasForcedState = false) noexcept
 			: Message(MessageType::TOGGLE_DEBUG_INFO)
 			, ForceState(forceState)
@@ -121,13 +128,15 @@ namespace CoreFramework {
 		bool HasForcedState;	// if true, ForceState is used to set the debug info state
 	};
 
-	/************************************************************************/
-	/*!
-	\brief
-		Message indicating a collision between two entities.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Reports a collision between two entities.
+	 */
 	struct CollideMessage final : public Message {
+		/**
+		 * @brief Creates a collision event between two entities.
+		 * @param entityA First entity participating in the collision.
+		 * @param entityB Second entity participating in the collision.
+		 */
 		CollideMessage(EntityId entityA, EntityId entityB) noexcept
 			: Message(MessageType::COLLIDE)
 			, EntityA(entityA)
@@ -137,14 +146,15 @@ namespace CoreFramework {
 		EntityId EntityB;
 	};
 
-	/************************************************************************/
-	/*!
-	\brief
-		Message for character/text input events.
-		Character represents the ASCII character code of the key.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Carries character-input events for text-style input handling.
+	 */
 	struct CharacterKeyMessage final : public Message {
+		/**
+		 * @brief Creates a character-input event.
+		 * @param character Character code associated with the input.
+		 * @param isPressed Indicates whether the key transitioned to pressed state.
+		 */
 		CharacterKeyMessage(char character, bool isPressed) noexcept
 			: Message(MessageType::CHARACTER_KEY)
 			, keyCharacter(static_cast<unsigned int>(character))
@@ -154,14 +164,17 @@ namespace CoreFramework {
 		bool keyIsPressed;
 	};
 
-	/************************************************************************/
-	/*!
-	\brief
-		Message for mouse button events.
-		Button values: 0 = left, 1 = right, 2 = middle
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Carries a mouse-button transition and cursor snapshot.
+	 */
 	struct MouseButtonMessage final : public Message {
+		/**
+		 * @brief Creates a mouse-button event snapshot.
+		 * @param button Button index associated with the input event.
+		 * @param isPressed Indicates whether the button transitioned to pressed state.
+		 * @param x Cursor x position at the time of the event.
+		 * @param y Cursor y position at the time of the event.
+		 */
 		MouseButtonMessage(int button, bool isPressed, double x, double y) noexcept
 			: Message(MessageType::MOUSE_BUTTON)
 			, mouseButton(button)
@@ -174,14 +187,17 @@ namespace CoreFramework {
 		double cursorX, cursorY; // mouse position when button event occurred
 	};
 
-	/************************************************************************/
-	/*!
-	\brief
-		Message for mouse movement events.
-		Contains both absolute position and delta movement.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Carries cursor position and delta movement for one mouse-move event.
+	 */
 	struct MouseMoveMessage final : public Message {
+		/**
+		 * @brief Creates a mouse-movement event snapshot.
+		 * @param x Current cursor x position.
+		 * @param y Current cursor y position.
+		 * @param deltaX Cursor movement along the x axis since the last event.
+		 * @param deltaY Cursor movement along the y axis since the last event.
+		 */
 		MouseMoveMessage(double x, double y, double deltaX, double deltaY) noexcept
 			: Message(MessageType::MOUSE_MOVE)
 			, cursorX(x)
@@ -193,14 +209,16 @@ namespace CoreFramework {
 		double deltaX, deltaY;		// change in mouse position since last event
 	};
 
-	/************************************************************************/
-	/*!
-	\brief
-		Message for requesting audio playback.
-		Contains the sound name and playback parameters.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Requests playback of a non-spatialized sound.
+	 */
 	struct PlayAudioMessage final : public Message {
+		/**
+		 * @brief Creates a request to start audio playback.
+		 * @param soundName Logical sound identifier to play.
+		 * @param volume Playback volume in the inclusive range `[0, 1]`.
+		 * @param paused Indicates whether playback should begin paused.
+		 */
 		PlayAudioMessage(std::string soundName, float volume = 1.0f, bool paused = false) noexcept
 			: Message(MessageType::PLAY_AUDIO)
 			, soundName(std::move(soundName))
@@ -212,14 +230,14 @@ namespace CoreFramework {
 		bool paused;			// whether to start paused
 	};
 
-	/************************************************************************/
-	/*!
-	\brief
-		Message for requesting audio stop.
-		Contains the sound name to stop, or empty string to stop all.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Requests that one sound or all tracked sounds be stopped.
+	 */
 	struct StopAudioMessage final : public Message {
+		/**
+		 * @brief Creates a request to stop one sound or all sounds.
+		 * @param soundName Logical sound identifier to stop, or empty to stop all tracked sounds.
+		 */
 		explicit StopAudioMessage(std::string soundName = "") noexcept
 			: Message(MessageType::STOP_AUDIO)
 			, soundName(std::move(soundName)) {}
@@ -227,14 +245,21 @@ namespace CoreFramework {
 		std::string soundName;	// name of the sound to stop (empty = stop all)
 	};
 
-	/************************************************************************/
-	/*!
-	\brief
-		Message for requesting 3D/spatial audio playback.
-		Contains the sound name, position, and playback parameters.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Requests playback of a spatialized sound source.
+	 */
 	struct PlayAudio3DMessage final : public Message {
+		/**
+		 * @brief Creates a request to play a spatialized sound.
+		 * @param soundName Logical sound identifier to play.
+		 * @param posX World x position of the sound source.
+		 * @param posY World y position of the sound source.
+		 * @param posZ World z position of the sound source.
+		 * @param volume Playback volume in the inclusive range `[0, 1]`.
+		 * @param minDistance Distance at which attenuation begins.
+		 * @param maxDistance Distance at which attenuation reaches its maximum.
+		 * @param paused Indicates whether playback should begin paused.
+		 */
 		PlayAudio3DMessage(std::string soundName, float posX, float posY, float posZ = 0.0f,
 			float volume = 1.0f, float minDistance = 1.0f, float maxDistance = 50.0f, bool paused = false) noexcept
 			: Message(MessageType::PLAY_AUDIO_3D)
@@ -255,7 +280,15 @@ namespace CoreFramework {
 		bool paused;			// whether to start paused
 	};
 
+	/**
+	 * @brief Announces a scene-flow state change.
+	 */
 	struct SceneFlowStateChangedMessage final : public Message {
+		/**
+		 * @brief Creates a scene-flow state transition event.
+		 * @param stateName Human-readable scene-flow state name.
+		 * @param simulationActive Indicates whether gameplay simulation should currently run.
+		 */
 		SceneFlowStateChangedMessage(std::string stateName, bool simulationActive) noexcept
 			: Message(MessageType::SCENE_FLOW_STATE_CHANGED)
 			, stateName(std::move(stateName))
@@ -265,7 +298,15 @@ namespace CoreFramework {
 		bool simulationActive;
 	};
 
+	/**
+	 * @brief Announces that a level load has been queued.
+	 */
 	struct LevelLoadQueuedMessage final : public Message {
+		/**
+		 * @brief Creates a deferred level-load request event.
+		 * @param levelPath Path of the level that was queued for loading.
+		 * @param activateSimulation Indicates whether simulation should activate after loading.
+		 */
 		LevelLoadQueuedMessage(std::string levelPath, bool activateSimulation) noexcept
 			: Message(MessageType::LEVEL_LOAD_QUEUED)
 			, levelPath(std::move(levelPath))
@@ -275,7 +316,15 @@ namespace CoreFramework {
 		bool activateSimulation;
 	};
 
+	/**
+	 * @brief Announces that a level has finished loading.
+	 */
 	struct LevelLoadedMessage final : public Message {
+		/**
+		 * @brief Creates a level-loaded notification event.
+		 * @param levelPath Path of the level that finished loading.
+		 * @param simulationActive Indicates whether simulation is active after the load.
+		 */
 		LevelLoadedMessage(std::string levelPath, bool simulationActive) noexcept
 			: Message(MessageType::LEVEL_LOADED)
 			, levelPath(std::move(levelPath))
@@ -285,7 +334,14 @@ namespace CoreFramework {
 		bool simulationActive;
 	};
 
+	/**
+	 * @brief Announces that the pause overlay was opened or closed.
+	 */
 	struct PauseOverlayChangedMessage final : public Message {
+		/**
+		 * @brief Creates a pause-overlay visibility event.
+		 * @param isOpen Indicates whether the pause overlay is currently visible.
+		 */
 		explicit PauseOverlayChangedMessage(bool isOpen) noexcept
 			: Message(MessageType::PAUSE_OVERLAY_CHANGED)
 			, isOpen(isOpen) {}
@@ -293,7 +349,15 @@ namespace CoreFramework {
 		bool isOpen;
 	};
 
+	/**
+	 * @brief Announces that a cutscene was skipped.
+	 */
 	struct CutsceneSkippedMessage final : public Message {
+		/**
+		 * @brief Creates a cutscene-skip event.
+		 * @param transitionedCutscene Indicates whether the skip also triggered a cutscene transition.
+		 * @param targetLevelPath Level path targeted after the skip completes.
+		 */
 		CutsceneSkippedMessage(bool transitionedCutscene, std::string targetLevelPath) noexcept
 			: Message(MessageType::CUTSCENE_SKIPPED)
 			, transitionedCutscene(transitionedCutscene)
@@ -303,18 +367,13 @@ namespace CoreFramework {
 		std::string targetLevelPath;
 	};
 
-
-	/************************************************************************/
-	/*!
-	\brief
-		Converts a MessageType to a human-readable string.
-	\param type
-		The message type to convert.
-	\return
-		String representation of the message type.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Converts a message type into a human-readable label.
+	 * @param type Message type to convert.
+	 * @return String representation of the supplied message type.
+	 */
 	inline const char* MessageTypeToString(MessageType type) noexcept {
+		// Keep the string mapping centralized so logs and debug UI stay consistent.
 		switch (type) {
 		case MessageType::NONE:					return "NONE";
 		case MessageType::QUIT:					return "QUIT";
@@ -336,22 +395,27 @@ namespace CoreFramework {
 	}
 
 	// Legacy support - can be removed after full migration
+	/**
+	 * @brief Converts a legacy message identifier alias into a human-readable label.
+	 * @param id Message identifier to convert.
+	 * @return String representation of the supplied message type.
+	 */
 	inline const char* MsgIdToString(MessageType id) noexcept {
+		// Forward the legacy helper to the canonical conversion function.
 		return MessageTypeToString(id);
 	}
 }
 
-/************************************************************************/
-/*!
-\brief
-	Hash specialization for MessageType to support unordered_map.
-	Required for using MessageType as a key in hash-based containers.
-*/
-/************************************************************************/
 namespace std {
 	template<>
 	struct hash<CoreFramework::MessageType> {
+		/**
+		 * @brief Hashes a message type for use in unordered containers.
+		 * @param type Message type to hash.
+		 * @return Hash value derived from the underlying enum value.
+		 */
 		size_t operator()(CoreFramework::MessageType type) const noexcept {
+			// Reuse the enum's integral value as a stable lightweight hash.
 			return static_cast<size_t>(type);
 		}
 	};

@@ -17,13 +17,9 @@
 #include <vector>
 
 namespace Audio {
-	/************************************************************************/
-	/*!
-	\struct AudioAsset
-	\brief
-		Represents a single audio asset with all its properties.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Stores the authored metadata for a single audio asset entry.
+	 */
 	struct AudioAsset {
 		std::string name;       // Logical name for referencing the audio
 		std::string filepath;   // Path to the audio file
@@ -32,146 +28,91 @@ namespace Audio {
 		std::string category;   // Category: "ui", "sfx", "bgm", etc.
 		float volume;           // Default volume (0.0 to 1.0)
 
+		/**
+		 * @brief Constructs an empty audio asset with safe defaults.
+		 */
 		AudioAsset()
-			: name(""), filepath(""), loop(false), stream(false), category(""), volume(1.0f) {}
+			: name(""), filepath(""), loop(false), stream(false), category(""), volume(1.0f) {
+			// Start with blank metadata so editor code can fill fields incrementally.
+		}
 	};
 
-	/************************************************************************/
-	/*!
-	\class AudioCatalog
-	\brief
-		Centralized manager for loading and managing audio assets via JSON.
-		Provides serialization/deserialization and dynamic loading without C++ code changes.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Static utility for loading, storing, and validating authored audio catalog data.
+	 */
 	class AudioCatalog {
 	public:
-		/************************************************************************/
-		/*!
-		\brief
-			Loads the audio catalog from a JSON file.
-		\param catalogPath
-			Path to the JSON catalog file.
-		\return
-			True if loaded successfully, false otherwise.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Loads the audio catalog from a JSON file.
+		 * @param catalogPath Path to the JSON catalog file.
+		 * @return True if loaded successfully, otherwise false.
+		 */
 		static bool LoadCatalogFromFile(const std::string& catalogPath = "../assets/Audio/AudioCatalog.json");
 
-		/************************************************************************/
-		/*!
-		\brief
-			Saves the current audio catalog to a JSON file.
-		\param catalogPath
-			Path to save the JSON catalog file.
-		\return
-			True if saved successfully, false otherwise.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Saves the current audio catalog to a JSON file.
+		 * @param catalogPath Path to the output JSON catalog file.
+		 * @return True if saved successfully, otherwise false.
+		 */
 		static bool SaveCatalogToFile(const std::string& catalogPath = "../assets/Audio/AudioCatalog.json");
 
-		/************************************************************************/
-		/*!
-		\brief
-			Loads all audio assets from the currently loaded catalog.
-		\details
-			Should be called after LoadCatalogFromFile() during application initialization.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Loads every audio asset currently stored in the catalog into the resource manager.
+		 */
 		static void LoadAllAudio();
 
-		/************************************************************************/
-		/*!
-		\brief
-			Unloads all audio assets.
-		\details
-			Should be called during application shutdown to clean up audio resources.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Unloads every audio asset currently tracked by the catalog.
+		 */
 		static void UnloadAllAudio();
 
-		/************************************************************************/
-		/*!
-		\brief
-			Adds a new audio asset to the catalog.
-		\param asset
-			The audio asset to add.
-		\return
-			True if added successfully, false if an asset with the same name already exists.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Adds a new audio asset to the in-memory catalog.
+		 * @param asset The audio asset metadata to add.
+		 * @return True when the asset was added successfully, otherwise false.
+		 */
 		static bool AddAudioAsset(const AudioAsset& asset);
 
-		/************************************************************************/
-		/*!
-		\brief
-			Removes an audio asset from the catalog by name.
-		\param name
-			The name of the audio asset to remove.
-		\return
-			True if removed successfully, false if not found.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Removes an audio asset from the catalog by name.
+		 * @param name Logical name of the audio asset to remove.
+		 * @return True when the asset was removed, otherwise false.
+		 */
 		static bool RemoveAudioAsset(const std::string& name);
 
-		/************************************************************************/
-		/*!
-		\brief
-			Replaces an existing audio asset with updated metadata atomically.
-		\param originalName
-			The current name of the audio asset being edited.
-		\param updatedAsset
-			The replacement metadata to store.
-		\return
-			True if the asset was replaced successfully, false otherwise.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Replaces an existing audio asset with updated metadata.
+		 * @param originalName Current logical name of the audio asset being edited.
+		 * @param updatedAsset Replacement metadata to store.
+		 * @return True when the asset was replaced successfully, otherwise false.
+		 */
 		static bool ReplaceAudioAsset(const std::string& originalName, const AudioAsset& updatedAsset);
 
-		/************************************************************************/
-		/*!
-		\brief
-			Gets an audio asset from the catalog by name.
-		\param name
-			The name of the audio asset to retrieve.
-		\return
-			Pointer to the audio asset, or nullptr if not found.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Finds an audio asset in the catalog by name.
+		 * @param name Logical name of the audio asset to retrieve.
+		 * @return Pointer to the audio asset, or nullptr if not found.
+		 */
 		static const AudioAsset* GetAudioAsset(const std::string& name);
 
-		/************************************************************************/
-		/*!
-		\brief
-			Gets all audio assets in the catalog.
-		\return
-			Vector of all audio assets.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Returns all audio assets currently stored in the catalog.
+		 * @return Immutable reference to the catalog asset list.
+		 */
 		static const std::vector<AudioAsset>& GetAllAssets();
 
-		/************************************************************************/
-		/*!
-		\brief
-			Validates an audio file path to ensure it's a supported format.
-		\param filepath
-			The file path to validate.
-		\return
-			True if the file format is supported (.wav or .mp3), false otherwise.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Checks whether an audio file path uses a supported extension.
+		 * @param filepath File path to validate.
+		 * @return True for supported audio formats, otherwise false.
+		 */
 		static bool IsValidAudioFile(const std::string& filepath);
 
-		/************************************************************************/
-		/*!
-		\brief
-			Gets a user-friendly error message for unsupported audio formats.
-		\param filepath
-			The file path that was invalid.
-		\return
-			Error message string.
-		*/
-		/************************************************************************/
+		/**
+		 * @brief Builds a user-facing error string for an unsupported audio path.
+		 * @param filepath File path that failed validation.
+		 * @return Human-readable validation error string.
+		 */
 		static std::string GetInvalidFormatMessage(const std::string& filepath);
 
 	private:

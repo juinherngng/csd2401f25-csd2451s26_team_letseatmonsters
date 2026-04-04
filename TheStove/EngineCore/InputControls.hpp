@@ -16,25 +16,60 @@
 
 class InputControls {
 public:
-	// Called once per frame to poll keyboard's state
+	/**
+	 * @brief Polls the current WASD keyboard state from the given window.
+	 * @param window GLFW window to query.
+	 */
 	static void PollKeyboard(GLFWwindow* window);
 
-	// window -> which window triggered the callback
-	// button -> which button was pressed
-	// action -> what happened (Press or Release)
-	// mods -> do we need mods? like if holding shift and wat not
+	/**
+	 * @brief Handles mouse-button callback updates for cached input state.
+	 * @param window GLFW window that received the callback.
+	 * @param button Mouse button that changed state.
+	 * @param action GLFW action value such as press or release.
+	 */
 	static void MouseButtonCallback(GLFWwindow* window, int button, int action);
 
-	// Other scripts call these
-	// e.g. if (InputControls::LeftMousePressed) , do the thing
+	/**
+	 * @brief Returns whether the left mouse button is currently pressed.
+	 * @return True if the left mouse button is pressed.
+	 */
 	static bool LeftMousePressed();
+
+	/**
+	 * @brief Returns whether the W key is currently pressed.
+	 * @return True if W is pressed.
+	 */
 	static bool WKeyPressed();
+
+	/**
+	 * @brief Returns whether the A key is currently pressed.
+	 * @return True if A is pressed.
+	 */
 	static bool AKeyPressed();
+
+	/**
+	 * @brief Returns whether the S key is currently pressed.
+	 * @return True if S is pressed.
+	 */
 	static bool SKeyPressed();
+
+	/**
+	 * @brief Returns whether the D key is currently pressed.
+	 * @return True if D is pressed.
+	 */
 	static bool DKeyPressed();
 
-	// For getting mouse position
+	/**
+	 * @brief Returns the cached mouse X position recorded on click.
+	 * @return Mouse X position in window coordinates.
+	 */
 	static double MouseXPos();
+
+	/**
+	 * @brief Returns the cached mouse Y position recorded on click.
+	 * @return Mouse Y position in window coordinates.
+	 */
 	static double MouseYPos();
 
 private:

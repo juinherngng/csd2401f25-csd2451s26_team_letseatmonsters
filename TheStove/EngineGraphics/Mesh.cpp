@@ -13,29 +13,40 @@
 #include "EngineCore/Logger.hpp"
 #include "EngineGraphics/Mesh.hpp"
 
-// Constructs a mesh by uploading vertex data and configuring a VAO
+/**
+ * @brief Uploads vertex data and configures the mesh's vertex layout.
+ * @param vertices Pointer to interleaved vertex data.
+ * @param vertexCount Number of vertices contained in the buffer.
+ * @param vertexSize Size in bytes of a single vertex.
+ * @param layout Attribute layout to bind inside the VAO.
+ */
 Mesh::Mesh(const float* vertices, GLsizei vertexCount, GLsizei vertexSize, VertexLayout layout)
 	: vao(), vbo(vertices, vertexCount* vertexSize), vertexCount(static_cast<GLsizei>(vertexCount)) {
 
+	// Bind only the attributes required by the chosen vertex format.
 	switch (layout) {
 	case POSITION_COLOR:
-		// Original triangle setup: pos(3) + color(3)
-		vao.AddBuffer(vbo, 0, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)0);                        // position
-		vao.AddBuffer(vbo, 1, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)(3 * sizeof(float)));     // color
+		// Route position and color attributes to the shader's expected slots.
+		vao.AddBuffer(vbo, 0, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)0);
+		vao.AddBuffer(vbo, 1, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)(3 * sizeof(float)));
 		break;
 
 	case POSITION_TEXTURE:
-		// Textured sprite setup: pos(3) + texcoord(2)
-		vao.AddBuffer(vbo, 0, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)0);                        // position
-		vao.AddBuffer(vbo, 1, 2, GL_FLOAT, GL_FALSE, vertexSize, (void*)(3 * sizeof(float)));     // texture coords
+		// Route position and UV attributes to the shader's expected slots.
+		vao.AddBuffer(vbo, 0, 3, GL_FLOAT, GL_FALSE, vertexSize, (void*)0);
+		vao.AddBuffer(vbo, 1, 2, GL_FLOAT, GL_FALSE, vertexSize, (void*)(3 * sizeof(float)));
 		break;
 	}
 }
 
-// Drawsthe mesh as GL_TRIANGLES using the configured VAO
+/**
+ * @brief Draws the mesh with the currently bound shader state.
+ */
 void Mesh::Draw() const {
+	// Activate the mesh VAO before issuing any draw work.
 	vao.Bind();
-	// Check for errors before drawing
+
+	// Surface any stale GL state issues before the actual draw call.
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
 		TS_LOG_ERROR("[Mesh] OpenGL error after VAO bind: " << error);
@@ -43,45 +54,64 @@ void Mesh::Draw() const {
 
 	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)vertexCount);
 
+	// Report draw-call failures immediately while the error source is still obvious.
 	error = glGetError();
 	if (error != GL_NO_ERROR) {
 		TS_LOG_ERROR("[Mesh] OpenGL error after glDrawArrays: " << error);
 	}
 
+	// Leave GL state in a neutral VAO state for subsequent callers.
 	vao.Unbind();
 }
 
-// Draw the mesh with an optional bound texture on texture unit 0.
+/**
+ * @brief Draws the mesh while optionally binding a texture to slot 0.
+ * @param texture Texture to bind before drawing, or `nullptr` to draw untextured.
+ */
 void Mesh::Draw(const Texture* texture) const {
+	// Bind the vertex array first so the active shader sees the correct geometry layout.
 	vao.Bind();
 
 	if (texture) {
-		texture->Bind(0);  // Bind texture to slot 0
+		// Bind the provided texture on the default sprite texture slot.
+		texture->Bind(0);
 	}
 
 	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)vertexCount);
 
 	if (texture) {
+		// Release the temporary texture binding once the draw is complete.
 		texture->Unbind();
 	}
 
+	// Restore a neutral VAO binding for the next draw path.
 	vao.Unbind();
 }
 
+/**
+ * @brief Uploads per-instance data and configures instanced attributes on the VAO.
+ * @param instanceData CPU-side instance payload to upload.
+ */
 void Mesh::SetupInstanceBuffer(const std::vector<InstanceData>& instanceData) {
-	if (instanceData.empty()) return;
+	// Skip the upload when there is no instance payload to describe.
+	if (instanceData.empty()) {
+		return;
+	}
 
 	if (!instanceBufferInitialized) {
+		// Allocate the shared instance VBO only once, then reuse it for later updates.
 		glGenBuffers(1, &instanceVBO);
 		instanceBufferInitialized = true;
 	}
 
+	// Stream the latest per-instance payload into the instance buffer.
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 	glBufferData(GL_ARRAY_BUFFER, instanceData.size() * sizeof(InstanceData), instanceData.data(), GL_DYNAMIC_DRAW);
 
+	// Configure the instance attributes on the mesh VAO so each draw can consume them.
 	vao.Bind();
 
-	// modelMatrix starts at offset offsetof(InstanceData, modelMatrix)
+	// Split the matrix into four vec4 attributes because OpenGL attributes are vec4-sized.
 	const std::size_t matOffset = offsetof(InstanceData, modelMatrix);
 	const std::size_t vec4Size = sizeof(glm::vec4);
 	const GLsizei stride = static_cast<GLsizei>(sizeof(InstanceData));
@@ -93,26 +123,34 @@ void Mesh::SetupInstanceBuffer(const std::vector<InstanceData>& instanceData) {
 		glVertexAttribDivisor(2 + i, 1);
 	}
 
-	// UV offset/scale
+	// Publish the animated-UV payload as a separate per-instance attribute.
 	const void* uvPtr = reinterpret_cast<const void*>(offsetof(InstanceData, uvOffsetScale));
 	glEnableVertexAttribArray(6);
 	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, stride, uvPtr);
 	glVertexAttribDivisor(6, 1);
 
+	// Clean up the temporary bindings after the VAO captures the instance state.
 	vao.Unbind();
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-
+/**
+ * @brief Draws the mesh multiple times using the configured instance buffer.
+ * @param texture Texture to bind before issuing the draw, or `nullptr` for no texture.
+ * @param instanceCount Number of instances to draw.
+ */
 void Mesh::DrawInstanced(Texture* texture, size_t instanceCount) {
-	if (instanceCount == 0) return;
+	// Avoid issuing a no-op instanced draw when the caller has no instances to render.
+	if (instanceCount == 0) {
+		return;
+	}
 
-	// Bind texture if provided
 	if (texture) {
+		// Bind the shared texture once before dispatching the instanced draw.
 		texture->Bind(0);
 	}
 
-	// Bind VAO and draw instanced
+	// Reuse the configured VAO and per-instance attributes for the instanced dispatch.
 	vao.Bind();
 	glDrawArraysInstanced(GL_TRIANGLES, 0, vertexCount, static_cast<GLsizei>(instanceCount));
 	glBindVertexArray(0);

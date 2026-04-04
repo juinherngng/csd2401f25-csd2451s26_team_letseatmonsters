@@ -16,6 +16,12 @@
 #include "EngineCore/GameObjectLogic.hpp"
 #include "EngineGraphics/SceneManager.hpp" // for Scene::GetGameObjectByID
 
+/**
+ * @brief Resolves and returns the owning game object from the scene.
+ * @param scene Scene used to look up the owner by ID.
+ * @return Pointer to the owning game object, or nullptr if it cannot be found.
+ */
 GameObject* GameObjectLogic::GetOwner(Scene& scene) const {
+	// Resolve the owner lazily through the scene so logic does not keep stale object pointers.
 	return scene.GetGameObjectByID(ownerID);
 }

@@ -32,86 +32,111 @@
 
 #include "EngineCore/GameComponent.hpp"
 
-//Game Object
 class GOC {
 public:
 	std::string name;
 
+	/**
+	 * @brief Destroys the game-object composition and its owned components.
+	 */
 	~GOC();
 
-	//this function get the component and return it if this GameObject is holding it
-	//return null if not
-	//usage: auto enemyTransform = enemy->Get<Transform>();
+	/**
+	 * @brief Retrieves a component of type `T` from this game object.
+	 * @tparam T Concrete component type to look up.
+	 * @return Optional raw pointer to the requested component.
+	 */
 	template <typename T>
 	std::optional<T*> Get() const {
 		auto it = m_components.find(typeid(T));
 
+		// Return an empty optional when the requested component type is not attached.
 		if (it == m_components.end())
 			return std::nullopt;
+		// Cast the stored component back to the requested concrete type.
 		return static_cast<T*>(it->second.get());
 	}
 
+	/**
+	 * @brief Checks whether this game object has a component of type `T`.
+	 * @tparam T Concrete component type to test for.
+	 * @return True if the component exists, otherwise false.
+	 */
 	template <typename T>
 	bool Has() const {
+		// Presence is determined by whether the type key exists in the component map.
 		return m_components.find(typeid(T)) != m_components.end();
 	}
 
-	//Initializing all components in this GameObject
+	/**
+	 * @brief Initializes all components attached to this game object.
+	 */
 	void Initialize();
 
-	//Destroy the object
+	/**
+	 * @brief Requests destruction of this game object.
+	 */
 	void Destroy();
 
-	//This function attach the component to this GameObject
+	/**
+	 * @brief Attaches a component under an explicit type key.
+	 * @param id Type key used to store the component.
+	 * @param c Component instance to attach.
+	 * @return Raw pointer to the attached component, or nullptr if the input was null.
+	 */
 	GameComponent* AddComponent(std::type_index id, std::unique_ptr<GameComponent> c);
 
-	//Add Component to GameObject with value
-	//for eg: player->AddComponent<Transform>(0.0f, 0.0f, 0.0f);
+	/**
+	 * @brief Constructs and attaches a component of type `T`.
+	 * @tparam T Concrete component type to create.
+	 * @tparam Args Constructor argument types forwarded to `T`.
+	 * @param args Constructor arguments for the component.
+	 * @return Raw pointer to the attached component.
+	 */
 	template <typename T, typename ... Args>
 	T* AddComponent(Args&&... args);
 
+	/**
+	 * @brief Creates a deep copy of this game object and its components.
+	 * @return Newly allocated cloned game object.
+	 */
 	GOC* Clone() const;
 
-	//Remove Component
+	/**
+	 * @brief Removes a component of type `T` from this game object.
+	 * @tparam T Concrete component type to remove.
+	 */
 	template <typename T>
 	void RemoveComponent() {
 		auto it = m_components.find(typeid(T));
 		if (it != m_components.end()) {
+			// Erase the owned component so its resources are released via unique_ptr.
 			m_components.erase(it);
 		}
 	}
 
-	//Return GameObject unique ID
+	/**
+	 * @brief Returns this game object's unique ID.
+	 * @return Unique object ID.
+	 */
 	unsigned int GetId() {
+		// Expose the factory-assigned ID for lookups and debugging.
 		return ObjectId;
 	}
 
+	/**
+	 * @brief Returns the full component map for read-only inspection.
+	 * @return Const reference to the component map.
+	 */
 	const std::unordered_map<std::type_index, std::unique_ptr<GameComponent>>& GetComponentList() const {
+		// Allow systems to iterate components without transferring ownership.
 		return m_components;
 	}
 
-	//object unique id
+	// Factory-assigned unique object ID.
 	unsigned int ObjectId = 0;
 
 private:
-	//In this GOC aka GameObject, we have a list of GameComponents and you cannot add the same GameComponents twice
-	//Meaning a GameObject cannot have 2 Collider, 2 Transform, 2 Sprite
-	//unorder map ensure that there can only be a single key 
-	//while using a vector will need to scan if it has the same componet or not before adding
-	//Std::type_index is just to look up what is the component
-	//Honestly Im only using std::type_index cause I can just auto it lmao
+	// Store one component per type so a game object cannot accidentally own duplicate core components.
 	std::unordered_map<std::type_index, std::unique_ptr<GameComponent>> m_components;
-
-	//example:
-
-	//auto* col = new Collider(/* ctor args */);
-	//enemy->AddComponent(TypeId(typeid(Collider)), col);
-
-	//in this example
-	//std::type_index(typeid(Collider)) means the key is Collider
-	//col is the actual component being stored
-
-	//so you can later access it like this
-	//auto col = enemy->Get<Collider>()
-
 };

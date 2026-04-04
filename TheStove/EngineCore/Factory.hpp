@@ -32,46 +32,79 @@
 
 class Factory {
 public:
-	//ctor
+	/**
+	 * @brief Constructs the global factory instance.
+	 */
 	Factory();
 
-	//dtor
+	/**
+	 * @brief Destroys the factory and releases all registered objects and creators.
+	 */
 	~Factory();
 
-	//Create a Game Object
+	/**
+	 * @brief Creates and initializes an empty game-object composition.
+	 * @return Pointer to the newly created game object.
+	 */
 	GOC* Create();
 
-	//Add the Game Object to the destroy list 
+	/**
+	 * @brief Schedules a game object for destruction on the next update.
+	 * @param g Game object to destroy later.
+	 */
 	void AddDestroy(GOC* g);
 
-	//Update the factory, destroying dead objects.
+	/**
+	 * @brief Updates deferred destruction and active components.
+	 * @param dt Frame delta time in seconds.
+	 */
 	virtual void Update(float dt);
 
-	//Name of the system is factory.
+	/**
+	 * @brief Returns the debug-facing name of the factory.
+	 * @return Factory system name string.
+	 */
 	virtual std::string GetName() {
+		// Keep the name stable for logs and debug tooling.
 		return "Factory";
 	}
 
-	//Destroy all the GOCs in the world. Used for final shutdown.
+	/**
+	 * @brief Destroys all game objects currently owned by the factory.
+	 */
 	void DestroyAllObjects();
 
-	//Create and Id a GOC at runtime. Used to dynamically build GOC.
-	//After components have been added call GOC->Initialize().
+	/**
+	 * @brief Creates an uninitialized game-object composition and assigns it an ID.
+	 * @return Pointer to the newly created composition.
+	 */
 	GOC* CreateEmptyComposition();
 
-	//Build a composition and serialize from the data file but do not initialize the GOC.
-	//Used to create a composition and then adjust its data before initialization
-	//see GameObjectComposition::Initialize for details.
+	/**
+	 * @brief Builds a game-object composition from serialized component data.
+	 * @param filename Data file describing the composition to build.
+	 * @return Pointer to the newly built composition.
+	 */
 	GOC* BuildAndSerialize(const std::string& filename);
 
-	//Id object and store it in the object map.
+	/**
+	 * @brief Assigns a unique ID to a game object and registers it in the lookup map.
+	 * @param gameObject Game object to register.
+	 */
 	void IdGameObject(GOC* gameObject);
 
-	//Add a component creator enabling data driven composition
+	/**
+	 * @brief Registers a component creator for data-driven composition building.
+	 * @param name Component type name used by serialized data.
+	 * @param creator Creator object that can instantiate that component type.
+	 */
 	void AddComponentCreator(const std::string& name, ComponentCreator* creator);
 
-	//Get the game object with given id. This function will return NULL if
-	//the object has been destroyed.
+	/**
+	 * @brief Looks up a game object by its unique ID.
+	 * @param id Object ID to search for.
+	 * @return Pointer to the game object, or nullptr if not found.
+	 */
 	GOC* GetObjectWithId(unsigned int id);
 
 private:

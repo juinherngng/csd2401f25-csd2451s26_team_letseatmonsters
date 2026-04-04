@@ -32,14 +32,23 @@
 
 Factory* FACTORY = nullptr;
 
+/**
+ * @brief Constructs the singleton-style factory and initializes ID tracking.
+ */
 Factory::Factory() {
 	if (FACTORY != nullptr) {
 		throw std::runtime_error("Factory already created");
 	}
+	// Expose this instance through the legacy global pointer expected by the engine.
 	FACTORY = this;
 	lastId = 0;
 }
+
+/**
+ * @brief Destroys all owned objects and registered component creators.
+ */
 Factory::~Factory() {
+	// Tear down live compositions before destroying the creator registry itself.
 	DestroyAllObjects();
 
 	for (auto c : creatorsMap) {
@@ -49,23 +58,38 @@ Factory::~Factory() {
 	FACTORY = nullptr;
 }
 
+/**
+ * @brief Creates and initializes an empty game-object composition.
+ * @return Pointer to the newly created game object.
+ */
 GOC* Factory::Create() {
 	GOC* gameObject = CreateEmptyComposition();
 	if (gameObject) {
+		// Fully initialize the composition once all default components are attached.
 		gameObject->Initialize();
 	}
 	return gameObject;
 }
 
+/**
+ * @brief Schedules a game object for deferred destruction.
+ * @param g Game object to destroy later.
+ */
 void Factory::AddDestroy(GOC* g) {
 	if (g == nullptr) {
 		return;
 	}
 
+	// Use a set so repeated destroy requests for the same object collapse into one entry.
 	toDelete.insert(g);
 }
 
+/**
+ * @brief Processes deferred destruction and updates all active components.
+ * @param dt Frame delta time in seconds.
+ */
 void Factory::Update(float dt) {
+	// Destroy objects requested last frame before updating the remaining world state.
 	for (auto* g : toDelete) {
 		auto it = idMap.find(g->ObjectId);
 		if (it != idMap.end()) {
@@ -76,6 +100,7 @@ void Factory::Update(float dt) {
 
 	toDelete.clear();
 
+	// Update every enabled component on every remaining game object.
 	for (auto& kv : idMap) {
 		GOC* g = kv.second;
 
@@ -83,6 +108,7 @@ void Factory::Update(float dt) {
 			GameComponent* c = list.second.get();
 			if (c->IsEnabled()) {
 				if (!c->IsStarted()) {
+					// Fire Start() lazily the first time the component participates in Update().
 					c->SetStarted(true);
 				}
 				c->Update(dt);
@@ -91,7 +117,9 @@ void Factory::Update(float dt) {
 	}
 }
 
-//Destroy all the GOCs in the world. Used for final shutdown.
+/**
+ * @brief Destroys every game object currently owned by the factory.
+ */
 void Factory::DestroyAllObjects() {
 	for (auto o : idMap) {
 		delete o.second;
@@ -100,17 +128,22 @@ void Factory::DestroyAllObjects() {
 	idMap.clear();
 }
 
-//Create and Id a GOC at runtime. Used to dynamically build GOC.
-//After components have been added call GOC->Initialize().
+/**
+ * @brief Creates an uninitialized game-object composition and assigns it an ID.
+ * @return Pointer to the newly created composition.
+ */
 GOC* Factory::CreateEmptyComposition() {
 	auto gameObject = std::make_unique<GOC>();
+	// Register the object before returning it so other systems can reference it immediately.
 	IdGameObject(gameObject.get());
 	return gameObject.release();
 }
 
-//Build a composition and serialize from the data file but do not initialize the GOC.
-//Used to create a composition and then adjust its data before initialization
-//see GameObjectComposition::Initialize for details.
+/**
+ * @brief Builds a game-object composition from serialized component data.
+ * @param filename Data file describing the composition to build.
+ * @return Pointer to the newly built composition.
+ */
 GOC* Factory::BuildAndSerialize(const std::string& filename) {
 	auto gameObject = std::make_unique<GOC>();
 	gameObject->name = filename;
@@ -121,6 +154,7 @@ GOC* Factory::BuildAndSerialize(const std::string& filename) {
 		throw std::runtime_error("Failed to load file: " + filename);
 	}
 
+	// Recreate each authored component using its registered factory creator.
 	for (const auto& compData : serializer.GetComponents()) {
 		auto it = creatorsMap.find(compData.type);
 		if (it == creatorsMap.end()) {
@@ -130,7 +164,7 @@ GOC* Factory::BuildAndSerialize(const std::string& filename) {
 		ComponentCreator* creator = it->second;
 		GameComponent* component = gameObject->AddComponent(creator->type, creator->Create());
 
-		// Deserialize Transform
+		// Apply serialized transform data directly onto the newly created Transform component.
 		if (compData.type == "Transform") {
 			Transform* t = static_cast<Transform*>(component);
 			float posX = std::stof(compData.properties.at("posX"));
@@ -143,7 +177,7 @@ GOC* Factory::BuildAndSerialize(const std::string& filename) {
 			t->SetScale({ scaleX, scaleY });
 		}
 
-		// Deserialize RigidBody2D
+		// Apply serialized rigid-body state onto the newly created physics component.
 		if (compData.type == "RigidBody2D") {
 			RigidBody2D* rb = static_cast<RigidBody2D*>(component);
 			float velX = std::stof(compData.properties.at("velX"));
@@ -157,34 +191,43 @@ GOC* Factory::BuildAndSerialize(const std::string& filename) {
 		}
 	}
 
-	//Id and initialize the game object composition
+	// Assign a unique ID before handing the uninitialized composition back to the caller.
 	IdGameObject(gameObject.get());
 	return gameObject.release();
 }
 
-//Id object and store it in the object map.
+/**
+ * @brief Assigns a unique ID to a game object and stores it in the lookup map.
+ * @param gameObject Game object to register.
+ */
 void Factory::IdGameObject(GOC* gameObject) {
-	//Just increment the last id used. Does not handle 
-//overflow but it would take over 4 billion objects
-//to break
+	// Increment the last issued ID; overflow is not handled because the practical limit is enormous.
 	++lastId;
 	gameObject->ObjectId = lastId;
 
-	//Store the game object in the global object id map
+	// Store the object in the global lookup table for fast ID-based retrieval.
 	idMap[lastId] = gameObject;
 }
 
-//Add a component creator enabling data driven composition
+/**
+ * @brief Registers a component creator used during serialized composition building.
+ * @param name Serialized component type name.
+ * @param creator Creator capable of instantiating that component type.
+ */
 void Factory::AddComponentCreator(const std::string& name, ComponentCreator* creator) {
 	TS_LOG_INFO("[Factory] Adding component creator: " << name);
 	creatorsMap[name] = creator;
 }
 
-//Get the game object with given id. This function will return NULL if
-//the object has been destroyed.
+/**
+ * @brief Looks up a game object by unique ID.
+ * @param id Object ID to search for.
+ * @return Pointer to the matching game object, or nullptr if absent.
+ */
 GOC* Factory::GetObjectWithId(unsigned int id) {
 	auto it = idMap.find(id);
 	if (it != idMap.end()) {
+		// Return the live object pointer when the ID is still registered.
 		return it->second;
 	}
 	return nullptr;

@@ -22,88 +22,144 @@
 #include <iostream>
 #include <typeindex>
 
-//class ISerializer;
 class GOC;
 
-//The GameComponent that you can attach to a GameObject
-//Inherit this class when creating Game Component
+// The GameComponent that you can attach to a GameObject.
+// Inherit this class when creating a concrete game component type.
 class GameComponent {
 public:
 	GameComponent() = default;
-	//Init the Game Component
-	virtual void Initialize() {};
-	//Start is only called once and this check using the flag started
-	virtual void Start() {};
-	//Update
+
+	/**
+	 * @brief Performs one-time setup before the component begins runtime use.
+	 */
+	virtual void Initialize() {
+		// Base GameComponent has no initialization work.
+	}
+
+	/**
+	 * @brief Performs the component's first runtime start step.
+	 */
+	virtual void Start() {
+		// Base GameComponent has no startup behavior.
+	}
+
+	/**
+	 * @brief Updates the component once per frame while it is active.
+	 * @param dt Frame delta time in seconds.
+	 */
 	virtual void Update(float dt) {
+		// Base GameComponent ignores per-frame updates by default.
 		(void)dt;
-	};
+	}
 
 	//virtual void Serialize(ISerializer& s) = 0;	//nah Im good for now
 
-	//Return the owner of this GameComponent
+	/**
+	 * @brief Returns the owning GOC that this component is attached to.
+	 * @return Pointer to the owning GOC, or nullptr if none has been assigned.
+	 */
 	GOC* GetOwner() const {
 		return m_owner;
 	}
 
-	//key to the type
+	// Key to the runtime component type.
 	std::type_index typeId{ typeid(void) };
 
-	//Attach this GameComponent to a GameObject
+	/**
+	 * @brief Assigns the owning GOC for this component.
+	 * @param owner Pointer to the owning GOC.
+	 */
 	void SetOwner(GOC* owner) {
+		// Store the back-reference so the component can query its parent object later.
 		m_owner = owner;
 	}
 
-	//called when the component is enabled
-	virtual void OnEnable() {};
-	//called when the component is disabled
-	virtual void OnDisable() {};
+	/**
+	 * @brief Called when the component transitions into the enabled state.
+	 */
+	virtual void OnEnable() {
+		// Base GameComponent has no enable hook behavior.
+	}
 
-	//Enable/disable the component
+	/**
+	 * @brief Called when the component transitions into the disabled state.
+	 */
+	virtual void OnDisable() {
+		// Base GameComponent has no disable hook behavior.
+	}
+
+	/**
+	 * @brief Enables or disables the component and triggers the matching lifecycle hook.
+	 * @param state Desired enabled state.
+	 */
 	void SetEnabled(bool state) {
 		if (enabled == state) return;
+		// Only fire lifecycle hooks when the state actually changes.
 		enabled = state;
 		if (enabled) OnEnable();
 		else OnDisable();
 	}
 
-	//Is this component enabled?
+	/**
+	 * @brief Checks whether the component is currently enabled.
+	 * @return True when the component is enabled.
+	 */
 	bool IsEnabled() const {
 		return enabled;
 	}
 
-	//Is this component run through Start?
+	/**
+	 * @brief Checks whether the component has already executed Start().
+	 * @return True when Start() has been run through SetStarted().
+	 */
 	bool IsStarted() const {
 		return started;
 	}
 
+	/**
+	 * @brief Updates the started flag and runs Start() on the first transition to true.
+	 * @param state Desired started state.
+	 */
 	void SetStarted(bool state) {
 		if (started == state) {
 			return;
 		}
 		started = state;
 		if (started) {
+			// Trigger Start() exactly once when the component first becomes started.
 			Start();
 		}
 	}
 
+	/**
+	 * @brief Returns a debug-facing string description of the component.
+	 * @return Human-readable description string.
+	 */
 	virtual std::string ToString() const {
 		return "GameComponent (base), this doesnt do anything";
 	}
 
-	//dtor
-	virtual ~GameComponent() {};
+	/**
+	 * @brief Virtual destructor for safe polymorphic cleanup.
+	 */
+	virtual ~GameComponent() {
+		// Base GameComponent does not own any cleanup-sensitive resources.
+	}
 
-	//Cloning GameObject component
+	/**
+	 * @brief Creates a heap-allocated copy of the concrete component.
+	 * @return Newly allocated clone of the component.
+	 */
 	virtual GameComponent* Clone() const = 0;
 
-	//Which Gameobject this Component belong to
+	// Which GameObject this component belongs to.
 	GOC* m_owner = nullptr;
 private:
-	//is this Component enabled?
+	// Tracks whether this component is currently enabled.
 	bool enabled = true;
-	//Start is only called once
+	// Tracks whether Start() has already been issued for this component.
 	bool started = false;
-	//Component name for testing
+	// Component name for testing.
 	std::string name;
 };

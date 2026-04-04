@@ -15,14 +15,18 @@
 
 #include <string>
 
-/************************************************************************/
-/*!
-\brief
-Centralized constants for all asset file paths used throughout the engine.
-*/
-/************************************************************************/
+/**
+ * @brief Centralized constants and path helpers for engine asset files.
+ */
 namespace FilePaths {
+	/**
+	 * @brief Concatenates a directory prefix and filename into a relative path.
+	 * @param dir Directory prefix to prepend.
+	 * @param filename File name or relative tail path.
+	 * @return Concatenated relative path string.
+	 */
 	inline std::string JoinPath(const char* dir, const std::string& filename) {
+		// Keep path assembly in one helper so all higher-level builders stay consistent.
 		return std::string(dir) + filename;
 	}
 
@@ -101,61 +105,45 @@ namespace FilePaths {
 	}
 
 
-	// Helper Functions (inline to avoid linker issues)
+	// Helper functions are inline so this header can be shared without linker duplication.
 
-	 /************************************************************************/
-	 /*!
-	 \brief
-	 Constructs a full path to a texture file in the assets directory.
-	 \param filename
-	 The texture filename (e.g., "player.png")
-	 \return
-	 Full relative path (e.g., "../assets/player.png")
+	/**
+	 * @brief Constructs a full path to a texture file in the assets directory.
+	 * @param filename Texture filename such as `"player.png"`.
+	 * @return Full relative texture path.
 	 */
-	 /************************************************************************/
 	inline std::string TexturePath(const std::string& filename) {
+		// Route all texture-path construction through the shared directory constants.
 		return JoinPath(Dirs::ASSETS, filename);
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-	Constructs a full path to a level file.
-	\param filename
-	The level filename (e.g., "kitchen02.json")
-	\return
-	Full relative path (e.g., "../levels/kitchen02.json")
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Constructs a full path to a level file.
+	 * @param filename Level filename such as `"kitchen02.json"`.
+	 * @return Full relative level path.
+	 */
 	inline std::string LevelPath(const std::string& filename) {
+		// Keep level-path construction aligned with the engine's shared level directory.
 		return JoinPath(Dirs::LEVELS, filename);
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-	Constructs a full path to a prefab file.
-	\param filename
-	The prefab filename (e.g., "player.json")
-	\return
-	Full relative path (e.g., "../prefabs/player.json")
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Constructs a full path to a prefab file.
+	 * @param filename Prefab filename such as `"player.json"`.
+	 * @return Full relative prefab path.
+	 */
 	inline std::string PrefabPath(const std::string& filename) {
+		// Build prefab paths from the dedicated prefab directory constant.
 		return JoinPath(Dirs::PREFABS, filename);
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-	Constructs a full path to a font file.
-	\param filename
-	The font filename (e.g., "MyFont.ttf")
-	\return
-	Full relative path (e.g., "../assets/Font/MyFont.ttf")
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Constructs a full path to a font file.
+	 * @param filename Font filename such as `"MyFont.ttf"`.
+	 * @return Full relative font path.
+	 */
 	inline std::string FontPath(const std::string& filename) {
+		// Centralize font-path creation so text systems do not hardcode font folders.
 		return JoinPath(Dirs::FONTS, filename);
 	}
 
@@ -164,31 +152,18 @@ namespace FilePaths {
 	 * @param filename The audio filename (e.g., "bgm_main.wav")
 	 * @return Full relative path (e.g., "../assets/Audio/bgm_main.wav")
 	 */
-	 /************************************************************************/
-	 /*!
-	 \brief
-	 Constructs a full path to an audio file.
-	 \param filename
-	 The audio filename (e.g., "bgm_main.wav")
-	 \return
-	 Full relative path (e.g., "../assets/Audio/bgm_main.wav")
-	 */
-	 /************************************************************************/
 	inline std::string AudioPath(const std::string& filename) {
+		// Route audio-path construction through the shared audio directory constant.
 		return JoinPath(Dirs::AUDIO, filename);
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-	Constructs a full path to a cutscene file.
-	\param filename
-	The cutscene filename (e.g., "Cutscene_starting_1.png")
-	\return
-	Full relative path (e.g., "../assets/Cutscenes/Cutscene_starting_1.png")
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Constructs a full path to a cutscene image file.
+	 * @param filename Cutscene filename such as `"Cutscene_starting_1.png"`.
+	 * @return Full relative cutscene path.
+	 */
 	inline std::string CutscenePath(const std::string& filename) {
+		// Keep cutscene-path generation aligned with the dedicated cutscene asset directory.
 		return JoinPath(Dirs::CUTSCENES, filename);
 	}
 
@@ -198,6 +173,7 @@ namespace FilePaths {
 	 * @return Full relative path such as `"../assets/Videos/intro.mp4"`.
 	 */
 	inline std::string VideoPath(const std::string& filename) {
+		// Build video paths from the shared videos root to avoid scattered string literals.
 		return JoinPath(Dirs::VIDEOS, filename);
 	}
 

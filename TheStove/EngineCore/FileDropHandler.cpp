@@ -24,20 +24,34 @@
 #include "EngineCore/Logger.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 
+/**
+ * @brief Constructs the file-drop handler and stores the shared message bus reference.
+ * @param bus Message bus used for future file-drop related events.
+ */
 FileDropHandler::FileDropHandler(CoreFramework::MessageBus& bus)
 	: messageBus(bus) {}
 
-
+/**
+ * @brief Initializes the file-drop handler system.
+ */
 void FileDropHandler::Initialize() {
 	TS_LOG_INFO("[FileDropHandler] System initialized and ready to receive file drops.");
 }
 
-
+/**
+ * @brief Updates the file-drop handler system.
+ * @param dt Delta time in seconds.
+ */
 void FileDropHandler::Update(float dt) {
-	(void)dt; // Suppress unused parameter warning
+	// File drops are event-driven, so the system has no per-frame work.
+	(void)dt;
 }
 
-
+/**
+ * @brief Processes all files reported by GLFW's drop callback.
+ * @param count Number of dropped files.
+ * @param paths Array of dropped file paths.
+ */
 void FileDropHandler::HandleGLFWDrop(int count, const char** paths) {
 	// Validate input
 	if (count <= 0 || !paths) {
@@ -55,7 +69,11 @@ void FileDropHandler::HandleGLFWDrop(int count, const char** paths) {
 	}
 }
 
-
+/**
+ * @brief Routes a single dropped file to the appropriate importer based on extension.
+ * @param droppedPath Absolute dropped file path.
+ * @return True if the file was imported successfully, otherwise false.
+ */
 bool FileDropHandler::ProcessDroppedFile(const std::string& droppedPath) {
 	// Extract file extension
 	std::string ext = GetFileExtension(droppedPath);
@@ -87,7 +105,11 @@ bool FileDropHandler::ProcessDroppedFile(const std::string& droppedPath) {
 	}
 }
 
-
+/**
+ * @brief Imports an audio file into the project, catalog, and resource manager.
+ * @param droppedPath Absolute path to the dropped audio file.
+ * @return True if the audio file was imported successfully, otherwise false.
+ */
 bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 	TS_LOG_INFO("[FileDropHandler] Processing audio file: " << droppedPath);
 
@@ -104,7 +126,7 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 
 	TS_LOG_INFO("[FileDropHandler] Audio file copied to: " << projPath);
 
-	// Normalize path for FMOD (convert backslashes to forward slashes)
+	// Normalize path separators so downstream audio systems see a consistent path format.
 	std::string normalizedPath = projPath;
 	std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
 
@@ -114,11 +136,11 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 		return false;
 	}
 
-	// Create a new audio asset entry
+	// Build a new catalog entry for the imported audio file.
 	Audio::AudioAsset newAsset;
 	newAsset.filepath = normalizedPath;
 
-	// Extract filename (without extension) to use as asset name
+	// Derive the asset name from the imported file name so it is immediately usable in editor tools.
 	size_t lastSlash = normalizedPath.find_last_of("/\\");
 	size_t lastDot = normalizedPath.find_last_of('.');
 
@@ -134,7 +156,7 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 
 	TS_LOG_INFO("[FileDropHandler] Adding to catalog as: " << newAsset.name);
 
-	// Set default audio properties
+	// Apply sensible import defaults so newly dropped audio is immediately playable.
 	newAsset.loop = false;          // Don't loop by default
 	newAsset.stream = false;        // Load into memory (not streamed)
 	newAsset.category = "sfx";      // Default to sound effect category
@@ -148,7 +170,7 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 
 	TS_LOG_INFO("[FileDropHandler] Successfully added to catalog");
 
-	// Load the audio file into memory via ResourceManager
+	// Prime the audio resource immediately so it can be previewed without restarting the editor.
 	ResourceManager::Instance().LoadAudio(
 		newAsset.name,
 		newAsset.filepath,
@@ -168,7 +190,11 @@ bool FileDropHandler::ProcessAudioFile(const std::string& droppedPath) {
 	return true;
 }
 
-
+/**
+ * @brief Imports a texture file into the project and attempts an immediate load.
+ * @param droppedPath Absolute path to the dropped texture file.
+ * @return True if the texture import completed, otherwise false.
+ */
 bool FileDropHandler::ProcessTextureFile(const std::string& droppedPath) {
 	TS_LOG_INFO("[FileDropHandler] Processing texture file: " << droppedPath);
 
@@ -188,7 +214,11 @@ bool FileDropHandler::ProcessTextureFile(const std::string& droppedPath) {
 	return true;
 }
 
-
+/**
+ * @brief Imports a prefab JSON file into the project prefab directory.
+ * @param droppedPath Absolute path to the dropped prefab file.
+ * @return True if the prefab import completed, otherwise false.
+ */
 bool FileDropHandler::ProcessPrefabFile(const std::string& droppedPath) {
 	TS_LOG_INFO("[FileDropHandler] Processing prefab file: " << droppedPath);
 
@@ -202,7 +232,11 @@ bool FileDropHandler::ProcessPrefabFile(const std::string& droppedPath) {
 	return true;
 }
 
-
+/**
+ * @brief Extracts the file extension from a path string.
+ * @param path File path to inspect.
+ * @return Extension including the dot, or an empty string if none exists.
+ */
 std::string FileDropHandler::GetFileExtension(const std::string& path) const {
 	size_t dotPos = path.find_last_of('.');
 	if (dotPos == std::string::npos) {

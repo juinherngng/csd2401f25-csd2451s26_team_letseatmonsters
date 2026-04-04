@@ -24,11 +24,35 @@ struct ComponentData {
 
 class ISerializer {
 public:
+	/**
+	 * @brief Loads component records from a simple text file.
+	 * @param filename Path to the serialized component data file.
+	 * @return True when the file was opened and parsed successfully.
+	 */
 	bool Load(const std::string&);
 
+	/**
+	 * @brief Returns the parsed component records from the last successful load.
+	 * @return Immutable reference to the stored component list.
+	 */
 	const std::vector<ComponentData>& GetComponents() const;
 
+	/**
+	 * @brief Reads a floating-point property from a component record.
+	 * @param comp The parsed component record.
+	 * @param key The property key to read.
+	 * @param defaultVal Value returned when the property is missing or invalid.
+	 * @return The parsed float value or the provided default.
+	 */
 	static float GetFloat(const ComponentData& comp, const std::string& key, float defaultVal = 0.0f);
+
+	/**
+	 * @brief Reads a boolean property from a component record.
+	 * @param comp The parsed component record.
+	 * @param key The property key to read.
+	 * @param defaultVal Value returned when the property is missing or invalid.
+	 * @return The parsed boolean value or the provided default.
+	 */
 	static bool  GetBool(const ComponentData& comp, const std::string& key, bool defaultVal = false);
 
 private:

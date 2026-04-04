@@ -41,6 +41,7 @@ namespace {
 	bool AcquireMediaFoundation() {
 		std::scoped_lock lock(gVideoBootstrapMutex);
 		if (gMediaFoundationRefCount == 0) {
+			// Bootstrap Media Foundation only for the first video player that needs it.
 			const HRESULT hr = MFStartup(MF_VERSION);
 			if (FAILED(hr)) {
 				TS_LOG_ERROR("[VideoPlayer] MFStartup failed: 0x" << std::hex << hr);
@@ -48,6 +49,7 @@ namespace {
 			}
 		}
 
+		// Count every active consumer so shutdown happens only after the last one closes.
 		++gMediaFoundationRefCount;
 		return true;
 	}
@@ -58,11 +60,13 @@ namespace {
 	void ReleaseMediaFoundation() {
 		std::scoped_lock lock(gVideoBootstrapMutex);
 		if (gMediaFoundationRefCount <= 0) {
+			// Guard against mismatched release calls.
 			return;
 		}
 
 		--gMediaFoundationRefCount;
 		if (gMediaFoundationRefCount == 0) {
+			// Tear Media Foundation down only after the final player releases it.
 			MFShutdown();
 		}
 	}
@@ -105,6 +109,7 @@ bool VideoPlayer::Open(const std::string& filePath, bool loop) {
 
 	const HRESULT comHr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	if (SUCCEEDED(comHr)) {
+		// This player owns a fresh COM apartment that must be torn down on Close().
 		impl_->comInitialized = true;
 	}
 	else if (comHr != RPC_E_CHANGED_MODE) {
@@ -118,6 +123,7 @@ bool VideoPlayer::Open(const std::string& filePath, bool loop) {
 		return false;
 	}
 
+	// Remember that this instance must release the shared Media Foundation bootstrap later.
 	impl_->mediaFoundationActive = true;
 
 	return ReopenStream();
@@ -128,6 +134,7 @@ bool VideoPlayer::Open(const std::string& filePath, bool loop) {
  * @brief Resets playback state and releases decoder-side resources held by the player.
  */
 void VideoPlayer::Close() {
+	// Clear the high-level playback state before releasing platform-specific resources.
 	open_ = false;
 	ended_ = false;
 	accumulator_ = 0.0f;
@@ -138,16 +145,20 @@ void VideoPlayer::Close() {
 
 #ifdef _WIN32
 	if (impl_ != nullptr) {
+		// Release the reader first so no MF objects outlive subsystem shutdown.
 		impl_->reader.Reset();
 
 		if (impl_->mediaFoundationActive) {
+			// Drop this player's reference on the shared Media Foundation bootstrap.
 			ReleaseMediaFoundation();
 		}
 
 		if (impl_->comInitialized) {
+			// Leave the COM apartment if this player created one during Open().
 			CoUninitialize();
 		}
 
+		// Destroy the platform-specific implementation payload once all resources are released.
 		delete impl_;
 		impl_ = nullptr;
 	}
@@ -221,6 +232,7 @@ bool VideoPlayer::ReadAndUploadNextFrame() {
 
 		ComPtr<IMFMediaBuffer> buffer;
 		if (FAILED(sample->ConvertToContiguousBuffer(&buffer)) || !buffer) {
+			// Skip samples that cannot be exposed as one CPU-readable buffer.
 			continue;
 		}
 
@@ -228,6 +240,7 @@ bool VideoPlayer::ReadAndUploadNextFrame() {
 		DWORD maxLength = 0;
 		DWORD currentLength = 0;
 		if (FAILED(buffer->Lock(&rawData, &maxLength, &currentLength)) || rawData == nullptr) {
+			// Skip this sample when the pixel payload cannot be mapped.
 			continue;
 		}
 
@@ -283,6 +296,7 @@ bool VideoPlayer::ReopenStream() {
 		return false;
 	}
 
+	// Ask the source reader to convert frames into a decoder-friendly video-processing path.
 	attributes->SetUINT32(MF_SOURCE_READER_ENABLE_VIDEO_PROCESSING, TRUE);
 
 	// Recreate the source reader from the current file path so looping can start from frame zero cleanly.
@@ -329,13 +343,16 @@ bool VideoPlayer::ReopenStream() {
 	UINT32 frameRateDen = 0;
 	if (FAILED(MFGetAttributeRatio(currentType.Get(), MF_MT_FRAME_RATE, &frameRateNum, &frameRateDen)) ||
 		frameRateNum == 0 || frameRateDen == 0) {
+		// Fall back to a safe default when stream metadata omits a usable frame rate.
 		fps_ = 30.0f;
 	}
 	else {
+		// Convert the rational frame-rate metadata into frames per second.
 		fps_ = static_cast<float>(frameRateNum) / static_cast<float>(frameRateDen);
 	}
 
 	if (fps_ <= 0.0f || !std::isfinite(fps_)) {
+		// Clamp invalid metadata back to a stable default playback rate.
 		fps_ = 30.0f;
 	}
 

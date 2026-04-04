@@ -53,6 +53,7 @@ public:
 	 * @return `true` when the player still owns a valid open stream.
 	 */
 	bool IsOpen() const {
+		// Report whether the decoder currently has an active stream ready for updates.
 		return open_;
 	}
 
@@ -61,6 +62,7 @@ public:
 	 * @return `true` once the video has ended and is not looping.
 	 */
 	bool HasEnded() const {
+		// Expose the latched end-of-stream state for menu and cutscene flow logic.
 		return ended_;
 	}
 
@@ -69,6 +71,7 @@ public:
 	 * @return Texture pointer when the stream is open, otherwise `nullptr`.
 	 */
 	Texture* GetTexture() {
+		// Hide the streaming texture when no video stream is active.
 		return open_ ? &texture_ : nullptr;
 	}
 
@@ -77,6 +80,7 @@ public:
 	 * @return Texture pointer when the stream is open, otherwise `nullptr`.
 	 */
 	const Texture* GetTexture() const {
+		// Hide the streaming texture when no video stream is active.
 		return open_ ? &texture_ : nullptr;
 	}
 
@@ -85,6 +89,7 @@ public:
 	 * @return Current video width.
 	 */
 	int GetWidth() const {
+		// Expose the currently decoded frame width for layout calculations.
 		return width_;
 	}
 
@@ -93,6 +98,7 @@ public:
 	 * @return Current video height.
 	 */
 	int GetHeight() const {
+		// Expose the currently decoded frame height for layout calculations.
 		return height_;
 	}
 

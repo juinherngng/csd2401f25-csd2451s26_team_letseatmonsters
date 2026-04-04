@@ -21,10 +21,16 @@
 
 #include "EngineCore/GridPathfinder.hpp"
 
-// Finds the nearest walkable cell to the given grid coordinates, searching in a spiral pattern. Returns true if a walkable cell is found and sets outCell to its coordinates.
+/**
+ * @brief Finds the nearest walkable cell to a starting coordinate using breadth-first search.
+ * @param from Starting grid coordinate.
+ * @param outCell Output walkable coordinate if one is found.
+ * @return True if a walkable cell was found, otherwise false.
+ */
 bool NavGrid::FindNearestWalkable(const GridCoord& from, GridCoord& outCell) const {
 	if (!IsValid()) return false;
 
+	// Clamp the starting position into the grid so searches can begin from out-of-range requests.
 	GridCoord start = from;
 	if (start.x < 0) start.x = 0;
 	if (start.y < 0) start.y = 0;
@@ -36,6 +42,7 @@ bool NavGrid::FindNearestWalkable(const GridCoord& from, GridCoord& outCell) con
 		return true;
 	}
 
+	// Search outward from the start cell until the first walkable location is discovered.
 	std::queue<GridCoord> q;
 	std::vector<unsigned char> visited(width_ * height_, 0);
 
@@ -51,6 +58,7 @@ bool NavGrid::FindNearestWalkable(const GridCoord& from, GridCoord& outCell) con
 		q.pop();
 
 		for (const auto& d : kDirs) {
+			// Expand outward in four directions because navigation is axis-aligned.
 			GridCoord next{ cur.x + d[0], cur.y + d[1] };
 			if (!InBounds(next.x, next.y)) continue;
 
@@ -70,10 +78,18 @@ bool NavGrid::FindNearestWalkable(const GridCoord& from, GridCoord& outCell) con
 	return false;
 }
 
-// Finds a path from start to goal on the given NavGrid using A* search. Returns true if a path is found and sets outPath to the sequence of grid coordinates from start to goal.
+/**
+ * @brief Finds a path from start to goal using A* search on the supplied navigation grid.
+ * @param grid Navigation grid to search on.
+ * @param start Start cell.
+ * @param goal Goal cell.
+ * @param outPath Output path from start to goal.
+ * @return True if a path was found, otherwise false.
+ */
 bool GridPathfinder::FindPath(const NavGrid& grid, const GridCoord& start, const GridCoord& goal, std::vector<GridCoord>& outPath) {
 	outPath.clear();
 
+	// Reject impossible searches up front before any pathfinding work begins.
 	if (!grid.IsValid()) return false;
 	if (!grid.IsWalkable(start.x, start.y)) return false;
 	if (!grid.IsWalkable(goal.x, goal.y)) return false;
@@ -86,6 +102,7 @@ bool GridPathfinder::FindPath(const NavGrid& grid, const GridCoord& start, const
 	const int goalIdx = grid.ToIndex(goal.x, goal.y);
 
 	if (startIdx == goalIdx) {
+		// Degenerate case: the caller is already standing on the goal cell.
 		outPath.push_back(start);
 		return true;
 	}
@@ -126,6 +143,7 @@ bool GridPathfinder::FindPath(const NavGrid& grid, const GridCoord& start, const
 
 	gCost[startIdx] = 0;
 	const int startH = heuristic(start.x, start.y);
+	// Seed the open list with the start node.
 	open.push({ startIdx, startH, startH, pushOrder++ });
 
 	while (!open.empty()) {
@@ -141,8 +159,7 @@ bool GridPathfinder::FindPath(const NavGrid& grid, const GridCoord& start, const
 		const int cx = curIdx % width;
 		const int cy = curIdx / width;
 
-		// Build neighbour order dynamically:
-		// Prefer horizontal movement first, then vertical movement.
+		// Build neighbour order dynamically so ties prefer horizontal movement before vertical movement.
 		int dirs[4][2];
 		int dirCount = 0;
 
@@ -195,9 +212,7 @@ bool GridPathfinder::FindPath(const NavGrid& grid, const GridCoord& start, const
 
 			int stepCost = kBaseMoveCost;
 
-			// Strong bias:
-			// if we are not yet aligned with the goal on X,
-			// vertical moves are more expensive than horizontal moves.
+			// Bias vertical movement upward in cost until horizontal alignment with the goal is achieved.
 			const bool isVerticalMove = (dy != 0);
 			if (isVerticalMove && cx != goal.x) {
 				stepCost += kVerticalPenaltyWhenXMisaligned;
@@ -205,6 +220,7 @@ bool GridPathfinder::FindPath(const NavGrid& grid, const GridCoord& start, const
 
 			const int tentativeG = gCost[curIdx] + stepCost;
 			if (tentativeG < gCost[nextIdx]) {
+				// Record the improved route and push the neighbor back into the open set.
 				gCost[nextIdx] = tentativeG;
 				parent[nextIdx] = curIdx;
 
@@ -221,6 +237,7 @@ bool GridPathfinder::FindPath(const NavGrid& grid, const GridCoord& start, const
 
 	std::vector<int> reversed;
 	for (int cur = goalIdx; cur != -1; cur = parent[cur]) {
+		// Reconstruct the path backwards from the goal using the parent chain.
 		reversed.push_back(cur);
 	}
 
@@ -228,6 +245,7 @@ bool GridPathfinder::FindPath(const NavGrid& grid, const GridCoord& start, const
 
 	outPath.reserve(reversed.size());
 	for (int idx : reversed) {
+		// Convert flattened indices back into 2D grid coordinates for the caller.
 		GridCoord c;
 		c.x = idx % width;
 		c.y = idx / width;

@@ -13,48 +13,69 @@
 
 #include "EngineGraphics/MeshLoader.hpp"
 
+/**
+ * @brief Builds CPU-side vertex data for a colored triangle.
+ * @param outVertices Destination vector that receives interleaved vertex data.
+ * @param outVertexCount Receives the number of vertices written.
+ * @param outVertexSize Receives the size in bytes of a single vertex.
+ */
 void MeshLoader::LoadSimpleTriangle(std::vector<float>& outVertices, GLsizei& outVertexCount, GLsizei& outVertexSize) {
+	// Provide a minimal colored triangle for renderer bring-up and sanity checks.
 	float vertices[] = {
 		// positions       // colors
 		0.0f, 0.5f, 0.0f,  1, 0, 0,
 		0.5f, -0.5f, 0.0f, 0, 1, 0,
 		-0.5f, -0.5f,0.0f,  0, 0, 1
 	};
+
+	// Publish the vertex metadata expected by Mesh construction.
 	outVertexCount = 3;
-	outVertexSize = 6 * sizeof(float); // pos + color
+	outVertexSize = 6 * sizeof(float);
 	outVertices.assign(vertices, vertices + outVertexCount * 6);
 }
 
+/**
+ * @brief Builds CPU-side vertex data for a textured sprite quad.
+ * @param vertices Destination vector that receives interleaved vertex data.
+ * @param vertexCount Receives the number of vertices written.
+ * @param vertexSize Receives the size in bytes of a single vertex.
+ */
 void MeshLoader::LoadSprite(std::vector<float>& vertices, GLsizei& vertexCount, GLsizei& vertexSize) {
-	// Sprite quad vertices (position + texture coordinates)
+	// Emit two triangles that form a centered quad with standard sprite UVs.
 	vertices = {
-		// Positions        // Texture Coordinates
-		-0.5f, -0.5f, 0.0f,    0.0f, 1.0f,  // Bottom-left
-		 0.5f, -0.5f, 0.0f,    1.0f, 1.0f,  // Bottom-right
-		 0.5f,  0.5f, 0.0f,    1.0f, 0.0f,  // Top-right
+		-0.5f, -0.5f, 0.0f,    0.0f, 1.0f,
+		 0.5f, -0.5f, 0.0f,    1.0f, 1.0f,
+		 0.5f,  0.5f, 0.0f,    1.0f, 0.0f,
 
-		-0.5f, -0.5f, 0.0f,    0.0f, 1.0f,  // Bottom-left
-		 0.5f,  0.5f, 0.0f,    1.0f, 0.0f,  // Top-right
-		-0.5f,  0.5f, 0.0f,    0.0f, 0.0f   // Top-left
+		-0.5f, -0.5f, 0.0f,    0.0f, 1.0f,
+		 0.5f,  0.5f, 0.0f,    1.0f, 0.0f,
+		-0.5f,  0.5f, 0.0f,    0.0f, 0.0f
 	};
 
-	vertexCount = 6;  // 6 vertices for 2 triangles
-	vertexSize = 5 * sizeof(float);  // 5 floats per vertex (x,y,z,u,v)
+	// Report the geometry metadata alongside the generated vertex payload.
+	vertexCount = 6;
+	vertexSize = 5 * sizeof(float);
 }
 
+/**
+ * @brief Builds CPU-side vertex data for a full-screen textured quad.
+ * @param vertices Destination vector that receives interleaved vertex data.
+ * @param vertexCount Receives the number of vertices written.
+ * @param vertexSize Receives the size in bytes of a single vertex.
+ */
 void MeshLoader::LoadFullscreenQuad(std::vector<float>& vertices, GLsizei& vertexCount, GLsizei& vertexSize) {
-	// Unit quad with texture coordinates for background display
+	// Emit a quad with the same centered geometry used by fullscreen background rendering.
 	vertices = {
-		// Positions              // Texture Coordinates 
-		-0.5f, -0.5f, 0.0f,      0.0f, 1.0f,  // Bottom-left 
-		 0.5f, -0.5f, 0.0f,      1.0f, 1.0f,  // Bottom-right   
-		 0.5f,  0.5f, 0.0f,      1.0f, 0.0f,  // Top-right 
+		-0.5f, -0.5f, 0.0f,      0.0f, 1.0f,
+		 0.5f, -0.5f, 0.0f,      1.0f, 1.0f,
+		 0.5f,  0.5f, 0.0f,      1.0f, 0.0f,
 
-		-0.5f, -0.5f, 0.0f,      0.0f, 1.0f,  // Bottom-left 
-		 0.5f,  0.5f, 0.0f,      1.0f, 0.0f,  // Top-right 
-		-0.5f,  0.5f, 0.0f,      0.0f, 0.0f   // Top-left 
+		-0.5f, -0.5f, 0.0f,      0.0f, 1.0f,
+		 0.5f,  0.5f, 0.0f,      1.0f, 0.0f,
+		-0.5f,  0.5f, 0.0f,      0.0f, 0.0f
 	};
 
+	// Report the geometry metadata alongside the generated vertex payload.
 	vertexCount = 6;
 	vertexSize = 5 * sizeof(float);
 }

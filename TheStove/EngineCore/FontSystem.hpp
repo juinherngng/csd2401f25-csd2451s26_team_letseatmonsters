@@ -35,7 +35,6 @@ namespace FontSystem {
 	// Font class - manages a single loaded font
 	class Font {
 	public:
-
 		/**
 		 * @brief Constructs a `Font` instance.
 		 */
@@ -47,25 +46,26 @@ namespace FontSystem {
 		~Font();
 
 		/**
-		 * @brief Loads this object.
-		 * @param fontPath Parameter for font path.
-		 * @param fontSize Parameter for font size.
-		 * @return True when the operation succeeds or the condition is met.
+		 * @brief Loads glyph textures for this font at the requested size.
+		 * @param fontPath Path to the font file.
+		 * @param fontSize Requested pixel height for glyph generation.
+		 * @return True if the font loaded successfully, otherwise false.
 		 */
 		bool Load(const std::string& fontPath, unsigned int fontSize);
 
 		/**
-		 * @brief Returns character.
-		 * @param c Parameter for c.
-		 * @return Requested value.
+		 * @brief Returns glyph data for a single character.
+		 * @param c ASCII character to look up.
+		 * @return Pointer to the glyph data, or nullptr if unavailable.
 		 */
 		const Character* GetCharacter(char c) const;
 
 		/**
-		 * @brief Returns font size.
-		 * @return Requested value.
+		 * @brief Returns the loaded font size in pixels.
+		 * @return Font size in pixels.
 		 */
 		unsigned int GetFontSize() const {
+			// Expose the cached font size so layout code can compute line spacing.
 			return m_fontSize;
 		}
 
@@ -78,50 +78,49 @@ namespace FontSystem {
 	// FontManager - singleton to manage FreeType library and multiple fonts
 	class FontManager {
 	public:
-
 		/**
-		 * @brief Performs instance.
-		 * @return Result produced by this operation.
+		 * @brief Returns the global FontManager singleton.
+		 * @return Reference to the shared FontManager instance.
 		 */
 		static FontManager& Instance();
 
 		/**
-		 * @brief Initializes this object.
-		 * @return True when the operation succeeds or the condition is met.
+		 * @brief Initializes the FreeType library used by the font system.
+		 * @return True if initialization succeeded, otherwise false.
 		 */
 		bool Initialize();
 
 		/**
-		 * @brief Performs shutdown.
+		 * @brief Shuts down the font system and releases loaded fonts.
 		 */
 		void Shutdown();
 
 		/**
-		 * @brief Loads font.
-		 * @param name Parameter for name.
-		 * @param fontPath Parameter for font path.
-		 * @param fontSize Parameter for font size.
-		 * @return Result produced by this operation.
+		 * @brief Loads a named font into the manager.
+		 * @param name Logical font name used for lookup.
+		 * @param fontPath Path to the font file.
+		 * @param fontSize Requested pixel size.
+		 * @return Pointer to the loaded font, or nullptr on failure.
 		 */
 		Font* LoadFont(const std::string& name, const std::string& fontPath, unsigned int fontSize);
 
 		/**
-		 * @brief Returns font.
-		 * @param name Parameter for name.
-		 * @return Requested value.
+		 * @brief Retrieves a previously loaded font by name.
+		 * @param name Logical font name.
+		 * @return Pointer to the font, or nullptr if not found.
 		 */
 		Font* GetFont(const std::string& name);
 
 		/**
-		 * @brief Returns library.
-		 * @return Requested value.
+		 * @brief Returns the raw FreeType library handle.
+		 * @return The active `FT_Library` handle.
 		 */
 		FT_Library GetLibrary() const {
+			// Provide low-level access for font-loading helpers that need the shared library handle.
 			return m_library;
 		}
 
 	private:
-
 		/**
 		 * @brief Constructs a `FontManager` instance.
 		 */
@@ -133,7 +132,7 @@ namespace FontSystem {
 		~FontManager();
 
 		/**
-		 * @brief Constructs a `FontManager` instance.
+		 * @brief Disables copying of the `FontManager` singleton.
 		 */
 		FontManager(const FontManager&) = delete;
 		FontManager& operator=(const FontManager&) = delete;
@@ -169,125 +168,131 @@ namespace FontSystem {
 		~Text();
 
 		/**
-		 * @brief Sets font.
-		 * @param font Parameter for font.
+		 * @brief Sets the font used to render this text object.
+		 * @param font Font pointer to use for glyph lookup.
 		 */
 		void SetFont(Font* font);
 
 		/**
-		 * @brief Sets text.
-		 * @param text Parameter for text.
+		 * @brief Sets the string content to render.
+		 * @param text Text string to display.
 		 */
 		void SetText(const std::string& text);
 
 		/**
-		 * @brief Sets position.
-		 * @param position Parameter for position.
+		 * @brief Sets the screen-space position of the text object.
+		 * @param position New text position.
 		 */
 		void SetPosition(const glm::vec2& position);
 
 		/**
-		 * @brief Sets color.
-		 * @param color Parameter for color.
+		 * @brief Sets the tint color used to render the text.
+		 * @param color RGBA color tint.
 		 */
 		void SetColor(const glm::vec4& color);
 
 		/**
-		 * @brief Sets scale.
-		 * @param scale Parameter for scale.
+		 * @brief Sets the render scale applied to glyphs.
+		 * @param scale New text scale.
 		 */
 		void SetScale(float scale);
 
 		/**
-		 * @brief Sets rotation.
-		 * @param degrees Parameter for degrees.
+		 * @brief Sets the text rotation in degrees.
+		 * @param degrees Rotation amount in degrees.
 		 */
 		void SetRotation(float degrees);
 
 		/**
-		 * @brief Sets rotation mode.
-		 * @param mode Parameter for mode.
+		 * @brief Sets how rotation is applied to the text.
+		 * @param mode Rotation mode to use.
 		 */
 		void SetRotationMode(RotationMode mode);
 
 		/**
-		 * @brief Sets horizontal alignment.
-		 * @param align Parameter for align.
+		 * @brief Sets the horizontal alignment used during text layout.
+		 * @param align Horizontal alignment mode.
 		 */
 		void SetHorizontalAlign(HorizontalAlign align);
 
 		/**
-		 * @brief Returns text.
-		 * @return Requested value.
+		 * @brief Returns the current text string.
+		 * @return Const reference to the text string.
 		 */
 		const std::string& GetText() const {
+			// Expose the stored string so UI tools can inspect the current text content.
 			return m_text;
 		}
 
 		/**
-		 * @brief Returns position.
-		 * @return Requested value.
+		 * @brief Returns the current text position.
+		 * @return Const reference to the text position.
 		 */
 		const glm::vec2& GetPosition() const {
+			// Expose the cached position used during rendering.
 			return m_position;
 		}
 
 		/**
-		 * @brief Returns color.
-		 * @return Requested value.
+		 * @brief Returns the current text tint color.
+		 * @return Const reference to the text color.
 		 */
 		const glm::vec4& GetColor() const {
+			// Expose the cached color used by the text shader.
 			return m_color;
 		}
 
 		/**
-		 * @brief Returns scale.
-		 * @return Requested value.
+		 * @brief Returns the current text scale.
+		 * @return Current scale factor.
 		 */
 		float GetScale() const {
+			// Expose the cached glyph scaling factor.
 			return m_scale;
 		}
 
 		/**
-		 * @brief Returns rotation.
-		 * @return Requested value.
+		 * @brief Returns the current text rotation in degrees.
+		 * @return Rotation in degrees.
 		 */
 		float GetRotation() const {
+			// Expose the cached rotation value used during vertex generation.
 			return m_rotation;
 		}
 
 		/**
-		 * @brief Returns rotation mode.
-		 * @return Requested value.
+		 * @brief Returns the current rotation mode.
+		 * @return Active rotation mode.
 		 */
 		RotationMode GetRotationMode() const {
+			// Expose how rotation is currently being applied to the text object.
 			return m_rotationMode;
 		}
 
 		/**
-		 * @brief Returns font.
-		 * @return Requested value.
+		 * @brief Returns the font currently assigned to this text object.
+		 * @return Pointer to the active font, or nullptr if none is assigned.
 		 */
 		Font* GetFont() const {
+			// Expose the font pointer so external layout and debug code can inspect it.
 			return m_font;
 		}
 
 		/**
-		 * @brief Renders this object.
-		 * @param shaderProgram Parameter for shader program.
-		 * @param projection Parameter for projection.
+		 * @brief Renders the text object using the supplied shader and projection matrix.
+		 * @param shaderProgram OpenGL shader program used for text rendering.
+		 * @param projection Projection matrix for screen-space rendering.
 		 */
 		void Render(GLuint shaderProgram, const glm::mat4& projection);
 
 	private:
-
 		/**
-		 * @brief Performs setup rendering.
+		 * @brief Creates the OpenGL buffers required for text rendering.
 		 */
 		void SetupRendering();
 
 		/**
-		 * @brief Performs cleanup rendering.
+		 * @brief Releases the OpenGL buffers used for text rendering.
 		 */
 		void CleanupRendering();
 
@@ -309,40 +314,38 @@ namespace FontSystem {
 	// TextRenderer - manages shader and renders all text objects
 	class TextRenderer {
 	public:
-
 		/**
-		 * @brief Performs instance.
-		 * @return Result produced by this operation.
+		 * @brief Returns the global TextRenderer singleton.
+		 * @return Reference to the shared TextRenderer instance.
 		 */
 		static TextRenderer& Instance();
 
 		/**
-		 * @brief Initializes this object.
-		 * @return True when the operation succeeds or the condition is met.
+		 * @brief Initializes the text renderer and its shader program.
+		 * @return True if initialization succeeded, otherwise false.
 		 */
 		bool Initialize();
 
 		/**
-		 * @brief Performs shutdown.
+		 * @brief Shuts down the text renderer and releases its shader program.
 		 */
 		void Shutdown();
 
 		/**
-		 * @brief Renders text.
-		 * @param text Parameter for text.
-		 * @param projection Parameter for projection.
+		 * @brief Renders a single text object.
+		 * @param text Text object to render.
+		 * @param projection Projection matrix used for rendering.
 		 */
 		void RenderText(Text& text, const glm::mat4& projection);
 
 		/**
-		 * @brief Renders texts.
-		 * @param texts Parameter for texts.
-		 * @param projection Parameter for projection.
+		 * @brief Renders a list of text objects.
+		 * @param texts Text objects to render.
+		 * @param projection Projection matrix used for rendering.
 		 */
 		void RenderTexts(const std::vector<Text*>& texts, const glm::mat4& projection);
 
 	private:
-
 		/**
 		 * @brief Constructs a `TextRenderer` instance.
 		 */
@@ -354,30 +357,30 @@ namespace FontSystem {
 		~TextRenderer();
 
 		/**
-		 * @brief Constructs a `TextRenderer` instance.
+		 * @brief Disables copying of the `TextRenderer` singleton.
 		 */
 		TextRenderer(const TextRenderer&) = delete;
 		TextRenderer& operator=(const TextRenderer&) = delete;
 
 		/**
-		 * @brief Loads shaders.
-		 * @return True when the operation succeeds or the condition is met.
+		 * @brief Loads and links the shader program used for text rendering.
+		 * @return True if shader creation succeeded, otherwise false.
 		 */
 		bool LoadShaders();
 
 		/**
-		 * @brief Performs compile shader.
-		 * @param type Parameter for type.
-		 * @param source Parameter for source.
-		 * @return Result produced by this operation.
+		 * @brief Compiles an OpenGL shader from source.
+		 * @param type Shader type such as `GL_VERTEX_SHADER`.
+		 * @param source GLSL source code to compile.
+		 * @return Compiled shader handle, or `0` on failure.
 		 */
 		GLuint CompileShader(GLenum type, const std::string& source);
 
 		/**
-		 * @brief Performs link program.
-		 * @param vertexShader Parameter for vertex shader.
-		 * @param fragmentShader Parameter for fragment shader.
-		 * @return Result produced by this operation.
+		 * @brief Links a vertex and fragment shader into a program.
+		 * @param vertexShader Compiled vertex shader handle.
+		 * @param fragmentShader Compiled fragment shader handle.
+		 * @return Linked program handle, or `0` on failure.
 		 */
 		GLuint LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 

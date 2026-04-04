@@ -31,7 +31,9 @@
 namespace Debug {
 	DebuggerApp gDebugger;
 
-	// Constructor
+	/**
+	 * @brief Constructs the debugger app and opens the crash log file.
+	 */
 	DebuggerApp::DebuggerApp()
 		: debugWindow{ nullptr },
 		coreEngine{ nullptr },
@@ -49,7 +51,9 @@ namespace Debug {
 		}
 	}
 
-	// Destructor
+	/**
+	 * @brief Destroys the debugger app and closes the crash log file.
+	 */
 	DebuggerApp::~DebuggerApp() {
 		// Close crashlog file
 		if (crashlogFile.is_open()) {
@@ -62,7 +66,9 @@ namespace Debug {
 	}
 
 
-	// Implicit dtor for the debugger
+	/**
+	 * @brief Shuts down debugger-owned subsystems without tearing down ImGui itself.
+	 */
 	void DebuggerApp::Shutdown() {
 		// Shutdown font system components
 		if (fontSystemInitialized) {
@@ -75,11 +81,18 @@ namespace Debug {
 		TS_LOG_INFO("[DebugUI] Debugger shutdown completed.");
 	}
 
+	/**
+	 * @brief Initializes the debugger against an existing GLFW window and core engine.
+	 * @param externalWindow Host window used for rendering.
+	 * @param coreEnginePtr Core engine instance used for debugger integration.
+	 * @return True if initialization succeeded, otherwise false.
+	 */
 	bool DebuggerApp::InitializeDebuggerApp(GLFWwindow* externalWindow, CoreFramework::CoreEngine* coreEnginePtr) {
 		if (!glfwInit()) {
 			return false;
 		}
 
+		// Reuse the host window rather than creating a separate debugger window.
 		debugWindow = externalWindow;
 		coreEngine = coreEnginePtr;
 
@@ -98,6 +111,9 @@ namespace Debug {
 		return true;
 	}
 
+	/**
+	 * @brief Initializes the font manager, text renderer, and overlay text objects.
+	 */
 	void DebuggerApp::InitializeFontSystem() {
 		// Initialize FontManager
 		if (!FontSystem::FontManager::Instance().Initialize()) {
@@ -135,7 +151,7 @@ namespace Debug {
 			return;
 		}
 
-		// Use ChrustyRock as the primary font if it loaded, otherwise use ToThePoint
+		// Prefer ChrustyRock for the themed look, but fall back gracefully if it is missing.
 		FontSystem::Font* primaryFont = fontChrusty ? fontChrusty : fontToThePoint;
 		FontSystem::Font* secondaryFont = fontToThePoint ? fontToThePoint : fontChrusty;
 
@@ -171,6 +187,9 @@ namespace Debug {
 		AddDebugLine("Font system initialized with fonts from assets folder\n");
 	}
 
+	/**
+	 * @brief Renders the debugger's text overlays in screen space.
+	 */
 	void DebuggerApp::RenderTextOverlays() {
 		if (!fontSystemInitialized)
 			return;
@@ -183,7 +202,7 @@ namespace Debug {
 		glm::mat4 projection = glm::ortho(0.0f, static_cast<float>(width),
 			static_cast<float>(height), 0.0f);
 
-		// Update first text with current FPS
+		// Refresh the FPS label every frame while keeping the second overlay static.
 		std::string fpsText = "FPS: " + std::to_string(static_cast<int>(fps));
 		text1.SetText(fpsText);
 
@@ -192,6 +211,9 @@ namespace Debug {
 		FontSystem::TextRenderer::Instance().RenderText(text2, projection);
 	}
 
+	/**
+	 * @brief Updates debugger hotkeys and visibility toggles.
+	 */
 	void DebuggerApp::UpdateDebuggerApp() {
 		// Close the debugger if esc was pressed
 		if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
@@ -200,12 +222,15 @@ namespace Debug {
 		}
 	}
 
+	/**
+	 * @brief Renders the main debugger windows and their tools.
+	 */
 	void DebuggerApp::RenderDebuggerApp() {
 		// Always update system performance, even if window is closed
 		if (coreEngine) {
 			UpdateSystemTimes(coreEngine->GetDeltaTime());
 
-			// Update render stats from GraphicsEngine system
+			// Pull fresh render counters from GraphicsEngine so the panel reflects the current frame.
 			if (auto* gfxEngine = coreEngine->GetSystem<GraphicsEngine>()) {
 				SetRenderStats(
 					gfxEngine->GetTotalObjects(),
@@ -265,7 +290,7 @@ namespace Debug {
 
 				ImGui::SeparatorText("System Usage");
 
-				// Display options row
+				// Let the user toggle between compact and more diagnostic timing views.
 				static bool showDetailedStats = false;
 				static bool showFramePercentage = false;
 
@@ -301,8 +326,7 @@ namespace Debug {
 					ImGui::TextColored(ImVec4(0.0f, 0.7f, 0.0f, 1.0f), "Showing relative distribution (total = 100%%)");
 				}
 
-				// Display each system with a colored progress bar
-				// Also calculate total time from CURRENT data while displaying
+				// Draw one timing row per system while accumulating the current-frame total.
 				float totalSystemTimeMs = 0.0f;
 				for (auto& performance : sysPerformance) {
 					// Accumulate total time from current frame's data
@@ -354,7 +378,7 @@ namespace Debug {
 						ImGui::Unindent(20.0f);
 					}
 
-					// Draw progress bar (clamp at 100% for display purposes)
+					// Clamp the visible bar to 100% even when frame usage exceeds the budget.
 					float barValue = showFramePercentage ?
 						std::min(displayPercent / 100.0f, 1.0f) :
 						displayPercent / 100.0f;
@@ -402,7 +426,7 @@ namespace Debug {
 					// Check if scene has objects
 					bool hasObjects = (totalObjects > 0);
 
-					// Disable button if true
+					// Block stress generation once the scene already contains objects.
 					if (hasObjects) {
 						ImGui::BeginDisabled();
 					}
@@ -426,7 +450,7 @@ namespace Debug {
 						ImGui::TextDisabled("(Clear objects first)");
 					}
 
-					// Simulation toggle
+					// Expose a quick simulation toggle for editor-side debugging.
 					bool simActive = scene_->IsSimulationActive();
 					if (ImGui::Checkbox("Simulation Active", &simActive)) {
 						if (coreEngine) {
@@ -460,7 +484,7 @@ namespace Debug {
 				ImGui::Text("Instanced Objects: %d", instancedObjects);
 				ImGui::Text("Draw Calls: %d", drawCalls);
 
-				// Font System Controls
+				// Expose text overlay tuning so debug labels can be adjusted live.
 				ImGui::Separator();
 				ImGui::Text("---- Text Overlays ----");
 				if (fontSystemInitialized) {
@@ -486,7 +510,7 @@ namespace Debug {
 					ImGui::SliderFloat("Scale##text2", &text2Scale, 0.1f, 2.0f);
 					ImGui::ColorEdit4("Color##text2", text2Color);
 
-					// Apply changes to text objects
+					// Push the edited UI values straight into the overlay text objects.
 					text1.SetPosition(glm::vec2(text1Pos[0], text1Pos[1]));
 					text1.SetScale(text1Scale);
 					text1.SetColor(glm::vec4(text1Color[0], text1Color[1], text1Color[2], text1Color[3]));
@@ -624,20 +648,25 @@ namespace Debug {
 				ShowDebugLog();
 			}
 			catch (...) {
-				// Ignore any ImGui errors in debug log
+				// Ignore any ImGui errors in the optional log panel so the main debugger keeps running.
 			}
 		}
 
 	}
 
-	// Currently not in use
+	/**
+	 * @brief Runs one full debugger frame by updating and then rendering it.
+	 */
 	void DebuggerApp::RunDebuggerApp() {
 
 		UpdateDebuggerApp(); // Checks for updates done in the window
 		RenderDebuggerApp(); // Loads the ImGui window every frame
 	}
 
-	// Logs an error that is later outputted to the crash log txt file
+	/**
+	 * @brief Appends an error message to the debugger crash log file.
+	 * @param errorMessage Error text to record.
+	 */
 	void DebuggerApp::LogError(const std::string& errorMessage) {
 		if (crashlogFile.is_open()) {
 			// Setting the timestamp of when the error occurred
@@ -653,7 +682,10 @@ namespace Debug {
 		}
 	}
 
-	// Updates all system times in the systems manager
+	/**
+	 * @brief Updates cached system timing statistics for display in the debugger.
+	 * @param frameDt Frame delta time used to compute absolute frame usage percentages.
+	 */
 	void DebuggerApp::UpdateSystemTimes(float frameDt) {
 		// Access systems from the stored CoreEngine pointer
 		if (!coreEngine) return;
@@ -680,7 +712,7 @@ namespace Debug {
 			currentSystemNames.insert(sys->GetName());
 		}
 
-		// Update existing systems or add new ones
+		// Update existing performance rows in place or create new rows for newly added systems.
 		for (auto const& sys : systems) {
 			// Calculate percentage based on total system time (relative distribution)
 			float percentOfSystems = (sys->lastDt / totalSystemTime) * 100.0f;
@@ -715,7 +747,7 @@ namespace Debug {
 				}
 			}
 			else {
-				// Add new entry
+				// Add a new row the first time this system appears in the engine.
 				SystemPerformance newPerf;
 				newPerf.name = sys->GetName();
 				newPerf.percentageOf = percentOfSystems;
@@ -738,17 +770,26 @@ namespace Debug {
 		);
 	}
 
-	// Adds line passed in to the debug log ImGui window
+	/**
+	 * @brief Appends a line of text to the debugger console log.
+	 * @param txt Text to append.
+	 */
 	void DebuggerApp::AddDebugLine(const std::string& txt) {
+		// Preserve every line so the console log reflects the full debug-session history.
 		debuglines.push_back(txt);
 	}
 
-	// Clears the Debug log infomation window
+	/**
+	 * @brief Clears all lines from the debugger console log.
+	 */
 	void DebuggerApp::ClearDebugLog() {
+		// Reset the stored log buffer immediately when the user requests a clear.
 		debuglines.clear();
 	}
 
-	// Opens up an ImGui window for debug log infomation to be outputted here
+	/**
+	 * @brief Renders the debugger console log window.
+	 */
 	void DebuggerApp::ShowDebugLog() {
 		if (ImGui::GetCurrentContext() == nullptr) {
 			return;
@@ -767,7 +808,7 @@ namespace Debug {
 			ClearDebugLog();
 		}
 
-		// For everyline stored, print it out
+		// Draw each recorded line in order to mimic a lightweight scrolling console.
 		for (const auto& line : debuglines) {
 			ImGui::TextUnformatted(line.c_str());
 		}
@@ -775,13 +816,24 @@ namespace Debug {
 		ImGui::End();
 	}
 
+	/**
+	 * @brief Updates cached render counters displayed by the debugger.
+	 * @param objects Total renderable object count.
+	 * @param batches Total batch count.
+	 * @param instanced Total instanced-object count.
+	 * @param draws Total draw-call count.
+	 */
 	void DebuggerApp::SetRenderStats(int objects, int batches, int instanced, int draws) {
+		// Store the latest renderer counters so the next UI frame can display them.
 		totalObjects = objects;
 		totalBatches = batches;
 		instancedObjects = instanced;
 		drawCalls = draws;
 	}
 
+	/**
+	 * @brief Builds the default dock layout used by the debug UI.
+	 */
 	void DebuggerApp::SetupDefaultLayout() {
 		static bool layoutInitialized = false;
 		if (layoutInitialized) return;
@@ -802,7 +854,7 @@ namespace Debug {
 		ImGui::DockBuilderSetNodeSize(dockspaceID, ImVec2(1184, 784));  // Your working size
 		ImGui::DockBuilderSetNodePos(dockspaceID, ImVec2(8, 8));
 
-		// Split the dockspace to match your working layout
+		// Split the dockspace to match the team's preferred editor/debugger arrangement.
 		// Main horizontal split: top area (882 height) and bottom console (109 height)
 		ImGuiID dock_top, dock_bottom;
 		ImGui::DockBuilderSplitNode(dockspaceID, ImGuiDir_Down, 0.12f, &dock_bottom, &dock_top);
@@ -829,6 +881,9 @@ namespace Debug {
 		TS_LOG_INFO("[DebugUI] Default ImGui layout initialized successfully.");
 	}
 
+	/**
+	 * @brief Renders the transition preview panel for scene fade testing.
+	 */
 	void DebuggerApp::DrawTransitionPanel() {
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
 		// Use the correct member and explicit type to avoid deduction issues

@@ -29,476 +29,365 @@ class AudioManager : public CoreFramework::SystemInterface {
 public:
 	// Audio System functions for Core Engine
 
-	/************************************************************************/
-	/*!
-	\brief
-	Initializes the audio system and resources.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Initializes the audio manager system and its resources.
+	 */
 	void Initialize() override;
-	/************************************************************************/
-	/*!
-	\brief
-	Updates the audio system each frame.
-	\param dt
-	Delta time since last update.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Updates queued playback, fades, and FMOD runtime state each frame.
+	 * @param dt Delta time since the previous update.
+	 */
 	void Update(float dt) override;
-	/************************************************************************/
-	/*!
-	\brief
-	Returns the name of the system.
-	\return
-	The system name as a string.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Returns the system name used by the engine.
+	 * @return System name string.
+	 */
 	std::string GetName() override;
 
 	// AudioManager functions
 
-	/************************************************************************/
-	/*!
-	\brief
-	Constructs the AudioManager and initializes member variables.
-	\param bus
-	Reference to the MessageBus for pub/sub messaging.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Constructs the audio manager and subscribes it to message-bus events.
+	 * @param bus Message bus used for pub/sub communication.
+	 */
 	AudioManager(CoreFramework::MessageBus& bus);
-	/************************************************************************/
-	/*!
-	\brief
-	Destroys the AudioManager and releases resources.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Destroys the audio manager and releases FMOD resources.
+	 */
 	~AudioManager();
 
 	// Initialization & Shutdown
 
-	/************************************************************************/
-	/*!
-	\brief
-	Initializes the FMOD audio system.
-	\return
-	True if initialization succeeded, false otherwise.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Initializes the underlying FMOD system.
+	 * @return True if initialization succeeded, otherwise false.
+	 */
 	bool InitializeSystem();
-	/************************************************************************/
-	/*!
-	\brief
-	Shuts down the FMOD audio system and releases resources.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Shuts down FMOD and releases all loaded audio resources.
+	 */
 	void Shutdown();
 
 	// Sound Loading & Unloading
 
-	/************************************************************************/
-	/*!
-	\brief
-	Loads a sound file into the audio system.
-	\param name
-	The name to reference the sound.
-	\param filepath
-	The file path to the sound file.
-	\param loop
-	Whether the sound should loop.
-	\param stream
-	Whether to stream the sound from disk (true) or load it fully into memory (false).
-	\return
-	Pointer to the loaded FMOD::Sound, or nullptr if loading failed.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Loads a 2D sound file into the FMOD audio system.
+	 * @param name Logical name used to reference the sound.
+	 * @param filepath Path to the sound file.
+	 * @param loop True when the sound should loop.
+	 * @param stream True to stream from disk, false to fully load into memory.
+	 * @return Pointer to the loaded FMOD sound, or nullptr on failure.
+	 */
 	FMOD::Sound* LoadSound(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
-	/************************************************************************/
-	/*!
-	\brief
-	Gets a previously loaded sound by name.
-	\param name
-	The name of the sound to retrieve.
-	\return
-	Pointer to the FMOD::Sound, or nullptr if not found.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Retrieves a previously loaded sound by name.
+	 * @param name Logical sound name.
+	 * @return Pointer to the FMOD sound, or nullptr if not found.
+	 */
 	FMOD::Sound* GetSound(std::string const& name) const;
-	/************************************************************************/
-	/*!
-	\brief
-	Unloads a sound and releases its resources.
-	\param name
-	The name of the sound to unload.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Unloads a sound and releases its resources.
+	 * @param name Logical sound name to unload.
+	 */
 	void UnloadSound(std::string const& name);
-	/************************************************************************/
-	/*!
-	\brief
-	Checks if a sound has been loaded.
-	\param name
-	The name of the sound to check.
-	\return
-	True if the sound exists, false otherwise.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Checks whether a sound has already been loaded.
+	 * @param name Logical sound name to query.
+	 * @return True if the sound exists, otherwise false.
+	 */
 	bool HasSound(std::string const& name) const;
-	/************************************************************************/
-	/*!
-	\brief
-	Retrieves information about a loaded sound.
-	\param name
-	The name of the sound.
-	\param lengthMs
-	Output: length of the sound in milliseconds.
-	\param outChannels
-	Output: number of audio channels.
-	\param outBits
-	Output: bits per sample.
-	\param freq
-	Output: default frequency in Hz.
-	\return
-	True if info was retrieved successfully, false otherwise.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Retrieves metadata about a loaded sound.
+	 * @param name Logical sound name.
+	 * @param lengthMs Output length in milliseconds.
+	 * @param outChannels Output number of channels.
+	 * @param outBits Output bits per sample.
+	 * @param freq Output default playback frequency in hertz.
+	 * @return True if metadata was retrieved successfully, otherwise false.
+	 */
 	bool GetSoundInfo(std::string const& name, unsigned int& lengthMs, int& outChannels, int& outBits, float& freq) const;
 
 	// Playback Control
 
-	/************************************************************************/
-	/*!
-	\brief
-	Plays a loaded sound.
-	\param name
-	The name of the sound to play.
-	\param volume
-	Playback volume (0.0 to 1.0).
-	\param paused
-	Whether to start the sound paused.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Plays a previously loaded 2D sound.
+	 * @param name Logical sound name to play.
+	 * @param volume Playback volume in normalized range.
+	 * @param paused True to start the channel paused.
+	 */
 	void PlaySound(std::string const& name, float volume = 1.f, bool paused = false);
-	/************************************************************************/
-	/*!
-	\brief
-	Stops playback of a sound.
-	\param name
-	The name of the sound to stop.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Stops playback of all tracked channels for a named sound.
+	 * @param name Logical sound name to stop.
+	 */
 	void StopSound(std::string const& name);
+
+	/**
+	 * @brief Stops only one currently playing instance of a named sound.
+	 * @param name Logical sound name whose oldest tracked instance should stop.
+	 */
 	void StopOneSoundInstance(std::string const& name);
+
+	/**
+	 * @brief Checks whether any tracked instance of a sound is currently playing.
+	 * @param name Logical sound name to query.
+	 * @return True if at least one channel is still playing, otherwise false.
+	 */
 	bool IsSoundPlaying(std::string const& name);
-	/************************************************************************/
-	/*!
-	\brief
-	Stops all currently playing sounds.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Stops all currently tracked sounds.
+	 */
 	void StopAllSounds();
 
 	// Volume & Mute Control
 
-	/************************************************************************/
-	/*!
-	\brief
-	Sets the master volume.
-	\param volume
-	The new master volume (0.0 to 1.0).
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Sets the master output volume.
+	 * @param volume New master volume in normalized range.
+	 */
 	void SetMasterVolume(float volume);
-	/************************************************************************/
-	/*!
-	\brief
-	Sets the bgm volume.
-	\param volume
-	The new bgm volume (0.0 to 1.0).
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Sets the background-music volume.
+	 * @param volume New BGM volume in normalized range.
+	 */
 	void SetBgmVolume(float volume);
-	/************************************************************************/
-	/*!
-	\brief
-	Sets the vfx volume.
-	\param volume
-	The new vfx volume (0.0 to 1.0).
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Sets the VFX and SFX volume.
+	 * @param volume New VFX volume in normalized range.
+	 */
 	void SetVfxVolume(float volume);
-	/************************************************************************/
-	/*!
-	\brief
-	Gets the current master volume.
-	\return
-	The master volume (0.0 to 1.0).
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Returns the current master volume.
+	 * @return Master volume in normalized range.
+	 */
 	float GetMasterVolume() const;
-	/************************************************************************/
-	/*!
-	\brief
-	Gets the current bgm volume.
-	\return
-	The bgm volume (0.0 to 1.0).
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Returns the current BGM volume.
+	 * @return BGM volume in normalized range.
+	 */
 	float GetBgmVolume() const;
-	/************************************************************************/
-	/*!
-	\brief
-	Gets the current vfx volume.
-	\return
-	The vfx volume (0.0 to 1.0).
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Returns the current VFX volume.
+	 * @return VFX volume in normalized range.
+	 */
 	float GetVfxVolume() const;
-	/************************************************************************/
-	/*!
-	\brief
-	Sets the volume for a specific playing sound channel.
-	\param name
-	The name of the sound channel.
-	\param volume
-	The new volume (0.0 to 1.0).
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Sets the volume for all currently tracked channels of a named sound.
+	 * @param name Logical sound name.
+	 * @param volume New volume in normalized range.
+	 */
 	void SetVolume(std::string const& name, float volume);
-	/************************************************************************/
-	/*!
-	\brief
-	Mutes or unmutes all audio.
-	\param shouldMute
-	True to mute, false to unmute.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Mutes or unmutes all audio output.
+	 * @param shouldMute True to mute, false to unmute.
+	 */
 	void Mute(bool shouldMute);
-	/************************************************************************/
-	/*!
-	\brief
-	Checks if the audio is currently muted.
-	\return
-	True if muted, false otherwise.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Checks whether the audio output is currently muted.
+	 * @return True if muted, otherwise false.
+	 */
 	bool IsMuted() const;
 
 	// Receive settings from ConfigManager
 
-	/************************************************************************/
-	/*!
-	\brief
-	Applies audio-related settings from the configuration manager.
-	\param settings
-	The settings to apply.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Applies audio-related settings from the configuration manager.
+	 * @param settings Settings object containing volume values.
+	 */
 	void ApplySettings(ConfigManager::Settings const& settings);
 
-	/************************************************************************/
-	/*!
-	\brief
-	Gets the underlying FMOD system instance.
-	\return
-	Pointer to the FMOD::System instance.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Returns the underlying FMOD system instance.
+	 * @return Pointer to the FMOD system, or nullptr if not initialized.
+	 */
 	FMOD::System* GetSystem() const {
+		// Expose the raw FMOD handle for low-level integrations that need it.
 		return system;
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-	Queues a request to play a sound next update rather than immediately.
-	\details
-	Useful when play requests arrive from multiple places (e.g., messages) and
-	centralizing FMOD interaction on the audio thread/update. The request list
-	is flushed at the start of Update().
-	\param name
-	Logical name of the sound (as loaded in AudioManager).
-	\param volume
-	Initial playback volume (0.f to 1.f).
-	\param paused
-	If true, starts the channel paused allowing further configuration before unpausing.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Queues a 2D play request to be flushed during the next update.
+	 * @param name Logical sound name.
+	 * @param volume Initial playback volume in normalized range.
+	 * @param paused True to start the channel paused.
+	 */
 	void EnqueuePlay(std::string const& name, float volume = 1.f, bool paused = false);
 
-	/************************************************************************/
-	/*!
-	\brief
-	Schedules a volume fade on a currently playing channel.
-	\details
-	Interpolates from the channel's current volume to a target volume over the
-	given duration. If duration <= 0, the volume is set instantly. Fades are
-	processed each frame in Update(). If the channel stops, its fade is removed.
-	\param name
-	Logical name of the sound channel to fade.
-	\param toVolume
-	Target volume (0.f to 1.f).
-	\param duration
-	Fade time in seconds.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Schedules a fade on a currently playing sound channel group.
+	 * @param name Logical sound name whose channels should fade.
+	 * @param toVolume Target volume in normalized range.
+	 * @param duration Fade duration in seconds.
+	 */
 	void FadeChannel(std::string const& name, float toVolume, float duration);
 
 	// UI Sound Effects
 
-	/************************************************************************/
-	/*!
-	\brief
-	Plays the UI click sound effect.
-	\details
-	Convenience method for playing button click sounds with appropriate volume.
-	Uses VFX volume scaled down to 50% for subtle UI feedback.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Plays the standard UI click sound effect.
+	 */
 	void PlayUIClickSound();
 
 	// 3D Spatial Audio
 
-	/************************************************************************/
-	/*!
-	\brief
-	Loads a sound file with 3D spatial attributes.
-	\param name
-	The name to reference the sound.
-	\param filepath
-	The file path to the sound file.
-	\param loop
-	Whether the sound should loop.
-	\param stream
-	Whether to stream the sound from disk (true) or load it fully into memory (false).
-	\return
-	Pointer to the loaded FMOD::Sound, or nullptr if loading failed.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Loads a sound file with FMOD 3D spatial settings enabled.
+	 * @param name Logical sound name.
+	 * @param filepath Path to the sound file.
+	 * @param loop True when the sound should loop.
+	 * @param stream True to stream from disk, false to fully load into memory.
+	 * @return Pointer to the loaded FMOD sound, or nullptr on failure.
+	 */
 	FMOD::Sound* LoadSound3D(std::string const& name, std::string const& filepath, bool loop = false, bool stream = false);
-	/************************************************************************/
-	/*!
-	\brief
-	Plays a loaded sound at a 3D position in the world.
-	\param name
-	The name of the sound to play.
-	\param posX
-	X world position of the sound source.
-	\param posY
-	Y world position of the sound source.
-	\param posZ
-	Z world position of the sound source (default 0 for 2D games).
-	\param volume
-	Playback volume (0.0 to 1.0).
-	\param minDistance
-	Distance at which sound starts to attenuate.
-	\param maxDistance
-	Distance at which sound is fully attenuated.
-	\param paused
-	Whether to start the sound paused.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Plays a loaded sound at a 3D world position.
+	 * @param name Logical sound name to play.
+	 * @param posX X world position of the sound source.
+	 * @param posY Y world position of the sound source.
+	 * @param posZ Z world position of the sound source.
+	 * @param volume Playback volume in normalized range.
+	 * @param minDistance Distance where attenuation starts.
+	 * @param maxDistance Distance where attenuation reaches its far limit.
+	 * @param paused True to start the channel paused.
+	 */
 	void PlaySound3D(std::string const& name, float posX, float posY, float posZ = 0.0f,
 		float volume = 1.0f, float minDistance = 1.0f, float maxDistance = 50.0f, bool paused = false);
-	/************************************************************************/
-	/*!
-	\brief
-	Sets the 3D listener position (typically the camera or player position).
-	\param posX
-	X world position of the listener.
-	\param posY
-	Y world position of the listener.
-	\param posZ
-	Z world position of the listener (default 0 for 2D games).
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Sets the FMOD 3D listener position.
+	 * @param posX Listener X world position.
+	 * @param posY Listener Y world position.
+	 * @param posZ Listener Z world position.
+	 */
 	void SetListenerPosition(float posX, float posY, float posZ = 0.0f);
-	/************************************************************************/
-	/*!
-	\brief
-	Updates the 3D position of an already-playing sound channel.
-	\param name
-	The name of the sound channel to update.
-	\param posX
-	New X world position.
-	\param posY
-	New Y world position.
-	\param posZ
-	New Z world position (default 0 for 2D games).
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Updates the 3D position of all tracked channels for a named sound.
+	 * @param name Logical sound name.
+	 * @param posX New X world position.
+	 * @param posY New Y world position.
+	 * @param posZ New Z world position.
+	 */
 	void Set3DChannelPosition(std::string const& name, float posX, float posY, float posZ = 0.0f);
-	/************************************************************************/
-	/*!
-	\brief
-	Queues a request to play a 3D sound next update rather than immediately.
-	\param name
-	Logical name of the sound (as loaded in AudioManager).
-	\param posX
-	X world position of the sound source.
-	\param posY
-	Y world position of the sound source.
-	\param posZ
-	Z world position of the sound source.
-	\param volume
-	Initial playback volume (0.f to 1.f).
-	\param minDistance
-	Distance at which sound starts to attenuate.
-	\param maxDistance
-	Distance at which sound is fully attenuated.
-	\param paused
-	If true, starts the channel paused.
-	*/
-	/************************************************************************/
+
+	/**
+	 * @brief Queues a 3D play request to be processed during the next update.
+	 * @param name Logical sound name.
+	 * @param posX X world position of the sound source.
+	 * @param posY Y world position of the sound source.
+	 * @param posZ Z world position of the sound source.
+	 * @param volume Initial playback volume in normalized range.
+	 * @param minDistance Distance where attenuation starts.
+	 * @param maxDistance Distance where attenuation reaches its far limit.
+	 * @param paused True to start the channel paused.
+	 */
 	void EnqueuePlay3D(std::string const& name, float posX, float posY, float posZ = 0.0f,
 		float volume = 1.0f, float minDistance = 1.0f, float maxDistance = 50.0f, bool paused = false);
 
-	void PauseAll();   // pause all currently playing sounds/music
-	void ResumeAll();  // resume everything that was paused
+	/**
+	 * @brief Pauses all currently playing sounds and music.
+	 */
+	void PauseAll();
 
-	/************************************************************************/
-	/*!
-	\brief
-	Pauses a specific sound channel by name.
-	\param name
-	The name of the sound channel to pause.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Resumes all sounds and music paused by PauseAll().
+	 */
+	void ResumeAll();
+
+	/**
+	 * @brief Pauses all tracked channels for a specific sound.
+	 * @param name Logical sound name to pause.
+	 */
 	void PauseChannel(std::string const& name);
 
-	/************************************************************************/
-	/*!
-	\brief
-	Resumes a specific sound channel by name.
-	\param name
-	The name of the sound channel to resume.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Resumes all tracked channels for a specific sound.
+	 * @param name Logical sound name to resume.
+	 */
 	void ResumeChannel(std::string const& name);
 
 private:
 	using ChannelList = std::vector<FMOD::Channel*>;
 
-	/************************************************************************/
-	/*!
-	\brief
-	Error handling for FMOD operations.
-	\param result
-	The FMOD_RESULT to check.
-	\param context
-	Contextual information for the error.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Logs FMOD errors with contextual information.
+	 * @param result FMOD result code to inspect.
+	 * @param context Context string describing the operation that was attempted.
+	 */
 	void CheckError(FMOD_RESULT result, std::string const& context);
 
-	// Message handlers
+	/**
+	 * @brief Handles debug-toggle messages received from the message bus.
+	 * @param msg Generic message payload.
+	 */
 	void OnToggleDebugInfo(const CoreFramework::Message& msg);
+
+	/**
+	 * @brief Handles 2D play-audio messages received from the message bus.
+	 * @param msg Generic message payload.
+	 */
 	void OnPlayAudio(const CoreFramework::Message& msg);
+
+	/**
+	 * @brief Handles stop-audio messages received from the message bus.
+	 * @param msg Generic message payload.
+	 */
 	void OnStopAudio(const CoreFramework::Message& msg);
+
+	/**
+	 * @brief Handles 3D play-audio messages received from the message bus.
+	 * @param msg Generic message payload.
+	 */
 	void OnPlayAudio3D(const CoreFramework::Message& msg);
+
+	/**
+	 * @brief Computes the effective playback volume after category scaling.
+	 * @param name Logical sound name.
+	 * @param requestedVolume Caller-requested volume.
+	 * @return Effective playback volume.
+	 */
 	float ComputePlaybackVolume(const std::string& name, float requestedVolume) const;
+
+	/**
+	 * @brief Queues a channel for deferred stopping after a silent mix block.
+	 * @param channel FMOD channel to stop later.
+	 */
 	void QueueDeferredStop(FMOD::Channel* channel);
+
+	/**
+	 * @brief Silences and queues all channels in a tracked list for stopping.
+	 * @param channelList Channel list to stop.
+	 */
 	void StopTrackedChannels(ChannelList& channelList);
+
+	/**
+	 * @brief Removes null or finished channels from a tracked list.
+	 * @param channelList Channel list to prune.
+	 */
 	void RemoveStoppedChannels(ChannelList& channelList) const;
+
+	/**
+	 * @brief Removes empty channel buckets and stale fades from the tracking tables.
+	 */
 	void PruneFinishedChannels();
 
 	// FMOD System and resources
