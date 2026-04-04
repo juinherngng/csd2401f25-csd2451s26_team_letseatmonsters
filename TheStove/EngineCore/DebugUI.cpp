@@ -14,7 +14,6 @@
 */
 
 #if defined(_DEBUG) || defined(ENABLE_DEBUG_UI)
-#pragma once
 
 #include <algorithm>
 #include <glm/gtc/matrix_transform.hpp>

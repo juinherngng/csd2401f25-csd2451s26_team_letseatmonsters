@@ -8,8 +8,7 @@
 					Yat Chun Wee, y.chunwee@digipen.edu		(55%)
 
  DESCRIPTION:		This file implements the logic for first-time initialization, per-frame updates, and transitions
-					between states, preferring JSON-driven runtime level loading when mappings are registered, with a
-					fallback to legacy function-pointer-based level init/update/exit routines. Manages scene simulation
+					between states through JSON-driven runtime level loading. Manages scene simulation
 					activation timing, tracks pause state to pause/resume audio in gameplay, and controls state-based
 					playback and cleanup of background music and ambience through the injected AudioManager instance.
 
@@ -109,9 +108,6 @@ namespace Framework {
 			wasPaused = isPaused;
 		}
 
-		if (currentState == nextState && legacyUpdateFn) {
-			legacyUpdateFn(dt);
-		}
 	}
 
 	/**
@@ -147,20 +143,12 @@ namespace Framework {
 			RuntimeLevelPipeline::PreloadLevelDependencies(jsonStatePaths[state]);
 		}
 
-		// Prefer JSON mapping if available
 		if (TrySwitchJsonState(state, dt)) {
 			initialized = true;
 			return;
 		}
 
-		// Fallback to legacy function-pointer state
-		legacyInitFn = Level1Init;
-		legacyUpdateFn = Level1Update;
-		legacyExitFn = Level1Exit;
-
-		if (legacyInitFn) {
-			legacyInitFn(dt);
-		}
+		TS_LOG_ERROR("[GameStateManager] No JSON level registered for initial state " << ToString(state));
 		initialized = true;
 	}
 
@@ -171,12 +159,8 @@ namespace Framework {
 	 * @return Result produced by this operation.
 	 */
 	void GameStateManager::UpdateGameState(GameState newState, float dt) {
+		(void)dt;
 		nextState = newState;
-
-		// If we were using legacy function pointers, call exit
-		if (legacyExitFn) {
-			legacyExitFn(dt);
-		}
 
 		currentState = newState;
 
@@ -185,33 +169,15 @@ namespace Framework {
 			RuntimeLevelPipeline::PreloadLevelDependencies(jsonStatePaths[currentState]);
 		}
 
-		// Prefer JSON mapping if available
+		if (currentState == GameState::Quit) {
+			return;
+		}
+
 		if (TrySwitchJsonState(currentState, dt)) {
 			return;
 		}
 
-		// Fallback to legacy hard-coded states
-		switch (currentState) {
-		case GameState::MainMenu:
-			legacyInitFn = Level1Init;
-			legacyUpdateFn = Level1Update;
-			legacyExitFn = Level1Exit;
-			if (legacyInitFn) legacyInitFn(dt);
-			break;
-
-		case GameState::Kitchen01:
-			legacyInitFn = Level2Init;
-			legacyUpdateFn = Level2Update;
-			legacyExitFn = Level2Exit;
-			if (legacyInitFn) legacyInitFn(dt);
-			break;
-
-		case GameState::Quit:
-			// No-op, let app quit
-			break;
-		case GameState::Tutorial:
-			break;
-		}
+		TS_LOG_ERROR("[GameStateManager] No JSON level registered for state " << ToString(currentState));
 	}
 
 	/**
@@ -267,9 +233,6 @@ namespace Framework {
 
 		PreloadJsonStateAssets(state);
 
-		legacyInitFn = nullptr;
-		legacyUpdateFn = nullptr;
-		legacyExitFn = nullptr;
 		return true;
 	}
 
@@ -285,23 +248,6 @@ namespace Framework {
 			}
 
 			RuntimeLevelPipeline::PreloadLevelDependencies(levelPath);
-		}
-	}
-
-	/**
-	 * @brief Performs stop current audio.
-	 * @return Result produced by this operation.
-	 */
-	void GameStateManager::StopCurrentAudio() {
-		if (audioManager) {
-			if (!currentAudio.empty()) {
-				audioManager->StopSound(currentAudio);
-				currentAudio.clear();
-			}
-			if (!currentAmbience.empty()) {
-				audioManager->StopSound(currentAmbience);
-				currentAmbience.clear();
-			}
 		}
 	}
 }

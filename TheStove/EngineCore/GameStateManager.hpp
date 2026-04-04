@@ -20,14 +20,11 @@
 
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 #include <unordered_map>
 
 #include "EngineCore/MessageBus.hpp"
 #include "EngineCore/System.hpp"
-#include "EngineCore/TestLevel.hpp"
-#include "EngineCore/TestLevel2.hpp"
 
 class Scene; // forward-declare Scene
 class AudioManager; // forward-declare AudioManager
@@ -126,14 +123,9 @@ namespace Framework {
 		}
 
 	private:
-		using LegacyStateFn = std::function<void(float dt)>;
-
 		void OnQuit(const CoreFramework::Message& msg);
-
-		// Switch to a JSON-backed state if mapping exists; returns true if handled
 		bool TrySwitchJsonState(GameState state, float dt);
 		void PreloadJsonStateAssets(GameState activeState);
-		void StopCurrentAudio();
 
 	private:
 		CoreFramework::MessageBus& messageBus;
@@ -144,18 +136,12 @@ namespace Framework {
 		GameState currentState = GameState::MainMenu;
 		GameState nextState = GameState::MainMenu;
 		bool initialized = false;
-		bool pendingSimActivation = false; // NEW
-
-		LegacyStateFn legacyInitFn;
-		LegacyStateFn legacyUpdateFn;
-		LegacyStateFn legacyExitFn;
+		bool pendingSimActivation = false;
 
 		// Audio service
 		AudioManager* audioManager = nullptr;
 		bool wasPaused = false;    // Track pause state for audio
 		StateAudioPolicy stateAudioPolicy;
 		PauseAudioPolicy pauseAudioPolicy;
-		std::string currentAudio;
-		std::string currentAmbience;
 	};
 }
