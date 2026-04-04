@@ -162,6 +162,9 @@ public:
 	}
 	void SetRuntimeTextObjects(const std::vector<RuntimeTextData>& textObjects);
 	bool SetRuntimeTextByName(const std::string& name, const std::string& newText);
+	bool SetRuntimeTextPositionByName(const std::string& name, float x, float y);
+	bool SetRuntimeTextScaleByName(const std::string& name, float scale);
+	bool SetRuntimeTextColorByName(const std::string& name, float colorR, float colorG, float colorB, float colorA = 1.0f);
 	void ClearRuntimeTextObjects();
 	void SetPauseSuppressedRuntimeTextNames(std::vector<std::string> textNames);
 	const std::unordered_set<std::string>& GetEditorPreservedRuntimeTextNames() const {

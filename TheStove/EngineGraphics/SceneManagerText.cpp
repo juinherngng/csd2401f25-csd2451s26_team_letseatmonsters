@@ -184,6 +184,43 @@ bool Scene::SetRuntimeTextByName(const std::string& name, const std::string& new
 	return false;
 }
 
+bool Scene::SetRuntimeTextPositionByName(const std::string& name, float x, float y) {
+	for (RuntimeTextData& textObj : runtimeTextObjects_) {
+		if (textObj.name == name) {
+			textObj.x = x;
+			textObj.y = y;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Scene::SetRuntimeTextScaleByName(const std::string& name, float scale) {
+	for (RuntimeTextData& textObj : runtimeTextObjects_) {
+		if (textObj.name == name) {
+			textObj.scale = scale;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Scene::SetRuntimeTextColorByName(const std::string& name, float colorR, float colorG, float colorB, float colorA) {
+	for (RuntimeTextData& textObj : runtimeTextObjects_) {
+		if (textObj.name == name) {
+			textObj.colorR = colorR;
+			textObj.colorG = colorG;
+			textObj.colorB = colorB;
+			textObj.colorA = colorA;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /**
  * @brief Clears all scene-owned runtime text objects.
  */

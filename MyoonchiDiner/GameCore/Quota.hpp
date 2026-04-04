@@ -39,7 +39,7 @@ namespace Economy {
 	inline float kTimeLimitSeconds = 180.0f;
 
 	inline bool gAwaitingFinalCustomerClear = false;
-	inline float kStopSpawningThresholdSeconds = 2.0f;
+	inline float kStopSpawningThresholdSeconds = 10.0f;
 
 
 	inline void SetQuota(int quota) {
@@ -71,9 +71,14 @@ namespace Economy {
 	inline bool gPlayed1SecBeep = false;
 	inline bool gPlayedTimeUp = false;
 
+	void ResetHudPresentation();
+	void UpdateHudPresentation(float dt, Scene& scene);
+	void TriggerMoneyTextPulse(Scene& scene);
+
 	// Put near the top of Economy.hpp/cpp (where Economy lives)
 	inline void BindUIScene(Scene& scene) {
 		gBoundUIScene = &scene;
+		ResetHudPresentation();
 	}
 
 	inline void SyncUI(Scene* scene = nullptr) {
@@ -121,6 +126,7 @@ namespace Economy {
 		gPlayed2SecBeep = false;
 		gPlayed1SecBeep = false;
 		gPlayedTimeUp = false;
+		ResetHudPresentation();
 
 		SyncUI();
 	}
@@ -141,6 +147,7 @@ namespace Economy {
 		}
 
 		SyncUI(&scene); // <--- update UI immediately
+		TriggerMoneyTextPulse(scene);
 	}
 
 	// Call this every frame with the delta time to update the timer. It checks for time-up condition and updates the UI.
