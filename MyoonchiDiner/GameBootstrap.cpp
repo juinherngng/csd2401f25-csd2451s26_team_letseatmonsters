@@ -2,8 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameBootstrap.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (75%)
- CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(25%)
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (70%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(20%)
+					Seah Wang Hua, wanghua.seah@digipen.edu (10%)
 
  DESCRIPTION:		Implements the engine-facing bootstrap interface declared in
 					GameBootstrap.hpp. Wires the Myoonchi Diner game module into
@@ -31,6 +32,11 @@ namespace {
 
 	// Tracks the currently playing ambience channel name (used in gameplay).
 	std::string gCurrentAmbience;
+
+	constexpr const char* kStartupSplashTexturePath = "../assets/Backgrounds/DigiPen_Singapore_WEB_RED.png";
+
+	// Splash screen duration in seconds. Values <= 0 disable timed display and require manual dismissal.
+	constexpr float kStartupSplashDurationSeconds = 3.5f;
 
 	/**
 	 * @brief Stops any tracked music and ambience channels from the previous state.
@@ -135,3 +141,13 @@ void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 		}
 		});
 }
+	
+   // Returns the startup splash texture path 
+	const char* GetStartupSplashTexturePath() {
+		return kStartupSplashTexturePath;
+	}
+
+	// Returns the startup splash duration in seconds. Values <= 0 disable timed display.
+	float GetStartupSplashDurationSeconds() {
+		return kStartupSplashDurationSeconds;
+	}

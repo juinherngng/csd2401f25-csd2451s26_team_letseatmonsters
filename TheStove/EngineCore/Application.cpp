@@ -43,6 +43,11 @@
 
 ApplicationState* g_AppState = nullptr;
 
+// Forward declarations of Startup splash screen helpers 
+bool IsStartupSplashSkipRequested(GLFWwindow* window);
+void RenderStartupSplashFrame(ApplicationState& appState);
+void ShowStartupSplash(ApplicationState& appState);
+
 /**
  * @brief Requests orderly desktop application shutdown through the app-owned state container.
  */
@@ -660,9 +665,12 @@ bool Application::Initialize(int width, int height, const std::string& title, bo
 	state_.currentScene->SetEditorPlayingQuery([this]() {
 		return state_.levelEditor && state_.levelEditor->IsPlaying();
 		});
+		
+	    // Show the startup splash screen after the scene exists so it can render it, but before game states are connected so the splash is not affected by state transitions
+		ShowStartupSplash(state_);
 
 	if (auto* gsm = state_.coreEngine->GetSystem<Framework::GameStateManager>()) {
-		// Connect state management after the scene exists so level loads can target it.
+		// Connect state management after the scene exist	s so level loads can target it.
 		gsm->SetScene(state_.currentScene.get());
 		if (audioMgr) {
 			gsm->SetAudioManager(audioMgr);
@@ -912,4 +920,131 @@ void Application::Cleanup() {
 	glfwPollEvents();
 	glfwTerminate();
 	TS_LOG_INFO("Cleanup complete.");
+}
+
+// Returns true if the player is trying to skip the startup splash screen.
+// Allowed skip inputs: Escape, Enter, Space, or left mouse button.
+bool IsStartupSplashSkipRequested(GLFWwindow* window) {
+	// If the window is invalid, no input can be checked.
+	if (!window) {
+		return false;
+	}
+
+	// Check for any accepted skip input.
+	return glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
+		glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS ||
+		glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS ||
+		glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+}
+
+// Renders one frame of the startup splash using the current scene and graphics system.
+void RenderStartupSplashFrame(ApplicationState& appState) {
+	// Cannot render if the engine or current scene is missing.
+	if (!appState.coreEngine || !appState.currentScene) {
+		return;
+	}
+
+	// Retrieve the graphics system needed for rendering.
+	auto* graphicsEngine = appState.coreEngine->GetSystem<GraphicsEngine>();
+	if (!graphicsEngine) {
+		return;
+	}
+
+	// Collect renderable objects and draw the splash frame.
+	std::vector<GameObject*> drawList;
+	graphicsEngine->BeginFrame();
+	appState.currentScene->CollectRenderablePointers(drawList);
+	graphicsEngine->RenderBatched(drawList);
+	graphicsEngine->PresentFrame();
+	glfwSwapBuffers(appState.window);
+}
+
+// Displays the startup splash screen for a fixed duration,
+// or until the user requests to skip it.
+void ShowStartupSplash(ApplicationState& appState) {
+	if (!appState.window || !appState.currentScene || !appState.coreEngine) {
+		return;
+	}
+
+	const char* splashTexturePath = GetStartupSplashTexturePath();
+	const float splashDurationSeconds = GetStartupSplashDurationSeconds();
+
+	if (!splashTexturePath || splashTexturePath[0] == '\0' || splashDurationSeconds <= 0.0f) {
+		return;
+	}
+
+	// Ensure no previous scene objects interfere with the splash presentation.
+	appState.currentScene->ClearAll();
+
+	// Spawn centered, scaled-down logo.
+	const glm::vec3 center{
+		static_cast<float>(GraphicsEngine::kRefW) * 0.5f,
+		static_cast<float>(GraphicsEngine::kRefH) * 0.5f,
+		0.0f
+	};
+	const glm::vec2 logoSize{ 700.0f, 250.0f };
+	const float fadeInSeconds = 2.0f;
+	const float fadeOutSeconds = 0.75f;
+
+	int splashLogoId = -1;
+	if (GameObject* logo = appState.currentScene->SpawnStaticSprite(
+		splashTexturePath,
+		center,
+		logoSize,
+		"999998")) {
+		logo->SetRenderSortOrder(999998);
+		logo->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
+		logo->SetMovableByPhysics(false);
+		logo->EnableShadow(false);
+		logo->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)); // start invisible
+		splashLogoId = logo->GetID();
+	}
+
+	GLfloat previousClearColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	glGetFloatv(GL_COLOR_CLEAR_VALUE, previousClearColor);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+	if (auto* inputMgr = appState.coreEngine->GetSystem<InputManager>()) {
+		inputMgr->ClearState();
+	}
+
+	const double splashStartTime = glfwGetTime();
+	while (!glfwWindowShouldClose(appState.window) && !appState.shouldExit) {
+		glfwPollEvents();
+
+		const double elapsed = glfwGetTime() - splashStartTime;
+		if (splashLogoId >= 0) {
+			if (GameObject* logo = appState.currentScene->GetGameObjectByID(splashLogoId)) {
+				float alpha = 1.0f;
+
+				if (elapsed < static_cast<double>(fadeInSeconds)) {
+					alpha = static_cast<float>(elapsed / static_cast<double>(fadeInSeconds));
+				}
+				else if (elapsed > static_cast<double>(splashDurationSeconds - fadeOutSeconds)) {
+					const double fadeOutElapsed = elapsed - static_cast<double>(splashDurationSeconds - fadeOutSeconds);
+					alpha = 1.0f - static_cast<float>(fadeOutElapsed / static_cast<double>(fadeOutSeconds));
+				}
+
+				if (alpha < 0.0f) alpha = 0.0f;
+				if (alpha > 1.0f) alpha = 1.0f;
+				logo->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, alpha));
+			}
+		}
+
+		RenderStartupSplashFrame(appState);
+
+		if (elapsed >= static_cast<double>(splashDurationSeconds) || IsStartupSplashSkipRequested(appState.window)) {
+			break;
+		}
+	}
+
+	// Clean up splash object and restore clear color.
+	if (splashLogoId >= 0) {
+		appState.currentScene->DespawnByID(splashLogoId);
+	}
+	glClearColor(previousClearColor[0], previousClearColor[1], previousClearColor[2], previousClearColor[3]);
+
+	if (auto* inputMgr = appState.coreEngine->GetSystem<InputManager>()) {
+		inputMgr->ClearState();
+	}
 }

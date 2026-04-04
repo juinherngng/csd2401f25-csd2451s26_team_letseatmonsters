@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameBootstrap.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (80%)
+ CO-AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (20%)
 
  DESCRIPTION:		Declares the game-side bootstrap interface that the engine
 					calls at startup. Each function is implemented by the active
@@ -39,3 +40,15 @@ void ConfigureGameStates(Framework::GameStateManager& gsm);
  * @param gsm GameStateManager receiving the audio policies.
  */
 void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm);
+
+/**
+ * @brief Returns the startup splash texture path, or an empty string to disable.
+ * @return UTF-8 texture path consumed by the scene background loader.
+ */
+const char* GetStartupSplashTexturePath();
+
+/**
+ * @brief Returns how long the startup splash should be shown in seconds.
+ * @return Splash duration in seconds. Values <= 0 disable timed display.
+ */
+float GetStartupSplashDurationSeconds();
