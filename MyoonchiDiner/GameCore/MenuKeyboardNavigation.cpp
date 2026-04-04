@@ -100,7 +100,15 @@ namespace {
 	std::vector<int> CollectSettingsMenuButtons(Scene& scene) {
 		return MenuKeyboardNavigation::CollectObjectsByTags(
 			scene,
-			{ "settings_fullscreen_visual", "settings_windowed_visual", "settings_how_visual", "btn_main_menu" });
+			{
+				"settings_master_bar_visual",
+				"settings_bgm_bar_visual",
+				"settings_sfx_bar_visual",
+				"settings_fullscreen_visual",
+				"settings_windowed_visual",
+				"settings_how_visual",
+				"btn_main_menu"
+			});
 	}
 
 	std::vector<int> CollectWinMenuButtons(Scene& scene) {

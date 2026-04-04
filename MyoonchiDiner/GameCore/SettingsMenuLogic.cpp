@@ -29,6 +29,14 @@
 #include "MyoonchiDiner/GamePaths.hpp"
 
 namespace {
+	constexpr float kSliderFocusedBarScale = 1.04f;
+	constexpr float kSliderFocusedKnobScale = 1.10f;
+	constexpr float kSliderActiveBarScale = 1.08f;
+	constexpr float kSliderActiveKnobScale = 1.22f;
+	constexpr float kKeyboardSliderStep = 0.05f;
+	constexpr float kKeyboardSliderRepeatStartDelay = 0.24f;
+	constexpr float kKeyboardSliderRepeatInterval = 0.08f;
+
 	/**
 	 * @brief Axis-aligned rectangle used for authored UI hit-testing.
 	 */
@@ -381,6 +389,21 @@ namespace {
 	}
 
 	/**
+	 * @brief Updates an authored UI object's scale while preserving its identity and layer.
+	 * @param scene Scene containing the object.
+	 * @param objectId Object to resize.
+	 * @param desiredScale Desired scale in scene units.
+	 */
+	static void SetVisualObjectScale(Scene& scene, int objectId, const glm::vec3& desiredScale) {
+		GameObject* obj = scene.GetGameObjectByID(objectId);
+		if (!obj) {
+			return;
+		}
+
+		obj->SetScale(desiredScale);
+	}
+
+	/**
 	 * @brief Resolves the config file path used by the settings screen.
 	 * @return Absolute or project-relative config path used for load/save.
 	 */
@@ -421,6 +444,7 @@ void SettingsMenuLogic::Start(Scene& scene) {
 	// Cache scene-authored widgets and their normal/hover texture paths.
 	configPath_ = ResolveConfigPath();
 	ResolveWidgetIds(scene);
+	CacheSliderBaseScales(scene);
 	fullscreenNormalTexturePath_ = fullscreenVisualId_ >= 0 ? scene.GetObjectTexturePath(fullscreenVisualId_) : std::string();
 	windowedNormalTexturePath_ = windowedVisualId_ >= 0 ? scene.GetObjectTexturePath(windowedVisualId_) : std::string();
 	fullscreenHoverTexturePath_ = MakeHoverPath(fullscreenNormalTexturePath_);
@@ -441,7 +465,7 @@ void SettingsMenuLogic::Start(Scene& scene) {
  * @param scene Active scene containing the settings UI.
  * @param input Shared input manager used for mouse interaction.
  */
-void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
+void SettingsMenuLogic::Update(float dt, Scene& scene, InputManager& input) {
 	// Lazily initialize when the logic begins updating.
 	if (!initialized_) {
 		Start(scene);
@@ -479,16 +503,33 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 	const Rect masterSliderInteractRect = UnionRects(SliderGeometryToRect(masterSlider), GetObjectRect(scene, masterKnobVisualId_));
 	const Rect bgmSliderInteractRect = UnionRects(SliderGeometryToRect(bgmSlider), GetObjectRect(scene, bgmKnobVisualId_));
 	const Rect sfxSliderInteractRect = UnionRects(SliderGeometryToRect(sfxSlider), GetObjectRect(scene, sfxKnobVisualId_));
+	const bool mouseOverMasterSlider = IsPointInRect(mouseWorld, masterSliderInteractRect);
+	const bool mouseOverBgmSlider = IsPointInRect(mouseWorld, bgmSliderInteractRect);
+	const bool mouseOverSfxSlider = IsPointInRect(mouseWorld, sfxSliderInteractRect);
 	const bool mouseOverFullscreen = IsPointInRect(mouseWorld, fullscreenButtonRect);
 	const bool mouseOverWindowed = IsPointInRect(mouseWorld, windowedButtonRect);
+	const int mouseHoveredNavigationId =
+		mouseOverMasterSlider ? masterBarVisualId_ :
+		(mouseOverBgmSlider ? bgmBarVisualId_ :
+			(mouseOverSfxSlider ? sfxBarVisualId_ :
+				(mouseOverFullscreen ? fullscreenVisualId_ :
+					(mouseOverWindowed ? windowedVisualId_ : -1))));
+	const std::vector<int> navigationIds = MenuKeyboardNavigation::CollectCurrentSceneTopLevelButtons(scene);
 	const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
 		scene,
 		input,
 		MenuKeyboardNavigation::GetCurrentSceneTopLevelScopeKey(scene),
-		MenuKeyboardNavigation::CollectCurrentSceneTopLevelButtons(scene),
-		mouseOverFullscreen ? fullscreenVisualId_ : (mouseOverWindowed ? windowedVisualId_ : -1));
+		navigationIds,
+		mouseHoveredNavigationId);
+	const SliderTarget focusedSlider = SliderTargetFromFocusId(focusedButtonId);
+	const SliderTarget hoveredSlider =
+		mouseOverMasterSlider ? SliderTarget::Master :
+		(mouseOverBgmSlider ? SliderTarget::Bgm :
+			(mouseOverSfxSlider ? SliderTarget::Sfx : SliderTarget::None));
+	const SliderTarget highlightedSlider = (hoveredSlider != SliderTarget::None) ? hoveredSlider : focusedSlider;
 	const bool overFullscreen = mouseOverFullscreen || (focusedButtonId == fullscreenVisualId_);
 	const bool overWindowed = mouseOverWindowed || (focusedButtonId == windowedVisualId_);
+	bool visualsNeedRefresh = false;
 
 	if (overFullscreen != fullscreenHovered_) {
 		// Refresh hover art and sound only when the state actually changes.
@@ -497,7 +538,7 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 			scene.TriggerUiButtonHoverFeedback(fullscreenVisualId_);
 			PlayHoverSound();
 		}
-		RefreshVisualState(scene);
+		visualsNeedRefresh = true;
 	}
 
 	if (overWindowed != windowedHovered_) {
@@ -508,18 +549,46 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 			PlayHoverSound();
 		}
 
+		visualsNeedRefresh = true;
+	}
+
+	if (highlightedSlider != highlightedSlider_) {
+		highlightedSlider_ = highlightedSlider;
+		if (highlightedSlider_ != SliderTarget::None &&
+			((highlightedSlider_ == focusedSlider) || !suppressHoverFeedbackUntilMouseMove_)) {
+			if (const int sliderBarId = GetSliderBarVisualId(highlightedSlider_); sliderBarId >= 0) {
+				scene.TriggerUiButtonHoverFeedback(sliderBarId);
+			}
+			PlayHoverSound();
+		}
+		visualsNeedRefresh = true;
+	}
+
+	if (keyboardAdjustingSlider_ != SliderTarget::None && focusedSlider != keyboardAdjustingSlider_) {
+		keyboardAdjustingSlider_ = SliderTarget::None;
+		sliderAdjustHeldDirection_ = 0;
+		sliderAdjustRepeatTimer_ = 0.0f;
+		visualsNeedRefresh = true;
+	}
+
+	if (visualsNeedRefresh) {
 		RefreshVisualState(scene);
 	}
 
 	const bool mouseClick = input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT);
 	const bool keyboardCanActivateLocal =
-		(focusedButtonId == fullscreenVisualId_) || (focusedButtonId == windowedVisualId_);
+		(focusedButtonId == fullscreenVisualId_) ||
+		(focusedButtonId == windowedVisualId_) ||
+		(focusedSlider != SliderTarget::None);
 	const bool keyboardSubmit = keyboardCanActivateLocal && MenuKeyboardNavigation::ConsumeSubmitPress(input);
 	if (mouseClick || keyboardSubmit) {
 		if ((mouseOverFullscreen && mouseClick) || (focusedButtonId == fullscreenVisualId_ && keyboardSubmit)) {
 			// Fullscreen toggles save immediately because the app window changes right away.
 			PlayClickSound();
 			suppressHoverFeedbackUntilMouseMove_ = true;
+			keyboardAdjustingSlider_ = SliderTarget::None;
+			sliderAdjustHeldDirection_ = 0;
+			sliderAdjustRepeatTimer_ = 0.0f;
 			settings_.fullscreen = true;
 			PersistSettings(true);
 			RefreshVisualState(scene);
@@ -533,6 +602,9 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 			// Windowed mode follows the same immediate-apply path.
 			PlayClickSound();
 			suppressHoverFeedbackUntilMouseMove_ = true;
+			keyboardAdjustingSlider_ = SliderTarget::None;
+			sliderAdjustHeldDirection_ = 0;
+			sliderAdjustRepeatTimer_ = 0.0f;
 			settings_.fullscreen = false;
 			PersistSettings(true);
 			RefreshVisualState(scene);
@@ -542,10 +614,30 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 			return;
 		}
 
+		if (focusedSlider != SliderTarget::None && keyboardSubmit) {
+			PlayClickSound();
+			if (keyboardAdjustingSlider_ == focusedSlider) {
+				keyboardAdjustingSlider_ = SliderTarget::None;
+				sliderAdjustHeldDirection_ = 0;
+				sliderAdjustRepeatTimer_ = 0.0f;
+			}
+			else {
+				keyboardAdjustingSlider_ = focusedSlider;
+				sliderAdjustHeldDirection_ = 0;
+				sliderAdjustRepeatTimer_ = 0.0f;
+			}
+			RefreshVisualState(scene);
+			return;
+		}
+
 		if (mouseClick && IsPointInRect(mouseWorld, masterSliderInteractRect)) {
 			// Dragging starts from either the bar strip or the current knob body.
 			PlayClickSound();
+			keyboardAdjustingSlider_ = SliderTarget::None;
+			sliderAdjustHeldDirection_ = 0;
+			sliderAdjustRepeatTimer_ = 0.0f;
 			StartSliderDrag(SliderTarget::Master, mouseWorld.x);
+			RefreshVisualState(scene);
 			UpdateSliderDrag(mouseWorld.x, scene);
 			return;
 		}
@@ -553,7 +645,11 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 		if (mouseClick && IsPointInRect(mouseWorld, bgmSliderInteractRect)) {
 			// BGM slider uses the same authored geometry-derived interaction region.
 			PlayClickSound();
+			keyboardAdjustingSlider_ = SliderTarget::None;
+			sliderAdjustHeldDirection_ = 0;
+			sliderAdjustRepeatTimer_ = 0.0f;
 			StartSliderDrag(SliderTarget::Bgm, mouseWorld.x);
+			RefreshVisualState(scene);
 			UpdateSliderDrag(mouseWorld.x, scene);
 			return;
 		}
@@ -561,10 +657,18 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 		if (mouseClick && IsPointInRect(mouseWorld, sfxSliderInteractRect)) {
 			// SFX slider also supports click-to-jump plus immediate drag continuation.
 			PlayClickSound();
+			keyboardAdjustingSlider_ = SliderTarget::None;
+			sliderAdjustHeldDirection_ = 0;
+			sliderAdjustRepeatTimer_ = 0.0f;
 			StartSliderDrag(SliderTarget::Sfx, mouseWorld.x);
+			RefreshVisualState(scene);
 			UpdateSliderDrag(mouseWorld.x, scene);
 			return;
 		}
+	}
+
+	if (keyboardAdjustingSlider_ != SliderTarget::None) {
+		UpdateKeyboardSliderAdjustment(dt, scene, input);
 	}
 
 	if (draggingSlider_ != SliderTarget::None && input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT)) {
@@ -575,6 +679,7 @@ void SettingsMenuLogic::Update(float /*dt*/, Scene& scene, InputManager& input) 
 	if (draggingSlider_ != SliderTarget::None && input.IsMouseButtonJustReleased(GLFW_MOUSE_BUTTON_LEFT)) {
 		// Releasing the mouse ends slider dragging cleanly.
 		draggingSlider_ = SliderTarget::None;
+		RefreshVisualState(scene);
 	}
 }
 
@@ -595,6 +700,195 @@ void SettingsMenuLogic::ResolveWidgetIds(Scene& scene) {
 }
 
 /**
+ * @brief Caches the authored slider scales so focus/active highlighting can restore them exactly.
+ * @param scene Scene containing the settings widgets.
+ */
+void SettingsMenuLogic::CacheSliderBaseScales(Scene& scene) {
+	auto captureScale = [&scene](int objectId, glm::vec3& outScale) {
+		if (GameObject* obj = scene.GetGameObjectByID(objectId)) {
+			outScale = obj->GetScaleGLM();
+		}
+	};
+
+	captureScale(masterBarVisualId_, masterBarBaseScale_);
+	captureScale(bgmBarVisualId_, bgmBarBaseScale_);
+	captureScale(sfxBarVisualId_, sfxBarBaseScale_);
+	captureScale(masterKnobVisualId_, masterKnobBaseScale_);
+	captureScale(bgmKnobVisualId_, bgmKnobBaseScale_);
+	captureScale(sfxKnobVisualId_, sfxKnobBaseScale_);
+}
+
+/**
+ * @brief Maps a focused settings object back to the corresponding slider target.
+ * @param objectId Focused object ID from menu navigation.
+ * @return Matching slider target, or `None` when the focus is on a button.
+ */
+SettingsMenuLogic::SliderTarget SettingsMenuLogic::SliderTargetFromFocusId(int objectId) const {
+	if (objectId == masterBarVisualId_) {
+		return SliderTarget::Master;
+	}
+	if (objectId == bgmBarVisualId_) {
+		return SliderTarget::Bgm;
+	}
+	if (objectId == sfxBarVisualId_) {
+		return SliderTarget::Sfx;
+	}
+	return SliderTarget::None;
+}
+
+/**
+ * @brief Returns the authored bar object ID for a given slider target.
+ * @param target Slider to resolve.
+ * @return Bar object ID, or `-1` when unavailable.
+ */
+int SettingsMenuLogic::GetSliderBarVisualId(SliderTarget target) const {
+	switch (target) {
+	case SliderTarget::Master:
+		return masterBarVisualId_;
+	case SliderTarget::Bgm:
+		return bgmBarVisualId_;
+	case SliderTarget::Sfx:
+		return sfxBarVisualId_;
+	case SliderTarget::None:
+	default:
+		return -1;
+	}
+}
+
+/**
+ * @brief Returns the authored knob object ID for a given slider target.
+ * @param target Slider to resolve.
+ * @return Knob object ID, or `-1` when unavailable.
+ */
+int SettingsMenuLogic::GetSliderKnobVisualId(SliderTarget target) const {
+	switch (target) {
+	case SliderTarget::Master:
+		return masterKnobVisualId_;
+	case SliderTarget::Bgm:
+		return bgmKnobVisualId_;
+	case SliderTarget::Sfx:
+		return sfxKnobVisualId_;
+	case SliderTarget::None:
+	default:
+		return -1;
+	}
+}
+
+/**
+ * @brief Returns the config-backed value for the requested slider.
+ * @param target Slider to read.
+ * @return Current normalized value in the range `[0, 1]`.
+ */
+float SettingsMenuLogic::GetSliderValue(SliderTarget target) const {
+	switch (target) {
+	case SliderTarget::Master:
+		return settings_.masterVolume;
+	case SliderTarget::Bgm:
+		return settings_.bgmVolume;
+	case SliderTarget::Sfx:
+		return settings_.vfxVolume;
+	case SliderTarget::None:
+	default:
+		return 0.0f;
+	}
+}
+
+/**
+ * @brief Stores a normalized value back into the requested slider field.
+ * @param target Slider to update.
+ * @param value Normalized value in the range `[0, 1]`.
+ */
+void SettingsMenuLogic::SetSliderValue(SliderTarget target, float value) {
+	switch (target) {
+	case SliderTarget::Master:
+		settings_.masterVolume = value;
+		break;
+	case SliderTarget::Bgm:
+		settings_.bgmVolume = value;
+		break;
+	case SliderTarget::Sfx:
+		settings_.vfxVolume = value;
+		break;
+	case SliderTarget::None:
+	default:
+		break;
+	}
+}
+
+/**
+ * @brief Applies a single keyboard step to the active slider and persists the change.
+ * @param scene Scene containing the settings widgets.
+ * @param target Slider to modify.
+ * @param direction Negative for left, positive for right.
+ */
+void SettingsMenuLogic::ApplyKeyboardSliderStep(Scene& scene, SliderTarget target, int direction) {
+	if (target == SliderTarget::None || direction == 0) {
+		return;
+	}
+
+	const float currentValue = GetSliderValue(target);
+	const float nextValue = std::clamp(currentValue + (static_cast<float>(direction) * kKeyboardSliderStep), 0.0f, 1.0f);
+	if (nextValue == currentValue) {
+		return;
+	}
+
+	SetSliderValue(target, nextValue);
+	PersistSettings(false);
+	RefreshVisualState(scene);
+}
+
+/**
+ * @brief Drives held-key repeat while a slider is in keyboard-adjust mode.
+ * @param dt Frame delta time in seconds.
+ * @param scene Scene containing the settings widgets.
+ * @param input Shared input manager.
+ */
+void SettingsMenuLogic::UpdateKeyboardSliderAdjustment(float dt, Scene& scene, InputManager& input) {
+	if (keyboardAdjustingSlider_ == SliderTarget::None) {
+		sliderAdjustHeldDirection_ = 0;
+		sliderAdjustRepeatTimer_ = 0.0f;
+		return;
+	}
+
+	const bool leftJustPressed = input.IsKeyJustPressed(GLFW_KEY_LEFT);
+	const bool rightJustPressed = input.IsKeyJustPressed(GLFW_KEY_RIGHT);
+	const bool leftHeld = input.IsKeyPressed(GLFW_KEY_LEFT);
+	const bool rightHeld = input.IsKeyPressed(GLFW_KEY_RIGHT);
+
+	const int desiredDirection =
+		(leftHeld == rightHeld) ? 0 :
+		(rightHeld ? 1 : -1);
+
+	if (desiredDirection == 0) {
+		sliderAdjustHeldDirection_ = 0;
+		sliderAdjustRepeatTimer_ = 0.0f;
+		return;
+	}
+
+	const bool directionJustPressed =
+		(desiredDirection < 0 && leftJustPressed) ||
+		(desiredDirection > 0 && rightJustPressed);
+
+	bool shouldApplyStep = false;
+	if (directionJustPressed || desiredDirection != sliderAdjustHeldDirection_) {
+		shouldApplyStep = true;
+		sliderAdjustHeldDirection_ = desiredDirection;
+		sliderAdjustRepeatTimer_ = kKeyboardSliderRepeatStartDelay;
+	}
+	else {
+		sliderAdjustRepeatTimer_ -= dt;
+		if (sliderAdjustRepeatTimer_ <= 0.0f) {
+			shouldApplyStep = true;
+			sliderAdjustRepeatTimer_ = kKeyboardSliderRepeatInterval;
+		}
+	}
+
+	if (shouldApplyStep) {
+		ApplyKeyboardSliderStep(scene, keyboardAdjustingSlider_, desiredDirection);
+	}
+}
+
+/**
  * @brief Applies the current settings state back onto button textures and knob positions.
  * @param scene Scene containing the live settings UI.
  */
@@ -607,6 +901,32 @@ void SettingsMenuLogic::RefreshVisualState(Scene& scene) {
 	TrySetTexture(scene,
 		windowedVisualId_,
 		windowedHovered_ ? windowedHoverTexturePath_.c_str() : windowedNormalTexturePath_.c_str());
+
+	auto applySliderScale = [&](SliderTarget target, const glm::vec3& barBaseScale, const glm::vec3& knobBaseScale) {
+		float barScaleMultiplier = 1.0f;
+		float knobScaleMultiplier = 1.0f;
+
+		if (highlightedSlider_ == target) {
+			barScaleMultiplier = kSliderFocusedBarScale;
+			knobScaleMultiplier = kSliderFocusedKnobScale;
+		}
+
+		if (keyboardAdjustingSlider_ == target || draggingSlider_ == target) {
+			barScaleMultiplier = kSliderActiveBarScale;
+			knobScaleMultiplier = kSliderActiveKnobScale;
+		}
+
+		SetVisualObjectScale(scene,
+			GetSliderBarVisualId(target),
+			{ barBaseScale.x * barScaleMultiplier, barBaseScale.y * barScaleMultiplier, barBaseScale.z });
+		SetVisualObjectScale(scene,
+			GetSliderKnobVisualId(target),
+			{ knobBaseScale.x * knobScaleMultiplier, knobBaseScale.y * knobScaleMultiplier, knobBaseScale.z });
+	};
+
+	applySliderScale(SliderTarget::Master, masterBarBaseScale_, masterKnobBaseScale_);
+	applySliderScale(SliderTarget::Bgm, bgmBarBaseScale_, bgmKnobBaseScale_);
+	applySliderScale(SliderTarget::Sfx, sfxBarBaseScale_, sfxKnobBaseScale_);
 
 	const SliderGeometry masterSlider = GetSliderGeometry(scene, masterBarVisualId_, masterKnobVisualId_);
 	const SliderGeometry bgmSlider = GetSliderGeometry(scene, bgmBarVisualId_, bgmKnobVisualId_);
