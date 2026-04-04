@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         OrderUILogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (85%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (15%)
 
  DESCRIPTION:       Defines the OrderUILogic component, responsible for collecting
 					active customer orders and displaying them as animated order
@@ -26,6 +27,12 @@ std::unordered_map<int, glm::vec2> OrderUILogic::sCustomerPanelCenters_{};
 std::unordered_set<int> OrderUILogic::sPendingStampCustomers_{};
 
 namespace {
+	/**
+	 * @brief Parses a numeric layer name and falls back when parsing fails.
+	 * @param layerName Layer name string to parse.
+	 * @param fallback Fallback layer number when parsing is invalid.
+	 * @return Parsed layer number or the supplied fallback.
+	 */
 	int ParseNumericLayerOrFallback(const std::string& layerName, int fallback) {
 		if (layerName.empty()) {
 			return fallback;
@@ -42,6 +49,11 @@ namespace {
 		return value;
 	}
 
+	/**
+	 * @brief Returns the ingredient-box icon that represents an ingredient type.
+	 * @param type Ingredient type to convert into an icon path.
+	 * @return Texture path for the matching ingredient-box icon.
+	 */
 	const char* IngredientBoxIconPath(IngredientType type) {
 		switch (type) {
 		case IngredientType::Vegetable:
@@ -63,6 +75,12 @@ namespace {
 
 }
 
+/**
+ * @brief Returns the current order-panel center for a specific customer when available.
+ * @param customerId Runtime ID of the customer being queried.
+ * @param outPos Output panel-center position in world space.
+ * @return True when the customer currently owns a visible order panel.
+ */
 bool OrderUILogic::TryGetPanelCenterForCustomer(int customerId, glm::vec2& outPos) {
 	auto it = sCustomerPanelCenters_.find(customerId);
 	if (it == sCustomerPanelCenters_.end()) {
@@ -72,29 +90,54 @@ bool OrderUILogic::TryGetPanelCenterForCustomer(int customerId, glm::vec2& outPo
 	return true;
 }
 
+/**
+ * @brief Queues a completion stamp animation for the specified customer's order panel.
+ * @param customerId Runtime ID of the customer whose panel should be stamped.
+ */
 void OrderUILogic::RequestCompletionStampForCustomer(int customerId) {
 	if (customerId >= 0) {
+		// Defer the actual stamp spawn so callers can request it from outside the HUD update loop safely.
 		sPendingStampCustomers_.insert(customerId);
 	}
 }
 
+/**
+ * @brief Clamps a scalar to the normalized range `[0, 1]`.
+ * @param v Value to clamp.
+ * @return Clamped normalized value.
+ */
 static float Clamp01(float v) {
 	if (v < 0.f) return 0.f;
 	if (v > 1.f) return 1.f;
 	return v;
 }
 
+/**
+ * @brief Evaluates an ease-out cubic curve on a normalized input.
+ * @param x Normalized interpolation input.
+ * @return Eased output value.
+ */
 static float EaseOutCubic(float x) {
 	x = Clamp01(x);
 	float inv = 1.0f - x;
 	return 1.0f - inv * inv * inv;
 }
 
+/**
+ * @brief Evaluates an ease-in cubic curve on a normalized input.
+ * @param x Normalized interpolation input.
+ * @return Eased output value.
+ */
 static float EaseInCubic(float x) {
 	x = Clamp01(x);
 	return x * x * x;
 }
 
+/**
+ * @brief Evaluates an ease-out-back curve that overshoots slightly before settling.
+ * @param x Normalized interpolation input.
+ * @return Eased output value.
+ */
 static float EaseOutBack(float x) {
 	x = Clamp01(x);
 	constexpr float c1 = 1.70158f;
@@ -103,12 +146,22 @@ static float EaseOutBack(float x) {
 	return 1.0f + c3 * y * y * y + c1 * y * y;
 }
 
+/**
+ * @brief Despawns an object if its ID still points at a live scene object.
+ * @param scene Active scene containing the object.
+ * @param id In-out object ID to despawn and invalidate.
+ */
 static void DespawnIfAlive(Scene& scene, int& id) {
 	if (id >= 0) {
 		scene.DespawnByID(id); id = -1;
 	}
 }
 
+/**
+ * @brief Returns the dish icon path used by this HUD for a specific dish type.
+ * @param t Dish type to convert into an icon path.
+ * @return Texture path for the corresponding dish icon.
+ */
 const char* OrderUILogic::DishToIconPath(DishType t) const {
 	switch (t) {
 	case DishType::VegDish:  return "../assets/Food/Salad.png";
@@ -121,6 +174,10 @@ const char* OrderUILogic::DishToIconPath(DishType t) const {
 	}
 }
 
+/**
+ * @brief Initializes HUD slots, shared lookup state, and authored layer settings.
+ * @param scene Active scene containing the order UI anchor object.
+ */
 void OrderUILogic::Start(Scene& scene) {
 	slots_.clear();
 	slots_.resize(kMaxOrders);
@@ -157,11 +214,20 @@ void OrderUILogic::Start(Scene& scene) {
 	stampLayer_ = std::to_string(baseLayer + 2);
 }
 
+/**
+ * @brief Despawns every spawned order-panel object owned by this HUD.
+ * @param scene Active scene containing the order UI objects.
+ */
 void OrderUILogic::OnDestroy(Scene& scene) {
 	for (auto& slot : slots_)
 		ClearSlot(scene, slot);
 }
 
+/**
+ * @brief Returns the target position for a slot within the order-ticket strip.
+ * @param slotIndex Zero-based slot index.
+ * @return World-space target position for the slot's panel.
+ */
 glm::vec2 OrderUILogic::SlotTargetPos(int slotIndex) const {
 	// Anchor the first order beside the quota UI, then grow additional tickets rightward.
 	return glm::vec2(
@@ -170,6 +236,11 @@ glm::vec2 OrderUILogic::SlotTargetPos(int slotIndex) const {
 	);
 }
 
+/**
+ * @brief Despawns all spawned visuals owned by a slot and resets its state.
+ * @param scene Active scene containing the order UI objects.
+ * @param slot Slot record to clear.
+ */
 void OrderUILogic::ClearSlot(Scene& scene, OrderSlot& slot) {
 	DespawnIfAlive(scene, slot.dishIconId);
 
@@ -198,6 +269,9 @@ void OrderUILogic::ClearSlot(Scene& scene, OrderSlot& slot) {
 		slot.stationIconIds.assign(kRecipeCols, -1);
 }
 
+/**
+ * @brief Compacts active slots toward the left after completed cards are removed.
+ */
 void OrderUILogic::CompactSlotsLeft() {
 	for (int i = 0; i < (int)slots_.size(); ++i) {
 		if (slots_[i].customerId >= 0 || slots_[i].completing) {
@@ -213,6 +287,13 @@ void OrderUILogic::CompactSlotsLeft() {
 	}
 }
 
+/**
+ * @brief Updates a live slot's panel position and its child visuals.
+ * @param scene Active scene containing the slot objects.
+ * @param slotIndex Zero-based slot index.
+ * @param slot Slot record to update.
+ * @param dt Delta time for the frame.
+ */
 void OrderUILogic::UpdateLivePanelLayout(Scene& scene, int slotIndex, OrderSlot& slot, float dt) {
 	if (slot.panelId < 0) {
 		return;
@@ -241,6 +322,11 @@ void OrderUILogic::UpdateLivePanelLayout(Scene& scene, int slotIndex, OrderSlot&
 	UpdateCompletionStamp(scene, slot, dt, glm::vec2(cur.x, cur.y), 1.0f);
 }
 
+/**
+ * @brief Starts the completion-stamp animation for a slot if one is not already active.
+ * @param scene Active scene containing the order UI objects.
+ * @param slot Slot record whose stamp should begin animating.
+ */
 void OrderUILogic::StartCompletionStamp(Scene& scene, OrderSlot& slot) {
 	if (slot.stampActive) {
 		return;
@@ -269,6 +355,14 @@ void OrderUILogic::StartCompletionStamp(Scene& scene, OrderSlot& slot) {
 	slot.stampTimer = 0.0f;
 }
 
+/**
+ * @brief Advances the completion-stamp animation and updates its transform and alpha.
+ * @param scene Active scene containing the stamp object.
+ * @param slot Slot record owning the stamp.
+ * @param dt Delta time for the frame.
+ * @param panelPos Current panel center position.
+ * @param parentAlpha Parent panel alpha multiplier.
+ */
 void OrderUILogic::UpdateCompletionStamp(Scene& scene, OrderSlot& slot,
 	float dt, const glm::vec2& panelPos, float parentAlpha) {
 	if (!slot.stampActive || slot.stampId < 0) {
@@ -321,6 +415,12 @@ void OrderUILogic::UpdateCompletionStamp(Scene& scene, OrderSlot& slot,
 	}
 }
 
+/**
+ * @brief Starts the slot-completion animation for an order that just resolved.
+ * @param scene Active scene containing the order UI objects.
+ * @param slotIndex Zero-based slot index.
+ * @param slot Slot record to animate out.
+ */
 void OrderUILogic::BeginCompleteAnimation(Scene& scene, int slotIndex, OrderSlot& slot) {
 	if (slot.completing) {
 		return;
@@ -336,6 +436,14 @@ void OrderUILogic::BeginCompleteAnimation(Scene& scene, int slotIndex, OrderSlot
 	}
 }
 
+/**
+ * @brief Applies a shared transform, scale, and alpha state to all visuals in a slot.
+ * @param scene Active scene containing the slot objects.
+ * @param slot Slot record whose visuals should be updated.
+ * @param panelPos Current panel center position.
+ * @param scaleMul Uniform scale multiplier for the slot.
+ * @param alpha Alpha multiplier for the slot.
+ */
 void OrderUILogic::ApplySlotVisualState(Scene& scene, OrderSlot& slot,
 	const glm::vec2& panelPos, float scaleMul, float alpha) {
 	alpha = Clamp01(alpha);
@@ -365,6 +473,13 @@ void OrderUILogic::ApplySlotVisualState(Scene& scene, OrderSlot& slot,
 	}
 }
 
+/**
+ * @brief Advances the completion animation for a slot and reports when it finishes.
+ * @param scene Active scene containing the slot objects.
+ * @param slot Slot record being animated out.
+ * @param dt Delta time for the frame.
+ * @return True when the completion animation has fully finished.
+ */
 bool OrderUILogic::UpdateCompleteAnimation(Scene& scene, OrderSlot& slot, float dt) {
 	if (!slot.completing) {
 		return false;
@@ -410,6 +525,11 @@ bool OrderUILogic::UpdateCompleteAnimation(Scene& scene, OrderSlot& slot, float 
 	return slot.completionTimer >= total;
 }
 
+/**
+ * @brief Returns the dish-icon offset appropriate for a specific dish type.
+ * @param dish Dish type whose icon offset should be resolved.
+ * @return Local icon offset relative to the panel center.
+ */
 glm::vec2 OrderUILogic::GetDishIconOffset(DishType dish) const {
 	switch (dish) {
 	case DishType::SkewerDish:
@@ -420,6 +540,11 @@ glm::vec2 OrderUILogic::GetDishIconOffset(DishType dish) const {
 	}
 }
 
+/**
+ * @brief Returns the dish-icon size appropriate for a specific dish type.
+ * @param dish Dish type whose icon size should be resolved.
+ * @return Icon size in scene units.
+ */
 glm::vec2 OrderUILogic::GetDishIconSize(DishType dish) const {
 	switch (dish) {
 	case DishType::SkewerDish:
@@ -430,6 +555,14 @@ glm::vec2 OrderUILogic::GetDishIconSize(DishType dish) const {
 	}
 }
 
+/**
+ * @brief Updates the dish icon's transform, size, and alpha to match the panel state.
+ * @param scene Active scene containing the dish icon object.
+ * @param slot Slot record owning the dish icon.
+ * @param panelPos Current panel center position.
+ * @param scaleMul Uniform scale multiplier for the slot.
+ * @param alpha Alpha multiplier for the icon.
+ */
 void OrderUILogic::UpdateDishIconVisualState(Scene& scene, OrderSlot& slot,
 	const glm::vec2& panelPos, float scaleMul, float alpha) {
 	if (slot.dishIconId < 0) {
@@ -454,6 +587,12 @@ void OrderUILogic::UpdateDishIconVisualState(Scene& scene, OrderSlot& slot,
 	icon->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, Clamp01(alpha)));
 }
 
+/**
+ * @brief Returns the panel texture to use for a customer table in the current level.
+ * @param scene Active scene containing the order UI and table defaults.
+ * @param tableId Runtime ID of the customer table associated with the order.
+ * @return Texture path for the correct panel style.
+ */
 const char* OrderUILogic::GetPanelTextureForTable(Scene& scene, int tableId) const {
 	const std::string levelPath = scene.GetCurrentLevelPath();
 	if (levelPath.find("kitchen02") == std::string::npos) {
@@ -470,6 +609,12 @@ const char* OrderUILogic::GetPanelTextureForTable(Scene& scene, int tableId) con
 		: panelTex_;
 }
 
+/**
+ * @brief Swaps a panel object's texture and updates its stored defaults.
+ * @param scene Active scene containing the panel object.
+ * @param panelId Runtime ID of the panel object.
+ * @param texPath Texture path to assign.
+ */
 void OrderUILogic::SetPanelTexture(Scene& scene, int panelId, const char* texPath) {
 	GameObject* panel = scene.GetGameObjectByID(panelId);
 	if (!panel) {
@@ -484,6 +629,12 @@ void OrderUILogic::SetPanelTexture(Scene& scene, int panelId, const char* texPat
 	scene.SetDefaults(panelId, d);
 }
 
+/**
+ * @brief Ensures the slot owns a spawned panel and that it uses the correct texture.
+ * @param scene Active scene containing the order UI objects.
+ * @param slotIndex Zero-based slot index.
+ * @param slot Slot record to populate.
+ */
 void OrderUILogic::EnsurePanel(Scene& scene, int slotIndex, OrderSlot& slot) {
 	const char* panelTexPath = GetPanelTextureForTable(scene, slot.tableId);
 
@@ -503,6 +654,15 @@ void OrderUILogic::EnsurePanel(Scene& scene, int slotIndex, OrderSlot& slot) {
 	slot.panelSpawned = (slot.panelId >= 0);
 }
 
+/**
+ * @brief Ensures a child sprite exists relative to a panel.
+ * @param scene Active scene containing the panel object.
+ * @param panelId Runtime ID of the parent panel.
+ * @param spriteId In-out child sprite ID to create when missing.
+ * @param offset Local offset from the panel center.
+ * @param size Spawn size for the child sprite.
+ * @param layer Layer name to use for the child sprite.
+ */
 void OrderUILogic::EnsureSubSprite(Scene& scene, int panelId, int& spriteId,
 	const glm::vec2& offset, const glm::vec2& size,
 	const std::string& layer) {
@@ -525,12 +685,22 @@ void OrderUILogic::EnsureSubSprite(Scene& scene, int panelId, int& spriteId,
 	}
 }
 
+/**
+ * @brief Ensures the slot owns a spawned dish icon sized for its current dish.
+ * @param scene Active scene containing the order UI objects.
+ * @param slot Slot record to populate.
+ */
 void OrderUILogic::EnsureDishIcon(Scene& scene, OrderSlot& slot) {
 	const DishType dish = slot.hasLastDish ? slot.lastDish : DishType::PoopDish;
 	EnsureSubSprite(scene, slot.panelId, slot.dishIconId,
 		GetDishIconOffset(dish), GetDishIconSize(dish), dishLayer_);
 }
 
+/**
+ * @brief Ensures the slot owns all ingredient and station icons needed for recipe display.
+ * @param scene Active scene containing the order UI objects.
+ * @param slot Slot record to populate.
+ */
 void OrderUILogic::EnsureRecipeIcons(Scene& scene, OrderSlot& slot) {
 	// safety: if user forgot to set sizes to 2 in header, don't crash
 	if ((int)ingredientOffsets_.size() < kRecipeCols || (int)stationOffsets_.size() < kRecipeCols)
@@ -545,6 +715,11 @@ void OrderUILogic::EnsureRecipeIcons(Scene& scene, OrderSlot& slot) {
 	}
 }
 
+/**
+ * @brief Keeps every child visual aligned to its parent order panel.
+ * @param scene Active scene containing the slot objects.
+ * @param slot Slot record whose visuals should follow the panel.
+ */
 void OrderUILogic::FollowPanel(Scene& scene, OrderSlot& slot) {
 	if (slot.panelId < 0) return;
 
@@ -573,6 +748,12 @@ void OrderUILogic::FollowPanel(Scene& scene, OrderSlot& slot) {
 	}
 }
 
+/**
+ * @brief Swaps an icon sprite's texture and updates its stored defaults.
+ * @param scene Active scene containing the icon object.
+ * @param iconId Runtime ID of the icon object.
+ * @param texPath Texture path to assign.
+ */
 void OrderUILogic::SetIconTexture(Scene& scene, int iconId, const char* texPath) {
 	GameObject* icon = scene.GetGameObjectByID(iconId);
 	if (!icon) return;
@@ -585,6 +766,12 @@ void OrderUILogic::SetIconTexture(Scene& scene, int iconId, const char* texPath)
 	scene.SetDefaults(iconId, d);
 }
 
+/**
+ * @brief Finds the index of a waiting order for a specific customer.
+ * @param orders Current waiting-order list.
+ * @param customerId Runtime ID of the customer to search for.
+ * @return Matching order index, or `-1` when not found.
+ */
 int OrderUILogic::FindOrderIndexByCustomer(const std::vector<WaitingOrder>& orders, int customerId) const {
 	for (int i = 0; i < (int)orders.size(); ++i) {
 		if (orders[i].customerId == customerId)
@@ -593,6 +780,11 @@ int OrderUILogic::FindOrderIndexByCustomer(const std::vector<WaitingOrder>& orde
 	return -1;
 }
 
+/**
+ * @brief Collects every active waiting-for-food customer order from the scene.
+ * @param scene Active scene containing customer tables and NPCs.
+ * @param outOrders Output list of waiting orders, sorted by urgency.
+ */
 void OrderUILogic::CollectWaitingOrders(Scene& scene, std::vector<WaitingOrder>& outOrders) {
 	outOrders.clear();
 
@@ -628,9 +820,12 @@ void OrderUILogic::CollectWaitingOrders(Scene& scene, std::vector<WaitingOrder>&
 		});
 }
 
-// ------------------------------------------------------------
-// Recipe Mapping
-// ------------------------------------------------------------
+/**
+ * @brief Returns the ingredient and station icon paths needed to display a recipe.
+ * @param dish Dish type whose recipe should be expanded.
+ * @param outIngredientTex Output ingredient icon paths.
+ * @param outStationTex Output station icon paths.
+ */
 void OrderUILogic::GetRecipeIconPaths(DishType dish,
 	std::vector<const char*>& outIngredientTex,
 	std::vector<const char*>& outStationTex) const {
@@ -680,6 +875,12 @@ void OrderUILogic::GetRecipeIconPaths(DishType dish,
 	}
 }
 
+/**
+ * @brief Updates the recipe icon textures for a slot to match a dish type.
+ * @param scene Active scene containing the slot's icon objects.
+ * @param slot Slot record whose recipe icons should change.
+ * @param dish Dish type whose recipe should be displayed.
+ */
 void OrderUILogic::UpdateRecipeIcons(Scene& scene, OrderSlot& slot, DishType dish) {
 	std::vector<const char*> ing;
 	std::vector<const char*> st;
@@ -697,6 +898,12 @@ void OrderUILogic::UpdateRecipeIcons(Scene& scene, OrderSlot& slot, DishType dis
 	}
 }
 
+/**
+ * @brief Rebuilds and animates the order-ticket HUD for one frame.
+ * @param dt Delta time for the frame.
+ * @param scene Active scene containing the order UI, tables, and customers.
+ * @param input Unused input manager forwarded by the logic system.
+ */
 void OrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*/) {
 	std::vector<WaitingOrder> orders;
 	orders.reserve(kMaxOrders);
@@ -710,6 +917,7 @@ void OrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*/) {
 		for (auto& slot : slots_) {
 			if (slot.customerId >= 0 &&
 				sPendingStampCustomers_.find(slot.customerId) != sPendingStampCustomers_.end()) {
+				// Start the stamp only for panels that are still alive and mapped to the requested customer.
 				StartCompletionStamp(scene, slot);
 			}
 		}
@@ -804,6 +1012,7 @@ void OrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*/) {
 		slot.ingredientIconIds.assign(kRecipeCols, -1);
 		slot.stationIconIds.assign(kRecipeCols, -1);
 
+		// Spawn and populate the newly occupied slot in one pass so the ticket appears fully formed.
 		EnsurePanel(scene, emptySlot, slot);
 		EnsureDishIcon(scene, slot);
 		EnsureRecipeIcons(scene, slot);

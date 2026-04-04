@@ -3,7 +3,7 @@
  FILE NAME:			SimpleNpcLogic.hpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (60%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu	  (40%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (40%)
 
  DESCRIPTION:		Declares the SimpleNpcLogic script used for basic NPC behaviour. Defines the
 					movement states, timing values, and direction flags used to drive simple
@@ -26,13 +26,12 @@
  // Forward declarations to avoid circular includes
 class SimpleNpcLogic : public GameObjectLogic {
 public:
-	// Constructor takes owner object ID and desired dish type for this NPC
 	using GameObjectLogic::GameObjectLogic;
 
 	/**
-	 * @brief Performs dish type name.
-	 * @param t Parameter for t.
-	 * @return Result produced by this operation.
+	 * @brief Returns a readable string name for a dish type.
+	 * @param t Dish type to convert into text.
+	 * @return Static string name for the supplied dish type.
 	 */
 	static const char* DishTypeName(DishType t) {
 		switch (t) {
@@ -47,40 +46,38 @@ public:
 	}
 
 	/**
-	 * @brief Returns patience ratio at serve.
-	 * @return Requested value.
+	 * @brief Returns the patience ratio captured when the correct dish was served.
+	 * @return Snapshot of the customer's patience ratio at serve time.
 	 */
 	float GetPatienceRatioAtServe() const {
+		// Expose the serve-time patience snapshot for payment calculation and UI feedback.
 		return patienceRatioAtServe_;
 	}
 
 	/**
-	 * @brief Performs awake.
-	 * @param scene Scene being processed.
+	 * @brief Initializes the NPC after the owning scene is ready.
+	 * @param scene Active scene containing the NPC object.
 	 */
 	void Awake(Scene& scene) override;
 
 	/**
-	 * @brief Updates this object.
-	 * @param dt Frame delta time in seconds.
-	 * @param scene Scene being processed.
-	 * @param input Input manager for the current frame.
+	 * @brief Updates NPC movement, customer behavior, and animation for one frame.
+	 * @param dt Delta time for the frame.
+	 * @param scene Active scene containing the NPC and gameplay systems.
+	 * @param input Input manager forwarded by the logic system.
 	 */
 	void Update(float dt, Scene& scene, InputManager& input) override;
 
 	/**
-	 * @brief Returns the stable name for this object.
-	 * @return Requested value.
+	 * @brief Returns the stable runtime logic name used by the engine.
+	 * @return Name string for this logic component.
 	 */
 	std::string GetName() const override {
+		// Keep the logic name stable for debugging and runtime registration.
 		return "SimpleNpcLogic";
 	}
 
-	// ===================== Customer behaviour API =====================
-	// These are the functions CustomerTableLogic / NPC system can call
-	// to drive the "customer" side of this NPC.
-
-	// High-level behaviour states (separate from movement state).
+	// High-level customer behaviour states used by service, movement, and UI systems.
 	enum class BehaviourState {
 		Idle,
 		FindingTable,
@@ -93,192 +90,205 @@ public:
 	};
 
 	/**
-	 * @brief Updates npc animation.
-	 * @param scene Scene being processed.
-	 * @param npc Parameter for npc.
-	 * @param moveDelta Parameter for move delta.
+	 * @brief Updates the NPC's locomotion or eating animation from its movement delta.
+	 * @param scene Active scene containing the NPC animation data.
+	 * @param npc NPC object whose animation should be updated.
+	 * @param moveDelta Movement delta used to infer facing and locomotion state.
 	 */
 	void UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm::vec2& moveDelta);
 
 	/**
-	 * @brief Performs assign customer table.
-	 * @param tableObjectID Parameter for table object id.
+	 * @brief Assigns a customer table to this NPC without a seat target.
+	 * @param tableObjectID Runtime ID of the assigned customer table.
 	 */
-	void AssignCustomerTable(int tableObjectID);  // call when you pick a table
+	void AssignCustomerTable(int tableObjectID);
 
 	/**
-	 * @brief Returns customer table id.
-	 * @return Requested value.
+	 * @brief Returns the currently assigned customer table ID.
+	 * @return Assigned customer table ID, or an invalid ID when none is assigned.
 	 */
 	int  GetCustomerTableID() const {
+		// Expose the currently assigned table so table-side systems can verify ownership.
 		return customerTableID_;
 	}
 
 	/**
-	 * @brief Performs on seated at table.
-	 * @param scene Scene being processed.
+	 * @brief Transitions the NPC into its seated-at-table state.
+	 * @param scene Active scene containing the NPC object.
 	 */
 	void OnSeatedAtTable(Scene& scene);
 
 	/**
-	 * @brief Returns behaviour state.
-	 * @return Requested value.
+	 * @brief Returns the NPC's current high-level customer behaviour state.
+	 * @return Current behaviour state.
 	 */
 	BehaviourState GetBehaviourState() const {
+		// Surface the live customer state for UI, tables, and manager systems.
 		return behaviourState_;
 	}
 
 	/**
-	 * @brief Returns whether ordering.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether the NPC is currently in the ordering state.
+	 * @return True when the NPC is waiting for the player to take its order.
 	 */
 	bool IsOrdering() const {
+		// Ordering state means the customer is seated and ready to place an order.
 		return behaviourState_ == BehaviourState::Ordering;
 	}
 
 	/**
-	 * @brief Returns whether waiting for food.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether the NPC is currently waiting for food.
+	 * @return True when the NPC has ordered and is still awaiting a dish.
 	 */
 	bool IsWaitingForFood() const {
+		// Waiting-for-food is the main state where patience drains over time.
 		return behaviourState_ == BehaviourState::WaitingForFood;
 	}
 
 	/**
-	 * @brief Returns whether paying.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether the NPC is currently ready to pay.
+	 * @return True when the NPC is waiting for payment collection.
 	 */
 	bool IsPaying() const {
+		// Paying state starts after eating finishes or after the service flow reaches payment.
 		return behaviourState_ == BehaviourState::Paying;
 	}
 
 	/**
-	 * @brief Returns whether leaving.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether the NPC is currently leaving the scene.
+	 * @return True when the NPC is walking toward its leave target or exit gate.
 	 */
 	bool IsLeaving() const {
+		// Leaving state means the service loop is over and the NPC is exiting.
 		return behaviourState_ == BehaviourState::Leaving;
 	}
 
 	/**
-	 * @brief Returns whether eating.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether the NPC is currently eating.
+	 * @return True when the NPC is consuming its served dish.
 	 */
 	bool IsEating() const {
+		// Eating state plays after a valid dish is served and before payment begins.
 		return behaviourState_ == BehaviourState::Eating;
 	}
 
 	/**
-	 * @brief Returns whether at table.
-	 * @param tableID Parameter for table id.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether this NPC belongs to a specific customer table.
+	 * @param tableID Runtime ID of the table being checked.
+	 * @return True when the supplied table matches the NPC's assigned customer table.
 	 */
 	bool IsAtTable(int tableID) const {
+		// Compare against the assigned customer table so callers can verify ownership quickly.
 		return customerTableID_ == tableID;
 	}
 
 	/**
-	 * @brief Sets leaving.
+	 * @brief Forces the NPC into the leaving state and marks payment as complete.
 	 */
 	void SetLeaving() {
+		// Use this helper when an external system wants to terminate service and send the NPC away.
 		behaviourState_ = BehaviourState::Leaving;
 		hasPaid_ = true;
 	}
 
 
-	// Interactions from table / player --------------------------------
 	/**
-	 * @brief Performs take order.
-	 * @param scene Scene being processed.
+	 * @brief Marks the NPC's order as taken and advances to the waiting-for-food state.
+	 * @param scene Active scene containing the NPC object.
 	 */
 	void TakeOrder(Scene& scene);
 
 	/**
-	 * @brief Performs on dish served.
-	 * @param scene Scene being processed.
-	 * @param dishType Parameter for dish type.
+	 * @brief Processes a served dish and advances the NPC into the correct follow-up state.
+	 * @param scene Active scene containing the NPC object.
+	 * @param dishType Dish type that was served to the NPC.
 	 */
 	void OnDishServed(Scene& scene, DishType dishType);
 
 	/**
-	 * @brief Performs take payment.
-	 * @param scene Scene being processed.
+	 * @brief Marks payment as collected and advances the NPC toward leaving.
+	 * @param scene Active scene containing the NPC object.
 	 */
 	void TakePayment(Scene& scene);
 
 	/**
-	 * @brief Returns whether order been taken.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether the NPC's order has already been taken.
+	 * @return True when the player has taken this NPC's order.
 	 */
 	bool HasOrderBeenTaken() const {
+		// Expose order progress so service logic can avoid retaking the same order.
 		return orderTaken_;
 	}
 
 	/**
-	 * @brief Returns whether dish served.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether a dish has already been served to the NPC.
+	 * @return True when the service flow has recorded a served dish.
 	 */
 	bool HasDishServed()     const {
+		// Expose dish-service progress so tables and UI can react accordingly.
 		return dishServed_;
 	}
 
 	/**
-	 * @brief Returns whether finished eating.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether the NPC has finished eating its dish.
+	 * @return True when the eating timer has completed.
 	 */
 	bool HasFinishedEating() const {
+		// Finished-eating state controls the transition from eating to payment.
 		return finishedDish_;
 	}
 
 	/**
-	 * @brief Returns whether paid.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether payment has already been collected from the NPC.
+	 * @return True when the NPC has completed its payment step.
 	 */
 	bool HasPaid()           const {
+		// Payment completion is used to determine whether service is fully resolved.
 		return hasPaid_;
 	}
 
 	/**
-	 * @brief Returns served dish type.
-	 * @return Requested value.
+	 * @brief Returns the dish type that was served to the NPC.
+	 * @return Served dish type recorded during service.
 	 */
 	DishType GetServedDishType() const {
+		// Expose the served dish so payment and scoring can compare it against the desired order.
 		return servedDishType_;
 	}
 
 	/**
-	 * @brief Returns whether service complete.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether the NPC has fully completed its service loop.
+	 * @return True when payment is complete and the NPC is in the leaving state.
 	 */
 	bool IsServiceComplete() const {
+		// Treat payment plus the leaving transition as the end of the customer service flow.
 		return hasPaid_ && behaviourState_ == BehaviourState::Leaving;
 	}
 
-	// Assign a customer table and the exact world position where this NPC
-	// should sit. If you call this, the NPC will try to walk to that point
 	/**
-	 * @brief Sets customer table target.
-	 * @param tableObjectID Parameter for table object id.
-	 * @param seatWorldPos Parameter for seat world pos.
+	 * @brief Assigns both a customer table and the exact seat position this NPC should reach.
+	 * @param tableObjectID Runtime ID of the assigned customer table.
+	 * @param seatWorldPos World-space seat position the NPC should walk toward.
 	 */
 	void SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos);
 
 	/**
-	 * @brief Sets leave target.
-	 * @param leaveWorldPos Parameter for leave world pos.
+	 * @brief Sets the world-space point this NPC should walk toward when leaving.
+	 * @param leaveWorldPos World-space leave target for the NPC.
 	 */
 	void SetLeaveTarget(const Math::Vector2D& leaveWorldPos);
 
 	/**
-	 * @brief Clears customer table target.
+	 * @brief Clears the current customer-table target and seat assignment.
 	 */
 	void ClearCustomerTableTarget();
 
 	/**
-	 * @brief Returns whether customer table target.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether the NPC currently has a valid customer-table target.
+	 * @return True when a table/seat target has been assigned.
 	 */
 	bool HasCustomerTableTarget() const {
+		// Expose whether the customer has an active seat target for movement and manager logic.
 		return hasCustomerTarget_;
 	}
 
@@ -288,46 +298,50 @@ public:
 	float          exitArriveThreshold_ = 8.0f;
 
 	/**
-	 * @brief Performs cache exit gate pos.
-	 * @param scene Scene being processed.
+	 * @brief Resolves and caches the current exit-gate world position.
+	 * @param scene Active scene containing the exit gate.
 	 */
 	void CacheExitGatePos(Scene& scene);
 
 	/**
-	 * @brief Performs on reached exit.
-	 * @param scene Scene being processed.
+	 * @brief Handles NPC cleanup after it reaches the exit gate.
+	 * @param scene Active scene containing the NPC object.
 	 */
 	void OnReachedExit(Scene& scene);
 
 	/**
-	 * @brief Returns desired dish type.
-	 * @return Requested value.
+	 * @brief Returns the dish type currently desired by this NPC.
+	 * @return Desired dish type for the order.
 	 */
 	DishType GetDesiredDishType() const {
+		// Expose the desired dish so UI and service logic can display and validate the order.
 		return desiredDishType_;
 	}
 
 	/**
-	 * @brief Returns patience remaining.
-	 * @return Requested value.
+	 * @brief Returns the remaining patience time for this NPC.
+	 * @return Remaining patience in seconds.
 	 */
 	float GetPatienceRemaining() const {
+		// Surface the live patience timer for UI and service-resolution systems.
 		return patienceRemaining_;
 	}
 
 	/**
-	 * @brief Returns patience max.
-	 * @return Requested value.
+	 * @brief Returns the maximum patience time configured for this NPC.
+	 * @return Maximum patience in seconds.
 	 */
 	float GetPatienceMax() const {
+		// Expose the configured patience cap so callers can normalize patience state.
 		return patienceMax_;
 	}
 
 	/**
-	 * @brief Returns patience ratio01.
-	 * @return Requested value.
+	 * @brief Returns the current patience ratio normalized to the range `[0, 1]`.
+	 * @return Normalized patience ratio.
 	 */
 	float GetPatienceRatio01() const {
+		// Clamp to the normalized range so callers always receive a stable ratio.
 		if (patienceMax_ <= 0.f) return 0.f;
 		float r = patienceRemaining_ / patienceMax_;
 		if (r < 0.f) r = 0.f;
@@ -336,32 +350,35 @@ public:
 	}
 
 	/**
-	 * @brief Returns whether patience expired.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether this NPC's patience has run out.
+	 * @return True when patience has expired.
 	 */
 	bool HasPatienceExpired() const {
+		// Expose the expired flag so service logic can react without recomputing patience state.
 		return patienceExpired_;
 	}
 
 	/**
-	 * @brief Returns whether willpayzero.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Returns whether this NPC should pay zero because service failed.
+	 * @return True when the NPC will not award any payment.
 	 */
 	bool WillPayZero() const {
+		// Zero-payment status is determined by wrong dishes or patience timeout.
 		return payZero_;
 	}
 
-	// --- Animation facing direction ---
+	// Current facing direction used to choose the NPC's animation set.
 	enum class FacingDir {
 		Front, Back, Left, Right
 	};
 	FacingDir facingDir_ = FacingDir::Front;
 
 	/**
-	 * @brief Sets infinite patience.
-	 * @param enabled Parameter for enabled.
+	 * @brief Enables or disables effectively infinite patience for this NPC.
+	 * @param enabled True to give the NPC effectively unlimited patience.
 	 */
 	void SetInfinitePatience(bool enabled = true) {
+		// Promote patience to a very large value so scripted scenes can opt out of timeout pressure.
 		if (enabled) {
 			patienceMax_ = 1000000.0f;
 			patienceRemaining_ = patienceMax_;
@@ -411,9 +428,9 @@ private:
 	float eatDuration_ = 10.0f;   // seconds
 
 	/**
-	 * @brief Updates customer logic.
-	 * @param dt Frame delta time in seconds.
-	 * @param scene Scene being processed.
+	 * @brief Advances the NPC's customer-specific behaviour state for one frame.
+	 * @param dt Delta time for the frame.
+	 * @param scene Active scene containing the NPC object.
 	 */
 	void UpdateCustomerLogic(float dt, Scene& scene);
 
@@ -421,9 +438,9 @@ private:
 	bool dishRolled_ = false;
 
 	/**
-	 * @brief Performs roll random dish.
-	 * @param scene Scene being processed.
-	 * @return Result produced by this operation.
+	 * @brief Chooses a random desired dish for this NPC.
+	 * @param scene Active scene containing the NPC and RNG dependencies.
+	 * @return Randomly selected desired dish type.
 	 */
 	DishType RollRandomDish(Scene& scene);
 
@@ -436,24 +453,24 @@ private:
 	bool  payZero_ = false;
 
 	/**
-	 * @brief Performs on patience expired.
-	 * @param scene Scene being processed.
+	 * @brief Handles the transition that occurs when this NPC's patience expires.
+	 * @param scene Active scene containing the NPC object.
 	 */
 	void OnPatienceExpired(Scene& scene);
 	float patienceRatioAtServe_ = 0.0f; // 0..1 snapshot when correct dish is served
 
 	/**
-	 * @brief Attempts to get delta to table.
-	 * @param scene Scene being processed.
-	 * @param outDelta Output value for out delta.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Computes the current world-space offset from the NPC to its assigned table.
+	 * @param scene Active scene containing the NPC and table.
+	 * @param outDelta Output delta from the NPC toward the table.
+	 * @return True when the NPC has a valid table and the delta could be computed.
 	 */
 	bool TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const;
 
 	/**
-	 * @brief Begins leave to exit.
-	 * @param scene Scene being processed.
-	 * @param freeTableImmediately Parameter for free table immediately.
+	 * @brief Starts the leave-to-exit flow for this NPC.
+	 * @param scene Active scene containing the NPC and table.
+	 * @param freeTableImmediately True to free the table assignment immediately.
 	 */
 	void BeginLeaveToExit(Scene& scene, bool freeTableImmediately);
 
@@ -476,37 +493,37 @@ private:
 	static constexpr float kDirectPathCheckInterval = 0.05f;
 
 	/**
-	 * @brief Clears navigation move.
+	 * @brief Clears the current navigation move and any pending path state.
 	 */
 	void ClearNavigationMove();
 
 	/**
-	 * @brief Begins move direct.
-	 * @param dest Parameter for dest.
+	 * @brief Starts direct movement toward a world-space destination.
+	 * @param dest Destination to move toward without pathfinding.
 	 */
 	void BeginMoveDirect(const glm::vec2& dest);
 
 	/**
-	 * @brief Begins move to.
-	 * @param scene Scene being processed.
-	 * @param dest Parameter for dest.
+	 * @brief Starts movement toward a world-space destination, using navigation when needed.
+	 * @param scene Active scene containing navigation data.
+	 * @param dest Final world-space destination.
 	 */
 	void BeginMoveTo(Scene& scene, const glm::vec2& dest);
 
 	/**
-	 * @brief Performs ensure navigation plan.
-	 * @param scene Scene being processed.
-	 * @param npc Parameter for npc.
-	 * @param desiredTarget Parameter for desired target.
+	 * @brief Ensures a navigation plan exists from the NPC to the desired destination.
+	 * @param scene Active scene containing navigation data.
+	 * @param npc NPC object whose navigation should be planned.
+	 * @param desiredTarget Desired final world-space target.
 	 */
 	void EnsureNavigationPlan(Scene& scene, GameObject* npc, const glm::vec2& desiredTarget);
 
 	/**
-	 * @brief Updates navigation move.
-	 * @param dt Frame delta time in seconds.
-	 * @param scene Scene being processed.
-	 * @param npc Parameter for npc.
-	 * @return True when the operation succeeds or the condition is met.
+	 * @brief Advances the current navigation move for one frame.
+	 * @param dt Delta time for the frame.
+	 * @param scene Active scene containing navigation data.
+	 * @param npc NPC object being moved.
+	 * @return True while navigation is still active after this update.
 	 */
 	bool UpdateNavigationMove(float dt, Scene& scene, GameObject* npc);
 };

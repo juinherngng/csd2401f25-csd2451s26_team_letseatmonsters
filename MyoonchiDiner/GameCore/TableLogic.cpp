@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         TableLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (70%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (30%)
 
  DESCRIPTION:       Implements the base class TableLogic, providing shared behavior
 					for all table-type objects. This includes item placement and
@@ -39,23 +40,23 @@ namespace {
 	}
 }
 
- // ------------------- Constructor / lifecycle -------------------
-
+/**
+ * @brief Constructs table logic with no held item and no authored approach points.
+ * @param ownerID Runtime object ID that owns this logic component.
+ */
 TableLogic::TableLogic(int ownerID) : GameObjectLogic(ownerID), heldItemID_(kInvalidID) {
-	// Default: one approach point directly "in front" of the table.
-	// You can tweak this later or add more via AddApproachOffset.
-	// (Assuming +Y is "up" visually; adjust sign if needed.)
-	//ClearApproachOffsets();
-
-	//AddApproachOffset(Math::Vector2D(0.0f, -110.0f));
+	// Approach offsets are loaded from scene defaults during Start(), not hard-coded here.
 }
 
+/**
+ * @brief Initializes the table and loads any authored approach offsets.
+ * @param scene Active scene containing the table object.
+ */
 void TableLogic::Start(Scene& scene) {
 	// Ensure clean state if this script is reused.
 	heldItemID_ = kInvalidID;
 
-	// If we have an owner, check if there is a per-instance offset
-	// stored in Scene::Defaults.vel. If it's non-zero, use it.
+	// Read per-instance approach offsets from the serialized scene defaults.
 	GameObject* owner = GetOwner(scene);
 	if (!owner)
 		return;
@@ -76,6 +77,10 @@ void TableLogic::Start(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Clears held-item bookkeeping before the table object is destroyed.
+ * @param scene Active scene containing the table object.
+ */
 void TableLogic::OnDestroy(Scene& scene) {
 	// The table is going away; we don't delete the held item here.
 	// We just clear the reference so nothing keeps a stale ID.
@@ -89,17 +94,25 @@ void TableLogic::OnDestroy(Scene& scene) {
 	heldItemID_ = kInvalidID;
 }
 
-// ------------------- Owner helper -------------------
-
+/**
+ * @brief Returns the owning table object if it still exists in the scene.
+ * @param scene Active scene containing the table object.
+ * @return Owning game object, or `nullptr` when it cannot be found.
+ */
 GameObject* TableLogic::GetOwnerChecked(Scene& scene) const {
 	GameObject* owner = GetOwner(scene);
-	// In production code you might log an error if owner is null.
+	// Centralize owner lookup so callers do not each duplicate the null check.
 	return owner;
 }
 
-// ------------------- Item occupancy -------------------
-
+/**
+ * @brief Returns whether this table can currently accept the specified item.
+ * @param scene Active scene containing the table and candidate item.
+ * @param itemID Runtime ID of the item being tested.
+ * @return True when the table is effectively empty and the item exists.
+ */
 bool TableLogic::CanAcceptItem(Scene& scene, int itemID) const {
+	// Treat stale held-item references as occupied until RefreshHeldItemState() or PlaceItem() corrects them.
 	if (heldItemID_ != kInvalidID && scene.GetGameObjectByID(heldItemID_) != nullptr)
 		return false;
 
@@ -116,12 +129,23 @@ bool TableLogic::CanAcceptItem(Scene& scene, int itemID) const {
 	return true;
 }
 
+/**
+ * @brief Clears stale occupancy when the tracked held item no longer exists.
+ * @param scene Active scene containing the table and held item.
+ */
 void TableLogic::RefreshHeldItemState(Scene& scene) {
+	// External despawns should not leave the table permanently marked as occupied.
 	if (heldItemID_ != kInvalidID && scene.GetGameObjectByID(heldItemID_) == nullptr) {
 		heldItemID_ = kInvalidID;
 	}
 }
 
+/**
+ * @brief Places an item onto the table and snaps it to the authored tabletop anchor.
+ * @param scene Active scene containing the table and candidate item.
+ * @param itemID Runtime ID of the item being placed.
+ * @return True when the item was accepted and positioned successfully.
+ */
 bool TableLogic::PlaceItem(Scene& scene, int itemID) {
 	if (heldItemID_ != kInvalidID && scene.GetGameObjectByID(heldItemID_) == nullptr) {
 		// Recover from stale occupancy when the previous item was despawned externally.
@@ -159,6 +183,11 @@ bool TableLogic::PlaceItem(Scene& scene, int itemID) {
 	return true;
 }
 
+/**
+ * @brief Removes and returns the current held item from the table.
+ * @param scene Active scene containing the table and held item.
+ * @return Held item ID, or `kInvalidID` when the table is empty.
+ */
 int TableLogic::TakeItem(Scene& scene) {
 	if (!HasItem()) {
 		return kInvalidID;
@@ -181,6 +210,11 @@ int TableLogic::TakeItem(Scene& scene) {
 	return resultID;
 }
 
+/**
+ * @brief Returns the world-space anchor used to place items on top of the table.
+ * @param scene Active scene containing the table object.
+ * @return Placement position for a held item.
+ */
 Math::Vector3D TableLogic::GetItemPlacementPosition(Scene& scene) const {
 	GameObject* owner = GetOwnerChecked(scene);
 	if (!owner) {
@@ -190,16 +224,28 @@ Math::Vector3D TableLogic::GetItemPlacementPosition(Scene& scene) const {
 	return ResolveTableItemPlacementPos(scene, *owner);
 }
 
-// ------------------- Approach / destination points -------------------
-
+/**
+ * @brief Appends a new local-space approach offset for the table.
+ * @param offset Local-space offset to add.
+ */
 void TableLogic::AddApproachOffset(const Math::Vector2D& offset) {
+	// Preserve insertion order so authored approach priorities stay predictable.
 	approachOffsets_.push_back(offset);
 }
 
+/**
+ * @brief Removes all authored approach offsets from the table.
+ */
 void TableLogic::ClearApproachOffsets() {
+	// Clear the list completely so the next setup pass can rebuild it from scratch.
 	approachOffsets_.clear();
 }
 
+/**
+ * @brief Returns every approach offset converted into world-space positions.
+ * @param scene Active scene containing the table object.
+ * @return World-space approach points for the table.
+ */
 std::vector<Math::Vector2D> TableLogic::GetApproachPointsWorld(Scene& scene) const {
 	std::vector<Math::Vector2D> result;
 
@@ -221,6 +267,12 @@ std::vector<Math::Vector2D> TableLogic::GetApproachPointsWorld(Scene& scene) con
 	return result;
 }
 
+/**
+ * @brief Returns the closest available approach point to a supplied world position.
+ * @param scene Active scene containing the table object.
+ * @param from World-space position used as the distance reference.
+ * @return Nearest approach point, or `from` when none are available.
+ */
 Math::Vector2D TableLogic::GetClosestApproachPoint(Scene& scene,
 	const Math::Vector2D& from) const {
 	std::vector<Math::Vector2D> worldPoints = GetApproachPointsWorld(scene);
@@ -231,6 +283,7 @@ Math::Vector2D TableLogic::GetClosestApproachPoint(Scene& scene,
 	float bestDistSq = std::numeric_limits<float>::max();
 	Math::Vector2D bestPoint = worldPoints[0];
 	for (std::size_t i = 0; i < worldPoints.size(); ++i) {
+		// Measure squared distance to avoid an unnecessary square root inside the search loop.
 		const Math::Vector2D& p = worldPoints[i];
 		Math::Vector2D diff = p - from;
 		float distSq = diff.x * diff.x + diff.y * diff.y;

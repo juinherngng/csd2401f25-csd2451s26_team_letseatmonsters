@@ -2,7 +2,10 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			StartGamePromptLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (10%)
 
  DESCRIPTION:		Implements the Play button tutorial prompt and intro-video routing flow.
 					Handles main-menu Play-button hover state, the tutorial-choice modal,
@@ -174,7 +177,7 @@ void StartGamePromptLogic::OpenPrompt(Scene& scene) {
 			(nx - 0.5f) * popupSize_.x,
 			(ny - 0.5f) * popupSize_.y
 		);
-	};
+		};
 
 	// Use the authored popup layout so the Yes and No buttons match the UI artwork.
 	const glm::vec2 yesCenter = ToWorld(0.50f, 0.71f);
@@ -366,7 +369,7 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		const glm::vec2 min(pos.x - sz.x * 0.5f, pos.y - sz.y * 0.5f);
 		const glm::vec2 max(pos.x + sz.x * 0.5f, pos.y + sz.y * 0.5f);
 		return IsPointInRect(mouseWorld, min, max);
-	};
+		};
 
 	// Resolve both buttons through the shared keyboard navigation scope for the prompt modal.
 	const bool yesOver = IsPointInObject(yesButtonId_);

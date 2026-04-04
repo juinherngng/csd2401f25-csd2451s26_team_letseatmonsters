@@ -17,21 +17,20 @@
 
 #pragma once
 
-#include <string>
-
 #include <glm/vec3.hpp>
+#include <string>
 
 #include "EngineCore/AudioManager.hpp"
 #include "EngineCore/ConfigManager.hpp"
 #include "EngineCore/GameObjectLogic.hpp"
 
-/**
- * @brief Drives the dedicated settings-menu screen.
- * @details
- * Owns the authored settings UI widgets, keeps them synchronized with
- * config-backed fullscreen/audio values, and handles button/slider input
- * while the scene is running as menu UI.
- */
+ /**
+  * @brief Drives the dedicated settings-menu screen.
+  * @details
+  * Owns the authored settings UI widgets, keeps them synchronized with
+  * config-backed fullscreen/audio values, and handles button/slider input
+  * while the scene is running as menu UI.
+  */
 class SettingsMenuLogic final : public GameObjectLogic {
 public:
 	/**
@@ -39,7 +38,9 @@ public:
 	 * @param ownerID Scene object ID that owns this logic component.
 	 */
 	explicit SettingsMenuLogic(int ownerID)
-		: GameObjectLogic(ownerID) {}
+		: GameObjectLogic(ownerID) {
+		// Defer widget lookup until Start() so scene-authored IDs are available.
+	}
 
 	/**
 	 * @brief Initializes the settings screen from config and scene-authored widgets.
@@ -69,6 +70,7 @@ private:
 	 * @brief Identifies which slider, if any, is currently being dragged.
 	 */
 	enum class SliderTarget {
+		// `None` means no slider is highlighted, dragged, or keyboard-adjusted.
 		None,
 		Master,
 		Bgm,

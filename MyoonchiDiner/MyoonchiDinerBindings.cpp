@@ -2,8 +2,10 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:          MyoonchiDinerBindings.cpp
  PROJECT NAME:       Project GAM200
- AUTHOR:             Ng Juin Herng, juinherng.ng@digipen.edu (60%)
- CO-AUTHOR:          Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ AUTHOR:             Ng Juin Herng, juinherng.ng@digipen.edu (15%)
+ CO-AUTHORS:         Seah Wang Hua, wanghua.seah@digipen.edu (45%)
+					 Vu Phan Hung, phanhung.vu@digipen.edu	 (30%)
+					 Yat Chun Wee, y.chunwee@digipen.edu	 (10%)
 
  DESCRIPTION:
 	Central game-integration layer for Myoonchi Diner.
@@ -70,8 +72,8 @@
 #include "GameCore/InGamePauseTriggerLogic.hpp"
 #include "GameCore/IngredientBoxLogic.hpp"
 #include "GameCore/IngredientLogic.hpp"
-#include "GameCore/MenuKeyboardNavigation.hpp"
 #include "GameCore/MenuButtonLogic.hpp"
+#include "GameCore/MenuKeyboardNavigation.hpp"
 #include "GameCore/OrderUILogic.hpp"
 #include "GameCore/PauseButtonLogic.hpp"
 #include "GameCore/PlateLogic.hpp"
@@ -99,6 +101,7 @@ namespace {
 	static std::vector<glm::vec4> CreateVfxFramesFromTopRow(int topRowOneBased, int startCol, int endCol) {
 		std::vector<glm::vec4> frames;
 
+		// The sprite sheet is indexed from the bottom in-engine, so authored top-row input needs conversion.
 		const int engineRow = kAmbientVfxRows - topRowOneBased; // row 0 = bottom
 		const float frameW = 1.0f / static_cast<float>(kAmbientVfxCols);
 		const float frameH = 1.0f / static_cast<float>(kAmbientVfxRows);
@@ -161,6 +164,7 @@ namespace {
 		float leafCooldown_ = 0.0f;
 
 		void Reset(Scene& scene) {
+			// Despawn any runtime VFX objects that are still alive from the previous load/reset.
 			for (auto& inst : active_) {
 				if (inst.objectID >= 0 && scene.GetGameObjectByID(inst.objectID)) {
 					scene.RequestDespawn(inst.objectID);
@@ -189,6 +193,7 @@ namespace {
 			butterflyAltPoints_.clear();
 			leafLaneYs_.clear();
 
+			// Convert authored marker objects in the level into lightweight spawn descriptors.
 			for (GameObject* obj : scene.GetAllObjectsRaw()) {
 				if (!obj) continue;
 
@@ -249,6 +254,7 @@ namespace {
 				}
 
 				if (inst.velocity.x != 0.0f || inst.velocity.y != 0.0f) {
+					// Some ambient effects drift across the scene instead of staying anchored.
 					glm::vec3 pos = obj->GetPositionGLM();
 					pos.x += inst.velocity.x * dt;
 					pos.y += inst.velocity.y * dt;
@@ -260,6 +266,7 @@ namespace {
 				}
 
 				if (!inst.persistent && inst.shrinkOutAtEnd && inst.totalLifetime > 0.0f) {
+					// Shrink transient effects near the end of their life so they disappear more softly.
 					const float shrinkStartLife = (inst.shrinkDuration > 0.0f)
 						? std::min(inst.shrinkDuration, inst.totalLifetime)
 						: inst.totalLifetime * std::clamp(inst.shrinkWindowRatio, 0.05f, 0.95f);
@@ -278,6 +285,7 @@ namespace {
 				bool shouldKill = (!inst.persistent && inst.lifetime <= 0.0f);
 
 				if (!shouldKill && inst.killWhenOffscreen) {
+					// Moving effects like leaves self-destruct once they have travelled off camera.
 					const glm::vec3 pos = obj->GetPositionGLM();
 					if (pos.x < -220.0f || pos.x > static_cast<float>(GraphicsEngine::kRefW) + 220.0f) {
 						shouldKill = true;
@@ -304,6 +312,7 @@ namespace {
 				return;
 			}
 
+			// Pick a random authored shine marker so the effect feels naturally distributed.
 			const AmbientPoint& point = shinePoints_[RandomIndex(static_cast<int>(shinePoints_.size()))];
 
 			// Shine = row 3 from top on the 14x6 sheet, 3 frames: 0..2
@@ -335,6 +344,7 @@ namespace {
 			AmbientVfxInstance inst;
 			inst.objectID = fx->GetID();
 			inst.velocity = glm::vec2(0.0f, 0.0f);
+			// Lifetime matches the one-shot animation plus a small safety buffer.
 			inst.lifetime = static_cast<float>(frames.size()) * frameDuration + 0.05f;
 			inst.totalLifetime = inst.lifetime;
 			inst.baseScale = glm::vec3(point.size.x, point.size.y, 1.0f);
@@ -347,6 +357,7 @@ namespace {
 				return;
 			}
 
+			// Candles are persistent ambience, so spawn one looping effect per authored marker.
 			const std::vector<glm::vec4> frames = CreateVfxFramesFromTopRow(14, 0, 3);
 			const float frameDuration = 0.14f;
 
@@ -402,6 +413,7 @@ namespace {
 				? leafLaneYs_[RandomIndex(static_cast<int>(leafLaneYs_.size()))]
 				: RandomRange(180.0f, 700.0f);
 
+			// Horizontal drift speed also determines how long the effect should stay alive.
 			const float speed = RandomRange(80.0f, 130.0f);
 			const glm::vec2 velocity = leftToRight
 				? glm::vec2(speed, 0.0f)
@@ -483,6 +495,7 @@ namespace {
 			AmbientVfxInstance inst;
 			inst.objectID = fx->GetID();
 			inst.velocity = glm::vec2(0.0f, 0.0f);
+			// Butterflies are transient decorative beats that shrink out rather than pop away.
 			inst.lifetime = static_cast<float>(frames.size()) * frameDuration + 0.05f;
 			inst.totalLifetime = inst.lifetime;
 			inst.baseScale = glm::vec3(point.size.x, point.size.y, 1.0f);
@@ -542,6 +555,7 @@ namespace {
 			}
 
 			if (!cached_) {
+				// Cache level-authored spawn markers once per load rather than rescanning every frame.
 				CachePoints(scene);
 			}
 
@@ -553,6 +567,7 @@ namespace {
 			const bool isTutorial = levelPath.find("tutorial") != std::string::npos;
 
 			if (isLevel1 || isTutorial) {
+				// Level 1 and tutorial share the indoor ambience set.
 				SpawnCandles(scene);
 			}
 
@@ -564,6 +579,7 @@ namespace {
 				}
 			}
 			else if (isLevel2) {
+				// Level 2 swaps to outdoor ambience with butterflies and drifting leaves.
 				butterflyCooldown_ -= dt;
 				if (butterflyCooldown_ <= 0.0f && !butterflyPoints_.empty()) {
 					SpawnButterfly(scene, butterflyPoints_[RandomIndex(static_cast<int>(butterflyPoints_.size()))]);
@@ -635,10 +651,12 @@ namespace {
 		}
 
 		void BeginPopupInputGuard() {
+			// Ignore the click that opened the popup so it cannot immediately activate a button.
 			popupInputBlockedUntil_ = GetTimeSeconds() + kInputCarryoverGuardSeconds_;
 		}
 
 		void BeginReopenGuard() {
+			// Prevent an immediate reopen when the player dismisses the popup with the same click.
 			reopenBlockedUntil_ = GetTimeSeconds() + kInputCarryoverGuardSeconds_;
 		}
 
@@ -699,6 +717,7 @@ namespace {
 			noHovered_ = false;
 			suppressInitialYesHoverFeedback_ = false;
 			popupInputBlockedUntil_ = 0.0;
+			// Release the modal lock so other menu buttons can become interactive again.
 			scene.SetMenuModalActive(false);
 			MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "quit_popup"));
 		}
@@ -707,6 +726,7 @@ namespace {
 			if (shown_) {
 				return;
 			}
+			// Preload the star animation sheet used by the popup art so the first open is hitch-free.
 			ResourceManager::Instance().LoadTexture(
 				"animatedsprite_../assets/VFX/staranim-Sheet2.png",
 				"../assets/VFX/staranim-Sheet2.png");
@@ -724,6 +744,7 @@ namespace {
 				? kReturnPopupTexture_
 				: kQuitPopupTexture_;
 
+			// The popup background and both buttons live on the same topmost UI layer.
 			if (GameObject* popup = scene.SpawnStaticSprite(
 				popupTexture,
 				center,
@@ -760,6 +781,7 @@ namespace {
 			mouseHeld_ = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
 			yesHovered_ = false;
 			noHovered_ = false;
+			// Opening via the quit button places focus on Yes, but we suppress the first synthetic hover chirp.
 			suppressInitialYesHoverFeedback_ = (yesAction_ == QuitPopupYesAction::QuitApplication);
 			BeginPopupInputGuard();
 			MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "quit_popup"));
@@ -771,6 +793,7 @@ namespace {
 					yesHovered_ = yesHot;
 					if (yesHovered_) {
 						if (!suppressYesHoverFeedback) {
+							// Drive both the shader pulse and the hover SFX from the same hot-state transition.
 							scene.TriggerUiButtonHoverFeedback(yesButtonID_);
 							if (AudioManager* audioManager = scene.GetAudioManager()) {
 								if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
@@ -791,6 +814,7 @@ namespace {
 				if (noHot != noHovered_) {
 					noHovered_ = noHot;
 					if (noHovered_) {
+						// "No" never suppresses hover feedback because it is never auto-focused on open.
 						scene.TriggerUiButtonHoverFeedback(noButtonID_);
 						if (AudioManager* audioManager = scene.GetAudioManager()) {
 							if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
@@ -832,6 +856,7 @@ namespace {
 			GetMouseWorld(input, mouseWorld);
 			const bool yesOver = yesButtonID_ >= 0 && IsPointInObject(scene, yesButtonID_, mouseWorld);
 			const bool noOver = noButtonID_ >= 0 && IsPointInObject(scene, noButtonID_, mouseWorld);
+			// Keyboard navigation stays scoped to the popup while it is shown.
 			const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
 				scene,
 				input,
@@ -882,6 +907,7 @@ namespace {
 							MyoonchiPaths::Audio::SFX_GAMEOVER
 						};
 
+						// Fade any long-running gameplay or cutscene channels before leaving the level.
 						for (const char* channelName : channelsToFade) {
 							if (audioManager->HasSound(channelName) && audioManager->IsSoundPlaying(channelName)) {
 								audioManager->FadeChannel(channelName, 0.0f, transitionFadeOut);
@@ -892,6 +918,7 @@ namespace {
 
 				if (yesAction_ == QuitPopupYesAction::ReturnToMainMenu) {
 					Clear(scene);
+					// Make sure pause-specific UI state is fully torn down before transitioning to menu.
 					scene.HidePauseOverlay();
 					scene.RequestResumeFromPauseOverlay();
 					scene.StartLevelTransition(MyoonchiPaths::Levels::MAIN_MENU, false);
@@ -911,6 +938,7 @@ namespace {
 					}
 				}
 
+				// Dismiss the modal and briefly block reopen so the same input cannot bounce it back open.
 				BeginReopenGuard();
 				Clear(scene);
 			}
@@ -928,6 +956,7 @@ namespace {
 			(void)dt;
 
 			if (gQuitPopup.shown_) {
+				// Once the popup exists, the opener button delegates all input to the modal controller.
 				gQuitPopup.Update(scene, input);
 				return;
 			}
@@ -964,6 +993,7 @@ namespace {
 			}
 
 			if (!initialized_) {
+				// Capture the authored normal texture once and derive its hover variant lazily.
 				normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
 				hoverTexturePath_ = BuildHoverTexturePath(normalTexturePath_);
 				initialized_ = true;
@@ -994,6 +1024,7 @@ namespace {
 			if (hoveredNow != hovered_) {
 				hovered_ = hoveredNow;
 				if (hovered_) {
+					// Hover feedback should match the rest of the shared menu button system.
 					scene.TriggerUiButtonHoverFeedback(GetOwnerID());
 					if (AudioManager* audioManager = scene.GetAudioManager()) {
 						if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_HOVER)) {
@@ -1028,6 +1059,7 @@ namespace {
 				if (mouseOver && clickEdge) {
 					input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 				}
+				// Open the modal with the action configured for this specific button instance.
 				gQuitPopup.Show(scene, yesActionOnOpen_, input);
 			}
 		}
@@ -1067,18 +1099,12 @@ namespace {
 }
 
 namespace {
-	/************************************************************************/
-	/*!
-	\brief
-		File-local query/helper utilities used by tutorial flow and hook
-		callbacks. These helpers perform object scans and lightweight state
-		inference from Scene + LogicManager.
-
-	\details
-		Most helpers return IDs or booleans and intentionally avoid side effects.
-		This keeps hook implementations deterministic and easy to reason about.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief File-local query helpers used by tutorial flow and scene hook callbacks.
+	 *
+	 * @details Most helpers return IDs or booleans and intentionally avoid side effects.
+	 * This keeps hook implementations deterministic and easy to reason about.
+	 */
 
 	static int FindFirstByTagAndTexture(Scene& scene, const std::string& tag, const char* texContains) {
 		for (GameObject* obj : scene.GetAllObjectsRaw()) {
@@ -1297,17 +1323,13 @@ namespace {
 }
 
 namespace {
-	/************************************************************************/
-	/*!
-	\brief
-		Tutorial finite-state controller.
-
-	\details
-		Owns tutorial progression state, highlight overlays, and completion popup
-		interaction. The flow is level-gated (tutorial-only) and is safe to tick
-		every frame, including while gameplay simulation is inactive.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Tutorial finite-state controller used by the tutorial level hooks.
+	 *
+	 * @details Owns tutorial progression state, highlight overlays, and completion
+	 * popup interaction. The flow is level-gated and safe to tick every frame,
+	 * including while gameplay simulation is inactive.
+	 */
 	enum class TutorialStep {
 		Move = 0,
 		WaitForFirstCustomerOrder,
@@ -1385,6 +1407,7 @@ namespace {
 		void RefreshPaymentProgress(Scene& scene, LogicManager& logic) {
 			int newlyPaidCount = 0;
 
+			// Track unique paid customer IDs so reloaded or re-ticked NPCs do not increment progress twice.
 			for (GameObject* obj : scene.GetAllObjectsRaw()) {
 				if (!obj) continue;
 
@@ -1405,6 +1428,7 @@ namespace {
 			lastMoney = Economy::gPlayerMoney;
 
 			if (paymentsCollected_ >= 2) {
+				// The tutorial ends after two successful payments.
 				step = TutorialStep::Done;
 				scene.SetRuntimeTextByName("TutorialText", "");
 				ShowCompletionPopup(scene);
@@ -1412,6 +1436,7 @@ namespace {
 			}
 
 			if (step != TutorialStep::Done && step != TutorialStep::FinalCustomerFreePlay) {
+				// After the first successful payment, the tutorial relaxes into a final free-play objective.
 				step = TutorialStep::FinalCustomerFreePlay;
 				scene.SetRuntimeTextByName("TutorialText", "Serve the last customer to complete the Tutorial!");
 			}
@@ -1466,6 +1491,7 @@ namespace {
 				MenuKeyboardNavigation::BuildScopeKey(scene, "tutorial_completion_popup"),
 				completionMenuButtonID_ >= 0 ? std::vector<int>{ completionMenuButtonID_ } : std::vector<int>{},
 				buttonOver ? completionMenuButtonID_ : -1);
+			// The completion popup has a single actionable button, so mouse and keyboard both feed one hot state.
 			const bool keyboardFocused = (focusedButtonId == completionMenuButtonID_);
 			const bool buttonHot = buttonOver || keyboardFocused;
 			UpdateCompletionButtonHoverVisual(scene, buttonHot);
@@ -1500,6 +1526,7 @@ namespace {
 						MyoonchiPaths::Audio::SFX_GAMEOVER
 					};
 
+					// Fade lingering gameplay/cutscene audio before dropping back to the main menu.
 					for (const char* channelName : channelsToFade) {
 						if (audioManager->HasSound(channelName) && audioManager->IsSoundPlaying(channelName)) {
 							audioManager->FadeChannel(channelName, 0.0f, transitionFadeOut);
@@ -1511,6 +1538,7 @@ namespace {
 		}
 
 		void ClearExtraStationOutlines(Scene& scene) {
+			// Multi-target steps may spawn several auxiliary outlines, so clear them as a group.
 			for (auto& set : extraStationOutlines_) {
 				DespawnOutlineSet(scene, set);
 			}
@@ -1522,6 +1550,7 @@ namespace {
 				extraStationOutlines_.resize(targetIDs.size());
 			}
 
+			// Reuse existing outline sets when possible so highlight updates stay cheap.
 			for (size_t i = 0; i < targetIDs.size(); ++i) {
 				EnsureOutlineTarget(scene, extraStationOutlines_[i], targetIDs[i]);
 			}
@@ -1579,6 +1608,7 @@ namespace {
 				glm::vec2(0.0f,  kOutlineOffset)
 			};
 
+			// The first four sprites form the glowing border around the target sprite.
 			for (int i = 0; i < 4; ++i) {
 				const int id = set.ids[i];
 				if (id < 0) continue;
@@ -1593,6 +1623,7 @@ namespace {
 
 			const int maskID = set.ids[4];
 			if (maskID >= 0) {
+				// The fifth sprite restores the original interior so only the edges appear highlighted.
 				if (GameObject* m = scene.GetGameObjectByID(maskID)) {
 					m->SetPosition(p);
 					m->SetScale(glm::vec3(std::abs(s.x), std::abs(s.y), 1.0f));
@@ -1624,6 +1655,7 @@ namespace {
 				glm::vec2(0.0f,  kOutlineOffset)
 			};
 
+			// Spawn four tinted duplicates around the source to fake an outline using regular sprites.
 			for (int i = 0; i < 4; ++i) {
 				GameObject* o = scene.SpawnStaticSprite(
 					tex,
@@ -1654,6 +1686,7 @@ namespace {
 				layer
 			);
 			if (m) {
+				// Then place a normal-textured center mask on top so the highlight only shows at the perimeter.
 				m->SetColorTint(glm::vec4(1.f, 1.f, 1.f, 1.f));
 				m->SetColliderSize(Math::Vector2D(0.f, 0.f));
 				m->SetMovableByPhysics(false);
@@ -1672,9 +1705,11 @@ namespace {
 				return;
 			}
 			if (set.sourceID != targetID) {
+				// Rebuild the set when the highlighted object changes.
 				SpawnOutlineSet(scene, set, targetID);
 			}
 			else {
+				// Otherwise just keep the existing outline aligned to its source object.
 				SyncOutlineSet(scene, set);
 			}
 		}
@@ -1692,6 +1727,7 @@ namespace {
 			int targetStationID = -1;
 			std::vector<int> targetStationIDs;
 
+			// If no live order is found, fall back to veg so token helpers still produce a valid target.
 			const DishType dish = TryGetCurrentOrderDish(scene).value_or(DishType::VegDish);
 
 			if (step == TutorialStep::PickFirstIngredient) {
@@ -1770,6 +1806,7 @@ namespace {
 			EnsureOutlineTarget(scene, ingredientOutline_, targetIngredientID);
 
 			if (!targetStationIDs.empty()) {
+				// Some tutorial steps allow multiple valid destination tables, so highlight them all.
 				EnsureOutlineTarget(scene, stationOutline_, targetStationIDs.front());
 
 				if (targetStationIDs.size() > 1) {
@@ -1791,6 +1828,7 @@ namespace {
 				blinkOn_ = !blinkOn_;
 			}
 
+			// Blink the active highlights to keep them readable over busy kitchen art.
 			SetOutlineVisible(scene, ingredientOutline_, blinkOn_);
 			SetOutlineVisible(scene, stationOutline_, blinkOn_);
 			for (auto& set : extraStationOutlines_) {
@@ -1813,6 +1851,7 @@ namespace {
 
 		void Advance(Scene& scene, const std::string& nextText) {
 			if (step != TutorialStep::Done) {
+				// TutorialStep is ordered intentionally so advancing can move to the next enum value.
 				step = static_cast<TutorialStep>(static_cast<int>(step) + 1);
 			}
 			scene.SetRuntimeTextByName("TutorialText", nextText);
@@ -1821,6 +1860,7 @@ namespace {
 		void Update(Scene& scene, float dt) {
 			const bool isTutorial = IsTutorialLevelLoaded(scene);
 			if (!isTutorial) {
+				// Outside the tutorial level, make sure no tutorial-only overlays or prompts linger.
 				ClearHighlights(scene);
 				ClearCompletionPopup(scene);
 				active = false;
@@ -1829,6 +1869,7 @@ namespace {
 
 			if (completionPopupShown_) {
 				ClearHighlights(scene);
+				// Once complete, the tutorial loop only services the final popup.
 				HandleCompletionPopupInput(scene);
 				return;
 			}
@@ -1848,6 +1889,7 @@ namespace {
 
 			RefreshPaymentProgress(scene, logic);
 
+			// Progression is driven by observable gameplay milestones instead of direct event callbacks.
 			switch (step) {
 			case TutorialStep::Move:
 			{
@@ -2069,6 +2111,7 @@ namespace {
 				ClearHighlights(scene);
 			}
 			else {
+				// Keep the current objective highlighted while the tutorial is still active.
 				UpdateHighlights(scene, playerLogic, logic, dt);
 			}
 		}
@@ -2118,6 +2161,7 @@ namespace {
 				completionPopupIDs_.push_back(completionMenuButtonID_);
 				scene.SetObjectTexturePath(completionMenuButtonID_, FilePaths::Textures::BTN_RETURN);
 				completionMenuHovered_ = false;
+				// Capture the current mouse state so an already-held click does not instantly activate the button.
 				popupMouseHeld_ = InputManager::Get().IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
 				MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "tutorial_completion_popup"));
 				// Do NOT attach MenuButtonLogic here.
@@ -2126,20 +2170,17 @@ namespace {
 	};
 
 	static TutorialFlow gTutorialFlow;
-	/************************************************************************/
-	/*!
-	\brief
-		Assigns engine-level role IDs and authored velocities to objects
-		based on their tag. Called by the engine during level loading for
-		every object that has a non-empty tag.
-	\param scene   The active Scene.
-	\param id      Object ID being configured.
-	\param tag     The object's tag string from JSON.
-	\param speedX  Authored horizontal speed from JSON.
-	\param speedY  Authored vertical speed from JSON.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Applies tag-driven role assignment and authored velocity setup.
+	 *
+	 * @param scene The active scene.
+	 * @param id The object currently being configured.
+	 * @param tag The object's authored JSON tag.
+	 * @param speedX The authored horizontal speed value.
+	 * @param speedY The authored vertical speed value.
+	 */
 	void ApplyTagRules(Scene& scene, int id, const std::string& tag, float speedX, float speedY) {
+		// Promote authored tags into engine-facing IDs so later systems can query them cheaply.
 		if (tag == "player") {
 			scene.SetPlayerID(id);
 		}
@@ -2157,22 +2198,18 @@ namespace {
 		}
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Attaches the correct sprite-sheet animation set to an object based
-		on its tag or texture path. Called by the engine's RuntimeLevel
-		builder for every object marked as animated in JSON.
-	\param scene       The active Scene.
-	\param id          Object ID.
-	\param tag         Object tag from JSON.
-	\param texturePath Texture file path (used as fallback for dino detection).
-	\param animated    Whether the JSON entry has "animated": true.
-	\param animName    Optional initial animation name override from JSON.
-	\param speedX      Authored speed X (unused here, forwarded by engine).
-	\param speedY      Authored speed Y (unused here, forwarded by engine).
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Attaches runtime animation sets to objects authored as animated.
+	 *
+	 * @param scene The active scene.
+	 * @param id The object ID being configured.
+	 * @param tag The object's authored tag.
+	 * @param texturePath The object's texture path for fallback detection.
+	 * @param animated Whether the JSON object was marked as animated.
+	 * @param animName Optional authored starting animation name.
+	 * @param speedX Unused authored speed forwarded by the engine.
+	 * @param speedY Unused authored speed forwarded by the engine.
+	 */
 	void ApplyRuntimeObjectSetup(Scene& scene, int id, const std::string& tag, const std::string& texturePath, bool animated, const std::string& animName, float speedX, float speedY) {
 		(void)speedX;
 		(void)speedY;
@@ -2195,6 +2232,13 @@ namespace {
 		}
 	}
 
+	/**
+	 * @brief Checks whether any seated customer still needs to be resolved before round end.
+	 *
+	 * @param scene The active gameplay scene.
+	 *
+	 * @return True when a seated customer still has unpaid progress remaining.
+	 */
 	static bool HasAnyUnresolvedCustomer(Scene& scene) {
 		LogicManager& logic = scene.GetLogicManager();
 
@@ -2220,16 +2264,12 @@ namespace {
 		return false;
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Per-frame simulation hook. Ticks the economy timer, checks for
-		win/lose conditions, and triggers countdown sound effects at
-		key time thresholds.
-	\param dt     Frame delta time in seconds.
-	\param scene  The active Scene (used to reach AudioManager).
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Updates economy timing, countdown SFX, and HUD presentation each frame.
+	 *
+	 * @param dt Frame delta time in seconds.
+	 * @param scene The active scene used to reach gameplay and audio systems.
+	 */
 	void UpdateSimulationPolicy(float dt, Scene& scene) {
 		if (IsDayClearLevelLoaded(scene)) {
 			return;
@@ -2241,6 +2281,7 @@ namespace {
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
 			float currentTime = Economy::gTimeRemaining;
 
+			// Fire each countdown warning once as the timer crosses the matching threshold.
 			if (!Economy::gPlayed10SecWarning && prevTime > 10.0f && currentTime <= 10.0f) {
 				Economy::gPlayed10SecWarning = true;
 				if (audioManager->HasSound("sfx_clock_ticking_10secs")) {
@@ -2277,33 +2318,29 @@ namespace {
 			}
 		}
 
+		// Keep HUD animation and text presentation in sync with the latest economy state.
 		Economy::UpdateHudPresentation(dt, scene);
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Sets the default scene background texture. Called by the engine
-		when a scene is first created before any level JSON is loaded.
-	\param scene  The Scene to configure.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Applies the default background used before any level JSON is loaded.
+	 *
+	 * @param scene The scene to initialize.
+	 */
 	void ApplyDefaultSceneSetup(Scene& scene) {
 		scene.SetSceneBackground(MyoonchiPaths::Textures::BACKGROUND);
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Post-level-load hook. Enables the main-menu UI layer when the
-		simulation is inactive (menu state) and starts the appropriate
-		BGM for the loaded level. Release-only.
-	\param scene            The Scene that just finished loading.
-	\param simulationActive True if gameplay is active, false for menus.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Performs post-load tutorial, UI, and audio setup for a freshly loaded level.
+	 *
+	 * @param scene The scene that just finished loading.
+	 * @param simulationActive True when gameplay simulation should be active.
+	 * @param customerManager The customer system reused across scene loads.
+	 */
 	void OnPostLevelLoaded(Scene& scene, bool simulationActive, CustomerManagerSystem& customerManager) {
 		const bool isTutorial = simulationActive && IsTutorialLevelLoaded(scene);
+		// Reset tutorial flow state each time a new level is loaded.
 		gTutorialFlow.Reset(scene, isTutorial);
 		Economy::BindUIScene(scene);
 		gQuitPopup.Clear(scene);
@@ -2395,15 +2432,12 @@ namespace {
 		}
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Cutscene fade-out audio hook. Fades the intro cutscene BGM to
-		silence over the given duration when a cutscene begins to exit.
-	\param scene       The active Scene.
-	\param outSeconds  Duration of the fade-out in seconds.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Fades cutscene audio when a cutscene starts transitioning out.
+	 *
+	 * @param scene The active scene.
+	 * @param outSeconds The fade-out duration in seconds.
+	 */
 	void OnCutsceneFadeOut(Scene& scene, float outSeconds) {
 		if (!scene.ShouldUseRuntimeParityMode()) {
 			return;
@@ -2415,15 +2449,12 @@ namespace {
 		}
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Cutscene first-frame hook. Starts the win cutscene BGM when the
-		first displayed image belongs to the win sequence.
-	\param scene       The active Scene.
-	\param firstImage  File path of the first cutscene frame being shown.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Starts the win cutscene BGM when the first frame belongs to the win sequence.
+	 *
+	 * @param scene The active scene.
+	 * @param firstImage The path of the first cutscene frame.
+	 */
 	void OnCutsceneFirstFrame(Scene& scene, const std::string& firstImage) {
 		if (!scene.ShouldUseRuntimeParityMode()) {
 			return;
@@ -2438,21 +2469,19 @@ namespace {
 		}
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Cutscene pre-final-load hook. Cleans up all cutscene audio by stopping
-		or fading them out before the target level is loaded.
-	\param scene       The active Scene.
-	\param outSeconds  Fade-out duration in seconds for lingering channels.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Cleans up cutscene audio before the destination level begins loading.
+	 *
+	 * @param scene The active scene.
+	 * @param outSeconds Fade-out duration for lingering channels.
+	 */
 	void OnCutsceneBeforeFinalLoad(Scene& scene, float outSeconds) {
 		if (!scene.ShouldUseRuntimeParityMode()) {
 			return;
 		}
 
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
+			// Stop one-shot cutscene sounds immediately so they do not bleed into gameplay.
 			audioManager->StopSound(MyoonchiPaths::Audio::BGM_INTRO_CUTSCENE);
 			audioManager->StopSound(MyoonchiPaths::Audio::SFX_INTRO_CUTSCENE);
 			if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_GAMEOVER)) {
@@ -2466,17 +2495,11 @@ namespace {
 
 	using TagHandler = std::function<void(Scene&, int)>;
 
-	/************************************************************************/
-	/*!
-	\brief
-		Returns the static tag-to-handler dispatch table. Each entry maps
-		a JSON tag string to a lambda that attaches the corresponding
-		game logic and/or animation to the object. Uses a static local
-		so the table is built once and reused on every call (O(1) lookup).
-	\return
-		Const reference to the dispatch table.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Returns the static dispatch table that maps JSON tags to binding lambdas.
+	 *
+	 * @return The shared tag-dispatch table used during runtime object setup.
+	 */
 	const std::unordered_map<std::string, TagHandler>& GetTagDispatchTable() {
 		// Very scalable and easy to maintain as more tags are added.
 		static const std::unordered_map<std::string, TagHandler> table = {
@@ -2594,17 +2617,13 @@ namespace {
 		return table;
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Looks up the given tag in the dispatch table and, if found,
-		executes the associated handler to attach game logic and/or
-		animations to the object. Unrecognized tags are silently ignored.
-	\param scene  The active Scene.
-	\param id     Object ID to bind logic to.
-	\param tag    The object's tag string from JSON.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Dispatches a tagged object to its matching game-logic binder.
+	 *
+	 * @param scene The active scene.
+	 * @param id The object receiving logic.
+	 * @param tag The object's authored JSON tag.
+	 */
 	void AttachTagLogic(Scene& scene, int id, const std::string& tag) {
 		const auto& table = GetTagDispatchTable();
 		auto it = table.find(tag);
@@ -2613,19 +2632,17 @@ namespace {
 		}
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Attaches the correct button logic to a pause-overlay button
-		based on its action string.
-	\param scene   The active Scene.
-	\param id      Object ID of the button.
-	\param action  Action identifier authored in the overlay layout.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Attaches pause-overlay button logic based on the authored action string.
+	 *
+	 * @param scene The active scene.
+	 * @param id The button object ID.
+	 * @param action The action identifier authored in the pause overlay.
+	 */
 	void AttachPauseOverlayButton(Scene& scene, int id, const std::string& action) {
 		LogicManager& logicManager = scene.GetLogicManager();
 
+		// Map each authored action token to the matching runtime button behavior.
 		if (action == "resume") {
 			logicManager.AddLogic<PauseButtonLogic>(id, PauseAction::Resume);
 		}
@@ -2640,26 +2657,19 @@ namespace {
 		}
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Applies level-specific gameplay tuning for customer flow and
-		economy progression based on the currently loaded kitchen level.
-
-	\param scene
-		The active Scene used to identify the current level.
-
-	\param customerManager
-		The CustomerManagerSystem to configure with level-specific
-		spawn cooldown and customer capacity values.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Applies customer-flow and economy tuning for the currently loaded kitchen level.
+	 *
+	 * @param scene The active scene used to identify the loaded level.
+	 * @param customerManager The customer system to configure for that level.
+	 */
 	void ConfigureLevelGameplayTuning(Scene& scene, CustomerManagerSystem& customerManager) {
 		const std::string levelPath = scene.GetCurrentLevelPath();
 		const bool isLevel1 = levelPath.find("kitchen01") != std::string::npos;
 		const bool isLevel2 = levelPath.find("kitchen02") != std::string::npos;
 
 		if (isLevel2) {
+			// Kitchen 02 ramps customer pressure over time and uses a higher quota.
 			customerManager.ConfigureSpawnCurve(
 				20.0f,  // opening grace time before first customer
 				17.0f,  // first repeat cooldown
@@ -2673,6 +2683,7 @@ namespace {
 			Economy::SetQuota(450);
 		}
 		else if (isLevel1) {
+			// Kitchen 01 stays simpler so the first day remains approachable.
 			customerManager.SetSpawnCooldown(20.0f);
 			customerManager.SetMaxCustomers(4);
 			Economy::SetTimeLimitSeconds(180.0f);
@@ -2680,18 +2691,13 @@ namespace {
 		}
 	}
 
-	/************************************************************************/
-	/*!
-	\brief
-		Builds a list of AABB blockers for the pathfinding system by
-		collecting every table-tagged object that has a valid collider
-		on an enabled, collidable layer. The mover's own object is
-		excluded to prevent self-blocking.
-	\param scene          The active Scene.
-	\param moverObjectID  Object ID of the entity requesting navigation.
-	\param outBoxes       Output vector filled with blocker AABBs.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Collects table colliders that should block NPC navigation in gameplay.
+	 *
+	 * @param scene The active scene.
+	 * @param moverObjectID The object requesting navigation data.
+	 * @param outBoxes Output vector filled with blocker AABBs.
+	 */
 	void CollectNavigationBlockersForGame(Scene& scene, int moverObjectID, std::vector<collision::AABB>& outBoxes) {
 		outBoxes.clear();
 
@@ -2710,6 +2716,7 @@ namespace {
 			const std::string layerName = scene.GetObjectLayer(obj->GetID());
 			Layer* layer = scene.GetLayer(layerName);
 			if (layer && (!layer->IsEnabled() || !layer->IsCollidable())) {
+				// Ignore tables on disabled or non-collidable layers so editor helpers do not block paths.
 				continue;
 			}
 
@@ -2721,27 +2728,17 @@ namespace {
 	}
 }
 
-/************************************************************************/
-/*!
-\brief
-	Hook registration entry point.
-
-\details
-	Order of registration:
-	  1) Customer hooks (update/reset)
-	  2) Runtime/tag setup hooks
-	  3) Simulation and scene lifecycle hooks
-	  4) Cutscene and pause/audio hooks
-	  5) Logic binders and navigation collector
-
-	This function should remain side-effect free beyond hook wiring.
-*/
-/************************************************************************/
+/**
+ * @brief Registers all Myoonchi Diner hook callbacks onto the active scene.
+ *
+ * @param scene The scene that should receive the game-layer bindings.
+ */
 void RegisterMyoonchiDinerBindings(Scene& scene) {
 	// Customer management system (shared across hooks)
 	auto customerManager = std::make_shared<CustomerManagerSystem>();
 	auto ambientVfx = std::make_shared<AmbientVfxController>();
 	auto applyLevelGameplayTuning = [customerManager](Scene& s) {
+		// Share one tuning helper between reset and post-load hooks so quotas stay consistent.
 		ConfigureLevelGameplayTuning(s, *customerManager);
 		};
 
@@ -2772,6 +2769,7 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 		});
 
 	scene.SetCustomerResetHook([customerManager, ambientVfx, applyLevelGameplayTuning](Scene& s) {
+		// Reset shared runtime systems whenever the scene is rebuilt or replayed.
 		customerManager->Reset();
 		ambientVfx->Reset(s);
 		applyLevelGameplayTuning(s);
@@ -2809,6 +2807,16 @@ void RegisterMyoonchiDinerBindings(Scene& scene) {
 	scene.SetPauseOverlayAdditionalAudioChannels({ "sfx_grilling_sizzle", "sfx_boiling_sound", "sfx_chopping" });
 	scene.SetPauseSuppressedRuntimeTextNames({ "MoneyText", "QuotaText", "QuotaLabelText", "QuotaValueText", "TimerText", "TutorialText" });
 	scene.SetEditorPreservedRuntimeTextNames({ "MoneyText", "QuotaText", "QuotaLabelText", "QuotaValueText", "TimerText", "TutorialText" });
+	scene.SetPauseOverlayFocusResetHook([](Scene& s) {
+		// Pause-menu keyboard focus belongs to the game layer, not the engine.
+		MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::GetPauseOverlayScopeKey(s));
+		});
+	scene.SetPauseStateSyncHook([](Scene& s) {
+		// Player-specific pause bookkeeping stays in game code so the engine remains logic-agnostic.
+		if (PlayerLogic* playerLogic = s.GetLogicManager().GetLogicForObject<PlayerLogic>(s.GetPlayerID())) {
+			playerLogic->EnterPauseState(s);
+		}
+		});
 
 	// Logic / UI binders
 	scene.SetTagLogicBinder(AttachTagLogic);

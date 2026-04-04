@@ -2,7 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SimpleNpcLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu   (80%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(10%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:		Implements the SimpleNpcLogic behaviour, including timed idle-to-move state
 					transitions, vertical patrolling based on authored velocity, walk-area clamping,
@@ -25,6 +27,15 @@
 #include "GameCore/SimpleNpcLogic.hpp"
 
 namespace {
+	/**
+	 * @brief Plays an NPC-centered sound effect with 3D falloff when possible.
+	 * @param scene Active scene containing the NPC and audio manager.
+	 * @param npcID Runtime ID of the NPC that should emit the sound.
+	 * @param soundName Audio event name to play.
+	 * @param volume Playback volume multiplier.
+	 * @param minDistance Near distance for 3D attenuation.
+	 * @param maxDistance Far distance for 3D attenuation.
+	 */
 	void PlaySpatialSfxAtNpc(Scene& scene, int npcID, const std::string& soundName, float volume, float minDistance = 120.0f, float maxDistance = 1100.0f) {
 		AudioManager* audioMgr = scene.GetAudioManager();
 		if (!audioMgr || !audioMgr->HasSound(soundName)) {
@@ -32,15 +43,21 @@ namespace {
 		}
 
 		if (GameObject* npc = scene.GetGameObjectByID(npcID)) {
+			// Prefer 3D playback so menu-camera distance still affects perceived loudness naturally.
 			const glm::vec3 pos = npc->GetPositionGLM();
 			audioMgr->PlaySound3D(soundName, pos.x, pos.y, 0.0f, volume, minDistance, maxDistance, false);
 			return;
 		}
 
+		// Fall back to non-spatial playback if the NPC object has already been removed.
 		audioMgr->PlaySound(soundName, volume, false);
 	}
 }
 
+/**
+ * @brief Resets all patrol, service, and navigation state for a newly spawned NPC.
+ * @param scene Active scene containing the NPC object.
+ */
 void SimpleNpcLogic::Awake(Scene& scene) {
 	(void)scene;
 	timer = 0.0f;
@@ -72,7 +89,11 @@ void SimpleNpcLogic::Awake(Scene& scene) {
 	hasLeaveTarget_ = false;
 }
 
+/**
+ * @brief Clears the active move mode, target, and cached path data.
+ */
 void SimpleNpcLogic::ClearNavigationMove() {
+	// Reset the entire navigation state machine so the next movement request starts cleanly.
 	moveMode_ = MoveMode::None;
 	moveTarget_ = glm::vec2(0.0f, 0.0f);
 	hasMoveTarget_ = false;
@@ -82,7 +103,12 @@ void SimpleNpcLogic::ClearNavigationMove() {
 	directPathCheckTimer_ = 0.0f;
 }
 
+/**
+ * @brief Starts direct movement toward a final destination without intermediate waypoints.
+ * @param dest Final world-space destination for the NPC.
+ */
 void SimpleNpcLogic::BeginMoveDirect(const glm::vec2& dest) {
+	// Direct mode keeps only a single target because no path nodes are required.
 	finalTarget_ = dest;
 	moveTarget_ = dest;
 	pathPoints_.clear();
@@ -92,6 +118,11 @@ void SimpleNpcLogic::BeginMoveDirect(const glm::vec2& dest) {
 	directPathCheckTimer_ = 0.0f;
 }
 
+/**
+ * @brief Starts path-driven movement toward a destination using the scene navigation system.
+ * @param scene Active scene containing navmesh or pathfinding data.
+ * @param dest Final world-space destination for the NPC.
+ */
 void SimpleNpcLogic::BeginMoveTo(Scene& scene, const glm::vec2& dest) {
 	GameObject* npc = GetOwner(scene);
 	if (!npc) {
@@ -110,12 +141,14 @@ void SimpleNpcLogic::BeginMoveTo(Scene& scene, const glm::vec2& dest) {
 	const glm::vec2 startPos(pos3.x, pos3.y);
 
 	if (!scene.FindPathForObject(npc->GetID(), startPos, finalTarget_, pathPoints_)) {
+		// Abort cleanly when no valid route can be generated.
 		ClearNavigationMove();
 		return;
 	}
 
 	const float kSkipWaypointRadius = 18.0f;
 	while (!pathPoints_.empty()) {
+		// Drop path nodes that are already effectively under the NPC to avoid initial jitter.
 		glm::vec2 d = pathPoints_.front() - startPos;
 		if ((d.x * d.x + d.y * d.y) <= kSkipWaypointRadius * kSkipWaypointRadius) {
 			pathPoints_.erase(pathPoints_.begin());
@@ -134,9 +167,16 @@ void SimpleNpcLogic::BeginMoveTo(Scene& scene, const glm::vec2& dest) {
 	moveTarget_ = pathPoints_[0];
 }
 
+/**
+ * @brief Ensures the NPC has a current navigation plan toward the requested target.
+ * @param scene Active scene containing navigation queries.
+ * @param npc NPC object whose movement plan should be updated.
+ * @param desiredTarget Desired final world-space target.
+ */
 void SimpleNpcLogic::EnsureNavigationPlan(Scene& scene, GameObject* npc, const glm::vec2& desiredTarget) {
 	if (!npc) return;
 
+	// Snap the desired target to a navigation cell so path queries line up with walkable space.
 	glm::vec2 snappedTarget = desiredTarget;
 	scene.GetNearestNavigationCellCenterForObject(npc->GetID(), desiredTarget, snappedTarget);
 
@@ -145,6 +185,7 @@ void SimpleNpcLogic::EnsureNavigationPlan(Scene& scene, GameObject* npc, const g
 	if (hasMoveTarget_ || moveMode_ != MoveMode::None) {
 		glm::vec2 d = snappedTarget - finalTarget_;
 		if ((d.x * d.x + d.y * d.y) <= kRetargetEpsSq) {
+			// Keep the existing route when the target change is too small to matter visually.
 			return;
 		}
 	}
@@ -160,6 +201,13 @@ void SimpleNpcLogic::EnsureNavigationPlan(Scene& scene, GameObject* npc, const g
 	}
 }
 
+/**
+ * @brief Advances the current direct or pathfinding move for one frame.
+ * @param dt Delta time for the frame.
+ * @param scene Active scene containing navigation and collision queries.
+ * @param npc NPC object being moved.
+ * @return True when the NPC reached its final target during this update.
+ */
 bool SimpleNpcLogic::UpdateNavigationMove(float dt, Scene& scene, GameObject* npc) {
 	if (!npc || !hasMoveTarget_) {
 		return false;
@@ -179,6 +227,7 @@ bool SimpleNpcLogic::UpdateNavigationMove(float dt, Scene& scene, GameObject* np
 			directPathCheckTimer_ = kDirectPathCheckInterval;
 
 			if (scene.HasDirectPathForObject(npc->GetID(), pos, finalTarget_)) {
+				// Switch back to direct mode immediately once the remaining path becomes unobstructed.
 				moveMode_ = MoveMode::Direct;
 				moveTarget_ = finalTarget_;
 				pathPoints_.clear();
@@ -218,6 +267,7 @@ bool SimpleNpcLogic::UpdateNavigationMove(float dt, Scene& scene, GameObject* np
 			allowedDelta.y * allowedDelta.y;
 
 		if (allowedLenSq < 0.0001f) {
+			// Rebuild a path if collision resolution blocks the direct step entirely.
 			std::vector<glm::vec2> newPath;
 			if (scene.FindPathForObject(npc->GetID(), pos, finalTarget_, newPath)) {
 				pathPoints_ = newPath;
@@ -260,6 +310,7 @@ bool SimpleNpcLogic::UpdateNavigationMove(float dt, Scene& scene, GameObject* np
 	}
 
 	while (pathIndex_ < pathPoints_.size()) {
+		// Consume any waypoint that is already close enough before steering toward the next one.
 		glm::vec2 toWaypoint = pathPoints_[pathIndex_] - pos;
 		float distSq = toWaypoint.x * toWaypoint.x + toWaypoint.y * toWaypoint.y;
 
@@ -297,6 +348,7 @@ bool SimpleNpcLogic::UpdateNavigationMove(float dt, Scene& scene, GameObject* np
 		allowedDelta.y * allowedDelta.y;
 
 	if (allowedLenSq < 0.0001f) {
+		// Attempt to recover from a blocked waypoint by requesting a fresh path.
 		std::vector<glm::vec2> newPath;
 
 		if (scene.FindPathForObject(npc->GetID(), pos, finalTarget_, newPath)) {
@@ -330,6 +382,12 @@ bool SimpleNpcLogic::UpdateNavigationMove(float dt, Scene& scene, GameObject* np
 	return false;
 }
 
+/**
+ * @brief Updates patrol movement, customer service state, and animation for one frame.
+ * @param dt Delta time for the frame.
+ * @param scene Active scene containing the NPC and gameplay systems.
+ * @param input Unused input manager forwarded by the logic system.
+ */
 void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 	// IMPORTANT: do not run logic in editor mode
 	if (!scene.IsSimulationActive()) {
@@ -350,6 +408,7 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 			(behaviourState_ == BehaviourState::Leaving);
 
 		if (usePathfindingMovement) {
+			// Service-related movement follows authored seat or exit targets through the nav system.
 			EnsureNavigationPlan(scene, npc, glm::vec2(customerSeatTarget_.x, customerSeatTarget_.y));
 			const bool arrived = UpdateNavigationMove(dt, scene, npc);
 
@@ -448,8 +507,14 @@ void SimpleNpcLogic::Update(float dt, Scene& scene, InputManager&) {
 	UpdateCustomerLogic(dt, scene);
 }
 
+/**
+ * @brief Advances the customer-specific service state machine for one frame.
+ * @param dt Delta time for the frame.
+ * @param scene Active scene containing customer tables and gameplay systems.
+ */
 void SimpleNpcLogic::UpdateCustomerLogic(float dt, Scene& scene) {
 	if (behaviourState_ == BehaviourState::WaitingForFood && orderTaken_ && !dishServed_) {
+		// Drain patience only while the customer is still waiting on a dish.
 		if (!patienceExpired_) {
 			patienceRemaining_ -= dt;
 			if (patienceRemaining_ <= 0.f) {
@@ -490,6 +555,11 @@ void SimpleNpcLogic::UpdateCustomerLogic(float dt, Scene& scene) {
 	// can be added here later if you want.
 }
 
+/**
+ * @brief Converts a movement or table delta into the nearest facing direction.
+ * @param d Direction delta to classify.
+ * @return Facing direction that best matches the supplied delta.
+ */
 static SimpleNpcLogic::FacingDir FacingFromDelta(const glm::vec2& d) {
 	// Prefer left/right if horizontal dominates, else front/back
 	if (std::abs(d.x) > std::abs(d.y))
@@ -499,6 +569,12 @@ static SimpleNpcLogic::FacingDir FacingFromDelta(const glm::vec2& d) {
 	return (d.y > 0.0f) ? SimpleNpcLogic::FacingDir::Front : SimpleNpcLogic::FacingDir::Back;
 }
 
+/**
+ * @brief Computes the current offset from the NPC to its assigned customer table.
+ * @param scene Active scene containing the NPC and customer table.
+ * @param outDelta Output delta from the NPC toward the table.
+ * @return True when both the NPC and its assigned table exist.
+ */
 bool SimpleNpcLogic::TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const {
 	if (customerTableID_ == kInvalidID) return false;
 
@@ -513,6 +589,10 @@ bool SimpleNpcLogic::TryGetDeltaToTable(Scene& scene, glm::vec2& outDelta) const
 	return true;
 }
 
+/**
+ * @brief Assigns a customer table to the NPC and starts the table-seeking flow when idle.
+ * @param tableObjectID Runtime ID of the customer table to own.
+ */
 void SimpleNpcLogic::AssignCustomerTable(int tableObjectID) {
 	customerTableID_ = tableObjectID;
 
@@ -524,6 +604,10 @@ void SimpleNpcLogic::AssignCustomerTable(int tableObjectID) {
 	}
 }
 
+/**
+ * @brief Handles the transition from arrival-at-seat into the ordering flow.
+ * @param scene Active scene containing the NPC and customer table.
+ */
 void SimpleNpcLogic::OnSeatedAtTable(Scene& scene) {
 	int npcID = -1;
 	if (GameObject* owner = GetOwner(scene)) {
@@ -531,6 +615,7 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene) {
 	}
 
 	if (!dishRolled_) {
+		// Roll the desired dish once per customer so the order stays stable after seating.
 		desiredDishType_ = RollRandomDish(scene);
 		dishRolled_ = true;
 
@@ -551,6 +636,10 @@ void SimpleNpcLogic::OnSeatedAtTable(Scene& scene) {
 }
 
 
+/**
+ * @brief Marks the customer's order as taken and starts the patience timer.
+ * @param scene Active scene containing the NPC and audio manager.
+ */
 void SimpleNpcLogic::TakeOrder(Scene& scene) {
 	TS_LOG_DEBUG("[SimpleNpcLogic] TakeOrder, state="
 		<< static_cast<int>(behaviourState_));
@@ -578,6 +667,11 @@ void SimpleNpcLogic::TakeOrder(Scene& scene) {
 #endif
 }
 
+/**
+ * @brief Processes a served dish and decides whether the customer eats or leaves.
+ * @param scene Active scene containing the NPC and customer table.
+ * @param dishType Dish type that was served to the customer.
+ */
 void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType) {
 	TS_LOG_DEBUG("[SimpleNpcLogic] OnDishServed, dishType=" << static_cast<int>(dishType));
 
@@ -620,6 +714,10 @@ void SimpleNpcLogic::OnDishServed(Scene& scene, DishType dishType) {
 	eatTimer_ = 0.0f;
 }
 
+/**
+ * @brief Finalizes payment and sends the customer toward its leave target.
+ * @param scene Active scene containing the NPC and audio manager.
+ */
 void SimpleNpcLogic::TakePayment(Scene& scene) {
 	if (behaviourState_ != BehaviourState::Paying)
 		return;
@@ -665,7 +763,13 @@ void SimpleNpcLogic::TakePayment(Scene& scene) {
 	// NOTE: do NOT change customerTableID_ here, you still want to know which table to free.
 }
 
+/**
+ * @brief Assigns the customer's table ownership and exact seat target.
+ * @param tableObjectID Runtime ID of the assigned table.
+ * @param seatWorldPos World-space seat target the NPC should reach.
+ */
 void SimpleNpcLogic::SetCustomerTableTarget(int tableObjectID, const Math::Vector2D& seatWorldPos) {
+	// Enter the walking-to-table state immediately so Update() routes through navigation.
 	customerTableID_ = tableObjectID;
 	customerSeatTarget_ = seatWorldPos;
 	hasCustomerTarget_ = true;
@@ -674,18 +778,31 @@ void SimpleNpcLogic::SetCustomerTableTarget(int tableObjectID, const Math::Vecto
 
 }
 
+/**
+ * @brief Sets the authored world-space leave target for this NPC.
+ * @param leaveWorldPos World-space destination the NPC should use when leaving.
+ */
 void SimpleNpcLogic::SetLeaveTarget(const Math::Vector2D& leaveWorldPos) {
+	// Cache the explicit leave point so unhappy and happy exits share the same target.
 	leaveTargetWorldPos_ = leaveWorldPos;
 	hasLeaveTarget_ = true;
 }
 
+/**
+ * @brief Clears the current customer-table assignment and navigation target.
+ */
 void SimpleNpcLogic::ClearCustomerTableTarget() {
+	// Reset both the service association and the movement target in one place.
 	hasCustomerTarget_ = false;
 	customerTableID_ = kInvalidID;
 	customerSeatTarget_ = Math::Vector2D(0.0f, 0.0f);
 	ClearNavigationMove();
 }
 
+/**
+ * @brief Finds and caches the closest authored exit gate target for the NPC.
+ * @param scene Active scene containing exit-gate logic objects.
+ */
 void SimpleNpcLogic::CacheExitGatePos(Scene& scene) {
 	if (hasExitGatePos_) return;
 
@@ -713,6 +830,7 @@ void SimpleNpcLogic::CacheExitGatePos(Scene& scene) {
 		float distSq = dx * dx + dy * dy;
 
 		if (distSq < bestDistSq) {
+			// Keep the nearest exit gate so multi-gate scenes still choose a sensible route.
 			bestDistSq = distSq;
 			exitGateWorldPos_ = target;
 			found = true;
@@ -733,6 +851,10 @@ void SimpleNpcLogic::CacheExitGatePos(Scene& scene) {
 }
 
 
+/**
+ * @brief Frees any occupied table and despawns the NPC after it reaches the exit.
+ * @param scene Active scene containing the NPC and customer table.
+ */
 void SimpleNpcLogic::OnReachedExit(Scene& scene) {
 	if (exitProcessed_) return;
 	exitProcessed_ = true;
@@ -761,6 +883,11 @@ void SimpleNpcLogic::OnReachedExit(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Rolls a desired dish from the level-appropriate customer dish pool.
+ * @param scene Active scene whose current level determines the available dishes.
+ * @return Random desired dish type for the customer.
+ */
 DishType SimpleNpcLogic::RollRandomDish(Scene& scene) {
 	static const DishType kPoolBase[] = {
 		DishType::VegDish,
@@ -788,6 +915,10 @@ DishType SimpleNpcLogic::RollRandomDish(Scene& scene) {
 	return pool[dist(EngineRng::Get())];
 }
 
+/**
+ * @brief Handles the transition that occurs when the customer's patience runs out.
+ * @param scene Active scene containing the NPC and customer table.
+ */
 void SimpleNpcLogic::OnPatienceExpired(Scene& scene) {
 	if (patienceExpired_) return;
 
@@ -811,6 +942,12 @@ void SimpleNpcLogic::OnPatienceExpired(Scene& scene) {
 
 }
 
+/**
+ * @brief Selects the correct animation clip from movement, facing, and service state.
+ * @param scene Active scene containing animation state for the NPC.
+ * @param npc NPC object whose animation should be updated.
+ * @param moveDelta Movement delta used to detect locomotion direction.
+ */
 void SimpleNpcLogic::UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm::vec2& moveDelta) {
 	if (!npc) return;
 
@@ -887,6 +1024,11 @@ void SimpleNpcLogic::UpdateNpcAnimation(Scene& scene, GameObject* npc, const glm
 		scene.SetAnimation(npc->GetID(), desired);
 }
 
+/**
+ * @brief Starts the exit flow and optionally frees the occupied table immediately.
+ * @param scene Active scene containing the NPC and customer table.
+ * @param freeTableImmediately True to release table occupancy before the NPC reaches the exit.
+ */
 void SimpleNpcLogic::BeginLeaveToExit(Scene& scene, bool freeTableImmediately) {
 	// If already leaving, don't re-trigger
 	if (behaviourState_ == BehaviourState::Leaving)

@@ -19,6 +19,7 @@
 #include "GameCore/PlayerLogicShared.hpp"
 
 namespace {
+	// Outline tuning keeps the cyan hover silhouette readable without obscuring the source sprite.
 	constexpr float kHoverOutlineOffset = 2.5f;
 	constexpr int kHoverOutlineSortOrder = 200;
 	constexpr int kHoverOutlineMaskSortOrder = 201;

@@ -18,23 +18,41 @@
 
 #include "EngineCore/GameObjectLogic.hpp"
 
+/**
+ * @brief Runtime logic for the in-game pause button shown during gameplay.
+ * @details
+ * Tracks hover state for the authored pause trigger sprite and requests the
+ * scene pause overlay when the button is activated by the player.
+ */
 class InGamePauseTriggerLogic final : public GameObjectLogic {
 public:
+	/**
+	 * @brief Constructs an in-game pause trigger controller for the specified owner object.
+	 * @param ownerID Runtime ID of the pause-trigger GameObject.
+	 */
 	explicit InGamePauseTriggerLogic(int ownerID)
-		: GameObjectLogic(ownerID) {}
+		: GameObjectLogic(ownerID) {
+		// Forward the owner ID to the base logic so this controller can resolve its trigger sprite.
+	}
 
+	/**
+	 * @brief Updates hover feedback and pause activation for one frame.
+	 * @param dt Delta time for the frame.
+	 * @param scene Active scene containing the trigger object and pause overlay.
+	 * @param input Input manager used for cursor position and click detection.
+	 */
 	void Update(float dt, Scene& scene, InputManager& input) override;
 
 private:
-	// Tracks whether one time initialization has been completed.
+	// Tracks whether the trigger has cached its normal and hover textures yet.
 	bool initialized_ = false;
 
-	// True when the cursor is currently hovering over the trigger.
+	// True while the cursor is currently inside the trigger's hit area.
 	bool hovered_ = false;
 
-	// File path for the default (non hovered) texture of the trigger. 
+	// Texture path used when the trigger is idle.
 	std::string normalTexturePath_{};
 
-	// File path for the texture used while the trigger is hovered. 
+	// Texture path used while the trigger is highlighted by the cursor.
 	std::string hoverTexturePath_{};
 };

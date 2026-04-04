@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			StartGamePromptLogic.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (85%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	    (15%)
 
  DESCRIPTION:		Declares the main-menu Play button prompt flow.
 					The logic controls the Play button hover state, manages the tutorial

@@ -2,8 +2,10 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			MenuButtonLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (95%)
- CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (5%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(35%)
+					Vu Phan Hung, phanhung.vu@digipen.edu	(15%)
 
  DESCRIPTION:		Implements hover and activation behavior for top-level menu buttons.
 					Handles hover-state texture swaps, menu audio feedback, and direct

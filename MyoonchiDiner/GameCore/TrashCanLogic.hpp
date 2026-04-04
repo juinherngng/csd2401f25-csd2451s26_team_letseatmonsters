@@ -19,24 +19,49 @@
 
 class TrashCanLogic : public TableLogic {
 public:
-	// Constructor takes ownerID and passes to base TableLogic constructor.
+	/**
+	 * @brief Constructs trash-can logic for the owning scene object.
+	 * @param ownerID Runtime object ID that owns this logic component.
+	 */
 	explicit TrashCanLogic(int ownerID);
 
-	// Trash can should accept items similar to a table, but it never "holds" them.
+	/**
+	 * @brief Returns whether the trash can can accept the specified item.
+	 * @param scene Active scene containing the trash can and candidate item.
+	 * @param itemID Runtime ID of the item being tested.
+	 * @return True when the item passes the base table validation checks.
+	 */
 	bool CanAcceptItem(Scene& scene, int itemID) const override;
 
-	// Place item -> delete it.
+	/**
+	 * @brief Accepts an item and immediately queues it for destruction.
+	 * @param scene Active scene containing the trash can and candidate item.
+	 * @param itemID Runtime ID of the item being discarded.
+	 * @return True when the item was accepted and queued for despawn.
+	 */
 	bool PlaceItem(Scene& scene, int itemID) override;
 
-	// Taking from trash should do nothing.
+	/**
+	 * @brief Returns no item because trash cans never retain placed objects.
+	 * @param scene Active scene containing the trash can.
+	 * @return Always returns `kInvalidID`.
+	 */
 	int TakeItem(Scene& scene) override;
 
 protected:
-	// When an item is placed, destroy it immediately.
+	/**
+	 * @brief Handles the side effects of an item being placed into the trash.
+	 * @param scene Active scene containing the trash can.
+	 * @param item Item being discarded.
+	 */
 	void OnItemPlaced(Scene& scene, GameObject& item) override;
 
-	// Trash can logic name for debugging.
+	/**
+	 * @brief Returns the runtime logic name used for debugging and registration.
+	 * @return Stable logic name string.
+	 */
 	std::string GetName() const override {
+		// Keep the logic name stable so logs and logic inspection remain readable.
 		return "TrashCanLogic";
 	}
 };

@@ -22,7 +22,6 @@
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
-#include "../../MyoonchiDiner/GameCore/PlayerLogic.hpp"
 
  // -------------------------------------------------------------------------------------------------
  // Top-Level Frame Driver
@@ -333,8 +332,9 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 					audioManager->PlaySound("ui_startresume", audioManager->GetVfxVolume(), false);
 				}
 			}
-			if (PlayerLogic* playerLogic = GetLogicManager().GetLogicForObject<PlayerLogic>(GetPlayerID())) {
-				playerLogic->EnterPauseState(*this);
+			if (pauseStateSyncHook_) {
+				// Defer game-specific pause-state bookkeeping to the configured scene hook.
+				pauseStateSyncHook_(*this);
 			}
 			HidePauseOverlay();
 			RequestResumeFromPauseOverlay();
@@ -346,8 +346,9 @@ void Scene::FinalizeFramePhase(float deltaTime) {
 					audioManager->PlaySound("ui_back", audioManager->GetVfxVolume(), false);
 				}
 			}
-			if (PlayerLogic* playerLogic = GetLogicManager().GetLogicForObject<PlayerLogic>(GetPlayerID())) {
-				playerLogic->EnterPauseState(*this);
+			if (pauseStateSyncHook_) {
+				// Give the game layer a chance to freeze player-specific pause state before the overlay appears.
+				pauseStateSyncHook_(*this);
 			}
 			ShowPauseOverlay();
 			inputManager.ConsumeNextKeyPress(GLFW_KEY_ESCAPE);

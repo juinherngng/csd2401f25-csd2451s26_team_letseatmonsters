@@ -15,24 +15,28 @@
 
 #pragma once
 
- // Types of ingredients used in the cooking system.
+ /**
+  * @brief Ingredient categories used by the cooking and processing systems.
+  */
 enum class IngredientType {
-	Vegetable,
-	Meat,
-	Shroom,
-	Carrot,
-	Refined_Veg,
-	Refined_Meat,
-	Refined_Shroom,
-	Refined_Carrot
+	Vegetable,      // Raw vegetable ingredient.
+	Meat,           // Raw meat ingredient.
+	Shroom,         // Raw mushroom ingredient.
+	Carrot,         // Raw carrot ingredient.
+	Refined_Veg,    // Processed vegetable ingredient.
+	Refined_Meat,   // Processed meat ingredient.
+	Refined_Shroom, // Processed mushroom ingredient.
+	Refined_Carrot  // Processed carrot ingredient.
 };
 
-// Types of finished dishes that can be served to customers.
+/**
+ * @brief Final dish categories that can be assembled and served to customers.
+ */
 enum class DishType {
-	MeatDish,
-	VegDish,
-	SoupDish,
-	SkewerDish,
-	CarrotSaladDish,
-	PoopDish
+	MeatDish,        // Plate assembled from the meat recipe.
+	VegDish,         // Plate assembled from the vegetable recipe.
+	SoupDish,        // Plate assembled from the soup recipe.
+	SkewerDish,      // Plate assembled from the meat-and-carrot recipe.
+	CarrotSaladDish, // Plate assembled from the vegetable-and-carrot recipe.
+	PoopDish         // Failure dish produced by an invalid recipe.
 };

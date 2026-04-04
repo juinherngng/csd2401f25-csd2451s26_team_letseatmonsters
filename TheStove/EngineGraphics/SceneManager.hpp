@@ -412,6 +412,8 @@ public:
 	using TagLogicBinder = std::function<void(Scene&, int, const std::string&)>;
 	using TagRuleHook = std::function<void(Scene&, int, const std::string&, float, float)>;
 	using PauseOverlayButtonBinder = std::function<void(Scene&, int, const std::string&)>;
+	using PauseOverlayFocusResetHook = std::function<void(Scene&)>;
+	using PauseStateSyncHook = std::function<void(Scene&)>;
 	using CustomerUpdateHook = std::function<void(float, Scene&)>;
 	using CustomerResetHook = std::function<void(Scene&)>;
 	using RuntimeObjectSetupHook = std::function<void(Scene&, int, const std::string&, const std::string&, bool, const std::string&, float, float)>;
@@ -432,6 +434,12 @@ public:
 	}
 	void SetPauseOverlayButtonBinder(PauseOverlayButtonBinder binder) {
 		pauseOverlayButtonBinder_ = std::move(binder);
+	}
+	void SetPauseOverlayFocusResetHook(PauseOverlayFocusResetHook hook) {
+		pauseOverlayFocusResetHook_ = std::move(hook);
+	}
+	void SetPauseStateSyncHook(PauseStateSyncHook hook) {
+		pauseStateSyncHook_ = std::move(hook);
 	}
 	void SetTagRuleHook(TagRuleHook hook) {
 		tagRuleHook_ = std::move(hook);
@@ -1300,6 +1308,8 @@ private:
 	TagLogicBinder tagLogicBinder_;
 	TagRuleHook tagRuleHook_;
 	PauseOverlayButtonBinder pauseOverlayButtonBinder_;
+	PauseOverlayFocusResetHook pauseOverlayFocusResetHook_;
+	PauseStateSyncHook pauseStateSyncHook_;
 	CustomerUpdateHook customerUpdateHook_;
 	CustomerResetHook customerResetHook_;
 	RuntimeObjectSetupHook runtimeObjectSetupHook_;

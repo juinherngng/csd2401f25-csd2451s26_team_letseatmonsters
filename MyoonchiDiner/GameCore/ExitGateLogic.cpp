@@ -15,10 +15,17 @@
 #include "EngineGraphics/SceneManager.hpp"
 #include "GameCore/ExitGateLogic.hpp"
 
+ /**
+  * @brief Returns the world-space exit target NPCs should use for this gate.
+  * @param scene Active scene containing the exit gate object.
+  * @return World-space exit target including the authored local offset.
+  */
 Math::Vector2D ExitGateLogic::GetExitTargetWorld(Scene& scene) const {
+	// Resolve the owning object first so the exit point follows the actual gate placement.
 	GameObject* owner = GetOwner(scene);
 	if (!owner) return Math::Vector2D(0.0f, 0.0f);
 
+	// Add the authored local offset so NPCs can target a walkable point near the gate.
 	glm::vec3 p = owner->GetPositionGLM();
 	return Math::Vector2D(p.x + exitOffset_.x, p.y + exitOffset_.y);
 }

@@ -18,23 +18,33 @@
 
 class ExitGateLogic : public GameObjectLogic {
 public:
-	// Constructor
 	using GameObjectLogic::GameObjectLogic;
 
-	// Override GetName for debugging purposes
+	/**
+	 * @brief Returns the stable runtime logic name used by the engine.
+	 * @return Name string for this logic component.
+	 */
 	std::string GetName() const override {
+		// Keep the logic name stable for debugging and runtime lookup helpers.
 		return "ExitGateLogic";
 	}
 
-	// Where NPC should walk to (optionally offset inside the walk area)
+	/**
+	 * @brief Returns the world-space exit target NPCs should walk toward.
+	 * @param scene Active scene containing the exit gate object.
+	 * @return World-space exit target including the authored local offset.
+	 */
 	Math::Vector2D GetExitTargetWorld(Scene& scene) const;
 
-	// Set an optional local offset for the exit target (e.g., to specify a point inside the walk area)
+	/**
+	 * @brief Sets an optional local offset for the exit target.
+	 * @param localOffset Local offset from the gate object's position.
+	 */
 	void SetExitOffset(const Math::Vector2D& localOffset) {
+		// Store the authored offset so NPCs aim at a precise point inside the exit area.
 		exitOffset_ = localOffset;
 	}
 
 private:
-	// Local offset from the GameObject's position to define the actual exit target within the walk area
 	Math::Vector2D exitOffset_{ 0.0f, 0.0f };
 };

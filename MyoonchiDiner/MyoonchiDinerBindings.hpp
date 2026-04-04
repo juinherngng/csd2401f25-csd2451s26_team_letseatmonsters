@@ -17,15 +17,9 @@
 
 class Scene;
 
-/************************************************************************/
-/*!
-\brief
-	Registers every Myoonchi Diner game binding onto the given Scene.
-	This includes tag-to-logic dispatch, animation attachment,
-	customer management, audio policies, cutscene hooks, and
-	navigation blocker collection. Called once during bootstrap.
-\param scene
-	The engine Scene instance to bind game hooks into.
-*/
-/************************************************************************/
+/**
+ * @brief Registers all Myoonchi Diner scene hooks, logic binders, and gameplay policies.
+ *
+ * @param scene The engine scene that should receive the game-layer bindings.
+ */
 void RegisterMyoonchiDinerBindings(Scene& scene);

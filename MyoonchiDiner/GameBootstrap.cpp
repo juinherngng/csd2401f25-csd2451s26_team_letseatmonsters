@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameBootstrap.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (75%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(25%)
 
  DESCRIPTION:		Implements the engine-facing bootstrap interface declared in
 					GameBootstrap.hpp. Wires the Myoonchi Diner game module into
@@ -31,23 +32,21 @@ namespace {
 	// Tracks the currently playing ambience channel name (used in gameplay).
 	std::string gCurrentAmbience;
 
-	/************************************************************************/
-	/*!
-	\brief
-	Stops any currently playing background music and ambience channels,
-	then clears the tracking strings. Safe to call with a null pointer.
-	\param audioManager
-	Pointer to the AudioManager.
-	*/
-	/************************************************************************/
+	/**
+	 * @brief Stops any tracked music and ambience channels from the previous state.
+	 *
+	 * @param audioManager The audio manager that owns the active channels.
+	 */
 	void StopCurrentAudio(AudioManager* audioManager) {
 		if (!audioManager) {
 			return;
 		}
+		// Stop the last registered BGM channel before the next state starts its own audio.
 		if (!gCurrentAudio.empty()) {
 			audioManager->StopSound(gCurrentAudio);
 			gCurrentAudio.clear();
 		}
+		// Gameplay ambience is tracked separately so it can be cleaned up alongside BGM.
 		if (!gCurrentAmbience.empty()) {
 			audioManager->StopSound(gCurrentAmbience);
 			gCurrentAmbience.clear();
@@ -55,10 +54,21 @@ namespace {
 	}
 }
 
+/**
+ * @brief Registers the game-specific scene bindings required by the engine.
+ *
+ * @param scene The scene receiving Myoonchi Diner hook registrations.
+ */
 void RegisterGameBindings(Scene& scene) {
+	// Forward bootstrap registration into the game layer's single binding entry point.
 	RegisterMyoonchiDinerBindings(scene);
 }
 
+/**
+ * @brief Maps engine game states to the JSON levels used by Myoonchi Diner.
+ *
+ * @param gsm The game state manager being configured during bootstrap.
+ */
 void ConfigureGameStates(Framework::GameStateManager& gsm) {
 	// MainMenu = main menu, Kitchen01 = first kitchen gameplay level, Tutorial = tutorial walkthrough
 	gsm.RegisterJsonState(Framework::GameState::MainMenu, MyoonchiPaths::Levels::MAIN_MENU);
@@ -66,6 +76,11 @@ void ConfigureGameStates(Framework::GameStateManager& gsm) {
 	gsm.RegisterJsonState(Framework::GameState::Tutorial, MyoonchiPaths::Levels::TUTORIAL);
 }
 
+/**
+ * @brief Installs per-state audio enter and pause policies for the game module.
+ *
+ * @param gsm The game state manager that owns the audio policy callbacks.
+ */
 void ConfigureGameStateAudioPolicy(Framework::GameStateManager& gsm) {
 	// Called by the GSM each time a new state is entered. Responsible for
 	// stopping the previous state's audio and starting the new state's BGM.

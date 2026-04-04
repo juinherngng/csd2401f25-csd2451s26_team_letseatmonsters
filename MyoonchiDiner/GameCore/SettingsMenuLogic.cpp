@@ -29,6 +29,7 @@
 #include "MyoonchiDiner/GamePaths.hpp"
 
 namespace {
+	// These multipliers make focused or active sliders feel more tactile without changing their authored layout.
 	constexpr float kSliderFocusedBarScale = 1.04f;
 	constexpr float kSliderFocusedKnobScale = 1.10f;
 	constexpr float kSliderActiveBarScale = 1.08f;
@@ -707,9 +708,10 @@ void SettingsMenuLogic::ResolveWidgetIds(Scene& scene) {
 void SettingsMenuLogic::CacheSliderBaseScales(Scene& scene) {
 	auto captureScale = [&scene](int objectId, glm::vec3& outScale) {
 		if (GameObject* obj = scene.GetGameObjectByID(objectId)) {
+			// Cache the authored size so hover/drag emphasis can always restore the original scale.
 			outScale = obj->GetScaleGLM();
 		}
-	};
+		};
 
 	captureScale(masterBarVisualId_, masterBarBaseScale_);
 	captureScale(bgmBarVisualId_, bgmBarBaseScale_);
@@ -872,6 +874,7 @@ void SettingsMenuLogic::UpdateKeyboardSliderAdjustment(float dt, Scene& scene, I
 
 	bool shouldApplyStep = false;
 	if (directionJustPressed || desiredDirection != sliderAdjustHeldDirection_) {
+		// Apply immediately on the first press or when the held direction flips.
 		shouldApplyStep = true;
 		sliderAdjustHeldDirection_ = desiredDirection;
 		sliderAdjustRepeatTimer_ = kKeyboardSliderRepeatStartDelay;
@@ -923,7 +926,7 @@ void SettingsMenuLogic::RefreshVisualState(Scene& scene) {
 		SetVisualObjectScale(scene,
 			GetSliderKnobVisualId(target),
 			{ knobBaseScale.x * knobScaleMultiplier, knobBaseScale.y * knobScaleMultiplier, knobBaseScale.z });
-	};
+		};
 
 	applySliderScale(SliderTarget::Master, masterBarBaseScale_, masterKnobBaseScale_);
 	applySliderScale(SliderTarget::Bgm, bgmBarBaseScale_, bgmKnobBaseScale_);

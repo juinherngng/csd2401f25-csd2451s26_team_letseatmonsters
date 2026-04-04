@@ -2,7 +2,10 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			PauseButtonLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:		Vu Phan Hung, phanhung.vu@digipen.edu   (25%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(20%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (15%)
 
  DESCRIPTION:		Implements PauseButtonLogic::Update for release builds only, providing AABB mouse click registering logic,
 					hover texture swapping, and button actions logic: resume simulation/hide overlay, load settings JSON,
@@ -27,7 +30,13 @@
 namespace {
 	static int gPauseResumeButtonIdForCurrentOverlay = -1;
 
+	/**
+	 * @brief Builds the hover-state texture path corresponding to a normal button texture.
+	 * @param path Authored normal-state texture path.
+	 * @return Texture path for the matching hover-state texture.
+	 */
 	static std::string MakeHoverPath(const std::string& path) {
+		// Preserve empty paths so callers can skip texture swaps safely.
 		if (path.empty()) return path;
 
 		const size_t dot = path.find_last_of('.');
@@ -43,7 +52,13 @@ namespace {
 		return base + "_h" + ext;
 	}
 
+	/**
+	 * @brief Applies a texture to a button GameObject when the texture path is valid.
+	 * @param owner Button GameObject that should receive the texture.
+	 * @param texPath Texture path to load and apply.
+	 */
 	static void TrySetTexture(GameObject* owner, const std::string& texPath) {
+		// Skip loading when the object or path is missing to keep hover transitions resilient.
 		if (!owner || texPath.empty()) return;
 		std::string cacheName = "staticsprite_" + texPath;
 		if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheName, texPath)) {
@@ -52,14 +67,21 @@ namespace {
 	}
 }
 
+/**
+ * @brief Updates hover feedback, keyboard focus, and click handling for one frame.
+ * @param dt Unused delta time for the frame.
+ * @param scene Active scene containing the pause overlay.
+ * @param input Input manager used for mouse and keyboard interaction.
+ */
 void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
-	// Lazy init from entity metadata
+	// Cache the button's normal and hover textures the first time the overlay updates it.
 	if (!initialized_) {
 		normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
 		hoverTexturePath_ = MakeHoverPath(normalTexturePath_);
 		initialized_ = true;
 	}
 
+	// Pause buttons only run their interactive behavior in runtime parity mode.
 	if (!scene.ShouldUseRuntimeParityMode()) {
 		if (hovered_) {
 			hovered_ = false;
@@ -70,6 +92,7 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		return;
 	}
 
+	// Tear down any hover state as soon as the pause overlay disappears.
 	if (!scene.IsPauseOverlayActive()) {
 		if (action_ == PauseAction::Resume) {
 			gPauseResumeButtonIdForCurrentOverlay = -1;
@@ -84,11 +107,13 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		return;
 	}
 
+	// Reset pause-overlay keyboard focus whenever a fresh Resume button instance becomes active.
 	if (action_ == PauseAction::Resume && gPauseResumeButtonIdForCurrentOverlay != GetOwnerID()) {
 		MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::GetPauseOverlayScopeKey(scene));
 		gPauseResumeButtonIdForCurrentOverlay = GetOwnerID();
 	}
 
+	// Suspend pause-button interaction while a higher-priority overlay or modal is on top.
 	if (scene.IsHowToPlayOverlayActive() || scene.IsMenuModalActive()) {
 		if (hovered_) {
 			hovered_ = false;
@@ -99,7 +124,7 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		return;
 	}
 
-	// Hover hit-test
+	// Compute the current mouse position in scene space for hover hit-testing.
 	glm::vec2 mouseWorld{};
 	bool insideScene = GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld);
 	if (!insideScene) {
@@ -112,6 +137,7 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	GameObject* owner = GetOwner(scene);
 	if (!owner) return;
 
+	// Build a simple AABB from the button's position and scale.
 	const glm::vec3 pos = owner->GetPositionGLM();
 	const glm::vec3 sz = owner->GetScaleGLM();
 	const float halfW = sz.x * 0.5f;
@@ -121,6 +147,7 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		mouseWorld.x >= (pos.x - halfW) && mouseWorld.x <= (pos.x + halfW) &&
 		mouseWorld.y >= (pos.y - halfH) && mouseWorld.y <= (pos.y + halfH);
 
+	// Merge mouse hover and keyboard focus so either interaction mode can highlight the button.
 	const std::vector<int> buttonIds = MenuKeyboardNavigation::CollectPauseOverlayButtons(scene);
 	const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
 		scene,
@@ -131,6 +158,7 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	const bool keyboardFocused = (focusedButtonId == GetOwnerID());
 	const bool over = mouseOver || keyboardFocused;
 
+	// Enter hover state once and trigger the usual highlight feedback.
 	if (over && !hovered_) {
 		hovered_ = true;
 		TrySetTexture(owner, hoverTexturePath_);
@@ -141,22 +169,24 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 			}
 		}
 	}
+	// Restore the idle texture when the button is no longer hovered or focused.
 	else if (!over && hovered_) {
 		hovered_ = false;
 		TrySetTexture(owner, normalTexturePath_);
 	}
 
-	// Click
+	// Accept either a mouse click or keyboard submit when this button has focus.
 	const bool keyboardSubmit = keyboardFocused && MenuKeyboardNavigation::ConsumeSubmitPress(input);
 	if ((!mouseOver || !input.IsMouseButtonJustPressed(GLFW_MOUSE_BUTTON_LEFT)) && !keyboardSubmit) {
 		return;
 	}
 
-	// Consume click so it won't leak into gameplay after resume
+	// Consume the mouse click so it cannot leak into gameplay once the overlay closes.
 	if (mouseOver) {
 		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 	}
 
+	// Dispatch the authored pause-menu action for this button.
 	switch (action_) {
 	case PauseAction::Resume:
 		if (AudioManager* audioManager = scene.GetAudioManager()) {
@@ -168,6 +198,7 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 			playerLogic->EnterPauseState(scene);
 		}
 
+		// Hide the overlay first, then request gameplay resume from the pause flow.
 		scene.HidePauseOverlay();
 		scene.RequestResumeFromPauseOverlay();
 		break;
@@ -178,8 +209,7 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
 			}
 		}
-		// (Optional) You can hook this to your HowToPlay overlay too
-		// e.g. scene.ShowHowToPlayFromPause();
+		// This action slot is reserved for the pause-menu how-to-play overlay flow.
 		break;
 
 	case PauseAction::Quit:
@@ -189,7 +219,7 @@ void PauseButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 				audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_CLICK_BUTTON, audioManager->GetVfxVolume(), false);
 			}
 		}
-		// Close the window safely
+		// Close the current GLFW window when the pause-menu quit button is confirmed.
 		if (GLFWwindow* win = glfwGetCurrentContext()) {
 			glfwSetWindowShouldClose(win, GLFW_TRUE);
 		}

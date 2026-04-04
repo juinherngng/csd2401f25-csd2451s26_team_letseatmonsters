@@ -2,8 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			MenuButtonLogic.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (95%)
- CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (5%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (55%)
+ CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(35%)
 
  DESCRIPTION:		Declares the menu button logic used by top-level menu entries.
 					This component owns the hover-state texture swap, optional UI audio

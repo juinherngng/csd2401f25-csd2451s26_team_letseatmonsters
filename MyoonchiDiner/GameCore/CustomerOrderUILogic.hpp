@@ -3,7 +3,7 @@
  FILE NAME:         CustomerOrderUILogic.hpp
  PROJECT NAME:      Project GAM200
  AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (85%)
-					Yat Chun Wee, y.chunwee@digipen.edu	  (15%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (15%)
 
  DESCRIPTION:       Declares the CustomerOrderUILogic component, responsible for displaying
 					and updating customer order UI elements such as the order bubble,
@@ -29,12 +29,40 @@ class CustomerOrderUILogic : public GameObjectLogic {
 public:
 	using GameObjectLogic::GameObjectLogic;
 
+	/**
+	 * @brief Resets runtime UI state when the logic is first attached.
+	 * @param scene Active scene that owns the customer object.
+	 */
 	void Start(Scene& scene) override;
+
+	/**
+	 * @brief Updates customer UI visibility, anchoring, and feedback effects for one frame.
+	 * @param dt Delta time for the frame.
+	 * @param scene Active scene containing the customer and UI objects.
+	 * @param input Input manager forwarded by the logic system.
+	 */
 	void Update(float dt, Scene& scene, InputManager& input) override;
+
+	/**
+	 * @brief Cleans up all spawned UI and VFX objects owned by this customer.
+	 * @param scene Active scene containing the spawned helper objects.
+	 */
 	void OnDestroy(Scene& scene) override;
+
+	/**
+	 * @brief Tests whether a world-space point overlaps the customer's order bubble.
+	 * @param scene Active scene containing the bubble objects.
+	 * @param worldPos World-space point to test.
+	 * @return True if the point hits the bubble background or icon.
+	 */
 	bool HitTestBubble(Scene& scene, const glm::vec2& worldPos) const;
 
+	/**
+	 * @brief Returns the stable runtime logic name used by the engine.
+	 * @return Name string for the logic component.
+	 */
 	std::string GetName() const override {
+		// Keep the logic name stable for registration, debugging, and save data lookups.
 		return "CustomerOrderUILogic";
 	}
 
@@ -82,70 +110,145 @@ private:
 	const char* patienceBGPath_ = "../assets/UI/Customer_Timer_Red.png";	  // red
 	const char* patienceFillPath_ = "../assets/UI/Customer_Timer_Green.png"; // green
 
-	// helpers
-	// Ensures patience bar background/fill widgets are created
+	/**
+	 * @brief Ensures the patience-bar background and fill widgets exist.
+	 * @param scene Active scene containing the customer.
+	 */
 	void EnsurePatienceBar(Scene& scene);
 
-	// Ensures the icon sprite exists and is set to the provided texture path
+	/**
+	 * @brief Ensures the order bubble icon exists and uses the requested texture.
+	 * @param scene Active scene containing the customer.
+	 * @param iconPath Texture path for the icon that should be displayed.
+	 */
 	void EnsureBubbleIcon(Scene& scene, const char* iconPath);
 
-	// Destroys all bubble-related UI objects if they exist
+	/**
+	 * @brief Destroys the currently spawned order-bubble objects, if any.
+	 * @param scene Active scene containing the bubble sprites.
+	 */
 	void DestroyBubble(Scene& scene);
 
-	// Destroys patience bar UI objects if they exist
+	/**
+	 * @brief Destroys the patience-bar widgets, if any are active.
+	 * @param scene Active scene containing the patience-bar sprites.
+	 */
 	void DestroyPatienceBar(Scene& scene);
 
-	// void UpdateDishIconTexture(Scene& scene, DishType dish);
-	// Replaces bubble icon texture and updates its rendered size
+	/**
+	 * @brief Replaces the current bubble icon texture and refreshes its rendered size.
+	 * @param scene Active scene containing the icon sprite.
+	 * @param iconPath Texture path for the replacement icon.
+	 */
 	void UpdateIconTexture(Scene& scene, const char* iconPath);
-	// Keeps spawned UI anchored to the customer's current position
+
+	/**
+	 * @brief Repositions all spawned UI elements so they follow the customer.
+	 * @param scene Active scene containing the customer and UI objects.
+	 */
 	void FollowCustomer(Scene& scene);
 
-	// Rescales patience fill width from a normalized [0,1] ratio
+	/**
+	 * @brief Rescales the patience fill bar from a normalized ratio.
+	 * @param scene Active scene containing the bar sprites.
+	 * @param ratio01 Normalized patience value in the range `[0, 1]`.
+	 */
 	void UpdatePatienceFill(Scene& scene, float ratio01);
 
-	// Ensures the looping eating VFX exists while the customer is eating
+	/**
+	 * @brief Ensures the looping eating VFX is spawned while the customer is eating.
+	 * @param scene Active scene containing the customer and VFX objects.
+	 */
 	void EnsureEatingVFX(Scene& scene);
 
-	// Keeps the eating VFX anchored to the customer each frame
+	/**
+	 * @brief Repositions and refreshes the eating VFX while it is active.
+	 * @param scene Active scene containing the customer and VFX objects.
+	 */
 	void UpdateEatingVFX(Scene& scene);
 
-	// Picks the eating VFX offset that matches the customer's current eating pose
+	/**
+	 * @brief Returns the authored eating-VFX offset that matches the current pose.
+	 * @param scene Active scene used to query the customer's animation state.
+	 * @return Offset to apply to the eating VFX.
+	 */
 	glm::vec2 GetEatingVfxOffset(Scene& scene) const;
 
-	// Destroys the eating VFX if it exists
+	/**
+	 * @brief Destroys the active eating VFX, if it exists.
+	 * @param scene Active scene containing the VFX object.
+	 */
 	void DestroyEatingVFX(Scene& scene);
 
-	// Drives the low-patience warning glow while the bar is visible
+	/**
+	 * @brief Updates the low-patience warning glow, pulse, and shake state.
+	 * @param scene Active scene containing the patience bar.
+	 * @param dt Delta time for the frame.
+	 * @param ratio01 Normalized patience value in the range `[0, 1]`.
+	 * @param showBar True when the patience bar should currently be visible.
+	 */
 	void UpdateLowPatienceWarning(Scene& scene, float dt, float ratio01, bool showBar);
 
-	// Ensures the low-patience outline overlay exists around the bar background
+	/**
+	 * @brief Ensures the low-patience outline overlay exists around the bar background.
+	 * @param scene Active scene containing the patience bar.
+	 */
 	void EnsureLowPatienceGlow(Scene& scene);
 
-	// Keeps the low-patience glow aligned with the bar and updates pulse alpha
+	/**
+	 * @brief Keeps the low-patience glow aligned with the bar and updates its pulse alpha.
+	 * @param scene Active scene containing the glow sprites.
+	 * @param alpha Alpha value to apply to the outline sprites.
+	 */
 	void SyncLowPatienceGlow(Scene& scene, float alpha);
 
-	// Destroys the low-patience glow overlay if it exists
+	/**
+	 * @brief Destroys the low-patience glow overlay if it exists.
+	 * @param scene Active scene containing the glow sprites.
+	 */
 	void DestroyLowPatienceGlow(Scene& scene);
 
 	const char* happyFacePath_ = "../assets/UI/Reaction_Happy_Face.png";
 	const char* sadFacePath_ = "../assets/UI/Reaction_Angry_Face.png";
 
-	// Spawns temporary payment reaction VFX (happy/sad face)
+	/**
+	 * @brief Spawns a temporary payment reaction VFX above the customer.
+	 * @param scene Active scene containing the customer.
+	 * @param path Texture path for the VFX sprite to spawn.
+	 */
 	void SpawnPaymentVFX(Scene& scene, const char* path);
 
-	// Updates payment VFX position/lifetime while active
+	/**
+	 * @brief Updates payment VFX movement and lifetime while it is active.
+	 * @param scene Active scene containing the spawned VFX object.
+	 * @param dt Delta time for the frame.
+	 */
 	void UpdatePaymentVFX(Scene& scene, float dt);
 
-	// Destroys payment VFX object and resets related state
+	/**
+	 * @brief Destroys the payment VFX object and resets its runtime state.
+	 * @param scene Active scene containing the spawned VFX object.
+	 */
 	void DestroyPaymentVFX(Scene& scene);
 
-	// Returns icon dimensions tailored to the requested icon path
+	/**
+	 * @brief Returns icon dimensions tailored to the requested icon texture.
+	 * @param iconPath Texture path for the icon being displayed.
+	 * @return Authored icon size for the requested texture.
+	 */
 	glm::vec2 GetIconSizeForPath(const char* iconPath) const;
 
-	// Maps dish enum to the icon texture shown in the thought bubble
+	/**
+	 * @brief Maps a dish type to the icon texture shown in the thought bubble.
+	 * @param dish Requested dish type.
+	 * @return Texture path for the corresponding dish icon.
+	 */
 	const char* DishToIconPath(DishType dish) const;
 
+	/**
+	 * @brief Launches the success reaction that flies toward the order panel.
+	 * @param scene Active scene containing the customer and order UI.
+	 */
 	void TriggerOrderCompleteSuccess(Scene& scene);
 
 	// --- payment result VFX ---

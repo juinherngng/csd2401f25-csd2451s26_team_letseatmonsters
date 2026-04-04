@@ -3,7 +3,7 @@
  FILE NAME:         CustomerOrderUILogic.cpp
  PROJECT NAME:      Project GAM200
  AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (95%)
-					Yat Chun Wee, y.chunwee@digipen.edu	  (5%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (5%)
 
  DESCRIPTION:       Defines the CustomerOrderUILogic component, responsible for displaying
 					and updating customer order UI elements such as the order bubble,
@@ -48,7 +48,15 @@ namespace {
 	constexpr int kLowPatienceGlowMaskSortOrder = 201;
 	const glm::vec4 kLowPatienceGlowTint(1.0f, 0.16f, 0.16f, kLowPatienceGlowMaxAlpha);
 
+	/**
+	 * @brief Builds UV frames from a top-indexed row of the ambient VFX sheet.
+	 * @param topRowOneBased One-based row index counted from the top of the sheet.
+	 * @param startCol First column to include.
+	 * @param endCol Last column to include.
+	 * @return UV rectangles for the requested frame range.
+	 */
 	std::vector<glm::vec4> CreateAmbientVfxFramesFromTopRow(int topRowOneBased, int startCol, int endCol) {
+		// Return no frames when the requested row falls outside the authored sheet.
 		std::vector<glm::vec4> frames;
 		if (topRowOneBased < 1 || topRowOneBased > kAmbientVfxRows) {
 			return frames;
@@ -74,32 +82,61 @@ namespace {
 	}
 }
 
-// small utility
+/**
+ * @brief Despawns an object when its runtime ID is still valid.
+ * @param scene Active scene containing the object.
+ * @param id Runtime object ID to despawn and clear.
+ */
 static void DespawnIfAlive(Scene& scene, int& id) {
+	// Clear the cached ID after despawn so follow-up checks stay safe.
 	if (id >= 0) {
 		scene.DespawnByID(id);
 		id = -1;
 	}
 }
 
+/**
+ * @brief Clamps a scalar to the normalized range `[0, 1]`.
+ * @param v Value to clamp.
+ * @return Clamped normalized value.
+ */
 static float Clamp01(float v) {
+	// Normalize helper values before they drive alpha, easing, or timing math.
 	if (v < 0.f) return 0.f;
 	if (v > 1.f) return 1.f;
 	return v;
 }
 
+/**
+ * @brief Applies an ease-out cubic curve to a normalized value.
+ * @param x Input value in the range `[0, 1]`.
+ * @return Eased output in the range `[0, 1]`.
+ */
 static float EaseOutCubic01(float x) {
+	// Clamp first so overshoot never distorts the easing curve.
 	x = Clamp01(x);
 	float inv = 1.0f - x;
 	return 1.0f - inv * inv * inv;
 }
 
+/**
+ * @brief Produces a smooth interpolation weight for value-noise blending.
+ * @param t Local interpolation factor.
+ * @return Smoothed interpolation factor.
+ */
 static float SmoothNoiseBlend(float t) {
+	// Use a smoothstep-style curve so adjacent noise cells blend without hard edges.
 	t = Clamp01(t);
 	return t * t * (3.0f - 2.0f * t);
 }
 
+/**
+ * @brief Hashes an integer bit pattern into a pseudo-random value.
+ * @param x Input bits to hash.
+ * @return Mixed hash bits.
+ */
 static uint32_t HashNoiseBits(uint32_t x) {
+	// Mix nearby inputs aggressively so the shake channels do not repeat obvious patterns.
 	x ^= x >> 16;
 	x *= 0x7feb352dU;
 	x ^= x >> 15;
@@ -108,7 +145,14 @@ static uint32_t HashNoiseBits(uint32_t x) {
 	return x;
 }
 
+/**
+ * @brief Converts a noise cell and seed into a signed pseudo-random scalar.
+ * @param cell Integer noise cell.
+ * @param seed Seed offset used to decorrelate channels.
+ * @return Signed noise value in the range `[-1, 1]`.
+ */
 static float HashSignedNoise(int cell, int seed) {
+	// Combine the cell and seed before hashing so each channel gets a distinct pattern.
 	const uint32_t cellBits = static_cast<uint32_t>(cell);
 	const uint32_t seedBits = static_cast<uint32_t>(seed) * 0x9e3779b9U;
 	const uint32_t hashed = HashNoiseBits(cellBits ^ seedBits);
@@ -116,7 +160,14 @@ static float HashSignedNoise(int cell, int seed) {
 	return normalized * 2.0f - 1.0f;
 }
 
+/**
+ * @brief Samples one octave of smoothed 1D value noise.
+ * @param x Continuous sample position.
+ * @param seed Seed offset used to decorrelate channels.
+ * @return Signed noise sample.
+ */
 static float SampleValueNoise1D(float x, int seed) {
+	// Interpolate between the neighboring cell values that bound the sample point.
 	const int cell0 = static_cast<int>(std::floor(x));
 	const int cell1 = cell0 + 1;
 	const float localT = x - static_cast<float>(cell0);
@@ -126,7 +177,14 @@ static float SampleValueNoise1D(float x, int seed) {
 	return value0 + (value1 - value0) * blend;
 }
 
+/**
+ * @brief Samples a short fractal stack of 1D noise.
+ * @param x Continuous sample position.
+ * @param seed Seed offset used to decorrelate channels.
+ * @return Weighted multi-octave noise sample.
+ */
 static float SampleFractalNoise1D(float x, int seed) {
+	// Blend several octaves together so the low-patience shake feels organic instead of robotic.
 	float sum = 0.0f;
 	float totalWeight = 0.0f;
 	float amplitude = 1.0f;
@@ -146,12 +204,24 @@ static float SampleFractalNoise1D(float x, int seed) {
 	return sum / totalWeight;
 }
 
+/**
+ * @brief Raises the magnitude of a value while preserving its sign.
+ * @param value Signed input value.
+ * @param exponent Exponent applied to the magnitude.
+ * @return Sign-preserving powered result.
+ */
 static float SignedPow(float value, float exponent) {
+	// Shape noise intensity without losing the original movement direction.
 	const float magnitude = std::pow(std::abs(value), exponent);
 	return std::copysign(magnitude, value);
 }
 
+/**
+ * @brief Initializes transient UI and VFX state for the customer.
+ * @param scene Unused active scene reference.
+ */
 void CustomerOrderUILogic::Start(Scene& /*scene*/) {
+	// Reset every transient field so a reused logic instance starts from a clean slate.
 	lastIconPath_.clear();
 	prevBehaviourState_ = -1;
 	lowPatienceGlow_ = {};
@@ -170,6 +240,10 @@ void CustomerOrderUILogic::Start(Scene& /*scene*/) {
 	eatingVFX_ID_ = -1;
 }
 
+/**
+ * @brief Destroys every spawned helper object owned by this customer UI.
+ * @param scene Active scene containing the helper objects.
+ */
 void CustomerOrderUILogic::OnDestroy(Scene& scene) {
 	// When the customer despawns, clean up their attached UI.
 	DestroyBubble(scene);
@@ -178,21 +252,37 @@ void CustomerOrderUILogic::OnDestroy(Scene& scene) {
 	DestroyEatingVFX(scene);
 }
 
+/**
+ * @brief Destroys the currently spawned order-bubble sprites.
+ * @param scene Active scene containing the bubble sprites.
+ */
 void CustomerOrderUILogic::DestroyBubble(Scene& scene) {
+	// Remove the icon before the background so the bubble fully tears down in one pass.
 	DespawnIfAlive(scene, bubbleDish_ID_);
 	DespawnIfAlive(scene, bubbleBG_ID_);
 }
 
+/**
+ * @brief Destroys the patience-bar sprites and warning glow.
+ * @param scene Active scene containing the patience-bar objects.
+ */
 void CustomerOrderUILogic::DestroyPatienceBar(Scene& scene) {
+	// Tear down the glow first because it mirrors the bar background's transform.
 	DestroyLowPatienceGlow(scene);
 	DespawnIfAlive(scene, barFill_ID_);
 	DespawnIfAlive(scene, barBG_ID_);
 }
 
+/**
+ * @brief Replaces the current bubble icon texture and refreshes its size.
+ * @param scene Active scene containing the icon sprite.
+ * @param iconPath Texture path for the replacement icon.
+ */
 void CustomerOrderUILogic::UpdateIconTexture(Scene& scene, const char* iconPath) {
 	GameObject* icon = scene.GetGameObjectByID(bubbleDish_ID_);
 	if (!icon) return;
 
+	// Keep both the runtime texture and serialized defaults aligned with the latest prompt icon.
 	icon->SetTexture(ResourceManager::Instance().LoadTexture(iconPath, iconPath));
 	scene.SetObjectTexturePath(bubbleDish_ID_, iconPath);
 
@@ -200,17 +290,22 @@ void CustomerOrderUILogic::UpdateIconTexture(Scene& scene, const char* iconPath)
 	d.texture = iconPath;
 	scene.SetDefaults(bubbleDish_ID_, d);
 
-	//set size depending on icon type
+	// Resize the icon so payment prompts and food prompts keep their authored proportions.
 	glm::vec2 iconSize = GetIconSizeForPath(iconPath);
 	icon->SetScale(glm::vec3(iconSize.x, iconSize.y, 1.0f));
 
 	lastIconPath_ = iconPath;
 }
 
+/**
+ * @brief Ensures the patience bar exists for the owning customer.
+ * @param scene Active scene containing the customer.
+ */
 void CustomerOrderUILogic::EnsurePatienceBar(Scene& scene) {
 	GameObject* me = scene.GetGameObjectByID(GetOwnerID());
 	if (!me) return;
 
+	// Spawn any missing patience widgets at the customer's current anchor position.
 	glm::vec3 p = me->GetPositionGLM();
 
 	if (barBG_ID_ < 0) {
@@ -238,10 +333,15 @@ void CustomerOrderUILogic::EnsurePatienceBar(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Keeps all spawned UI and VFX aligned to the customer.
+ * @param scene Active scene containing the customer and helper objects.
+ */
 void CustomerOrderUILogic::FollowCustomer(Scene& scene) {
 	GameObject* me = scene.GetGameObjectByID(GetOwnerID());
 	if (!me) return;
 
+	// Re-anchor every helper object from the customer's latest world position.
 	glm::vec3 p = me->GetPositionGLM();
 
 	if (bubbleBG_ID_ >= 0) {
@@ -284,9 +384,14 @@ void CustomerOrderUILogic::FollowCustomer(Scene& scene) {
 		}
 	}
 
-	// barFill position is handled in UpdatePatienceFill() so it pivots correctly
+	// Leave the fill bar to UpdatePatienceFill() so its left edge stays pinned correctly.
 }
 
+/**
+ * @brief Rescales the patience fill bar using the supplied normalized ratio.
+ * @param scene Active scene containing the patience-bar objects.
+ * @param ratio01 Normalized patience value in the range `[0, 1]`.
+ */
 void CustomerOrderUILogic::UpdatePatienceFill(Scene& scene, float ratio01) {
 	if (barBG_ID_ < 0 || barFill_ID_ < 0) return;
 
@@ -298,11 +403,7 @@ void CustomerOrderUILogic::UpdatePatienceFill(Scene& scene, float ratio01) {
 
 	glm::vec3 bgPos = bg->GetPositionGLM();
 
-	// We want fill to shrink RIGHT -> LEFT while LEFT edge stays fixed.
-	// Assuming sprite position is CENTER-based (typical), we:
-	//  1) compute left edge world X
-	//  2) set new width
-	//  3) set fill center to left + newWidth/2
+	// Recompute the fill from its left edge so depletion always collapses toward the right.
 	const float fullW = barFillSize_.x * lowPatienceBarScaleMul_;
 	const float fullH = barFillSize_.y * lowPatienceBarScaleMul_;
 
@@ -317,11 +418,22 @@ void CustomerOrderUILogic::UpdatePatienceFill(Scene& scene, float ratio01) {
 	fill->SetColorTint(glm::vec4(1.0f, 1.0f, 1.0f, lowPatienceBarAlpha_));
 }
 
+/**
+ * @brief Destroys the active eating VFX object.
+ * @param scene Active scene containing the VFX object.
+ */
 void CustomerOrderUILogic::DestroyEatingVFX(Scene& scene) {
+	// Collapse the helper state to "inactive" by despawning and clearing the cached ID.
 	DespawnIfAlive(scene, eatingVFX_ID_);
 }
 
+/**
+ * @brief Returns the best eating-VFX offset for the customer's current animation.
+ * @param scene Active scene used to query the current animation.
+ * @return Offset to apply to the eating VFX.
+ */
 glm::vec2 CustomerOrderUILogic::GetEatingVfxOffset(Scene& scene) const {
+	// Match the particle placement to the current eating-facing animation when possible.
 	const std::string animName = scene.GetCurrentAnimationName(GetOwnerID());
 	if (animName == "EAT_LEFT") {
 		return eatingVFXOffsetLeft_;
@@ -332,7 +444,12 @@ glm::vec2 CustomerOrderUILogic::GetEatingVfxOffset(Scene& scene) const {
 	return eatingVFXFallbackOffset_;
 }
 
+/**
+ * @brief Ensures the looping eating VFX exists while the customer is eating.
+ * @param scene Active scene containing the customer and VFX objects.
+ */
 void CustomerOrderUILogic::EnsureEatingVFX(Scene& scene) {
+	// Reuse the current VFX object when it is still alive instead of respawning it every frame.
 	if (eatingVFX_ID_ >= 0 && scene.GetGameObjectByID(eatingVFX_ID_)) {
 		return;
 	}
@@ -342,6 +459,7 @@ void CustomerOrderUILogic::EnsureEatingVFX(Scene& scene) {
 		return;
 	}
 
+	// Pull the authored ambient-bite frames from the shared VFX sheet.
 	std::vector<glm::vec4> frames = CreateAmbientVfxFramesFromTopRow(5, 0, 4);
 	if (frames.empty()) {
 		return;
@@ -367,6 +485,7 @@ void CustomerOrderUILogic::EnsureEatingVFX(Scene& scene) {
 	}
 
 	eatingVFX_ID_ = fx->GetID();
+	// Configure the VFX as a pure visual child with no gameplay collision or physics behavior.
 	fx->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
 	fx->SetColliderOffset(Math::Vector2D(0.0f, 0.0f));
 	fx->SetMovableByPhysics(false);
@@ -375,7 +494,12 @@ void CustomerOrderUILogic::EnsureEatingVFX(Scene& scene) {
 	scene.SetObjectTag(eatingVFX_ID_, "customer_eating_vfx");
 }
 
+/**
+ * @brief Updates the active eating VFX position, scale, and layer.
+ * @param scene Active scene containing the customer and VFX objects.
+ */
 void CustomerOrderUILogic::UpdateEatingVFX(Scene& scene) {
+	// If either object vanished unexpectedly, tear the helper down cleanly.
 	if (eatingVFX_ID_ < 0) {
 		return;
 	}
@@ -387,6 +511,7 @@ void CustomerOrderUILogic::UpdateEatingVFX(Scene& scene) {
 		return;
 	}
 
+	// Keep the VFX visually attached to the customer and above the customer sprite.
 	const glm::vec3 p = me->GetPositionGLM();
 	const glm::vec2 eatingOffset = GetEatingVfxOffset(scene);
 	const std::string layer = scene.GetObjectLayer(GetOwnerID()).empty()
@@ -402,14 +527,24 @@ void CustomerOrderUILogic::UpdateEatingVFX(Scene& scene) {
 	scene.AssignObjectToLayer(eatingVFX_ID_, layer);
 }
 
+/**
+ * @brief Destroys the low-patience glow sprites and resets the glow source.
+ * @param scene Active scene containing the glow sprites.
+ */
 void CustomerOrderUILogic::DestroyLowPatienceGlow(Scene& scene) {
+	// Remove every outline sprite and the center mask in one pass.
 	for (int& id : lowPatienceGlow_.ids) {
 		DespawnIfAlive(scene, id);
 	}
 	lowPatienceGlow_.sourceID = -1;
 }
 
+/**
+ * @brief Ensures the low-patience glow overlay exists around the patience bar.
+ * @param scene Active scene containing the bar sprites.
+ */
 void CustomerOrderUILogic::EnsureLowPatienceGlow(Scene& scene) {
+	// Abort if the source bar does not exist, because the glow simply mirrors that sprite.
 	if (barBG_ID_ < 0) {
 		DestroyLowPatienceGlow(scene);
 		return;
@@ -433,6 +568,7 @@ void CustomerOrderUILogic::EnsureLowPatienceGlow(Scene& scene) {
 
 	DestroyLowPatienceGlow(scene);
 
+	// Spawn outline copies around the bar to simulate a pulsing warning glow.
 	const std::string layer = scene.GetObjectLayer(barBG_ID_);
 	const glm::vec3 sourcePos = source->GetPositionGLM();
 	const glm::vec3 sourceScale = source->GetScaleGLM();
@@ -462,6 +598,7 @@ void CustomerOrderUILogic::EnsureLowPatienceGlow(Scene& scene) {
 			continue;
 		}
 
+		// Reuse the hover-outline shader so the bar gets a crisp additive warning edge.
 		outline->SetColorTint(kLowPatienceGlowTint);
 		outline->SetColliderSize(Math::Vector2D(0.0f, 0.0f));
 		outline->SetMovableByPhysics(false);
@@ -476,6 +613,7 @@ void CustomerOrderUILogic::EnsureLowPatienceGlow(Scene& scene) {
 		lowPatienceGlow_.ids[i] = outline->GetID();
 	}
 
+	// Spawn a center mask so the warning reads as an outline rather than a solid duplicate.
 	GameObject* mask = scene.SpawnStaticSprite(
 		texturePath,
 		sourcePos,
@@ -495,7 +633,13 @@ void CustomerOrderUILogic::EnsureLowPatienceGlow(Scene& scene) {
 	lowPatienceGlow_.sourceID = barBG_ID_;
 }
 
+/**
+ * @brief Synchronizes the low-patience glow sprites to the current bar transform.
+ * @param scene Active scene containing the glow and bar sprites.
+ * @param alpha Alpha value to apply to the outline sprites.
+ */
 void CustomerOrderUILogic::SyncLowPatienceGlow(Scene& scene, float alpha) {
+	// Follow the source bar exactly so pulse and shake remain visually locked together.
 	if (lowPatienceGlow_.sourceID < 0) {
 		return;
 	}
@@ -524,6 +668,7 @@ void CustomerOrderUILogic::SyncLowPatienceGlow(Scene& scene, float alpha) {
 		glm::vec2(diagonalOffset, diagonalOffset)
 	};
 
+	// Update every outline copy around the source bar.
 	for (std::size_t i = 0; i < offsets.size(); ++i) {
 		const int id = lowPatienceGlow_.ids[i];
 		if (id < 0) {
@@ -548,6 +693,7 @@ void CustomerOrderUILogic::SyncLowPatienceGlow(Scene& scene, float alpha) {
 		scene.AssignObjectToLayer(id, layer);
 	}
 
+	// Keep the center mask aligned so the glow appears as an outer ring only.
 	const int maskID = lowPatienceGlow_.ids[8];
 	if (maskID >= 0) {
 		if (GameObject* mask = scene.GetGameObjectByID(maskID)) {
@@ -561,7 +707,15 @@ void CustomerOrderUILogic::SyncLowPatienceGlow(Scene& scene, float alpha) {
 	}
 }
 
+/**
+ * @brief Drives the pulsing low-patience warning animation.
+ * @param scene Active scene containing the bar and glow sprites.
+ * @param dt Delta time for the frame.
+ * @param ratio01 Normalized patience value in the range `[0, 1]`.
+ * @param showBar True when the patience bar is visible this frame.
+ */
 void CustomerOrderUILogic::UpdateLowPatienceWarning(Scene& scene, float dt, float ratio01, bool showBar) {
+	// Reset all warning state immediately when the bar is hidden or patience is healthy.
 	const bool shouldWarn = showBar && ratio01 <= kLowPatienceThreshold;
 	if (!shouldWarn) {
 		lowPatienceGlowTimer_ = 0.0f;
@@ -573,6 +727,7 @@ void CustomerOrderUILogic::UpdateLowPatienceWarning(Scene& scene, float dt, floa
 		return;
 	}
 
+	// Build pulse, alpha, and shake parameters from how deep into the warning zone the customer is.
 	lowPatienceGlowTimer_ += dt;
 	EnsureLowPatienceGlow(scene);
 
@@ -616,6 +771,7 @@ void CustomerOrderUILogic::UpdateLowPatienceWarning(Scene& scene, float dt, floa
  * @param input Unused input manager reference.
  */
 void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*/) {
+	// The customer UI only advances while gameplay simulation is actively running.
 	if (!scene.IsSimulationActive())
 		return;
 
@@ -630,21 +786,21 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 	const int leavingInt = (int)SimpleNpcLogic::BehaviourState::Leaving;
 	const int eatingInt = (int)SimpleNpcLogic::BehaviourState::Eating;
 
-	// Detect state transitions so one-shot success/failure reactions only trigger once.
+	// Detect state transitions so one-shot success and failure reactions only fire once.
 	const bool enteredLeaving = (prevBehaviourState_ != leavingInt && curStateInt == leavingInt);
 	const bool enteredEating = (prevBehaviourState_ != eatingInt && curStateInt == eatingInt);
 
-	// correct dish just got completed -> launch happy face from customer to order card
+	// Launch the success stamp animation when the customer starts eating a correctly served dish.
 	if (enteredEating && !npcLogic->WillPayZero() && npcLogic->HasDishServed()) {
 		TriggerOrderCompleteSuccess(scene);
 	}
 
-	// only keep sad face for failure cases
+	// Reserve the sad face for failed service cases that end in a zero payment.
 	if (enteredLeaving && npcLogic->WillPayZero()) {
 		SpawnPaymentVFX(scene, sadFacePath_);
 	}
 
-	// Bubble shown only in WaitingForFood or Paying
+	// Decide which UI elements should be active for the customer's current behavior state.
 	const bool showBubble =
 		(state == SimpleNpcLogic::BehaviourState::WaitingForFood) ||
 		(state == SimpleNpcLogic::BehaviourState::Paying && !npcLogic->WillPayZero());
@@ -657,11 +813,11 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 
 	if (showBubble) {
 		if (state == SimpleNpcLogic::BehaviourState::Paying) {
-			// Always coin prompt during Paying (interaction hint)
+			// Swap to the payment icon once the customer is ready to settle the bill.
 			EnsureBubbleIcon(scene, coinIconPath_);
 		}
 		else {
-			// WaitingForFood shows requested dish
+			// While waiting for food, show the dish icon the customer still wants.
 			DishType wanted = npcLogic->GetDesiredDishType();
 			EnsureBubbleIcon(scene, DishToIconPath(wanted));
 		}
@@ -687,7 +843,7 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 		UpdateLowPatienceWarning(scene, dt, 1.0f, false);
 	}
 
-	// keep UI following the customer every frame
+	// Re-anchor all helper objects after the visibility decisions above.
 	FollowCustomer(scene);
 
 	if (showBar) {
@@ -698,20 +854,26 @@ void CustomerOrderUILogic::Update(float dt, Scene& scene, InputManager& /*input*
 		UpdateEatingVFX(scene);
 	}
 
-	// Update the payment VFX lifetime / motion
+	// Advance payment reaction motion after the main state update.
 	UpdatePaymentVFX(scene, dt);
 
-	// store previous state for transition detection
+	// Remember the latest state so next frame can detect fresh transitions cleanly.
 	prevBehaviourState_ = curStateInt;
 }
 
+/**
+ * @brief Ensures the order bubble background and icon exist with the requested texture.
+ * @param scene Active scene containing the customer and bubble sprites.
+ * @param iconPath Texture path for the desired icon.
+ */
 void CustomerOrderUILogic::EnsureBubbleIcon(Scene& scene, const char* iconPath) {
 	GameObject* me = scene.GetGameObjectByID(GetOwnerID());
 	if (!me) return;
 
+	// Spawn the bubble widgets lazily at the customer's current position.
 	glm::vec3 p = me->GetPositionGLM();
 
-	// Ensure bubble BG exists
+	// Create the background bubble first so the icon has a backing card.
 	if (bubbleBG_ID_ < 0) {
 		if (GameObject* bg = scene.SpawnStaticSprite(
 			bubbleBGPath_,
@@ -724,7 +886,7 @@ void CustomerOrderUILogic::EnsureBubbleIcon(Scene& scene, const char* iconPath) 
 		}
 	}
 
-	// Ensure icon exists
+	// Create the icon sprite when it does not exist yet.
 	if (bubbleDish_ID_ < 0) {
 		glm::vec2 iconSize = GetIconSizeForPath(iconPath);
 
@@ -741,13 +903,18 @@ void CustomerOrderUILogic::EnsureBubbleIcon(Scene& scene, const char* iconPath) 
 	}
 
 
-	// If icon path changed (dish <-> coin), update texture
+	// Refresh the icon only when the desired prompt changed between frames.
 	if (bubbleDish_ID_ >= 0 && lastIconPath_ != iconPath) {
 		UpdateIconTexture(scene, iconPath);
 	}
 }
 
+/**
+ * @brief Destroys the current payment VFX and resets its runtime state.
+ * @param scene Active scene containing the payment VFX object.
+ */
 void CustomerOrderUILogic::DestroyPaymentVFX(Scene& scene) {
+	// Reset both the object ID and the flight state so the next spawn starts fresh.
 	DespawnIfAlive(scene, payVFX_ID_);
 	payVFXTimer_ = 0.0f;
 	payVFXMode_ = PayVfxMode::FloatUp;
@@ -756,12 +923,19 @@ void CustomerOrderUILogic::DestroyPaymentVFX(Scene& scene) {
 	payVFXQueueStamp_ = false;
 }
 
+/**
+ * @brief Spawns a temporary payment reaction sprite above the customer.
+ * @param scene Active scene containing the customer.
+ * @param path Texture path for the VFX sprite to spawn.
+ */
 void CustomerOrderUILogic::SpawnPaymentVFX(Scene& scene, const char* path) {
+	// Replace any existing payment reaction before spawning the new one.
 	DestroyPaymentVFX(scene);
 
 	GameObject* me = scene.GetGameObjectByID(GetOwnerID());
 	if (!me) return;
 
+	// Spawn the reaction at the authored offset above the customer's head.
 	glm::vec3 p = me->GetPositionGLM();
 
 	if (GameObject* vfx = scene.SpawnStaticSprite(
@@ -774,6 +948,7 @@ void CustomerOrderUILogic::SpawnPaymentVFX(Scene& scene, const char* path) {
 		scene.SetObjectTexturePath(payVFX_ID_, path);
 		payVFXTimer_ = 0.0f;
 
+		// Default to the simpler float-up animation unless the caller upgrades it later.
 		payVFXMode_ = PayVfxMode::FloatUp;
 		payVFXQueueStamp_ = false;
 
@@ -783,7 +958,12 @@ void CustomerOrderUILogic::SpawnPaymentVFX(Scene& scene, const char* path) {
 	}
 }
 
+/**
+ * @brief Converts a successful order completion into the fly-to-panel reaction.
+ * @param scene Active scene containing the customer and order panel.
+ */
 void CustomerOrderUILogic::TriggerOrderCompleteSuccess(Scene& scene) {
+	// Only launch the fly-to-panel effect when the order UI can resolve a target panel.
 	glm::vec2 targetPanelPos{};
 	if (!OrderUILogic::TryGetPanelCenterForCustomer(GetOwnerID(), targetPanelPos)) {
 		return;
@@ -796,6 +976,7 @@ void CustomerOrderUILogic::TriggerOrderCompleteSuccess(Scene& scene) {
 		return;
 	}
 
+	// Promote the spawned VFX into the fly-to-order animation mode.
 	glm::vec3 start = vfx->GetPositionGLM();
 	payVFXStartPos_ = { start.x, start.y };
 	payVFXTargetPos_ = targetPanelPos;
@@ -804,7 +985,13 @@ void CustomerOrderUILogic::TriggerOrderCompleteSuccess(Scene& scene) {
 	payVFXQueueStamp_ = true;
 }
 
+/**
+ * @brief Updates payment VFX motion and lifetime for the current frame.
+ * @param scene Active scene containing the payment VFX object.
+ * @param dt Delta time for the frame.
+ */
 void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
+	// Skip cleanly when there is no active payment VFX to animate.
 	if (payVFX_ID_ < 0) return;
 
 	GameObject* vfx = scene.GetGameObjectByID(payVFX_ID_);
@@ -816,12 +1003,13 @@ void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
 	payVFXTimer_ += dt;
 
 	if (payVFXMode_ == PayVfxMode::FlyToOrder) {
+		// Ease the success icon toward the order panel with a lightweight upward arc.
 		const float t = Clamp01(payVFXTimer_ / std::max(0.001f, payVFXFlyDuration_));
 		const float eased = EaseOutCubic01(t);
 
 		glm::vec2 pos = payVFXStartPos_ + (payVFXTargetPos_ - payVFXStartPos_) * eased;
 
-		// little arc upward during flight
+		// Add a small hop so the success icon feels more celebratory than linear.
 		pos.y -= std::sin(t * 3.14159265f) * 26.0f;
 
 		vfx->SetPosition(Math::Vector3D(pos.x, pos.y, vfx->GetPositionGLM().z));
@@ -833,6 +1021,7 @@ void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
 			1.0f));
 
 		if (t >= 1.0f) {
+			// Request the completion stamp once the icon actually reaches the order panel.
 			if (payVFXQueueStamp_) {
 				OrderUILogic::RequestCompletionStampForCustomer(GetOwnerID());
 			}
@@ -841,7 +1030,7 @@ void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
 		return;
 	}
 
-	// old float-up behavior
+	// Fall back to the original float-up reaction for failure and generic feedback.
 	glm::vec3 pos = vfx->GetPositionGLM();
 	pos.y -= payVFXRiseSpeed_ * dt;
 	vfx->SetPosition(Math::Vector3D(pos.x, pos.y, pos.z));
@@ -851,7 +1040,13 @@ void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
 	}
 }
 
+/**
+ * @brief Maps a dish type to the icon texture used in the customer's thought bubble.
+ * @param dish Dish type requested by the customer.
+ * @return Texture path for the matching icon.
+ */
 const char* CustomerOrderUILogic::DishToIconPath(DishType dish) const {
+	// Keep dish-to-icon mapping centralized so order prompts stay consistent across the UI.
 	switch (dish) {
 	case DishType::VegDish:  return "../assets/Food/Salad.png";
 	case DishType::MeatDish: return "../assets/Food/Meat.png";
@@ -863,9 +1058,14 @@ const char* CustomerOrderUILogic::DishToIconPath(DishType dish) const {
 	}
 }
 
+/**
+ * @brief Returns the authored icon size for the requested prompt texture.
+ * @param iconPath Texture path for the icon being displayed.
+ * @return Icon size in world units.
+ */
 glm::vec2 CustomerOrderUILogic::GetIconSizeForPath(const char* iconPath) const {
+	// Coins intentionally render smaller than dish icons to fit the payment prompt bubble.
 	if (!iconPath) return dishIconSize_;
-	// coin should be small, everything else (dish icons) big
 	if (std::string(iconPath) == coinIconPath_) return coinIconSize_;
 	return dishIconSize_;
 }

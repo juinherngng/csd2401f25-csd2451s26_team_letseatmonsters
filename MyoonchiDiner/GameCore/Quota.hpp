@@ -2,8 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         Quota.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (90%)
- CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (60%)
+ CO-AUTHORS:        Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(30%)
 
  DESCRIPTION:       Defines the Economy namespace, which tracks player money,
 					win quota, and remaining time, and synchronizes these values
@@ -42,11 +43,21 @@ namespace Economy {
 	inline float kStopSpawningThresholdSeconds = 10.0f;
 
 
+	/**
+	 * @brief Sets the win quota for the current round.
+	 * @param quota Target amount of money required to reach the quota.
+	 */
 	inline void SetQuota(int quota) {
+		// Update the live quota target so later UI syncs and win checks use the new value.
 		kQuota = quota;
 	}
 
+	/**
+	 * @brief Sets the round time limit in seconds.
+	 * @param seconds Total time available for the round.
+	 */
 	inline void SetTimeLimitSeconds(float seconds) {
+		// Store the authored time limit used by Reset() when a new round begins.
 		kTimeLimitSeconds = seconds;
 	}
 
@@ -75,13 +86,22 @@ namespace Economy {
 	void UpdateHudPresentation(float dt, Scene& scene);
 	void TriggerMoneyTextPulse(Scene& scene);
 
-	// Put near the top of Economy.hpp/cpp (where Economy lives)
+	/**
+	 * @brief Binds the scene that owns the HUD text updated by the economy system.
+	 * @param scene Scene whose runtime text objects should mirror economy state.
+	 */
 	inline void BindUIScene(Scene& scene) {
+		// Remember the bound HUD scene and reset presentation state for the new scene.
 		gBoundUIScene = &scene;
 		ResetHudPresentation();
 	}
 
+	/**
+	 * @brief Pushes current money, quota, and timer values onto the bound HUD scene.
+	 * @param scene Optional scene override that should become the new bound HUD scene.
+	 */
 	inline void SyncUI(Scene* scene = nullptr) {
+		// Update the bound scene first when callers provide an explicit scene pointer.
 		if (scene != nullptr) {
 			gBoundUIScene = scene;
 		}
@@ -90,16 +110,16 @@ namespace Economy {
 			return;
 		}
 
-		// Money
+		// Refresh the live money display immediately.
 		gBoundUIScene->SetRuntimeTextByName("MoneyText", "$" + std::to_string(gPlayerMoney));
 
-		// Quota card now uses separate centered text objects so the value can be larger.
+		// Refresh the split quota-card text so the label and value can be styled independently.
 		gBoundUIScene->SetRuntimeTextByName("QuotaText", "");
 		gBoundUIScene->SetRuntimeTextByName("QuotaLabelText", "TODAY'S GOAL");
 		gBoundUIScene->SetRuntimeTextByName("QuotaValueText", "$" + std::to_string(kQuota));
 
-		// Timer: format mm:ss
-		int total = static_cast<int>(gTimeRemaining + 0.999f); // ceil-ish
+		// Format the remaining time as `mm:ss` using ceil-like behavior for the display.
+		int total = static_cast<int>(gTimeRemaining + 0.999f);
 		int mm = total / 60;
 		int ss = total % 60;
 
@@ -110,8 +130,11 @@ namespace Economy {
 		gBoundUIScene->SetRuntimeTextByName("TimerText", oss.str());
 	}
 
-	// Call this to reset all economy values to their initial state (e.g., at level start or retry)
+	/**
+	 * @brief Resets all economy and timer state back to the round defaults.
+	 */
 	inline void Reset() {
+		// Restore all round-progress state so retries and new levels start cleanly.
 		gPlayerMoney = 0;
 		gQuotaReached = false;
 
@@ -120,7 +143,7 @@ namespace Economy {
 		gTimerPaused = false;
 		gAwaitingFinalCustomerClear = false;
 
-		// Reset sound effect flags
+		// Reset all one-shot HUD and countdown sound flags for the new round.
 		gPlayed10SecWarning = false;
 		gPlayed3SecBeep = false;
 		gPlayed2SecBeep = false;
@@ -128,30 +151,51 @@ namespace Economy {
 		gPlayedTimeUp = false;
 		ResetHudPresentation();
 
+		// Push the freshly reset values back into the HUD immediately.
 		SyncUI();
 	}
 
-	// Callbacks to trigger when quota is reached or time is up. Implement these in SceneManager.cpp to show win/lose screens.
+	/**
+	 * @brief Handles the win flow after the round quota has been reached.
+	 * @param scene Active scene used to trigger the win cutscene and transition.
+	 */
 	void OnQuotaReached(Scene& scene);
+
+	/**
+	 * @brief Handles the lose flow after time has expired.
+	 * @param scene Active scene used to trigger the lose cutscene and transition.
+	 */
 	void OnTimeUp(Scene& scene);
 
-	// Call this to add money when a dish is served. It updates the UI immediately and checks for win condition.
+	/**
+	 * @brief Adds money to the player's total and refreshes the HUD.
+	 * @param scene Active scene whose HUD should be updated.
+	 * @param amount Money to add.
+	 */
 	inline void AddMoney(Scene& scene, int amount) {
+		// Ignore zero or negative changes because this helper only models income.
 		if (amount <= 0)
 			return;
 
 		gPlayerMoney += amount;
 
+		// Mark quota completion once the player's money crosses the configured target.
 		if (!gQuotaReached && gPlayerMoney >= kQuota) {
 			gQuotaReached = true;
 		}
 
-		SyncUI(&scene); // <--- update UI immediately
+		// Refresh the HUD and trigger the money pulse as soon as income is awarded.
+		SyncUI(&scene);
 		TriggerMoneyTextPulse(scene);
 	}
 
-	// Call this every frame with the delta time to update the timer. It checks for time-up condition and updates the UI.
+	/**
+	 * @brief Advances the round timer and updates the HUD.
+	 * @param dt Delta time for the current frame.
+	 * @param scene Active scene whose HUD should be updated.
+	 */
 	inline void Update(float dt, Scene& scene) {
+		// Timer updates stop once time is up, the timer is paused, or the frame delta is invalid.
 		if (gTimeUp) return;
 		if (gTimerPaused) return;
 		if (dt <= 0.0f) return;
@@ -162,17 +206,20 @@ namespace Economy {
 			gTimeRemaining = 0.0f;
 			gTimeUp = true;
 
-			// Defer round resolution until all currently seated customers are fully
-			// resolved (payment collected / customer cleared). The final outcome
-			// (win/lose) is decided later based on whether quota was reached.
+			// Defer the final outcome until all active customer flows have resolved cleanly.
 			gAwaitingFinalCustomerClear = true;
 		}
 
-		SyncUI(&scene); // <--- update timer every frame (and quota/money too)
+		// Refresh the visible timer every frame alongside the current money and quota values.
+		SyncUI(&scene);
 	}
 
-	// Helpers (optional)
+	/**
+	 * @brief Returns the current remaining round time.
+	 * @return Remaining time in seconds.
+	 */
 	inline float GetTimeRemaining() {
+		// Expose the live timer value for gameplay and HUD systems that need it.
 		return gTimeRemaining;
 	}
 }

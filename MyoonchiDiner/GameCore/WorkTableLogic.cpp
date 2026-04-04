@@ -2,8 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         WorkTableLogic.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (90%)
- CO-AUTHOR:         Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu   (70%)
+ CO-AUTHORS:        Ng Juin Herng, juinherng.ng@digipen.edu (20%)
+					Yat Chun Wee, y.chunwee@digipen.edu	    (10%)
 
  DESCRIPTION:       Implements WorkTableLogic, the type of table that accepts raw
 					ingredients, processes them into refined ingredients, and allows
@@ -26,10 +27,21 @@
 #include "GameCore/PlayerLogic.hpp"
 #include "GameCore/WorkTableLogic.hpp"
 
+ /**
+  * @brief Returns whether a string contains a substring.
+  * @param s Source string to inspect.
+  * @param sub Substring to search for.
+  * @return True when `sub` appears inside `s`.
+  */
 static bool Contains(const std::string& s, const char* sub) {
 	return s.find(sub) != std::string::npos;
 }
 
+/**
+ * @brief Despawns an object if its ID still refers to a live scene object.
+ * @param scene Active scene containing the object.
+ * @param id In-out object ID to despawn and invalidate.
+ */
 static void DespawnIfAlive(Scene& scene, int& id) {
 	if (id >= 0) {
 		scene.DespawnByID(id);
@@ -37,12 +49,24 @@ static void DespawnIfAlive(Scene& scene, int& id) {
 	}
 }
 
+/**
+ * @brief Clamps a scalar to the normalized range `[0, 1]`.
+ * @param v Value to clamp.
+ * @return Clamped normalized value.
+ */
 static float Clamp01Value(float v) {
 	if (v < 0.f) return 0.f;
 	if (v > 1.f) return 1.f;
 	return v;
 }
 
+/**
+ * @brief Returns an object's world position when it exists in the scene.
+ * @param scene Active scene containing the object.
+ * @param objectID Runtime ID of the object to inspect.
+ * @param outPos Output world position.
+ * @return True when the object exists and `outPos` was filled.
+ */
 static bool TryGetObjectWorldPos(Scene& scene, int objectID, glm::vec3& outPos) {
 	GameObject* obj = scene.GetGameObjectByID(objectID);
 	if (!obj) {
@@ -55,6 +79,11 @@ static bool TryGetObjectWorldPos(Scene& scene, int objectID, glm::vec3& outPos) 
 
 static constexpr float kRecoveredStationOccupantMaxDistSq = 18.0f * 18.0f;
 
+/**
+ * @brief Infers the workstation type from the authored workstation texture.
+ * @param texPath Texture path assigned to the workstation object.
+ * @return Detected station type.
+ */
 WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const std::string& texPath) const {
 	// Detect by the workstation sprite (the table's texture)
 	if (Contains(texPath, "Cutting_Board")) return StationType::CuttingBoard;
@@ -63,6 +92,11 @@ WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const s
 	return StationType::Generic;
 }
 
+/**
+ * @brief Returns the processed texture that matches a raw ingredient type.
+ * @param rawType Raw ingredient type before processing.
+ * @return Texture path for the processed ingredient variant.
+ */
 const char* WorkTableLogic::GetProcessedTextureForRaw(IngredientType rawType) const {
 	// IMPORTANT: Replace these 2 paths with your actual cooked meat/shroom assets.
 	switch (rawType) {
@@ -74,6 +108,10 @@ const char* WorkTableLogic::GetProcessedTextureForRaw(IngredientType rawType) co
 	}
 }
 
+/**
+ * @brief Returns the looping processing sound name for the current station type.
+ * @return Audio event name, or `nullptr` when no looping sound should play.
+ */
 const char* WorkTableLogic::GetProcessingSoundName() const {
 	switch (stationType_) {
 	case StationType::CuttingBoard: return "sfx_chopping";
@@ -83,20 +121,26 @@ const char* WorkTableLogic::GetProcessingSoundName() const {
 	}
 }
 
-// ------------------- Constructor -------------------
-
+/**
+ * @brief Constructs workstation logic for the owning scene object.
+ * @param ownerID Runtime object ID that owns this logic component.
+ */
 WorkTableLogic::WorkTableLogic(int ownerID) : TableLogic(ownerID) {
-
+	// Station type and processing speed are resolved from authored scene data during Start().
 }
 
+/**
+ * @brief Initializes station type and default processing duration from authored data.
+ * @param scene Active scene containing the workstation object.
+ */
 void WorkTableLogic::Start(Scene& scene) {
 	TableLogic::Start(scene);
 
-	//Figure out what kind of station THIS table is, from its texture
+	// Detect which workstation flavor this table represents from its authored texture.
 	Scene::Defaults def = scene.GetDefaults(GetOwnerID());
 	stationType_ = DetectStationTypeFromTexture(def.texture);
 
-	//different speeds per station
+	// Seed a default processing duration for the station before per-item adjustments happen.
 	switch (stationType_) {
 	case StationType::CuttingBoard: processingTime_ = 3.0f; break;
 	case StationType::Grill:        processingTime_ = 5.0f; break;
@@ -105,6 +149,10 @@ void WorkTableLogic::Start(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Stops active audio, timer UI, and VFX before the workstation is destroyed.
+ * @param scene Active scene containing the workstation object.
+ */
 void WorkTableLogic::OnDestroy(Scene& scene) {
 	StopProcessingSound(scene);
 	DestroyCookingTimerBar(scene);
@@ -112,11 +160,16 @@ void WorkTableLogic::OnDestroy(Scene& scene) {
 	TableLogic::OnDestroy(scene);
 }
 
-// ------------------- Update -------------------
-
+/**
+ * @brief Updates processing timers, spawned VFX, and timer-bar UI for one frame.
+ * @param dt Delta time for the frame.
+ * @param scene Active scene containing the workstation and held item.
+ * @param input Unused input manager forwarded by the logic system.
+ */
 void WorkTableLogic::Update(float dt, Scene& scene, InputManager&) {
 	if (!scene.IsSimulationActive()) return;
 
+	// Reconcile held-item state first so processing logic never runs on stale occupancy.
 	RefreshHeldItemState(scene);
 
 	if (!HasItem()) {
@@ -135,6 +188,7 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&) {
 	timer_ += dt;
 
 	if (isProcessing_) {
+		// Keep workstation feedback attached and synchronized while the timer is active.
 		UpdateProcessingVfxTransform(scene);
 		EnsureCookingTimerBar(scene);
 		FollowCookingTimerBar(scene);
@@ -159,6 +213,11 @@ void WorkTableLogic::Update(float dt, Scene& scene, InputManager&) {
 	}
 }
 
+/**
+ * @brief Returns whether the held item may currently be removed from the workstation.
+ * @param scene Active scene containing the workstation and held item.
+ * @return True when the held item is processed and no active processing is running.
+ */
 bool WorkTableLogic::CanTakeHeldItem(Scene& scene) const {
 	if (!HasItem()) {
 		return false;
@@ -189,6 +248,10 @@ bool WorkTableLogic::CanTakeHeldItem(Scene& scene) const {
 	return true;
 }
 
+/**
+ * @brief Returns the normalized processing progress for the current cycle.
+ * @return Progress in the range `[0, 1]`, or `0` when idle.
+ */
 float WorkTableLogic::GetProcessingProgress() const {
 	if (!isProcessing_ || processingTime_ <= 0.0f)
 		return 0.0f;
@@ -199,6 +262,12 @@ float WorkTableLogic::GetProcessingProgress() const {
 	return t;
 }
 
+/**
+ * @brief Returns whether the workstation can accept the specified item.
+ * @param scene Active scene containing the workstation and candidate item.
+ * @param itemID Runtime ID of the item being tested.
+ * @return True when base table rules pass and the item is processable here.
+ */
 bool WorkTableLogic::CanAcceptItem(Scene& scene, int itemID) const {
 	if (!TableLogic::CanAcceptItem(scene, itemID))
 		return false;
@@ -210,6 +279,10 @@ bool WorkTableLogic::CanAcceptItem(Scene& scene, int itemID) const {
 	return IsItemProcessable(scene, *item);
 }
 
+/**
+ * @brief Repairs held-item tracking and attempts to recover nearby station occupants.
+ * @param scene Active scene containing the workstation and nearby ingredient objects.
+ */
 void WorkTableLogic::RefreshHeldItemState(Scene& scene) {
 	TableLogic::RefreshHeldItemState(scene);
 
@@ -222,6 +295,7 @@ void WorkTableLogic::RefreshHeldItemState(Scene& scene) {
 
 	int carriedItemID = -1;
 	if (PlayerLogic* playerLogic = scene.GetLogicManager().GetLogicForObject<PlayerLogic>(scene.GetPlayerID())) {
+		// Ignore the player's carried item so the station does not accidentally reclaim it.
 		carriedItemID = playerLogic->GetCarriedItemID();
 	}
 
@@ -257,6 +331,7 @@ void WorkTableLogic::RefreshHeldItemState(Scene& scene) {
 		}
 
 		if (distSq < bestDistSq) {
+			// Recover the closest plausible station occupant near the item anchor.
 			bestDistSq = distSq;
 			recoveredItemID = objectID;
 			recoveredIngredient = ingredient;
@@ -290,6 +365,12 @@ void WorkTableLogic::RefreshHeldItemState(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Returns whether a specific object can be processed by this workstation.
+ * @param scene Active scene containing the workstation and candidate item.
+ * @param item Candidate item object.
+ * @return True when the item resolves to a valid raw ingredient for this station.
+ */
 bool WorkTableLogic::IsItemProcessable(Scene& scene, const GameObject& item) const {
 	// Base implementation: allow any item.
 	// Later, you can override this in derived classes or update this to check
@@ -312,8 +393,10 @@ bool WorkTableLogic::IsItemProcessable(Scene& scene, const GameObject& item) con
 	return CanProcessIngredient(*ing);
 }
 
-// ------------------- Processing control -------------------
-
+/**
+ * @brief Starts processing manually when the held item is valid for this station.
+ * @param scene Active scene containing the workstation and held item.
+ */
 void WorkTableLogic::StartProcessing(Scene& scene) {
 	if (!HasItem())
 		return;
@@ -329,6 +412,10 @@ void WorkTableLogic::StartProcessing(Scene& scene) {
 	timer_ = 0.0f;
 }
 
+/**
+ * @brief Cancels the active processing cycle and clears all transient feedback.
+ * @param scene Active scene containing the workstation object.
+ */
 void WorkTableLogic::CancelProcessing(Scene& scene) {
 	if (isProcessing_) {
 		// Stop station-specific processing sound when cancelled (release mode only)
@@ -342,12 +429,16 @@ void WorkTableLogic::CancelProcessing(Scene& scene) {
 	DestroyCookingTimerBar(scene);
 }
 
-// ------------------- TableLogic hooks -------------------
-
+/**
+ * @brief Starts processing-side effects when an item is placed onto the station.
+ * @param scene Active scene containing the workstation and placed item.
+ * @param item Item that was just placed.
+ */
 void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item) {
 	CancelProcessing(scene); // always reset
 	if (IsItemProcessable(scene, item)) {
 		if (IngredientLogic* ing = scene.GetLogicManager().GetLogicForObject<IngredientLogic>(item.GetID())) {
+			// Adjust processing duration from both station type and ingredient type.
 			switch (stationType_) {
 			case StationType::CuttingBoard: processingTime_ = 1.5f; break;
 			case StationType::Grill:        processingTime_ = 5.0f; break;
@@ -365,6 +456,10 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item) {
 	}
 }
 
+/**
+ * @brief Starts the looping processing sound for the current station type.
+ * @param scene Active scene containing the workstation and audio manager.
+ */
 void WorkTableLogic::StartProcessingSound(Scene& scene) {
 	if (processingSoundActive_) {
 		return;
@@ -397,12 +492,17 @@ void WorkTableLogic::StartProcessingSound(Scene& scene) {
 	}
 
 	if (stationType_ == StationType::CuttingBoard) {
+		// Chopping is intentionally quieter than stove and grill ambience.
 		audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.2f);
 	}
 
 	processingSoundActive_ = true;
 }
 
+/**
+ * @brief Stops any looping processing sound currently owned by this workstation.
+ * @param scene Active scene containing the workstation and audio manager.
+ */
 void WorkTableLogic::StopProcessingSound(Scene& scene) {
 	if (!processingSoundActive_) {
 		return;
@@ -425,6 +525,11 @@ void WorkTableLogic::StopProcessingSound(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Cancels processing if the held item is removed from the workstation.
+ * @param scene Active scene containing the workstation and removed item.
+ * @param item Item that was just taken.
+ */
 void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& item) {
 	(void)item;
 	// If the player removes the item mid-process, cancel.
@@ -433,8 +538,11 @@ void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& item) {
 	}
 }
 
-// ------------------- Processing complete hook -------------------
-
+/**
+ * @brief Converts the held raw ingredient into its processed version when the timer ends.
+ * @param scene Active scene containing the workstation and held item.
+ * @param item Item whose processing just completed.
+ */
 void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item) {
 	// Base implementation: do nothing.
 	// Example for a future derived table:
@@ -475,6 +583,11 @@ void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item) {
 
 }
 
+/**
+ * @brief Returns whether a raw ingredient matches this station's accepted types.
+ * @param ingredient Ingredient logic being tested.
+ * @return True when the ingredient is raw and allowed at this station.
+ */
 bool WorkTableLogic::CanProcessIngredient(const IngredientLogic& ingredient) const {
 	if (!ingredient.IsRaw())
 		return false;
@@ -488,6 +601,11 @@ bool WorkTableLogic::CanProcessIngredient(const IngredientLogic& ingredient) con
 	}
 }
 
+/**
+ * @brief Processes an ingredient immediately without waiting for the station timer.
+ * @param ingredient Ingredient logic to mark as processed.
+ * @return True when the ingredient was valid and processed successfully.
+ */
 bool WorkTableLogic::ProcessIngredientInstant(IngredientLogic& ingredient) {
 	if (!CanProcessIngredient(ingredient))
 		return false;
@@ -496,12 +614,20 @@ bool WorkTableLogic::ProcessIngredientInstant(IngredientLogic& ingredient) {
 	return true;
 }
 
+/**
+ * @brief Applies the raw-to-processed state transition to an ingredient.
+ * @param ingredient Ingredient logic to mutate.
+ */
 void WorkTableLogic::CompleteProcessingForIngredient(IngredientLogic& ingredient) {
 	// This is the actual "logic" of processing:
 	// raw -> refined, via IngredientLogic.
 	ingredient.MarkProcessed();
 }
 
+/**
+ * @brief Returns the workstation VFX sheet for the current station type.
+ * @return Texture path used for spawned processing VFX.
+ */
 const char* WorkTableLogic::GetVfxTextureForStation() const {
 	switch (stationType_) {
 	case StationType::CuttingBoard: return "../assets/VFX/VFX_SpriteSheet.png";
@@ -511,6 +637,10 @@ const char* WorkTableLogic::GetVfxTextureForStation() const {
 	}
 }
 
+/**
+ * @brief Returns the tag used to attach the correct processing VFX animation set.
+ * @return Tag string for the spawned workstation VFX object.
+ */
 const char* WorkTableLogic::GetVfxTagForStation() const {
 	switch (stationType_) {
 	case StationType::CuttingBoard: return "work_vfx_cut";
@@ -520,6 +650,10 @@ const char* WorkTableLogic::GetVfxTagForStation() const {
 	}
 }
 
+/**
+ * @brief Returns the station-specific local offset used for processing VFX placement.
+ * @return Local VFX offset for the current station type.
+ */
 glm::vec2 WorkTableLogic::GetVfxOffsetForStation() const {
 	switch (stationType_) {
 	case StationType::Grill: return grillVfxOffset_;
@@ -531,6 +665,10 @@ glm::vec2 WorkTableLogic::GetVfxOffsetForStation() const {
 	}
 }
 
+/**
+ * @brief Spawns the processing VFX object for the active workstation.
+ * @param scene Active scene containing the workstation.
+ */
 void WorkTableLogic::SpawnProcessingVfx(Scene& scene) {
 	if (vfxObjectID_ >= 0) return;
 
@@ -558,7 +696,7 @@ void WorkTableLogic::SpawnProcessingVfx(Scene& scene) {
 
 	vfxObjectID_ = vfx->GetID();
 
-	// no collisions / no physics / no shadow
+	// Disable gameplay interaction so the VFX behaves like a pure visual attachment.
 	vfx->SetColliderSize(Math::Vector2D(0.f, 0.f));
 	vfx->SetColliderOffset(Math::Vector2D(0.f, 0.f));
 	vfx->SetMovableByPhysics(false);
@@ -569,12 +707,20 @@ void WorkTableLogic::SpawnProcessingVfx(Scene& scene) {
 	scene.AttachLogicForTag(vfxObjectID_, tag);
 }
 
+/**
+ * @brief Removes any active processing VFX owned by this workstation.
+ * @param scene Active scene containing the workstation.
+ */
 void WorkTableLogic::DespawnProcessingVfx(Scene& scene) {
 	if (vfxObjectID_ < 0) return;
 	scene.RequestDespawn(vfxObjectID_);
 	vfxObjectID_ = -1;
 }
 
+/**
+ * @brief Keeps the processing VFX aligned to the workstation each frame.
+ * @param scene Active scene containing the workstation and VFX object.
+ */
 void WorkTableLogic::UpdateProcessingVfxTransform(Scene& scene) {
 	if (vfxObjectID_ < 0) return;
 
@@ -587,6 +733,10 @@ void WorkTableLogic::UpdateProcessingVfxTransform(Scene& scene) {
 	vfx->SetPosition(glm::vec3(tp.x + vfxOffset.x, tp.y + vfxOffset.y, tp.z + 0.001f));
 }
 
+/**
+ * @brief Spawns the background and fill sprites for the workstation timer bar.
+ * @param scene Active scene containing the workstation.
+ */
 void WorkTableLogic::EnsureCookingTimerBar(Scene& scene) {
 	GameObject* table = scene.GetGameObjectByID(GetOwnerID());
 	if (!table) return;
@@ -618,11 +768,19 @@ void WorkTableLogic::EnsureCookingTimerBar(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Removes the workstation timer-bar sprites if they are active.
+ * @param scene Active scene containing the workstation.
+ */
 void WorkTableLogic::DestroyCookingTimerBar(Scene& scene) {
 	DespawnIfAlive(scene, timerBarFill_ID_);
 	DespawnIfAlive(scene, timerBarBG_ID_);
 }
 
+/**
+ * @brief Keeps the timer-bar background aligned to the workstation each frame.
+ * @param scene Active scene containing the workstation and timer bar.
+ */
 void WorkTableLogic::FollowCookingTimerBar(Scene& scene) {
 	GameObject* table = scene.GetGameObjectByID(GetOwnerID());
 	if (!table) return;
@@ -636,6 +794,11 @@ void WorkTableLogic::FollowCookingTimerBar(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Updates the timer-bar fill width and anchoring from a normalized ratio.
+ * @param scene Active scene containing the timer-bar sprites.
+ * @param ratio01 Remaining-fill ratio in the range `[0, 1]`.
+ */
 void WorkTableLogic::UpdateCookingTimerFill(Scene& scene, float ratio01) {
 	if (timerBarBG_ID_ < 0 || timerBarFill_ID_ < 0) return;
 

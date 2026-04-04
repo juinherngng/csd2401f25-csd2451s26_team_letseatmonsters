@@ -35,7 +35,12 @@
 #include "MyoonchiDiner/GamePaths.hpp"
 
 namespace {
+	/**
+	 * @brief Chooses a random customer sprite from the authored skin set.
+	 * @return Texture path for the selected customer appearance.
+	 */
 	std::string PickRandomCustomerTexture() {
+		// Keep the available spawn skins centralized so random selection stays consistent.
 		static const std::array<const char*, 3> kCustomerSkins = {
 			MyoonchiPaths::Textures::CUSTOMER_GOAT,
 			MyoonchiPaths::Textures::CUSTOMER_TIGER,
@@ -46,7 +51,17 @@ namespace {
 		return kCustomerSkins[dist(EngineRng::Get())];
 	}
 
+	/**
+	 * @brief Plays a positional sound effect if the requested clip is available.
+	 * @param scene Active scene that owns the audio manager.
+	 * @param soundName Registered sound name to play.
+	 * @param pos World-space position for 3D playback.
+	 * @param volume Playback volume multiplier.
+	 * @param minDistance Minimum attenuation distance.
+	 * @param maxDistance Maximum attenuation distance.
+	 */
 	void PlaySpatialSfxAtPos(Scene& scene, const std::string& soundName, const glm::vec3& pos, float volume, float minDistance = 120.0f, float maxDistance = 1100.0f) {
+		// Skip playback cleanly when audio is unavailable or the clip is not registered.
 		AudioManager* audioMgr = scene.GetAudioManager();
 		if (!audioMgr || !audioMgr->HasSound(soundName)) {
 			return;
@@ -57,7 +72,14 @@ namespace {
 }
 
 namespace {
+	/**
+	 * @brief Tests whether a world-space point lies inside an object's visible bounds.
+	 * @param point Point to test in world space.
+	 * @param obj Object whose collider or visual bounds should be checked.
+	 * @return True if the point falls inside the object's visual rectangle.
+	 */
 	bool PointInsideObjectVisualRect(const glm::vec2& point, GameObject* obj) {
+		// Treat missing objects as a clean miss so callers can probe optional UI safely.
 		if (!obj) return false;
 
 		const Math::Vector2D colSize = obj->GetColliderSize();
@@ -84,7 +106,11 @@ namespace {
 	}
 }
 
+/**
+ * @brief Clears runtime caches and resets spawn tuning to default values.
+ */
 void CustomerManagerSystem::Reset() {
+	// Forget all per-scene cached IDs so the next level can rebuild fresh state.
 	activeCustomers_.clear();
 	customerTableIDs_.clear();
 	customerEntryIDs_.clear();
@@ -117,7 +143,12 @@ void CustomerManagerSystem::Reset() {
 	hasSpawnedAtLeastOnce_ = false;
 }
 
+/**
+ * @brief Caches all customer-table object IDs currently present in the scene.
+ * @param scene Active scene to scan.
+ */
 void CustomerManagerSystem::CacheTables(Scene& scene) {
+	// Rebuild the table cache from scratch to match the current scene contents.
 	customerTableIDs_.clear();
 
 	LogicManager& logicMgr = scene.GetLogicManager();
@@ -133,7 +164,12 @@ void CustomerManagerSystem::CacheTables(Scene& scene) {
 	TS_LOG_DEBUG("[CustomerManager] Cached " << customerTableIDs_.size() << " customer tables");
 }
 
+/**
+ * @brief Finds the authored customer template object used for runtime spawns.
+ * @param scene Active scene to scan.
+ */
 void CustomerManagerSystem::CacheTemplate(Scene& scene) {
+	// Reset the cached template before scanning so missing templates are reported correctly.
 	customerTemplateID_ = -1;
 
 	for (GameObject* obj : scene.GetAllObjectsRaw()) {
@@ -158,7 +194,12 @@ void CustomerManagerSystem::CacheTemplate(Scene& scene) {
 	}
 }
 
+/**
+ * @brief Caches all authored customer-entry spawn markers in the scene.
+ * @param scene Active scene to scan.
+ */
 void CustomerManagerSystem::CacheEntries(Scene& scene) {
+	// Refresh the entry list so spawn rotation uses the current authored markers only.
 	customerEntryIDs_.clear();
 
 	for (GameObject* obj : scene.GetAllObjectsRaw()) {
@@ -174,7 +215,12 @@ void CustomerManagerSystem::CacheEntries(Scene& scene) {
 	cachedEntries_ = true;
 }
 
+/**
+ * @brief Removes inactive customers from the live active-customer list.
+ * @param scene Active scene that owns the tracked customers.
+ */
 void CustomerManagerSystem::CleanupDeadCustomers(Scene& scene) {
+	// Prune despawned or already-leaving customers so the active cap reflects playable diners.
 	LogicManager& logicMgr = scene.GetLogicManager();
 
 	activeCustomers_.erase(
@@ -196,7 +242,13 @@ void CustomerManagerSystem::CleanupDeadCustomers(Scene& scene) {
 	);
 }
 
+/**
+ * @brief Attempts to spawn one customer and assign them to an available seat.
+ * @param scene Active scene containing the spawn template, entry markers, and tables.
+ * @return True if the spawn and seating process succeeded.
+ */
 bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
+	// Refuse to spawn until the template exists and any total cap still allows another customer.
 	if (customerTemplateID_ < 0)
 		return false;
 
@@ -206,7 +258,7 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 
 	LogicManager& logicMgr = scene.GetLogicManager();
 
-	// Compute a horizontal split for table-side matching.
+	// Compute a horizontal split so entries prefer seating customers on the same half of the room.
 	float tableSplitX = 0.0f;
 	int tableCount = 0;
 
@@ -220,7 +272,7 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 		tableSplitX /= static_cast<float>(tableCount);
 	}
 
-	// Read profile from template
+	// Resolve the most suitable free table for a spawn position, preferring the matching side first.
 	auto findAvailableTableForSpawnX = [&](float spawnX, CustomerTableLogic*& outTable, int& outTableID) -> bool {
 		const bool wantsLeftSide = (spawnX < tableSplitX);
 
@@ -253,7 +305,7 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 		return false;
 		};
 
-	// Find a spawn entry and a matching-side empty customer table.
+	// Choose the next usable entry marker and pair it with an available table.
 	CustomerTableLogic* chosenTable = nullptr;
 	int chosenTableID = -1;
 	Math::Vector2D spawn2 = scene.GetExitGateWorldPos();
@@ -278,12 +330,12 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 
 	if (!chosenTable) return false;
 
-	// Read profile from template
+	// Copy spawn profile data from the template object before creating the NPC.
 	Scene::Defaults prof = scene.GetDefaults(customerTemplateID_);
 
 	glm::vec3 spawnPos{ spawn2.x, spawn2.y, 0.0f };
 
-	// Spawn an ANIMATED sprite so UVRect animation actually works
+	// Spawn as an animated sprite so the customer animation system can attach clips immediately.
 	std::vector<glm::vec4> dummyFrames = { glm::vec4(0.f, 0.f, 1.f, 1.f) };
 
 	const std::string chosenTexture = PickRandomCustomerTexture();
@@ -301,7 +353,7 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 
 	const int npcID = npc->GetID();
 
-	// Copy shadow settings from the template object (if available)
+	// Mirror template shadow settings so runtime-spawned customers match authored ones visually.
 	if (GameObject* templateObj = scene.GetGameObjectByID(customerTemplateID_)) {
 		npc->EnableShadow(templateObj->HasShadow());
 		npc->SetShadowSize(templateObj->GetShadowSize());
@@ -309,24 +361,24 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 		npc->SetShadowOpacity(templateObj->GetShadowOpacity());
 	}
 
-	// Tag + attach logic/animations the same way JSON spawning does
+	// Attach the same tag, logic, and animations that authored customer objects receive.
 	scene.SetObjectTag(npcID, "customer_template");
 	scene.AttachLogicForTag(npcID, "customer_template");
 	scene.SetObjectTexturePath(npcID, chosenTexture);
 	scene.AttachCustomersAnimations(npcID, chosenTexture);
 	scene.SetAnimation(npcID, "IDLE_FRONT");
 
-	// Apply collider/profile settings
+	// Apply authored movement and collider settings copied from the template profile.
 	npc->SetColliderSize(Math::Vector2D(prof.colSize.x, prof.colSize.y));
 	npc->SetColliderOffset(Math::Vector2D(prof.colOff.x, prof.colOff.y));
 	scene.SetNPCVelocity(npcID, prof.vel.x, prof.vel.y);
 
-	//attach UI logic to the customer
+	// Attach the thought-bubble and patience-bar logic immediately after the NPC is created.
 	if (auto* ui = logicMgr.AddLogic<CustomerOrderUILogic>(npcID)) {
 		ui->Start(scene);
 	}
 
-	// Seat + assign target
+	// Reserve a table seat before activating the NPC's movement target toward that seat.
 	Math::Vector2D seatWorld;
 	if (!chosenTable->SeatCustomer(scene, npcID, &seatWorld)) {
 		scene.RequestDespawn(npcID);
@@ -343,6 +395,7 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 
 	scene.ClampToWalkArea(npc);
 
+	// Track the spawned customer so future cap checks and cleanup can see them.
 	activeCustomers_.push_back(npcID);
 	++totalSpawned_;
 	hasSpawnedAtLeastOnce_ = true;
@@ -357,10 +410,11 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 		totalSpawned_ >= 2 &&
 		spawnCooldownStep_ > 0.0f &&
 		spawnCooldown_ > minSpawnCooldown_) {
+		// Gradually shorten future spawn spacing until the configured minimum is reached.
 		spawnCooldown_ = std::max(minSpawnCooldown_, spawnCooldown_ - spawnCooldownStep_);
 	}
 
-	// Play customer entering sound effect (release mode only)
+	// Keep the authored arrival SFX behind runtime parity mode to match release behavior.
 	if (scene.ShouldUseRuntimeParityMode()) {
 		if (AudioManager* audioMgr = scene.GetAudioManager()) {
 			PlaySpatialSfxAtPos(scene, "sfx_customer_entering", npc->GetPositionGLM(), audioMgr->GetVfxVolume() * 0.3f);
@@ -374,10 +428,17 @@ bool CustomerManagerSystem::TrySpawnOne(Scene& scene) {
 	return true;
 }
 
+/**
+ * @brief Updates customer spawning and seat-cap enforcement for the current frame.
+ * @param dt Delta time for the frame.
+ * @param scene Active scene that owns the tables and customer NPCs.
+ */
 void CustomerManagerSystem::Update(float dt, Scene& scene) {
+	// Spawning only advances while gameplay simulation is live.
 	if (!scene.IsSimulationActive())
 		return;
 
+	// Lazily build scene caches the first time Update runs for this level.
 	if (!cachedTables_) CacheTables(scene);
 	if (!cachedTemplate_) CacheTemplate(scene);
 	if (!cachedEntries_) CacheEntries(scene);
@@ -387,10 +448,11 @@ void CustomerManagerSystem::Update(float dt, Scene& scene) {
 
 	CleanupDeadCustomers(scene);
 
+	// Advance the level clock and the time accumulated toward the next spawn.
 	levelElapsed_ += dt;
 	spawnTimer_ += dt;
 
-	// Hard cap by number of seats
+	// Derive the seat-based cap from all currently registered customer tables.
 	int totalSeatCap = 0;
 	LogicManager& logicMgr = scene.GetLogicManager();
 
@@ -402,6 +464,7 @@ void CustomerManagerSystem::Update(float dt, Scene& scene) {
 
 	const int targetCount = std::min(maxCustomers_, totalSeatCap);
 
+	// Spawn repeatedly only while the active roster is still below the allowed target.
 	while ((int)activeCustomers_.size() < targetCount &&
 		(totalSpawnLimit_ < 0 || totalSpawned_ < totalSpawnLimit_)) {
 
@@ -417,7 +480,7 @@ void CustomerManagerSystem::Update(float dt, Scene& scene) {
 			break;
 		}
 
-		// Consume only the delay that was actually just used.
+		// Consume only the cooldown that the successful spawn actually used.
 		if (requiredDelay > 0.0f) {
 			spawnTimer_ -= requiredDelay;
 		}
@@ -427,7 +490,14 @@ void CustomerManagerSystem::Update(float dt, Scene& scene) {
 	}
 }
 
+/**
+ * @brief Tests whether a world-space point overlaps the customer's order bubble.
+ * @param scene Active scene containing the bubble objects.
+ * @param worldPos World-space point to test.
+ * @return True if the point hits the bubble background or icon.
+ */
 bool CustomerOrderUILogic::HitTestBubble(Scene& scene, const glm::vec2& worldPos) const {
+	// Check both bubble sprites so hover logic can treat the whole bubble as one target.
 	if (PointInsideObjectVisualRect(worldPos, scene.GetGameObjectByID(bubbleBG_ID_))) {
 		return true;
 	}

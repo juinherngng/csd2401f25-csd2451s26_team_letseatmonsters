@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GamePaths.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (80%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(20%)
 
  DESCRIPTION:		Centralized path and key constants for all Myoonchi Diner
 					game assets. Keeps every game-specific file path and audio
@@ -16,23 +17,19 @@
 
 #pragma once
 
-/************************************************************************/
-/*!
-\brief
-	Game-specific asset path and audio key constants for Myoonchi Diner.
-	Organized into sub-namespaces by asset category.
-*/
-/************************************************************************/
+/**
+ * @brief Groups game-specific asset paths and audio catalog keys for Myoonchi Diner.
+ */
 namespace MyoonchiPaths {
 
-	// JSON level files loaded by the GameStateManager
+	// JSON levels registered with the engine's game-state bootstrap layer.
 	namespace Levels {
 		constexpr const char* MAIN_MENU = "../levels/main_menu.json";
 		constexpr const char* KITCHEN_01 = "../levels/kitchen01.json";
 		constexpr const char* TUTORIAL = "../levels/tutorial.json";
 	}
 
-	// Texture assets referenced at runtime
+	// Texture assets referenced directly by runtime hooks and logic systems.
 	namespace Textures {
 		constexpr const char* BACKGROUND = "../assets/Backgrounds/Background.png";
 
@@ -43,11 +40,12 @@ namespace MyoonchiPaths {
 		constexpr const char* AMBIENT_VFX_SHEET = "../assets/VFX/VFX_SpriteSheet.png";
 	}
 
+	// Video files triggered by the game's cutscene flow.
 	namespace Videos {
 		constexpr const char* INTRO_CUTSCENE = "../assets/Videos/Starting_Cutscene_Animation_TEXT.mp4";
 	}
 
-	// Audio catalog keys (must match entries in AudioCatalog.json)
+	// Audio catalog keys. These must match the names authored in AudioCatalog.json.
 	namespace Audio {
 		constexpr const char* BGM_MAIN_MENU = "bgm_MyoonchiDiner_MainMenu";
 		constexpr const char* BGM_LEVEL_THEME = "bgm_MyoonchiDiner_LevelTheme";

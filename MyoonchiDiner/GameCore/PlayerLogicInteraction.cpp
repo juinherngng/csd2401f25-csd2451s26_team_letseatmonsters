@@ -332,6 +332,14 @@ bool PlayerLogic::TryHandleTableClick(Scene& scene, GameObject* player, int clic
 	return true;
 }
 
+/**
+ * @brief Resolves a navigation-safe approach target for a table interaction.
+ * @param scene Active scene being processed.
+ * @param tableObjectID Object ID of the target table.
+ * @param fromWorld Current player position used to rank candidate approach points.
+ * @param outTarget Receives the best movement target for reaching the table.
+ * @return True when a usable target was found.
+ */
 bool PlayerLogic::TryGetTableMoveTarget(Scene& scene, int tableObjectID, const glm::vec2& fromWorld, glm::vec2& outTarget) {
 	GameObject* player = GetOwner(scene);
 	if (!player) {
@@ -346,6 +354,7 @@ bool PlayerLogic::TryGetTableMoveTarget(Scene& scene, int tableObjectID, const g
 
 	const std::vector<Math::Vector2D> approachPoints = tableLogic->GetApproachPointsWorld(scene);
 	if (approachPoints.empty()) {
+		// Fall back to the table center when no authored interaction points exist.
 		GameObject* tableObj = scene.GetGameObjectByID(tableObjectID);
 		if (!tableObj) {
 			return false;
@@ -364,6 +373,7 @@ bool PlayerLogic::TryGetTableMoveTarget(Scene& scene, int tableObjectID, const g
 	bool foundFallback = false;
 
 	for (const Math::Vector2D& point : approachPoints) {
+		// Snap each authored point to the navigation grid before ranking it for movement.
 		glm::vec2 candidate(point.x, point.y);
 		scene.GetNearestNavigationCellCenterForObject(player->GetID(), candidate, candidate);
 
@@ -428,6 +438,14 @@ bool PlayerLogic::IsInTableInteractionRange(Scene& scene, int tableObjectID) {
 	return IsTableInRangeAtPosition(scene, tableObjectID, playerPos, PlayerLogicDetail::kPlayerInteractRadius);
 }
 
+/**
+ * @brief Returns whether a hypothetical player position can interact with a table.
+ * @param scene Active scene being processed.
+ * @param tableObjectID Object ID of the target table.
+ * @param playerPos World-space player position to test.
+ * @param radius Allowed interaction radius for authored or snapped approach points.
+ * @return True when the tested position can commit the interaction.
+ */
 bool PlayerLogic::IsTableInRangeAtPosition(Scene& scene, int tableObjectID, const glm::vec2& playerPos, float radius) {
 	GameObject* player = GetOwner(scene);
 	GameObject* tableObj = scene.GetGameObjectByID(tableObjectID);
@@ -765,6 +783,7 @@ bool PlayerLogic::TryHandleTrashCanInteraction(Scene& scene, LogicManager& logic
 	}
 
 	if (carriedItemID >= 0) {
+		// Dispose of the carried item and clear carry-specific state once the trash accepts it.
 		const int itemToTrash = carriedItemID;
 		if (trash->PlaceItem(scene, itemToTrash)) {
 			if (hasCarriedItemOriginalColliderSize) {
@@ -875,15 +894,7 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 	PlateLogic* tablePlate = logicMgr.GetLogicForObject<PlateLogic>(tableItemID);
 	IngredientLogic* tableIngredient = logicMgr.GetLogicForObject<IngredientLogic>(tableItemID);
 
-	// --------------------------------------------------------------------
-	// CASE 1:
-	// held plate with 1 ingredient + table plate with 1 ingredient
-	// => combine onto held plate
-	//
-	// IMPORTANT:
-	// If this exact combine is not valid, do NOT return false here.
-	// Fall through so swap can still happen.
-	// --------------------------------------------------------------------
+	// Case 1: combine two single-ingredient plates into the held plate when the recipe allows it.
 	if (heldPlate && tablePlate) {
 		const bool canPlatePlateCombine =
 			!heldPlate->HasPreparedDish() &&
@@ -938,17 +949,10 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 #endif
 			return true;
 		}
-		// else: not a valid plate+plate combine, fall through to swap
+		// Otherwise fall through so the generic swap logic can still handle the interaction.
 	}
 
-	// --------------------------------------------------------------------
-	// CASE 2:
-	// held plate + processed table ingredient
-	// => combine into held plate
-	//
-	// IMPORTANT:
-	// If table ingredient is raw / invalid, fall through to swap.
-	// --------------------------------------------------------------------
+	// Case 2: add a processed table ingredient into the held plate.
 	if (heldPlate && tableIngredient &&
 		tableIngredient->IsProcessed() &&
 		heldPlate->CanAcceptIngredientType(tableIngredient->GetType())) {
@@ -1013,14 +1017,7 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 		return true;
 	}
 
-	// --------------------------------------------------------------------
-	// CASE 3:
-	// held processed ingredient + table plate
-	// => combine into table plate
-	//
-	// IMPORTANT:
-	// If held ingredient is raw / invalid, fall through to swap.
-	// --------------------------------------------------------------------
+	// Case 3: add the held processed ingredient into the plate already on the table.
 	if (tablePlate && heldIngredient &&
 		heldIngredient->IsProcessed() &&
 		tablePlate->CanAcceptIngredientType(heldIngredient->GetType())) {
@@ -1086,11 +1083,7 @@ bool PlayerLogic::TryCombineHeldAndTableItems(Scene& scene, GameObject* player, 
 		return true;
 	}
 
-	// --------------------------------------------------------------------
-	// CASE 4:
-	// fallback swap
-	// If no valid combine happened, swap the two items.
-	// --------------------------------------------------------------------
+	// Case 4: if no recipe combination applies, fall back to swapping the two items.
 	{
 		WorkTableLogic* wt = logicMgr.GetLogicForObject<WorkTableLogic>(tableObjectID);
 

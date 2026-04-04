@@ -52,13 +52,16 @@ namespace {
 		const std::string base = (dot != std::string::npos) ? path.substr(0, dot) : path;
 
 		if (base.size() >= 2 && base.substr(base.size() - 2) == "_h") {
+			// Already using the hover variant, so keep the authored path unchanged.
 			return dot != std::string::npos ? path : (base + ext);
 		}
 
 		if (base.size() >= 2 && base.substr(base.size() - 2) == "_s") {
+			// Swap the standard selected/default suffix for the hover suffix.
 			return base.substr(0, base.size() - 2) + "_h" + ext;
 		}
 
+		// Fall back to appending the hover suffix before the extension.
 		return base + "_h" + ext;
 	}
 
@@ -82,6 +85,7 @@ namespace {
 
 		const std::string cacheName = "staticsprite_" + texPath;
 		if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheName, texPath)) {
+			// Reuse the cached static-sprite texture so hover swaps do not trigger redundant loads.
 			owner->SetTexture(tex);
 		}
 	}
@@ -171,6 +175,7 @@ void InGamePauseTriggerLogic::Update(float /*dt*/, Scene& scene, InputManager& i
 	}
 
 	if (AudioManager* audioManager = scene.GetAudioManager()) {
+		// Match the pause-button click feedback used elsewhere in the menu flow.
 		if (audioManager->HasSound(MyoonchiPaths::Audio::SFX_UI_BACK)) {
 			audioManager->PlaySound(MyoonchiPaths::Audio::SFX_UI_BACK, audioManager->GetVfxVolume(), false);
 		}

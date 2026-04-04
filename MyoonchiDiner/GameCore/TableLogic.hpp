@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         TableLogic.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu (60%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (40%)
 
  DESCRIPTION:       Implements the base class TableLogic, providing shared behavior
 					for all table-type objects. This includes item placement and
@@ -22,76 +23,124 @@
 #include "EngineCore/GameObjectLogic.hpp"
 #include "EngineCore/Math.hpp"
 
- // Base logic for any table: kitchen table, work table, customer table, etc.
- // - Can hold exactly one item (by GameObject ID).
- // - Exposes approach points where the player should stand when interacting.
- // - Provides virtual hooks so derived classes can restrict what items are allowed.
+/**
+ * @brief Shared base logic for all table-like gameplay objects.
+ * @details
+ * Tracks a single held item, exposes authored approach points for pathing and
+ * interaction, and provides overridable hooks that specialized table types can
+ * use to enforce item rules or react to placement changes.
+ */
 class TableLogic : public GameObjectLogic {
 public:
+	/**
+	 * @brief Constructs table logic for the owning scene object.
+	 * @param ownerID Runtime object ID that owns this logic component.
+	 */
 	explicit TableLogic(int ownerID);
 
-	// No special Awake/Update yet this is pure logic, driven by other systems.
+	/**
+	 * @brief Initializes table state and loads authored approach offsets.
+	 * @param scene Active scene containing the table object.
+	 */
 	void Start(Scene& scene) override;
+
+	/**
+	 * @brief Releases held-item bookkeeping before the table is destroyed.
+	 * @param scene Active scene containing the table object.
+	 */
 	void OnDestroy(Scene& scene) override;
 
-	// -------- Item occupancy --------
-
-	// Returns true if the table is currently holding an item.
+	/**
+	 * @brief Returns whether the table is currently holding an item.
+	 * @return True when a valid held-item ID is recorded.
+	 */
 	bool HasItem() const {
+		// Tables are considered occupied whenever they track a live item ID.
 		return heldItemID_ != kInvalidID;
 	}
 
-	// ID of the GameObject currently on this table (or -1 if none).
+	/**
+	 * @brief Returns the runtime ID of the item currently on this table.
+	 * @return Held item ID, or `kInvalidID` when the table is empty.
+	 */
 	int GetHeldItemID() const {
+		// Expose the recorded occupancy so interaction code can query the table quickly.
 		return heldItemID_;
 	}
 
-	// Can this table accept this item *right now*?
-	// Base implementation: true if the table is empty and the item exists.
-	// Derived classes (e.g. CustomerTable, WorkTable) can override to add rules.
+	/**
+	 * @brief Returns whether the table can accept a specific item right now.
+	 * @param scene Active scene containing the table and candidate item.
+	 * @param itemID Runtime ID of the item being tested.
+	 * @return True when the base table rules allow the item to be placed.
+	 */
 	virtual bool CanAcceptItem(Scene& scene, int itemID) const;
 
-	// Refresh any cached held-item bookkeeping before interaction logic depends on it.
+	/**
+	 * @brief Refreshes cached occupancy state before other systems query the table.
+	 * @param scene Active scene containing the table and held item.
+	 */
 	virtual void RefreshHeldItemState(Scene& scene);
 
-	// Place an item onto this table.
-	// - Returns true on success.
-	// - Does NOT change ownership in any container, it just records the ID and
-	//   optionally repositions the item to the table top.
+	/**
+	 * @brief Places an item onto the table and snaps it to the tabletop anchor.
+	 * @param scene Active scene containing the table and item.
+	 * @param itemID Runtime ID of the item to place.
+	 * @return True when the item was accepted and recorded successfully.
+	 */
 	virtual bool PlaceItem(Scene& scene, int itemID);
 
-	// Take the current item off the table.
-	// - Returns the held item ID, or kInvalidID if empty.
-	// - Does NOT reposition the item; caller is responsible for moving it.
+	/**
+	 * @brief Removes and returns the current held item without repositioning it.
+	 * @param scene Active scene containing the table and held item.
+	 * @return Held item ID, or `kInvalidID` when the table is empty.
+	 */
 	virtual int TakeItem(Scene& scene);
 
-	// -------- Approach / destination points --------
-
-	// These are LOCAL offsets relative to the table's position (2D: x,y).
-	// For example: (0, -32) could mean "in front of the table".
+	/**
+	 * @brief Returns the authored local-space approach offsets for this table.
+	 * @return Immutable list of approach offsets relative to the table origin.
+	 */
 	const std::vector<Math::Vector2D>& GetLocalApproachOffsets() const {
+		// Return the raw authored offsets so callers can inspect or reuse them directly.
 		return approachOffsets_;
 	}
 
-	// Add a new approach offset in local space.
+	/**
+	 * @brief Adds a new approach offset in the table's local space.
+	 * @param offset Local-space offset to append.
+	 */
 	void AddApproachOffset(const Math::Vector2D& offset);
 
-	// Replace any existing approach offsets with a single one
+	/**
+	 * @brief Replaces all existing approach offsets with a single authored offset.
+	 * @param offset Local-space offset that should become the only approach point.
+	 */
 	void SetSingleApproachOffset(const Math::Vector2D& offset) {
+		// Reset the list first so the caller gets exactly one approach point.
 		ClearApproachOffsets();
 		AddApproachOffset(offset);
 	}
 
 
-	// Remove all approach offsets.
+	/**
+	 * @brief Removes all authored approach offsets from the table.
+	 */
 	void ClearApproachOffsets();
 
-	// Get all approach points in WORLD space, computed from the owner GameObject.
-	// If there is no owner, returns an empty vector.
+	/**
+	 * @brief Returns all approach points converted into world space.
+	 * @param scene Active scene containing the table object.
+	 * @return World-space approach points derived from the table transform.
+	 */
 	std::vector<Math::Vector2D> GetApproachPointsWorld(Scene& scene) const;
 
-	// Choose the closest approach point (in world space) to a given position.
-	// If there are no approach points or owner is missing, returns the input "from".
+	/**
+	 * @brief Returns the nearest world-space approach point to a given position.
+	 * @param scene Active scene containing the table object.
+	 * @param from World-space position used as the distance reference.
+	 * @return Closest approach point, or `from` when none are available.
+	 */
 	Math::Vector2D GetClosestApproachPoint(Scene& scene,
 		const Math::Vector2D& from) const;
 
@@ -101,20 +150,36 @@ protected:
 	int heldItemID_;
 	std::vector<Math::Vector2D> approachOffsets_;
 
-	// Derived classes can react when an item is placed or taken.
-	// For example:
-	// - Work table: start processing timer when an ingredient is placed.
-	// - Customer table: check if the dish is complete, notify customer, etc.
+	/**
+	 * @brief Optional hook invoked after an item is placed onto the table.
+	 * @param scene Active scene containing the table.
+	 * @param item Item that was just placed.
+	 */
 	virtual void OnItemPlaced(Scene& /*scene*/, GameObject& /*item*/) {}
+
+	/**
+	 * @brief Optional hook invoked after an item is removed from the table.
+	 * @param scene Active scene containing the table.
+	 * @param item Item that was just taken.
+	 */
 	virtual void OnItemTaken(Scene& /*scene*/, GameObject& /*item*/) {}
 
-	// Convenience to get the table GameObject (owner) with null-check already done.
+	/**
+	 * @brief Returns the owning table object from the current scene.
+	 * @param scene Active scene containing the table object.
+	 * @return Owning game object, or `nullptr` when it no longer exists.
+	 */
 	GameObject* GetOwnerChecked(Scene& scene) const;
 
-	// Returns the authored tabletop anchor used for items resting on this table.
+	/**
+	 * @brief Returns the world-space tabletop anchor used for held-item placement.
+	 * @param scene Active scene containing the table object.
+	 * @return Item placement position for the table.
+	 */
 	Math::Vector3D GetItemPlacementPosition(Scene& scene) const;
 
 	std::string GetName() const override {
+		// Keep the runtime registration name stable for derived table behaviors.
 		return "TableLogic";
 	}
 };

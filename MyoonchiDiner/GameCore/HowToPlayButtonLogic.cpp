@@ -3,7 +3,7 @@
  FILE NAME:         HowToPlayButtonLogic.cpp
  PROJECT NAME:      Project GAM200
  AUTHOR:            Vu Phan Hung, phanhung.vu@digipen.edu	(40%)
- CO-AUTHOR:         Seah Wang Hua, wanghua.seah@digipen.edu (40%)
+ CO-AUTHORS:        Seah Wang Hua, wanghua.seah@digipen.edu (40%)
 					Yat Chun Wee, y.chunwee@digipen.edu		(15%)
 					Ng Juin Herng, juinherng.ng@digipen.edu (5%)
 
@@ -41,9 +41,17 @@ namespace {
 	static const glm::vec2 kNextButtonSize{ 219.75f, 105.75f };
 	static const glm::vec2 kNextButtonMargin{ 200.0f, 140.0f }; // from bottom-right corner
 
+	/**
+	 * @brief Builds the hover-state texture path for a menu sprite.
+	 *
+	 * @param path The authored normal-state texture path.
+	 *
+	 * @return The matching hover texture path, preserving the original suffix rules.
+	 */
 	static std::string MakeHoverPath(const std::string& path) {
 		if (path.empty()) return path;
 
+		// Split the authored path so the hover suffix can be injected before the extension.
 		const size_t dot = path.find_last_of('.');
 		const std::string ext = (dot != std::string::npos) ? path.substr(dot) : std::string();
 		const std::string base = (dot != std::string::npos) ? path.substr(0, dot) : path;
@@ -59,26 +67,52 @@ namespace {
 		return base + "_h" + ext;
 	}
 
+	/**
+	 * @brief Replaces a sprite's texture if the requested asset can be loaded.
+	 *
+	 * @param owner The object whose texture should change.
+	 * @param texPath The texture path to resolve through the resource manager.
+	 */
 	static void TrySetTexture(GameObject* owner, const std::string& texPath) {
 		if (!owner || texPath.empty()) return;
 
+		// Cache static UI sprites by path so hover swaps reuse the same loaded texture.
 		std::string cacheName = "staticsprite_" + texPath;
 		if (Texture* tex = ResourceManager::Instance().LoadTexture(cacheName, texPath)) {
 			owner->SetTexture(tex);
 		}
 	}
 
+	/**
+	 * @brief Tests whether a point lies inside an axis-aligned rectangle.
+	 *
+	 * @param p The point to test.
+	 * @param min The rectangle minimum corner.
+	 * @param max The rectangle maximum corner.
+	 *
+	 * @return True when the point is inside or on the rectangle bounds.
+	 */
 	static bool IsPointInRect(const glm::vec2& p, const glm::vec2& min, const glm::vec2& max) {
 		return p.x >= min.x && p.x <= max.x &&
 			p.y >= min.y && p.y <= max.y;
 	}
 
+	/**
+	 * @brief Tests whether a world-space point overlaps a scene object's bounds.
+	 *
+	 * @param scene The active scene that owns the object.
+	 * @param objectID The object to test against.
+	 * @param p The world-space point.
+	 *
+	 * @return True when the point lies inside the object's visual bounds.
+	 */
 	static bool IsPointInObject(Scene& scene, int objectID, const glm::vec2& p) {
 		GameObject* obj = scene.GetGameObjectByID(objectID);
 		if (!obj) {
 			return false;
 		}
 
+		// Use the object's current transform as the clickable rectangle for overlay buttons.
 		const glm::vec3 pos = obj->GetPositionGLM();
 		const glm::vec3 sz = obj->GetScaleGLM();
 		const glm::vec2 min(pos.x - sz.x * 0.5f, pos.y - sz.y * 0.5f);
@@ -87,9 +121,17 @@ namespace {
 		return IsPointInRect(p, min, max);
 	}
 
+	/**
+	 * @brief Resolves the current mouse position into scene world space.
+	 *
+	 * @param input The input manager used as a fallback projection source.
+	 *
+	 * @return The mouse position in world coordinates.
+	 */
 	static glm::vec2 GetMouseWorld(InputManager& input) {
 		glm::vec2 mouseWorld{};
 		if (!GraphicsEngine::Instance().GetMouseWorldInScene(mouseWorld)) {
+			// Fall back to InputManager projection when the graphics helper has no active scene camera.
 			const glm::vec3 w = input.ScreenToWorld(
 				static_cast<float>(input.GetMousePosition().x),
 				static_cast<float>(input.GetMousePosition().y));
@@ -99,6 +141,13 @@ namespace {
 	}
 }
 
+/**
+ * @brief Updates hover, click, and overlay paging behavior for the How To Play button.
+ *
+ * @param dt Unused frame delta time.
+ * @param scene The active scene.
+ * @param input The input manager for mouse and keyboard navigation.
+ */
 void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 	GameObject* owner = GetOwner(scene);
 	if (!owner) {
@@ -106,6 +155,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	}
 
 	auto closeOverlay = [&]() {
+		// Tear down both overlay objects so the menu can resume normal input routing.
 		if (overlayId_ >= 0) {
 			scene.DespawnByID(overlayId_);
 			overlayId_ = -1;
@@ -124,6 +174,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	const bool overlayActive = scene.IsHowToPlayOverlayActive();
 
 	if (!overlayActive && !scene.ShouldUseRuntimeParityMode()) {
+		// In editor parity-off mode, the menu button should reset to its default visual state.
 		if (hovered_) {
 			hovered_ = false;
 			TrySetTexture(owner, normalTexturePath_);
@@ -132,6 +183,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	}
 
 	if (scene.IsMenuInteractionSuppressed()) {
+		// Suppressed menu interaction means another transition or cutscene owns the input.
 		if (!overlayActive && hovered_) {
 			hovered_ = false;
 			TrySetTexture(owner, normalTexturePath_);
@@ -140,6 +192,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	}
 
 	if (!overlayActive && scene.IsMenuModalActive()) {
+		// Do not let the button compete with other top-level menu modals.
 		if (hovered_) {
 			hovered_ = false;
 			TrySetTexture(owner, normalTexturePath_);
@@ -156,6 +209,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	if (overlayActive) {
 		const glm::vec2 mouseWorld = GetMouseWorld(input);
 		const bool overNextButton = (nextButtonId_ >= 0) && IsPointInObject(scene, nextButtonId_, mouseWorld);
+		// While the overlay is open, keyboard focus is scoped to the single Next button.
 		const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
 			scene,
 			input,
@@ -169,6 +223,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 			nextButtonHovered_ = nextButtonHot;
 
 			if (GameObject* nextBtn = scene.GetGameObjectByID(nextButtonId_)) {
+				// Mirror hover focus visually whether it came from mouse or keyboard navigation.
 				TrySetTexture(nextBtn, nextButtonHovered_ ? kNextButtonTexHover : kNextButtonTexNormal);
 			}
 
@@ -224,6 +279,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	// --- CASE 2: overlay not active -> regular button hover + click to show page 1 ---
 
 	if (!initialized_) {
+		// Capture the authored sprite path once so later hover swaps remain deterministic.
 		normalTexturePath_ = scene.GetObjectTexturePath(GetOwnerID());
 		hoverTexturePath_ = MakeHoverPath(normalTexturePath_);
 		initialized_ = true;
@@ -246,6 +302,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	const std::string scopeKey = scene.IsPauseOverlayActive()
 		? MenuKeyboardNavigation::GetPauseOverlayScopeKey(scene)
 		: MenuKeyboardNavigation::GetCurrentSceneTopLevelScopeKey(scene);
+	// Reuse the shared menu-navigation system so mouse and keyboard stay in sync.
 	const int focusedButtonId = MenuKeyboardNavigation::UpdateFocus(
 		scene,
 		input,
@@ -281,6 +338,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 	}
 
+	// Spawn the full-screen page first so the navigation button can render above it.
 	const std::string overlayLayer = "9999998";
 	const std::string nextButtonLayer = "9999999";
 	const float w = static_cast<float>(GraphicsEngine::kRefW);
@@ -296,6 +354,7 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		return;
 	}
 
+	// Anchor the Next button to the bottom-right corner of the reference resolution.
 	const glm::vec3 nextPos{
 	w - kNextButtonMargin.x - (kNextButtonSize.x * 0.5f),
 	kNextButtonMargin.y + (kNextButtonSize.y * 0.5f),
@@ -321,5 +380,6 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 	overlay->SetMovableByPhysics(false);
 	nextBtn->SetMovableByPhysics(false);
 
+	// Tell the rest of the menu system that a blocking instructional overlay is active.
 	scene.SetHowToPlayOverlayActive(true);
 }

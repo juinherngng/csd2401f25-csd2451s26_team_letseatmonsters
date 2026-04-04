@@ -25,6 +25,7 @@
 #include "GameCore/TableLogic.hpp"
 
 namespace PlayerLogicDetail {
+	// Interaction and movement tuning constants shared across the split PlayerLogic implementation.
 	inline constexpr float kPlayerInteractRadius = 48.0f;
 	inline constexpr float kMoveRetargetDeadzone = 6.0f;
 	inline constexpr float kDragRetargetDistance = 12.0f;

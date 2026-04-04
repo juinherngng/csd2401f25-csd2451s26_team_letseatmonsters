@@ -19,7 +19,6 @@
 #include "EngineGraphics/GraphicsEngine.hpp"
 #include "EngineGraphics/ResourceManager.hpp"
 #include "EngineGraphics/SceneManager.hpp"
-#include "../../MyoonchiDiner/GameCore/MenuKeyboardNavigation.hpp"
 
  // -------------------------------------------------------------------------------------------------
  // Pause Overlay Entry
@@ -42,7 +41,10 @@ void Scene::ShowPauseOverlay() {
 	pauseOverlayActive_ = true;
 	SetFlowState(FlowState::Paused);
 	animationManager.Play();
-	MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::GetPauseOverlayScopeKey(*this));
+	if (pauseOverlayFocusResetHook_) {
+		// Let the game layer clear any pause-menu navigation state without pulling game headers into the engine.
+		pauseOverlayFocusResetHook_(*this);
+	}
 
 	if (messageBus_) {
 		messageBus_->Post<CoreFramework::PauseOverlayChangedMessage>(true);
@@ -151,7 +153,10 @@ void Scene::HidePauseOverlay() {
 	}
 	pauseOverlayObjectIds_.clear();
 	pauseOverlayActive_ = false;
-	MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::GetPauseOverlayScopeKey(*this));
+	if (pauseOverlayFocusResetHook_) {
+		// Reset pause-overlay focus again after teardown so the next open starts from a clean state.
+		pauseOverlayFocusResetHook_(*this);
+	}
 
 	pauseAudioPending_ = false;
 

@@ -2,9 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			PlayerLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (50%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu   (30%)
-					Seah Wang Hua, wanghua.seah@digipen.edu (20%)
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (35%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu   (65%)
 
  DESCRIPTION:		Implements the high-level PlayerLogic lifecycle entry points.
 					- Resets per-scene runtime player state on start
@@ -37,14 +36,24 @@ void PlayerLogic::Start(Scene& scene) {
 	dragRetargetTimer_ = 0.0f;
 	highlightedInteractableIDs_.clear();
 	hoverOutlineIDs_.clear();
+	// Reset lock, queued-action, and movement recovery state so no stale scene state survives reloads.
+	movementLocked_ = false;
+	lockedTableID_ = -1;
+	queuedAction_ = {};
 	clickIndicatorID_ = -1;
 	clickIndicatorTimeLeft_ = 0.0f;
 	suppressMouseUntilRelease_ = false;
+	hasLastTrailPos_ = false;
+	trailCarry_ = 0.0f;
+	footstepDistanceAcc_ = 0.0f;
+	wasMoving_ = false;
+	footstepEmitTimer_ = 0.0f;
 
 	pathPoints_.clear();
 	pathIndex_ = 0;
 	finalTarget_ = glm::vec2(0.0f, 0.0f);
 	directPathCheckTimer_ = 0.0f;
+	blockedMoveFrames_ = 0;
 }
 
 /**
@@ -59,6 +68,7 @@ void PlayerLogic::EnterPauseState(Scene& scene) {
 	ClearQueuedAction();
 	ResetMouseDragState();
 	if (GameObject* player = GetOwner(scene)) {
+		// Zero the immediate velocity as well so physics-driven frames do not drift under pause.
 		player->SetVelocity(Math::Vector2D(0.0f, 0.0f));
 	}
 	suppressMouseUntilRelease_ = true;
@@ -131,10 +141,12 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		ExecuteQueuedAction(scene);
 	}
 
+	// Refresh cursor-driven feedback before processing the current frame's movement and interaction.
 	UpdateInteractableVisualCues(scene, input, safeDt);
 	UpdateClickMoveIndicator(scene, safeDt);
 
 	if (movementLocked_ && ShouldPlayChopAnimation(scene)) {
+		// Locked workstations suppress locomotion while still allowing animation and carry visuals to update.
 		ResetMouseDragState();
 		EnsureChopAnimation(scene, player);
 		UpdateCarriedItemTransform(scene);
@@ -150,6 +162,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		return;
 	}
 
+	// Apply input, then advance movement, then derive post-move feedback from the final player position.
 	HandleKeyboardMovement(safeDt, scene, input, player, beforePos);
 	HandleClickInput(scene, input, safeDt);
 	UpdateMovement(safeDt, scene);

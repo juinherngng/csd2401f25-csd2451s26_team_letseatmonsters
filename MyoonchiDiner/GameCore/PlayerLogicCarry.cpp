@@ -241,7 +241,7 @@ namespace {
  * @return Layer name used while the item is carried.
  */
 std::string PlayerLogic::GetCarryLayerForFacing(const std::string& /*baseLayer*/) const {
-	// Carry visuals currently use a fixed foreground layer for every facing.
+	// Carry visuals currently use a fixed foreground layer for every facing so held items stay readable.
 	switch (facingDir) {
 	case FacingDir::Front: return "6";
 	case FacingDir::Back:  return "6";

@@ -105,6 +105,7 @@ bool PlayerLogic::TryRepathToFinalTarget(Scene& scene, GameObject* player, const
 		return false;
 	}
 
+	// Replace the remaining route wholesale so downstream movement logic uses the fresh path immediately.
 	pathPoints_ = std::move(newPath);
 	pathIndex_ = 0;
 	if (switchToPathMode) {
@@ -335,6 +336,7 @@ void PlayerLogic::MoveDirect(const glm::vec2& dest) {
 	const float kRetargetEpsSq = 16.0f * 16.0f;
 
 	if (hasMoveTarget && moveMode_ == MoveMode::Direct) {
+		// Ignore negligible retargets so repeated clicks on nearly the same spot do not reset motion.
 		glm::vec2 d = dest - finalTarget_;
 		if ((d.x * d.x + d.y * d.y) <= kRetargetEpsSq) {
 			return;
@@ -368,6 +370,7 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 
 	const float kRetargetEpsSq = 16.0f * 16.0f;
 	if (hasMoveTarget && moveMode_ == MoveMode::Pathfinding) {
+		// Small retargets within the same snapped cell do not need a brand-new path.
 		glm::vec2 d = snappedDest - finalTarget_;
 		if ((d.x * d.x + d.y * d.y) <= kRetargetEpsSq) {
 			return;
@@ -393,6 +396,7 @@ void PlayerLogic::MoveTo(Scene& scene, const glm::vec2& dest) {
 	}
 
 	while (!pathPoints_.empty()) {
+		// Drop any first waypoint that is already under the player after snapping to the grid.
 		glm::vec2 d = pathPoints_.front() - startPos;
 		const float kSkipWaypointRadius = 18.0f;
 		if ((d.x * d.x + d.y * d.y) > kSkipWaypointRadius * kSkipWaypointRadius) {
@@ -472,6 +476,7 @@ void PlayerLogic::UpdateMovement(float dt, Scene& scene) {
 	const float arriveRadiusSq = PlayerLogicDetail::kArriveRadius * PlayerLogicDetail::kArriveRadius;
 
 	if (moveMode_ == MoveMode::Direct) {
+		// Direct mode can finish or repath independently of the waypoint list.
 		(void)TryUpdateDirectMovement(dt, scene, player, pos3, pos, arriveRadiusSq);
 		return;
 	}
@@ -555,6 +560,7 @@ void PlayerLogic::HandleKeyboardMovement(float dt, Scene& scene, InputManager& i
 		pos3.y += allowedDelta.y;
 		player->SetPosition(pos3);
 		scene.ClampToWalkArea(player);
+		// Drive locomotion from the actual allowed movement so blocked keyboard motion does not face the wrong way.
 		UpdateSprite(scene, player, allowedDelta);
 		return;
 	}
@@ -676,6 +682,7 @@ void PlayerLogic::BeginStationLock(Scene& scene, int tableID) {
 	if (GameObject* p = GetOwner(scene)) {
 		scene.GetMovementManager().ClearMoveTarget(p->GetID());
 		if (ShouldPlayChopAnimation(scene)) {
+			// Snap into the chop loop immediately if the station requires the player to stay engaged.
 			EnsureChopAnimation(scene, p);
 		}
 	}
