@@ -3,7 +3,7 @@ Lines of Code Report (Diff-based)
 ==========================================
 Author: Wang Hua
 Since: 2026-03-16
-Generated: Sat Apr  4 23:24:21 +08 2026
+Generated: Sun Apr  5 01:27:10 +08 2026
 ==========================================
 
 ==========================================
@@ -17,6 +17,7 @@ MyoonchiDiner/GameCore/HowToPlayButtonLogic.cpp                               11
 MyoonchiDiner/GameCore/HowToPlayButtonLogic.hpp                                 5          2          3
 MyoonchiDiner/GameCore/InGamePauseTriggerLogic.cpp                             84          0         84
 MyoonchiDiner/GameCore/InGamePauseTriggerLogic.hpp                             15          0         15
+MyoonchiDiner/GameCore/Quota.cpp                                               14          5          9
 MyoonchiDiner/MyoonchiDinerBindings.cpp                                       322         39        283
 TheStove/EngineCore/FilePaths.hpp                                               1          0          1
 --------------------------------------------------------------------------------------------
@@ -24,10 +25,10 @@ TheStove/EngineCore/FilePaths.hpp                                               
 ==========================================
 ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 ==========================================
-Lines Added:    540
-Lines Deleted:  107
-Net Change:     433
-Total Commits:  24
+Lines Added:    554
+Lines Deleted:  112
+Net Change:     442
+Total Commits:  26
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
@@ -37,6 +38,7 @@ MyoonchiDiner/GameCore/HowToPlayButtonLogic.cpp
 MyoonchiDiner/GameCore/HowToPlayButtonLogic.hpp
 MyoonchiDiner/GameCore/InGamePauseTriggerLogic.cpp
 MyoonchiDiner/GameCore/InGamePauseTriggerLogic.hpp
+MyoonchiDiner/GameCore/Quota.cpp
 MyoonchiDiner/MyoonchiDinerBindings.cpp
 TheStove/EngineCore/FilePaths.hpp
 assets/HowToPlay/howtoplay_1.png
@@ -51,6 +53,12 @@ assets/HowToPlay/next_h.png
 assets/HowToPlay/next_s.png
 assets/Settings/settingsscreen_bg.png
 assets/VFX_SpriteSheet.png
+assets/Win/Cutscene_goodend_1.png
+assets/Win/Cutscene_goodend_2.png
+assets/Win/Cutscene_goodend_3.png
+assets/Win/Cutscene_goodend_4.png
+assets/Win/Cutscene_goodend_5.png
+assets/Win/Cutscene_goodend_6.png
 assets/continue_b_h.png
 assets/continue_h.png
 assets/credits_bg.png

@@ -3,7 +3,7 @@ Lines of Code Report (Diff-based)
 ==========================================
 Author: Chun Wee
 Since: 2026-03-16
-Generated: Sat Apr  4 23:24:00 +08 2026
+Generated: Sun Apr  5 01:26:40 +08 2026
 ==========================================
 
 ==========================================
@@ -446,7 +446,7 @@ ACTUAL CODE CHANGES - TOTAL (NO BLANKS/COMMENTS)
 Lines Added:    20247
 Lines Deleted:  16610
 Net Change:     3637
-Total Commits:  83
+Total Commits:  85
 
 ==========================================
 FILES MODIFIED (RAW - ANY TYPE)
@@ -454,6 +454,7 @@ FILES MODIFIED (RAW - ANY TYPE)
 
 .gitignore
 CMakeLists.txt
+LetsEatMonsters_ReadMe.txt
 MyoonchiDiner/Core/CustomerManagerLogic.cpp
 MyoonchiDiner/Core/CustomerManagerLogic.hpp
 MyoonchiDiner/Core/CustomerOrderUILogic.cpp
@@ -1068,6 +1069,12 @@ levels/main_menu.json
 levels/settings.json
 levels/tutorial.json
 levels/win.json
+loc_reports/00_SUMMARY.txt
+loc_reports/Chun_Wee_loc_report.txt
+loc_reports/CookieWasTaken_loc_report.txt
+loc_reports/Wang_Hua_loc_report.txt
+loc_reports/chuuniby_loc_report.txt
+loc_reports/juinherngng_loc_report.txt
 prefabs/my_goat.json
 prefabs/my_goat1.json
 prefabs/my_goat2.json
