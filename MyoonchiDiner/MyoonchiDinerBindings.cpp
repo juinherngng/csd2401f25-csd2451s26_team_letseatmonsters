@@ -950,6 +950,15 @@ namespace {
 				return;
 			}
 
+			if (scene.IsMenuInteractionSuppressed()) {
+				if (hovered_) {
+					hovered_ = false;
+					const std::string cacheKey = "pause_quit_normal_" + std::to_string(GetOwnerID());
+					QuitPopupState::TrySetObjectTexture(scene, GetOwnerID(), normalTexturePath_.c_str(), cacheKey);
+				}
+				return;
+			}
+
 			if (gQuitPopup.IsReopenBlocked()) {
 				return;
 			}

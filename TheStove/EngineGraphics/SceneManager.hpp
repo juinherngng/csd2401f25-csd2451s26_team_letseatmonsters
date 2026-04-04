@@ -1012,6 +1012,19 @@ public:
 	}
 
 	/**
+	 * @brief Returns whether top-level menu interaction should be suspended.
+	 * @return `true` while presentation transitions or cutscenes own the screen.
+	 */
+	bool IsMenuInteractionSuppressed() const {
+		return IsAnyCutsceneActive() ||
+			pendingVideoCutsceneTransition_.active ||
+			levelTrans_.active ||
+			pendingLevelLoad_.has_value() ||
+			flowState_ == FlowState::Transitioning ||
+			flowState_ == FlowState::LoadingLevel;
+	}
+
+	/**
 	 * @brief Renders fpstext.
 	 */
 	void RenderFPSText();

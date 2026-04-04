@@ -221,6 +221,24 @@ void StartGamePromptLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		initialized_ = true;
 	}
 
+	if (scene.IsMenuInteractionSuppressed()) {
+		if (hovered_) {
+			hovered_ = false;
+			TrySetTexture(owner, normalTexturePath_);
+		}
+
+		if (yesHovered_) {
+			yesHovered_ = false;
+			TrySetObjectTexture(scene, yesButtonId_, kTutorialYesNormalTexture);
+		}
+
+		if (noHovered_) {
+			noHovered_ = false;
+			TrySetObjectTexture(scene, noButtonId_, kTutorialNoNormalTexture);
+		}
+		return;
+	}
+
 	glm::vec2 mouseWorld{};
 	GetMouseWorld(scene, input, mouseWorld);
 

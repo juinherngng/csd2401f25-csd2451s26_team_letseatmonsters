@@ -129,6 +129,14 @@ void HowToPlayButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& inpu
 		return;
 	}
 
+	if (scene.IsMenuInteractionSuppressed()) {
+		if (!overlayActive && hovered_) {
+			hovered_ = false;
+			TrySetTexture(owner, normalTexturePath_);
+		}
+		return;
+	}
+
 	if (!overlayActive && scene.IsMenuModalActive()) {
 		if (hovered_) {
 			hovered_ = false;

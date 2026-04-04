@@ -65,6 +65,16 @@ void MenuButtonLogic::Update(float /*dt*/, Scene& scene, InputManager& input) {
 		return;
 	}
 
+	if (scene.IsMenuInteractionSuppressed()) {
+		if (hovered_) {
+			hovered_ = false;
+			if (GameObject* owner = GetOwner(scene)) {
+				TrySetTexture(owner, normalTexturePath_);
+			}
+		}
+		return;
+	}
+
 	if (scene.IsHowToPlayOverlayActive() || scene.IsMenuModalActive()) {
 		if (hovered_) {
 			hovered_ = false;
