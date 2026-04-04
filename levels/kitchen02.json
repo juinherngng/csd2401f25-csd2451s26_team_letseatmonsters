@@ -1363,7 +1363,7 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "customer_table",
-      "texture": "../assets/Furniture/CustomerTable_Horizontal.png",
+      "texture": "../assets/Furniture/CustomerTable_Horizontal_dark.png",
       "visible": true,
       "w": 180.0,
       "x": 1257.8446044921875,
