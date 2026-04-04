@@ -38,8 +38,7 @@ namespace {
  * @return Result produced by this operation.
  */
 CollisionManager::CollisionManager(float cellSize)
-	: spatialGrid_(cellSize) {
-}
+	: spatialGrid_(cellSize) {}
 
 /**
  * @brief Initializes this object.

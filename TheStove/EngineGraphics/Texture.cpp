@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			Texture.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (70%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	    (30%)
 
  DESCRIPTION:		Loads image data, creates GL texture, sets filtering/wrap, bind/unbind/cleanup.
 

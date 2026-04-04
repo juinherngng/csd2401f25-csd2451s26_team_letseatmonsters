@@ -2,7 +2,7 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			RuntimeTextData.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:            OpenAI Codex
+ AUTHOR:            Yat Chun Wee, y.chunwee@digipen.edu	(100%)
 
  DESCRIPTION:		Declares the runtime-owned text object data used by Scene and gameplay
 					systems so authored HUD text does not depend on editor panel globals.

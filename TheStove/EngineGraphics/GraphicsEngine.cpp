@@ -2,9 +2,10 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GraphicsEngine.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (30%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(50%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (25%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(40%)
 					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (15%)
 
  DESCRIPTION:		Implements GraphicsEngine initialization, resource bootstrap, and background
 					rendering helpers that remain in the core engine translation unit.

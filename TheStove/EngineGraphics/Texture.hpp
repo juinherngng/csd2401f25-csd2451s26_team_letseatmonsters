@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			Texture.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (70%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	    (30%)
 
  DESCRIPTION:		2D texture resource wrapper providing load, bind to texture unit, and sampler params.
 

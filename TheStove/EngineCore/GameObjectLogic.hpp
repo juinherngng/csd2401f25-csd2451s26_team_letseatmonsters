@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameObjectLogic.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (40%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (60%)
 
  DESCRIPTION:		Declares the base GameObjectLogic class which defines the common
 					interface for all gameplay logic components attached to GameObjects,
@@ -22,8 +23,7 @@ class GameObject;
 
 class GameObjectLogic {
 public:
-	explicit GameObjectLogic(int ownerID) : ownerID(ownerID) {
-	}
+	explicit GameObjectLogic(int ownerID) : ownerID(ownerID) {}
 	virtual ~GameObjectLogic() = default;
 
 	// suppress unused parameter warnings

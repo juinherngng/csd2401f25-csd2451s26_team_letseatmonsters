@@ -3,8 +3,8 @@
  FILE NAME:			PlayerController.hpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(40%)
-					Vu Phan Hung, phanhung.vu@digipen.edu	(20%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(45%)
+					Vu Phan Hung, phanhung.vu@digipen.edu	(15%)
 
  DESCRIPTION:		Declares PlayerController, which handles player-facing input such as scaling,
 					rotation, and click-to-move. Integrates with movement/physics managers and

@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         MovementManager.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (50%)
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(40%)
-					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu (35%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(50%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (15%)
 
  DESCRIPTION:       Declares MovementManager, which coordinates player WASD, click-to-move targets,
 					and simple NPC patrol paths. Integrates with world collision for step trimming

@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			FileDropHandler.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (80%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	    (20%)
 
  DESCRIPTION:		System for handling external file drops from Windows File Explorer.
 					Integrates with the CoreEngine as a system to process dropped files

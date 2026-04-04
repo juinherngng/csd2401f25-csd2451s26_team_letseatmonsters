@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			EntityManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (60%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(40%)
 
  DESCRIPTION:		This file declares the EntityManager class, a core engine system responsible for
 					creating, storing, and managing all GameObjects in a level or scene.

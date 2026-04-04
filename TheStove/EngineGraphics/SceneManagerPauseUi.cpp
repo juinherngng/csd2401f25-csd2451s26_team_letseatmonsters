@@ -2,7 +2,10 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SceneManagerPauseUi.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(25%)
+ CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (25%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (25%)
+					Seah Wang Hua, wanghua.seah@digipen.edu (25%)
 
  DESCRIPTION:		Implements Scene pause overlay controls and related pause-menu UI object
 					spawning, teardown, and audio fade behavior.

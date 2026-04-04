@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			Math.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (85%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	    (15%)
 
  DESCRIPTION:		Math library providing basic vector and matrix operations and other
 					utility functions.

@@ -2,7 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			Shader.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (100%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (75%)
+ CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (15%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(10%)
 
  DESCRIPTION:		GLSL program wrapper: compile/link from files, bind, and set uniforms.
 

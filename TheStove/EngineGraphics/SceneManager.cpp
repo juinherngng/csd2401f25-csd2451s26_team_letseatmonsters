@@ -2,10 +2,10 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SceneManager.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (35%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(20%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (25%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(40%)
 					Vu Phan Hung, phanhung.vu@digipen.edu   (15%)
-					Ng Juin Herng, juinherng.ng@digipen.edu (30%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
 
  DESCRIPTION:		Implements the core Scene construction and high-level state access
 					helpers.

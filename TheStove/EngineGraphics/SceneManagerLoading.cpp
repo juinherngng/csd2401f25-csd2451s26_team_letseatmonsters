@@ -2,10 +2,12 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			SceneManagerLoading.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(25%)
+ CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (25%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (25%)
+					Seah Wang Hua, wanghua.seah@digipen.edu (25%)
 
- DESCRIPTION:		Implements Scene lifecycle, deferred level loading, and level-reset
-					helpers extracted from SceneManager.cpp.
+ DESCRIPTION:		Implements Scene lifecycle, deferred level loading, and level-reset helpers.
 
 		All content © 2026 DigiPen Institute of Technology Singapore. All rights reserved.
  ----------------------------------------------------------------------------------------------------

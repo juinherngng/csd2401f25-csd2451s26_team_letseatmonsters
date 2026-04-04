@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:         FilePaths.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ AUTHOR:            Ng Juin Herng, juinherng.ng@digipen.edu (70%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	    (30%)
 
  DESCRIPTION:       Centralized file path constants for all game assets.
 

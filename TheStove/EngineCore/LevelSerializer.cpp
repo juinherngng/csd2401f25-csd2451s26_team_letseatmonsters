@@ -2,9 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			LevelSerializer.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(65%)
- CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu	(5%)
-					Ng Juin Herng, juinherng.ng@digipen.edu (20%)
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(70%)
+ CO-AUTHORS:		Ng Juin Herng, juinherng.ng@digipen.edu (20%)
 					Vu Phan Hung, phanhung.vu@digipen.edu   (10%)
 
  DESCRIPTION:		Handles saving and loading of LevelData to and from JSON files.

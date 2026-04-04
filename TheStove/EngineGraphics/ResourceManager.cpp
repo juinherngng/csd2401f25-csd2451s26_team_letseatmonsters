@@ -3,8 +3,8 @@
  FILE NAME:			ResourceManager.cpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (20%)
- CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (20%)
-					Yat Chun Wee, y.chunwee@digipen.edu		(60%)
+ CO-AUTHORS: 		Ng Juin Herng, juinherng.ng@digipen.edu (10%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(70%)
 
  DESCRIPTION:		Implements lazy-loading, storage maps, and cleanup for shared GPU resources.
 

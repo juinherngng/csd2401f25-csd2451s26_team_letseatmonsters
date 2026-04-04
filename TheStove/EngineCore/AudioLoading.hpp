@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			AudioLoading.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (100%)
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (85%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(15%)
 
  DESCRIPTION:		Audio catalog with JSON-based serialization for dynamic audio loading.
 

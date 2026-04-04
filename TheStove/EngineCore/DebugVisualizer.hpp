@@ -1,9 +1,9 @@
 /*
 ----------------------------------------------------------------------------------------------------
- FILE NAME:			GraphicsEngine.hpp
+ FILE NAME:			DebugVisualizer.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (20%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(80%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (30%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(70%)
 
  DESCRIPTION:		Declares the DebugVisualizer utility (static-only) used to render
 					collision boxes, spatial grid cells, and pathing cues for selected

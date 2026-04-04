@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			RuntimeLevel.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (50%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(30%)
-					Vu Phan Hung, phanhung.vu@digipen.edu   (20%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (20%)
+ CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(70%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (10%)
 
  DESCRIPTION:		Implements RuntimeLevel utilities to parse LevelData JSON, spawn animated/static GameObjects with
 					proper layers/tags/colliders/animations, set scene backgrounds, rebuild colliders, and store object

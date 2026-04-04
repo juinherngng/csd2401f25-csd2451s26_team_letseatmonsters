@@ -2,9 +2,9 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         PhysicsManager.cpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu	(45%)
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(50%)
-					Ng Juin Herng, juinherng.ng@digipen.edu (5%)
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu	(55%)
+ CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(35%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (10%)
 
  DESCRIPTION:       Implements PhysicsManager. Integrates simple force-based movement
 					(seek/arrive + drag), applies damping, and trims movement against

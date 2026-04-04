@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameObjectLogic.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (100%)
+ AUTHOR:			Vu Phan Hung, phanhung.vu@digipen.edu (60%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu	  (40%)
 
  DESCRIPTION:		Implements the base logic helper for game objects. Provides the GetOwner()
 					function, allowing logic scripts to retrieve their associated GameObject via

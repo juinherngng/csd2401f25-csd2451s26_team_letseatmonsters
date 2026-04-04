@@ -2,8 +2,9 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			FontSystem.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (80%)
+ AUTHOR:			Ng Juin Herng, juinherng.ng@digipen.edu (70%)
  CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(20%)
+					Vu Phan Hung, phanhung.vu@digipen.edu   (10%)
 
  DESCRIPTION:		Implementation of font system using FreeType for loading fonts
 					and OpenGL for rendering text.

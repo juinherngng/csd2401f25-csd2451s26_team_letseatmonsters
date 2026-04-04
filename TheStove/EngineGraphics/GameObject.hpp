@@ -3,7 +3,7 @@
  FILE NAME:			GameObject.hpp
  PROJECT NAME:		Project GAM200
  AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(60%)
 
  DESCRIPTION:		Defines the GameObject class, representing any renderable or interactable
 					entity in the game world. Every GameObject contains references to mesh, shader,

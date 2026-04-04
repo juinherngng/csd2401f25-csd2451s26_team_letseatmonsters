@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			Layer.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (40%)
- CO-AUTHORS:		Yat Chun Wee, y.chunwee@digipen.edu		(60%)
+ AUTHOR:			Seah Wang Hua, wanghua.seah@digipen.edu (10%)
+ CO-AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(90%)
 
  DESCRIPTION:		The Layer class maintains a collection of game object IDs that belong to this layer.
 					Core functionality includes adding and removing object IDs to/from the layer, retrieving
@@ -26,15 +26,13 @@ public:
 	/**
 	 * @brief Constructs a `Layer` instance.
 	 */
-	Layer() : name("") {
-	}
+	Layer() : name("") {}
 
 	/**
 	 * @brief Constructs a `Layer` instance.
 	 * @param name Parameter for name.
 	 */
-	Layer(const std::string& name) : name(name) {
-	}
+	Layer(const std::string& name) : name(name) {}
 
 	/**
 	 * @brief Adds object.

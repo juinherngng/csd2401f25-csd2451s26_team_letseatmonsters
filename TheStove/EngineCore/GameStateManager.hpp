@@ -2,9 +2,10 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			GameStateManager.hpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Darren Toh, darren.toh@digipen.edu		(33.33%)
- CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu (33.33%)
-					Ng Juin Herng, juinherng.ng@digipen.edu (33.33%)
+ AUTHOR:			Darren Toh, darren.toh@digipen.edu		(10%)
+ CO-AUTHORS:		Seah Wang Hua, wanghua.seah@digipen.edu (15%)
+					Ng Juin Herng, juinherng.ng@digipen.edu (30%)
+					Yat Chun Wee, y.chunwee@digipen.edu		(45%)
 
  DESCRIPTION:		This file defines the GameState enumeration and the GameStateManager system responsible for
 					controlling the games high-level state machine (e.g. main menu, gameplay, quit). It declares

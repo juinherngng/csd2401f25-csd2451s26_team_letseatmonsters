@@ -2,7 +2,8 @@
 ----------------------------------------------------------------------------------------------------
  FILE NAME:			InputControls.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu (100%)
+ AUTHOR:			Glenn Yeo Yi Heng, g.yeo@digipen.edu (70%)
+ CO-AUTHOR:         Yat Chun Wee, y.chunwee@digipen.edu	 (30%)
 
  DESCRIPTION:		Input Control function definitions.
 

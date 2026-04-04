@@ -2,7 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:			LevelEditor.cpp
  PROJECT NAME:		Project GAM200
- AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu (100%)
+ AUTHOR:			Yat Chun Wee, y.chunwee@digipen.edu		(80%)
+ CO-AUTHOR:			Seah Wang Hua, wanghua.seah"digipen.edu (20%)
 
  DESCRIPTION:		Simple in-engine Level Editor window.
 					- JSON/Editor store rotation in DEGREES

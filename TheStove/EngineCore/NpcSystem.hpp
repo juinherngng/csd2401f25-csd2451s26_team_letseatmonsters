@@ -2,8 +2,8 @@
  ----------------------------------------------------------------------------------------------------
  FILE NAME:         NpcSystem.hpp
  PROJECT NAME:      Project GAM200
- AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu	(35%)
- CO-AUTHORS:        Yat Chun Wee, y.chunwee@digipen.edu		(65%)
+ AUTHOR:            Seah Wang Hua, wanghua.seah@digipen.edu	(60%)
+ CO-AUTHOR:         Yat Chun Wee, y.chunwee@digipen.edu		(40%)
 
  DESCRIPTION:       Declares NPCSystem, which updates two kinds of NPCs:
 					- lane NPCs constrained to Y-lane movement with bounce,
