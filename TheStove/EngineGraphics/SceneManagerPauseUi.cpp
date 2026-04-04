@@ -142,9 +142,10 @@ void Scene::HidePauseOverlay() {
 	}
 
 	if (!pauseOverlayActive_) return;
-	// Remove all pause-only UI objects before resuming the underlying scene.
+	// Defer pause-only UI destruction until end-of-frame so logic iteration
+	// never invalidates itself while a pause button is handling its own click.
 	for (int id : pauseOverlayObjectIds_) {
-		DespawnByID(id);
+		RequestDespawn(id);
 	}
 	pauseOverlayObjectIds_.clear();
 	pauseOverlayActive_ = false;
