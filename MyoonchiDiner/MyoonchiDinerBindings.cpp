@@ -601,6 +601,8 @@ namespace {
 		bool yesHovered_ = false;
 		bool noHovered_ = false;
 		QuitPopupYesAction yesAction_ = QuitPopupYesAction::QuitApplication;
+		double popupInputBlockedUntil_ = 0.0;
+		double reopenBlockedUntil_ = 0.0;
 
 		static constexpr const char* kQuitPopupTexture_ = "../assets/UI/quit_popup.png";
 		static constexpr const char* kReturnPopupTexture_ = "../assets/UI/return_popup.png";
@@ -615,6 +617,29 @@ namespace {
 		static constexpr const char* kUiLayer_ = "999999";
 		static constexpr int kPopupSortOrder_ = 1000000;
 		static constexpr int kButtonSortOrder_ = 1000001;
+		// NNG recommends staying around 0.1s for hover/popup timeouts so the UI
+		// still feels instantaneous; we add a tiny buffer to catch carry-over input.
+		static constexpr double kInputCarryoverGuardSeconds_ = 0.12;
+
+		static double GetTimeSeconds() {
+			return glfwGetTime();
+		}
+
+		bool IsPopupInputBlocked() const {
+			return shown_ && (GetTimeSeconds() < popupInputBlockedUntil_);
+		}
+
+		bool IsReopenBlocked() const {
+			return !shown_ && (GetTimeSeconds() < reopenBlockedUntil_);
+		}
+
+		void BeginPopupInputGuard() {
+			popupInputBlockedUntil_ = GetTimeSeconds() + kInputCarryoverGuardSeconds_;
+		}
+
+		void BeginReopenGuard() {
+			reopenBlockedUntil_ = GetTimeSeconds() + kInputCarryoverGuardSeconds_;
+		}
 
 		static bool GetMouseWorld(InputManager& input, glm::vec2& outWorld) {
 			if (GraphicsEngine::Instance().GetMouseWorldInScene(outWorld)) {
@@ -671,11 +696,12 @@ namespace {
 			mouseHeld_ = false;
 			yesHovered_ = false;
 			noHovered_ = false;
+			popupInputBlockedUntil_ = 0.0;
 			scene.SetMenuModalActive(false);
 			MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "quit_popup"));
 		}
 
-		void Show(Scene& scene, QuitPopupYesAction yesAction) {
+		void Show(Scene& scene, QuitPopupYesAction yesAction, InputManager& input) {
 			if (shown_) {
 				return;
 			}
@@ -729,8 +755,10 @@ namespace {
 				scene.SetObjectTexturePath(noButtonID_, kNoTexture_);
 			}
 
+			mouseHeld_ = input.IsMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
 			yesHovered_ = false;
 			noHovered_ = false;
+			BeginPopupInputGuard();
 			MenuKeyboardNavigation::ClearFocus(MenuKeyboardNavigation::BuildScopeKey(scene, "quit_popup"));
 		}
 
@@ -812,6 +840,11 @@ namespace {
 			const bool mouseDown = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS);
 			const bool clickEdge = mouseDown && !mouseHeld_;
 			mouseHeld_ = mouseDown;
+
+			if (IsPopupInputBlocked()) {
+				return;
+			}
+
 			const bool keyboardSubmit = MenuKeyboardNavigation::ConsumeSubmitPress(input);
 
 			if (!clickEdge && !keyboardSubmit) {
@@ -868,12 +901,8 @@ namespace {
 					}
 				}
 
+				BeginReopenGuard();
 				Clear(scene);
-				// Swallow the dismiss input so a held Enter/click does not immediately
-				// retrigger the focused Quit button underneath on the next frame.
-				input.ConsumeNextKeyPress(GLFW_KEY_ENTER);
-				input.ConsumeNextKeyPress(GLFW_KEY_KP_ENTER);
-				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 			}
 		}
 	};
@@ -908,6 +937,10 @@ namespace {
 					const std::string cacheKey = "pause_quit_normal_" + std::to_string(GetOwnerID());
 					QuitPopupState::TrySetObjectTexture(scene, GetOwnerID(), normalTexturePath_.c_str(), cacheKey);
 				}
+				return;
+			}
+
+			if (gQuitPopup.IsReopenBlocked()) {
 				return;
 			}
 
@@ -976,7 +1009,7 @@ namespace {
 				if (mouseOver && clickEdge) {
 					input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 				}
-				gQuitPopup.Show(scene, yesActionOnOpen_);
+				gQuitPopup.Show(scene, yesActionOnOpen_, input);
 			}
 		}
 
