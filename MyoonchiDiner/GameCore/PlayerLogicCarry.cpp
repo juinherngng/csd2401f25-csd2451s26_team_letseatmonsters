@@ -104,7 +104,7 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 	const glm::vec2 carry = GetCarryOffsetForFacing();
 	glm::vec3 p = player->GetPositionGLM();
 	item->SetPosition(glm::vec3(p.x + carry.x, p.y + carry.y, p.z));
-	item->SetRenderSortOrder(0);
+	item->SetRenderSortOrder(facingDir == FacingDir::Back ? -2 : 0);
 
 	ApplyCarryLayer(scene, carriedItemID);
 
@@ -122,7 +122,7 @@ void PlayerLogic::UpdateCarriedItemTransform(Scene& scene) {
 					scene.AssignObjectToLayer(child, childLayer);
 				}
 
-				ingObj->SetRenderSortOrder(1);
+				ingObj->SetRenderSortOrder(facingDir == FacingDir::Back ? -1 : 1);
 				ingObj->SetColliderSize(Math::Vector2D(0.f, 0.f));
 				ingObj->SetMovableByPhysics(false);
 			}
@@ -240,11 +240,11 @@ namespace {
  * @param baseLayer Original object layer before carrying.
  * @return Layer name used while the item is carried.
  */
-std::string PlayerLogic::GetCarryLayerForFacing(const std::string& /*baseLayer*/) const {
-	// Carry visuals currently use a fixed foreground layer for every facing so held items stay readable.
+std::string PlayerLogic::GetCarryLayerForFacing(const std::string& baseLayer) const {
+	// When facing away, keep the held item in the player's layer space so the player renders in front.
 	switch (facingDir) {
 	case FacingDir::Front: return "6";
-	case FacingDir::Back:  return "6";
+	case FacingDir::Back:  return baseLayer.empty() ? "1" : baseLayer;
 	case FacingDir::Left:  return "6";
 	case FacingDir::Right: return "6";
 	default:               return "6";
@@ -256,11 +256,11 @@ std::string PlayerLogic::GetCarryLayerForFacing(const std::string& /*baseLayer*/
  * @param baseLayer Original object layer before carrying.
  * @return Layer name used for carried child visuals.
  */
-std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& /*baseLayer*/) const {
+std::string PlayerLogic::GetCarryChildLayerForFacing(const std::string& baseLayer) const {
 	// Child visuals follow the same carry-layer policy as the parent plate for now.
 	switch (facingDir) {
 	case FacingDir::Front: return "6";
-	case FacingDir::Back:  return "6";
+	case FacingDir::Back:  return baseLayer.empty() ? "1" : baseLayer;
 	case FacingDir::Left:  return "6";
 	case FacingDir::Right: return "6";
 	default:               return "6";

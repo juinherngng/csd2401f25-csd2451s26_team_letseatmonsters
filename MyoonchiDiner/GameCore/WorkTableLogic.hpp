@@ -178,6 +178,13 @@ protected:
 	const char* GetProcessingSoundName() const;
 
 	/**
+	 * @brief Returns the held-item anchor used when placing ingredients on this workstation.
+	 * @param scene Active scene containing the workstation object.
+	 * @return World-space placement position for the held item.
+	 */
+	Math::Vector3D GetItemPlacementPosition(Scene& scene) const override;
+
+	/**
 	 * @brief Starts processing-side effects when a new item is placed onto the station.
 	 * @param scene Active scene containing the workstation and placed item.
 	 * @param item Item that was just placed.
@@ -211,6 +218,19 @@ protected:
 	 * @param ingredient Ingredient logic to mutate.
 	 */
 	void CompleteProcessingForIngredient(IngredientLogic& ingredient);
+
+	/**
+	 * @brief Returns whether the current station should hide its held item while processing.
+	 * @return True when the held item should be visually suppressed during active processing.
+	 */
+	bool ShouldHideHeldItemWhileProcessing() const;
+
+	/**
+	 * @brief Updates the held item's visibility for the current processing state.
+	 * @param scene Active scene containing the workstation and held item.
+	 * @param visible Desired visibility state for the held item.
+	 */
+	void SetHeldItemVisibility(Scene& scene, bool visible) const;
 
 	// Internal state for processing timer.
 	bool  isProcessing_ = false;

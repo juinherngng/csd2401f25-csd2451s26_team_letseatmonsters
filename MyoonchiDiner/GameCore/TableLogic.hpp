@@ -176,7 +176,7 @@ protected:
 	 * @param scene Active scene containing the table object.
 	 * @return Item placement position for the table.
 	 */
-	Math::Vector3D GetItemPlacementPosition(Scene& scene) const;
+	virtual Math::Vector3D GetItemPlacementPosition(Scene& scene) const;
 
 	std::string GetName() const override {
 		// Keep the runtime registration name stable for derived table behaviors.

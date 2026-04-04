@@ -122,6 +122,55 @@ const char* WorkTableLogic::GetProcessingSoundName() const {
 }
 
 /**
+ * @brief Returns whether the current station should hide its held item while processing.
+ * @return True when the held item should be hidden during the active processing loop.
+ */
+bool WorkTableLogic::ShouldHideHeldItemWhileProcessing() const {
+	return stationType_ == StationType::Stove;
+}
+
+/**
+ * @brief Updates the held item's visibility for this workstation.
+ * @param scene Active scene containing the workstation and held item.
+ * @param visible Desired visibility state for the held item.
+ */
+void WorkTableLogic::SetHeldItemVisibility(Scene& scene, bool visible) const {
+	if (!HasItem()) {
+		return;
+	}
+
+	GameObject* item = scene.GetGameObjectByID(GetHeldItemID());
+	if (!item) {
+		return;
+	}
+
+	scene.SetObjectVisible(item->GetID(), visible);
+}
+
+/**
+ * @brief Returns the held-item anchor used when placing ingredients on this workstation.
+ * @param scene Active scene containing the workstation object.
+ * @return World-space placement position for the held item.
+ */
+Math::Vector3D WorkTableLogic::GetItemPlacementPosition(Scene& scene) const {
+	Math::Vector3D basePos = TableLogic::GetItemPlacementPosition(scene);
+
+	switch (stationType_) {
+	case StationType::Stove:
+		// Pull boiling ingredients upward so the raw sprite reads inside the pot.
+		basePos.y -= 16.0f;
+		break;
+	case StationType::CuttingBoard:
+	case StationType::Grill:
+	case StationType::Generic:
+	default:
+		break;
+	}
+
+	return basePos;
+}
+
+/**
  * @brief Constructs workstation logic for the owning scene object.
  * @param ownerID Runtime object ID that owns this logic component.
  */
@@ -423,6 +472,8 @@ void WorkTableLogic::CancelProcessing(Scene& scene) {
 			StopProcessingSound(scene);
 		}
 	}
+
+	SetHeldItemVisibility(scene, true);
 	isProcessing_ = false;
 	timer_ = 0.0f;
 	DespawnProcessingVfx(scene);
@@ -448,6 +499,7 @@ void WorkTableLogic::OnItemPlaced(Scene& scene, GameObject& item) {
 		}
 		isProcessing_ = true;
 		timer_ = 0.0f;
+		SetHeldItemVisibility(scene, !ShouldHideHeldItemWhileProcessing());
 		SpawnProcessingVfx(scene);
 		// Play station-specific processing sound (release mode only)
 		if (scene.ShouldUseRuntimeParityMode()) {
@@ -532,6 +584,7 @@ void WorkTableLogic::StopProcessingSound(Scene& scene) {
  */
 void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& item) {
 	(void)item;
+	SetHeldItemVisibility(scene, true);
 	// If the player removes the item mid-process, cancel.
 	if (isProcessing_) {
 		CancelProcessing(scene);
@@ -544,6 +597,8 @@ void WorkTableLogic::OnItemTaken(Scene& scene, GameObject& item) {
  * @param item Item whose processing just completed.
  */
 void WorkTableLogic::OnProcessingComplete(Scene& scene, GameObject& item) {
+	scene.SetObjectVisible(item.GetID(), true);
+
 	// Base implementation: do nothing.
 	// Example for a future derived table:
 	//
@@ -656,16 +711,16 @@ const char* WorkTableLogic::GetVfxTagForStation() const {
  */
 WorkTableLogic::ProcessingVfxTuning WorkTableLogic::GetProcessingVfxTuning() const {
 	constexpr ProcessingVfxTuning kCuttingBoardTuning{
-		glm::vec2(-1.0f, -37.0f),
-		glm::vec2(150.0f, 210.0f)
+		glm::vec2(-1.0f, -24.0f),
+		glm::vec2(180.0f, 165.0f)
 	};
 	constexpr ProcessingVfxTuning kGrillTuning{
-		glm::vec2(-1.0f, -57.0f),
-		glm::vec2(150.0f, 210.0f)
+		glm::vec2(-1.0f, -28.0f),
+		glm::vec2(150.0f, 180.0f)
 	};
 	constexpr ProcessingVfxTuning kStoveTuning{
-		glm::vec2(-1.0f, -57.0f),
-		glm::vec2(150.0f * 0.75f, 210.0f * 0.75f)
+		glm::vec2(-1.0f, -28.0f),
+		glm::vec2(210.0f * 0.75f, 210.0f * 0.75f)
 	};
 
 	switch (stationType_) {
