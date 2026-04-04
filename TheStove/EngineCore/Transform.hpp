@@ -176,9 +176,9 @@ public:
 	Math::Vector2D Right() const;
 
 	/**
-	 * @brief Computes the distance-like comparison against another transform.
+	 * @brief Computes the Euclidean distance to another transform.
 	 * @param other Other transform to compare against.
-	 * @return Result of the current transform-distance helper implementation.
+	 * @return Distance from this transform's position to the other transform's position.
 	 */
 	float Distance(const Transform&) const;
 

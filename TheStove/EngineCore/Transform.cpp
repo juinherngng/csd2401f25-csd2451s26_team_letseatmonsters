@@ -111,13 +111,14 @@ Math::Vector2D Transform::Right() const {
 }
 
 /**
- * @brief Computes the distance-like comparison against another transform.
+ * @brief Computes the Euclidean distance to another transform.
  * @param other Other transform to compare against.
- * @return Result of the current transform-distance helper implementation.
+ * @return Distance from this transform's position to the other transform's position.
  */
 float Transform::Distance(const Transform& other) const {
-	// Preserve the existing behavior used by current callers.
-	return position.Normalized().Dot(other.position);
+	// Measure the offset between both transform positions and return its magnitude.
+	Math::Vector2D diff(other.position.x - position.x, other.position.y - position.y);
+	return diff.Length();
 }
 
 /**
