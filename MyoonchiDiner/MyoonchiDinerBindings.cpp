@@ -869,8 +869,11 @@ namespace {
 				}
 
 				Clear(scene);
-				// Prevent stale edge/held states from leaking into resume logic on the next frame after closing the popup
-				input.ClearState();
+				// Swallow the dismiss input so a held Enter/click does not immediately
+				// retrigger the focused Quit button underneath on the next frame.
+				input.ConsumeNextKeyPress(GLFW_KEY_ENTER);
+				input.ConsumeNextKeyPress(GLFW_KEY_KP_ENTER);
+				input.ConsumeNextMousePress(GLFW_MOUSE_BUTTON_LEFT);
 			}
 		}
 	};
