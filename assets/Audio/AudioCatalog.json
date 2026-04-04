@@ -114,7 +114,7 @@
     },
     {
       "category": "bgm",
-      "filepath": "../../assets/Audio/bgm_MyoonchiDiner_IntroCutscene.mp3",
+      "filepath": "../../assets/Audio/bgm_MyoonchiDiner_IntroCutscene.wav",
       "loop": false,
       "name": "bgm_MyoonchiDiner_IntroCutscene",
       "stream": false,
@@ -442,7 +442,7 @@
     },
     {
       "category": "sfx",
-      "filepath": "../../assets/Audio/sfx_introcutscene.wav",
+      "filepath": "../../assets/Audio/sfx_introcutscene_v2.wav",
       "loop": false,
       "name": "sfx_introcutscene",
       "stream": false,
