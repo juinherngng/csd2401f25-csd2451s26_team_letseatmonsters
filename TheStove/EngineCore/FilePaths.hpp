@@ -80,9 +80,6 @@ namespace FilePaths {
 		constexpr const char* BTN_QUIT = "../assets/UI/quit_s.png";
 		constexpr const char* BTN_RETURN = "../assets/UI/return_s.png";
 
-		// UI - How To Play
-		constexpr const char* HOW_TO_PLAY = "../assets/UI/HowToPlay.png";
-
 		// Placeholder/Debug
 		constexpr const char* PLACEHOLDER = "../assets/Characters/mc_sprite_front.png";
 	}
