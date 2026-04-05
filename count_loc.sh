@@ -3,7 +3,7 @@
 # Script to count lines of code modified by a specific author since a given date
 # Usage: ./count_loc.sh [author-name] [--list-files|-l]
 
-SINCE_DATE="2026-02-16"
+SINCE_DATE="2026-03-16"
 AUTHOR="${1:-$(git config user.name)}"
 
 echo "=========================================="
@@ -42,7 +42,7 @@ else
     EXISTING_COUNT=$(echo "$EXISTING_FILES" | wc -w)
     echo "$EXISTING_COUNT files still exist in the repository"
     echo ""
-    
+
     # Check if cloc is installed
     if command -v cloc &> /dev/null; then
         echo "=========================================="
@@ -52,7 +52,7 @@ else
         echo "(excludes comments & blank lines)"
         echo ""
         cloc $EXISTING_FILES
-        
+
         echo ""
         echo "=========================================="
         echo "CODE ANALYSIS - PER FILE (Current State)"
@@ -206,10 +206,10 @@ echo "=========================================="
 echo "(This shows actual changes made in commits)"
 echo ""
 git log --author="$AUTHOR" --since="$SINCE_DATE" --pretty=tformat: --numstat | \
-    awk '{ add += $1; subs += $2; loc += $1 - $2 } END { 
-        printf "Lines added:    %s\n", add; 
-        printf "Lines deleted:  %s\n", subs; 
-        printf "Net lines:      %s\n", loc 
+    awk '{ add += $1; subs += $2; loc += $1 - $2 } END {
+        printf "Lines added:    %s\n", add;
+        printf "Lines deleted:  %s\n", subs;
+        printf "Net lines:      %s\n", loc
     }'
 
 COMMIT_COUNT=$(git log --author="$AUTHOR" --since="$SINCE_DATE" --oneline | wc -l)

@@ -8,7 +8,7 @@
 # - This measures contribution (what was added/deleted in commits), not current file size.
 # - It uses git patches (-p) and filters lines, similar to count_loc.sh.
 
-SINCE_DATE="2026-02-16"
+SINCE_DATE="2026-03-16"
 OUTPUT_DIR="loc_reports"
 
 echo "=========================================="

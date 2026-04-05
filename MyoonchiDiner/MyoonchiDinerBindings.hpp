@@ -9,7 +9,7 @@
 					engine's Scene. This is the only header the engine needs to
 					know about in order to integrate the game layer.
 
-		All content © 2025 DigiPen Institute of Technology Singapore. All rights reserved.
+		All content Â© 2026 DigiPen Institute of Technology Singapore. All rights reserved.
 ----------------------------------------------------------------------------------------------------
 */
 
@@ -17,15 +17,9 @@
 
 class Scene;
 
-/************************************************************************/
-/*!
-\brief
-	Registers every Myoonchi Diner game binding onto the given Scene.
-	This includes tag-to-logic dispatch, animation attachment,
-	customer management, audio policies, cutscene hooks, and
-	navigation blocker collection. Called once during bootstrap.
-\param scene
-	The engine Scene instance to bind game hooks into.
-*/
-/************************************************************************/
+/**
+ * @brief Registers all Myoonchi Diner scene hooks, logic binders, and gameplay policies.
+ *
+ * @param scene The engine scene that should receive the game-layer bindings.
+ */
 void RegisterMyoonchiDinerBindings(Scene& scene);

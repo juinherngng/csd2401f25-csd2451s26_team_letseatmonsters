@@ -1,5 +1,5 @@
 {
-  "background": "../assets/gameover_new.png",
+  "background": "../assets/Backgrounds/gameover_new.png",
   "objects": [
     {
       "anim_name": "",
@@ -32,11 +32,11 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "btn_retry_level",
-      "texture": "../assets/continue_s.png",
+      "texture": "../assets/UI/retry_s.png",
       "visible": true,
       "w": 450.0,
       "x": 1332.0,
-      "y": 487.0,
+      "y": 490.0,
       "z": 0.0
     },
     {
@@ -70,11 +70,11 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "btn_howtoplay",
-      "texture": "../assets/how_s.png",
+      "texture": "../assets/UI/how_dayclear_s.png",
       "visible": true,
       "w": 450.0,
       "x": 1332.0,
-      "y": 640.0,
+      "y": 643.0,
       "z": 0.0
     },
     {
@@ -108,11 +108,11 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "btn_main_menu",
-      "texture": "../assets/return_s.png",
+      "texture": "../assets/UI/return_dayclear_s.png",
       "visible": true,
       "w": 450.0,
       "x": 1332.0,
-      "y": 790.0,
+      "y": 796.0,
       "z": 0.0
     }
   ],

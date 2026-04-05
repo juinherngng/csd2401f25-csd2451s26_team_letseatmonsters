@@ -11,7 +11,7 @@
       "speed_x": 0.0,
       "speed_y": 0.0,
       "tag": "",
-      "texture": "../assets/goat_sprite_front.png",
+      "texture": "../assets/Characters/goat_sprite_front.png",
       "layer": "1",
       "w": 128.0,
       "x": 501.75,

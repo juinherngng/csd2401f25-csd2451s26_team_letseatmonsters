@@ -14,12 +14,12 @@
       "loop": true,
       "name": "sfx_boiling_sound",
       "stream": false,
-      "volume": 1.0
+      "volume": 2.0
     },
     {
       "category": "bgm",
       "filepath": "../../assets/Audio/MyoonchiDiner_LevelTheme.wav",
-      "loop": false,
+      "loop": true,
       "name": "bgm_MyoonchiDiner_LevelTheme",
       "stream": false,
       "volume": 1.0
@@ -114,7 +114,7 @@
     },
     {
       "category": "bgm",
-      "filepath": "../../assets/Audio/bgm_MyoonchiDiner_IntroCutscene.mp3",
+      "filepath": "../../assets/Audio/bgm_MyoonchiDiner_IntroCutscene.wav",
       "loop": false,
       "name": "bgm_MyoonchiDiner_IntroCutscene",
       "stream": false,
@@ -146,17 +146,9 @@
     },
     {
       "category": "sfx",
-      "filepath": "../../assets/Audio/sfx_grill.wav",
-      "loop": false,
-      "name": "sfx_grill",
-      "stream": false,
-      "volume": 1.0
-    },
-    {
-      "category": "other",
-      "filepath": "../../assets/Audio/Wrong order.wav",
-      "loop": false,
-      "name": "Wrong order",
+      "filepath": "../../assets/Audio/sfx_grill_sizzle.wav",
+      "loop": true,
+      "name": "sfx_grilling_sizzle",
       "stream": false,
       "volume": 1.0
     },
@@ -407,7 +399,103 @@
       "name": "vo_customer_happy_09",
       "stream": false,
       "volume": 1.0
+    },
+    {
+      "category": "ui",
+      "filepath": "../../assets/Audio/ui_back.wav",
+      "loop": false,
+      "name": "ui_back",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "ui",
+      "filepath": "../../assets/Audio/ui_clickbutton.wav",
+      "loop": false,
+      "name": "ui_clickbutton",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "ui",
+      "filepath": "../../assets/Audio/ui_hover.wav",
+      "loop": false,
+      "name": "ui_hover",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "ui",
+      "filepath": "../../assets/Audio/ui_startresume.wav",
+      "loop": false,
+      "name": "ui_startresume",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_introcutscene_v2.wav",
+      "loop": false,
+      "name": "sfx_introcutscene",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_dish_complete.wav",
+      "loop": false,
+      "name": "sfx_dish_complete",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_bad_dish.wav",
+      "loop": false,
+      "name": "sfx_bad_dish",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_standard_pickup_01.wav",
+      "loop": false,
+      "name": "sfx_standard_pickup_01",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_standard_pickup_02.wav",
+      "loop": false,
+      "name": "sfx_standard_pickup_02",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_pickup.wav",
+      "loop": false,
+      "name": "sfx_pickup",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "bgm",
+      "filepath": "../../assets/Audio/bgm_forest_ambience.wav",
+      "loop": true,
+      "name": "bgm_forest_ambience",
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "category": "sfx",
+      "filepath": "../../assets/Audio/sfx_grill_sizzle.wav",
+      "loop": true,
+      "name": "sfx_grill_sizzle",
+      "stream": false,
+      "volume": 1.0
     }
   ],
-  "version": "5.1"
+  "version": "1.0"
 }

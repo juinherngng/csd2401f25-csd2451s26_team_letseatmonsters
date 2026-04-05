@@ -42,6 +42,9 @@ Makefile
 # Ignore CMake/Ninja build output
 out/build/
 
+# Local editor UI state
+imgui.ini
+
 # Visual Studio files
 *.sln
 *.vcxproj

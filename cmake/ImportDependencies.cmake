@@ -1,5 +1,8 @@
 include(FetchContent)
 
+# Keep FetchContent deterministic and offline-friendly once dependencies are populated locally.
+set(FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE BOOL "" FORCE)
+
 # Macro to import GLFW
 macro(import_glfw)
     if(NOT TARGET glfw)  # Guard to prevent multiple inclusion
@@ -22,12 +25,20 @@ endmacro()
 # Macro to import glm
 macro(import_glm)
     if(NOT TARGET glm)  # Guard to prevent multiple inclusion
-        FetchContent_Declare(
-            glm
-            GIT_REPOSITORY https://github.com/g-truc/glm.git
-            GIT_TAG master
-        )
-        FetchContent_MakeAvailable(glm)
+        set(GLM_LOCAL_SOURCE_DIR "${CMAKE_BINARY_DIR}/_deps/glm-src")
+
+        if(EXISTS "${GLM_LOCAL_SOURCE_DIR}/glm/glm.hpp")
+            add_library(glm INTERFACE)
+            target_include_directories(glm INTERFACE "${GLM_LOCAL_SOURCE_DIR}")
+            set(glm_SOURCE_DIR "${GLM_LOCAL_SOURCE_DIR}")
+        else()
+            FetchContent_Declare(
+                glm
+                GIT_REPOSITORY https://github.com/g-truc/glm.git
+                GIT_TAG master
+            )
+            FetchContent_MakeAvailable(glm)
+        endif()
 
         include_directories(${glm_SOURCE_DIR})
     endif()
@@ -52,13 +63,19 @@ endmacro()
 # Macro to import ImGui
 macro(import_imgui)
     if(NOT TARGET imgui)  # Guard to prevent multiple inclusion
-        FetchContent_Declare(
-            imgui
-            GIT_REPOSITORY https://github.com/ocornut/imgui
-            GIT_TAG docking
-        )
-        if(NOT imgui_POPULATED)
-            FetchContent_MakeAvailable(imgui)
+        set(IMGUI_LOCAL_SOURCE_DIR "${CMAKE_BINARY_DIR}/_deps/imgui-src")
+
+        if(EXISTS "${IMGUI_LOCAL_SOURCE_DIR}/imgui.cpp")
+            set(imgui_SOURCE_DIR "${IMGUI_LOCAL_SOURCE_DIR}")
+        else()
+            FetchContent_Declare(
+                imgui
+                GIT_REPOSITORY https://github.com/ocornut/imgui
+                GIT_TAG docking
+            )
+            if(NOT imgui_POPULATED)
+                FetchContent_MakeAvailable(imgui)
+            endif()
         endif()
 
         # Create ImGui library manually since it doesn't have CMakeLists.txt
@@ -213,11 +230,13 @@ macro(import_freetype)
             # Set FreeType configuration options
             set(FT_DISABLE_ZLIB ON CACHE BOOL "" FORCE)
             set(FT_DISABLE_BZIP2 ON CACHE BOOL "" FORCE)
+            set(FT_DISABLE_BROTLI ON CACHE BOOL "" FORCE)
             set(FT_DISABLE_PNG ON CACHE BOOL "" FORCE)
             set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE)
             set(FT_REQUIRE_ZLIB OFF CACHE BOOL "" FORCE)
             set(FT_REQUIRE_BZIP2 OFF CACHE BOOL "" FORCE)
             set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+            set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "" FORCE)
             
             FetchContent_MakeAvailable(freetype)
         endif()
