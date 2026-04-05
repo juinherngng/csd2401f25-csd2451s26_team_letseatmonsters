@@ -86,9 +86,9 @@ static constexpr float kRecoveredStationOccupantMaxDistSq = 18.0f * 18.0f;
  */
 WorkTableLogic::StationType WorkTableLogic::DetectStationTypeFromTexture(const std::string& texPath) const {
 	// Detect by the workstation sprite (the table's texture)
-	if (Contains(texPath, "Cutting_Board")) return StationType::CuttingBoard;
-	if (Contains(texPath, "Grills"))        return StationType::Grill;
-	if (Contains(texPath, "Stove"))         return StationType::Stove;
+	if (Contains(texPath, "Cutting_Board") || Contains(texPath, "cuttingboardwithside")) return StationType::CuttingBoard;
+	if (Contains(texPath, "Grills"))                                                      return StationType::Grill;
+	if (Contains(texPath, "Stove"))                                                       return StationType::Stove;
 	return StationType::Generic;
 }
 

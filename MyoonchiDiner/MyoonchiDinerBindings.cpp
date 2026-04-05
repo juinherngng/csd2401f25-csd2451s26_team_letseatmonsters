@@ -50,6 +50,7 @@
 */
 
 #include <algorithm>
+#include <cstring>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -97,6 +98,13 @@ namespace {
 	constexpr const char* kButterflyPointTag = "bg_vfx_butterfly_point";
 	constexpr const char* kButterflyAltPointTag = "bg_vfx_butterfly_alt_point";
 	constexpr const char* kLeafLaneTag = "bg_vfx_leaf_lane";
+	constexpr const char* kLevel2AmbientForegroundLayer = "90";
+	constexpr float kLevel2AmbientButterflyMaxSize = 112.0f;
+	constexpr glm::vec2 kLevel2AmbientLeafSize = { 112.0f, 112.0f };
+	constexpr float kLevel2AmbientLeafMinSpeed = 65.0f;
+	constexpr float kLevel2AmbientLeafMaxSpeed = 105.0f;
+	constexpr float kLevel2AmbientLeafFrameDuration = 0.10f;
+	constexpr float kLevel2AmbientButterflyFrameDuration = 0.11f;
 
 	static std::vector<glm::vec4> CreateVfxFramesFromTopRow(int topRowOneBased, int startCol, int endCol) {
 		std::vector<glm::vec4> frames;
@@ -153,15 +161,15 @@ namespace {
 	}
 
 	static float GetAmbientButterflyVfxMaxSize() {
-		return 128.0f;
+		return kLevel2AmbientButterflyMaxSize;
 	}
 
 	static float GetAmbientButterflyAltVfxMaxSize() {
-		return 128.0f;
+		return kLevel2AmbientButterflyMaxSize;
 	}
 
 	static glm::vec2 GetAmbientLeafVfxSize() {
-		return glm::vec2(128.0f, 128.0f);
+		return kLevel2AmbientLeafSize;
 	}
 
 	struct AmbientPoint {
@@ -453,7 +461,7 @@ namespace {
 				: RandomRange(180.0f, 700.0f);
 
 			// Horizontal drift speed also determines how long the effect should stay alive.
-			const float speed = RandomRange(80.0f, 130.0f);
+			const float speed = RandomRange(kLevel2AmbientLeafMinSpeed, kLevel2AmbientLeafMaxSpeed);
 			const glm::vec2 velocity = leftToRight
 				? glm::vec2(speed, 0.0f)
 				: glm::vec2(-speed, 0.0f);
@@ -468,9 +476,9 @@ namespace {
 				glm::vec3(startX, y, 0.0f),
 				size,
 				frames,
-				0.08f,
+				kLevel2AmbientLeafFrameDuration,
 				true,
-				"10"
+				kLevel2AmbientForegroundLayer
 			);
 
 			if (!fx) {
@@ -508,7 +516,7 @@ namespace {
 				return;
 			}
 
-			const float frameDuration = 0.09f;
+			const float frameDuration = kLevel2AmbientButterflyFrameDuration;
 			GameObject* fx = scene.SpawnAnimatedSprite(
 				MyoonchiPaths::Textures::AMBIENT_VFX_SHEET,
 				glm::vec3(point.pos.x, point.pos.y, 0.0f),
@@ -516,7 +524,7 @@ namespace {
 				frames,
 				frameDuration,
 				false,
-				point.layer
+				kLevel2AmbientForegroundLayer
 			);
 
 			if (!fx) {
@@ -553,7 +561,7 @@ namespace {
 				return;
 			}
 
-			const float frameDuration = 0.09f;
+			const float frameDuration = kLevel2AmbientButterflyFrameDuration;
 			GameObject* fx = scene.SpawnAnimatedSprite(
 				MyoonchiPaths::Textures::AMBIENT_VFX_SHEET,
 				glm::vec3(point.pos.x, point.pos.y, 0.0f),
@@ -561,7 +569,7 @@ namespace {
 				frames,
 				frameDuration,
 				false,
-				point.layer
+				kLevel2AmbientForegroundLayer
 			);
 
 			if (!fx) {
@@ -1138,6 +1146,21 @@ namespace {
 }
 
 namespace {
+	static bool TextureMatchesToken(const std::string& texturePath, const char* token) {
+		if (!token) {
+			return true;
+		}
+
+		if (texturePath.find(token) != std::string::npos) {
+			return true;
+		}
+
+		// Level 2 uses an alternate cutting-board art asset, but gameplay helpers
+		// still refer to the cutting-board station by its original token.
+		return std::strcmp(token, "Cutting_Board") == 0 &&
+			texturePath.find("cuttingboardwithside") != std::string::npos;
+	}
+
 	/**
 	 * @brief File-local query helpers used by tutorial flow and scene hook callbacks.
 	 *
@@ -1152,7 +1175,7 @@ namespace {
 			if (scene.GetObjectTag(id) != tag) continue;
 
 			const std::string& tex = scene.GetObjectTexturePath(id);
-			if (texContains && tex.find(texContains) == std::string::npos) continue;
+			if (!TextureMatchesToken(tex, texContains)) continue;
 			return id;
 		}
 		return -1;
