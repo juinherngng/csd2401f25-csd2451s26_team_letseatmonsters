@@ -26,13 +26,13 @@
 static const char* GetDishTexturePath(DishType t) {
 	// Centralize dish-to-texture mapping so visuals stay consistent across all plate flows.
 	switch (t) {
-	case DishType::VegDish:  return "../assets/Food/Salad.png";
-	case DishType::MeatDish: return "../assets/Food/Meat.png";
-	case DishType::SoupDish: return "../assets/Food/Soup.png";
+	case DishType::VegDish:  return "../assets/Food/Food_Salad.png";
+	case DishType::MeatDish: return "../assets/Food/Food_Meat.png";
+	case DishType::SoupDish: return "../assets/Food/Food_Mushroom.png";
 	case DishType::SkewerDish: return "../assets/Food/Food_Meat_n_carrot.png";
 	case DishType::CarrotSaladDish: return "../assets/Food/Food_Salad_n_carrot.png";
 	case DishType::PoopDish: return "../assets/Food/poop.png";
-	default:                return "../assets/Food/Salad.png";
+	default:                return "../assets/Food/Food_Salad.png";
 	}
 }
 

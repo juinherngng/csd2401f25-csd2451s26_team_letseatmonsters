@@ -1048,9 +1048,9 @@ void CustomerOrderUILogic::UpdatePaymentVFX(Scene& scene, float dt) {
 const char* CustomerOrderUILogic::DishToIconPath(DishType dish) const {
 	// Keep dish-to-icon mapping centralized so order prompts stay consistent across the UI.
 	switch (dish) {
-	case DishType::VegDish:  return "../assets/Food/Salad.png";
-	case DishType::MeatDish: return "../assets/Food/Meat.png";
-	case DishType::SoupDish: return "../assets/Food/Soup.png";
+	case DishType::VegDish:  return "../assets/Food/Food_Salad.png";
+	case DishType::MeatDish: return "../assets/Food/Food_Meat.png";
+	case DishType::SoupDish: return "../assets/Food/Food_Mushroom.png";
 	case DishType::SkewerDish: return "../assets/Food/Food_Meat_n_carrot.png";
 	case DishType::CarrotSaladDish: return "../assets/Food/Food_Salad_n_carrot.png";
 	case DishType::PoopDish:
@@ -1066,6 +1066,14 @@ const char* CustomerOrderUILogic::DishToIconPath(DishType dish) const {
 glm::vec2 CustomerOrderUILogic::GetIconSizeForPath(const char* iconPath) const {
 	// Coins intentionally render smaller than dish icons to fit the payment prompt bubble.
 	if (!iconPath) return dishIconSize_;
-	if (std::string(iconPath) == coinIconPath_) return coinIconSize_;
+	const std::string path(iconPath);
+	if (path == coinIconPath_) return coinIconSize_;
+	if (path == "../assets/Food/Food_Salad.png" ||
+		path == "../assets/Food/Food_Meat.png" ||
+		path == "../assets/Food/Food_Mushroom.png") {
+		// Match the same relative reduction used by the smaller order-ticket dish icons.
+		const float reducedDishScale = 50.0f / 60.0f;
+		return glm::vec2(dishIconSize_.x * reducedDishScale, dishIconSize_.y * reducedDishScale);
+	}
 	return dishIconSize_;
 }

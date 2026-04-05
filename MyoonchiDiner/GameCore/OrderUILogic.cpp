@@ -164,13 +164,13 @@ static void DespawnIfAlive(Scene& scene, int& id) {
  */
 const char* OrderUILogic::DishToIconPath(DishType t) const {
 	switch (t) {
-	case DishType::VegDish:  return "../assets/Food/Salad.png";
-	case DishType::MeatDish: return "../assets/Food/Meat.png";
-	case DishType::SoupDish: return "../assets/Food/Soup.png";
+	case DishType::VegDish:  return "../assets/Food/Food_Salad.png";
+	case DishType::MeatDish: return "../assets/Food/Food_Meat.png";
+	case DishType::SoupDish: return "../assets/Food/Food_Mushroom.png";
 	case DishType::SkewerDish: return "../assets/Food/Food_Meat_n_carrot.png";
 	case DishType::CarrotSaladDish: return "../assets/Food/Food_Salad_n_carrot.png";
 	case DishType::PoopDish: return "../assets/Food/poop.png";
-	default:                 return "../assets/Food/Salad.png";
+	default:                 return "../assets/Food/Food_Salad.png";
 	}
 }
 
@@ -547,6 +547,9 @@ glm::vec2 OrderUILogic::GetDishIconOffset(DishType dish) const {
  */
 glm::vec2 OrderUILogic::GetDishIconSize(DishType dish) const {
 	switch (dish) {
+	case DishType::VegDish:
+	case DishType::MeatDish:
+	case DishType::SoupDish:
 	case DishType::SkewerDish:
 	case DishType::CarrotSaladDish:
 		return glm::vec2(50.0f, 50.0f);

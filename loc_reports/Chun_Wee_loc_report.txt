@@ -953,7 +953,7 @@ assets/Food/CarrotIngredientBox.png
 assets/Food/Food_Meat_n_carrot.png
 assets/Food/Food_Salad_n_carrot.png
 assets/Food/Ingredient_Carrot.png
-assets/Food/Meat.png
+assets/Food/Food_Meat.png
 assets/Food/MeatIngredientBox.png
 assets/Food/Meat_CUT_Ingredient.png
 assets/Food/Meat_Ingredient.png
@@ -961,9 +961,9 @@ assets/Food/Mushroom_CUT_Ingredient.png
 assets/Food/Mushroom_Ingredient.png
 assets/Food/Plate.png
 assets/Food/PlateBox.png
-assets/Food/Salad.png
+assets/Food/Food_Salad.png
 assets/Food/ShroomIngredientBox.png
-assets/Food/Soup.png
+assets/Food/Food_Mushroom.png
 assets/Food/VegIngredientBox.png
 assets/Food/poop.png
 assets/Furniture/BottomRightLongTableNoLeg.png
