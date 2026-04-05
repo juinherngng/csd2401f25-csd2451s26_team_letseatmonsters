@@ -27,6 +27,9 @@ std::unordered_map<int, glm::vec2> OrderUILogic::sCustomerPanelCenters_{};
 std::unordered_set<int> OrderUILogic::sPendingStampCustomers_{};
 
 namespace {
+	constexpr int kCustomerBubbleTopLayer = 101;
+	constexpr int kOrderTicketMinBaseLayer = kCustomerBubbleTopLayer + 1;
+
 	/**
 	 * @brief Parses a numeric layer name and falls back when parsing fails.
 	 * @param layerName Layer name string to parse.
@@ -204,9 +207,11 @@ void OrderUILogic::Start(Scene& scene) {
 	}
 
 	const Scene::Defaults defaults = scene.GetDefaults(GetOwnerID());
-	const int baseLayer = ParseNumericLayerOrFallback(defaults.layer, 99);
+	const int authoredLayer = ParseNumericLayerOrFallback(defaults.layer, 99);
+	const int baseLayer = std::max(authoredLayer, kOrderTicketMinBaseLayer);
 
-	// Keep the full ticket stack above the authored HUD layer by default.
+	// Reserve the order-ticket stack above customer speech/thought UI while still
+	// honoring any authored layer that is already higher.
 	panelLayer_ = std::to_string(baseLayer);
 	dishLayer_ = std::to_string(baseLayer + 1);
 	ingredientLayer_ = std::to_string(baseLayer + 1);
