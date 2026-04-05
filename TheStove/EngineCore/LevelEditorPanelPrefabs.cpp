@@ -315,9 +315,7 @@ namespace LEPANELPREFABS {
 	void DrawPrefabsPanel(LevelEditor& editor, Scene& scene, int& selectedObjectId) {
 		ImGui::SetNextWindowDockID(
 			GraphicsEngine::Instance().GetMainDockspaceID(),
-			ImGuiCond_FirstUseEver
-		);
-
+			ImGuiCond_FirstUseEver);
 
 		if (!ImGui::Begin("Prefabs###LE_Prefabs")) {
 			ImGui::End();
@@ -606,8 +604,7 @@ namespace LEPANELPREFABS {
 						uvs,
 						0.25f,
 						true,
-						data.layer
-					);
+						data.layer);
 
 					// Optional: project-specific animation attach
 					if (g && data.texture.find("dino") != std::string::npos) {
@@ -620,8 +617,7 @@ namespace LEPANELPREFABS {
 						data.texture,
 						{ data.x, data.y, data.z },
 						{ data.w, data.h },
-						data.layer
-					);
+						data.layer);
 				}
 
 				if (g != nullptr) {
@@ -629,7 +625,7 @@ namespace LEPANELPREFABS {
 					g->SetRotation(glm::radians(data.rotation), { 0, 0, 1 });
 
 					// Collider
-					g->SetColliderSize({ data.colWidth,  data.colHeight });
+					g->SetColliderSize({ data.colWidth, data.colHeight });
 					g->SetColliderOffset({ data.colOffsetX, data.colOffsetY });
 
 					// Store back into scene helpers for consistency
@@ -650,6 +646,9 @@ namespace LEPANELPREFABS {
 
 					// Link instance to prefab path for propagation
 					PrefabLinkByID[g->GetID()] = NormalizePrefabPath(prefabPath);
+
+					// Make the spawned instance the active source so propagate uses the intended object.
+					selectedObjectId = g->GetID();
 				}
 			}
 		}
@@ -669,6 +668,13 @@ namespace LEPANELPREFABS {
 			}
 
 			const std::string normalizedPrefabPath = NormalizePrefabPath(prefabPath);
+			auto sourceLinkIt = PrefabLinkByID.find(selectedObjectId);
+			const bool sourceLinkedToPrefab =
+				(sourceLinkIt != PrefabLinkByID.end()) &&
+				IsSamePrefabPath(sourceLinkIt->second, normalizedPrefabPath);
+			if (!sourceLinkedToPrefab) {
+				return;
+			}
 
 			// Build prefab based on UPDATED editor values
 			LevelObject updated = BuildPrefabFromObject(scene, src);
@@ -688,7 +694,8 @@ namespace LEPANELPREFABS {
 
 			int updatedCurrentScene = 0;
 			for (auto* g : objs) {
-				if (!g) continue;
+				if (!g)
+					continue;
 				const int gid = g->GetID();
 				auto it = PrefabLinkByID.find(gid);
 
@@ -718,10 +725,15 @@ namespace LEPANELPREFABS {
 			ImGui::Spacing();
 
 			GameObject* src = (selectedObjectId >= 0) ? scene.GetGameObjectByID(selectedObjectId) : nullptr;
-			const bool canPropagate = prefabExists && (src != nullptr);
+			const std::string normalizedPrefabPath = NormalizePrefabPath(prefabPath);
+			auto sourceLinkIt = PrefabLinkByID.find(selectedObjectId);
+			const bool sourceLinkedToPrefab =
+				(sourceLinkIt != PrefabLinkByID.end()) &&
+				IsSamePrefabPath(sourceLinkIt->second, normalizedPrefabPath);
+			const bool canPropagate = prefabExists && (src != nullptr) && sourceLinkedToPrefab;
 			if (!canPropagate) {
 				ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.25f, 1.0f),
-					"Select a valid object and prefab path before propagating.");
+					"Select an object linked to this prefab path before propagating.");
 				ImGui::Spacing();
 			}
 
@@ -755,4 +767,4 @@ namespace LEPANELPREFABS {
 	}
 #endif
 
-}
+} // namespace LEPANELPREFABS

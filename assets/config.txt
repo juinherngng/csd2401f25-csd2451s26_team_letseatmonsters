@@ -2,6 +2,6 @@ schema_version=1
 window_width=1600
 window_height=900
 fullscreen=false
-master_volume=1
+master_volume=0.5
 bgm_volume=0.5
 vfx_volume=0.5
