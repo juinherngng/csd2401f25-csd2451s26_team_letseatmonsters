@@ -135,6 +135,12 @@ public:
 	void EnterPauseState(Scene& scene);
 
 private:
+	/**
+	 * @brief Applies the back-facing carry transparency rule to the player sprite.
+	 * @param scene Active scene used to read the current player animation.
+	 */
+	void UpdateCarryBackTransparency(Scene& scene);
+
 	enum class MoveMode {
 		None,
 		Direct,
@@ -156,6 +162,7 @@ private:
 		Right
 	};
 	FacingDir facingDir{ FacingDir::Front };
+	float playerBaseAlpha_{ 1.0f };
 
 	// Interaction state
 	int carriedItemID{ -1 };
@@ -166,7 +173,7 @@ private:
 	// Y: smaller = up(since W subtracts from y), larger = down.
 	glm::vec2 carryOffset{ 0.f, -32.f };
 	glm::vec2 carryOffsetFront_{ 0.f, 26.f };
-	glm::vec2 carryOffsetBack_{ 0.f, -18.f };
+	glm::vec2 carryOffsetBack_{ 0.f, 19.f };
 	glm::vec2 carryOffsetLeft_{ -24.f, 25.f };
 	glm::vec2 carryOffsetRight_{ 24.f, 25.f };
 

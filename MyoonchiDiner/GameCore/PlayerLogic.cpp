@@ -19,13 +19,46 @@
 #include "GameCore/PlayerLogicShared.hpp"
 #include "GameCore/Quota.hpp"
 
+namespace {
+	constexpr float kBackCarryPlayerAlphaMultiplier = 0.55f;
+
+	bool UsesBackCarryTransparency(const std::string& animationName) {
+		return animationName == "CARRY_BACK" || animationName == "IDLE_BACK_CARRY";
+	}
+}
+
+/**
+ * @brief Updates the player's alpha while using the back-facing carry animation.
+ * @param scene Active scene used to inspect the player's current animation.
+ */
+void PlayerLogic::UpdateCarryBackTransparency(Scene& scene) {
+	GameObject* player = GetOwner(scene);
+	if (!player) {
+		return;
+	}
+
+	const std::string animationName = scene.GetCurrentAnimationName(player->GetID());
+	const bool shouldFadePlayer =
+		carriedItemID >= 0 &&
+		UsesBackCarryTransparency(animationName);
+
+	const float targetAlpha = shouldFadePlayer
+		? playerBaseAlpha_ * kBackCarryPlayerAlphaMultiplier
+		: playerBaseAlpha_;
+
+	glm::vec4 tint = player->GetColorTint();
+	if (tint.a != targetAlpha) {
+		tint.a = targetAlpha;
+		player->SetColorTint(tint);
+	}
+}
+
  /**
   * @brief Initializes the runtime state used by the split PlayerLogic implementation.
   * @param scene Active scene containing the player object and supporting systems.
   */
 void PlayerLogic::Start(Scene& scene) {
 	// Reset all runtime state so re-entering a scene starts from a clean baseline.
-	(void)scene;
 	hasMoveTarget = false;
 	carriedItemID = -1;
 	pendingTableID = -1;
@@ -54,6 +87,13 @@ void PlayerLogic::Start(Scene& scene) {
 	finalTarget_ = glm::vec2(0.0f, 0.0f);
 	directPathCheckTimer_ = 0.0f;
 	blockedMoveFrames_ = 0;
+
+	if (GameObject* player = GetOwner(scene)) {
+		playerBaseAlpha_ = player->GetColorTint().a;
+		glm::vec4 tint = player->GetColorTint();
+		tint.a = playerBaseAlpha_;
+		player->SetColorTint(tint);
+	}
 }
 
 /**
@@ -150,6 +190,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 		ResetMouseDragState();
 		EnsureChopAnimation(scene, player);
 		UpdateCarriedItemTransform(scene);
+		UpdateCarryBackTransparency(scene);
 		return;
 	}
 
@@ -159,6 +200,7 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	if (stepMode && physicsDt <= 0.0f) {
 		// In step mode, keep click handling responsive even if simulation is paused between physics ticks.
 		HandleClickInput(scene, input, safeDt);
+		UpdateCarryBackTransparency(scene);
 		return;
 	}
 
@@ -170,4 +212,5 @@ void PlayerLogic::Update(float dt, Scene& scene, InputManager& input) {
 	const glm::vec3 afterPos = player->GetPositionGLM();
 	UpdateFootstepTrailAndAudio(safeDt, scene, input, player, beforePos, afterPos);
 	UpdateCarriedItemTransform(scene);
+	UpdateCarryBackTransparency(scene);
 }
