@@ -110,7 +110,7 @@ namespace {
 			}
 		}
 	}
-}
+} // namespace
 
 /**
  * @brief Reads level object.
@@ -161,10 +161,13 @@ static LevelObject ReadLevelObject(const json& jsonObj) {
 	obj.approachOffset2Y = jsonObj.value("approach2_offy", 0.0f);
 	obj.customerSeatCapacity = jsonObj.value("customer_seat_capacity", 1);
 
-	obj.hasCustomerSeatOffset2 =
-		jsonObj.value("has_customer_seat2", false) ||
-		jsonObj.contains("customer_seat2_offx") ||
-		jsonObj.contains("customer_seat2_offy");
+	obj.hasCustomerSeatOffset2 = jsonObj.value("has_customer_seat2", false);
+	if (!jsonObj.contains("has_customer_seat2")) {
+		// Legacy fallback: infer second seat only when authored offsets are non-zero.
+		obj.hasCustomerSeatOffset2 =
+			(jsonObj.value("customer_seat2_offx", 0.0f) != 0.0f) ||
+			(jsonObj.value("customer_seat2_offy", 0.0f) != 0.0f);
+	}
 
 	obj.customerSeatOffset2X = jsonObj.value("customer_seat2_offx", 0.0f);
 	obj.customerSeatOffset2Y = jsonObj.value("customer_seat2_offy", 0.0f);
@@ -227,49 +230,48 @@ static LevelTextObject ReadTextObject(const json& jsonObj) {
  */
 static json WriteLevelObject(const LevelObject& obj) {
 	json jsonData = {
-		{ "texture", obj.texture },
-		{ "tag", obj.tag },
-		{ "layer", obj.layer },
-		{ "prefab_path", obj.prefabPath },
-		{ "x", obj.x },
-		{ "y", obj.y },
-		{ "z", obj.z },
-		{ "w", obj.w },
-		{ "h", obj.h },
-		{ "rotation", obj.rotation },
-		{ "has_collider", obj.hasCollider },
-		{ "col_w", obj.colWidth },
-		{ "col_h", obj.colHeight },
-		{ "col_offx", obj.colOffsetX },
-		{ "col_offy", obj.colOffsetY },
-		{ "speed_x", obj.speedX },
-		{ "speed_y", obj.speedY },
-		{ "animated", obj.animated },
-		{ "anim_name", obj.animName },
-		{ "shadow", obj.shadow },
+		{"texture", obj.texture},
+		{"tag", obj.tag},
+		{"layer", obj.layer},
+		{"prefab_path", obj.prefabPath},
+		{"x", obj.x},
+		{"y", obj.y},
+		{"z", obj.z},
+		{"w", obj.w},
+		{"h", obj.h},
+		{"rotation", obj.rotation},
+		{"has_collider", obj.hasCollider},
+		{"col_w", obj.colWidth},
+		{"col_h", obj.colHeight},
+		{"col_offx", obj.colOffsetX},
+		{"col_offy", obj.colOffsetY},
+		{"speed_x", obj.speedX},
+		{"speed_y", obj.speedY},
+		{"animated", obj.animated},
+		{"anim_name", obj.animName},
+		{"shadow", obj.shadow},
 		// Approach offsets
-		{ "approach_offx", obj.approachOffsetX },
-		{ "approach_offy", obj.approachOffsetY },
-		{ "approach2_offx", obj.approachOffset2X },
-		{ "approach2_offy", obj.approachOffset2Y },
+		{"approach_offx", obj.approachOffsetX},
+		{"approach_offy", obj.approachOffsetY},
+		{"approach2_offx", obj.approachOffset2X},
+		{"approach2_offy", obj.approachOffset2Y},
 		// Optional customer seating offset
-		{ "customer_seat_offx", obj.customerSeatOffsetX },
-		{ "customer_seat_offy", obj.customerSeatOffsetY },
-		{ "customer_seat_capacity", obj.customerSeatCapacity },
-		{ "has_customer_seat2", obj.hasCustomerSeatOffset2 },
-		{ "customer_seat2_offx", obj.customerSeatOffset2X },
-		{ "customer_seat2_offy", obj.customerSeatOffset2Y },
+		{"customer_seat_offx", obj.customerSeatOffsetX},
+		{"customer_seat_offy", obj.customerSeatOffsetY},
+		{"customer_seat_capacity", obj.customerSeatCapacity},
+		{"has_customer_seat2", obj.hasCustomerSeatOffset2},
+		{"customer_seat2_offx", obj.customerSeatOffset2X},
+		{"customer_seat2_offy", obj.customerSeatOffset2Y},
 		// Audio bindings
-		{ "audio_on_spawn", obj.audioOnSpawn },
-		{ "audio_on_interact", obj.audioOnInteract },
-		{ "audio_on_destroy", obj.audioOnDestroy },
-		{ "audio_on_processing", obj.audioOnProcessing },
-		{ "audio_loop", obj.audioLoop },
+		{"audio_on_spawn", obj.audioOnSpawn},
+		{"audio_on_interact", obj.audioOnInteract},
+		{"audio_on_destroy", obj.audioOnDestroy},
+		{"audio_on_processing", obj.audioOnProcessing},
+		{"audio_loop", obj.audioLoop},
 		// Per-object visibility
-		{ "visible", obj.visible },
+		{"visible", obj.visible},
 		// Shadow flag
-		{ "shadow", obj.shadow }
-	};
+		{"shadow", obj.shadow} };
 
 	return jsonData;
 }
@@ -281,23 +283,22 @@ static json WriteLevelObject(const LevelObject& obj) {
  */
 static json WriteTextObject(const LevelTextObject& obj) {
 	json jsonData = {
-		{ "name", obj.name },
-		{ "text", obj.text },
-		{ "fontName", obj.fontName },
-		{ "fontSize", obj.fontSize },
-		{ "horizontalAlign", obj.horizontalAlign },
-		{ "x", obj.x },
-		{ "y", obj.y },
-		{ "scale", obj.scale },
-		{ "rotation", obj.rotation },
-		{ "useBlockRotation", obj.useBlockRotation },
-		{ "colorR", obj.colorR },
-		{ "colorG", obj.colorG },
-		{ "colorB", obj.colorB },
-		{ "colorA", obj.colorA },
-		{ "layer", obj.layer },
-		{ "visible", obj.visible }
-	};
+		{"name", obj.name},
+		{"text", obj.text},
+		{"fontName", obj.fontName},
+		{"fontSize", obj.fontSize},
+		{"horizontalAlign", obj.horizontalAlign},
+		{"x", obj.x},
+		{"y", obj.y},
+		{"scale", obj.scale},
+		{"rotation", obj.rotation},
+		{"useBlockRotation", obj.useBlockRotation},
+		{"colorR", obj.colorR},
+		{"colorG", obj.colorG},
+		{"colorB", obj.colorB},
+		{"colorA", obj.colorA},
+		{"layer", obj.layer},
+		{"visible", obj.visible} };
 
 	return jsonData;
 }
@@ -444,7 +445,8 @@ bool LevelSerializer::Save(const std::string& path, const LevelData& inLevel) {
 	}
 
 	std::ofstream file(path);
-	if (!file) return false;
+	if (!file)
+		return false;
 	file << jsonData.dump(2);
 	return true;
 }
