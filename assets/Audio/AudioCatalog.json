@@ -153,14 +153,6 @@
       "volume": 1.0
     },
     {
-      "category": "other",
-      "filepath": "../../assets/Audio/Wrong order.wav",
-      "loop": false,
-      "name": "Wrong order",
-      "stream": false,
-      "volume": 1.0
-    },
-    {
       "category": "sfx",
       "filepath": "../../assets/Audio/sfx_time_up.wav",
       "loop": false,
