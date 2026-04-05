@@ -78,6 +78,7 @@ static bool TryGetObjectWorldPos(Scene& scene, int objectID, glm::vec3& outPos) 
 }
 
 static constexpr float kRecoveredStationOccupantMaxDistSq = 18.0f * 18.0f;
+static constexpr float kAltCuttingBoardItemYOffset = 20.0f;
 
 /**
  * @brief Infers the workstation type from the authored workstation texture.
@@ -154,6 +155,7 @@ void WorkTableLogic::SetHeldItemVisibility(Scene& scene, bool visible) const {
  */
 Math::Vector3D WorkTableLogic::GetItemPlacementPosition(Scene& scene) const {
 	Math::Vector3D basePos = TableLogic::GetItemPlacementPosition(scene);
+	const std::string& texturePath = scene.GetObjectTexturePath(GetOwnerID());
 
 	switch (stationType_) {
 	case StationType::Stove:
@@ -161,6 +163,12 @@ Math::Vector3D WorkTableLogic::GetItemPlacementPosition(Scene& scene) const {
 		basePos.y -= 16.0f;
 		break;
 	case StationType::CuttingBoard:
+		// Level 2's alternate cutting-board art sits lower around the sprite origin,
+		// so lift held food to keep it visually centered on the board.
+		if (Contains(texturePath, "cuttingboardwithside")) {
+			basePos.y -= kAltCuttingBoardItemYOffset;
+		}
+		break;
 	case StationType::Grill:
 	case StationType::Generic:
 	default:
