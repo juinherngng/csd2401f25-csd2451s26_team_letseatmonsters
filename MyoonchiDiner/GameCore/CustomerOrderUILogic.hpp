@@ -85,8 +85,8 @@ private:
 	glm::vec2 lowPatienceBarOffset_ = { 0.0f, 0.0f };
 
 	// --- config (tune these values) ---
-	std::string uiLayerBG_ = "50";
-	std::string uiLayerTop_ = "51";
+	std::string uiLayerBG_ = "100";
+	std::string uiLayerTop_ = "101";
 
 	glm::vec2 bubbleOffset_ = { -55.f, -95.f }; // above head (y negative = up)
 	glm::vec2 dishOffset_ = { -54.f, -100.f }; // relative to customer (sits in bubble)
