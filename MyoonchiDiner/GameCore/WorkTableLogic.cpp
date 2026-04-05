@@ -547,6 +547,10 @@ void WorkTableLogic::StartProcessingSound(Scene& scene) {
 		// Chopping is intentionally quieter than stove and grill ambience.
 		audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 0.2f);
 	}
+	else if (stationType_ == StationType::Stove) {
+		// Boiling is intentionally louder than the default workstation ambience.
+		audioMgr->SetVolume(soundName, audioMgr->GetVfxVolume() * 2.f);
+	}
 
 	processingSoundActive_ = true;
 }
