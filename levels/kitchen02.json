@@ -102,7 +102,7 @@
       "h": 90.0,
       "has_collider": true,
       "has_customer_seat2": false,
-      "layer": "99",
+      "layer": "1",
       "prefab_path": "",
       "rotation": 0.0,
       "shadow": false,
