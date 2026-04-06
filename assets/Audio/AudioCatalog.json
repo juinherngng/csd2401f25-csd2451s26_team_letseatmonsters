@@ -114,7 +114,7 @@
     },
     {
       "category": "bgm",
-      "filepath": "../../assets/Audio/bgm_MyoonchiDiner_IntroCutscene.wav",
+      "filepath": "../../assets/Audio/bgm_MyoonchiDiner_IntroCutscene_slowed_down.wav",
       "loop": false,
       "name": "bgm_MyoonchiDiner_IntroCutscene",
       "stream": false,
