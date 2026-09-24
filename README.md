@@ -2,6 +2,8 @@
 
 Myoonchi Diner is a top-down 2D cooking and restaurant management game built by Team Lets Eat Monsters for Project GAM250. Players take control of Myool, a dungeon slime disguised as a cook, and prepare dishes for adventurers who descend into the dungeon looking for food. The deeper the run goes, the stranger the customers, ingredients, and kitchen challenges become.
 
+Game Trailer: [Myoochi Diner](https://youtu.be/x1yk3eBVfEw)
+
 ## Team Lets Eat Monsters
 
 ### Team Roster
